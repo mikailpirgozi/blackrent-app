@@ -480,6 +480,300 @@ router.get('/:protocolId/manifest', async (req, res) => {
 });
 
 /**
+ * POST /api/v2/protocols/handover/create
+ * Vytvorenie nového handover protokolu
+ */
+router.post('/handover/create', async (req, res) => {
+  try {
+    const { protocolData, userId } = req.body;
+    
+    if (!protocolData) {
+      return res.status(400).json({
+        success: false,
+        error: 'protocolData is required'
+      });
+    }
+    
+    // Check feature flag
+    const client = await postgresDatabase.dbPool.connect();
+    const flagResult = await client.query(`
+      SELECT enabled FROM feature_flags 
+      WHERE flag_name = 'PROTOCOL_V2_ENABLED'
+    `);
+    
+    const flagEnabled = flagResult.rows.length > 0 && flagResult.rows[0].enabled;
+    
+    if (!flagEnabled) {
+      client.release();
+      return res.status(403).json({
+        success: false,
+        error: 'Protocol V2 not enabled'
+      });
+    }
+    
+    // Generate protocol ID
+    const protocolId = `protocol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Save protocol to database
+    await client.query(`
+      INSERT INTO handover_protocols_v2 (
+        protocol_id, vehicle_id, customer_id, rental_id,
+        protocol_data, created_by, created_at, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      protocolId,
+      protocolData.vehicleId,
+      protocolData.customerId, 
+      protocolData.rentalId,
+      JSON.stringify(protocolData),
+      userId,
+      new Date(),
+      'draft'
+    ]);
+    
+    client.release();
+    
+    res.json({
+      success: true,
+      message: 'Handover protocol created',
+      protocolId,
+      data: {
+        protocolId,
+        status: 'draft',
+        createdAt: new Date()
+      }
+    });
+    
+  } catch (error) {
+    console.error('Handover protocol creation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Protocol creation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * PUT /api/v2/protocols/handover/:id
+ * Aktualizácia handover protokolu
+ */
+router.put('/handover/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { protocolData, userId } = req.body;
+    
+    if (!protocolData) {
+      return res.status(400).json({
+        success: false,
+        error: 'protocolData is required'
+      });
+    }
+    
+    const client = await postgresDatabase.dbPool.connect();
+    
+    // Check if protocol exists
+    const existingResult = await client.query(`
+      SELECT protocol_id FROM handover_protocols_v2 WHERE protocol_id = $1
+    `, [id]);
+    
+    if (existingResult.rows.length === 0) {
+      client.release();
+      return res.status(404).json({
+        success: false,
+        error: 'Protocol not found'
+      });
+    }
+    
+    // Update protocol
+    await client.query(`
+      UPDATE handover_protocols_v2 
+      SET protocol_data = $1, updated_by = $2, updated_at = $3
+      WHERE protocol_id = $4
+    `, [
+      JSON.stringify(protocolData),
+      userId,
+      new Date(),
+      id
+    ]);
+    
+    client.release();
+    
+    res.json({
+      success: true,
+      message: 'Protocol updated successfully',
+      protocolId: id
+    });
+    
+  } catch (error) {
+    console.error('Protocol update failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Protocol update failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/v2/protocols/handover/:id
+ * Získanie handover protokolu
+ */
+router.get('/handover/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const client = await postgresDatabase.dbPool.connect();
+    
+    const protocolResult = await client.query(`
+      SELECT 
+        protocol_id,
+        vehicle_id,
+        customer_id,
+        rental_id,
+        protocol_data,
+        status,
+        created_by,
+        created_at,
+        updated_by,
+        updated_at
+      FROM handover_protocols_v2 
+      WHERE protocol_id = $1
+    `, [id]);
+    
+    client.release();
+    
+    if (protocolResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Protocol not found'
+      });
+    }
+    
+    const protocol = protocolResult.rows[0];
+    
+    res.json({
+      success: true,
+      protocol: {
+        protocolId: protocol.protocol_id,
+        vehicleId: protocol.vehicle_id,
+        customerId: protocol.customer_id,
+        rentalId: protocol.rental_id,
+        data: protocol.protocol_data,
+        status: protocol.status,
+        createdBy: protocol.created_by,
+        createdAt: protocol.created_at,
+        updatedBy: protocol.updated_by,
+        updatedAt: protocol.updated_at
+      }
+    });
+    
+  } catch (error) {
+    console.error('Failed to get protocol:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get protocol',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/v2/protocols/photos/categorized-upload
+ * Upload fotografií s kategóriami (vehicle, document, damage, odometer, fuel)
+ */
+router.post('/photos/categorized-upload', upload.array('photos', 20), async (req, res) => {
+  try {
+    const { protocolId, userId, category } = req.body;
+    const files = req.files as Express.Multer.File[];
+    
+    if (!protocolId) {
+      return res.status(400).json({
+        success: false,
+        error: 'protocolId is required'
+      });
+    }
+    
+    if (!category || !['vehicle', 'document', 'damage', 'odometer', 'fuel'].includes(category)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid category is required (vehicle, document, damage, odometer, fuel)'
+      });
+    }
+    
+    if (!files || files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No photos provided'
+      });
+    }
+    
+    // Check feature flag
+    const client = await postgresDatabase.dbPool.connect();
+    const flagResult = await client.query(`
+      SELECT enabled FROM feature_flags 
+      WHERE flag_name = 'PROTOCOL_V2_PHOTO_UPLOAD'
+    `);
+    
+    const flagEnabled = flagResult.rows.length > 0 && flagResult.rows[0].enabled;
+    client.release();
+    
+    if (!flagEnabled) {
+      return res.status(403).json({
+        success: false,
+        error: 'Protocol V2 photo upload not enabled'
+      });
+    }
+    
+    // Batch upload fotografií s kategóriou
+    const uploadRequests = files.map(file => ({
+      file: file.buffer,
+      filename: file.originalname,
+      mimeType: file.mimetype,
+      protocolId,
+      userId,
+      metadata: {
+        category,
+        size: file.size,
+        uploadedAt: new Date()
+      }
+    }));
+    
+    const uploadResults = await photoServiceV2.uploadMultiplePhotos(uploadRequests);
+    
+    // Štatistiky
+    const successful = uploadResults.filter(r => r.success);
+    const failed = uploadResults.filter(r => !r.success);
+    
+    res.json({
+      success: failed.length === 0,
+      message: `Uploaded ${successful.length}/${files.length} ${category} photos`,
+      category,
+      results: {
+        successful: successful.length,
+        failed: failed.length,
+        photos: uploadResults.map(result => ({
+          photoId: result.photoId,
+          success: result.success,
+          originalUrl: result.originalUrl,
+          jobId: result.jobId,
+          error: result.error,
+          category
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('Categorized photo upload failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Categorized photo upload failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * GET /api/v2/protocols/:protocolId/photos
  * Zoznam všetkých fotografií protokolu
  */
@@ -550,7 +844,7 @@ router.get('/:protocolId/photos', async (req, res) => {
 router.delete('/photos/:photoId', async (req, res) => {
   try {
     const { photoId } = req.params;
-    const { userId } = req.body;
+    // const { userId } = req.body; // Not used in this endpoint
     
     // Získanie photo recordu
     const client = await postgresDatabase.dbPool.connect();
@@ -593,11 +887,11 @@ router.delete('/photos/:photoId', async (req, res) => {
     client.release();
     
     // Log deletion
-    console.log(`Photo deleted: ${photoId}`, {
-      protocolId: photo.protocol_id,
-      userId,
-      deletedAt: new Date()
-    });
+    // console.log(`Photo deleted: ${photoId}`, {
+    //   protocolId: photo.protocol_id,
+    //   userId,
+    //   deletedAt: new Date()
+    // });
     
     res.json({
       success: true,
@@ -678,12 +972,12 @@ router.post('/migration/start', async (req, res) => {
     // Check admin permissions
     // TODO: Add proper admin check
     
-    console.log('🚀 Starting V1 → V2 migration', {
-      dryRun,
-      batchSize,
-      protocolIds: protocolIds?.length || 'all',
-      dateRange: startDate && endDate ? `${startDate} - ${endDate}` : 'all'
-    });
+    // console.log('🚀 Starting V1 → V2 migration', {
+    //   dryRun,
+    //   batchSize,
+    //   protocolIds: protocolIds?.length || 'all',
+    //   dateRange: startDate && endDate ? `${startDate} - ${endDate}` : 'all'
+    // });
     
     // Start migration
     const progress = await migrationService.migrateProtocols({

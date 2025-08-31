@@ -120,6 +120,7 @@ import cacheRoutes from './routes/cache';
 import cleanupRoutes from './routes/cleanup';
 import companyRoutes from './routes/companies';
 import companyDocumentsRoutes from './routes/company-documents';
+import featureFlagsRoutes from './routes/feature-flags';
 import companyInvestorRoutes from './routes/company-investors';
 import customerRoutes from './routes/customers';
 import emailImapRoutes from './routes/email-imap';
@@ -177,6 +178,7 @@ app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
+app.use('/api/feature-flags', featureFlagsRoutes);
 // app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 
 // SIMPLE TEST ENDPOINT - s requestId

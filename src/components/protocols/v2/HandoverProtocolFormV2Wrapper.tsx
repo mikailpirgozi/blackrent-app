@@ -3,10 +3,19 @@
  * Mapuje V1 props (onSave, rental) na V2 props (onSubmit, data)
  */
 
+import { DirectionsCar } from '@mui/icons-material';
+import {
+  Box,
+  Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from '@mui/material';
 import React from 'react';
+import { getApiBaseUrl } from '../../../utils/apiUrl';
 import type { HandoverProtocolDataV2 } from './HandoverProtocolFormV2';
 import { HandoverProtocolFormV2 } from './HandoverProtocolFormV2';
-import { getApiBaseUrl } from '../../../utils/apiUrl';
 
 interface V1Props {
   open: boolean;
@@ -157,31 +166,30 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">
-            Odovzdávací protokol V2
-            <span className="ml-2 text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
-              Queue Enabled
-            </span>
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
-
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <DirectionsCar color="primary" />
+          <Typography variant="h6" component="span">
+            Odovzdávací protokol
+          </Typography>
+          <Chip
+            label="V2 Queue Enabled"
+            color="success"
+            size="small"
+            sx={{ fontWeight: 'bold' }}
+          />
+        </Box>
+      </DialogTitle>
+      <DialogContent>
         <HandoverProtocolFormV2
           initialData={initialData}
           onSubmit={handleSubmit}
           onCancel={onClose}
           userId={rental?.userId}
         />
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

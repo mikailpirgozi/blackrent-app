@@ -3,12 +3,35 @@
  * Používa V2 photo capture a queue systém
  */
 
+import {
+  DirectionsCar,
+  LocationOn,
+  Person,
+  PhotoCamera,
+  Receipt,
+  Save,
+  SpeedOutlined,
+} from '@mui/icons-material';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  FormControl,
+  Grid,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import * as uuid from 'uuid';
-import {
-  PROTOCOL_V2_FLAGS,
-  featureManager,
-} from '../../../config/featureFlags';
+import { featureManager } from '../../../config/featureFlags';
 import SignaturePad from '../../common/SignaturePad';
 import {
   SerialPhotoCaptureV2,
@@ -28,29 +51,40 @@ export interface HandoverProtocolDataV2 {
     model: string;
     year: number;
     vin?: string;
+    status?: string;
   };
 
   // Customer info
   customer: {
     firstName: string;
     lastName: string;
+    name?: string; // Unified name field for V1 compatibility
     email: string;
     phone?: string;
+    address?: string;
   };
 
-  // Rental details
+  // Rental details - rozšírené pre V1 kompatibilitu
   rental: {
+    orderNumber?: string;
     startDate: Date;
     endDate: Date;
     startKm: number;
     location: string;
     pricePerDay: number;
     totalPrice: number;
+    deposit?: number;
+    allowedKilometers?: number;
+    extraKilometerRate?: number;
+    pickupLocation?: string;
+    returnLocation?: string;
   };
 
   // Protocol specific
   fuelLevel: number;
+  odometer?: number; // V1 compatibility - stav tachometra
   condition: 'excellent' | 'good' | 'fair' | 'poor';
+  depositPaymentMethod?: 'cash' | 'bank_transfer' | 'card'; // V1 compatibility
   damages: Array<{
     id: string;
     description: string;
@@ -58,9 +92,60 @@ export interface HandoverProtocolDataV2 {
     location: string;
   }>;
   notes?: string;
-  signature?: string;
 
-  // Photos
+  // Signatures - rozšírené pre V1 kompatibilitu
+  signatures: Array<{
+    id: string;
+    signerName: string;
+    signerRole: 'customer' | 'employee';
+    signatureData: string;
+    timestamp: Date;
+    location?: string;
+  }>;
+
+  // Photos - rozšírené pre V1 kompatibilitu (5 kategórií)
+  vehicleImages: Array<{
+    id: string;
+    url: string;
+    type: string;
+    mediaType: string;
+    description?: string;
+    timestamp: Date;
+  }>;
+  documentImages: Array<{
+    id: string;
+    url: string;
+    type: string;
+    mediaType: string;
+    description?: string;
+    timestamp: Date;
+  }>;
+  damageImages: Array<{
+    id: string;
+    url: string;
+    type: string;
+    mediaType: string;
+    description?: string;
+    timestamp: Date;
+  }>;
+  odometerImages: Array<{
+    id: string;
+    url: string;
+    type: string;
+    mediaType: string;
+    description?: string;
+    timestamp: Date;
+  }>;
+  fuelImages: Array<{
+    id: string;
+    url: string;
+    type: string;
+    mediaType: string;
+    description?: string;
+    timestamp: Date;
+  }>;
+
+  // V2 specific photos (zachované pre spätnosť)
   photos: Array<{
     photoId: string;
     description: string;
@@ -100,25 +185,43 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
         brand: '',
         model: '',
         year: new Date().getFullYear(),
+        vin: '',
+        status: 'available',
       },
       customer: initialData?.customer || {
         firstName: '',
         lastName: '',
+        name: '',
         email: '',
+        phone: '',
+        address: '',
       },
       rental: initialData?.rental || {
+        orderNumber: '',
         startDate: new Date(),
         endDate: new Date(),
         startKm: 0,
         location: '',
         pricePerDay: 0,
         totalPrice: 0,
+        deposit: 0,
+        allowedKilometers: 0,
+        extraKilometerRate: 0.5,
+        pickupLocation: '',
+        returnLocation: '',
       },
       fuelLevel: initialData?.fuelLevel || 100,
+      odometer: initialData?.odometer || 0,
       condition: initialData?.condition || 'excellent',
+      depositPaymentMethod: initialData?.depositPaymentMethod || 'cash',
       damages: initialData?.damages || [],
       notes: initialData?.notes || '',
-      signature: initialData?.signature || '',
+      signatures: initialData?.signatures || [],
+      vehicleImages: initialData?.vehicleImages || [],
+      documentImages: initialData?.documentImages || [],
+      damageImages: initialData?.damageImages || [],
+      odometerImages: initialData?.odometerImages || [],
+      fuelImages: initialData?.fuelImages || [],
       photos: initialData?.photos || [],
     })
   );
@@ -128,12 +231,27 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<QueueItem[]>([]);
 
+  // V1 compatibility states
+  const [loading] = useState(false);
+  const [emailStatus] = useState<{
+    status: 'pending' | 'success' | 'error' | 'warning';
+    message?: string;
+  } | null>(null);
+  const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(
+    null
+  );
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [currentSigner, setCurrentSigner] = useState<{
+    name: string;
+    role: 'customer' | 'employee';
+  } | null>(null);
+
   // Check feature flag
   useEffect(() => {
     const checkFeatureFlag = async () => {
       try {
         const enabled = await featureManager.isEnabled(
-          PROTOCOL_V2_FLAGS.FULL_V2_SYSTEM,
+          'PROTOCOL_V2_ENABLED',
           userId
         );
         setIsV2Enabled(enabled);
@@ -180,6 +298,77 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
     setProtocolData(prev => ({
       ...prev,
       photos: photoEntries,
+    }));
+  }, []);
+
+  /**
+   * V1 compatibility - Handle photo capture
+   */
+  const handlePhotoCapture = useCallback((mediaType: string) => {
+    setActivePhotoCapture(mediaType);
+  }, []);
+
+  /**
+   * V1 compatibility - Handle photo capture success
+   */
+  // const handlePhotoCaptureSuccess = useCallback(
+  //   (mediaType: string, images: unknown[], videos: unknown[]) => {
+  //     setProtocolData(prev => ({
+  //       ...prev,
+  //       [`${mediaType}Images`]: images,
+  //       [`${mediaType}Videos`]: videos || [],
+  //     }));
+  //     setActivePhotoCapture(null);
+  //   },
+  //   []
+  // );
+
+  /**
+   * V1 compatibility - Handle signature addition
+   */
+  const handleAddSignature = useCallback(
+    (signerName: string, signerRole: 'customer' | 'employee') => {
+      setCurrentSigner({ name: signerName, role: signerRole });
+      setShowSignaturePad(true);
+    },
+    []
+  );
+
+  /**
+   * V1 compatibility - Handle signature save
+   */
+  const handleSignatureSave = useCallback(
+    (signatureData: {
+      signerName: string;
+      signerRole: 'customer' | 'employee';
+      signature: string;
+    }) => {
+      const newSignature = {
+        id: uuid.v4(),
+        signerName: signatureData.signerName,
+        signerRole: signatureData.signerRole,
+        signatureData: signatureData.signature,
+        timestamp: new Date(),
+        location: protocolData.rental.location,
+      };
+
+      setProtocolData(prev => ({
+        ...prev,
+        signatures: [...prev.signatures, newSignature],
+      }));
+      setShowSignaturePad(false);
+      setCurrentSigner(null);
+    },
+    [protocolData.rental.location]
+  );
+
+  /**
+   * V1 compatibility - Handle signature removal
+   */
+  const handleRemoveSignature = useCallback((signatureId: string) => {
+    setProtocolData(prev => ({
+      ...prev,
+      signatures: prev.signatures.filter(sig => sig.id !== signatureId),
     }));
   }, []);
 
@@ -240,12 +429,62 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
     setSubmitError(null);
 
     try {
-      // Validácia
+      // V1 kompatibilná validácia
+      const errors: string[] = [];
+
+      if (
+        !protocolData.rental.location ||
+        protocolData.rental.location.trim() === ''
+      ) {
+        errors.push('Zadajte miesto prevzatia');
+      }
+
+      if (
+        protocolData.odometer === undefined ||
+        protocolData.odometer === null ||
+        protocolData.odometer < 0
+      ) {
+        errors.push('Zadajte stav tachometra');
+      }
+
+      if (
+        protocolData.fuelLevel === undefined ||
+        protocolData.fuelLevel === null ||
+        protocolData.fuelLevel < 0 ||
+        protocolData.fuelLevel > 100
+      ) {
+        errors.push('Zadajte stav paliva (0-100%)');
+      }
+
+      // Kontrola podpisov
+      const customerSignature = protocolData.signatures.find(
+        sig => sig.signerRole === 'customer'
+      );
+      const employeeSignature = protocolData.signatures.find(
+        sig => sig.signerRole === 'employee'
+      );
+
+      if (!customerSignature) {
+        errors.push('Povinný je podpis zákazníka');
+      }
+
+      if (!employeeSignature) {
+        errors.push('Povinný je podpis zamestnanca');
+      }
+
+      if (!protocolData.depositPaymentMethod) {
+        errors.push('Vyberte spôsob úhrady depozitu');
+      }
+
       if (
         !protocolData.vehicle.licensePlate ||
         !protocolData.customer.firstName
       ) {
-        throw new Error('Vyplňte všetky povinné polia');
+        errors.push('Vyplňte všetky povinné polia');
+      }
+
+      if (errors.length > 0) {
+        throw new Error(`Validation failed: ${errors.join(', ')}`);
       }
 
       // Check že všetky fotografie sú spracované
@@ -276,554 +515,1030 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
 
   if (!isV2Enabled) {
     return (
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <p className="text-sm text-yellow-800">
-          Protocol V2 nie je povolený. Používa sa štandardný formulár.
-        </p>
-      </div>
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        Protocol V2 nie je povolený. Používa sa štandardný formulár.
+      </Alert>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
+    <Box
+      sx={{
+        width: '100%',
+        maxWidth: '100%',
+      }}
+    >
+      {/* Email Status */}
+      {(loading || emailStatus?.status === 'pending') && (
+        <Box sx={{ mb: 2 }}>
+          <LinearProgress />
+          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+            {loading ? '⚡ Ukladám protokol...' : emailStatus?.message}
+          </Typography>
+        </Box>
+      )}
+
+      {emailStatus && emailStatus.status !== 'pending' && (
+        <Alert
+          severity={
+            emailStatus.status === 'success'
+              ? 'success'
+              : emailStatus.status === 'warning'
+                ? 'warning'
+                : 'error'
+          }
+          sx={{
+            mb: 2,
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            animation: 'fadeIn 0.3s ease-in',
+          }}
+        >
+          {emailStatus.message}
+        </Alert>
+      )}
+
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" color="text.primary" sx={{ mb: 1 }}>
           Odovzdávací Protokol
-        </h2>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-            V2 System
-          </span>
-          <span className="text-sm text-gray-600">
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Chip
+            label="V2 Queue Enabled"
+            color="primary"
+            size="small"
+            variant="outlined"
+          />
+          <Typography variant="body2" color="text.secondary">
             ID: {protocolData.protocolId}
-          </span>
-        </div>
-      </div>
+          </Typography>
+        </Box>
+      </Box>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Vehicle Information */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Informácie o vozidle</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ŠPZ *
-              </label>
-              <input
-                type="text"
-                value={protocolData.vehicle.licensePlate}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    vehicle: { ...prev.vehicle, licensePlate: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+      <form onSubmit={handleSubmit}>
+        {/* Informácie o objednávke */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              <Receipt sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Informácie o objednávke
+            </Typography>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Značka *
-              </label>
-              <input
-                type="text"
-                value={protocolData.vehicle.brand}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    vehicle: { ...prev.vehicle, brand: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Číslo objednávky"
+                  value={protocolData.rental.orderNumber || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: { ...prev.rental, orderNumber: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Celková cena (€)"
+                  type="number"
+                  value={protocolData.rental.totalPrice}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        totalPrice: parseFloat(e.target.value) || 0,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Depozit (€)"
+                  type="number"
+                  value={protocolData.rental.deposit || 0}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        deposit: parseFloat(e.target.value) || 0,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Povolené kilometry"
+                  type="number"
+                  value={protocolData.rental.allowedKilometers || 0}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        allowedKilometers: parseInt(e.target.value) || 0,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Cena za extra km (€)"
+                  type="number"
+                  step="0.1"
+                  value={protocolData.rental.extraKilometerRate || 0.5}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        extraKilometerRate: parseFloat(e.target.value) || 0.5,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Miesto prevzatia"
+                  value={protocolData.rental.pickupLocation || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        pickupLocation: e.target.value,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Miesto vrátenia"
+                  value={protocolData.rental.returnLocation || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        returnLocation: e.target.value,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Model *
-              </label>
-              <input
-                type="text"
-                value={protocolData.vehicle.model}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    vehicle: { ...prev.vehicle, model: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+        {/* Informácie o zákazníkovi */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Informácie o zákazníkovi
+            </Typography>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Rok výroby
-              </label>
-              <input
-                type="number"
-                value={protocolData.vehicle.year}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    vehicle: {
-                      ...prev.vehicle,
-                      year:
-                        parseInt(e.target.value) || new Date().getFullYear(),
-                    },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                min="1900"
-                max={new Date().getFullYear() + 1}
-                disabled={disabled}
-              />
-            </div>
-          </div>
-        </section>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Meno *"
+                  value={protocolData.customer.firstName}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      customer: {
+                        ...prev.customer,
+                        firstName: e.target.value,
+                        name: `${e.target.value} ${prev.customer.lastName}`.trim(),
+                      },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Priezvisko *"
+                  value={protocolData.customer.lastName}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      customer: {
+                        ...prev.customer,
+                        lastName: e.target.value,
+                        name: `${prev.customer.firstName} ${e.target.value}`.trim(),
+                      },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Email *"
+                  type="email"
+                  value={protocolData.customer.email}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, email: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Telefón"
+                  type="tel"
+                  value={protocolData.customer.phone || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, phone: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={8}>
+                <TextField
+                  label="Adresa"
+                  value={protocolData.customer.address || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      customer: { ...prev.customer, address: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-        {/* Customer Information */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">
-            Informácie o zákazníkovi
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Meno *
-              </label>
-              <input
-                type="text"
-                value={protocolData.customer.firstName}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    customer: { ...prev.customer, firstName: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+        {/* Informácie o vozidle */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              <DirectionsCar sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Informácie o vozidle
+            </Typography>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priezvisko *
-              </label>
-              <input
-                type="text"
-                value={protocolData.customer.lastName}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    customer: { ...prev.customer, lastName: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="ŠPZ *"
+                  value={protocolData.vehicle.licensePlate}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      vehicle: {
+                        ...prev.vehicle,
+                        licensePlate: e.target.value,
+                      },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Značka *"
+                  value={protocolData.vehicle.brand}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      vehicle: { ...prev.vehicle, brand: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Model *"
+                  value={protocolData.vehicle.model}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      vehicle: { ...prev.vehicle, model: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  label="Rok výroby"
+                  type="number"
+                  value={protocolData.vehicle.year}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      vehicle: {
+                        ...prev.vehicle,
+                        year:
+                          parseInt(e.target.value) || new Date().getFullYear(),
+                      },
+                    }))
+                  }
+                  inputProps={{
+                    min: 1900,
+                    max: new Date().getFullYear() + 1,
+                  }}
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={6}>
+                <TextField
+                  label="VIN číslo"
+                  value={protocolData.vehicle.vin || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      vehicle: { ...prev.vehicle, vin: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={6}>
+                <FormControl fullWidth disabled={disabled}>
+                  <InputLabel>Stav vozidla</InputLabel>
+                  <Select
+                    value={protocolData.vehicle.status || 'available'}
+                    onChange={e =>
+                      setProtocolData(prev => ({
+                        ...prev,
+                        vehicle: { ...prev.vehicle, status: e.target.value },
+                      }))
+                    }
+                    label="Stav vozidla"
+                  >
+                    <MenuItem value="available">Dostupné</MenuItem>
+                    <MenuItem value="rented">Prenajatý</MenuItem>
+                    <MenuItem value="maintenance">Údržba</MenuItem>
+                    <MenuItem value="unavailable">Nedostupné</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={protocolData.customer.email}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    customer: { ...prev.customer, email: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+        <Divider sx={{ my: 3 }} />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Telefón
-              </label>
-              <input
-                type="tel"
-                value={protocolData.customer.phone || ''}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    customer: { ...prev.customer, phone: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                disabled={disabled}
-              />
-            </div>
-          </div>
-        </section>
+        {/* Údaje protokolu */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              <LocationOn sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Údaje protokolu
+            </Typography>
 
-        {/* Rental Details */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Detaily prenájmu</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Začiatok prenájmu *
-              </label>
-              <input
-                type="datetime-local"
-                value={protocolData.rental.startDate.toISOString().slice(0, 16)}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    rental: {
-                      ...prev.rental,
-                      startDate: new Date(e.target.value),
-                    },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Miesto prevzatia *"
+                  value={protocolData.rental.location}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: { ...prev.rental, location: e.target.value },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  placeholder="Zadajte presné miesto prevzatia vozidla"
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Poznámky k protokolu"
+                  value={protocolData.notes || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                  fullWidth
+                  multiline
+                  rows={2}
+                  placeholder="Dodatočné poznámky k odovzdávaniu vozidla"
+                  disabled={disabled}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Koniec prenájmu *
-              </label>
-              <input
-                type="datetime-local"
-                value={protocolData.rental.endDate.toISOString().slice(0, 16)}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    rental: {
-                      ...prev.rental,
-                      endDate: new Date(e.target.value),
-                    },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
+        {/* Detaily prenájmu */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              Detaily prenájmu
+            </Typography>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Počiatočný stav km *
-              </label>
-              <input
-                type="number"
-                value={protocolData.rental.startKm}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    rental: {
-                      ...prev.rental,
-                      startKm: parseInt(e.target.value) || 0,
-                    },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                min="0"
-                required
-                disabled={disabled}
-              />
-            </div>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Začiatok prenájmu *"
+                  type="datetime-local"
+                  value={protocolData.rental.startDate
+                    .toISOString()
+                    .slice(0, 16)}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        startDate: new Date(e.target.value),
+                      },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Koniec prenájmu *"
+                  type="datetime-local"
+                  value={protocolData.rental.endDate.toISOString().slice(0, 16)}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      rental: {
+                        ...prev.rental,
+                        endDate: new Date(e.target.value),
+                      },
+                    }))
+                  }
+                  fullWidth
+                  required
+                  disabled={disabled}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Lokácia *
-              </label>
-              <input
-                type="text"
-                value={protocolData.rental.location}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    rental: { ...prev.rental, location: e.target.value },
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={disabled}
-              />
-            </div>
-          </div>
-        </section>
+        {/* Stav vozidla pri odovzdaní */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              <SpeedOutlined sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Stav vozidla pri odovzdaní
+            </Typography>
 
-        {/* Vehicle Condition */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Stav vozidla</h3>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Stav tachometra (km) *"
+                  type="number"
+                  value={protocolData.odometer || ''}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      odometer: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  fullWidth
+                  required
+                  helperText="Aktuálny stav kilometrov na vozidle"
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  label="Úroveň paliva (%)"
+                  type="number"
+                  value={protocolData.fuelLevel}
+                  onChange={e =>
+                    setProtocolData(prev => ({
+                      ...prev,
+                      fuelLevel: parseInt(e.target.value) || 100,
+                    }))
+                  }
+                  inputProps={{ min: 0, max: 100 }}
+                  fullWidth
+                  required
+                  helperText="Percentuálna úroveň paliva v nádrži"
+                  disabled={disabled}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth required disabled={disabled}>
+                  <InputLabel>Spôsob úhrady depozitu *</InputLabel>
+                  <Select
+                    value={protocolData.depositPaymentMethod || 'cash'}
+                    onChange={e =>
+                      setProtocolData(prev => ({
+                        ...prev,
+                        depositPaymentMethod: e.target.value as
+                          | 'cash'
+                          | 'bank_transfer'
+                          | 'card',
+                      }))
+                    }
+                    label="Spôsob úhrady depozitu *"
+                  >
+                    <MenuItem value="cash">Hotovosť</MenuItem>
+                    <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
+                    <MenuItem value="card">Kartová zábezpeka</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth disabled={disabled}>
+                  <InputLabel>Celkový stav</InputLabel>
+                  <Select
+                    value={protocolData.condition}
+                    onChange={e =>
+                      setProtocolData(prev => ({
+                        ...prev,
+                        condition: e.target
+                          .value as HandoverProtocolDataV2['condition'],
+                      }))
+                    }
+                    label="Celkový stav"
+                  >
+                    <MenuItem value="excellent">Výborný</MenuItem>
+                    <MenuItem value="good">Dobrý</MenuItem>
+                    <MenuItem value="fair">Priemerný</MenuItem>
+                    <MenuItem value="poor">Zlý</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Úroveň paliva (%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={protocolData.fuelLevel}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    fuelLevel: parseInt(e.target.value),
-                  }))
-                }
-                className="w-full"
-                disabled={disabled}
-              />
-              <div className="text-center text-sm text-gray-600 mt-1">
-                {protocolData.fuelLevel}%
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Celkový stav
-              </label>
-              <select
-                value={protocolData.condition}
-                onChange={e =>
-                  setProtocolData(prev => ({
-                    ...prev,
-                    condition: e.target
-                      .value as HandoverProtocolDataV2['condition'],
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                disabled={disabled}
-              >
-                <option value="excellent">Výborný</option>
-                <option value="good">Dobrý</option>
-                <option value="fair">Priemerný</option>
-                <option value="poor">Zlý</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Damages */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-medium">Poškodenia</h4>
-              <button
-                type="button"
+        {/* Poškodenia */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6">Poškodenia</Typography>
+              <Button
+                variant="outlined"
                 onClick={addDamage}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
                 disabled={disabled}
+                size="small"
               >
                 Pridať poškodenie
-              </button>
-            </div>
+              </Button>
+            </Box>
 
             {protocolData.damages.map(damage => (
-              <div key={damage.id} className="bg-white p-4 rounded border mb-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Popis
-                    </label>
-                    <input
-                      type="text"
-                      value={damage.description}
-                      onChange={e =>
-                        updateDamage(damage.id, { description: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      disabled={disabled}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Závažnosť
-                    </label>
-                    <select
-                      value={damage.severity}
-                      onChange={e =>
-                        updateDamage(damage.id, {
-                          severity: e.target.value as typeof damage.severity,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      disabled={disabled}
-                    >
-                      <option value="minor">Malé</option>
-                      <option value="moderate">Stredné</option>
-                      <option value="major">Veľké</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lokácia
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
+              <Card key={damage.id} variant="outlined" sx={{ mb: 2 }}>
+                <CardContent>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="Popis"
+                        value={damage.description}
+                        onChange={e =>
+                          updateDamage(damage.id, {
+                            description: e.target.value,
+                          })
+                        }
+                        fullWidth
+                        disabled={disabled}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <FormControl fullWidth disabled={disabled}>
+                        <InputLabel>Závažnosť</InputLabel>
+                        <Select
+                          value={damage.severity}
+                          onChange={e =>
+                            updateDamage(damage.id, {
+                              severity: e.target
+                                .value as typeof damage.severity,
+                            })
+                          }
+                          label="Závažnosť"
+                        >
+                          <MenuItem value="minor">Malé</MenuItem>
+                          <MenuItem value="moderate">Stredné</MenuItem>
+                          <MenuItem value="major">Veľké</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="Lokácia"
                         value={damage.location}
                         onChange={e =>
                           updateDamage(damage.id, { location: e.target.value })
                         }
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        fullWidth
                         disabled={disabled}
                       />
-                      <button
-                        type="button"
+                    </Grid>
+                    <Grid item xs={12} sm={1}>
+                      <Button
+                        variant="outlined"
+                        color="error"
                         onClick={() => removeDamage(damage.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded"
                         disabled={disabled}
+                        size="small"
+                        sx={{ minWidth: 'auto', p: 1 }}
                       >
                         ×
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
             ))}
 
             {protocolData.damages.length === 0 && (
-              <div className="text-center py-4 text-gray-500 bg-white rounded border">
+              <Alert severity="info" sx={{ mt: 2 }}>
                 Žiadne poškodenia nezaznamenané
-              </div>
+              </Alert>
             )}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        {/* Photos */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">
-            Dokumentačné fotografie
-          </h3>
-          <SerialPhotoCaptureV2
-            protocolId={protocolData.protocolId}
-            onPhotosChange={handlePhotosChange}
-            onUploadComplete={handlePhotoUploadComplete}
-            maxPhotos={20}
-            userId={userId}
-            disabled={disabled}
-          />
-        </section>
+        {/* Fotodokumentácia - V1 štýl s 5 kategóriami */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Fotodokumentácia
+            </Typography>
 
-        {/* Notes */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Poznámky</h3>
-          <textarea
-            value={protocolData.notes}
-            onChange={e =>
-              setProtocolData(prev => ({
-                ...prev,
-                notes: e.target.value,
-              }))
-            }
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="Dodatočné poznámky k protokolu..."
-            disabled={disabled}
-          />
-        </section>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => handlePhotoCapture('vehicle')}
+                  fullWidth
+                  size="large"
+                  disabled={disabled}
+                >
+                  Fotky vozidla ({protocolData.vehicleImages.length})
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => handlePhotoCapture('document')}
+                  fullWidth
+                  size="large"
+                  disabled={disabled}
+                >
+                  Dokumenty ({protocolData.documentImages.length})
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => handlePhotoCapture('damage')}
+                  fullWidth
+                  size="large"
+                  disabled={disabled}
+                >
+                  Poškodenia ({protocolData.damageImages.length})
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={6}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => handlePhotoCapture('odometer')}
+                  fullWidth
+                  size="large"
+                  disabled={disabled}
+                >
+                  Fotka km ({protocolData.odometerImages.length})
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={6}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCamera />}
+                  onClick={() => handlePhotoCapture('fuel')}
+                  fullWidth
+                  size="large"
+                  disabled={disabled}
+                >
+                  Fotka paliva ({protocolData.fuelImages.length})
+                </Button>
+              </Grid>
+            </Grid>
 
-        {/* Signature */}
-        <section className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Podpis zákazníka</h3>
-          <SignaturePad
-            onSignatureChange={signature =>
-              setProtocolData(prev => ({
-                ...prev,
-                signature,
-              }))
-            }
-            disabled={disabled}
-          />
-        </section>
+            {/* V2 Queue Info */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                ✨ V2 Queue: Fotografie sa spracúvajú na pozadí pre lepší výkon
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Elektronické podpisy s časovou pečiatkou - V1 štýl */}
+        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+              ✍️ Elektronické podpisy s časovou pečiatkou
+            </Typography>
+
+            {/* Existujúce podpisy */}
+            {protocolData.signatures.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                {protocolData.signatures.map(signature => (
+                  <Chip
+                    key={signature.id}
+                    label={`${signature.signerName} (${signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'})`}
+                    onDelete={() => handleRemoveSignature(signature.id)}
+                    color={
+                      signature.signerRole === 'customer'
+                        ? 'primary'
+                        : 'secondary'
+                    }
+                    sx={{ mr: 1, mb: 1 }}
+                  />
+                ))}
+              </Box>
+            )}
+
+            {/* Tlačidlá pre pridanie podpisov */}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    handleAddSignature(
+                      `${protocolData.customer.firstName} ${protocolData.customer.lastName}`.trim() ||
+                        'Zákazník',
+                      'customer'
+                    )
+                  }
+                  startIcon={<Person />}
+                  color={
+                    protocolData.signatures.find(
+                      sig => sig.signerRole === 'customer'
+                    )
+                      ? 'success'
+                      : 'primary'
+                  }
+                  fullWidth
+                  disabled={disabled}
+                >
+                  Podpis zákazníka *
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    handleAddSignature('Zamestnanec BlackRent', 'employee')
+                  }
+                  startIcon={<Person />}
+                  color={
+                    protocolData.signatures.find(
+                      sig => sig.signerRole === 'employee'
+                    )
+                      ? 'success'
+                      : 'primary'
+                  }
+                  fullWidth
+                  disabled={disabled}
+                >
+                  Podpis zamestnanca *
+                </Button>
+              </Grid>
+            </Grid>
+
+            {/* Indikátor povinných podpisov */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                * Povinné polia - musia byť vyplnené pred uložením protokolu
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Submit Error */}
         {submitError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <svg
-                className="w-5 h-5 text-red-400 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div>
-                <h4 className="text-sm font-medium text-red-800">
-                  Chyba pri ukladaní protokolu
-                </h4>
-                <p className="text-sm text-red-700 mt-1">{submitError}</p>
-              </div>
-            </div>
-          </div>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2">
+              Chyba pri ukladaní protokolu
+            </Typography>
+            <Typography variant="body2">{submitError}</Typography>
+          </Alert>
         )}
 
         {/* Submit Buttons */}
-        <div className="flex justify-end space-x-4 pt-6 border-t">
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            justifyContent: 'flex-end',
+            mt: 3,
+            mb: 2,
+            pt: 3,
+            borderTop: 1,
+            borderColor: 'divider',
+          }}
+        >
           {onCancel && (
-            <button
-              type="button"
+            <Button
+              variant="outlined"
               onClick={onCancel}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              disabled={isSubmitting}
+              disabled={isSubmitting || loading}
             >
               Zrušiť
-            </button>
+            </Button>
           )}
-
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting || disabled}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg transition-colors flex items-center"
+            variant="contained"
+            startIcon={<Save />}
+            disabled={isSubmitting || disabled || loading}
+            sx={{
+              minWidth: 200,
+            }}
           >
-            {isSubmitting && (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-            )}
-            {isSubmitting ? 'Ukladám...' : 'Uložiť protokol'}
-          </button>
-        </div>
+            {isSubmitting || loading ? 'Ukladám...' : 'Uložiť a generovať PDF'}
+          </Button>
+        </Box>
 
         {/* Upload Progress Info */}
         {uploadedPhotos.length > 0 && (
-          <div className="text-sm text-gray-600 text-center">
-            <div className="flex justify-center items-center gap-4">
-              <span>
-                Fotografie:{' '}
-                {uploadedPhotos.filter(p => p.status === 'completed').length}/
-                {uploadedPhotos.length}
-              </span>
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Fotografie:{' '}
+              {uploadedPhotos.filter(p => p.status === 'completed').length}/
+              {uploadedPhotos.length}
               {uploadedPhotos.some(p => p.status === 'processing') && (
-                <span className="text-blue-600">⏳ Spracovávam...</span>
+                <Chip
+                  label="⏳ Spracovávam..."
+                  color="info"
+                  size="small"
+                  sx={{ ml: 1 }}
+                />
               )}
               {uploadedPhotos.some(p => p.status === 'failed') && (
-                <span className="text-red-600">
-                  ❌ {uploadedPhotos.filter(p => p.status === 'failed').length}{' '}
-                  chýb
-                </span>
+                <Chip
+                  label={`❌ ${uploadedPhotos.filter(p => p.status === 'failed').length} chýb`}
+                  color="error"
+                  size="small"
+                  sx={{ ml: 1 }}
+                />
               )}
-            </div>
-          </div>
+            </Typography>
+          </Box>
         )}
       </form>
-    </div>
+
+      {/* Photo capture modal - V1 compatibility */}
+      {activePhotoCapture && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            p: 2,
+          }}
+        >
+          <Box
+            sx={{
+              backgroundColor: 'white',
+              borderRadius: 2,
+              maxWidth: 800,
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}
+          >
+            <SerialPhotoCaptureV2
+              protocolId={protocolData.protocolId}
+              onPhotosChange={handlePhotosChange}
+              onUploadComplete={handlePhotoUploadComplete}
+              maxPhotos={20}
+              userId={userId}
+              disabled={disabled}
+            />
+            <Box sx={{ p: 2, textAlign: 'right' }}>
+              <Button
+                variant="outlined"
+                onClick={() => setActivePhotoCapture(null)}
+              >
+                Zavrieť
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* SignaturePad modal - V1 compatibility */}
+      {showSignaturePad && currentSigner && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            p: 2,
+          }}
+        >
+          <Box
+            sx={{
+              backgroundColor: 'white',
+              borderRadius: 2,
+              maxWidth: 600,
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}
+          >
+            <SignaturePad
+              onSave={handleSignatureSave}
+              onCancel={() => setShowSignaturePad(false)}
+              signerName={currentSigner.name}
+              signerRole={currentSigner.role}
+              location={protocolData.rental.location}
+            />
+          </Box>
+        </Box>
+      )}
+    </Box>
   );
 };

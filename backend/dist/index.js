@@ -132,6 +132,7 @@ const cache_1 = __importDefault(require("./routes/cache"));
 const cleanup_1 = __importDefault(require("./routes/cleanup"));
 const companies_1 = __importDefault(require("./routes/companies"));
 const company_documents_1 = __importDefault(require("./routes/company-documents"));
+const feature_flags_1 = __importDefault(require("./routes/feature-flags"));
 const company_investors_1 = __importDefault(require("./routes/company-investors"));
 const customers_1 = __importDefault(require("./routes/customers"));
 const email_imap_1 = __importDefault(require("./routes/email-imap"));
@@ -188,6 +189,7 @@ app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
 app.use('/api/push', push_1.default);
 app.use('/api/company-documents', company_documents_1.default);
+app.use('/api/feature-flags', feature_flags_1.default);
 // app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 // SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {

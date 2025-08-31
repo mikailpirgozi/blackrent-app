@@ -5,10 +5,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as uuid from 'uuid';
-import {
-  PROTOCOL_V2_FLAGS,
-  featureManager,
-} from '../../../config/featureFlags';
+import { featureManager } from '../../../config/featureFlags';
 
 export interface QueueItem {
   id: string;
@@ -65,7 +62,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
     const checkFeatureFlag = async () => {
       try {
         const enabled = await featureManager.isEnabled(
-          PROTOCOL_V2_FLAGS.PHOTO_UPLOAD,
+          'PROTOCOL_V2_ENABLED',
           userId
         );
         setIsV2Enabled(enabled);
@@ -186,9 +183,17 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         formData.append('userId', userId);
       }
 
+      // Get auth token
+      const token =
+        localStorage.getItem('blackrent_token') ||
+        sessionStorage.getItem('blackrent_token');
+
       // Upload request
       const response = await fetch('/api/v2/protocols/photos/upload', {
         method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         body: formData,
       });
 
