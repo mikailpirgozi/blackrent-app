@@ -39,6 +39,10 @@ export declare class ImageProcessor {
     private config;
     constructor(config?: DerivativeConfig);
     /**
+     * Získa aktuálnu konfiguráciu
+     */
+    getConfig(): DerivativeConfig;
+    /**
      * Hlavná funkcia pre generovanie derivatívov
      */
     generateDerivatives(inputBuffer: Buffer): Promise<ProcessedImage>;

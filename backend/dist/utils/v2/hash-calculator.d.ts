@@ -58,5 +58,23 @@ export declare class HashCalculator {
      * Generuje unique identifier na základe hash a timestamp
      */
     static generateUniqueId(buffer: Buffer): string;
+    /**
+     * Generuje manifest pre súbory
+     * Používa sa v testoch
+     */
+    static generateManifest(files: Array<{
+        name: string;
+        hash: string;
+        size: number;
+    }>): {
+        files: {
+            name: string;
+            hash: string;
+            size: number;
+        }[];
+        totalSize: number;
+        timestamp: Date;
+        version: string;
+    };
 }
 //# sourceMappingURL=hash-calculator.d.ts.map

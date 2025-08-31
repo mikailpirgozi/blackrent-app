@@ -41,6 +41,7 @@ export interface PDFGenerationResult {
     success: boolean;
     pdfUrl?: string;
     pdfHash?: string;
+    pdfBuffer?: Buffer;
     fileSize?: number;
     pageCount?: number;
     error?: string;
@@ -49,6 +50,19 @@ export interface PDFGenerationResult {
 export declare class PDFAGenerator {
     private fontPath;
     constructor();
+    /**
+     * Wrapper pre testy - generuje PDF/A z protokol dát
+     */
+    generatePDFA(data: Record<string, unknown>): Promise<Buffer>;
+    /**
+     * Získa default metadata pre PDF/A
+     */
+    getDefaultMetadata(): {
+        creator: string;
+        producer: string;
+        title: string;
+        conformance: string;
+    };
     /**
      * Hlavná funkcia pre generovanie PDF/A protokolu
      */

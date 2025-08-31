@@ -8,7 +8,15 @@ import PDFDocument from 'pdfkit';
 import { HashCalculator } from './hash-calculator';
 
 // Dynamický import storage podľa environment
-let r2Storage: any;
+interface IR2Storage {
+  uploadFile: (key: string, buffer: Buffer, contentType?: string) => Promise<string>;
+  getFile: (key: string) => Promise<Buffer | null>;
+  deleteFile: (key: string) => Promise<boolean>;
+  listFiles: (prefix?: string) => Promise<string[]>;
+  fileExists: (key: string) => Promise<boolean>;
+}
+
+let r2Storage: IR2Storage;
 
 if (process.env.NODE_ENV === 'test') {
   try {
@@ -70,6 +78,7 @@ export interface PDFGenerationResult {
   success: boolean;
   pdfUrl?: string;
   pdfHash?: string;
+  pdfBuffer?: Buffer;
   fileSize?: number;
   pageCount?: number;
   error?: string;
@@ -93,14 +102,29 @@ export class PDFAGenerator {
     }
     
     // Konverzia dát na požadovaný formát
+    const dataObj = data as any;
     const request: PDFGenerationRequest = {
-      protocolId: data.protocolId || 'test-protocol',
-      protocolType: data.type || 'handover',
-      data: data.data || {
-        vehicle: data.vehicle || {},
-        customer: data.customer || {},
-        rental: data.rental || {},
-        photos: data.photos || []
+      protocolId: dataObj.protocolId || 'test-protocol',
+      protocolType: (dataObj.type || 'handover') as 'handover' | 'return',
+      data: dataObj.data || {
+        vehicle: dataObj.vehicle || {
+          licensePlate: '',
+          brand: '',
+          model: '',
+          year: new Date().getFullYear()
+        },
+        customer: dataObj.customer || {
+          firstName: '',
+          lastName: '',
+          email: ''
+        },
+        rental: dataObj.rental || {
+          startDate: new Date(),
+          endDate: new Date(),
+          startKm: 0,
+          location: ''
+        },
+        photos: dataObj.photos || []
       }
     };
     

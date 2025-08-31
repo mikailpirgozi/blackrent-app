@@ -80,6 +80,26 @@ export declare class ProtocolMigrationService {
      */
     getProgress(): MigrationProgress;
     /**
+     * Alias pre migrateProtocol - používa sa v testoch
+     */
+    migrateSingleProtocol(protocolId: string): Promise<MigrationProgress>;
+    /**
+     * Rollback migration - používa sa v testoch
+     */
+    rollbackMigration(protocolId: string): Promise<boolean>;
+    /**
+     * Validácia V1 protokolu - používa sa v testoch
+     */
+    isValidV1Protocol(protocol: Record<string, unknown>): boolean;
+    /**
+     * Update progress - používa sa v testoch
+     */
+    updateProgress(progress: MigrationProgress, processed: number, failed: number): void;
+    /**
+     * Get success rate - používa sa v testoch
+     */
+    getSuccessRate(progress: MigrationProgress): number;
+    /**
      * Validácia migrácie
      */
     validateMigration(protocolId: string): Promise<{
@@ -88,4 +108,5 @@ export declare class ProtocolMigrationService {
     }>;
 }
 export declare const migrationService: ProtocolMigrationService;
+export declare const MigrationService: typeof ProtocolMigrationService;
 //# sourceMappingURL=migration-script.d.ts.map

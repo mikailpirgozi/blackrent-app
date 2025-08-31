@@ -8,8 +8,31 @@ import { HashCalculator } from './hash-calculator';
 import { ImageProcessor } from './sharp-processor';
 
 // Dynamický import databázy a storage podľa environment
-let postgresDatabase: any;
-let r2Storage: any;
+interface IDatabase {
+  query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[]; rowCount: number }>;
+  getAllVehicles: () => Promise<unknown[]>;
+  getAllCustomers: () => Promise<unknown[]>;
+  getAllRentals: () => Promise<unknown[]>;
+  getProtocolById: (id: string) => Promise<unknown>;
+  createProtocol: (data: unknown) => Promise<unknown>;
+  dbPool?: {
+    connect: () => Promise<{
+      query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[]; rowCount: number }>;
+      release: () => void;
+    }>;
+  }; // Potrebné pre kompatibilitu
+}
+
+interface IStorage {
+  uploadFile: (key: string, buffer: Buffer, contentType?: string) => Promise<string>;
+  getFile: (key: string) => Promise<Buffer | null>;
+  deleteFile: (key: string) => Promise<boolean>;
+  listFiles: (prefix?: string) => Promise<string[]>;
+  fileExists: (key: string) => Promise<boolean>;
+}
+
+let postgresDatabase: IDatabase;
+let r2Storage: IStorage;
 
 if (process.env.NODE_ENV === 'test') {
   // V test mode použijeme mocky
@@ -23,7 +46,7 @@ if (process.env.NODE_ENV === 'test') {
       getAllCustomers: async () => [],
       getAllRentals: async () => [],
       getProtocolById: async () => null,
-      createProtocol: async (data: any) => ({ id: 'mock-' + Date.now(), ...data })
+      createProtocol: async (data: unknown) => ({ id: 'mock-' + Date.now(), ...data as object })
     };
   }
   
@@ -211,7 +234,7 @@ export class ProtocolMigrationService {
     startDate?: Date;
     endDate?: Date;
   }): Promise<Array<{ id: string; photos?: unknown[]; pdfUrl?: string; [key: string]: unknown }>> {
-    const client = await postgresDatabase.dbPool.connect();
+    const client = await postgresDatabase.dbPool!.connect();
     
     try {
       let query = `
@@ -264,7 +287,12 @@ export class ProtocolMigrationService {
       query += ` GROUP BY p.id ORDER BY p.created_at`;
       
       const result = await client.query(query, params);
-      return result.rows;
+      return result.rows as Array<{
+        id: string;
+        photos?: unknown[];
+        pdfUrl?: string;
+        [key: string]: unknown;
+      }>;
       
     } finally {
       client.release();
@@ -275,7 +303,7 @@ export class ProtocolMigrationService {
    * Migrácia základných dát protokolu
    */
   private async migrateProtocolData(protocol: { id: string; [key: string]: unknown }): Promise<void> {
-    const client = await postgresDatabase.dbPool.connect();
+    const client = await postgresDatabase.dbPool!.connect();
     
     try {
       // Insert do V2 tabuľky (ak neexistuje)
@@ -398,7 +426,7 @@ export class ProtocolMigrationService {
       const newPdfUrl = await r2Storage.uploadFile(newPdfKey, pdfBuffer, 'application/pdf');
       
       // Save PDF record
-      const client = await postgresDatabase.dbPool.connect();
+      const client = await postgresDatabase.dbPool!.connect();
       
       await client.query(`
         INSERT INTO protocol_processing_jobs (
@@ -514,7 +542,7 @@ export class ProtocolMigrationService {
     pdfUrl: string;
     metadata: Record<string, unknown>;
   }): Promise<void> {
-    const client = await postgresDatabase.dbPool.connect();
+    const client = await postgresDatabase.dbPool!.connect();
     
     try {
       // Insert do photo_derivatives
@@ -591,7 +619,7 @@ export class ProtocolMigrationService {
    * Označenie protokolu ako migrovaný
    */
   private async markProtocolAsMigrated(protocolId: string): Promise<void> {
-    const client = await postgresDatabase.dbPool.connect();
+    const client = await postgresDatabase.dbPool!.connect();
     
     try {
       await client.query(`
@@ -611,7 +639,7 @@ export class ProtocolMigrationService {
    * Rollback migrácie pre protokol
    */
   async rollbackProtocol(protocolId: string): Promise<void> {
-    const client = await postgresDatabase.dbPool.connect();
+    const client = await postgresDatabase.dbPool!.connect();
     
     try {
       console.log(`🔄 Rolling back protocol ${protocolId}`);
@@ -651,7 +679,7 @@ export class ProtocolMigrationService {
   /**
    * Alias pre migrateProtocol - používa sa v testoch
    */
-  async migrateProtocol(protocolId: string): Promise<MigrationProgress> {
+  async migrateSingleProtocol(protocolId: string): Promise<MigrationProgress> {
     return this.migrateProtocols({ protocolIds: [protocolId] });
   }
   
@@ -709,7 +737,7 @@ export class ProtocolMigrationService {
     const issues: string[] = [];
     
     try {
-      const client = await postgresDatabase.dbPool.connect();
+      const client = await postgresDatabase.dbPool!.connect();
       
       // Check V2 protocol record
       const v2Result = await client.query('SELECT id FROM protocols_v2 WHERE id = $1', [protocolId]);
@@ -722,14 +750,14 @@ export class ProtocolMigrationService {
         SELECT COUNT(*) as count FROM photo_derivatives WHERE protocol_id = $1
       `, [protocolId]);
       
-      const photoCount = parseInt(photosResult.rows[0].count);
+      const photoCount = parseInt((photosResult.rows[0] as any).count);
       
       // Check original photos count
       const originalPhotosResult = await client.query(`
         SELECT COUNT(*) as count FROM protocol_photos WHERE protocol_id = $1
       `, [protocolId]);
       
-      const originalPhotoCount = parseInt(originalPhotosResult.rows[0].count);
+      const originalPhotoCount = parseInt((originalPhotosResult.rows[0] as any).count);
       
       if (photoCount !== originalPhotoCount) {
         issues.push(`Photo count mismatch: V1=${originalPhotoCount}, V2=${photoCount}`);

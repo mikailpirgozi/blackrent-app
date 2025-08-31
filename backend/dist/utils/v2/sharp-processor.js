@@ -8,8 +8,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImageProcessor = exports.DEFAULT_DERIVATIVE_CONFIG = void 0;
-const sharp_1 = __importDefault(require("sharp"));
 const crypto_1 = __importDefault(require("crypto"));
+const sharp_1 = __importDefault(require("sharp"));
 exports.DEFAULT_DERIVATIVE_CONFIG = {
     thumb: { width: 150, height: 150, quality: 60, format: 'webp' },
     gallery: { width: 1280, quality: 80, format: 'jpeg' },
@@ -18,6 +18,12 @@ exports.DEFAULT_DERIVATIVE_CONFIG = {
 class ImageProcessor {
     constructor(config = exports.DEFAULT_DERIVATIVE_CONFIG) {
         this.config = config;
+    }
+    /**
+     * Získa aktuálnu konfiguráciu
+     */
+    getConfig() {
+        return this.config;
     }
     /**
      * Hlavná funkcia pre generovanie derivatívov

@@ -320,7 +320,7 @@ describe('Protocol V2 Integration Tests', () => {
     it('should initialize migration service', () => {
       const service = new MigrationService();
       expect(service).toBeDefined();
-      expect(service.migrateProtocol).toBeDefined();
+      expect(service.migrateSingleProtocol).toBeDefined();
       expect(service.validateMigration).toBeDefined();
       expect(service.rollbackMigration).toBeDefined();
     });
