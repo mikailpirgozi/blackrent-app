@@ -4,10 +4,41 @@
  */
 
 import * as uuid from 'uuid';
-import { postgresDatabase } from '../../models/postgres-database';
-import { r2Storage } from '../r2-storage';
 import { HashCalculator } from './hash-calculator';
 import { ImageProcessor } from './sharp-processor';
+
+// Dynamický import databázy a storage podľa environment
+let postgresDatabase: any;
+let r2Storage: any;
+
+if (process.env.NODE_ENV === 'test') {
+  // V test mode použijeme mocky
+  try {
+    postgresDatabase = require('../../models/postgres-database-mock').getDatabase();
+  } catch {
+    // Fallback mock pre testy
+    postgresDatabase = {
+      query: async () => ({ rows: [], rowCount: 0 }),
+      getAllVehicles: async () => [],
+      getAllCustomers: async () => [],
+      getAllRentals: async () => [],
+      getProtocolById: async () => null,
+      createProtocol: async (data: any) => ({ id: 'mock-' + Date.now(), ...data })
+    };
+  }
+  
+  r2Storage = {
+    uploadFile: async (key: string, buffer: Buffer) => `mock://storage/${key}`,
+    getFile: async () => Buffer.from('mock data'),
+    deleteFile: async () => true,
+    listFiles: async () => [],
+    fileExists: async () => false
+  };
+} else {
+  // V produkcii použijeme skutočné služby
+  postgresDatabase = require('../../models/postgres-database').postgresDatabase;
+  r2Storage = require('../r2-storage').r2Storage;
+}
 
 export interface MigrationProgress {
   total: number;
