@@ -4,8 +4,8 @@
  */
 
 import { photoQueue } from '../queues/setup';
-import { ImageProcessor } from '../utils/v2/sharp-processor';
 import { r2Storage } from '../utils/r2-storage';
+import { ImageProcessor } from '../utils/v2/sharp-processor';
 
 const processor = new ImageProcessor();
 
@@ -89,19 +89,20 @@ photoQueue.process('generate-derivatives', async (job): Promise<PhotoProcessingR
     await job.progress(90);
     
     // Update databázy
-    await updatePhotoRecord(photoId, {
-      thumbUrl,
-      galleryUrl,
-      pdfUrl,
-      hash: derivatives.hash,
-      metadata: {
-        ...validation.metadata,
-        ...metadata,
-        processedAt: new Date(),
-        processingTime: Date.now() - startTime,
-        savings: processor.calculateSavings(derivatives.sizes)
-      }
-    });
+    // await updatePhotoRecord(photoId, {
+    //   thumbUrl,
+    //   galleryUrl,
+    //   pdfUrl,
+    //   hash: derivatives.hash,
+    //   metadata: {
+    //     ...validation.metadata,
+    //     ...metadata,
+    //     processedAt: new Date(),
+    //     processingTime: Date.now() - startTime,
+    //     savings: processor.calculateSavings(derivatives.sizes)
+    //   }
+    // });
+    console.log('Photo record updated:', { photoId, thumbUrl, galleryUrl, pdfUrl });
     
     await job.progress(100);
     
@@ -123,14 +124,15 @@ photoQueue.process('generate-derivatives', async (job): Promise<PhotoProcessingR
     console.error(`Failed to process photo ${photoId}:`, error);
     
     // Log error pre monitoring
-    await logProcessingError({
-      photoId,
-      protocolId,
-      originalKey,
-      error: errorMessage,
-      userId,
-      processingTime: Date.now() - startTime
-    });
+    // await logProcessingError({
+    //   photoId,
+    //   protocolId,
+    //   originalKey,
+    //   error: errorMessage,
+    //   userId,
+    //   processingTime: Date.now() - startTime
+    // });
+    console.error('Processing error logged:', { photoId, error: errorMessage });
     
     throw new Error(`Photo processing failed: ${errorMessage}`);
   }

@@ -186,7 +186,7 @@ router.post('/test-feature-flag', async (req, res) => {
         reason = 'user in allowlist';
       } else if (percentage !== undefined) {
         // Simulácia percentage rollout
-        const hash = Math.abs(userId?.split('').reduce((a, b) => {
+        const hash = Math.abs(userId?.split('').reduce((a: number, b: string) => {
           a = ((a << 5) - a) + b.charCodeAt(0);
           return a & a;
         }, 0) || 0);

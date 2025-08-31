@@ -103,16 +103,16 @@ export async function getQueueStats() {
   try {
     const [photoStats, pdfStats] = await Promise.all([
       {
-        waiting: await photoQueue.waiting(),
-        active: await photoQueue.active(),
-        completed: await photoQueue.completed(),
-        failed: await photoQueue.failed()
+        waiting: await photoQueue.getWaiting(),
+        active: await photoQueue.getActive(),
+        completed: await photoQueue.getCompleted(),
+        failed: await photoQueue.getFailed()
       },
       {
-        waiting: await pdfQueue.waiting(),
-        active: await pdfQueue.active(),
-        completed: await pdfQueue.completed(),
-        failed: await pdfQueue.failed()
+        waiting: await pdfQueue.getWaiting(),
+        active: await pdfQueue.getActive(),
+        completed: await pdfQueue.getCompleted(),
+        failed: await pdfQueue.getFailed()
       }
     ]);
     
