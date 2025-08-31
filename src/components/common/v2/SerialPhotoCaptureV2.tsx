@@ -7,6 +7,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as uuid from 'uuid';
 import { featureManager } from '../../../config/featureFlags';
 import type { PhotoCategory, PhotoItemV2 } from '../../../types';
+import {
+  trackUploadMetrics,
+  useV2Performance,
+} from '../../../utils/protocolV2Performance';
 
 export interface QueueItem {
   id: string;
@@ -60,6 +64,9 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   disabled = false,
   title,
 }) => {
+  // 📊 Performance Monitoring
+  const { trackRender } = useV2Performance('SerialPhotoCaptureV2');
+
   const [uploadQueue, setUploadQueue] = useState<QueueItem[]>([]);
   const [previews, setPreviews] = useState<Preview[]>([]);
   const [categorizedPhotos, setCategorizedPhotos] = useState<PhotoItemV2[]>([]); // 📸 Kategorizované fotky
@@ -508,6 +515,29 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
       onCategorizedPhotosChange(categorizedPhotos);
     }
   }, [categorizedPhotos, onCategorizedPhotosChange]);
+
+  // 📊 Track render performance
+  useEffect(() => {
+    trackRender();
+  });
+
+  // 📊 Track upload performance metrics
+  useEffect(() => {
+    const activeUploads = uploadQueue.filter(
+      q => q.status === 'uploading' || q.status === 'processing'
+    ).length;
+    const failedUploads = uploadQueue.filter(q => q.status === 'failed').length;
+    const completedUploads = uploadQueue.filter(
+      q => q.status === 'completed'
+    ).length;
+
+    trackUploadMetrics({
+      activeUploads,
+      queueSize: uploadQueue.length,
+      failedUploads,
+      totalUploaded: completedUploads,
+    });
+  }, [uploadQueue]);
 
   if (isLoading) {
     return (

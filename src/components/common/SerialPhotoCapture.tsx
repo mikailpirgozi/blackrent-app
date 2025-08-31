@@ -98,7 +98,7 @@ export default function SerialPhotoCapture({
   autoUploadToR2 = true,
   protocolType = 'handover',
   mediaType = 'vehicle',
-  category,
+  category: _category,
   qualityPreset = 'protocol',
   preferWebP = true,
 }: SerialPhotoCaptureProps) {
@@ -165,6 +165,11 @@ export default function SerialPhotoCapture({
 
       const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
         method: 'POST',
+        headers: {
+          ...(localStorage.getItem('blackrent_token') && {
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          }),
+        },
         body: formData,
       });
 
@@ -207,25 +212,19 @@ export default function SerialPhotoCapture({
           contentType: file.type,
         });
 
-        // 1. Získanie presigned URL
+        // 1. Získanie presigned URL (použiť starší endpoint bez autentifikácie)
         const presignedResponse = await fetch(
-          `${apiBaseUrl}/files/presigned-upload`,
+          `${apiBaseUrl}/files/presigned-url`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(localStorage.getItem('blackrent_token') && {
-                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-              }),
             },
             body: JSON.stringify({
-              protocolId: entityId,
-              rentalId: entityId,
-              protocolType: protocolType,
-              mediaType: mediaType,
+              type: 'protocol',
+              entityId: entityId,
               filename: file.name,
               contentType: file.type,
-              category: category,
             }),
           }
         );
@@ -254,33 +253,11 @@ export default function SerialPhotoCapture({
 
         logger.debug('✅ File uploaded directly to R2');
 
-        // 3. Uloženie metadát do databázy
-        const metadataResponse = await fetch(
-          `${apiBaseUrl}/protocols/${entityId}/save-uploaded-photo`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(localStorage.getItem('blackrent_token') && {
-                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-              }),
-            },
-            body: JSON.stringify({
-              fileUrl: presignedData.publicUrl,
-              label: file.name,
-              type: mediaType,
-              protocolType: protocolType,
-              filename: file.name,
-              size: file.size,
-            }),
-          }
+        // 3. Uloženie metadát do databázy (voliteľné - pre V1 nie je potrebné)
+        // V1 protokoly ukladajú fotky priamo v JSON, takže metadata endpoint nie je potrebný
+        logger.debug(
+          '✅ Photo uploaded to R2, metadata will be saved with protocol'
         );
-
-        if (metadataResponse.ok) {
-          logger.debug('✅ Photo metadata saved to database');
-        } else {
-          console.warn('⚠️ Photo uploaded to R2 but failed to save metadata');
-        }
 
         return presignedData.publicUrl;
       } catch (error) {
@@ -291,7 +268,7 @@ export default function SerialPhotoCapture({
         return await directUpload(file);
       }
     },
-    [autoUploadToR2, category, directUpload, entityId, mediaType, protocolType]
+    [autoUploadToR2, directUpload, entityId]
   );
 
   // Cloudflare Worker upload (nepoužíva sa)

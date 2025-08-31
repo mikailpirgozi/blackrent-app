@@ -83,13 +83,32 @@ export class FeatureManager {
       return false;
     }
 
-    // 🚀 V2 QUICK FIX: Použiť localStorage ako primary source
-    // Keďže API endpoint pre feature flags neexistuje (405 error)
+    // 🚀 V1 ENHANCED: Automatické nastavenia pre V1 Enhanced
     if (flagName === 'PROTOCOL_V2_ENABLED') {
       const localValue = localStorage.getItem('PROTOCOL_V2_ENABLED');
       if (localValue !== null) {
         return localValue === 'true';
       }
+      // Default: V2 backend enabled pre V1 Enhanced
+      return true;
+    }
+
+    if (flagName === 'PROTOCOL_V1_UI_PREFERRED') {
+      const localValue = localStorage.getItem('PROTOCOL_V1_UI_PREFERRED');
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+      // Default: V1 UI preferred (V1 Enhanced)
+      return true;
+    }
+
+    if (flagName === 'PROTOCOL_V2_BACKEND_ENABLED') {
+      const localValue = localStorage.getItem('PROTOCOL_V2_BACKEND_ENABLED');
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+      // Default: V2 backend enabled
+      return true;
     }
 
     // Async verzia pre produkciu
@@ -103,12 +122,29 @@ export class FeatureManager {
     flagName: string,
     userId?: string
   ): Promise<boolean> {
-    // 🚀 V2 QUICK FIX: Check localStorage first
+    // 🚀 V1 ENHANCED: Automatické nastavenia pre V1 Enhanced (async verzia)
     if (flagName === 'PROTOCOL_V2_ENABLED') {
       const localValue = localStorage.getItem('PROTOCOL_V2_ENABLED');
       if (localValue !== null) {
         return localValue === 'true';
       }
+      return true; // Default enabled
+    }
+
+    if (flagName === 'PROTOCOL_V1_UI_PREFERRED') {
+      const localValue = localStorage.getItem('PROTOCOL_V1_UI_PREFERRED');
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+      return true; // Default V1 UI
+    }
+
+    if (flagName === 'PROTOCOL_V2_BACKEND_ENABLED') {
+      const localValue = localStorage.getItem('PROTOCOL_V2_BACKEND_ENABLED');
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+      return true; // Default V2 backend
     }
 
     try {

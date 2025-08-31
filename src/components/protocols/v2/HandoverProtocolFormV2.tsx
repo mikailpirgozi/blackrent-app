@@ -33,6 +33,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import * as uuid from 'uuid';
 import { featureManager } from '../../../config/featureFlags';
 import type { PhotoCategory, PhotoItemV2 } from '../../../types';
+import {
+  autoSaveV2FormData,
+  cacheEmailStatus,
+  cacheV2FormDefaults,
+  clearEmailStatus,
+  getEmailStatus,
+  getV2SmartDefaults,
+} from '../../../utils/protocolV2Cache';
+import {
+  startPerformanceMonitoring,
+  stopPerformanceMonitoring,
+  trackUploadMetrics,
+  useV2Performance,
+} from '../../../utils/protocolV2Performance';
 import SignaturePad from '../../common/SignaturePad';
 import {
   SerialPhotoCaptureV2,
@@ -53,6 +67,8 @@ export interface HandoverProtocolDataV2 {
     year: number;
     vin?: string;
     status?: string;
+    company?: string; // Company name for caching
+    companyName?: string; // Alternative company field
   };
 
   // Customer info
@@ -175,6 +191,14 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
   userId,
   disabled = false,
 }) => {
+  // 📊 Performance Monitoring
+  const { trackRender } = useV2Performance('HandoverProtocolFormV2');
+
+  // 🔄 Smart Caching: Získanie cached hodnôt pre rýchlejšie vyplnenie
+  const companyName =
+    initialData?.vehicle?.company || initialData?.vehicle?.companyName;
+  const smartDefaults = getV2SmartDefaults(companyName);
+
   const [protocolData, setProtocolData] = useState<HandoverProtocolDataV2>(
     () => ({
       protocolId: initialData?.protocolId || uuid.v4(),
@@ -198,23 +222,31 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
         address: '',
       },
       rental: initialData?.rental || {
-        orderNumber: '',
+        orderNumber: smartDefaults.rental?.orderNumber || '',
         startDate: new Date(),
         endDate: new Date(),
         startKm: 0,
-        location: '',
+        location: smartDefaults.companySettings?.defaultLocation || '',
         pricePerDay: 0,
-        totalPrice: 0,
-        deposit: 0,
-        allowedKilometers: 0,
-        extraKilometerRate: 0.5,
-        pickupLocation: '',
-        returnLocation: '',
+        totalPrice: smartDefaults.rental?.totalPrice || 0,
+        deposit: smartDefaults.rental?.deposit || 0,
+        allowedKilometers: smartDefaults.rental?.allowedKilometers || 0,
+        extraKilometerRate: smartDefaults.rental?.extraKilometerRate || 0.5,
+        pickupLocation:
+          smartDefaults.rental?.pickupLocation ||
+          smartDefaults.companySettings?.defaultLocation ||
+          '',
+        returnLocation: smartDefaults.rental?.returnLocation || '',
       },
-      fuelLevel: initialData?.fuelLevel || 100,
+      fuelLevel: initialData?.fuelLevel || smartDefaults.fuelLevel || 100,
       odometer: initialData?.odometer || 0,
-      condition: initialData?.condition || 'excellent',
-      depositPaymentMethod: initialData?.depositPaymentMethod || 'cash',
+      condition:
+        initialData?.condition || smartDefaults.condition || 'excellent',
+      depositPaymentMethod:
+        initialData?.depositPaymentMethod ||
+        smartDefaults.depositPaymentMethod ||
+        smartDefaults.companySettings?.defaultDepositMethod ||
+        'cash',
       damages: initialData?.damages || [],
       notes: initialData?.notes || '',
       signatures: initialData?.signatures || [],
@@ -235,7 +267,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
 
   // V1 compatibility states
   const [loading] = useState(false);
-  const [emailStatus] = useState<{
+  const [emailStatus, setEmailStatus] = useState<{
     status: 'pending' | 'success' | 'error' | 'warning';
     message?: string;
   } | null>(null);
@@ -315,6 +347,60 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
 
     checkFeatureFlag();
   }, [userId]);
+
+  // 📧 Email Status Tracking - načítanie pri mount
+  useEffect(() => {
+    if (protocolData.protocolId) {
+      const cachedEmailStatus = getEmailStatus(protocolData.protocolId);
+      if (cachedEmailStatus) {
+        setEmailStatus({
+          status: cachedEmailStatus.status,
+          message: cachedEmailStatus.message,
+        });
+      }
+    }
+  }, [protocolData.protocolId]);
+
+  // 🔄 Auto-save form data pri zmenách (debounced)
+  useEffect(() => {
+    if (protocolData.protocolId && isV2Enabled) {
+      const vehicleCompany =
+        protocolData.vehicle?.company || protocolData.vehicle?.companyName;
+      autoSaveV2FormData(protocolData, vehicleCompany);
+    }
+  }, [protocolData, isV2Enabled]);
+
+  // 📊 Performance Monitoring Setup
+  useEffect(() => {
+    startPerformanceMonitoring(30000); // 30 sekúnd interval
+
+    return () => {
+      stopPerformanceMonitoring();
+    };
+  }, []);
+
+  // 📊 Track render performance
+  useEffect(() => {
+    trackRender();
+  });
+
+  // 📊 Track upload metrics
+  useEffect(() => {
+    const activeUploads = uploadedPhotos.filter(
+      p => p.status === 'uploading' || p.status === 'processing'
+    ).length;
+    const failedUploads = uploadedPhotos.filter(
+      p => p.status === 'failed'
+    ).length;
+
+    trackUploadMetrics({
+      activeUploads,
+      queueSize: uploadedPhotos.length,
+      failedUploads,
+      totalUploaded: uploadedPhotos.filter(p => p.status === 'completed')
+        .length,
+    });
+  }, [uploadedPhotos]);
 
   /**
    * Handle photo upload completion
@@ -699,13 +785,87 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
         );
       }
 
+      // 📧 Nastavenie email status na pending pred odoslaním
+      setEmailStatus({
+        status: 'pending',
+        message: 'Odosielam protokol a generujem PDF...',
+      });
+      cacheEmailStatus(
+        protocolData.protocolId,
+        'pending',
+        'Odosielam protokol a generujem PDF...'
+      );
+
       // Submit protocol
       await onSubmit(protocolData);
+
+      // 📧 Email notification po úspešnom uložení
+      try {
+        setEmailStatus({
+          status: 'success',
+          message: 'Protokol bol úspešne uložený a odoslaný emailom.',
+        });
+        cacheEmailStatus(
+          protocolData.protocolId,
+          'success',
+          'Protokol bol úspešne uložený a odoslaný emailom.'
+        );
+
+        // 🔄 Cache successful form data pre budúce použitie
+        cacheV2FormDefaults(
+          {
+            rental: {
+              extraKilometerRate: protocolData.rental.extraKilometerRate,
+              deposit: protocolData.rental.deposit,
+              allowedKilometers: protocolData.rental.allowedKilometers,
+              pickupLocation: protocolData.rental.pickupLocation,
+              returnLocation: protocolData.rental.returnLocation,
+            },
+            fuelLevel: protocolData.fuelLevel,
+            condition: protocolData.condition,
+            depositPaymentMethod: protocolData.depositPaymentMethod,
+            companySettings: {
+              defaultLocation: protocolData.rental.location,
+              defaultFuelLevel: protocolData.fuelLevel,
+              defaultDepositMethod: protocolData.depositPaymentMethod,
+            },
+          },
+          protocolData.vehicle?.company || protocolData.vehicle?.companyName
+        );
+
+        // Vymaž email status po 5 sekundách
+        setTimeout(() => {
+          clearEmailStatus(protocolData.protocolId);
+          setEmailStatus(null);
+        }, 5000);
+      } catch (emailError) {
+        console.warn('Email notification failed:', emailError);
+        setEmailStatus({
+          status: 'warning',
+          message: 'Protokol bol uložený, ale email sa nepodarilo odoslať.',
+        });
+        cacheEmailStatus(
+          protocolData.protocolId,
+          'warning',
+          'Protokol bol uložený, ale email sa nepodarilo odoslať.'
+        );
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Neznáma chyba';
       setSubmitError(errorMessage);
       console.error('Protocol submission failed:', error);
+
+      // 📧 Email status error
+      setEmailStatus({
+        status: 'error',
+        message: `Chyba pri ukladaní protokolu: ${errorMessage}`,
+      });
+      cacheEmailStatus(
+        protocolData.protocolId,
+        'error',
+        `Chyba pri ukladaní protokolu: ${errorMessage}`
+      );
     } finally {
       setIsSubmitting(false);
     }

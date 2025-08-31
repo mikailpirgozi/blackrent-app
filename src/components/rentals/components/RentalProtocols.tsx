@@ -1,30 +1,36 @@
 import {
-  PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
+  PictureAsPdf as PDFIcon,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
   Box,
-  CircularProgress,
-  Typography,
   Button,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
-import type { Rental, ProtocolImage, ProtocolVideo } from '../../../types';
+import type { ProtocolImage, ProtocolVideo, Rental } from '../../../types';
 import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
-import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';
 import RentalForm from '../RentalForm';
 
-// 🚀 LAZY LOADING: Protocols loaded only when needed
-const HandoverProtocolForm = React.lazy(
-  () => import('../../protocols/HandoverProtocolForm')
+// 🚀 V1 ENHANCED: V1 UI + V2 Backend (ODPORÚČANÉ)
+const HandoverProtocolSelector = React.lazy(() =>
+  import('../../protocols/ProtocolFormSelector').then(module => ({
+    default: module.HandoverProtocolSelector,
+  }))
+);
+const ReturnProtocolSelector = React.lazy(() =>
+  import('../../protocols/ProtocolFormSelector').then(module => ({
+    default: module.ReturnProtocolSelector,
+  }))
 );
 
-// 🚀 V2 PROTOCOL FORMS - loaded when V2 is enabled
+// 🚀 V2 PROTOCOL FORMS - zachované pre backward compatibility
 const HandoverProtocolFormV2 = React.lazy(
   () => import('../../protocols/v2/HandoverProtocolFormV2Wrapper')
 );
@@ -124,11 +130,9 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
     checkV2Feature();
   }, []);
 
-  // Select correct form components based on feature flag
-  const HandoverForm = isV2Enabled
-    ? HandoverProtocolFormV2
-    : HandoverProtocolForm;
-  const ReturnForm = isV2Enabled ? ReturnProtocolFormV2 : ReturnProtocolForm;
+  // 🎯 V1 ENHANCED: Automaticky používa V1 UI + V2 Backend
+  const HandoverForm = HandoverProtocolSelector;
+  const ReturnForm = ReturnProtocolSelector;
 
   return (
     <>
