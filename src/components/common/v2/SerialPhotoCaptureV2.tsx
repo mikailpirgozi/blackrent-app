@@ -101,6 +101,38 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
     checkFeatureFlag();
   }, [userId]);
 
+  /**
+   * Check photo status directly
+   */
+  const checkPhotoStatus = useCallback(
+    async (photoId: string) => {
+      try {
+        const response = await fetch(
+          `/api/v2/protocols/photos/${photoId}/status`
+        );
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            const item = uploadQueue.find(q => q.photoId === photoId);
+            if (item) {
+              updateQueueItem(item.id, {
+                status:
+                  result.photo.status === 'completed'
+                    ? 'completed'
+                    : 'processing',
+                progress: result.photo.progress || 0,
+                urls: result.photo.urls,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to check status for photo ${photoId}:`, error);
+      }
+    },
+    [uploadQueue]
+  );
+
   // Polling pre status updates
   useEffect(() => {
     if (uploadQueue.length === 0) return;
@@ -125,6 +157,109 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
       }
     };
   }, [uploadQueue, checkPhotoStatus]);
+
+  /**
+   * Spracovanie jednotlivého queue item
+   */
+  const processQueueItem = useCallback(
+    async (item: QueueItem) => {
+      try {
+        // Update status
+        updateQueueItemStatus(item.id, 'uploading', 10);
+
+        // Príprava form data
+        const formData = new FormData();
+        formData.append('photos', item.file);
+        formData.append('protocolId', protocolId);
+        if (userId) {
+          formData.append('userId', userId);
+        }
+        if (category) {
+          formData.append('category', category);
+        }
+
+        // Get auth token
+        const token =
+          localStorage.getItem('blackrent_token') ||
+          sessionStorage.getItem('blackrent_token');
+
+        // Upload request
+        const response = await fetch('/api/v2/protocols/photos/upload', {
+          method: 'POST',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Upload failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Upload failed');
+        }
+
+        // Extract photo info
+        const photoInfo = result.results.photos[0];
+        if (!photoInfo || !photoInfo.success) {
+          throw new Error(photoInfo?.error || 'Photo upload failed');
+        }
+
+        // Update s photo ID a URLs
+        updateQueueItem(item.id, {
+          status: 'processing',
+          progress: 50,
+          photoId: photoInfo.photoId,
+          urls: {
+            original: photoInfo.originalUrl,
+          },
+        });
+
+        // Start monitoring processing
+        if (photoInfo.photoId) {
+          monitorPhotoProcessing(item.id, photoInfo.photoId);
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Upload failed';
+        console.error(`Upload failed for ${item.file.name}:`, error);
+
+        // Enhanced retry logic s user feedback
+        if (item.retries < 3) {
+          const retryDelay = Math.pow(2, item.retries) * 1000;
+          updateQueueItemStatus(
+            item.id,
+            'pending',
+            0,
+            `Retry ${item.retries + 1}/3 za ${retryDelay / 1000}s...`
+          );
+
+          setTimeout(() => {
+            updateQueueItem(item.id, {
+              retries: item.retries + 1,
+              status: 'pending',
+              progress: 0,
+              error: undefined,
+            });
+            processQueueItem({ ...item, retries: item.retries + 1 });
+          }, retryDelay); // Exponential backoff
+        } else {
+          updateQueueItemStatus(
+            item.id,
+            'failed',
+            0,
+            `Upload zlyhal po 3 pokusoch: ${errorMessage}`
+          );
+        }
+      }
+    },
+    [category, updateQueueItem, updateQueueItemStatus, monitorPhotoProcessing]
+  );
 
   /**
    * Handling file capture/selection
@@ -208,218 +343,93 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
       isV2Enabled,
       uploadQueue.length,
       maxPhotos,
-      protocolId,
-      userId,
       category,
       processQueueItem,
     ]
   );
 
   /**
-   * Spracovanie jednotlivého queue item
-   */
-  const processQueueItem = async (item: QueueItem) => {
-    try {
-      // Update status
-      updateQueueItemStatus(item.id, 'uploading', 10);
-
-      // Príprava form data
-      const formData = new FormData();
-      formData.append('photos', item.file);
-      formData.append('protocolId', protocolId);
-      if (userId) {
-        formData.append('userId', userId);
-      }
-      if (category) {
-        formData.append('category', category);
-      }
-
-      // Get auth token
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-
-      // Upload request
-      const response = await fetch('/api/v2/protocols/photos/upload', {
-        method: 'POST',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Upload failed: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Upload failed');
-      }
-
-      // Extract photo info
-      const photoInfo = result.results.photos[0];
-      if (!photoInfo || !photoInfo.success) {
-        throw new Error(photoInfo?.error || 'Photo upload failed');
-      }
-
-      // Update s photo ID a URLs
-      updateQueueItem(item.id, {
-        status: 'processing',
-        progress: 50,
-        photoId: photoInfo.photoId,
-        urls: {
-          original: photoInfo.originalUrl,
-        },
-      });
-
-      // Start monitoring processing
-      if (photoInfo.photoId) {
-        monitorPhotoProcessing(item.id, photoInfo.photoId);
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Upload failed';
-      console.error(`Upload failed for ${item.file.name}:`, error);
-
-      // Enhanced retry logic s user feedback
-      if (item.retries < 3) {
-        const retryDelay = Math.pow(2, item.retries) * 1000;
-        updateQueueItemStatus(
-          item.id, 
-          'pending', 
-          0, 
-          `Retry ${item.retries + 1}/3 za ${retryDelay/1000}s...`
-        );
-        
-        setTimeout(
-          () => {
-            updateQueueItem(item.id, {
-              retries: item.retries + 1,
-              status: 'pending',
-              progress: 0,
-              error: undefined,
-            });
-            processQueueItem({ ...item, retries: item.retries + 1 });
-          },
-          retryDelay
-        ); // Exponential backoff
-      } else {
-        updateQueueItemStatus(
-          item.id, 
-          'failed', 
-          0, 
-          `Upload zlyhal po 3 pokusoch: ${errorMessage}`
-        );
-      }
-    }
-  };
-
-  /**
    * Monitoring photo processing status
    */
-  const monitorPhotoProcessing = async (itemId: string, photoId: string) => {
-    try {
-      const response = await fetch(
-        `/api/v2/protocols/photos/${photoId}/status`
-      );
+  const monitorPhotoProcessing = useCallback(
+    async (itemId: string, photoId: string) => {
+      try {
+        const response = await fetch(
+          `/api/v2/protocols/photos/${photoId}/status`
+        );
 
-      if (!response.ok) {
-        throw new Error(`Status check failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Status check failed');
-      }
-
-      const photo = result.photo;
-
-      // Update queue item
-      updateQueueItem(itemId, {
-        status: photo.status === 'completed' ? 'completed' : 'processing',
-        progress: photo.progress || 0,
-        urls: photo.urls,
-        error: photo.error,
-        processedAt: photo.processedAt
-          ? new Date(photo.processedAt)
-          : undefined,
-      });
-
-      // Notify completion
-      if (photo.status === 'completed' && onUploadComplete) {
-        onUploadComplete(photoId, photo.urls, category);
-      }
-
-      // Continue monitoring ak ešte nie je hotové
-      if (photo.status !== 'completed' && photo.status !== 'failed') {
-        setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
-      }
-    } catch (error) {
-      console.error(`Failed to check photo status ${photoId}:`, error);
-      updateQueueItemStatus(
-        itemId,
-        'failed',
-        0,
-        error instanceof Error ? error.message : 'Status check failed'
-      );
-    }
-  };
-
-  /**
-   * Check photo status directly
-   */
-  const checkPhotoStatus = async (photoId: string) => {
-    try {
-      const response = await fetch(
-        `/api/v2/protocols/photos/${photoId}/status`
-      );
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          const item = uploadQueue.find(q => q.photoId === photoId);
-          if (item) {
-            updateQueueItem(item.id, {
-              status:
-                result.photo.status === 'completed'
-                  ? 'completed'
-                  : 'processing',
-              progress: result.photo.progress || 0,
-              urls: result.photo.urls,
-            });
-          }
+        if (!response.ok) {
+          throw new Error(`Status check failed: ${response.status}`);
         }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Status check failed');
+        }
+
+        const photo = result.photo;
+
+        // Update queue item
+        updateQueueItem(itemId, {
+          status: photo.status === 'completed' ? 'completed' : 'processing',
+          progress: photo.progress || 0,
+          urls: photo.urls,
+          error: photo.error,
+          processedAt: photo.processedAt
+            ? new Date(photo.processedAt)
+            : undefined,
+        });
+
+        // Notify completion
+        if (photo.status === 'completed' && onUploadComplete) {
+          onUploadComplete(photoId, photo.urls, category);
+        }
+
+        // Continue monitoring ak ešte nie je hotové
+        if (photo.status !== 'completed' && photo.status !== 'failed') {
+          setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
+        }
+      } catch (error) {
+        console.error(`Failed to check photo status ${photoId}:`, error);
+        updateQueueItemStatus(
+          itemId,
+          'failed',
+          0,
+          error instanceof Error ? error.message : 'Status check failed'
+        );
       }
-    } catch (error) {
-      console.warn(`Failed to check status for photo ${photoId}:`, error);
-    }
-  };
+    },
+    [updateQueueItem, updateQueueItemStatus, onUploadComplete, category]
+  );
 
   /**
    * Helper funkcie pre state updates
    */
-  const updateQueueItemStatus = (
-    id: string,
-    status: QueueItem['status'],
-    progress: number,
-    error?: string
-  ) => {
-    setUploadQueue(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, status, progress, error } : item
-      )
-    );
-  };
+  const updateQueueItemStatus = useCallback(
+    (
+      id: string,
+      status: QueueItem['status'],
+      progress: number,
+      error?: string
+    ) => {
+      setUploadQueue(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, status, progress, error } : item
+        )
+      );
+    },
+    []
+  );
 
-  const updateQueueItem = (id: string, updates: Partial<QueueItem>) => {
-    setUploadQueue(prev =>
-      prev.map(item => (item.id === id ? { ...item, ...updates } : item))
-    );
-  };
+  const updateQueueItem = useCallback(
+    (id: string, updates: Partial<QueueItem>) => {
+      setUploadQueue(prev =>
+        prev.map(item => (item.id === id ? { ...item, ...updates } : item))
+      );
+    },
+    []
+  );
 
   /**
    * File input handling
@@ -460,18 +470,21 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   /**
    * Retry failed upload
    */
-  const retryFailedUpload = useCallback((id: string) => {
-    const item = uploadQueue.find(q => q.id === id);
-    if (item && item.status === 'failed') {
-      updateQueueItem(id, {
-        status: 'pending',
-        progress: 0,
-        retries: 0,
-        error: undefined,
-      });
-      processQueueItem({ ...item, retries: 0 });
-    }
-  }, [uploadQueue, processQueueItem]);
+  const retryFailedUpload = useCallback(
+    (id: string) => {
+      const item = uploadQueue.find(q => q.id === id);
+      if (item && item.status === 'failed') {
+        updateQueueItem(id, {
+          status: 'pending',
+          progress: 0,
+          retries: 0,
+          error: undefined,
+        });
+        processQueueItem({ ...item, retries: 0 });
+      }
+    },
+    [uploadQueue, updateQueueItem, processQueueItem]
+  );
 
   // Cleanup URLs on unmount
   useEffect(() => {
@@ -626,7 +639,8 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
                 }}
                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
               >
-                Opakovať všetky neúspešné ({uploadQueue.filter(i => i.status === 'failed').length})
+                Opakovať všetky neúspešné (
+                {uploadQueue.filter(i => i.status === 'failed').length})
               </button>
             </div>
           )}
