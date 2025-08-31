@@ -3,9 +3,12 @@
  * Migruje existujúce protokoly na nový V2 systém
  */
 
-import * as uuid from 'uuid';
 import { HashCalculator } from './hash-calculator';
 import { ImageProcessor } from './sharp-processor';
+import * as crypto from 'crypto';
+
+// Použijeme built-in crypto.randomUUID() namiesto uuid package
+const uuidv4 = () => crypto.randomUUID();
 
 // Dynamický import databázy a storage podľa environment
 interface IDatabase {
@@ -357,7 +360,7 @@ export class ProtocolMigrationService {
         
         // Upload derivatives to R2
         const basePath = `protocols/${protocolId}/photos`;
-        const photoId = photo.id || uuid.v4();
+        const photoId = photo.id || uuidv4();
         
         const [thumbUrl, galleryUrl, pdfUrl] = await Promise.all([
           r2Storage.uploadFile(

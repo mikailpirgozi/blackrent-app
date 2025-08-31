@@ -38,9 +38,11 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MigrationService = exports.migrationService = exports.ProtocolMigrationService = void 0;
-const uuid = __importStar(require("uuid"));
 const hash_calculator_1 = require("./hash-calculator");
 const sharp_processor_1 = require("./sharp-processor");
+const crypto = __importStar(require("crypto"));
+// Použijeme built-in crypto.randomUUID() namiesto uuid package
+const uuidv4 = () => crypto.randomUUID();
 let postgresDatabase;
 let r2Storage;
 if (process.env.NODE_ENV === 'test') {
@@ -288,7 +290,7 @@ class ProtocolMigrationService {
                 const derivatives = await this.imageProcessor.generateDerivatives(originalBuffer);
                 // Upload derivatives to R2
                 const basePath = `protocols/${protocolId}/photos`;
-                const photoId = photo.id || uuid.v4();
+                const photoId = photo.id || uuidv4();
                 const [thumbUrl, galleryUrl, pdfUrl] = await Promise.all([
                     r2Storage.uploadFile(`${basePath}/thumb/${photoId}.webp`, derivatives.thumb, 'image/webp'),
                     r2Storage.uploadFile(`${basePath}/gallery/${photoId}.jpg`, derivatives.gallery, 'image/jpeg'),
