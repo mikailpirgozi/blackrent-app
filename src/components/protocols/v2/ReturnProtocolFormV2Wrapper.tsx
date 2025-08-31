@@ -1,5 +1,5 @@
 /**
- * Wrapper pre ReturnProtocolFormV2 
+ * Wrapper pre ReturnProtocolFormV2
  * Mapuje V1 props na V2 props
  */
 
@@ -7,17 +7,20 @@ import React from 'react';
 
 interface V1Props {
   open: boolean;
-  rental: any;
-  handoverProtocol: any;
-  onSave: (protocol: any) => void;
+  rental: Record<string, unknown>;
+  handoverProtocol: Record<string, unknown>;
+  onSave: (protocol: Record<string, unknown>) => void;
   onClose: () => void;
 }
 
 const ReturnProtocolFormV2Wrapper: React.FC<V1Props> = ({
   open,
-  rental,
-  handoverProtocol,
-  onSave,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  rental: _rental,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handoverProtocol: _handoverProtocol,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onSave: _onSave,
   onClose,
 }) => {
   if (!open) return null;
@@ -41,11 +44,10 @@ const ReturnProtocolFormV2Wrapper: React.FC<V1Props> = ({
             ✕
           </button>
         </div>
-        
+
         <div className="p-8 text-center">
           <p className="text-gray-600">
-            Return Protocol V2 je vo vývoji.
-            Použite štandardný formulár.
+            Return Protocol V2 je vo vývoji. Použite štandardný formulár.
           </p>
           <button
             onClick={onClose}

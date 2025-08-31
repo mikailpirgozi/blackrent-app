@@ -110,7 +110,7 @@ export class FeatureManager {
         return localValue === 'true';
       }
     }
-    
+
     try {
       const flagData = await this.getFlag(flagName, userId);
       return flagData?.flag.enabled || false;
