@@ -134,7 +134,7 @@ import pushRoutes from './routes/push';
 import recurringExpenseRoutes from './routes/recurring-expenses';
 import rentalRoutes from './routes/rentals';
 import settlementRoutes from './routes/settlements';
-import v2TestRoutes from './routes/v2-test';
+// import v2TestRoutes from './routes/v2-test'; // Temporarily disabled
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleRoutes from './routes/vehicles';
@@ -169,7 +169,7 @@ app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
-app.use('/api/v2-test', v2TestRoutes);
+// app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 
 // SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {

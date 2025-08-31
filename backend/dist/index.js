@@ -147,7 +147,7 @@ const push_1 = __importDefault(require("./routes/push"));
 const recurring_expenses_1 = __importDefault(require("./routes/recurring-expenses"));
 const rentals_1 = __importDefault(require("./routes/rentals"));
 const settlements_1 = __importDefault(require("./routes/settlements"));
-const v2_test_1 = __importDefault(require("./routes/v2-test"));
+// import v2TestRoutes from './routes/v2-test'; // Temporarily disabled
 const vehicle_documents_1 = __importDefault(require("./routes/vehicle-documents"));
 const vehicle_unavailability_1 = __importDefault(require("./routes/vehicle-unavailability"));
 const vehicles_1 = __importDefault(require("./routes/vehicles"));
@@ -181,7 +181,7 @@ app.use('/api/email-management', email_management_1.default);
 app.use('/api/cache', cache_1.default);
 app.use('/api/push', push_1.default);
 app.use('/api/company-documents', company_documents_1.default);
-app.use('/api/v2-test', v2_test_1.default);
+// app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 // SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {
     (0, logger_1.log)('info', { requestId: req.requestId }, '🧪 Simple test endpoint called');
