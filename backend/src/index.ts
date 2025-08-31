@@ -13,6 +13,10 @@ dotenv.config();
 // WebSocket service
 import { initializeWebSocketService } from './services/websocket-service';
 
+// V2 Workers (import spustí workers)
+import './workers/derivative-worker';
+import './workers/manifest-worker';
+
 const app = express();
 const port = Number(process.env.PORT) || 3001;
 
@@ -130,10 +134,12 @@ import insurerRoutes from './routes/insurers';
 import migrationRoutes from './routes/migration';
 import permissionRoutes from './routes/permissions';
 import protocolRoutes from './routes/protocols';
+import protocolsV2Routes from './routes/protocols-v2';
 import pushRoutes from './routes/push';
 import recurringExpenseRoutes from './routes/recurring-expenses';
 import rentalRoutes from './routes/rentals';
 import settlementRoutes from './routes/settlements';
+import v2SystemTestRoutes from './routes/v2-system-test';
 // import v2TestRoutes from './routes/v2-test'; // Temporarily disabled
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
@@ -152,6 +158,8 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/company-investors', companyInvestorRoutes);
 app.use('/api/insurers', insurerRoutes);
 app.use('/api/protocols', protocolRoutes);
+app.use('/api/v2/protocols', protocolsV2Routes);
+app.use('/api/v2-system-test', v2SystemTestRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/migrations', migrationRoutes);

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -86,7 +86,7 @@ class R2Storage {
   private async uploadFileLocally(
     key: string,
     buffer: Buffer,
-    contentType: string
+    _contentType: string
   ): Promise<string> {
     try {
       // Vytvor lokálny storage adresár
@@ -429,7 +429,7 @@ class R2Storage {
 
       // Konverzia stream na Buffer
       const chunks: Uint8Array[] = [];
-      const stream = response.Body as any;
+      const stream = response.Body as NodeJS.ReadableStream;
       
       return new Promise((resolve, reject) => {
         stream.on('data', (chunk: Uint8Array) => chunks.push(chunk));
@@ -465,6 +465,39 @@ class R2Storage {
       default:
         return 'application/octet-stream';
     }
+  }
+
+  /**
+   * Kontrola či súbor existuje
+   */
+  async fileExists(key: string): Promise<boolean> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.config.bucketName,
+        Key: key,
+      });
+
+      await this.client.send(command);
+      return true;
+    } catch (error: unknown) {
+      const awsError = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+      if (awsError.name === 'NoSuchKey' || awsError.$metadata?.httpStatusCode === 404) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Generovanie signed URL pre download
+   */
+  async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.config.bucketName,
+      Key: key,
+    });
+
+    return await getSignedUrl(this.client, command, { expiresIn });
   }
 }
 

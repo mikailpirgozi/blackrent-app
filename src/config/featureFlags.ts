@@ -1,7 +1,9 @@
 /**
- * Feature Flags System for Protocol V2 Migration
- * Umožňuje postupné nasadenie V2 funkcionalít s kontrolovaným rolloutom
+ * Feature Flags Configuration pre Protocol V2
+ * Centralizované riadenie feature flags
  */
+
+import React from 'react';
 
 export interface FeatureFlag {
   enabled: boolean;
@@ -12,42 +14,24 @@ export interface FeatureFlag {
   description?: string;
 }
 
-export interface FeatureFlagConfig {
-  PROTOCOL_V2: FeatureFlag;
-  PROTOCOL_V2_PHOTO_PROCESSING: FeatureFlag;
-  PROTOCOL_V2_PDF_GENERATION: FeatureFlag;
-  PROTOCOL_V2_QUEUE_SYSTEM: FeatureFlag;
+export interface FeatureFlagResponse {
+  flag: {
+    name: string;
+    enabled: boolean;
+    reason: string;
+    configuration: {
+      enabled: boolean;
+      percentage: number;
+      allowedUsers: string[];
+    };
+  };
 }
 
 export class FeatureManager {
   private static instance: FeatureManager;
-
-  private flags: FeatureFlagConfig = {
-    PROTOCOL_V2: {
-      enabled: false,
-      users: [], // Špecifickí užívatelia pre testing
-      percentage: 0, // 0-100% rollout
-      description: 'Hlavný V2 protokol systém',
-    },
-    PROTOCOL_V2_PHOTO_PROCESSING: {
-      enabled: false,
-      users: [],
-      percentage: 0,
-      description: 'V2 photo processing s derivatívami',
-    },
-    PROTOCOL_V2_PDF_GENERATION: {
-      enabled: false,
-      users: [],
-      percentage: 0,
-      description: 'V2 PDF generovanie s queue',
-    },
-    PROTOCOL_V2_QUEUE_SYSTEM: {
-      enabled: false,
-      users: [],
-      percentage: 0,
-      description: 'Background queue processing',
-    },
-  };
+  private cache: Map<string, { flag: FeatureFlag; timestamp: number }> =
+    new Map();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minút
 
   static getInstance(): FeatureManager {
     if (!this.instance) {
@@ -57,107 +41,203 @@ export class FeatureManager {
   }
 
   /**
-   * Skontroluje či je feature zapnutý pre daného užívateľa
+   * Kontrola či je feature flag povolený
    */
-  isEnabled(feature: keyof FeatureFlagConfig, userId?: string): boolean {
-    const flag = this.flags[feature];
-    if (!flag || !flag.enabled) return false;
-
-    // Check date range
-    const now = new Date();
-    if (flag.startDate && now < flag.startDate) return false;
-    if (flag.endDate && now > flag.endDate) return false;
-
-    // Check specific users (pre testing)
-    if (userId && flag.users.includes(userId)) return true;
-
-    // Check percentage rollout
-    if (flag.percentage > 0) {
-      const hash = this.hashUserId(userId || 'anonymous');
-      return hash % 100 < flag.percentage;
+  async isEnabled(flagName: string, userId?: string): Promise<boolean> {
+    try {
+      const flagData = await this.getFlag(flagName, userId);
+      return flagData?.flag.enabled || false;
+    } catch (error) {
+      console.error(`Feature flag check failed for ${flagName}:`, error);
+      return false; // Fail-safe: ak sa nepodarí načítať, vráť false
     }
-
-    return false;
   }
 
   /**
-   * Aktualizuje feature flag (pre admin interface)
+   * Získanie detailných informácií o feature flag
    */
-  updateFlag(
-    feature: keyof FeatureFlagConfig,
-    updates: Partial<FeatureFlag>
-  ): void {
-    this.flags[feature] = {
-      ...this.flags[feature],
-      ...updates,
+  async getFlag(
+    flagName: string,
+    userId?: string
+  ): Promise<FeatureFlagResponse | null> {
+    try {
+      // Check cache first
+      const cached = this.cache.get(flagName);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        return this.evaluateFlag(flagName, cached.flag, userId);
+      }
+
+      // Fetch from API
+      const response = await fetch('/api/v2-test/test-feature-flag', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          flagName,
+          userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data: FeatureFlagResponse = await response.json();
+
+      // Cache result
+      this.cache.set(flagName, {
+        flag: {
+          enabled: data.flag.configuration.enabled,
+          users: data.flag.configuration.allowedUsers,
+          percentage: data.flag.configuration.percentage,
+        },
+        timestamp: Date.now(),
+      });
+
+      return data;
+    } catch (error) {
+      console.error(`Failed to get feature flag ${flagName}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Evaluácia feature flag podľa pravidiel
+   */
+  private evaluateFlag(
+    flagName: string,
+    flag: FeatureFlag,
+    userId?: string
+  ): FeatureFlagResponse {
+    let enabled = false;
+    let reason = 'flag disabled';
+
+    if (flag.enabled) {
+      // Check specific users
+      if (userId && flag.users.includes(userId)) {
+        enabled = true;
+        reason = 'user in allowlist';
+      }
+      // Check percentage rollout
+      else if (flag.percentage > 0) {
+        const userHash = this.hashUserId(userId || 'anonymous');
+        enabled = userHash % 100 < flag.percentage;
+        reason = enabled
+          ? 'percentage rollout'
+          : 'percentage rollout (not selected)';
+      }
+    }
+
+    return {
+      flag: {
+        name: flagName,
+        enabled,
+        reason,
+        configuration: {
+          enabled: flag.enabled,
+          percentage: flag.percentage,
+          allowedUsers: flag.users,
+        },
+      },
     };
   }
 
   /**
-   * Získa všetky flags (pre debugging)
-   */
-  getAllFlags(): FeatureFlagConfig {
-    return { ...this.flags };
-  }
-
-  /**
-   * Hash funkcia pre konzistentný percentage rollout
+   * Hash funkcia pre consistent percentage rollout
    */
   private hashUserId(userId: string): number {
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
       hash = (hash << 5) - hash + userId.charCodeAt(i);
-      hash = hash & hash; // Convert to 32bit integer
+      hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);
   }
+
+  /**
+   * Vyčistenie cache
+   */
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  /**
+   * Preload často používaných flags
+   */
+  async preloadFlags(flagNames: string[], userId?: string): Promise<void> {
+    const promises = flagNames.map(name => this.getFlag(name, userId));
+    await Promise.all(promises);
+  }
 }
 
-/**
- * Hook pre použitie v React komponentoch
- */
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+// Export singleton instance
+export const featureManager = FeatureManager.getInstance();
 
-export function useFeatureFlag(feature: keyof FeatureFlagConfig): boolean {
-  const { user } = useAuth();
-  const [isEnabled, setIsEnabled] = useState(false);
+// Convenience hooks pre React komponenty
+export const useFeatureFlag = (flagName: string, userId?: string) => {
+  const [enabled, setEnabled] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    const manager = FeatureManager.getInstance();
-    const enabled = manager.isEnabled(feature, user?.id);
-    setIsEnabled(enabled);
-  }, [feature, user?.id]);
+  React.useEffect(() => {
+    let mounted = true;
 
-  return isEnabled;
-}
+    const checkFlag = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const isEnabled = await featureManager.isEnabled(flagName, userId);
 
-/**
- * Utility funkcie pre backend
- */
-export const featureFlags = {
-  isProtocolV2Enabled: (userId?: string): boolean => {
-    return FeatureManager.getInstance().isEnabled('PROTOCOL_V2', userId);
+        if (mounted) {
+          setEnabled(isEnabled);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+          setEnabled(false); // Fail-safe
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    checkFlag();
+
+    return () => {
+      mounted = false;
+    };
+  }, [flagName, userId]);
+
+  return { enabled, loading, error };
+};
+
+// Predefinované feature flags pre Protocol V2
+export const PROTOCOL_V2_FLAGS = {
+  PHOTO_UPLOAD: 'PROTOCOL_V2_PHOTO_UPLOAD',
+  PDF_GENERATION: 'PROTOCOL_V2_PDF_GENERATION',
+  QUEUE_SYSTEM: 'PROTOCOL_V2_QUEUE_SYSTEM',
+  MANIFEST_GENERATION: 'PROTOCOL_V2_MANIFEST_GENERATION',
+  FULL_V2_SYSTEM: 'PROTOCOL_V2_FULL_SYSTEM',
+} as const;
+
+// Helper funkcie pre konkrétne flags
+export const protocolV2Flags = {
+  async isPhotoUploadEnabled(userId?: string): Promise<boolean> {
+    return featureManager.isEnabled(PROTOCOL_V2_FLAGS.PHOTO_UPLOAD, userId);
   },
 
-  isPhotoProcessingV2Enabled: (userId?: string): boolean => {
-    return FeatureManager.getInstance().isEnabled(
-      'PROTOCOL_V2_PHOTO_PROCESSING',
-      userId
-    );
+  async isPdfGenerationEnabled(userId?: string): Promise<boolean> {
+    return featureManager.isEnabled(PROTOCOL_V2_FLAGS.PDF_GENERATION, userId);
   },
 
-  isPdfGenerationV2Enabled: (userId?: string): boolean => {
-    return FeatureManager.getInstance().isEnabled(
-      'PROTOCOL_V2_PDF_GENERATION',
-      userId
-    );
+  async isQueueSystemEnabled(userId?: string): Promise<boolean> {
+    return featureManager.isEnabled(PROTOCOL_V2_FLAGS.QUEUE_SYSTEM, userId);
   },
 
-  isQueueSystemEnabled: (userId?: string): boolean => {
-    return FeatureManager.getInstance().isEnabled(
-      'PROTOCOL_V2_QUEUE_SYSTEM',
-      userId
-    );
+  async isFullV2Enabled(userId?: string): Promise<boolean> {
+    return featureManager.isEnabled(PROTOCOL_V2_FLAGS.FULL_V2_SYSTEM, userId);
   },
 };
