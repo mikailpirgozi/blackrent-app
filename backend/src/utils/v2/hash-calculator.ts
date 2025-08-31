@@ -118,4 +118,17 @@ export class HashCalculator {
     const timestamp = Date.now();
     return `${hash.substring(0, 16)}_${timestamp}`;
   }
+  
+  /**
+   * Generuje manifest pre súbory
+   * Používa sa v testoch
+   */
+  static generateManifest(files: Array<{ name: string; hash: string; size: number }>) {
+    return {
+      files,
+      totalSize: files.reduce((sum, file) => sum + file.size, 0),
+      timestamp: new Date(),
+      version: '2.0'
+    };
+  }
 }

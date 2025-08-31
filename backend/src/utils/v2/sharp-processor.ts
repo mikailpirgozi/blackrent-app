@@ -3,8 +3,8 @@
  * Generuje optimalizované derivatívy obrázkov pre rôzne účely
  */
 
-import sharp from 'sharp';
 import crypto from 'crypto';
+import sharp from 'sharp';
 
 export interface DerivativeConfig {
   thumb: { 
@@ -50,6 +50,13 @@ export class ImageProcessor {
   
   constructor(config: DerivativeConfig = DEFAULT_DERIVATIVE_CONFIG) {
     this.config = config;
+  }
+  
+  /**
+   * Získa aktuálnu konfiguráciu
+   */
+  getConfig(): DerivativeConfig {
+    return this.config;
   }
   
   /**
