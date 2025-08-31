@@ -13,7 +13,8 @@ const processor = new sharp_processor_1.ImageProcessor();
  */
 setup_1.photoQueue.process('generate-derivatives', async (job) => {
     const startTime = Date.now();
-    const { originalKey, protocolId, photoId, userId, metadata } = job.data;
+    const { originalKey, photoId } = job.data;
+    // const { protocolId, userId, metadata } = job.data as PhotoProcessingJob; // Unused for now
     try {
         // Update progress
         await job.progress(10);
@@ -57,7 +58,7 @@ setup_1.photoQueue.process('generate-derivatives', async (job) => {
         //     savings: processor.calculateSavings(derivatives.sizes)
         //   }
         // });
-        console.log('Photo record updated:', { photoId, thumbUrl, galleryUrl, pdfUrl });
+        // console.log('Photo record updated:', { photoId, thumbUrl, galleryUrl, pdfUrl });
         await job.progress(100);
         const processingTime = Date.now() - startTime;
         return {
@@ -83,7 +84,7 @@ setup_1.photoQueue.process('generate-derivatives', async (job) => {
         //   userId,
         //   processingTime: Date.now() - startTime
         // });
-        console.error('Processing error logged:', { photoId, error: errorMessage });
+        // console.error('Processing error logged:', { photoId, error: errorMessage });
         throw new Error(`Photo processing failed: ${errorMessage}`);
     }
 });

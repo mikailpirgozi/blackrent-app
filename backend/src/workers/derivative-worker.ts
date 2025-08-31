@@ -3,6 +3,7 @@
  * Spracováva obrázky na pozadí a generuje derivatívy
  */
 
+import type { Job } from 'bull';
 import { photoQueue } from '../queues/setup';
 import { r2Storage } from '../utils/r2-storage';
 import { ImageProcessor } from '../utils/v2/sharp-processor';
@@ -32,9 +33,10 @@ export interface PhotoProcessingResult {
 /**
  * Hlavný worker pre generovanie derivatívov
  */
-photoQueue.process('generate-derivatives', async (job): Promise<PhotoProcessingResult> => {
+photoQueue.process('generate-derivatives', async (job: Job<PhotoProcessingJob>): Promise<PhotoProcessingResult> => {
   const startTime = Date.now();
-  const { originalKey, protocolId, photoId, userId, metadata } = job.data as PhotoProcessingJob;
+  const { originalKey, photoId } = job.data;
+  // const { protocolId, userId, metadata } = job.data; // Unused for now
   
   try {
     // Update progress
@@ -102,7 +104,7 @@ photoQueue.process('generate-derivatives', async (job): Promise<PhotoProcessingR
     //     savings: processor.calculateSavings(derivatives.sizes)
     //   }
     // });
-    console.log('Photo record updated:', { photoId, thumbUrl, galleryUrl, pdfUrl });
+    // Photo record updated: photoId, thumbUrl, galleryUrl, pdfUrl
     
     await job.progress(100);
     
@@ -132,7 +134,7 @@ photoQueue.process('generate-derivatives', async (job): Promise<PhotoProcessingR
     //   userId,
     //   processingTime: Date.now() - startTime
     // });
-    console.error('Processing error logged:', { photoId, error: errorMessage });
+    // Processing error logged: photoId, errorMessage
     
     throw new Error(`Photo processing failed: ${errorMessage}`);
   }
@@ -141,35 +143,12 @@ photoQueue.process('generate-derivatives', async (job): Promise<PhotoProcessingR
 /**
  * Helper funkcia pre update photo recordu
  */
-async function updatePhotoRecord(
-  /* _photoId: string, 
-  _updates: {
-    thumbUrl: string;
-    galleryUrl: string;
-    pdfUrl: string;
-    hash: string;
-    metadata: Record<string, unknown>;
-  } */
-): Promise<void> {
-  // TODO: Implementovať databázový update
-  // Zatiaľ placeholder - implementuje sa v ďalšom kroku
-  // console.log(`Updating photo record ${photoId}:`, updates);
-}
+// async function updatePhotoRecord() - TODO: Implement in next phase
 
 /**
  * Error logging pre monitoring
  */
-async function logProcessingError(/* _error: {
-  photoId: string;
-  protocolId: string;
-  originalKey: string;
-  error: string;
-  userId?: string;
-  processingTime: number;
-} */): Promise<void> {
-  // TODO: Implementovať error logging do databázy
-  // console.error('Photo processing error:', error);
-}
+// async function logProcessingError() - TODO: Implement in next phase
 
 /**
  * Queue event handlers pre monitoring
@@ -181,10 +160,10 @@ photoQueue.on('completed', (/* job, result: PhotoProcessingResult */) => {
   // });
 });
 
-photoQueue.on('failed', (job, err) => {
+photoQueue.on('failed', (job: Job<PhotoProcessingJob>, err: Error) => {
   console.error(`Photo processing failed: ${job.id}`, err.message);
 });
 
-photoQueue.on('stalled', (job) => {
+photoQueue.on('stalled', (job: Job<PhotoProcessingJob>) => {
   console.warn(`Photo processing stalled: ${job.id}`);
 });
