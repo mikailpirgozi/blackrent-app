@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { ProtocolImage, ProtocolVideo } from '../types';
+import type { ProtocolImage, ProtocolVideo } from '../types';
 
 interface UseProtocolMediaProps {
   protocolId: string;

@@ -15,7 +15,7 @@ import {
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Rental, Customer, Vehicle } from '../../types';
+import type { Rental, Customer, Vehicle } from '../../types';
 
 interface EmailParserProps {
   onParseSuccess: (

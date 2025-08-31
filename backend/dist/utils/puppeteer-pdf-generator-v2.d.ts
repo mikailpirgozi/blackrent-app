@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
+import type { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 export declare class PuppeteerPDFGeneratorV2 {
     private browser;
     constructor();

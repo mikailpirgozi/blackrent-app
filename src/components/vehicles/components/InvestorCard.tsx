@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import React, { useState } from 'react';
 
-import { InvestorCardProps } from '../../../types/vehicle-types';
+import type { InvestorCardProps } from '../../../types/vehicle-types';
 import { getApiBaseUrl } from '../../../utils/apiUrl';
 
 // 🤝 INVESTOR CARD COMPONENT - Rozbaliteľná karta spoluinvestora s podielmi

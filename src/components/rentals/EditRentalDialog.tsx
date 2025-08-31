@@ -24,7 +24,7 @@ import { differenceInDays } from 'date-fns';
 import React, { useState, useEffect } from 'react';
 
 import { apiService } from '../../services/api';
-import { Rental, Vehicle, Customer } from '../../types';
+import type { Rental, Vehicle, Customer } from '../../types';
 
 interface EditRentalDialogProps {
   open: boolean;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { apiService } from '../services/api';
-import { Company } from '../types';
+import type { Company } from '../types';
 import { logger } from '../utils/smartLogger';
 
 interface CompanyFilters {

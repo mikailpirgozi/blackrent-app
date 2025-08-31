@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import { Vehicle } from '../../../types';
+import type { Vehicle } from '../../../types';
 import {
   getStatusColor,
   getStatusBgColor,

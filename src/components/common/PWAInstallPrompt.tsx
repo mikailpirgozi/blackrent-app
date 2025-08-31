@@ -28,7 +28,7 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { TransitionProps } from '@mui/material/transitions';
+import type { TransitionProps } from '@mui/material/transitions';
 import React, { useState, useEffect } from 'react';
 
 import { usePWA } from '../../hooks/usePWA';

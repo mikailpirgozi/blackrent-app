@@ -64,7 +64,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 // 🔄 PHASE 4: Migrated to unified cache system
 import { apiService } from '../../services/api';
-import { VehicleCategory, Vehicle } from '../../types';
+import type { VehicleCategory, Vehicle } from '../../types';
 import { logger } from '../../utils/smartLogger';
 import { unifiedCache } from '../../utils/unifiedCacheSystem';
 import {

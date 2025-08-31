@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import type { Request } from 'express';
 export type VehicleCategory = 'nizka-trieda' | 'stredna-trieda' | 'vyssia-stredna' | 'luxusne' | 'sportove' | 'suv' | 'viacmiestne' | 'dodavky';
 export interface Vehicle {
     id: string;

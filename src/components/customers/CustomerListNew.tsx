@@ -47,7 +47,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
-import { Customer } from '../../types';
+import type { Customer } from '../../types';
 import { PrimaryButton, SecondaryButton, DefaultCard, StatusChip } from '../ui';
 
 import CustomerForm from './CustomerForm';

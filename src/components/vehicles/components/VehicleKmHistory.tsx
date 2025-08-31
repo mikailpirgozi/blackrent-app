@@ -38,7 +38,7 @@ import { sk } from 'date-fns/locale';
 import React, { useState, useEffect } from 'react';
 
 import { useApp } from '../../../context/AppContext';
-import { Vehicle } from '../../../types';
+import type { Vehicle } from '../../../types';
 
 interface KmHistoryEntry {
   id: string;

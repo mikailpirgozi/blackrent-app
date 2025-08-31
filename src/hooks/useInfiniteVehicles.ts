@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { apiService } from '../services/api';
-import { Vehicle } from '../types';
+import type { Vehicle } from '../types';
 import { logger } from '../utils/smartLogger';
 
 interface VehicleFilters {

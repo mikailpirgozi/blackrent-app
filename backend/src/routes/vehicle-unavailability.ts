@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
-import { VehicleUnavailability, ApiResponse } from '../types';
+import type { VehicleUnavailability, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { invalidateRelatedCache } from '../utils/cache-service';
 

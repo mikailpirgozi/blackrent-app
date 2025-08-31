@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { apiService } from '../services/api';
-import { Rental } from '../types';
+import type { Rental } from '../types';
 import { logger } from '../utils/smartLogger';
 import { normalizeText } from '../utils/textNormalization';
 

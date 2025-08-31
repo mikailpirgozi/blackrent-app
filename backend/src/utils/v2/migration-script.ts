@@ -3,7 +3,7 @@
  * Migruje existujúce protokoly na nový V2 systém
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 import { postgresDatabase } from '../../models/postgres-database';
 import { r2Storage } from '../r2-storage';
 import { HashCalculator } from './hash-calculator';
@@ -140,8 +140,9 @@ export class ProtocolMigrationService {
       await this.migrateProtocolData(protocol);
       
       // 2. Migrácia fotografií
-      if (!options.skipPhotos && protocol.photos && protocol.photos.length > 0) {
-        await this.migrateProtocolPhotos(protocolId, protocol.photos);
+      if (!options.skipPhotos && protocol.photos && Array.isArray(protocol.photos) && protocol.photos.length > 0) {
+        const typedPhotos = protocol.photos as Array<{ id?: string; url: string; [key: string]: unknown }>;
+        await this.migrateProtocolPhotos(protocolId, typedPhotos);
       }
       
       // 3. Migrácia PDF (ak existuje)
@@ -297,7 +298,7 @@ export class ProtocolMigrationService {
         
         // Upload derivatives to R2
         const basePath = `protocols/${protocolId}/photos`;
-        const photoId = photo.id || uuidv4();
+        const photoId = photo.id || uuid.v4();
         
         const [thumbUrl, galleryUrl, pdfUrl] = await Promise.all([
           r2Storage.uploadFile(

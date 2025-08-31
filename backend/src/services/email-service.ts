@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { Customer, HandoverProtocol, ReturnProtocol } from '../types';
+import type { Customer, HandoverProtocol, ReturnProtocol } from '../types';
 
 interface EmailTemplate {
   subject: string;

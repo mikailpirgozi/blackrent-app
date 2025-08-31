@@ -67,21 +67,21 @@ router.get('/analyze', auth_1.authenticateToken, async (req, res) => {
         client.release();
         const protocols = result.rows;
         let totalBase64ImageSize = 0;
-        let totalBase64PDFSize = 0;
+        const totalBase64PDFSize = 0;
         let protocolsWithBase64Images = 0;
         let protocolsWithBase64PDFs = 0;
         let protocolsWithR2Images = 0;
         let protocolsWithR2PDFs = 0;
-        let cleanupCandidates = [];
+        const cleanupCandidates = [];
         const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
         for (const protocol of protocols) {
             const createdAt = new Date(protocol.created_at);
             let hasBase64Images = false;
             let hasR2Images = false;
-            let hasBase64PDF = false;
+            const hasBase64PDF = false;
             let hasR2PDF = false;
             let imageSize = 0;
-            let pdfSize = 0;
+            const pdfSize = 0;
             // Analyze all media columns
             const mediaColumns = [
                 'vehicle_images_urls',
@@ -320,11 +320,11 @@ router.get('/r2-analyze', auth_1.authenticateToken, async (req, res) => {
         // Získanie všetkých súborov z R2
         const allFiles = await r2_storage_1.r2Storage.listFiles('');
         // Kategorizácia súborov
-        let protocolFiles = 0;
+        const protocolFiles = 0;
         let imageFiles = 0;
         let pdfFiles = 0;
         let otherFiles = 0;
-        let totalSize = 0;
+        const totalSize = 0;
         const filesByType = {
             protocols: allFiles.filter(file => file.startsWith('protocols/')),
             organized: allFiles.filter(file => file.match(/^\d{4}\/\d{2}\//)), // New organized structure

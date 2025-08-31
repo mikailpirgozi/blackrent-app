@@ -36,7 +36,7 @@ import { format, parseISO, isAfter, isBefore } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useState, useMemo } from 'react';
 
-import { Customer, Rental, Vehicle } from '../../types';
+import type { Customer, Rental, Vehicle } from '../../types';
 
 interface CustomerRentalHistoryProps {
   open: boolean;

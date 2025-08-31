@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useRef } from 'react';
+import type React from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 import { apiService } from '../services/api';
-import { Rental, ProtocolImage, ProtocolVideo } from '../types';
+import type { Rental, ProtocolImage, ProtocolVideo } from '../types';
 import { logger } from '../utils/logger';
 
 interface UseRentalProtocolsProps {

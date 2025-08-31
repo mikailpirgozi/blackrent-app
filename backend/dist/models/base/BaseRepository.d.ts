@@ -2,7 +2,7 @@
  * Base Repository Class
  * Poskytuje základné databázové operácie pre všetky repository
  */
-import { Pool, PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 export declare abstract class BaseRepository {
     protected pool: Pool;
     constructor(pool: Pool);

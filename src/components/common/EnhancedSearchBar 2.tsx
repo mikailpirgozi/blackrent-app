@@ -40,11 +40,12 @@ import {
 } from '@mui/material';
 import React, { useState, useRef, useEffect, memo } from 'react';
 
+import type {
+  SearchSuggestion,
+  QuickFilter} from '../../hooks/useEnhancedSearch';
 import {
   useEnhancedSearch,
-  UseEnhancedSearchOptions,
-  SearchSuggestion,
-  QuickFilter,
+  UseEnhancedSearchOptions
 } from '../../hooks/useEnhancedSearch';
 
 interface EnhancedSearchBarProps {

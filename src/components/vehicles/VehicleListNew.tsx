@@ -51,7 +51,8 @@ import { flushSync } from 'react-dom';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import { Vehicle, VehicleStatus, VehicleCategory } from '../../types';
+import type { Vehicle, VehicleCategory } from '../../types';
+import { VehicleStatus } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import {
   getStatusColor,

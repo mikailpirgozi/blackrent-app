@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React from 'react';
 
-import { Vehicle } from '../../../types';
+import type { Vehicle } from '../../../types';
 import VehicleForm from '../VehicleForm';
 
 interface VehicleDialogsProps {

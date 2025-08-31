@@ -36,7 +36,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { useEmailApi } from '../hooks/useEmailApi';
-import { EmailEntry, EmailDetail } from '../types/email-types';
+import type { EmailEntry, EmailDetail } from '../types/email-types';
 import { PAGE_SIZE } from '../utils/email-constants';
 import { truncateText } from '../utils/email-formatters';
 

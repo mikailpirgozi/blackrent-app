@@ -1,4 +1,4 @@
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 /**
  * PDF-lib CUSTOM Font Generator - Používa vlastný font používateľa
  * Plná podpora slovenskej diakritiky s custom fontom

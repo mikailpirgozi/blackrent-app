@@ -1,5 +1,5 @@
-import { Server as HTTPServer } from 'http';
-import { Rental, Vehicle, Customer } from '../types';
+import type { Server as HTTPServer } from 'http';
+import type { Rental, Vehicle, Customer } from '../types';
 export declare class WebSocketService {
     private io;
     private connectedClients;

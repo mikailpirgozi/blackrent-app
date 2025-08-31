@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 import {
   PROTOCOL_V2_FLAGS,
   featureManager,
@@ -111,7 +111,7 @@ export const ReturnProtocolFormV2: React.FC<Props> = ({
 }) => {
   const [protocolData, setProtocolData] = useState<ReturnProtocolDataV2>(
     () => ({
-      protocolId: initialData?.protocolId || uuidv4(),
+      protocolId: initialData?.protocolId || uuid.v4(),
       vehicleId: initialData?.vehicleId || '',
       customerId: initialData?.customerId || '',
       rentalId: initialData?.rentalId || '',
@@ -269,7 +269,7 @@ export const ReturnProtocolFormV2: React.FC<Props> = ({
    */
   const addNewDamage = useCallback(() => {
     const newDamage = {
-      id: uuidv4(),
+      id: uuid.v4(),
       description: '',
       severity: 'minor' as const,
       location: '',
@@ -315,7 +315,7 @@ export const ReturnProtocolFormV2: React.FC<Props> = ({
    */
   const addAdditionalCharge = useCallback(() => {
     const newCharge = {
-      id: uuidv4(),
+      id: uuid.v4(),
       type: 'other' as const,
       description: '',
       amount: 0,

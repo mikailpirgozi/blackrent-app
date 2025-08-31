@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 import {
   PROTOCOL_V2_FLAGS,
   featureManager,
@@ -91,7 +91,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
 }) => {
   const [protocolData, setProtocolData] = useState<HandoverProtocolDataV2>(
     () => ({
-      protocolId: initialData?.protocolId || uuidv4(),
+      protocolId: initialData?.protocolId || uuid.v4(),
       vehicleId: initialData?.vehicleId || '',
       customerId: initialData?.customerId || '',
       rentalId: initialData?.rentalId || '',
@@ -188,7 +188,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
    */
   const addDamage = useCallback(() => {
     const newDamage = {
-      id: uuidv4(),
+      id: uuid.v4(),
       description: '',
       severity: 'minor' as const,
       location: '',

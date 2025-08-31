@@ -4,8 +4,9 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import { Pool, PoolClient } from 'pg';
-import { Settlement } from '../types';
+import type { Pool} from 'pg';
+import { PoolClient } from 'pg';
+import type { Settlement } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 import { logger } from '../utils/logger';
 

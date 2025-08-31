@@ -24,7 +24,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import React, { useState, useEffect } from 'react';
 
 import { useApp } from '../../context/AppContext';
-import { Insurance, VehicleDocument, PaymentFrequency } from '../../types';
+import type { PaymentFrequency } from '../../types';
+import { Insurance, VehicleDocument } from '../../types';
 
 import R2FileUpload from './R2FileUpload';
 

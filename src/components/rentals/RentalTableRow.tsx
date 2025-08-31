@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { memo } from 'react';
 
-import { Rental } from '../../types';
+import type { Rental } from '../../types';
 
 interface RentalTableRowProps {
   rental: Rental;

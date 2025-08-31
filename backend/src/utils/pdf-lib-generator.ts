@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
-import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
+import type { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**

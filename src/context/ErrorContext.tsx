@@ -10,10 +10,11 @@ import React, {
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import {
+import type {
   AppError,
   ErrorContext as IErrorContext,
-  ErrorAction,
+  ErrorAction} from '../types/errors';
+import {
   createError,
   ErrorSeverity,
   ErrorCategory,

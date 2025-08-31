@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 import {
   PROTOCOL_V2_FLAGS,
   featureManager,
@@ -139,7 +139,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
         // Generovanie preview
         const preview: Preview = {
-          id: uuidv4(),
+          id: uuid.v4(),
           url: URL.createObjectURL(file),
           file,
           timestamp: new Date(),

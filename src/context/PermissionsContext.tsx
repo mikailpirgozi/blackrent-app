@@ -1,14 +1,16 @@
+import type {
+  ReactNode} from 'react';
 import React, {
   createContext,
   useContext,
   useState,
-  useEffect,
-  ReactNode,
+  useEffect
 } from 'react';
 
 import { apiService } from '../services/api';
+import type {
+  UserCompanyAccess} from '../types';
 import {
-  UserCompanyAccess,
   CompanyPermissions,
   ResourcePermission,
 } from '../types';

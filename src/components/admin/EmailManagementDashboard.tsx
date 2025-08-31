@@ -61,7 +61,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { apiService, getAPI_BASE_URL } from '../../services/api';
-import { Rental } from '../../types';
+import type { Rental } from '../../types';
 
 interface EmailEntry {
   id: string;

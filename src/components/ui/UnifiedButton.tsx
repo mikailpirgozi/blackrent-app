@@ -5,7 +5,8 @@
  * Nahradí všetky rôzne button štýly jednotným dizajnom
  */
 
-import { Button, ButtonProps, CircularProgress } from '@mui/material';
+import type { ButtonProps} from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React from 'react';
 

@@ -1,7 +1,7 @@
-import { NextFunction, Response } from 'express';
+import type { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { postgresDatabase } from '../models/postgres-database';
-import { AuthRequest, JWTPayload } from '../types';
+import type { AuthRequest, JWTPayload } from '../types';
 import { createForbiddenError, createUnauthorizedError } from './errorHandler';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';

@@ -18,7 +18,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { Vehicle, VehicleStatus } from '../../../types';
-import { OwnerCardProps } from '../../../types/vehicle-types';
+import type { OwnerCardProps } from '../../../types/vehicle-types';
 import { getApiBaseUrl } from '../../../utils/apiUrl';
 import {
   getStatusColor,

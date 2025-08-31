@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { sk } from 'date-fns/locale';
 
-import { Rental, Vehicle } from '../../../types';
+import type { Rental, Vehicle } from '../../../types';
 
 // CSV Export utility
 export const exportRentalsToCSV = (rentals: Rental[], vehicles: Vehicle[]) => {

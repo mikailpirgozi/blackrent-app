@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
-import { Vehicle, ApiResponse, VehicleStatus } from '../types';
+import type { Vehicle, ApiResponse, VehicleStatus } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';

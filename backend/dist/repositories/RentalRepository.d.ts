@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre prenájmy
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Rental } from '../types';
+import type { Pool } from 'pg';
+import type { Rental } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class RentalRepository extends BaseRepository {
     private rentalCache;

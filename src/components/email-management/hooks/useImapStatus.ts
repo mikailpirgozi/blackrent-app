@@ -6,7 +6,7 @@
 import { useState, useCallback } from 'react';
 
 import { getAPI_BASE_URL } from '../../../services/api';
-import { ImapStatus } from '../types/email-types';
+import type { ImapStatus } from '../types/email-types';
 
 export const useImapStatus = () => {
   const [imapStatus, setImapStatus] = useState<ImapStatus | null>(null);

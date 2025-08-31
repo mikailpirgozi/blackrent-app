@@ -99,7 +99,7 @@ router.post('/send', auth_1.authenticateToken, (0, auth_1.requireRole)(['admin']
         }
         // Get target subscriptions
         let query = 'SELECT * FROM push_subscriptions WHERE active = true';
-        let params = [];
+        const params = [];
         if (targetUsers.length > 0) {
             query += ` AND user_id = ANY($1)`;
             params.push(targetUsers);
@@ -218,7 +218,7 @@ router.get('/analytics', auth_1.authenticateToken, (0, auth_1.requireRole)(['adm
       FROM notification_logs 
       WHERE created_at >= $1 AND created_at <= $2
     `;
-        let params = [
+        const params = [
             startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
             endDate || new Date()
         ];

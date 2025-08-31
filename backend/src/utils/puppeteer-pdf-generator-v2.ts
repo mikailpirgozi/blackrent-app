@@ -1,5 +1,6 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
-import { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
+import type { Browser, Page } from 'puppeteer';
+import puppeteer from 'puppeteer';
+import type { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
 import { getProtocolCompanyDisplay, PROTOCOL_REPRESENTATIVE } from './protocol-helpers';
 
 export class PuppeteerPDFGeneratorV2 {

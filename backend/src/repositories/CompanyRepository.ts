@@ -4,8 +4,9 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import { Pool, PoolClient } from 'pg';
-import { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+import type { Pool} from 'pg';
+import { PoolClient } from 'pg';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 import { logger } from '../utils/logger';
 
@@ -57,8 +58,8 @@ export class CompanyRepository extends BaseRepository {
   }): Promise<{ companies: Company[]; total: number }> {
     const client = await this.getClient();
     try {
-      let whereConditions: string[] = [];
-      let queryParams: any[] = [];
+      const whereConditions: string[] = [];
+      const queryParams: any[] = [];
       let paramIndex = 1;
 
       // Search filter

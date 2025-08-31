@@ -4,7 +4,7 @@
  * Optimalizované filter funkcie s memoization
  */
 
-import { Rental } from '../types';
+import type { Rental } from '../types';
 
 import { searchInTexts } from './textNormalization';
 

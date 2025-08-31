@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
-import { Insurer, ApiResponse } from '../types';
+import type { Insurer, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 

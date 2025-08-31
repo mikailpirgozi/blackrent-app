@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { UserRole, Permission, PermissionCheck, PermissionResult, User } from '../types';
+import type { Request, Response, NextFunction } from 'express';
+import type { UserRole, Permission, PermissionResult, User } from '../types';
+import { PermissionCheck } from '../types';
 import { logger } from '../utils/logger';
 
 // Rozšírenie Request interface o user a permissions

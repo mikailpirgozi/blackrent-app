@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
-import { ProtocolImage, ProtocolVideo } from '../../types';
+import type { ProtocolImage, ProtocolVideo } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import logger from '../../utils/logger';
 

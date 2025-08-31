@@ -1,5 +1,7 @@
-import { Pool, PoolClient } from 'pg';
-import { Vehicle, Customer, Rental, Expense, ExpenseCategory, RecurringExpense, RecurringExpenseGeneration, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare, CompanyDocument } from '../types';
+import type { PoolClient } from 'pg';
+import { Pool } from 'pg';
+import type { Vehicle, Customer, Rental, Expense, ExpenseCategory, RecurringExpense, Insurance, User, Company, Insurer, Settlement, VehicleDocument, InsuranceClaim, UserPermission, UserCompanyAccess, CompanyPermissions, CompanyInvestor, CompanyInvestorShare, CompanyDocument } from '../types';
+import { RecurringExpenseGeneration } from '../types';
 import bcrypt from 'bcryptjs';
 import { r2Storage } from '../utils/r2-storage';
 import { logger } from '../utils/logger';
@@ -2284,7 +2286,7 @@ export class PostgresDatabase {
   private async getVehiclesFresh(includeRemoved: boolean = false, includePrivate: boolean = false): Promise<Vehicle[]> {
     const client = await this.pool.connect();
     try {
-      let excludedStatuses = [];
+      const excludedStatuses = [];
       if (!includeRemoved) {
         excludedStatuses.push('removed', 'temporarily_removed');
       }
@@ -3122,7 +3124,7 @@ export class PostgresDatabase {
       }
 
       // Základný WHERE clause
-      let whereConditions: string[] = ['1=1'];
+      const whereConditions: string[] = ['1=1'];
       const queryParams: any[] = [];
       let paramIndex = 1;
 
@@ -7227,7 +7229,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM vehicle_documents';
-      let params: any[] = [];
+      const params: any[] = [];
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';
@@ -7350,7 +7352,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM insurance_claims';
-      let params: any[] = [];
+      const params: any[] = [];
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';

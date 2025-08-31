@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { EnhancedPDFGeneratorBackend } from './enhanced-pdf-generator-backend';
 import { PuppeteerPDFGeneratorV2 } from './puppeteer-pdf-generator-v2';
 import { PDFLibGenerator } from './pdf-lib-generator';

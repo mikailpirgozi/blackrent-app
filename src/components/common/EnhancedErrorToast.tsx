@@ -32,12 +32,13 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import type {
+  ErrorContext} from '../../utils/enhancedErrorMessages';
 import {
   getEnhancedErrorMessage,
-  getRecoverySuggestions,
-  ErrorContext,
+  getRecoverySuggestions
 } from '../../utils/enhancedErrorMessages';
-import { EnhancedError } from '../../utils/errorHandling';
+import type { EnhancedError } from '../../utils/errorHandling';
 
 interface EnhancedErrorToastProps {
   error: EnhancedError | null;

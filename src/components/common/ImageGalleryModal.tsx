@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import React, { useState, useRef, useEffect } from 'react';
 
-import { ProtocolImage, ProtocolVideo } from '../../types';
+import type { ProtocolImage, ProtocolVideo } from '../../types';
 
 interface ImageGalleryModalProps {
   open: boolean;

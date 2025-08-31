@@ -35,7 +35,7 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { useEmailApi } from '../hooks/useEmailApi';
-import {
+import type {
   EmailEntry,
   EmailDetail,
   ArchivePagination,

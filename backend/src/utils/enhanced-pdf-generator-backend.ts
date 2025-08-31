@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**

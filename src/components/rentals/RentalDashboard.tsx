@@ -31,7 +31,7 @@ import {
 import { sk } from 'date-fns/locale';
 import React, { useMemo } from 'react';
 
-import { Rental } from '../../types';
+import type { Rental } from '../../types';
 
 interface RentalDashboardProps {
   rentals: Rental[];

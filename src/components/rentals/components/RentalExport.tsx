@@ -9,7 +9,7 @@ import React, { useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { apiService } from '../../../services/api';
-import { Rental } from '../../../types';
+import type { Rental } from '../../../types';
 import { logger } from '../../../utils/logger';
 
 interface RentalExportProps {

@@ -10,7 +10,7 @@
 
 import { useMemo, useCallback } from 'react';
 
-import { Rental, Vehicle, Customer } from '../types';
+import type { Rental, Vehicle, Customer } from '../types';
 
 import { logger } from './smartLogger';
 

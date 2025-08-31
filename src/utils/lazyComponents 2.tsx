@@ -1,11 +1,12 @@
 // 🔄 Enhanced Lazy Loading Utilities
 // Advanced code splitting with error boundaries, preloading, and retry logic
 
-import React, {
-  Suspense,
+import type {
   ComponentType,
   LazyExoticComponent,
-  ReactNode,
+  ReactNode} from 'react';
+import React, {
+  Suspense
 } from 'react';
 
 import ErrorBoundary from '../components/common/ErrorBoundary';

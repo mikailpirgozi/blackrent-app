@@ -6,7 +6,7 @@ import { Box, Typography, Chip, IconButton, Paper, Grid } from '@mui/material';
 import React from 'react';
 
 import { useApp } from '../../../context/AppContext';
-import { Rental } from '../../../types';
+import type { Rental } from '../../../types';
 import { formatDate, formatCurrency } from '../../../utils/formatters';
 
 interface RentalRowProps {

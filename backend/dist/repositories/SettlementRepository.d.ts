@@ -3,8 +3,8 @@
  * Spravuje všetky databázové operácie pre vyúčtovania
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
-import { Pool } from 'pg';
-import { Settlement } from '../types';
+import type { Pool } from 'pg';
+import type { Settlement } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 export declare class SettlementRepository extends BaseRepository {
     constructor(pool: Pool);

@@ -27,8 +27,8 @@ import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { memo, useCallback } from 'react';
 
-import { Rental } from '../../types';
-import { VehicleLookup } from '../../utils/rentalFilters';
+import type { Rental } from '../../types';
+import type { VehicleLookup } from '../../utils/rentalFilters';
 
 import RentalStatusChip from './RentalStatusChip';
 

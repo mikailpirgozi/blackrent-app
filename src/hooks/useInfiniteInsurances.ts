@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { apiService } from '../services/api';
-import { Insurance } from '../types';
+import type { Insurance } from '../types';
 
 export interface InsuranceFilters {
   search?: string;

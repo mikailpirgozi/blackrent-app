@@ -24,7 +24,7 @@ import {
 import React, { useMemo } from 'react';
 
 import { useError } from '../../context/ErrorContext';
-import { AppError, ErrorSeverity } from '../../types/errors';
+import type { AppError, ErrorSeverity } from '../../types/errors';
 
 // Toast severity mapping
 const getSeverityColor = (severity: ErrorSeverity) => {

@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import React, { memo } from 'react';
 
-import { Rental } from '../../types';
+import type { Rental } from '../../types';
 import { formatTime } from '../../utils/formatters';
 
 interface RentalMobileCardProps {

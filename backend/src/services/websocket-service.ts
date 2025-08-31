@@ -2,8 +2,8 @@
 // Poskytuje real-time updates pre prenájmy, vozidlá a ďalšie entity
 
 import { Server as SocketIOServer } from 'socket.io';
-import { Server as HTTPServer } from 'http';
-import { Rental, Vehicle, Customer } from '../types';
+import type { Server as HTTPServer } from 'http';
+import type { Rental, Vehicle, Customer } from '../types';
 
 export class WebSocketService {
   private io: SocketIOServer;

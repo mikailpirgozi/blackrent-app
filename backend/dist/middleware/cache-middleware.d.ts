@@ -3,7 +3,7 @@
  *
  * Express middleware pre automatic caching API responses
  */
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { cacheInstances } from '../utils/cache-service';
 import type { CacheOptions } from '../utils/cache-service';
 interface CacheMiddlewareOptions extends CacheOptions {

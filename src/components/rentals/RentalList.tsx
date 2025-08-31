@@ -31,7 +31,7 @@ import { apiService } from '../../services/api';
 
 // 🚀 EXTRACTED: Types
 import { FilterState, ITEMS_PER_PAGE } from '../../types/rental-types';
-import { Rental } from '../../types';
+import type { Rental } from '../../types';
 import { logger } from '../../utils/logger';
 import {
   formatCurrency,

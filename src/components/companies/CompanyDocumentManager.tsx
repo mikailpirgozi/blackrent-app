@@ -38,7 +38,7 @@ import {
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
-import { CompanyDocument } from '../../types';
+import type { CompanyDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import BulkDownload from '../common/BulkDownload';
 import R2FileUpload from '../common/R2FileUpload';

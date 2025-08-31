@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import type { Request } from 'express';
 
 // 🚗 VEHICLE CATEGORIES: Typy kategórií vozidiel pre lepšie filtrovanie
 export type VehicleCategory = 

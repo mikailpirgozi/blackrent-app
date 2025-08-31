@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
-import { ProtocolImage } from '../../types';
+import type { ProtocolImage } from '../../types';
 
 interface ProtocolDetailViewerProps {
   protocolId: string;

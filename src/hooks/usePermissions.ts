@@ -2,12 +2,13 @@ import { useMemo } from 'react';
 
 import { useAuth } from '../context/AuthContext';
 import { usePermissionsContext } from '../context/PermissionsContext';
-import {
+import type {
   UserRole,
   Permission,
   PermissionResult,
   UserCompanyAccess,
-  CompanyPermissions,
+  CompanyPermissions} from '../types';
+import {
   ResourcePermission,
 } from '../types';
 

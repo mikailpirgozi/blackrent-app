@@ -85,8 +85,7 @@ class R2Storage {
    */
   private async uploadFileLocally(
     key: string,
-    buffer: Buffer,
-    _contentType: string
+    buffer: Buffer
   ): Promise<string> {
     try {
       // Vytvor lokálny storage adresár

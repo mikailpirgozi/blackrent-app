@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material';
 import React from 'react';
 
-import { VehicleStatus } from '../../types';
+import type { VehicleStatus } from '../../types';
 
 // 🎨 Vehicle Status Color Helper
 export const getStatusColor = (

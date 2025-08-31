@@ -1,6 +1,8 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
-import { Expense, ApiResponse, ExpenseCategory, ExpenseCategoryName } from '../types';
+import type { Expense, ApiResponse} from '../types';
+import { ExpenseCategory, ExpenseCategoryName } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
@@ -460,7 +462,7 @@ router.post('/batch-import',
       const results = [];
       const errors = [];
       let created = 0;
-      let updated = 0;
+      const updated = 0;
 
       // Spracuj náklady v dávkach po 50
       const batchSize = 50;
