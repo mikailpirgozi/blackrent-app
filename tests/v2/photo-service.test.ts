@@ -5,6 +5,11 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PhotoServiceV2 } from '../../backend/src/services/photo-service-v2';
 
+// Mock uuid
+vi.mock('uuid', () => ({
+  v4: () => 'test-uuid-123'
+}));
+
 // Mock dependencies
 vi.mock('../../backend/src/utils/r2-storage', () => ({
   r2Storage: {
@@ -13,6 +18,14 @@ vi.mock('../../backend/src/utils/r2-storage', () => ({
     deleteFile: vi.fn().mockResolvedValue(true),
     fileExists: vi.fn().mockResolvedValue(true)
   }
+}));
+
+// Mock AWS SDK
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: vi.fn(),
+  PutObjectCommand: vi.fn(),
+  GetObjectCommand: vi.fn(),
+  DeleteObjectCommand: vi.fn()
 }));
 
 vi.mock('../../backend/src/queues/setup', () => ({
