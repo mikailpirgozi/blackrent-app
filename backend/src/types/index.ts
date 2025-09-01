@@ -86,8 +86,8 @@ export interface Rental {
   customerId?: string;
   customer?: Customer;
   customerName: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: Date | string; // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+  endDate: Date | string; // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
   totalPrice: number;
   commission: number;
   paymentMethod: PaymentMethod;
@@ -322,8 +322,8 @@ export interface VehicleUnavailability {
   id: string;
   vehicleId: string;
   vehicle?: Vehicle;
-  startDate: Date;
-  endDate: Date;
+  startDate: Date | string; // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+  endDate: Date | string; // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
   reason: string;
   type: 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented' | 'private_rental';
   notes?: string;

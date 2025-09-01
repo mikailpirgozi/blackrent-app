@@ -98,8 +98,11 @@ export function parseEmailText(text: string): ParsedEmailData {
     const dateRangeMatch = timeStr.match(dateRangePattern);
 
     if (dateRangeMatch) {
-      data.handoverDate = `${dateRangeMatch[1]} ${dateRangeMatch[2]}`;
-      data.returnDate = `${dateRangeMatch[3]} ${dateRangeMatch[4]}`;
+      // ZACHOVAJ PRESNÝ FORMÁT - konvertuj DD.MM.YYYY na YYYY-MM-DD pre PostgreSQL
+      const startDay = dateRangeMatch[1].split('.').reverse().join('-');
+      const endDay = dateRangeMatch[3].split('.').reverse().join('-');
+      data.handoverDate = `${startDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[2]}`;
+      data.returnDate = `${endDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[4]}`;
     } else {
       // Alternatívny pattern: "YYYY-MM-DD HH:MM:SS - YYYY-MM-DD HH:MM:SS"
       const isoDateRangePattern =
@@ -107,6 +110,7 @@ export function parseEmailText(text: string): ParsedEmailData {
       const isoDateRangeMatch = timeStr.match(isoDateRangePattern);
 
       if (isoDateRangeMatch) {
+        // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         data.handoverDate = `${isoDateRangeMatch[1]} ${isoDateRangeMatch[2]}`;
         data.returnDate = `${isoDateRangeMatch[3]} ${isoDateRangeMatch[4]}`;
       }

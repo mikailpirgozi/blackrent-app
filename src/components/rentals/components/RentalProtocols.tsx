@@ -1,19 +1,19 @@
 import {
-  PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
+  PictureAsPdf as PDFIcon,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
   Box,
-  CircularProgress,
-  Typography,
   Button,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
-import type { Rental, ProtocolImage, ProtocolVideo } from '../../../types';
+import type { ProtocolImage, ProtocolVideo, Rental } from '../../../types';
 import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
 import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';
@@ -183,19 +183,23 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
           },
         }}
       >
-        <DialogTitle sx={{ 
-          flexShrink: 0,
-          borderBottom: 1,
-          borderColor: 'divider',
-          padding: { xs: 1, sm: 2 },
-        }}>
+        <DialogTitle
+          sx={{
+            flexShrink: 0,
+            borderBottom: 1,
+            borderColor: 'divider',
+            padding: { xs: 1, sm: 2 },
+          }}
+        >
           Odovzdávací protokol (V1)
         </DialogTitle>
-        <DialogContent sx={{ 
-          flex: 1,
-          overflow: 'auto',
-          padding: { xs: 1, sm: 2 },
-        }}>
+        <DialogContent
+          sx={{
+            flex: 1,
+            overflow: 'auto',
+            padding: { xs: 1, sm: 2 },
+          }}
+        >
           {selectedRentalForProtocol && (
             <React.Suspense
               fallback={
@@ -253,19 +257,23 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
           },
         }}
       >
-        <DialogTitle sx={{ 
-          flexShrink: 0,
-          borderBottom: 1,
-          borderColor: 'divider',
-          padding: { xs: 1, sm: 2 },
-        }}>
+        <DialogTitle
+          sx={{
+            flexShrink: 0,
+            borderBottom: 1,
+            borderColor: 'divider',
+            padding: { xs: 1, sm: 2 },
+          }}
+        >
           Preberací protokol (V1)
         </DialogTitle>
-        <DialogContent sx={{ 
-          flex: 1,
-          overflow: 'auto',
-          padding: { xs: 1, sm: 2 },
-        }}>
+        <DialogContent
+          sx={{
+            flex: 1,
+            overflow: 'auto',
+            padding: { xs: 1, sm: 2 },
+          }}
+        >
           {selectedRentalForProtocol && (
             <>
               {/* ✅ LOADING STATE: Zobraz loading kým sa načítajú protokoly */}

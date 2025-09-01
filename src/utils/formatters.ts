@@ -3,6 +3,18 @@ export function formatDate(date: string | Date): string {
   if (!date) return 'N/A';
 
   try {
+    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+    if (typeof date === 'string') {
+      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, parsuj bez timezone
+      const match = date.match(
+        /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):(\d{2}))?/
+      );
+      if (match) {
+        const [, year, month, day] = match;
+        return `${day}.${month}.${year}`;
+      }
+    }
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (isNaN(dateObj.getTime())) return 'N/A';
@@ -21,6 +33,18 @@ export function formatDateTime(date: string | Date): string {
   if (!date) return 'N/A';
 
   try {
+    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+    if (typeof date === 'string') {
+      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, parsuj bez timezone
+      const match = date.match(
+        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
+      );
+      if (match) {
+        const [, year, month, day, hour, minute] = match;
+        return `${day}.${month}.${year} ${hour}:${minute}`;
+      }
+    }
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (isNaN(dateObj.getTime())) return 'N/A';
@@ -41,6 +65,18 @@ export function formatTime(date: string | Date): string {
   if (!date) return 'N/A';
 
   try {
+    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+    if (typeof date === 'string') {
+      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, parsuj bez timezone
+      const match = date.match(
+        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
+      );
+      if (match) {
+        const [, , , , hour, minute] = match;
+        return `${hour}:${minute}`;
+      }
+    }
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (isNaN(dateObj.getTime())) return 'N/A';
@@ -88,9 +124,51 @@ export function formatDuration(
   if (!startDate || !endDate) return 'N/A';
 
   try {
-    const start =
-      typeof startDate === 'string' ? new Date(startDate) : startDate;
-    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+    let start: Date;
+    let end: Date;
+
+    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+    if (typeof startDate === 'string') {
+      const match = startDate.match(
+        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
+      );
+      if (match) {
+        const [, year, month, day, hour, minute, second] = match;
+        start = new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hour),
+          parseInt(minute),
+          parseInt(second)
+        );
+      } else {
+        start = new Date(startDate);
+      }
+    } else {
+      start = startDate;
+    }
+
+    if (typeof endDate === 'string') {
+      const match = endDate.match(
+        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
+      );
+      if (match) {
+        const [, year, month, day, hour, minute, second] = match;
+        end = new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hour),
+          parseInt(minute),
+          parseInt(second)
+        );
+      } else {
+        end = new Date(endDate);
+      }
+    } else {
+      end = endDate;
+    }
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'N/A';
 

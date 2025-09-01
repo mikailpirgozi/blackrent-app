@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const postgres_database_1 = require("../models/postgres-database");
+const uuid_1 = require("uuid");
 const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
-const uuid_1 = require("uuid");
+const postgres_database_1 = require("../models/postgres-database");
 const logger_1 = require("../utils/logger");
 const router = (0, express_1.Router)();
 const postgresDatabase = new postgres_database_1.PostgresDatabase();
@@ -60,7 +60,7 @@ class EmailParsingService {
             if (returnMatch) {
                 data.returnPlace = returnMatch[1].trim();
             }
-            // Parsovanie času rezervácie (komplex formát) - IDENTICKÉ s emailParsingUtils.ts
+            // Parsovanie času rezervácie (komplex formát) - ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE
             const reservationMatch = text.match(/Čas rezervacie\s+(.+)/);
             if (reservationMatch) {
                 const timeStr = reservationMatch[1].trim();
@@ -69,14 +69,18 @@ class EmailParsingService {
                 const dateRangePattern = /(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})/;
                 const dateRangeMatch = timeStr.match(dateRangePattern);
                 if (dateRangeMatch) {
-                    data.handoverDate = `${dateRangeMatch[1]} ${dateRangeMatch[2]}`;
-                    data.returnDate = `${dateRangeMatch[3]} ${dateRangeMatch[4]}`;
+                    // ZACHOVAJ PRESNÝ FORMÁT - konvertuj DD.MM.YYYY na YYYY-MM-DD pre PostgreSQL
+                    const startDay = dateRangeMatch[1].split('.').reverse().join('-');
+                    const endDay = dateRangeMatch[3].split('.').reverse().join('-');
+                    data.handoverDate = `${startDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[2]}`;
+                    data.returnDate = `${endDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[4]}`;
                 }
                 else {
                     // Alternatívny pattern: "YYYY-MM-DD HH:MM:SS - YYYY-MM-DD HH:MM:SS"
                     const isoDateRangePattern = /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/;
                     const isoDateRangeMatch = timeStr.match(isoDateRangePattern);
                     if (isoDateRangeMatch) {
+                        // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
                         data.handoverDate = `${isoDateRangeMatch[1]} ${isoDateRangeMatch[2]}`;
                         data.returnDate = `${isoDateRangeMatch[3]} ${isoDateRangeMatch[4]}`;
                     }

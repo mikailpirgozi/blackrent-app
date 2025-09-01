@@ -8,6 +8,7 @@ import {
   Cancel as CancelIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
+import { calculateRentalDays } from '../../utils/rentalCalculations';
 import {
   Box,
   Dialog,
@@ -119,14 +120,6 @@ export default function CustomerRentalHistory({
       }
     }
     return rental.vehicleName || 'Neznáme vozidlo';
-  };
-
-  const calculateRentalDays = (startDate: Date, endDate: Date) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return (
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    );
   };
 
   return (

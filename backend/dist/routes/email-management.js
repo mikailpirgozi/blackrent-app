@@ -209,14 +209,23 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
                         if (dateParts.length >= 2) {
                             const startStr = dateParts[0].trim();
                             const endStr = dateParts[1].trim();
-                            // Parse časy presne ako prichádzajú v emaili - ako plain string pre PostgreSQL
+                            // Parse časy presne ako prichádzajú v emaili - ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE
                             const parseAsPlainString = (dateStr) => {
                                 if (dateStr.match(/\d{4}-\d{2}-\d{2}/)) {
                                     // Nahraď newline medzi dátumom a časom medzerou
-                                    const cleanDateStr = dateStr.replace(/\n/g, ' ');
+                                    const cleanDateStr = dateStr.replace(/\n/g, ' ').trim();
                                     const [datePart, timePart] = cleanDateStr.split(' ');
                                     // Vráť ako plain string pre PostgreSQL TIMESTAMP (bez timezone)
+                                    // DÔLEŽITÉ: Nekonvertuj na Date objekt, zachovaj presný čas z emailu
                                     return `${datePart} ${timePart}`;
+                                }
+                                // Ak nie je ISO formát, skús DD.MM.YYYY HH:MM:SS formát
+                                if (dateStr.match(/\d{1,2}\.\d{1,2}\.\d{4}/)) {
+                                    const cleanDateStr = dateStr.replace(/\n/g, ' ').trim();
+                                    const [datePart, timePart] = cleanDateStr.split(' ');
+                                    // Konvertuj DD.MM.YYYY na YYYY-MM-DD pre PostgreSQL
+                                    const [day, month, year] = datePart.split('.');
+                                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${timePart}`;
                                 }
                                 return new Date().toISOString();
                             };
@@ -314,7 +323,7 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
               start_date, end_date, handover_place, total_price, deposit, 
               order_number, payment_method, allowed_kilometers, 
               extra_kilometer_rate, notes, created_at
-            ) VALUES ('pending', $1, $2, $3, $4::timestamp, $5::timestamp, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+            ) VALUES ('pending', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
             RETURNING id
           `, [
                     parsedData.customerName,

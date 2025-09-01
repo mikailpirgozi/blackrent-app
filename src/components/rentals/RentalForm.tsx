@@ -40,6 +40,7 @@ import type {
 } from '../../types';
 
 import EmailParser from './EmailParser';
+import { calculateRentalDays } from '../../utils/rentalCalculations';
 
 interface RentalFormProps {
   rental?: Rental | null;
@@ -47,16 +48,6 @@ interface RentalFormProps {
   onCancel: () => void;
   isLoading?: boolean;
 }
-
-// Utility function to calculate rental days
-const calculateRentalDays = (startDate: Date, endDate: Date): number => {
-  // Calculate difference in days
-  const timeDiff = endDate.getTime() - startDate.getTime();
-  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-  // Minimum 1 day (same day rental = 1 day)
-  return Math.max(1, daysDiff);
-};
 
 export default function RentalForm({
   rental,

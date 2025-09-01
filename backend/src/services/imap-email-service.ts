@@ -656,14 +656,27 @@ class ImapEmailService {
       if (parsedData.reservationTime) {
         const timeMatch = parsedData.reservationTime.match(/(\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2}) - (\d{4}-\d{2}-\d{2}[\s\n]+\d{2}:\d{2}:\d{2})/);
         if (timeMatch) {
-          // Parsuj časy presne ako prichádzajú v emaili - ako plain string pre PostgreSQL
+          // Parsuj časy presne ako prichádzajú v emaili - ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE
           const parseAsPlainString = (dateStr: string) => {
-            // Nahraď newline medzi dátumom a časom medzerou
-            const cleanDateStr = dateStr.replace(/\n/g, ' ');
-            const [datePart, timePart] = cleanDateStr.split(' ');
-            
-            // Vráť ako plain string pre PostgreSQL TIMESTAMP (bez timezone)
-            return `${datePart} ${timePart}`;
+            if (dateStr.match(/\d{4}-\d{2}-\d{2}/)) {
+              // Nahraď newline medzi dátumom a časom medzerou
+              const cleanDateStr = dateStr.replace(/\n/g, ' ').trim();
+              const [datePart, timePart] = cleanDateStr.split(' ');
+              
+              // Vráť ako plain string pre PostgreSQL TIMESTAMP (bez timezone)
+              // DÔLEŽITÉ: Nekonvertuj na Date objekt, zachovaj presný čas z emailu
+              return `${datePart} ${timePart}`;
+            }
+            // Ak nie je ISO formát, skús DD.MM.YYYY HH:MM:SS formát
+            if (dateStr.match(/\d{1,2}\.\d{1,2}\.\d{4}/)) {
+              const cleanDateStr = dateStr.replace(/\n/g, ' ').trim();
+              const [datePart, timePart] = cleanDateStr.split(' ');
+              
+              // Konvertuj DD.MM.YYYY na YYYY-MM-DD pre PostgreSQL
+              const [day, month, year] = datePart.split('.');
+              return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${timePart}`;
+            }
+            return new Date().toISOString();
           };
           
           const startDateString = parseAsPlainString(timeMatch[1]);

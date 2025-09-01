@@ -3812,8 +3812,8 @@ export class PostgresDatabase {
         // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
         customerEmail: row.customer_db_email || row.customer_email || undefined,
         customerPhone: row.customer_db_phone || row.customer_phone || undefined,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method || 'cash',
@@ -4065,8 +4065,8 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString(),
         customerId: row.customer_id?.toString(),
         customerName: row.customer_name,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method,
@@ -4144,8 +4144,8 @@ export class PostgresDatabase {
         vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
         customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method,
@@ -7058,8 +7058,8 @@ export class PostgresDatabase {
           model: row.model,
           licensePlate: row.license_plate
         } : undefined,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         reason: row.reason,
         type: row.type,
         notes: row.notes,
@@ -7096,8 +7096,8 @@ export class PostgresDatabase {
           model: row.model,
           licensePlate: row.license_plate
         } : undefined,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         reason: row.reason,
         type: row.type,
         notes: row.notes,
@@ -7169,8 +7169,8 @@ export class PostgresDatabase {
       return {
         id: row.id,
         vehicleId: row.vehicle_id,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         reason: row.reason,
         type: row.type,
         notes: row.notes,
@@ -7244,8 +7244,8 @@ export class PostgresDatabase {
       return {
         id: row.id,
         vehicleId: row.vehicle_id,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         reason: row.reason,
         type: row.type,
         notes: row.notes,
@@ -7484,8 +7484,8 @@ export class PostgresDatabase {
           model: row.model,
           licensePlate: row.license_plate
         } : undefined,
-        startDate: new Date(row.start_date),
-        endDate: new Date(row.end_date),
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
         reason: row.reason,
         type: row.type,
         notes: row.notes,

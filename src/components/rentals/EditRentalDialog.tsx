@@ -1,4 +1,5 @@
 import { Edit as EditIcon, Percent as PercentIcon } from '@mui/icons-material';
+import { calculateRentalDays } from '../../utils/rentalCalculations';
 import {
   Dialog,
   DialogTitle,
@@ -75,13 +76,6 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
       setError(null);
     }
   }, [rental, open]);
-
-  // Utility function to calculate rental days
-  const calculateRentalDays = (startDate: Date, endDate: Date): number => {
-    const timeDiff = endDate.getTime() - startDate.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    return Math.max(1, daysDiff);
-  };
 
   // Auto-calculate price and commission when relevant fields change
   useEffect(() => {

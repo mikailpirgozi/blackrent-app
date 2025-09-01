@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { PostgresDatabase } from '../models/postgres-database';
+import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { v4 as uuidv4 } from 'uuid';
+import { PostgresDatabase } from '../models/postgres-database';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -124,7 +124,7 @@ class EmailParsingService {
         data.returnPlace = returnMatch[1].trim();
       }
 
-      // Parsovanie času rezervácie (komplex formát) - IDENTICKÉ s emailParsingUtils.ts
+      // Parsovanie času rezervácie (komplex formát) - ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE
       const reservationMatch = text.match(/Čas rezervacie\s+(.+)/);
       if (reservationMatch) {
         const timeStr = reservationMatch[1].trim();
@@ -135,14 +135,18 @@ class EmailParsingService {
         const dateRangeMatch = timeStr.match(dateRangePattern);
         
         if (dateRangeMatch) {
-          data.handoverDate = `${dateRangeMatch[1]} ${dateRangeMatch[2]}`;
-          data.returnDate = `${dateRangeMatch[3]} ${dateRangeMatch[4]}`;
+          // ZACHOVAJ PRESNÝ FORMÁT - konvertuj DD.MM.YYYY na YYYY-MM-DD pre PostgreSQL
+          const startDay = dateRangeMatch[1].split('.').reverse().join('-');
+          const endDay = dateRangeMatch[3].split('.').reverse().join('-');
+          data.handoverDate = `${startDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[2]}`;
+          data.returnDate = `${endDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[4]}`;
         } else {
           // Alternatívny pattern: "YYYY-MM-DD HH:MM:SS - YYYY-MM-DD HH:MM:SS"
           const isoDateRangePattern = /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/;
           const isoDateRangeMatch = timeStr.match(isoDateRangePattern);
           
           if (isoDateRangeMatch) {
+            // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
             data.handoverDate = `${isoDateRangeMatch[1]} ${isoDateRangeMatch[2]}`;
             data.returnDate = `${isoDateRangeMatch[3]} ${isoDateRangeMatch[4]}`;
           }
