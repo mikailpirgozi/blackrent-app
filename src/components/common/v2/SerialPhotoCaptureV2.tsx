@@ -137,7 +137,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         console.warn(`Failed to check status for photo ${photoId}:`, error);
       }
     },
-    [uploadQueue]
+    [uploadQueue, updateQueueItem]
   );
 
   // Polling pre status updates
@@ -265,7 +265,14 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         }
       }
     },
-    [category, protocolId, userId, updateQueueItem, updateQueueItemStatus, monitorPhotoProcessing]
+    [
+      category,
+      protocolId,
+      userId,
+      updateQueueItem,
+      updateQueueItemStatus,
+      monitorPhotoProcessing,
+    ]
   );
 
   /**
