@@ -1,5 +1,4 @@
 import { Close as CloseIcon } from '@mui/icons-material';
-import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import EmailIcon from '@mui/icons-material/Email';
 import PercentIcon from '@mui/icons-material/Percent';
@@ -7,40 +6,38 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Chip,
+  CircularProgress,
   FormControl,
+  FormControlLabel,
   Grid,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
   TextField,
   Typography,
-  Card,
-  CardContent,
-  IconButton,
-  Chip,
-  CircularProgress,
-  Alert,
-  Checkbox,
-  FormControlLabel,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { differenceInDays } from 'date-fns';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 import type {
-  Rental,
-  PaymentMethod,
-  Vehicle,
-  RentalPayment,
   Customer,
+  PaymentMethod,
+  Rental,
+  RentalPayment,
+  Vehicle,
 } from '../../types';
 
 import EmailParser from './EmailParser';
-import { calculateRentalDays } from '../../utils/rentalCalculations';
 
 interface RentalFormProps {
   rental?: Rental | null;
@@ -48,6 +45,16 @@ interface RentalFormProps {
   onCancel: () => void;
   isLoading?: boolean;
 }
+
+// Utility function to calculate rental days
+const calculateRentalDays = (startDate: Date, endDate: Date): number => {
+  // Calculate difference in days
+  const timeDiff = endDate.getTime() - startDate.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+  // Minimum 1 day (same day rental = 1 day)
+  return Math.max(1, daysDiff);
+};
 
 export default function RentalForm({
   rental,

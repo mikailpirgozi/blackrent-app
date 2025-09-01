@@ -1,31 +1,30 @@
 import { Edit as EditIcon, Percent as PercentIcon } from '@mui/icons-material';
-import { calculateRentalDays } from '../../utils/rentalCalculations';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Box,
-  Typography,
   Alert,
   Autocomplete,
-  IconButton,
+  Box,
+  Button,
   Card,
   CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { differenceInDays } from 'date-fns';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
-import type { Rental, Vehicle, Customer } from '../../types';
+import type { Customer, Rental, Vehicle } from '../../types';
 
 interface EditRentalDialogProps {
   open: boolean;
@@ -76,6 +75,13 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
       setError(null);
     }
   }, [rental, open]);
+
+  // Utility function to calculate rental days
+  // const calculateRentalDays = (startDate: Date, endDate: Date): number => {
+  //   const timeDiff = endDate.getTime() - startDate.getTime();
+  //   const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  //   return Math.max(1, daysDiff);
+  // };
 
   // Auto-calculate price and commission when relevant fields change
   useEffect(() => {
@@ -216,7 +222,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
 
       onSave(updatedData);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating rental:', err);
       setError('Nepodarilo sa uložiť zmeny');
     } finally {
@@ -224,14 +230,14 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
     }
   };
 
-  const handleInputChange = (field: keyof Rental, value: any) => {
+  const handleInputChange = (field: keyof Rental, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const selectedVehicle = vehicles.find(v => v.id === formData.vehicleId);
-  const selectedCustomer = customers.find(
-    c => c.name === formData.customerName
-  );
+  // const selectedCustomer = customers.find(
+  //   c => c.name === formData.customerName
+  // );
 
   if (!rental) return null;
 

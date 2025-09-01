@@ -1,44 +1,37 @@
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Assignment as HandoverIcon,
-  AssignmentReturn as ReturnIcon,
-  PictureAsPdf as PDFIcon,
-  PhotoLibrary as GalleryIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
   Business as BusinessIcon,
-  Schedule as ScheduleIcon,
-  Euro as EuroIcon,
-  Payment as PaymentIcon,
+  DirectionsCar as CarIcon,
   CheckCircle as CheckCircleIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
   Error as ErrorIcon,
+  Euro as EuroIcon,
+  PhotoLibrary as GalleryIcon,
+  Assignment as HandoverIcon,
+  PictureAsPdf as PDFIcon,
+  Payment as PaymentIcon,
   Pending as PendingIcon,
-  Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
-  Speed as SpeedIcon,
-  LocationOn as LocationIcon,
-  AccessTime as TimeIcon,
+  Person as PersonIcon,
+  AssignmentReturn as ReturnIcon,
+  Schedule as ScheduleIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import {
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
   Chip,
-  IconButton,
-  Button,
+  Divider,
   Grid,
+  IconButton,
+  Tooltip,
+  Typography,
   useMediaQuery,
   useTheme,
-  Tooltip,
-  Avatar,
-  Divider,
 } from '@mui/material';
-import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import React, { memo } from 'react';
+import { formatDateTime } from '../../utils/formatters';
 
 import type { Rental } from '../../types';
 
@@ -240,16 +233,11 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
             >
               <ScheduleIcon color="action" fontSize="small" />
               <Typography variant="body2" fontWeight="medium">
-                {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', {
-                  locale: sk,
-                })}
+                {formatDateTime(rental.startDate)}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              do{' '}
-              {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', {
-                locale: sk,
-              })}
+              do {formatDateTime(rental.endDate)}
             </Typography>
           </Box>
 
@@ -558,13 +546,8 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-              {format(new Date(rental.startDate), 'dd.MM.yyyy HH:mm', {
-                locale: sk,
-              })}{' '}
-              -{' '}
-              {format(new Date(rental.endDate), 'dd.MM.yyyy HH:mm', {
-                locale: sk,
-              })}
+              {formatDateTime(rental.startDate)} -{' '}
+              {formatDateTime(rental.endDate)}
             </Typography>
           </Box>
 

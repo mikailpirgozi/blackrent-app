@@ -1,35 +1,24 @@
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   Assignment as HandoverIcon,
   AssignmentReturn as ReturnIcon,
-  Visibility as ViewIcon,
-  PhotoLibrary as GalleryIcon,
-  PictureAsPdf as PdfIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Card,
   CardContent,
-  Typography,
-  IconButton,
   Chip,
   Fade,
-  CircularProgress,
+  IconButton,
+  Typography,
   useTheme,
 } from '@mui/material';
-import { format } from 'date-fns';
-import React, { useCallback } from 'react';
+import React from 'react';
+import { formatDateTime } from '../../../utils/formatters';
 
 import type { Rental } from '../../../types';
-import {
-  formatCurrency,
-  formatDate,
-  getStatusColor,
-  getStatusLabel,
-  getPaymentMethodLabel,
-} from '../../../utils/rentalHelpers';
 import { MobileRentalRow } from '../MobileRentalRow';
 
 interface RentalTableProps {
@@ -549,8 +538,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                           mb: 0.5,
                         }}
                       >
-                        📅{' '}
-                        {format(new Date(rental.startDate), 'd.M.yyyy HH:mm')}
+                        📅 {formatDateTime(rental.startDate)}
                       </Typography>
                       <Typography
                         variant="caption"
@@ -570,7 +558,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                           color: '#333',
                         }}
                       >
-                        📅 {format(new Date(rental.endDate), 'd.M.yyyy HH:mm')}
+                        📅 {formatDateTime(rental.endDate)}
                       </Typography>
                     </Box>
 

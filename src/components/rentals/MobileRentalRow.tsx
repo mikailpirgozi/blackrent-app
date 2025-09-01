@@ -10,28 +10,27 @@
  */
 
 import {
-  Delete as DeleteIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
   Business as BusinessIcon,
   DirectionsCar as CarIcon,
-  Schedule as ScheduleIcon,
-  Euro as EuroIcon,
   Check as CheckIcon,
+  Delete as DeleteIcon,
+  Email as EmailIcon,
+  Euro as EuroIcon,
+  Phone as PhoneIcon,
+  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
+  Button,
+  Card,
+  CardContent,
   Chip,
   Fade,
   IconButton,
-  Card,
-  CardContent,
-  Button,
+  Typography,
 } from '@mui/material';
-import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import React, { memo } from 'react';
+import { formatDateTime } from '../../utils/formatters';
 
 interface MobileRentalRowProps {
   rental: any;
@@ -346,10 +345,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
                     mb: 0.25,
                   }}
                 >
-                  📅{' '}
-                  {format(new Date(rental.startDate), 'd.M.yy HH:mm', {
-                    locale: sk,
-                  })}
+                  📅 {formatDateTime(rental.startDate)}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -360,10 +356,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
                     lineHeight: 1.3,
                   }}
                 >
-                  🏁{' '}
-                  {format(new Date(rental.endDate), 'd.M.yy HH:mm', {
-                    locale: sk,
-                  })}
+                  🏁 {formatDateTime(rental.endDate)}
                 </Typography>
               </Box>
 

@@ -1,15 +1,14 @@
 import {
   Box,
-  Typography,
   Card,
   CardContent,
-  Grid,
-  useTheme,
-  useMediaQuery,
   Divider,
+  Grid,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import { format, isToday, isTomorrow, isAfter, isBefore } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { isAfter, isBefore, isToday, isTomorrow, parseISO } from 'date-fns';
 import React, { useMemo } from 'react';
 
 import type { Rental } from '../../../types';
@@ -53,8 +52,15 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const active = rentals.filter(rental => {
-      const startDate = new Date(rental.startDate);
-      const endDate = new Date(rental.endDate);
+      // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+      const startDate =
+        typeof rental.startDate === 'string'
+          ? parseISO(rental.startDate)
+          : rental.startDate;
+      const endDate =
+        typeof rental.endDate === 'string'
+          ? parseISO(rental.endDate)
+          : rental.endDate;
       // Prenájom je aktívny len ak: začal a ešte neskončil
       return (
         (isAfter(today, startDate) || isToday(startDate)) &&
@@ -64,20 +70,38 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
 
     // Dnes aktivita - prenájmy ktoré sa dnes začínajú ALEBO končia
     const todayActivity = rentals.filter(rental => {
-      const startDate = new Date(rental.startDate);
-      const endDate = new Date(rental.endDate);
+      // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+      const startDate =
+        typeof rental.startDate === 'string'
+          ? parseISO(rental.startDate)
+          : rental.startDate;
+      const endDate =
+        typeof rental.endDate === 'string'
+          ? parseISO(rental.endDate)
+          : rental.endDate;
       return isToday(startDate) || isToday(endDate);
     });
 
     const tomorrowReturns = rentals.filter(rental => {
-      const endDate = new Date(rental.endDate);
+      // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+      const endDate =
+        typeof rental.endDate === 'string'
+          ? parseISO(rental.endDate)
+          : rental.endDate;
       return isTomorrow(endDate);
     });
 
     // Tento týždeň aktivita - prenájmy ktoré sa tento týždeň začínajú ALEBO končia
     const weekActivity = rentals.filter(rental => {
-      const startDate = new Date(rental.startDate);
-      const endDate = new Date(rental.endDate);
+      // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+      const startDate =
+        typeof rental.startDate === 'string'
+          ? parseISO(rental.startDate)
+          : rental.startDate;
+      const endDate =
+        typeof rental.endDate === 'string'
+          ? parseISO(rental.endDate)
+          : rental.endDate;
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
       endOfWeek.setHours(23, 59, 59, 999);
@@ -92,7 +116,11 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
 
     // Preterminované - prenájmy ktoré mali skončiť ale ešte sa nevrátili
     const overdue = rentals.filter(rental => {
-      const endDate = new Date(rental.endDate);
+      // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+      const endDate =
+        typeof rental.endDate === 'string'
+          ? parseISO(rental.endDate)
+          : rental.endDate;
       // Preterminované sú tie čo skončili pred dnes a nemajú return protokol
       return isBefore(endDate, today) && !protocols[rental.id]?.return;
     });

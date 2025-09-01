@@ -5,27 +5,26 @@
  */
 
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
-  DirectionsCar as HandoverIcon,
-  CarRental as ReturnIcon,
-  PictureAsPdf as PDFIcon,
+  Edit as EditIcon,
   PhotoLibrary as GalleryIcon,
+  DirectionsCar as HandoverIcon,
+  PictureAsPdf as PDFIcon,
+  CarRental as ReturnIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import {
-  TableRow,
-  TableCell,
+  Avatar,
+  Box,
   IconButton,
+  Stack,
+  TableCell,
+  TableRow,
   Tooltip,
   Typography,
-  Box,
-  Avatar,
-  Stack,
 } from '@mui/material';
-import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import React, { memo, useCallback } from 'react';
+import { formatDate } from '../../utils/formatters';
 
 import type { Rental } from '../../types';
 import type { VehicleLookup } from '../../utils/rentalFilters';
@@ -80,9 +79,9 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
     [onViewGallery, rental]
   );
 
-  // Memoized formatted dates
-  const startDate = format(rental.startDate, 'dd.MM.yyyy', { locale: sk });
-  const endDate = format(rental.endDate, 'dd.MM.yyyy', { locale: sk });
+  // Memoized formatted dates - ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+  const startDate = formatDate(rental.startDate);
+  const endDate = formatDate(rental.endDate);
 
   // Customer initials for avatar
   const getCustomerInitials = (name: string) => {

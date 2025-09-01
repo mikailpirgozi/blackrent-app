@@ -1,41 +1,38 @@
+import React from 'react';
 import {
-  Close as CloseIcon,
-  DirectionsCar as CarIcon,
   CalendarToday as CalendarIcon,
-  Euro as EuroIcon,
+  DirectionsCar as CarIcon,
   CheckCircle as CheckCircleIcon,
-  Schedule as ScheduleIcon,
-  Cancel as CancelIcon,
+  Close as CloseIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { calculateRentalDays } from '../../utils/rentalCalculations';
 import {
   Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
-  Typography,
   Card,
   CardContent,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
   IconButton,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
+  Typography,
   useMediaQuery,
   useTheme,
-  Divider,
-  Grid,
 } from '@mui/material';
-import { format, parseISO, isAfter, isBefore } from 'date-fns';
+import { format, isAfter, isBefore } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { Customer, Rental, Vehicle } from '../../types';
 
@@ -120,6 +117,14 @@ export default function CustomerRentalHistory({
       }
     }
     return rental.vehicleName || 'Neznáme vozidlo';
+  };
+
+  const calculateRentalDays = (startDate: Date, endDate: Date) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return (
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    );
   };
 
   return (

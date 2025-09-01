@@ -1,24 +1,23 @@
+import React from 'react';
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
+  Edit as EditIcon,
   Assignment as HandoverProtocolIcon,
+  Phone as PhoneIcon,
   AssignmentReturn as ReturnProtocolIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import {
-  TableRow,
-  TableCell,
+  Box,
   Chip,
   IconButton,
+  TableCell,
+  TableRow,
   Tooltip,
-  Box,
   Typography,
 } from '@mui/material';
-import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
-import React, { memo } from 'react';
+import { memo } from 'react';
+import { formatTime } from '../../utils/formatters';
 
 import type { Rental } from '../../types';
 
@@ -129,27 +128,25 @@ const RentalTableRow = memo<RentalTableRowProps>(
 
         <TableCell>
           <Typography variant="body2">
-            {format(new Date(rental.startDate), 'dd.MM.yyyy', { locale: sk })}
+            {formatDate(rental.startDate)}
           </Typography>
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ display: 'block', fontSize: '0.7rem' }}
           >
-            {format(new Date(rental.startDate), 'HH:mm', { locale: sk })}
+            {formatTime(rental.startDate)}
           </Typography>
         </TableCell>
 
         <TableCell>
-          <Typography variant="body2">
-            {format(new Date(rental.endDate), 'dd.MM.yyyy', { locale: sk })}
-          </Typography>
+          <Typography variant="body2">{formatDate(rental.endDate)}</Typography>
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ display: 'block', fontSize: '0.7rem' }}
           >
-            {format(new Date(rental.endDate), 'HH:mm', { locale: sk })}
+            {formatTime(rental.endDate)}
           </Typography>
         </TableCell>
 
