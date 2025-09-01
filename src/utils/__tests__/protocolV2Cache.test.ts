@@ -29,7 +29,32 @@ const mockLocalStorage = {
   clear: vi.fn(() => {
     mockLocalStorage.store = {};
   }),
+  get length() {
+    return Object.keys(this.store).length;
+  },
+  key: vi.fn(
+    (index: number) => Object.keys(mockLocalStorage.store)[index] || null
+  ),
 };
+
+// Add Object.keys support for localStorage
+Object.defineProperty(mockLocalStorage, Symbol.iterator, {
+  value: function* () {
+    for (const key of Object.keys(this.store)) {
+      yield key;
+    }
+  },
+});
+
+// Make Object.keys work with mockLocalStorage
+Object.setPrototypeOf(mockLocalStorage, {
+  ...Object.prototype,
+  [Symbol.iterator]: function* () {
+    for (const key of Object.keys(mockLocalStorage.store)) {
+      yield key;
+    }
+  },
+});
 
 Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage,
@@ -306,7 +331,19 @@ describe('Protocol V2 Cache System', () => {
       cacheEmailStatus('protocol-1', 'success', 'Message 1');
       cacheEmailStatus('protocol-2', 'error', 'Message 2');
 
+      // Mock Object.keys to return our store keys
+      const originalObjectKeys = Object.keys;
+      Object.keys = vi.fn(obj => {
+        if (obj === mockLocalStorage) {
+          return Object.keys(mockLocalStorage.store);
+        }
+        return originalObjectKeys(obj);
+      });
+
       const stats = getV2CacheStats();
+
+      // Restore Object.keys
+      Object.keys = originalObjectKeys;
 
       expect(stats.hasGlobalCache).toBe(true);
       expect(stats.companyCacheCount).toBe(2);
@@ -349,7 +386,19 @@ describe('Protocol V2 Cache System', () => {
         JSON.stringify(expiredEmailStatus)
       );
 
+      // Mock Object.keys to return our store keys
+      const originalObjectKeys = Object.keys;
+      Object.keys = vi.fn(obj => {
+        if (obj === mockLocalStorage) {
+          return Object.keys(mockLocalStorage.store);
+        }
+        return originalObjectKeys(obj);
+      });
+
       optimizeV2Cache();
+
+      // Restore Object.keys
+      Object.keys = originalObjectKeys;
 
       // Expired entries should be removed
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
