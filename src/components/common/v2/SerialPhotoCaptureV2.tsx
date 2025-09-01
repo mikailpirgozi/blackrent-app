@@ -163,7 +163,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         clearInterval(processingIntervalRef.current);
       }
     };
-  }, [uploadQueue, checkPhotoStatus]);
+  }, [uploadQueue, checkPhotoStatus, updateQueueItem]);
 
   /**
    * Spracovanie jednotlivého queue item
@@ -265,7 +265,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         }
       }
     },
-    [category, updateQueueItem, updateQueueItemStatus, monitorPhotoProcessing]
+    [category, protocolId, userId, updateQueueItem, updateQueueItemStatus, monitorPhotoProcessing]
   );
 
   /**
