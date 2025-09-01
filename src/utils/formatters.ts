@@ -55,12 +55,14 @@ export function formatDateTime(date: string | Date): string {
       }
 
       // Ak je string v ISO formáte (2025-09-08T08:00:00.000Z alebo 2025-09-08T08:00:00Z)
-      // NIKDY NEPOUŽÍVAJ Date objekt - extrahuj hodnoty priamo zo stringu
+      // Backend vracia LOKÁLNY čas v ISO formáte s Z na konci
+      // T08:00:00.000Z znamená 08:00 lokálny čas, NIE UTC!
       if (date.includes('T')) {
-        // Parsuj čas priamo zo stringu - T08:00:00 znamená 08:00
+        // Parsuj čas priamo zo stringu - ignoruj Z na konci
         const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
         if (isoMatch) {
           const [, year, month, day, hour, minute] = isoMatch;
+          // Vráť presne tie hodnoty ktoré sú v stringu
           return `${day}.${month}.${year} ${hour}:${minute}`;
         }
       }
@@ -112,11 +114,14 @@ export function formatTime(date: string | Date): string {
         return `${hour}:${minute}`;
       }
 
-      // Ak je string v ISO formáte s timezone - extrahuj len čas
+      // Ak je string v ISO formáte - extrahuj len čas
+      // Backend vracia LOKÁLNY čas v ISO formáte s Z na konci
+      // T08:00:00.000Z znamená 08:00 lokálny čas, NIE UTC!
       if (date.includes('T')) {
         const timeMatch = date.match(/T(\d{2}):(\d{2})/);
         if (timeMatch) {
           const [, hour, minute] = timeMatch;
+          // Vráť presne tie hodnoty ktoré sú v stringu
           return `${hour}:${minute}`;
         }
       }

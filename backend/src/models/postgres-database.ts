@@ -2774,14 +2774,15 @@ export class PostgresDatabase {
             vehicleId: row.vehicle_id?.toString(),
             customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
             customerName: row.customer_name || 'Neznámy zákazník',
-            startDate: new Date(row.start_date),
-            endDate: new Date(row.end_date),
+            // IMPORTANT: Vrátiť dátumy ako stringy pre zachovanie presných časov
+            startDate: row.start_date,
+            endDate: row.end_date,
             totalPrice: parseFloat(row.total_price) || 0,
             commission: parseFloat(row.commission) || 0,
             paymentMethod: row.payment_method || 'cash',
             paid: Boolean(row.paid),
             status: row.status || 'active',
-            createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+            createdAt: row.created_at || new Date().toISOString(),
             orderNumber: row.order_number || undefined,
             deposit: row.deposit ? parseFloat(row.deposit) : undefined,
             allowedKilometers: row.allowed_kilometers || undefined,
@@ -2791,7 +2792,7 @@ export class PostgresDatabase {
             company: row.company || 'Neznáma firma',
             // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
             isFlexible: Boolean(row.is_flexible),
-            flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+            flexibleEndDate: row.flexible_end_date || undefined,
           };
         } catch (error) {
           console.error('❌ Chyba pri spracovaní rental:', error);
@@ -3675,8 +3676,9 @@ export class PostgresDatabase {
       // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
       customerEmail: row.customer_db_email || row.customer_email || undefined,
       customerPhone: row.customer_db_phone || row.customer_phone || undefined,
-      startDate: new Date(row.start_date),
-      endDate: new Date(row.end_date),
+      // IMPORTANT: Vrátiť dátumy ako stringy pre zachovanie presných časov
+      startDate: row.start_date,
+      endDate: row.end_date,
       totalPrice: parseFloat(row.total_price) || 0,
       commission: parseFloat(row.commission) || 0,
       paymentMethod: row.payment_method || 'cash',
@@ -4734,8 +4736,9 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString(),
         note: row.note || undefined,
         frequency: row.frequency,
-        startDate: new Date(row.start_date),
-        endDate: row.end_date ? new Date(row.end_date) : undefined,
+        // IMPORTANT: Vrátiť dátumy ako stringy pre zachovanie presných časov
+        startDate: row.start_date,
+        endDate: row.end_date || undefined,
         dayOfMonth: row.day_of_month,
         isActive: row.is_active || true,
         lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
@@ -4800,8 +4803,9 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString(),
         note: row.note || undefined,
         frequency: row.frequency,
-        startDate: new Date(row.start_date),
-        endDate: row.end_date ? new Date(row.end_date) : undefined,
+        // IMPORTANT: Vrátiť dátumy ako stringy pre zachovanie presných časov
+        startDate: row.start_date,
+        endDate: row.end_date || undefined,
         dayOfMonth: row.day_of_month,
         isActive: row.is_active || true,
         lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
