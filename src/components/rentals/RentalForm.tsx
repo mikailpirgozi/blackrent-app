@@ -23,7 +23,6 @@ import {
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { differenceInDays } from 'date-fns';
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -36,6 +35,7 @@ import type {
   RentalPayment,
   Vehicle,
 } from '../../types';
+import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
 
 import EmailParser from './EmailParser';
 
@@ -46,15 +46,8 @@ interface RentalFormProps {
   isLoading?: boolean;
 }
 
-// Utility function to calculate rental days
-const calculateRentalDays = (startDate: Date, endDate: Date): number => {
-  // Calculate difference in days
-  const timeDiff = endDate.getTime() - startDate.getTime();
-  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-  // Minimum 1 day (same day rental = 1 day)
-  return Math.max(1, daysDiff);
-};
+// ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays
+// Stará implementácia bola nekonzistentná s ostatnými časťami aplikácie
 
 export default function RentalForm({
   rental,
@@ -167,15 +160,7 @@ export default function RentalForm({
       // 🐛 FIX: Správne nastavenie ceny - odčítaj doplatok za km z celkovej ceny
       const extraKm = rental.extraKmCharge || 0;
       const basePriceWithoutExtraKm = rental.totalPrice - extraKm;
-      console.log('🔍 RENTAL FORM DEBUG:', {
-        rentalId: rental.id,
-        customerName: rental.customerName,
-        totalPrice: rental.totalPrice,
-        extraKmCharge: rental.extraKmCharge,
-        extraKm,
-        basePriceWithoutExtraKm,
-        commission: rental.commission,
-      });
+      // Debug info removed for production
       setCalculatedPrice(basePriceWithoutExtraKm);
 
       // Calculate commission for existing rental if not already set
@@ -210,13 +195,7 @@ export default function RentalForm({
 
       setCalculatedCommission(calculatedCommissionValue);
 
-      console.log('🔍 RENTAL FORM SET STATE:', {
-        rentalId: rental.id,
-        calculatedPrice: basePriceWithoutExtraKm,
-        calculatedCommission: calculatedCommissionValue,
-        originalCommission: rental.commission,
-        preserveImportedValues: true,
-      });
+      // State update debug removed
 
       // 🔄 NOVÉ: Nastavenie manuálnej ceny pre flexibilné prenájmy
       if (rental.isFlexible) {
@@ -243,9 +222,7 @@ export default function RentalForm({
           // Nastavíme denné km len ak je to rozumné číslo (napr. deliteľné)
           if (possibleDailyKm * days === rental.allowedKilometers) {
             setDailyKilometers(possibleDailyKm);
-            console.log(
-              `📊 Derived daily km from existing rental: ${possibleDailyKm} km/day`
-            );
+            // Daily km derivation debug removed
           }
         }
       }
@@ -342,12 +319,12 @@ export default function RentalForm({
     extraKilometerRate,
   ]);
 
-  const handleInputChange = (field: keyof Rental, value: any) => {
+  const handleInputChange = (field: keyof Rental, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
 
     // Reset preserveImportedValues when user changes discount or commission
     if (field === 'discount' || field === 'customCommission') {
-      console.log('🔄 RESET preserveImportedValues:', { field, value });
+      // Reset debug removed
       setPreserveImportedValues(false);
     }
   };
@@ -421,7 +398,7 @@ export default function RentalForm({
       }));
 
       // 🔄 CRITICAL FIX: Refresh rental data aby sa customer údaje prejavili v protokoloch
-      console.log('🔄 Refreshing rental data after customer update...');
+      // Refresh debug removed
       await loadData();
 
       setEditCustomerDialogOpen(false);
@@ -500,9 +477,7 @@ export default function RentalForm({
     if (rentalData.dailyKilometers) {
       // Všetky km z emailu sa nastavujú ako denné km (automaticky sa prepočítajú celkové)
       setDailyKilometers(rentalData.dailyKilometers);
-      console.log(
-        `🚗 Set daily km from email: ${rentalData.dailyKilometers} km/day`
-      );
+      // Daily km from email debug removed
     }
     // Odstránená logika pre allowedKilometers - všetko sa teraz parsuje ako dailyKilometers
     if (rentalData.extraKilometerRate) {
@@ -535,9 +510,7 @@ export default function RentalForm({
       const rentalDays = calculateRentalDays(startDate, endDate);
       const totalKm = dailyKilometers * rentalDays;
       setAllowedKilometers(totalKm);
-      console.log(
-        `🚗 Auto-calculated km: ${dailyKilometers} km/day × ${rentalDays} days = ${totalKm} km`
-      );
+      // Auto-calculated km debug removed
     }
   }, [dailyKilometers, formData.startDate, formData.endDate]);
 
@@ -548,10 +521,7 @@ export default function RentalForm({
       !formData.discount &&
       !formData.customCommission
     ) {
-      console.log('🔍 USEEFFECT SKIP:', {
-        preserveImportedValues: true,
-        reason: 'imported values preserved',
-      });
+      // Skip debug removed
       return;
     }
 
@@ -560,19 +530,11 @@ export default function RentalForm({
       preserveImportedValues &&
       (formData.discount || formData.customCommission)
     ) {
-      console.log('🔍 USEEFFECT ALLOW:', {
-        preserveImportedValues: true,
-        reason: 'discount/commission changed - allowing recalculation',
-      });
+      // Allow debug removed
       setPreserveImportedValues(false);
     }
 
-    console.log('🔍 USEEFFECT RUN:', {
-      preserveImportedValues,
-      vehicleId: formData.vehicleId,
-      startDate: !!formData.startDate,
-      endDate: !!formData.endDate,
-    });
+    // Effect run debug removed
 
     if (!formData.vehicleId || !formData.startDate || !formData.endDate) {
       setCalculatedPrice(0);
@@ -590,10 +552,8 @@ export default function RentalForm({
       return;
     }
 
-    // Výpočet dní prenájmu - iba dátumy, ignoruje čas
-    // od 10.10 do 10.10 = 1 deň, od 10.10 do 11.10 = 1 deň, od 10.10 do 12.10 = 2 dni
-
-    // Extrahovanie roku, mesiaca a dňa z dátumov (ignoruje čas)
+    // ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays
+    // Toto zabezpečí konzistentný výpočet dní pre cenu aj kilometre
     const startDate =
       formData.startDate instanceof Date
         ? formData.startDate
@@ -603,20 +563,7 @@ export default function RentalForm({
         ? formData.endDate
         : new Date(formData.endDate || '');
 
-    // Vytvorenie čistých dátumov bez času
-    const startDateOnly = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth(),
-      startDate.getDate()
-    );
-    const endDateOnly = new Date(
-      endDate.getFullYear(),
-      endDate.getMonth(),
-      endDate.getDate()
-    );
-
-    const daysDifference = differenceInDays(endDateOnly, startDateOnly);
-    const days = Math.max(1, daysDifference);
+    const days = calculateRentalDays(startDate, endDate);
 
     const pricingTier = vehicle.pricing?.find(
       tier => days >= tier.minDays && days <= tier.maxDays
@@ -849,9 +796,7 @@ export default function RentalForm({
     onSave(completeRental);
   };
 
-  const availableVehicles = state.vehicles.filter(
-    v => v.status === 'available'
-  );
+  // Removed unused availableVehicles variable
 
   // ════════════════════════════════════════════════════════════════════════════════
   // 🎨 RENDER - MAIN FORM UI

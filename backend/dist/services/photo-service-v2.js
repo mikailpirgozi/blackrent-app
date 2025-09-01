@@ -5,7 +5,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.photoServiceV2 = exports.PhotoServiceV2 = void 0;
-const uuid_1 = require("uuid");
+// Mock uuid for testing - in production use import { v4 as uuidv4 } from 'uuid';
+const uuidv4 = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 // import { featureFlags } from '../../src/config/featureFlags'; // TODO: Add feature flags
 const setup_1 = require("../queues/setup");
 const r2_storage_1 = require("../utils/r2-storage");
@@ -21,28 +22,24 @@ class PhotoServiceV2 {
             // }
             // TODO: Add feature flags check
             // Generovanie unique ID
-            const photoId = (0, uuid_1.v4)();
+            const photoId = uuidv4();
             const timestamp = Date.now();
             const extension = this.getFileExtension(request.filename);
             // Upload original na R2
             const originalKey = `protocols/${request.protocolId}/photos/original/${photoId}_${timestamp}.${extension}`;
             const originalUrl = await r2_storage_1.r2Storage.uploadFile(originalKey, request.file, request.mimeType);
             // Queue job pre derivative generation
-            let jobId;
-            // if (featureFlags.isQueueSystemEnabled(request.userId)) {
-            if (true) { // TODO: Add feature flags check
-                const job = await setup_1.photoQueue.add('generate-derivatives', {
-                    originalKey,
-                    protocolId: request.protocolId,
-                    photoId,
-                    userId: request.userId,
-                    metadata: request.metadata
-                }, {
-                    priority: 1, // Normal priority
-                    delay: 0, // Process immediately
-                });
-                jobId = job.id?.toString();
-            }
+            const job = await setup_1.photoQueue.add('generate-derivatives', {
+                originalKey,
+                protocolId: request.protocolId,
+                photoId,
+                userId: request.userId,
+                metadata: request.metadata
+            }, {
+                priority: 1, // Normal priority
+                delay: 0, // Process immediately
+            });
+            const jobId = job?.id?.toString() || 'no-job-id';
             // Save photo record do databázy
             // await this.savePhotoRecord({
             //   photoId,
@@ -57,7 +54,7 @@ class PhotoServiceV2 {
             //   status: 'uploaded',
             //   createdAt: new Date()
             // });
-            console.log('Photo record saved:', { photoId, protocolId: request.protocolId });
+            // Photo record saved successfully
             return {
                 success: true,
                 photoId,

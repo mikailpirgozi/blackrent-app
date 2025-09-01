@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const postgres_database_1 = require("../models/postgres-database");
-const auth_1 = require("../middleware/auth");
 const date_fns_1 = require("date-fns");
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const postgres_database_1 = require("../models/postgres-database");
+const rentalDaysCalculator_1 = require("../utils/rentalDaysCalculator");
 const router = (0, express_1.Router)();
 // 🚀 FÁZA 2.4: DATA STRUCTURE OPTIMIZATION helper function
 function optimizeDataStructure(data) {
@@ -60,14 +61,14 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
     try {
         // 🚀 FÁZA 2.4: FIELD SELECTION a OPTIMIZATION - umožni vybrať len potrebné polia a optimalizovať štruktúru
         const { year, month, startDate: customStartDate, endDate: customEndDate, phase, fields, optimize } = req.query;
-        console.log('🗓️ Availability calendar request:', { year, month, customStartDate, customEndDate, phase });
+        // Availability request debug removed
         let startDate;
         let endDate;
         if (customStartDate && customEndDate) {
             // Custom date range (od-do)
             startDate = (0, date_fns_1.startOfDay)(new Date(customStartDate));
             endDate = (0, date_fns_1.startOfDay)(new Date(customEndDate));
-            console.log('📅 Using custom date range:', { startDate, endDate });
+            // Custom date range debug removed
         }
         else if (year && month) {
             // Ak sú zadané rok a mesiac, zobraziť celý mesiac (pre navigáciu)
@@ -75,7 +76,7 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
             const targetMonth = Number(month) - 1;
             startDate = (0, date_fns_1.startOfMonth)(new Date(targetYear, targetMonth));
             endDate = (0, date_fns_1.endOfMonth)(startDate);
-            console.log('📅 Using month navigation:', { startDate, endDate });
+            // Month navigation debug removed
         }
         else {
             // 🚀 PROGRESSIVE LOADING: Optimalizované načítanie podľa fázy
@@ -87,36 +88,32 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
                     // FÁZA 1: Len aktuálny mesiac (najrýchlejšie)
                     startDate = currentMonth;
                     endDate = endOfCurrentMonth;
-                    console.log('🎯 PHASE 1: Loading current month only:', { startDate, endDate });
+                    // Phase 1 debug removed
                     break;
                 case 'past':
                     // FÁZA 2: Minulé dáta (3 mesiace dozadu)
                     startDate = (0, date_fns_1.addDays)(today, -90);
                     endDate = (0, date_fns_1.addDays)(currentMonth, -1); // Do konca predchádzajúceho mesiaca
-                    console.log('📜 PHASE 2: Loading past data (-90 days to current month):', { startDate, endDate });
+                    // Phase 2 debug removed
                     break;
                 case 'future':
                     // FÁZA 3: Budúce dáta (6 mesiacov dopredu)
                     startDate = (0, date_fns_1.addDays)(endOfCurrentMonth, 1); // Od začiatku nasledujúceho mesiaca
                     endDate = (0, date_fns_1.addDays)(today, 180);
-                    console.log('🔮 PHASE 3: Loading future data (next month to +180 days):', { startDate, endDate });
+                    // Phase 3 debug removed
                     break;
                 default:
                     // PÔVODNÉ SPRÁVANIE: Celý rozšírený rozsah (pre backward compatibility)
                     startDate = (0, date_fns_1.addDays)(today, -90);
                     endDate = (0, date_fns_1.addDays)(today, 180);
-                    console.log('📅 FULL RANGE: Loading complete extended range (-90 to +180 days):', { startDate, endDate });
+                // Full range debug removed
             }
         }
-        console.log('📅 Date range:', { startDate, endDate });
+        // Date range debug removed
         // 🚀 FÁZA 1.2: UNIFIED SQL QUERY - 1 optimalizovaný query namiesto 3 + JS processing
-        console.log('🚀 Using unified calendar data query...');
+        // Unified query debug removed
         const unifiedResult = await postgres_database_1.postgresDatabase.getCalendarDataUnified(startDate, endDate);
-        console.log('✅ Unified calendar data loaded:', {
-            calendarDays: unifiedResult.calendar.length,
-            vehicles: unifiedResult.vehicles.length,
-            unavailabilities: unifiedResult.unavailabilities.length
-        });
+        // Calendar data loaded debug removed
         // Extrakcia dát z unified result
         const calendarData = unifiedResult.calendar;
         const vehicles = unifiedResult.vehicles;
@@ -149,7 +146,8 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
                 // 🚀 PROGRESSIVE LOADING: Metadata o fáze
                 phase: phase || 'full',
                 isProgressive: !!phase,
-                dayCount: Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1
+                // ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays (bez +1)
+                dayCount: (0, rentalDaysCalculator_1.calculateRentalDays)(startDate, endDate)
             };
         }
         // 🚀 FÁZA 2.4: RESPONSE SIZE LOGGING
@@ -164,7 +162,7 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
         const sizeSaved = originalSize - optimizedSize;
         const percentSaved = sizeSaved > 0 ? ((sizeSaved / originalSize) * 100).toFixed(1) : '0';
         if (sizeSaved > 0) {
-            console.log(`📦 RESPONSE OPTIMIZED: ${originalSize} → ${optimizedSize} bytes (${percentSaved}% smaller)`);
+            // Response optimization debug removed
         }
         // 🚀 FÁZA 2.4: STRUCTURE OPTIMIZATION (if requested)
         let finalResponseData = responseData;
@@ -173,7 +171,7 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
             const structureOptimized = optimizeDataStructure(responseData);
             finalResponseData = structureOptimized.data;
             structureOptimization = structureOptimized.meta;
-            console.log(`🎯 STRUCTURE OPTIMIZED: Additional ${structureOptimization.compressionRatio} size reduction`);
+            // Structure optimization debug removed
         }
         res.json({
             success: true,
@@ -199,7 +197,7 @@ router.get('/calendar', auth_1.authenticateToken, async (req, res) => {
 // GET /api/availability/test - Jednoduchý test endpoint BEZ autentifikácie
 router.get('/test', async (req, res) => {
     try {
-        console.log('🧪 Availability test endpoint called');
+        // Test endpoint debug removed
         // SIMPLIFIED: Test without getRentals()
         const vehicles = await postgres_database_1.postgresDatabase.getVehicles();
         res.json({

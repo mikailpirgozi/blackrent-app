@@ -20,11 +20,11 @@ import {
   Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { differenceInDays } from 'date-fns';
 import React, { useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
 import type { Customer, Rental, Vehicle } from '../../types';
+import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
 
 interface EditRentalDialogProps {
   open: boolean;
@@ -39,7 +39,6 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
   open,
   rental,
   vehicles,
-  customers,
   onClose,
   onSave,
 }) => {
@@ -76,12 +75,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
     }
   }, [rental, open]);
 
-  // Utility function to calculate rental days
-  // const calculateRentalDays = (startDate: Date, endDate: Date): number => {
-  //   const timeDiff = endDate.getTime() - startDate.getTime();
-  //   const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-  //   return Math.max(1, daysDiff);
-  // };
+  // ✅ MIGRÁCIA: Zakomentovaná stará implementácia nahradená centrálnou funkciou
 
   // Auto-calculate price and commission when relevant fields change
   useEffect(() => {
@@ -108,19 +102,10 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
         ? formData.endDate
         : new Date(formData.endDate || '');
 
-    const startDateOnly = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth(),
-      startDate.getDate()
-    );
-    const endDateOnly = new Date(
-      endDate.getFullYear(),
-      endDate.getMonth(),
-      endDate.getDate()
-    );
+    // Removed unused startDateOnly and endDateOnly variables
 
-    const daysDifference = differenceInDays(endDateOnly, startDateOnly);
-    const days = Math.max(1, daysDifference);
+    // ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays
+    const days = calculateRentalDays(startDate, endDate);
 
     // Find pricing tier
     const pricingTier = vehicle.pricing?.find(

@@ -1,1 +1,21 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run lint-staged for formatting and linting
 npx lint-staged
+
+# TypeScript check for frontend
+echo "🔍 TypeScript check (frontend)..."
+npm run build > /dev/null 2>&1 || {
+  echo "❌ Frontend TypeScript errors found! Run 'npm run build' to see details."
+  exit 1
+}
+
+# TypeScript check for backend
+echo "🔍 TypeScript check (backend)..."
+cd backend && npm run build > /dev/null 2>&1 || {
+  echo "❌ Backend TypeScript errors found! Run 'cd backend && npm run build' to see details."
+  exit 1
+}
+
+echo "✅ All checks passed!"

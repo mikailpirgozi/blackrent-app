@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -16,7 +16,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { memo } from 'react';
 import { formatTime } from '../../utils/formatters';
 
 import type { Rental } from '../../types';

@@ -78,13 +78,16 @@
     "format": "prettier -w .",
     "format:check": "prettier -c .",
     "prepare": "husky",
-    "commit": "npm run format && git add -A && git commit --no-verify",
-    "push-safe": "npm run format && git add -A && git commit --no-verify -m 'Auto-formatted code' && git push origin main"
+    "commit": "npm run format && npm run lint:fix && git add -A && git commit",
+    "push-safe": "npm run format && npm run lint:fix && git add -A && git commit -m 'Auto-formatted code' && git push origin main"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix",
+      "eslint --fix --max-warnings=0",
       "prettier --write"
+    ],
+    "backend/src/**/*.{ts,tsx}": [
+      "cd backend && npm run build"
     ]
   },
   "browserslist": {

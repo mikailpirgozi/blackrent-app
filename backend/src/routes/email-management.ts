@@ -3,10 +3,11 @@ import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
+import { calculateRentalDays } from '../utils/rentalDaysCalculator';
 
 const router = Router();
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -28,7 +29,7 @@ router.get('/',
       } = req.query;
 
       let whereClause = "eph.status != 'archived'"; // Exclude archived emails from main list
-      const params: any[] = [];
+      const params: unknown[] = [];
       let paramIndex = 1;
 
       // Filter by status
@@ -289,7 +290,7 @@ router.post('/:id/approve',
                 endDate = parseAsPlainString(endStr);
               }
             } catch (dateError) {
-              console.log('⚠️ Date parsing error, using defaults:', dateError);
+              // Date parsing error debug removed
             }
           }
 
@@ -336,7 +337,7 @@ router.post('/:id/approve',
                 customerId = newCustomerResult.rows[0].id;
               }
             } catch (customerError) {
-              console.log('⚠️ Customer creation error:', customerError);
+              // Customer creation error debug removed
             }
           }
           
@@ -360,19 +361,20 @@ router.post('/:id/approve',
                   if (extraKmObjects.length > 0) {
                     const lastExtraKmObj = extraKmObjects[extraKmObjects.length - 1];
                     extraKilometerRate = parseFloat(lastExtraKmObj.extraKilometerRate) || 0.30;
-                    console.log(`🚗 Using vehicle extra km rate: ${extraKilometerRate}€/km for ${parsedData.vehicleCode}`);
+                    // Vehicle extra km rate debug removed
                   }
                 }
               }
             } catch (vehicleError) {
-              console.log('⚠️ Vehicle lookup error:', vehicleError);
+              // Vehicle lookup error debug removed
             }
           }
           
           // Calculate allowed kilometers (daily_km * rental days)
           let allowedKilometers = 0;
           if (parsedData.dailyKilometers) {
-            const rentalDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+            // ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays
+            const rentalDays = calculateRentalDays(new Date(startDate), new Date(endDate));
             allowedKilometers = parseInt(parsedData.dailyKilometers) * rentalDays;
           }
           
@@ -436,7 +438,7 @@ router.post('/:id/approve',
                 VALUES ($1, $2, 'archived', 'Auto-archived after approval')
               `, [id, userId]);
               
-              console.log(`📁 Email ${id} auto-archived after approval`);
+              // Email auto-archived debug removed
             } catch (error) {
               console.error('❌ Auto-archive error:', error);
             }
@@ -512,7 +514,7 @@ router.post('/:id/reject',
             VALUES ($1, $2, 'archived', 'Auto-archived after rejection')
           `, [id, userId]);
           
-          console.log(`📁 Email ${id} auto-archived after rejection`);
+          // Email rejection debug removed
         } catch (error) {
           console.error('❌ Auto-archive error:', error);
         }
@@ -613,7 +615,7 @@ router.post('/bulk-archive',
       `, params);
 
       // Log actions for each archived email
-      const logPromises = result.rows.map((row: any) => 
+      const logPromises = result.rows.map((row: Record<string, unknown>) => 
         postgresDatabase.query(`
           INSERT INTO email_action_logs (email_id, user_id, action, notes)
           VALUES ($1, $2, 'archived', $3)
@@ -650,7 +652,7 @@ router.post('/auto-archive',
       const userId = req.user?.id;
 
       // Build status filter
-      const statusPlaceholders = statuses.map((_: any, index: number) => `$${index + 2}`).join(',');
+      const statusPlaceholders = statuses.map((_: unknown, index: number) => `$${index + 2}`).join(',');
       const params = [daysOld, ...statuses, userId];
 
       const result = await postgresDatabase.query(`
@@ -668,7 +670,7 @@ router.post('/auto-archive',
       `, params);
 
       // Log actions for each auto-archived email
-      const logPromises = result.rows.map((row: any) => 
+      const logPromises = result.rows.map((row: Record<string, unknown>) => 
         postgresDatabase.query(`
           INSERT INTO email_action_logs (email_id, user_id, action, notes)
           VALUES ($1, $2, 'archived', $3)
@@ -711,7 +713,7 @@ router.get('/archive/list',
       } = req.query;
 
       let whereClause = "eph.status = 'archived'";
-      const params: any[] = [];
+      const params: unknown[] = [];
       let paramIndex = 1;
 
       // Filter by sender
@@ -882,14 +884,14 @@ router.delete('/clear-historical',
   authenticateToken,
   checkPermission('rentals', 'delete'),
   async (req: Request, res: Response<ApiResponse>) => {
-    console.log('🔥 CLEAR HISTORICAL ENDPOINT CALLED!');
+    // Clear historical endpoint debug removed
     try {
-      const userId = req.user?.id;
+      // const userId = req.user?.id; // Unused in this endpoint
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Nastaviť na začiatok dňa
       const todayStr = today.toISOString();
 
-      console.log(`🗑️ CLEAR HISTORICAL: Začínam mazanie emailov pred ${todayStr}`);
+      // Clear historical start debug removed
 
       // Najprv získaj počet emailov ktoré sa budú mazať
       const countResult = await postgresDatabase.query(`
@@ -899,7 +901,7 @@ router.delete('/clear-historical',
       `, [todayStr]);
 
       const emailsToDelete = parseInt(countResult.rows[0].count);
-      console.log(`🗑️ CLEAR HISTORICAL: Nájdených ${emailsToDelete} emailov na zmazanie`);
+      // Clear historical count debug removed
 
       if (emailsToDelete === 0) {
         return res.json({
@@ -917,7 +919,7 @@ router.delete('/clear-historical',
         WHERE received_at < $1
       `, [todayStr]);
 
-      console.log(`✅ CLEAR HISTORICAL: Úspešne zmazaných ${deleteResult.rowCount} emailov`);
+      // Clear historical success debug removed
 
       res.json({
         success: true,

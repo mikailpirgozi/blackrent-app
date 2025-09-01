@@ -435,6 +435,7 @@ export interface ApiResponse<T = any> {
     message?: string;
     error?: string;
     code?: string;
+    _meta?: any;
     user?: T;
 }
 export interface VehicleCondition {

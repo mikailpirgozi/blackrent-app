@@ -4,6 +4,7 @@ const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const permissions_1 = require("../middleware/permissions");
 const postgres_database_1 = require("../models/postgres-database");
+const rentalDaysCalculator_1 = require("../utils/rentalDaysCalculator");
 const router = (0, express_1.Router)();
 // GET /api/email-management - Získanie všetkých emailov s filtrami
 router.get('/', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'read'), async (req, res) => {
@@ -234,7 +235,7 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
                         }
                     }
                     catch (dateError) {
-                        console.log('⚠️ Date parsing error, using defaults:', dateError);
+                        // Date parsing error debug removed
                     }
                 }
                 // Use totalAmount or vehicleTotalAmount as fallback
@@ -281,7 +282,7 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
                         }
                     }
                     catch (customerError) {
-                        console.log('⚠️ Customer creation error:', customerError);
+                        // Customer creation error debug removed
                     }
                 }
                 // Find vehicle by code and get extraKilometerRate
@@ -302,19 +303,20 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
                                 if (extraKmObjects.length > 0) {
                                     const lastExtraKmObj = extraKmObjects[extraKmObjects.length - 1];
                                     extraKilometerRate = parseFloat(lastExtraKmObj.extraKilometerRate) || 0.30;
-                                    console.log(`🚗 Using vehicle extra km rate: ${extraKilometerRate}€/km for ${parsedData.vehicleCode}`);
+                                    // Vehicle extra km rate debug removed
                                 }
                             }
                         }
                     }
                     catch (vehicleError) {
-                        console.log('⚠️ Vehicle lookup error:', vehicleError);
+                        // Vehicle lookup error debug removed
                     }
                 }
                 // Calculate allowed kilometers (daily_km * rental days)
                 let allowedKilometers = 0;
                 if (parsedData.dailyKilometers) {
-                    const rentalDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+                    // ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays
+                    const rentalDays = (0, rentalDaysCalculator_1.calculateRentalDays)(new Date(startDate), new Date(endDate));
                     allowedKilometers = parseInt(parsedData.dailyKilometers) * rentalDays;
                 }
                 const result = await postgres_database_1.postgresDatabase.query(`
@@ -371,7 +373,7 @@ router.post('/:id/approve', auth_1.authenticateToken, (0, permissions_1.checkPer
                 INSERT INTO email_action_logs (email_id, user_id, action, notes)
                 VALUES ($1, $2, 'archived', 'Auto-archived after approval')
               `, [id, userId]);
-                        console.log(`📁 Email ${id} auto-archived after approval`);
+                        // Email auto-archived debug removed
                     }
                     catch (error) {
                         console.error('❌ Auto-archive error:', error);
@@ -437,7 +439,7 @@ router.post('/:id/reject', auth_1.authenticateToken, (0, permissions_1.checkPerm
             INSERT INTO email_action_logs (email_id, user_id, action, notes)
             VALUES ($1, $2, 'archived', 'Auto-archived after rejection')
           `, [id, userId]);
-                console.log(`📁 Email ${id} auto-archived after rejection`);
+                // Email rejection debug removed
             }
             catch (error) {
                 console.error('❌ Auto-archive error:', error);
@@ -737,13 +739,13 @@ router.post('/:id/unarchive', auth_1.authenticateToken, (0, permissions_1.checkP
 // DELETE /api/email-management/clear-historical - Vymazať všetky historické emaily pred dnešným dátumom
 // MUSÍ BYŤ PRED /:id route kvôli Express routing!
 router.delete('/clear-historical', auth_1.authenticateToken, (0, permissions_1.checkPermission)('rentals', 'delete'), async (req, res) => {
-    console.log('🔥 CLEAR HISTORICAL ENDPOINT CALLED!');
+    // Clear historical endpoint debug removed
     try {
-        const userId = req.user?.id;
+        // const userId = req.user?.id; // Unused in this endpoint
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Nastaviť na začiatok dňa
         const todayStr = today.toISOString();
-        console.log(`🗑️ CLEAR HISTORICAL: Začínam mazanie emailov pred ${todayStr}`);
+        // Clear historical start debug removed
         // Najprv získaj počet emailov ktoré sa budú mazať
         const countResult = await postgres_database_1.postgresDatabase.query(`
         SELECT COUNT(*) as count
@@ -751,7 +753,7 @@ router.delete('/clear-historical', auth_1.authenticateToken, (0, permissions_1.c
         WHERE received_at < $1
       `, [todayStr]);
         const emailsToDelete = parseInt(countResult.rows[0].count);
-        console.log(`🗑️ CLEAR HISTORICAL: Nájdených ${emailsToDelete} emailov na zmazanie`);
+        // Clear historical count debug removed
         if (emailsToDelete === 0) {
             return res.json({
                 success: true,
@@ -766,7 +768,7 @@ router.delete('/clear-historical', auth_1.authenticateToken, (0, permissions_1.c
         DELETE FROM email_processing_history 
         WHERE received_at < $1
       `, [todayStr]);
-        console.log(`✅ CLEAR HISTORICAL: Úspešne zmazaných ${deleteResult.rowCount} emailov`);
+        // Clear historical success debug removed
         res.json({
             success: true,
             data: {

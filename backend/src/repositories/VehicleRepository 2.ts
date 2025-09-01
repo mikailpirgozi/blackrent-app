@@ -4,8 +4,10 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import { Pool, PoolClient } from 'pg';
-import { Vehicle, VehicleDocument } from '../types';
+import type { Pool} from 'pg';
+import { PoolClient } from 'pg';
+import type { Vehicle} from '../types';
+import { VehicleDocument } from '../types';
 import { BaseRepository } from '../models/base/BaseRepository';
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
@@ -288,8 +290,8 @@ export class VehicleRepository extends BaseRepository {
       const limit = params.limit || 20;
       const offset = (page - 1) * limit;
 
-      let whereConditions: string[] = [];
-      let queryParams: any[] = [];
+      const whereConditions: string[] = [];
+      const queryParams: any[] = [];
       let paramIndex = 1;
 
       // Search filter
