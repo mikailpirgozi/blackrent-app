@@ -3,9 +3,9 @@ export function formatDate(date: string | Date): string {
   if (!date) return 'N/A';
 
   try {
-    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+    // ZACHOVAJ PRESNÝ DÁTUM BEZ TIMEZONE KONVERZIE
     if (typeof date === 'string') {
-      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, parsuj bez timezone
+      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, vráť len dátum
       const match = date.match(
         /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}):(\d{2}))?/
       );
@@ -13,17 +13,27 @@ export function formatDate(date: string | Date): string {
         const [, year, month, day] = match;
         return `${day}.${month}.${year}`;
       }
+
+      // Ak je string v ISO formáte s timezone - extrahuj len dátum
+      if (date.includes('T')) {
+        const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (dateMatch) {
+          const [, year, month, day] = dateMatch;
+          return `${day}.${month}.${year}`;
+        }
+      }
     }
 
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (isNaN(dateObj.getTime())) return 'N/A';
 
-    return dateObj.toLocaleDateString('sk-SK', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    // Použij lokálne hodnoty
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+
+    return `${day}.${month}.${year}`;
   } catch (error) {
     return 'N/A';
   }
@@ -33,9 +43,9 @@ export function formatDateTime(date: string | Date): string {
   if (!date) return 'N/A';
 
   try {
-    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+    // ZACHOVAJ PRESNÝ ČAS BEZ AKEJKOĽVEK TIMEZONE KONVERZIE
     if (typeof date === 'string') {
-      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, parsuj bez timezone
+      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, vráť presne tak ako je
       const match = date.match(
         /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
       );
@@ -43,19 +53,35 @@ export function formatDateTime(date: string | Date): string {
         const [, year, month, day, hour, minute] = match;
         return `${day}.${month}.${year} ${hour}:${minute}`;
       }
+
+      // Ak je string v ISO formáte s timezone (2025-09-08T08:00:00.000Z)
+      // ZACHOVAJ PRESNÝ ČAS - extrahuj len hodiny a minúty z ISO stringu
+      if (date.includes('T')) {
+        // Extrahuj čas priamo zo stringu bez Date objektu
+        const timeMatch = date.match(/T(\d{2}):(\d{2})/);
+        const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+        if (timeMatch && dateMatch) {
+          const [, year, month, day] = dateMatch;
+          const [, hour, minute] = timeMatch;
+          return `${day}.${month}.${year} ${hour}:${minute}`;
+        }
+      }
     }
 
+    // Pre Date objekty - pokús sa získať pôvodný čas
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (isNaN(dateObj.getTime())) return 'N/A';
 
-    return dateObj.toLocaleString('sk-SK', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    // Použij lokálne hodnoty (nie UTC) aby sa zachoval pôvodný čas
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    const hour = String(dateObj.getHours()).padStart(2, '0');
+    const minute = String(dateObj.getMinutes()).padStart(2, '0');
+
+    return `${day}.${month}.${year} ${hour}:${minute}`;
   } catch (error) {
     return 'N/A';
   }
@@ -67,7 +93,7 @@ export function formatTime(date: string | Date): string {
   try {
     // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
     if (typeof date === 'string') {
-      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, parsuj bez timezone
+      // Ak je string vo formáte YYYY-MM-DD HH:MM:SS, vráť len čas
       const match = date.match(
         /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
       );
@@ -75,16 +101,26 @@ export function formatTime(date: string | Date): string {
         const [, , , , hour, minute] = match;
         return `${hour}:${minute}`;
       }
+
+      // Ak je string v ISO formáte s timezone - extrahuj len čas
+      if (date.includes('T')) {
+        const timeMatch = date.match(/T(\d{2}):(\d{2})/);
+        if (timeMatch) {
+          const [, hour, minute] = timeMatch;
+          return `${hour}:${minute}`;
+        }
+      }
     }
 
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (isNaN(dateObj.getTime())) return 'N/A';
 
-    return dateObj.toLocaleTimeString('sk-SK', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    // Použij lokálne hodnoty
+    const hour = String(dateObj.getHours()).padStart(2, '0');
+    const minute = String(dateObj.getMinutes()).padStart(2, '0');
+
+    return `${hour}:${minute}`;
   } catch (error) {
     return 'N/A';
   }
@@ -124,51 +160,35 @@ export function formatDuration(
   if (!startDate || !endDate) return 'N/A';
 
   try {
-    let start: Date;
-    let end: Date;
-
-    // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-    if (typeof startDate === 'string') {
-      const match = startDate.match(
-        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
-      );
-      if (match) {
-        const [, year, month, day, hour, minute, second] = match;
-        start = new Date(
-          parseInt(year),
-          parseInt(month) - 1,
-          parseInt(day),
-          parseInt(hour),
-          parseInt(minute),
-          parseInt(second)
+    // Parse dates consistently with timezone handling
+    const parseDate = (date: string | Date): Date => {
+      if (typeof date === 'string') {
+        // YYYY-MM-DD HH:MM:SS format
+        const match = date.match(
+          /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
         );
-      } else {
-        start = new Date(startDate);
+        if (match) {
+          const [, year, month, day, hour, minute, second] = match;
+          return new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hour),
+            parseInt(minute),
+            parseInt(second)
+          );
+        }
+        // ISO format - use UTC time
+        if (date.includes('T')) {
+          return new Date(date);
+        }
+        return new Date(date);
       }
-    } else {
-      start = startDate;
-    }
+      return date;
+    };
 
-    if (typeof endDate === 'string') {
-      const match = endDate.match(
-        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
-      );
-      if (match) {
-        const [, year, month, day, hour, minute, second] = match;
-        end = new Date(
-          parseInt(year),
-          parseInt(month) - 1,
-          parseInt(day),
-          parseInt(hour),
-          parseInt(minute),
-          parseInt(second)
-        );
-      } else {
-        end = new Date(endDate);
-      }
-    } else {
-      end = endDate;
-    }
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'N/A';
 
