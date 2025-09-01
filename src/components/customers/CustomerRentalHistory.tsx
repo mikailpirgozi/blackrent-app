@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
@@ -32,7 +32,6 @@ import {
 } from '@mui/material';
 import { format, isAfter, isBefore } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { useMemo, useState } from 'react';
 
 import type { Customer, Rental, Vehicle } from '../../types';
 import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
