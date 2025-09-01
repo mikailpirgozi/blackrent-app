@@ -43,13 +43,37 @@ Object.defineProperty(global, 'console', {
 });
 
 // Mock setInterval/clearInterval
-vi.stubGlobal('setInterval', vi.fn());
-vi.stubGlobal('clearInterval', vi.fn());
+const mockSetInterval = vi.fn(() => 123); // Return mock interval ID
+const mockClearInterval = vi.fn();
+vi.stubGlobal('setInterval', mockSetInterval);
+vi.stubGlobal('clearInterval', mockClearInterval);
 
 describe('Protocol V2 Performance Monitoring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearPerformanceAlerts();
+
+    // Reset performance metrics to default state
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const protocolModule = require('../protocolV2Performance');
+      const performanceMetrics = protocolModule.performanceMetrics;
+      if (performanceMetrics) {
+        performanceMetrics.uploadMetrics = {
+          activeUploads: 0,
+          queueSize: 0,
+          failedUploads: 0,
+          totalUploaded: 0,
+        };
+        performanceMetrics.componentMetrics = {
+          renderCount: 0,
+          lastRenderTime: 0,
+          averageRenderTime: 0,
+        };
+      }
+    } catch (error) {
+      // Ignore if module not available
+    }
   });
 
   afterEach(() => {
@@ -103,7 +127,8 @@ describe('Protocol V2 Performance Monitoring', () => {
 
     it('should handle missing performance.memory API', () => {
       const originalMemory = mockPerformance.memory;
-      delete (mockPerformance as any).memory;
+      delete (mockPerformance as typeof mockPerformance & { memory?: unknown })
+        .memory;
 
       const metrics = getPerformanceMetrics();
 
@@ -130,6 +155,15 @@ describe('Protocol V2 Performance Monitoring', () => {
 
     it('should calculate average render time correctly', () => {
       const componentName = 'TestComponent';
+
+      // Reset render count for this test
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const protocolModule = require('../protocolV2Performance');
+        protocolModule.performanceMetrics.componentMetrics.renderCount = 0;
+      } catch (error) {
+        // Ignore if module not available
+      }
 
       trackComponentRender(componentName, 100);
       trackComponentRender(componentName, 200);
@@ -168,6 +202,15 @@ describe('Protocol V2 Performance Monitoring', () => {
 
     it('should limit stored render times to prevent memory leaks', () => {
       const componentName = 'TestComponent';
+
+      // Reset render count for this test
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const protocolModule = require('../protocolV2Performance');
+        protocolModule.performanceMetrics.componentMetrics.renderCount = 0;
+      } catch (error) {
+        // Ignore if module not available
+      }
 
       // Add more than 100 render times
       for (let i = 0; i < 150; i++) {
@@ -280,6 +323,9 @@ describe('Protocol V2 Performance Monitoring', () => {
     });
 
     it('should clear alerts older than specified time', () => {
+      // Clear existing alerts first
+      clearPerformanceAlerts();
+
       // Mock older timestamp
       const oldTimestamp = Date.now() - 10000; // 10 seconds ago
       vi.spyOn(Date, 'now').mockReturnValue(oldTimestamp);
@@ -332,7 +378,9 @@ describe('Protocol V2 Performance Monitoring', () => {
 
     it('should force garbage collection if available', () => {
       const mockGC = vi.fn();
-      (global as any).window = { gc: mockGC };
+      (global as typeof global & { window?: { gc: () => void } }).window = {
+        gc: mockGC,
+      };
 
       // Mock high memory usage
       mockPerformance.memory = {
@@ -345,7 +393,7 @@ describe('Protocol V2 Performance Monitoring', () => {
 
       expect(mockGC).toHaveBeenCalled();
 
-      delete (global as any).window;
+      delete (global as typeof global & { window?: unknown }).window;
     });
   });
 
@@ -367,7 +415,7 @@ describe('Protocol V2 Performance Monitoring', () => {
       startPerformanceMonitoring(5000);
       stopPerformanceMonitoring();
 
-      expect(clearInterval).toHaveBeenCalled();
+      expect(mockClearInterval).toHaveBeenCalledWith(123);
       expect(mockConsole.log).toHaveBeenCalledWith(
         '🛑 V2: Performance monitoring stopped'
       );
@@ -418,6 +466,9 @@ describe('Protocol V2 Performance Monitoring', () => {
     });
 
     it('should show no critical issues when none exist', () => {
+      // Clear all alerts first
+      clearPerformanceAlerts();
+
       const report = generatePerformanceReport();
 
       expect(report).toContain('✅ No critical issues detected');
