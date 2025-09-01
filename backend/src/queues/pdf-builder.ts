@@ -263,11 +263,11 @@ pdfQueue.process('bulk-pdf-build', async (job: Job<{ protocols: PDFBuildJob[] }>
  */
 pdfQueue.on('completed', (job: Job, result: PDFBuildResult) => {
   if (job.name === 'build-protocol-pdf') {
-    console.log(`PDF generated: ${job.id}`, {
-      protocolId: result.protocolId,
-      fileSize: result.fileSize,
-      processingTime: result.processingTime
-    });
+    // console.log(`PDF generated: ${job.id}`, {
+    //   protocolId: result.protocolId,
+    //   fileSize: result.fileSize,
+    //   processingTime: result.processingTime
+    // });
   }
 });
 

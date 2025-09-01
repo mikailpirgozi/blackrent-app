@@ -7,7 +7,7 @@ export class MockPostgresDatabase {
   private mockData: Map<string, any[]> = new Map();
 
   constructor() {
-    console.log('🧪 Using Mock PostgreSQL Database for tests');
+    // console.log('🧪 Using Mock PostgreSQL Database for tests');
     this.initializeMockData();
   }
 
@@ -23,7 +23,7 @@ export class MockPostgresDatabase {
 
   async query(sql: string, params: any[] = []): Promise<any> {
     // Mock query implementation
-    console.log('Mock query:', sql.substring(0, 50) + '...');
+    // console.log('Mock query:', sql.substring(0, 50) + '...');
     
     // Simulujeme úspešné odpovede pre rôzne queries
     if (sql.includes('SELECT')) {
@@ -77,7 +77,7 @@ export class MockPostgresDatabase {
   }
 
   async close(): Promise<void> {
-    console.log('🧪 Mock database connection closed');
+    // console.log('🧪 Mock database connection closed');
   }
 }
 

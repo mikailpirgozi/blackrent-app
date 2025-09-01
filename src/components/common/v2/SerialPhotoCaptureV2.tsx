@@ -103,6 +103,59 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
     []
   );
 
+  // 🔧 CRITICAL: monitorPhotoProcessing musí byť definovaná PRED všetkými ostatnými funkciami
+  const monitorPhotoProcessing = useCallback(
+    async (itemId: string, photoId: string) => {
+      try {
+        const response = await fetch(
+          `/api/v2/protocols/photos/${photoId}/status`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Status check failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Status check failed');
+        }
+
+        const photo = result.photo;
+
+        // Update queue item
+        updateQueueItem(itemId, {
+          status: photo.status === 'completed' ? 'completed' : 'processing',
+          progress: photo.progress || 0,
+          urls: photo.urls,
+          error: photo.error,
+          processedAt: photo.processedAt
+            ? new Date(photo.processedAt)
+            : undefined,
+        });
+
+        // Notify completion
+        if (photo.status === 'completed' && onUploadComplete) {
+          onUploadComplete(photoId, photo.urls, category);
+        }
+
+        // Continue monitoring ak ešte nie je hotové
+        if (photo.status !== 'completed' && photo.status !== 'failed') {
+          setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
+        }
+      } catch (error) {
+        console.error(`Failed to check photo status ${photoId}:`, error);
+        updateQueueItemStatus(
+          itemId,
+          'failed',
+          0,
+          error instanceof Error ? error.message : 'Status check failed'
+        );
+      }
+    },
+    [updateQueueItem, updateQueueItemStatus, onUploadComplete, category]
+  );
+
   // 📸 Helper funkcia pre zobrazenie názvov kategórií
   const getCategoryDisplayName = (cat: PhotoCategory): string => {
     const names: Record<PhotoCategory, string> = {
@@ -390,59 +443,8 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   );
 
   /**
-   * Monitoring photo processing status
+   * Monitoring photo processing status - MOVED TO TOP
    */
-  const monitorPhotoProcessing = useCallback(
-    async (itemId: string, photoId: string) => {
-      try {
-        const response = await fetch(
-          `/api/v2/protocols/photos/${photoId}/status`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Status check failed: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Status check failed');
-        }
-
-        const photo = result.photo;
-
-        // Update queue item
-        updateQueueItem(itemId, {
-          status: photo.status === 'completed' ? 'completed' : 'processing',
-          progress: photo.progress || 0,
-          urls: photo.urls,
-          error: photo.error,
-          processedAt: photo.processedAt
-            ? new Date(photo.processedAt)
-            : undefined,
-        });
-
-        // Notify completion
-        if (photo.status === 'completed' && onUploadComplete) {
-          onUploadComplete(photoId, photo.urls, category);
-        }
-
-        // Continue monitoring ak ešte nie je hotové
-        if (photo.status !== 'completed' && photo.status !== 'failed') {
-          setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
-        }
-      } catch (error) {
-        console.error(`Failed to check photo status ${photoId}:`, error);
-        updateQueueItemStatus(
-          itemId,
-          'failed',
-          0,
-          error instanceof Error ? error.message : 'Status check failed'
-        );
-      }
-    },
-    [updateQueueItem, updateQueueItemStatus, onUploadComplete, category]
-  );
 
   /**
    * Helper funkcie pre state updates

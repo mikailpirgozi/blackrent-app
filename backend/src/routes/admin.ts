@@ -51,7 +51,7 @@ router.post('/get-token', async (req: Request, res: Response) => {
       { expiresIn: '24h' }
     );
     
-    console.log('🔑 Admin token generated for database reset');
+    // console.log('🔑 Admin token generated for database reset');
     
     res.json({
       success: true,
@@ -84,7 +84,7 @@ router.post('/fix-schema',
   requireRole(['admin']),
   async (req: Request, res: Response) => {
     try {
-      console.log('🔧 ADMIN: Starting schema fix...');
+      // console.log('🔧 ADMIN: Starting schema fix...');
       
       const client = await (postgresDatabase as any).pool.connect();
       try {
@@ -124,9 +124,9 @@ router.post('/fix-schema',
           ORDER BY ordinal_position
         `);
         
-        console.log('✅ Schema fix completed');
-        console.log('📊 Companies columns:', companiesInfo.rows.length);
-        console.log('📊 Vehicles columns:', vehiclesInfo.rows.length);
+        // console.log('✅ Schema fix completed');
+        // console.log('📊 Companies columns:', companiesInfo.rows.length);
+        // console.log('📊 Vehicles columns:', vehiclesInfo.rows.length);
         
         res.json({
           success: true,
@@ -160,7 +160,7 @@ router.get('/rental-integrity',
   requireRole(['admin']),
   async (req: Request, res: Response) => {
     try {
-      console.log('🛡️ ADMIN: Checking rental integrity...');
+      // console.log('🛡️ ADMIN: Checking rental integrity...');
       
       const integrityReport = await postgresDatabase.checkRentalIntegrity();
       

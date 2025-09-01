@@ -4,9 +4,9 @@
  * Express middleware pre automatic caching API responses
  */
 
-import type { Request, Response, NextFunction } from 'express';
-import { cacheInstances, invalidateRelatedCache } from '../utils/cache-service';
+import type { NextFunction, Request, Response } from 'express';
 import type { CacheOptions } from '../utils/cache-service';
+import { cacheInstances, invalidateRelatedCache } from '../utils/cache-service';
 
 interface CacheMiddlewareOptions extends CacheOptions {
   cacheKey?: (req: Request) => string;
@@ -148,9 +148,9 @@ export const cacheStatsMiddleware = (req: Request, res: Response) => {
   
   const totalStats = {
     totalCaches: Object.keys(cacheInstances).length,
-    totalEntries: Object.values(stats).reduce((sum, stat) => sum + stat.totalEntries, 0),
-    overallHitRate: Object.values(stats).reduce((sum, stat) => sum + stat.hitRate, 0) / Object.keys(stats).length,
-    totalMemoryUsage: Object.values(stats).reduce((sum, stat) => sum + stat.memoryUsage, 0),
+    totalEntries: Object.values(stats).reduce((sum, stat) => sum + (stat as any).totalEntries, 0),
+    overallHitRate: Object.values(stats).reduce((sum, stat) => sum + (stat as any).hitRate, 0) / Object.keys(stats).length,
+    totalMemoryUsage: Object.values(stats).reduce((sum, stat) => sum + (stat as any).memoryUsage, 0),
     caches: stats
   };
   
