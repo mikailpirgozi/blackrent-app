@@ -170,9 +170,32 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         }}
         maxWidth="lg"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            // Mobile responsive fixes
+            margin: { xs: 1, sm: 2 },
+            maxHeight: { xs: '95vh', sm: '90vh' },
+            width: { xs: 'calc(100vw - 16px)', sm: '100%' },
+            // Ensure proper scrolling on mobile
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
       >
-        <DialogTitle>Odovzdávací protokol</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ 
+          flexShrink: 0,
+          borderBottom: 1,
+          borderColor: 'divider',
+          padding: { xs: 1, sm: 2 },
+        }}>
+          Odovzdávací protokol (V1)
+        </DialogTitle>
+        <DialogContent sx={{ 
+          flex: 1,
+          overflow: 'auto',
+          padding: { xs: 1, sm: 2 },
+        }}>
           {selectedRentalForProtocol && (
             <React.Suspense
               fallback={
@@ -217,9 +240,32 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         onClose={() => setOpenReturnDialog(false)}
         maxWidth="lg"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            // Mobile responsive fixes
+            margin: { xs: 1, sm: 2 },
+            maxHeight: { xs: '95vh', sm: '90vh' },
+            width: { xs: 'calc(100vw - 16px)', sm: '100%' },
+            // Ensure proper scrolling on mobile
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
       >
-        <DialogTitle>Preberací protokol</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ 
+          flexShrink: 0,
+          borderBottom: 1,
+          borderColor: 'divider',
+          padding: { xs: 1, sm: 2 },
+        }}>
+          Preberací protokol (V1)
+        </DialogTitle>
+        <DialogContent sx={{ 
+          flex: 1,
+          overflow: 'auto',
+          padding: { xs: 1, sm: 2 },
+        }}>
           {selectedRentalForProtocol && (
             <>
               {/* ✅ LOADING STATE: Zobraz loading kým sa načítajú protokoly */}
