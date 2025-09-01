@@ -15,34 +15,34 @@ export const authenticateToken = async (
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
 
-    console.log('🔍 AUTH MIDDLEWARE - Starting auth check');
-    console.log('🔍 AUTH MIDDLEWARE - Auth header exists:', !!authHeader);
-    console.log('🔍 AUTH MIDDLEWARE - Token extracted:', !!token);
+    // console.log('🔍 AUTH MIDDLEWARE - Starting auth check');
+    // console.log('🔍 AUTH MIDDLEWARE - Auth header exists:', !!authHeader);
+    // console.log('🔍 AUTH MIDDLEWARE - Token extracted:', !!token);
 
     if (!token) {
-      console.log('❌ AUTH MIDDLEWARE - No token provided');
+      // console.log('❌ AUTH MIDDLEWARE - No token provided');
       throw createUnauthorizedError('Access token je potrebný');
     }
 
-    console.log('🔍 AUTH MIDDLEWARE - Verifying JWT token...');
+    // console.log('🔍 AUTH MIDDLEWARE - Verifying JWT token...');
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    console.log('🔍 AUTH MIDDLEWARE - JWT decoded successfully:', {
-      userId: decoded.userId,
-      username: decoded.username,
-      role: decoded.role,
-    });
+    // console.log('🔍 AUTH MIDDLEWARE - JWT decoded successfully:', {
+    //   userId: decoded.userId,
+    //   username: decoded.username,
+    //   role: decoded.role,
+    // });
 
     // Získaj aktuálne údaje používateľa z databázy
-    console.log('🔍 AUTH MIDDLEWARE - Getting user from database...');
+    // console.log('🔍 AUTH MIDDLEWARE - Getting user from database...');
     const user = await postgresDatabase.getUserById(decoded.userId);
-    console.log('🔍 AUTH MIDDLEWARE - Database user result:', {
-      found: !!user,
-      id: user?.id,
-      username: user?.username,
-    });
+    // console.log('🔍 AUTH MIDDLEWARE - Database user result:', {
+    //   found: !!user,
+    //   id: user?.id,
+    //   username: user?.username,
+    // });
 
     if (!user) {
-      console.log('❌ AUTH MIDDLEWARE - User not found in database');
+      // console.log('❌ AUTH MIDDLEWARE - User not found in database');
       throw createUnauthorizedError('Používateľ nenájdený');
     }
 
@@ -65,7 +65,7 @@ export const authenticateToken = async (
       updatedAt: user.updatedAt,
     };
 
-    console.log('✅ AUTH MIDDLEWARE - Authentication successful');
+    // console.log('✅ AUTH MIDDLEWARE - Authentication successful');
     next();
   } catch (error) {
     console.error('❌ AUTH MIDDLEWARE ERROR:', error);
@@ -143,7 +143,7 @@ export const requirePermission = (resource: string, action: string) => {
   };
 };
 
-export const filterDataByRole = (data: any[], req: AuthRequest): any[] => {
+export const filterDataByRole = <T extends Record<string, unknown>>(data: T[], req: AuthRequest): T[] => {
   if (!req.user) return [];
 
   // Admin vidí všetky dáta
