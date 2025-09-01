@@ -54,34 +54,44 @@ export function formatDateTime(date: string | Date): string {
         return `${day}.${month}.${year} ${hour}:${minute}`;
       }
 
-      // Ak je string v ISO formáte s timezone (2025-09-08T08:00:00.000Z)
-      // ZACHOVAJ PRESNÝ ČAS - extrahuj len hodiny a minúty z ISO stringu
+      // Ak je string v ISO formáte (2025-09-08T08:00:00.000Z alebo 2025-09-08T08:00:00Z)
+      // NIKDY NEPOUŽÍVAJ Date objekt - extrahuj hodnoty priamo zo stringu
       if (date.includes('T')) {
-        // Extrahuj čas priamo zo stringu bez Date objektu
-        const timeMatch = date.match(/T(\d{2}):(\d{2})/);
-        const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        // Parsuj čas priamo zo stringu - T08:00:00 znamená 08:00
+        const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        if (isoMatch) {
+          const [, year, month, day, hour, minute] = isoMatch;
+          return `${day}.${month}.${year} ${hour}:${minute}`;
+        }
+      }
 
-        if (timeMatch && dateMatch) {
-          const [, year, month, day] = dateMatch;
-          const [, hour, minute] = timeMatch;
+      // Ak nič z toho nezafungovalo, skús Date objekt ako poslednú možnosť
+      // ALE NIKDY HO NEPOUŽÍVAJ PRE ISO FORMÁTY!
+      if (!date.includes('T') && !date.match(/^\d{4}-\d{2}-\d{2}\s/)) {
+        const dateObj = new Date(date);
+        if (!isNaN(dateObj.getTime())) {
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const year = dateObj.getFullYear();
+          const hour = String(dateObj.getHours()).padStart(2, '0');
+          const minute = String(dateObj.getMinutes()).padStart(2, '0');
           return `${day}.${month}.${year} ${hour}:${minute}`;
         }
       }
     }
 
-    // Pre Date objekty - pokús sa získať pôvodný čas
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    // Pre Date objekty - použij lokálne hodnoty
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hour = String(date.getHours()).padStart(2, '0');
+      const minute = String(date.getMinutes()).padStart(2, '0');
 
-    if (isNaN(dateObj.getTime())) return 'N/A';
+      return `${day}.${month}.${year} ${hour}:${minute}`;
+    }
 
-    // Použij lokálne hodnoty (nie UTC) aby sa zachoval pôvodný čas
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const year = dateObj.getFullYear();
-    const hour = String(dateObj.getHours()).padStart(2, '0');
-    const minute = String(dateObj.getMinutes()).padStart(2, '0');
-
-    return `${day}.${month}.${year} ${hour}:${minute}`;
+    return 'N/A';
   } catch (error) {
     return 'N/A';
   }
