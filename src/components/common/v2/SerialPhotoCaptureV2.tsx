@@ -76,6 +76,16 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 🔧 CRITICAL: updateQueueItem musí byť definovaná PRED všetkými ostatnými funkciami
+  const updateQueueItem = useCallback(
+    (id: string, updates: Partial<QueueItem>) => {
+      setUploadQueue(prev =>
+        prev.map(item => (item.id === id ? { ...item, ...updates } : item))
+      );
+    },
+    []
+  );
+
   // 📸 Helper funkcia pre zobrazenie názvov kategórií
   const getCategoryDisplayName = (cat: PhotoCategory): string => {
     const names: Record<PhotoCategory, string> = {
@@ -431,15 +441,6 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         prev.map(item =>
           item.id === id ? { ...item, status, progress, error } : item
         )
-      );
-    },
-    []
-  );
-
-  const updateQueueItem = useCallback(
-    (id: string, updates: Partial<QueueItem>) => {
-      setUploadQueue(prev =>
-        prev.map(item => (item.id === id ? { ...item, ...updates } : item))
       );
     },
     []
