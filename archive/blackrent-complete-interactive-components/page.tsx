@@ -8,7 +8,7 @@ export default function TabulkaObjednavkyPage() {
   const [currentState, setCurrentState] = useState<BookingState>("default");
 
   const handleStateChange = (newState: BookingState) => {
-    console.log("State changed to:", newState);
+    // console.log("State changed to:", newState);
     setCurrentState(newState);
   };
 

@@ -118,7 +118,7 @@ export default function Layout({ children }: LayoutProps) {
   const handleErrorRetry = async () => {
     // The retry logic is handled by the component that triggered the error
     // This is just for UI feedback
-    console.log('🔄 Retry requested from ErrorToast');
+    // console.log('🔄 Retry requested from ErrorToast');
   };
   
   // Success handling functions

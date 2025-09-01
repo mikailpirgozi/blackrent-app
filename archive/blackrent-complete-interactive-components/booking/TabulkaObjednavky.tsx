@@ -82,7 +82,7 @@ export const TabulkaObjednavky: React.FC<TabulkaObjednavkyProps> = ({
       case "suhrn-objednavky":
         return (
           <TypShrnObjednvkySubsection
-            onConfirm={() => console.log("Booking confirmed!")}
+            onConfirm={() => {/* console.log("Booking confirmed!") */}}
             onBackToFilled={() => handleStateChange("po-vyplneni")}
           />
         );

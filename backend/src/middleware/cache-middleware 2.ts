@@ -35,7 +35,7 @@ export const cacheResponse = (cacheName: keyof typeof cacheInstances, options: C
     // Try to get from cache
     const cached = cache.get(cacheKey);
     if (cached) {
-      console.log(`🗄️ Cache HIT: ${cacheKey}`);
+      // console.log(`🗄️ Cache HIT: ${cacheKey}`);
       return res.json(cached);
     }
     
@@ -43,11 +43,11 @@ export const cacheResponse = (cacheName: keyof typeof cacheInstances, options: C
     const originalJson = res.json.bind(res);
     
     // Override json method to cache response
-    res.json = function(data: any) {
+    res.json = function(data: unknown) {
       // Only cache successful responses
       if (res.statusCode >= 200 && res.statusCode < 300) {
         cache.set(cacheKey, data, options);
-        console.log(`🗄️ Cache SET: ${cacheKey}`);
+        // console.log(`🗄️ Cache SET: ${cacheKey}`);
       }
       
       return originalJson(data);
@@ -64,7 +64,7 @@ export const invalidateCache = (entity: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const originalJson = res.json.bind(res);
     
-    res.json = function(data: any) {
+    res.json = function(data: unknown) {
       // Only invalidate on successful write operations
       if (res.statusCode >= 200 && res.statusCode < 300) {
         let action: 'create' | 'update' | 'delete' = 'update';
@@ -107,7 +107,7 @@ export const userSpecificCache = (req: Request): string => {
  * Cache warming middleware for app startup
  */
 export const warmCache = async (): Promise<void> => {
-  console.log('🔥 Warming cache...');
+  // console.log('🔥 Warming cache...');
   
   try {
     // Import database here to avoid circular dependencies
@@ -131,7 +131,7 @@ export const warmCache = async (): Promise<void> => {
       }
     ]);
     
-    console.log('🔥 Cache warming completed');
+    // console.log('🔥 Cache warming completed');
   } catch (error) {
     console.warn('🔥 Cache warming failed:', error);
   }
@@ -144,7 +144,7 @@ export const cacheStatsMiddleware = (req: Request, res: Response) => {
   const stats = Object.entries(cacheInstances).reduce((acc, [name, cache]) => {
     acc[name] = cache.getStats();
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, unknown>);
   
   const totalStats = {
     totalCaches: Object.keys(cacheInstances).length,

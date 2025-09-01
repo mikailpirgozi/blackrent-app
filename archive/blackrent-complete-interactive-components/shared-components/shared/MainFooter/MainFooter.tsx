@@ -30,7 +30,7 @@ export const MainFooter: React.FC<MainFooterProps> = ({
     setIsSubmitting(true);
     
     try {
-      console.log('Newsletter subscription:', email);
+      // console.log('Newsletter subscription:', email);
       // Here you can add API call to subscribe user
       
       // Success feedback

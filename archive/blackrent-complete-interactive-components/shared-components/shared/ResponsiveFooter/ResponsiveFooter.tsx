@@ -55,7 +55,7 @@ export const ResponsiveFooter = () => {
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Newsletter subscription:", email);
+    // console.log("Newsletter subscription:", email);
     setEmail("");
   };
 
