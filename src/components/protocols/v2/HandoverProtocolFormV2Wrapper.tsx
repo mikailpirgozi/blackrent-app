@@ -166,8 +166,29 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="lg" 
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          // Mobile responsive fixes
+          margin: { xs: 1, sm: 2 },
+          maxHeight: { xs: '95vh', sm: '90vh' },
+          width: { xs: 'calc(100vw - 16px)', sm: '100%' },
+          // Ensure proper scrolling on mobile
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+      }}
+    >
+      <DialogTitle sx={{ 
+        flexShrink: 0,
+        borderBottom: 1,
+        borderColor: 'divider',
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <DirectionsCar color="primary" />
           <Typography variant="h6" component="span">
@@ -181,7 +202,11 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
           />
         </Box>
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ 
+        flex: 1,
+        overflow: 'auto',
+        padding: { xs: 1, sm: 2 },
+      }}>
         <HandoverProtocolFormV2
           initialData={initialData}
           onSubmit={handleSubmit}
