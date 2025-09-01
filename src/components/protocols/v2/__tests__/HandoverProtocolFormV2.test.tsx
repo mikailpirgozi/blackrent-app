@@ -3,6 +3,7 @@
  * Testuje základnú funkcionalitu, smart caching a email status tracking
  */
 
+import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as featureFlags from '../../../../config/featureFlags';
@@ -95,7 +96,11 @@ describe('HandoverProtocolFormV2', () => {
     vi.clearAllMocks();
 
     // Setup feature flags mock
-    (featureFlags as any).featureManager = mockFeatureManager;
+    (
+      featureFlags as typeof featureFlags & {
+        featureManager: typeof mockFeatureManager;
+      }
+    ).featureManager = mockFeatureManager;
     mockFeatureManager.isEnabled.mockResolvedValue(true);
 
     // Setup V2 cache mocks
@@ -150,7 +155,9 @@ describe('HandoverProtocolFormV2', () => {
       await waitFor(() => {
         expect(screen.getByText('Fotky vozidla')).toBeInTheDocument();
         expect(screen.getByText('Dokumenty')).toBeInTheDocument();
-        expect(screen.getByText('Poškodenia')).toBeInTheDocument();
+        // Use getAllByText for elements that appear multiple times
+        const damageElements = screen.getAllByText('Poškodenia');
+        expect(damageElements.length).toBeGreaterThan(0);
         expect(screen.getByText('Fotka km')).toBeInTheDocument();
         expect(screen.getByText('Fotka paliva')).toBeInTheDocument();
       });
@@ -211,7 +218,7 @@ describe('HandoverProtocolFormV2', () => {
     });
 
     it('should cache email status during form submission', async () => {
-      const mockProtocolData: HandoverProtocolDataV2 = {
+      const _mockProtocolData: HandoverProtocolDataV2 = {
         protocolId: 'test-protocol-123',
         vehicleId: 'vehicle-123',
         customerId: 'customer-123',
@@ -271,7 +278,7 @@ describe('HandoverProtocolFormV2', () => {
 
       // Fill required fields
       await waitFor(() => {
-        const locationInput = screen.getByLabelText('Miesto prevzatia *');
+        const locationInput = screen.getByLabelText(/Miesto prevzatia/);
         fireEvent.change(locationInput, { target: { value: 'Bratislava' } });
 
         const odometerInput = screen.getByLabelText('Stav tachometra (km) *');
@@ -367,7 +374,7 @@ describe('HandoverProtocolFormV2', () => {
 
       // Fill required fields but no signatures
       await waitFor(() => {
-        const locationInput = screen.getByLabelText('Miesto prevzatia *');
+        const locationInput = screen.getByLabelText(/Miesto prevzatia/);
         fireEvent.change(locationInput, { target: { value: 'Bratislava' } });
 
         const odometerInput = screen.getByLabelText('Stav tachometra (km) *');
@@ -396,11 +403,47 @@ describe('HandoverProtocolFormV2', () => {
       render(<HandoverProtocolFormV2 {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByText('Fotky vozidla (0/0)')).toBeInTheDocument();
-        expect(screen.getByText('Dokumenty (0/0)')).toBeInTheDocument();
-        expect(screen.getByText('Poškodenia (0/0)')).toBeInTheDocument();
-        expect(screen.getByText('Fotka km (0/0)')).toBeInTheDocument();
-        expect(screen.getByText('Fotka paliva (0/0)')).toBeInTheDocument();
+        // Use function matcher for text that is split across elements
+        expect(
+          screen.getByText((content, element) => {
+            return (
+              element?.textContent?.includes('Fotky vozidla') &&
+              element?.textContent?.includes('0/0')
+            );
+          })
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return (
+              element?.textContent?.includes('Dokumenty') &&
+              element?.textContent?.includes('0/0')
+            );
+          })
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return (
+              element?.textContent?.includes('Poškodenia') &&
+              element?.textContent?.includes('0/0')
+            );
+          })
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return (
+              element?.textContent?.includes('Fotka km') &&
+              element?.textContent?.includes('0/0')
+            );
+          })
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return (
+              element?.textContent?.includes('Fotka paliva') &&
+              element?.textContent?.includes('0/0')
+            );
+          })
+        ).toBeInTheDocument();
       });
     });
 
@@ -408,7 +451,14 @@ describe('HandoverProtocolFormV2', () => {
       render(<HandoverProtocolFormV2 {...defaultProps} />);
 
       await waitFor(() => {
-        const vehiclePhotosButton = screen.getByText('Fotky vozidla (0/0)');
+        const vehiclePhotosButton = screen.getByRole('button', {
+          name: (name, element) => {
+            return (
+              element?.textContent?.includes('Fotky vozidla') &&
+              element?.textContent?.includes('0/0')
+            );
+          },
+        });
         fireEvent.click(vehiclePhotosButton);
       });
 
