@@ -39,3 +39,4 @@ Figma-Context-MCP/
 *.tar.gz
 *.zip
 customer-website-assets-backup-*.tar.gz
+backend/dist/

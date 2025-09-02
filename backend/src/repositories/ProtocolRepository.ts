@@ -4,11 +4,11 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { HandoverProtocol, ReturnProtocol } from '../types';
+import type { Pool } from 'pg';
+
 import { BaseRepository } from '../models/base/BaseRepository';
-import { logger } from '../utils/logger';
+import type { HandoverProtocol, ReturnProtocol, VehicleCondition } from '../types';
+
 
 export class ProtocolRepository extends BaseRepository {
   constructor(pool: Pool) {
@@ -53,7 +53,7 @@ export class ProtocolRepository extends BaseRepository {
    */
   async createHandoverProtocol(protocolData: {
     rentalId: string;
-    vehicleCondition: any;
+    vehicleCondition: VehicleCondition;
     fuelLevel: number;
     mileage: number;
     photos?: string[];
@@ -88,7 +88,7 @@ export class ProtocolRepository extends BaseRepository {
    * Aktualizuje handover protokol
    */
   async updateHandoverProtocol(id: string, protocolData: {
-    vehicleCondition: any;
+    vehicleCondition: VehicleCondition;
     fuelLevel: number;
     mileage: number;
     photos?: string[];
@@ -167,10 +167,16 @@ export class ProtocolRepository extends BaseRepository {
    */
   async createReturnProtocol(protocolData: {
     rentalId: string;
-    vehicleCondition: any;
+    vehicleCondition: VehicleCondition;
     fuelLevel: number;
     mileage: number;
-    damages?: any[];
+    damages?: Array<{
+      type: 'scratch' | 'dent' | 'stain' | 'missing_item' | 'other';
+      location: string;
+      severity: 'minor' | 'major';
+      description: string;
+      cost?: number;
+    }>;
     photos?: string[];
     notes?: string;
     signature?: string;
@@ -204,10 +210,16 @@ export class ProtocolRepository extends BaseRepository {
    * Aktualizuje return protokol
    */
   async updateReturnProtocol(id: string, protocolData: {
-    vehicleCondition: any;
+    vehicleCondition: VehicleCondition;
     fuelLevel: number;
     mileage: number;
-    damages?: any[];
+    damages?: Array<{
+      type: 'scratch' | 'dent' | 'stain' | 'missing_item' | 'other';
+      location: string;
+      severity: 'minor' | 'major';
+      description: string;
+      cost?: number;
+    }>;
     photos?: string[];
     notes?: string;
     signature?: string;
@@ -255,7 +267,13 @@ export class ProtocolRepository extends BaseRepository {
   /**
    * Získa všetky protokoly pre štatistiky
    */
-  async getAllProtocolsForStats(): Promise<any[]> {
+  async getAllProtocolsForStats(): Promise<Array<{
+    id: string;
+    type: 'handover' | 'return';
+    rentalId: string;
+    createdAt: Date;
+    status: string;
+  }>> {
     const client = await this.getClient();
     try {
       const handoverResult = await client.query(`
@@ -277,7 +295,13 @@ export class ProtocolRepository extends BaseRepository {
   /**
    * Získa bulk protocol status
    */
-  async getBulkProtocolStatus(rentalIds: string[]): Promise<any[]> {
+  async getBulkProtocolStatus(rentalIds: string[]): Promise<Array<{
+    rentalId: string;
+    hasHandover: boolean;
+    hasReturn: boolean;
+    handoverStatus?: string;
+    returnStatus?: string;
+  }>> {
     const client = await this.getClient();
     try {
       const result = await client.query(`
@@ -335,6 +359,7 @@ export class ProtocolRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na HandoverProtocol objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToHandoverProtocol(row: any): HandoverProtocol {
     return {
       id: row.id,
@@ -354,7 +379,7 @@ export class ProtocolRepository extends BaseRepository {
       damageVideos: row.damage_videos ? (typeof row.damage_videos === 'string' ? JSON.parse(row.damage_videos) : row.damage_videos) : [],
       damages: row.damages ? (typeof row.damages === 'string' ? JSON.parse(row.damages) : row.damages) : [],
       signatures: row.signatures ? (typeof row.signatures === 'string' ? JSON.parse(row.signatures) : row.signatures) : [],
-      rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as any,
+      rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as Record<string, unknown>,
       pdfUrl: row.pdf_url || undefined,
       emailSent: Boolean(row.email_sent),
       emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
@@ -366,6 +391,7 @@ export class ProtocolRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na ReturnProtocol objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToReturnProtocol(row: any): ReturnProtocol {
     return {
       id: row.id,
@@ -397,7 +423,7 @@ export class ProtocolRepository extends BaseRepository {
       depositRefund: row.deposit_refund || 0,
       additionalCharges: row.additional_charges || 0,
       finalRefund: row.final_refund || 0,
-      rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as any,
+      rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as Record<string, unknown>,
       pdfUrl: row.pdf_url || undefined,
       emailSent: Boolean(row.email_sent),
       emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,

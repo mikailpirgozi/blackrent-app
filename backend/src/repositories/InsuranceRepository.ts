@@ -4,11 +4,11 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Insurance, Insurer, InsuranceClaim } from '../types';
+import type { Pool } from 'pg';
+
 import { BaseRepository } from '../models/base/BaseRepository';
-import { logger } from '../utils/logger';
+import type { Insurance, InsuranceClaim, Insurer } from '../types';
+
 
 export class InsuranceRepository extends BaseRepository {
   constructor(pool: Pool) {
@@ -57,7 +57,13 @@ export class InsuranceRepository extends BaseRepository {
     endDate: Date;
     premium: number;
     deductible?: number;
-    coverage?: any;
+    coverage?: {
+      liability: boolean;
+      collision: boolean;
+      comprehensive: boolean;
+      personalInjury: boolean;
+      propertyDamage: boolean;
+    };
     status?: string;
     notes?: string;
   }): Promise<Insurance> {
@@ -100,7 +106,13 @@ export class InsuranceRepository extends BaseRepository {
     endDate: Date;
     premium: number;
     deductible?: number;
-    coverage?: any;
+    coverage?: {
+      liability: boolean;
+      collision: boolean;
+      comprehensive: boolean;
+      personalInjury: boolean;
+      propertyDamage: boolean;
+    };
     status?: string;
     notes?: string;
     insurerId?: string;
@@ -214,7 +226,7 @@ export class InsuranceRepository extends BaseRepository {
         LEFT JOIN insurers ins ON i.insurer_id = ins.id
       `;
       
-      const params: any[] = [];
+      const params: (string | number | boolean)[] = [];
       if (vehicleId) {
         query += ' WHERE ic.vehicle_id = $1';
         params.push(vehicleId);
@@ -332,6 +344,7 @@ export class InsuranceRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Insurance objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToInsurance(row: any): Insurance {
     return {
       id: row.id,
@@ -355,6 +368,7 @@ export class InsuranceRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Insurer objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToInsurer(row: any): Insurer {
     return {
       id: row.id,
@@ -366,6 +380,7 @@ export class InsuranceRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na InsuranceClaim objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToInsuranceClaim(row: any): InsuranceClaim {
     return {
       id: row.id,

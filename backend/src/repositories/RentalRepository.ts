@@ -4,10 +4,9 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Rental } from '../types';
+import type { Pool } from 'pg';
 import { BaseRepository } from '../models/base/BaseRepository';
+import type { Rental } from '../types';
 import { logger } from '../utils/logger';
 
 export class RentalRepository extends BaseRepository {
@@ -119,7 +118,7 @@ export class RentalRepository extends BaseRepository {
       const offset = (page - 1) * limit;
 
       const whereConditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number | boolean | Date)[] = [];
       let paramIndex = 1;
 
       // Search filter
@@ -228,15 +227,34 @@ export class RentalRepository extends BaseRepository {
     totalPrice: number;
     commission: number;
     paymentMethod: string;
-    discount?: any;
-    customCommission?: any;
+    discount?: {
+      type: 'percentage' | 'fixed';
+      value: number;
+      reason?: string;
+    };
+    customCommission?: {
+      type: 'percentage' | 'fixed';
+      value: number;
+      reason?: string;
+    };
     extraKmCharge?: number;
     paid?: boolean;
     status?: string;
     handoverPlace?: string;
     confirmed?: boolean;
-    payments?: any;
-    history?: any;
+    payments?: Array<{
+      id: string;
+      amount: number;
+      method: string;
+      date: Date;
+      status: 'pending' | 'completed' | 'failed';
+    }>;
+    history?: Array<{
+      date: Date;
+      user: string;
+      action: string;
+      changes: Record<string, unknown>;
+    }>;
     orderNumber?: string;
     deposit?: number;
     allowedKilometers?: number;
@@ -409,6 +427,7 @@ export class RentalRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Rental objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToRental(row: any): Rental {
     return {
       id: row.id.toString(),

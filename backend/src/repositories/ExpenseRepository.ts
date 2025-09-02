@@ -4,11 +4,11 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Expense, ExpenseCategory, RecurringExpense } from '../types';
+import type { Pool } from 'pg';
+
 import { BaseRepository } from '../models/base/BaseRepository';
-import { logger } from '../utils/logger';
+import type { Expense, ExpenseCategory, RecurringExpense } from '../types';
+
 
 export class ExpenseRepository extends BaseRepository {
   constructor(pool: Pool) {
@@ -377,63 +377,66 @@ export class ExpenseRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Expense objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToExpense(row: any): Expense {
     return {
-      id: row.id,
-      description: row.description,
-      amount: row.amount,
+      id: String(row.id),
+      description: String(row.description),
+      amount: Number(row.amount),
       date: new Date(row.date),
-      vehicleId: row.vehicle_id || undefined,
-      company: row.company || '',
-      category: row.category || '',
-      note: row.notes || undefined
+      vehicleId: row.vehicle_id ? String(row.vehicle_id) : undefined,
+      company: String(row.company || ''),
+      category: String(row.category || ''),
+      note: row.notes ? String(row.notes) : undefined
     };
   }
 
   /**
    * Mapuje databázový riadok na ExpenseCategory objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToExpenseCategory(row: any): ExpenseCategory {
     return {
-      id: row.id,
-      name: row.name,
-      displayName: row.display_name || row.name,
-      description: row.description || undefined,
-      icon: row.icon || 'category',
-      color: row.color || 'primary',
+      id: String(row.id),
+      name: String(row.name),
+      displayName: String(row.display_name || row.name),
+      description: row.description ? String(row.description) : undefined,
+      icon: String(row.icon || 'category'),
+      color: (row.color || 'primary') as 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info',
       isDefault: Boolean(row.is_default),
       isActive: Boolean(row.is_active !== false),
-      sortOrder: row.sort_order || 0,
+      sortOrder: Number(row.sort_order || 0),
       createdAt: new Date(row.created_at),
       updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
-      createdBy: row.created_by || undefined
+      createdBy: row.created_by ? String(row.created_by) : undefined
     };
   }
 
   /**
    * Mapuje databázový riadok na RecurringExpense objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToRecurringExpense(row: any): RecurringExpense {
     return {
-      id: row.id,
-      name: row.name || row.description,
-      description: row.description,
-      amount: row.amount,
-      category: row.category || '',
-      company: row.company || '',
-      vehicleId: row.vehicle_id || undefined,
-      note: row.notes || undefined,
-      frequency: row.frequency || 'monthly',
+      id: String(row.id),
+      name: String(row.name || row.description),
+      description: String(row.description),
+      amount: Number(row.amount),
+      category: String(row.category || ''),
+      company: String(row.company || ''),
+      vehicleId: row.vehicle_id ? String(row.vehicle_id) : undefined,
+      note: row.notes ? String(row.notes) : undefined,
+      frequency: (row.frequency || 'monthly') as 'monthly' | 'quarterly' | 'yearly',
       startDate: new Date(row.start_date || row.created_at),
       endDate: row.end_date ? new Date(row.end_date) : undefined,
-      dayOfMonth: row.day_of_month || 1,
+      dayOfMonth: Number(row.day_of_month || 1),
       isActive: Boolean(row.is_active),
       lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
       nextGenerationDate: row.next_generation_date ? new Date(row.next_generation_date) : undefined,
-      totalGenerated: row.total_generated || 0,
+      totalGenerated: Number(row.total_generated || 0),
       createdAt: new Date(row.created_at),
       updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
-      createdBy: row.created_by || undefined
+      createdBy: row.created_by ? String(row.created_by) : undefined
     };
   }
 

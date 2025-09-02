@@ -4,11 +4,11 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+import type { Pool } from 'pg';
+
 import { BaseRepository } from '../models/base/BaseRepository';
-import { logger } from '../utils/logger';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+
 
 export class CompanyRepository extends BaseRepository {
   constructor(pool: Pool) {
@@ -59,7 +59,7 @@ export class CompanyRepository extends BaseRepository {
     const client = await this.getClient();
     try {
       const whereConditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number | boolean)[] = [];
       let paramIndex = 1;
 
       // Search filter
@@ -387,7 +387,7 @@ export class CompanyRepository extends BaseRepository {
   /**
    * Získa investorov s podielmi
    */
-  async getInvestorsWithShares(): Promise<any[]> {
+  async getInvestorsWithShares(): Promise<Array<CompanyInvestor & { shares: CompanyInvestorShare[] }>> {
     const client = await this.getClient();
     try {
       const result = await client.query(`
@@ -414,7 +414,7 @@ export class CompanyRepository extends BaseRepository {
 
       return result.rows.map(row => ({
         ...this.mapRowToCompanyInvestor(row),
-        shares: row.shares.filter((share: any) => share.id !== null)
+        shares: row.shares.filter((share: CompanyInvestorShare) => share.id !== null)
       }));
     } finally {
       this.releaseClient(client);
@@ -466,7 +466,7 @@ export class CompanyRepository extends BaseRepository {
     const client = await this.getClient();
     try {
       const fields: string[] = [];
-      const values: any[] = [];
+      const values: (string | number | boolean | Date)[] = [];
       let paramIndex = 1;
 
       Object.entries(updateData).forEach(([key, value]) => {
@@ -549,7 +549,7 @@ export class CompanyRepository extends BaseRepository {
     const client = await this.getClient();
     try {
       let query = 'SELECT * FROM company_documents WHERE company_id = $1';
-      const params: any[] = [companyId];
+      const params: (string | number | boolean)[] = [companyId];
       let paramIndex = 2;
 
       if (documentType) {
@@ -632,30 +632,32 @@ export class CompanyRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Company objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToCompany(row: any): Company {
     return {
-      id: row.id,
-      name: row.name,
-      businessId: row.business_id || undefined,
-      taxId: row.tax_id || undefined,
-      address: row.address || undefined,
-      contactPerson: row.contact_person || undefined,
-      email: row.email || undefined,
-      phone: row.phone || undefined,
-      contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
-      contractEndDate: row.contract_end_date ? new Date(row.contract_end_date) : undefined,
-      commissionRate: row.commission_rate || 20,
+      id: String(row.id),
+      name: String(row.name),
+      businessId: row.business_id ? String(row.business_id) : undefined,
+      taxId: row.tax_id ? String(row.tax_id) : undefined,
+      address: row.address ? String(row.address) : undefined,
+      contactPerson: row.contact_person ? String(row.contact_person) : undefined,
+      email: row.email ? String(row.email) : undefined,
+      phone: row.phone ? String(row.phone) : undefined,
+      contractStartDate: row.contract_start_date ? new Date(row.contract_start_date as string) : undefined,
+      contractEndDate: row.contract_end_date ? new Date(row.contract_end_date as string) : undefined,
+      commissionRate: Number(row.commission_rate || 20),
       isActive: Boolean(row.is_active),
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-      personalIban: row.personal_iban || undefined,
-      businessIban: row.business_iban || undefined
+      createdAt: new Date(row.created_at as string),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
+      personalIban: row.personal_iban ? String(row.personal_iban) : undefined,
+      businessIban: row.business_iban ? String(row.business_iban) : undefined
     };
   }
 
   /**
    * Mapuje databázový riadok na CompanyInvestor objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToCompanyInvestor(row: any): CompanyInvestor {
     return {
       id: row.id,
@@ -675,6 +677,7 @@ export class CompanyRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na CompanyInvestorShare objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToCompanyInvestorShare(row: any): CompanyInvestorShare {
     return {
       id: row.id,
@@ -711,6 +714,7 @@ export class CompanyRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na CompanyDocument objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToCompanyDocument(row: any): CompanyDocument {
     return {
       id: row.id,

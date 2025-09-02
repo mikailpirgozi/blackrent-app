@@ -4,12 +4,12 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { User, UserPermission, UserCompanyAccess, CompanyPermissions } from '../types';
-import { BaseRepository } from '../models/base/BaseRepository';
-import { logger } from '../utils/logger';
+import type { Pool } from 'pg';
+
 import bcrypt from 'bcryptjs';
+import { BaseRepository } from '../models/base/BaseRepository';
+import type { CompanyPermissions, User, UserCompanyAccess, UserPermission } from '../types';
+import { logger } from '../utils/logger';
 
 export class UserRepository extends BaseRepository {
   // 🚀 PERMISSION CACHE SYSTEM
@@ -181,7 +181,7 @@ export class UserRepository extends BaseRepository {
     const client = await this.getClient();
     try {
       const whereConditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number | boolean)[] = [];
       let paramIndex = 1;
 
       // Search filter
@@ -395,6 +395,7 @@ export class UserRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na User objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToUser(row: any): User {
     return {
       id: row.id,

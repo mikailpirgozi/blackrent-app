@@ -4,10 +4,10 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Vehicle} from '../types';
-import { VehicleDocument } from '../types';
+import type { Pool } from 'pg';
+
+import type { Vehicle, VehiclePricing, Commission } from '../types';
+
 import { BaseRepository } from '../models/base/BaseRepository';
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
@@ -64,7 +64,7 @@ export class VehicleRepository extends BaseRepository {
         LEFT JOIN companies c ON v.company_id = c.id
         WHERE 1=1
       `;
-      const params: any[] = [];
+      const params: (string | number | boolean)[] = [];
 
       if (!includeRemoved) {
         query += ` AND v.status != 'removed' AND v.status != 'temp_removed'`;
@@ -147,8 +147,8 @@ export class VehicleRepository extends BaseRepository {
     licensePlate: string;
     vin?: string;
     company: string;
-    pricing: any[];
-    commission: any;
+    pricing: VehiclePricing[];
+    commission: Commission;
     status: string;
     year?: number;
   }): Promise<Vehicle> {
@@ -291,7 +291,7 @@ export class VehicleRepository extends BaseRepository {
       const offset = (page - 1) * limit;
 
       const whereConditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number | boolean)[] = [];
       let paramIndex = 1;
 
       // Search filter

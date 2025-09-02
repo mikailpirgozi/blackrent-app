@@ -4,11 +4,11 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Settlement } from '../types';
+import type { Pool } from 'pg';
+
 import { BaseRepository } from '../models/base/BaseRepository';
-import { logger } from '../utils/logger';
+import type { Settlement } from '../types';
+
 
 export class SettlementRepository extends BaseRepository {
   constructor(pool: Pool) {
@@ -74,7 +74,14 @@ export class SettlementRepository extends BaseRepository {
     netAmount: number;
     status?: string;
     notes?: string;
-    details?: any;
+    details?: {
+      breakdown: Array<{
+        type: 'rental' | 'commission' | 'expense' | 'other';
+        amount: number;
+        description: string;
+      }>;
+      notes?: string;
+    };
   }): Promise<Settlement> {
     return this.executeTransaction(async (client) => {
       const result = await client.query(
@@ -113,12 +120,19 @@ export class SettlementRepository extends BaseRepository {
     netAmount?: number;
     status?: string;
     notes?: string;
-    details?: any;
+    details?: {
+      breakdown: Array<{
+        type: 'rental' | 'commission' | 'expense' | 'other';
+        amount: number;
+        description: string;
+      }>;
+      notes?: string;
+    };
   }): Promise<void> {
     const client = await this.getClient();
     try {
       const fields: string[] = [];
-      const values: any[] = [];
+      const values: (string | number | boolean | Date | object)[] = [];
       let paramIndex = 1;
 
       // Dynamicky stavaj UPDATE query
@@ -167,6 +181,7 @@ export class SettlementRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Settlement objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToSettlement(row: any): Settlement {
     return {
       id: row.id,

@@ -4,10 +4,10 @@
  * Extrahované z postgres-database.ts - ZACHOVÁVA PRESNE ROVNAKÚ FUNKCIONALITU
  */
 
-import type { Pool} from 'pg';
-import { PoolClient } from 'pg';
-import type { Customer } from '../types';
+import type { Pool } from 'pg';
+
 import { BaseRepository } from '../models/base/BaseRepository';
+import type { Customer } from '../types';
 import { logger } from '../utils/logger';
 
 export class CustomerRepository extends BaseRepository {
@@ -78,7 +78,7 @@ export class CustomerRepository extends BaseRepository {
       const offset = (page - 1) * limit;
 
       const whereConditions: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number | boolean)[] = [];
       let paramIndex = 1;
 
       // Search filter
@@ -189,6 +189,7 @@ export class CustomerRepository extends BaseRepository {
   /**
    * Mapuje databázový riadok na Customer objekt
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToCustomer(row: any): Customer {
     return {
       id: row.id.toString(),
