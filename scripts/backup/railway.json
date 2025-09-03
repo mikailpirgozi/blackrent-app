@@ -5,11 +5,6 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "cronJobs": [
-      {
-        "command": "npm run backup",
-        "schedule": "0 2 * * *"
-      }
-    ]
+    "startCommand": "npm run backup"
   }
 }

@@ -1241,7 +1241,7 @@ export class PostgresDatabase {
           const migratedRows = await client.query(`
             INSERT INTO vehicle_ownership_history (
               vehicle_id, 
-              owner_company_id, 
+              company_id, 
               owner_company_name, 
               valid_from, 
               transfer_reason
@@ -1822,17 +1822,17 @@ export class PostgresDatabase {
         logger.migration('✅ Všetky rentals majú platné vehicle_id');
       }
       
-      // 2. Kontrola vehicles bez owner_company_id
+      // 2. Kontrola vehicles bez company_id (používame company_id namiesto owner_company_id)
       const vehiclesWithoutCompany = await client.query(`
         SELECT id, brand, model, license_plate, company 
         FROM vehicles 
-        WHERE owner_company_id IS NULL
+        WHERE company_id IS NULL
       `);
       
       if (vehiclesWithoutCompany.rows.length > 0) {
-        logger.migration(`⚠️ PROBLÉM: ${vehiclesWithoutCompany.rows.length} vozidiel nemá owner_company_id`);
+        logger.migration(`⚠️ PROBLÉM: ${vehiclesWithoutCompany.rows.length} vozidiel nemá company_id`);
       } else {
-        logger.migration('✅ Všetky vozidlá majú owner_company_id');
+        logger.migration('✅ Všetky vozidlá majú company_id');
       }
       
       // 3. Kontrola users bez company_id
@@ -2703,7 +2703,7 @@ export class PostgresDatabase {
         licensePlate: row.license_plate,
         vin: row.vin, // 🆕 VIN číslo
         company: row.company,
-        ownerCompanyId: row.company_id?.toString(), // ✅ OPRAVENÉ: Používame company_id (nie owner_company_id)
+        ownerCompanyId: row.company_id?.toString(), // ✅ Používame company_id
         pricing: cleanPricing,
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission,
         status: row.status,
@@ -2945,7 +2945,7 @@ export class PostgresDatabase {
         
         if (allowedCompanyIds.length > 0) {
           const placeholders = allowedCompanyIds.map((_, i) => `$${paramIndex + i}`).join(',');
-          whereClauses.push(`v.owner_company_id IN (${placeholders})`);
+          whereClauses.push(`v.company_id IN (${placeholders})`);
           queryParams.push(...allowedCompanyIds);
           paramIndex += allowedCompanyIds.length;
         } else {
@@ -2960,7 +2960,7 @@ export class PostgresDatabase {
       const countQuery = `
         SELECT COUNT(*) as total
         FROM vehicles v
-        LEFT JOIN companies c ON v.owner_company_id = c.id
+        LEFT JOIN companies c ON v.company_id = c.id
         ${whereClause}
       `;
 
@@ -2970,7 +2970,7 @@ export class PostgresDatabase {
           v.*,
           c.name as company_name
         FROM vehicles v
-        LEFT JOIN companies c ON v.owner_company_id = c.id
+        LEFT JOIN companies c ON v.company_id = c.id
         ${whereClause}
         ORDER BY v.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -2996,7 +2996,7 @@ export class PostgresDatabase {
         status: row.status || 'available',
         year: row.year,
         stk: row.stk,
-        ownerCompanyId: row.owner_company_id,
+        ownerCompanyId: row.company_id,
         createdAt: row.created_at
       }));
 
@@ -3086,7 +3086,7 @@ export class PostgresDatabase {
           c.*,
           COUNT(v.id) as vehicle_count
         FROM companies c
-        LEFT JOIN vehicles v ON c.id = v.owner_company_id
+        LEFT JOIN vehicles v ON c.id = v.company_id
         ${whereClause}
         GROUP BY c.id
         ORDER BY c.created_at DESC
@@ -3292,7 +3292,7 @@ export class PostgresDatabase {
             SELECT 1 FROM rentals r 
             JOIN vehicles v ON r.vehicle_id = v.id 
             WHERE r.customer_id = c.id 
-            AND v.owner_company_id IN (${placeholders})
+            AND v.company_id IN (${placeholders})
           )`);
           queryParams.push(...allowedCompanyIds);
           paramIndex += allowedCompanyIds.length;
@@ -7884,7 +7884,7 @@ export class PostgresDatabase {
     try {
       for (const vehicleId of vehicleIds) {
         await client.query(
-          'UPDATE vehicles SET owner_company_id = $1 WHERE id = $2',
+          'UPDATE vehicles SET company_id = $1 WHERE id = $2',
           [companyId, vehicleId]
         );
       }
@@ -8525,7 +8525,7 @@ export class PostgresDatabase {
           SELECT 
             '${check.vehicleId}' as vehicle_id,
             '${check.timestamp.toISOString()}' as check_timestamp,
-            owner_company_id,
+            company_id,
             owner_company_name
           FROM vehicle_ownership_history
           WHERE vehicle_id = $${index * 2 + 1}
@@ -8546,7 +8546,7 @@ export class PostgresDatabase {
       result.rows.forEach(row => {
         const key = `${row.vehicle_id}-${row.check_timestamp}`;
         ownershipMap.set(key, {
-          ownerCompanyId: row.owner_company_id,
+          ownerCompanyId: row.company_id,
           ownerCompanyName: row.owner_company_name
         });
       });
@@ -8598,7 +8598,7 @@ export class PostgresDatabase {
       const ownershipMap = new Map();
       result.rows.forEach(row => {
         ownershipMap.set(row.vehicle_id, {
-          ownerCompanyId: row.owner_company_id,
+          ownerCompanyId: row.company_id,
           ownerCompanyName: row.owner_company_name
         });
       });

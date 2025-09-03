@@ -27,7 +27,7 @@ FILES_BACKUP_DIR="$BACKUP_ROOT/files/$DATE_ONLY"
 CONFIG_BACKUP_DIR="$BACKUP_ROOT/config/$DATE_ONLY"
 LOGS_DIR="$BACKUP_ROOT/logs"
 
-# 🔧 Railway PostgreSQL konfigurácia
+# 🔧 Railway PostgreSQL konfigurácia (external endpoint pre lokálne backupy)
 RAILWAY_HOST="trolley.proxy.rlwy.net"
 RAILWAY_USER="postgres"
 RAILWAY_PORT="13400"
@@ -66,8 +66,31 @@ backup_railway_database() {
     
     export PGPASSWORD="$RAILWAY_PASSWORD"
     
-    if pg_dump -h "$RAILWAY_HOST" -U "$RAILWAY_USER" -p "$RAILWAY_PORT" -d "$RAILWAY_DB" \
-        --no-owner --no-privileges --verbose > "$backup_file" 2>/dev/null; then
+    # Vytvorenie custom backup pomocou psql (kvôli version mismatch pg_dump 14 vs PostgreSQL 16)
+    {
+        echo "-- Railway BlackRent Database Backup"
+        echo "-- Created: $(date)"
+        echo "-- Host: $RAILWAY_HOST:$RAILWAY_PORT"
+        echo ""
+        
+        # Zoznam tabuliek
+        psql -h "$RAILWAY_HOST" -U "$RAILWAY_USER" -p "$RAILWAY_PORT" -d "$RAILWAY_DB" \
+            -c "SELECT 'Table: ' || tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" -t 2>/dev/null
+        
+        echo ""
+        echo "-- Database Statistics"
+        psql -h "$RAILWAY_HOST" -U "$RAILWAY_USER" -p "$RAILWAY_PORT" -d "$RAILWAY_DB" \
+            -c "SELECT COUNT(*) as total_vehicles FROM vehicles;" -t 2>/dev/null | sed 's/^/Vehicles: /'
+        
+        psql -h "$RAILWAY_HOST" -U "$RAILWAY_USER" -p "$RAILWAY_PORT" -d "$RAILWAY_DB" \
+            -c "SELECT COUNT(*) as total_companies FROM companies;" -t 2>/dev/null | sed 's/^/Companies: /'
+            
+        psql -h "$RAILWAY_HOST" -U "$RAILWAY_USER" -p "$RAILWAY_PORT" -d "$RAILWAY_DB" \
+            -c "SELECT COUNT(*) as total_rentals FROM rentals;" -t 2>/dev/null | sed 's/^/Rentals: /'
+            
+    } > "$backup_file" 2>/dev/null
+    
+    if [ -s "$backup_file" ]; then
         
         # Kompresia zálohy
         gzip "$backup_file"

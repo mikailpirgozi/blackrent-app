@@ -1,12 +1,12 @@
+import archiver from 'archiver';
 import express from 'express';
 import multer from 'multer';
-import archiver from 'archiver';
-import { r2Storage } from '../utils/r2-storage';
-import { logger } from '../utils/logger';
-import { postgresDatabase } from '../models/postgres-database';
+import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
+import { postgresDatabase } from '../models/postgres-database';
+import { logger } from '../utils/logger';
+import { r2Storage } from '../utils/r2-storage';
 
 // 📸 Helper: Generate meaningful media filename with organized structure
 const generateMeaningfulFilename = (
@@ -732,7 +732,7 @@ async function getProtocolInfo(protocolId: string, protocolType: string) {
       FROM ${tableName} p
       LEFT JOIN rentals r ON p.rental_id = r.id
       LEFT JOIN vehicles v ON r.vehicle_id = v.id
-      LEFT JOIN companies c ON v.owner_company_id = c.id
+      LEFT JOIN companies c ON v.company_id = c.id
       WHERE p.id = $1::uuid
     `;
     
@@ -818,7 +818,7 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
               COALESCE(c.name, v.company, 'BlackRent') as company_name
             FROM rentals r
             LEFT JOIN vehicles v ON r.vehicle_id = v.id
-            LEFT JOIN companies c ON v.owner_company_id = c.id
+            LEFT JOIN companies c ON v.company_id = c.id
             WHERE r.id = $1::integer
             `,
             [parsedRentalId]

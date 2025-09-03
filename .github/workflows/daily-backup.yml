@@ -1,0 +1,34 @@
+name: Daily Railway Backup
+
+on:
+  schedule:
+    # Každý deň o 2:00 UTC (3:00 CET)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Umožní manuálne spustenie
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Run Railway Backup
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd scripts/backup
+          railway link 38dbf675-5b8e-489d-b1e0-e727883208ce
+          railway run node railway-cron-backup.js
+
+      - name: Backup Status
+        run: |
+          echo "✅ Daily backup completed successfully!"
+          echo "📅 Date: $(date)"
+          echo "🔗 Check R2 Storage for backup files"

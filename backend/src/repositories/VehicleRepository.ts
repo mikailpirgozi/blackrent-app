@@ -6,7 +6,7 @@
 
 import type { Pool } from 'pg';
 
-import type { Vehicle, VehiclePricing, Commission } from '../types';
+import type { Commission, Vehicle, VehiclePricing } from '../types';
 
 import { BaseRepository } from '../models/base/BaseRepository';
 import { logger } from '../utils/logger';
@@ -360,7 +360,7 @@ export class VehicleRepository extends BaseRepository {
         status: row.status || 'available',
         year: row.year,
         stk: row.stk,
-        ownerCompanyId: row.owner_company_id,
+        ownerCompanyId: row.company_id,
       }));
 
       return { vehicles, total, page, limit };

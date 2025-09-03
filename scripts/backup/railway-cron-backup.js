@@ -12,7 +12,7 @@ const AWS = require('aws-sdk');
 
 // 📅 Konfigurácia
 const BACKUP_CONFIG = {
-    // Railway PostgreSQL
+    // Railway PostgreSQL (external endpoint pre lokálne backupy)
     DB_HOST: process.env.PGHOST || 'trolley.proxy.rlwy.net',
     DB_USER: process.env.PGUSER || 'postgres', 
     DB_PORT: process.env.PGPORT || '13400',

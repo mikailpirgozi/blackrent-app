@@ -1,11 +1,10 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { postgresDatabase } from '../models/postgres-database';
-import type { Vehicle, ApiResponse, VehicleStatus } from '../types';
 import { authenticateToken, requireRole } from '../middleware/auth';
-import { checkPermission } from '../middleware/permissions';
 import { cacheResponse, invalidateCache, userSpecificCache } from '../middleware/cache-middleware';
-import { v4 as uuidv4 } from 'uuid';
+import { checkPermission } from '../middleware/permissions';
+import { postgresDatabase } from '../models/postgres-database';
+import type { ApiResponse, Vehicle, VehicleStatus } from '../types';
 
 const router = Router();
 
@@ -113,7 +112,7 @@ router.get('/bulk-ownership-history',
       try {
         // 1. Získaj všetky vozidlá
         const vehiclesResult = await client.query(`
-          SELECT id, brand, model, license_plate, owner_company_id 
+          SELECT id, brand, model, license_plate, company_id 
           FROM vehicles 
           ORDER BY brand, model
         `);
@@ -126,7 +125,7 @@ router.get('/bulk-ownership-history',
           SELECT 
             vehicle_id,
             id,
-            owner_company_id,
+            company_id,
             owner_company_name,
             valid_from,
             valid_to,
@@ -144,7 +143,7 @@ router.get('/bulk-ownership-history',
           }
           historiesByVehicle.get(row.vehicle_id).push({
             id: row.id,
-            ownerCompanyId: row.owner_company_id,
+            ownerCompanyId: row.company_id,
             ownerCompanyName: row.owner_company_name,
             validFrom: row.valid_from,
             validTo: row.valid_to,
@@ -161,7 +160,7 @@ router.get('/bulk-ownership-history',
             brand: vehicle.brand,
             model: vehicle.model,
             licensePlate: vehicle.license_plate,
-            ownerCompanyId: vehicle.owner_company_id
+            ownerCompanyId: vehicle.company_id
           },
           history: historiesByVehicle.get(vehicle.id) || []
         }));
