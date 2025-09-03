@@ -1,11 +1,9 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { postgresDatabase } from '../models/postgres-database';
-import type { Expense, ApiResponse} from '../types';
-import { ExpenseCategory, ExpenseCategoryName } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { v4 as uuidv4 } from 'uuid';
+import { postgresDatabase } from '../models/postgres-database';
+import type { ApiResponse, Expense } from '../types';
 
 const router = Router();
 
@@ -99,13 +97,21 @@ router.post('/',
       });
     }
 
+    // Validácia kategórie proti databáze
+    let validatedCategory = 'other'; // default fallback
+    if (category && category.toString().trim() !== '') {
+      const categories = await postgresDatabase.getExpenseCategories();
+      const categoryExists = categories.find(c => c.name === category.toString().trim());
+      validatedCategory = categoryExists ? category.toString().trim() : 'other';
+    }
+
     console.log('💰 EXPENSE CREATE DATA:', {
       description: description.toString().trim(),
       amount: amount && !isNaN(Number(amount)) ? Number(amount) : 0,
       date: date ? new Date(date) : new Date(),
       vehicleId: vehicleId || undefined,
       company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
-      category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+      category: validatedCategory,
       note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
     });
 
@@ -115,7 +121,7 @@ router.post('/',
       date: date ? new Date(date) : new Date(),
       vehicleId: vehicleId || undefined,
       company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
-      category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+      category: validatedCategory,
       note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
     });
 
@@ -152,6 +158,14 @@ router.put('/:id',
       });
     }
 
+    // Validácia kategórie proti databáze
+    let validatedCategory = 'other'; // default fallback
+    if (category && category.toString().trim() !== '') {
+      const categories = await postgresDatabase.getExpenseCategories();
+      const categoryExists = categories.find(c => c.name === category.toString().trim());
+      validatedCategory = categoryExists ? category.toString().trim() : 'other';
+    }
+
     const updatedExpense: Expense = {
       id,
       description: description.toString().trim(),
@@ -159,7 +173,7 @@ router.put('/:id',
       date: date ? new Date(date) : new Date(),
       vehicleId: vehicleId || undefined,
       company: company && company.toString().trim() !== '' ? company.toString().trim() : 'Neznáma firma',
-      category: category && ['service', 'insurance', 'fuel', 'other'].includes(category) ? category : 'other',
+      category: validatedCategory,
       note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
     };
 

@@ -1008,6 +1008,62 @@ export class PostgresDatabase {
           logger.migration('⚠️ Migrácia 29 chyba:', error);
         }
 
+        // Migrácia 30: Vytvorenie expense_categories tabuľky pre dynamické kategórie nákladov
+        try {
+          logger.migration('📋 Migrácia 30: Vytváram expense_categories tabuľku...');
+          
+          // Vytvor expense_categories tabuľku
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS expense_categories (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              name VARCHAR(100) NOT NULL UNIQUE,
+              display_name VARCHAR(255) NOT NULL,
+              description TEXT,
+              icon VARCHAR(50) NOT NULL DEFAULT 'receipt',
+              color VARCHAR(20) NOT NULL DEFAULT 'primary' CHECK (color IN ('primary', 'secondary', 'success', 'error', 'warning', 'info')),
+              is_default BOOLEAN NOT NULL DEFAULT false,
+              is_active BOOLEAN NOT NULL DEFAULT true,
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              created_by UUID
+            )
+          `);
+          
+          // Vytvor indexy pre performance
+          await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_expense_categories_name ON expense_categories(name)
+          `);
+          await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_expense_categories_active ON expense_categories(is_active)
+          `);
+          await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_expense_categories_sort ON expense_categories(sort_order)
+          `);
+          
+          // Pridaj základné kategórie ak tabuľka je prázdna
+          const existingCategories = await client.query('SELECT COUNT(*) as count FROM expense_categories');
+          if (parseInt(existingCategories.rows[0].count) === 0) {
+            logger.migration('📋 Pridávam základné kategórie nákladov...');
+            
+            await client.query(`
+              INSERT INTO expense_categories (name, display_name, description, icon, color, is_default, sort_order) VALUES
+              ('service', 'Servis', 'Servisné práce a opravy vozidiel', 'build', 'primary', true, 1),
+              ('insurance', 'Poistenie', 'Poistné a poistné udalosti', 'security', 'info', true, 2),
+              ('fuel', 'Palivo', 'Náklady na palivo', 'local_gas_station', 'warning', true, 3),
+              ('prenajmy', 'Prenájmy', 'Náklady súvisiace s prenájmom vozidiel', 'directions_car', 'success', false, 4),
+              ('vyplaty', 'Výplaty', 'Mzdy a odmeny pre zamestnancov', 'payments', 'secondary', false, 5),
+              ('other', 'Ostatné', 'Ostatné náklady', 'category', 'primary', true, 6)
+            `);
+            
+            logger.migration('✅ Základné kategórie pridané');
+          }
+          
+          logger.migration('✅ Migrácia 30: expense_categories tabuľka úspešne vytvorená');
+        } catch (error) {
+          logger.migration('⚠️ Migrácia 30 chyba:', error);
+        }
+
         logger.migration('✅ Databázové migrácie úspešne dokončené');
       
       // MIGRATION TRACKING SYSTEM - Vytvor tabuľku pre tracking migrácií
