@@ -3,7 +3,7 @@ FROM node:18-bullseye-slim
 
 # Inštalácia PostgreSQL 16 client a AWS CLI
 RUN apt-get update && \
-    apt-get install -y wget ca-certificates curl unzip && \
+    apt-get install -y wget ca-certificates curl unzip gnupg && \
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     echo "deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     apt-get update && \
