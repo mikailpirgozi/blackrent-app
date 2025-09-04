@@ -4288,8 +4288,10 @@ export class PostgresDatabase {
           extra_kilometer_rate = $14,
           extra_km_charge = $15,
           is_flexible = $16,
-          flexible_end_date = $17
-        WHERE id = $18
+          flexible_end_date = $17,
+          discount = $18,
+          custom_commission = $19
+        WHERE id = $20
         `, [
           rental.vehicleId || null, // UUID as string, not parseInt
           rental.customerName, 
@@ -4309,6 +4311,9 @@ export class PostgresDatabase {
           // 🔄 OPRAVA: Pridané flexibilné prenájmy polia
           rental.isFlexible || false,
           rental.flexibleEndDate || null,
+          // 💰 NOVÉ: Podpora zliav a custom provízie
+          rental.discount ? JSON.stringify(rental.discount) : null,
+          rental.customCommission ? JSON.stringify(rental.customCommission) : null,
           rental.id // UUID as string, not parseInt
         ]);
         

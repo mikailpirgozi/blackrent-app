@@ -36,6 +36,7 @@ import type {
   Vehicle,
 } from '../../types';
 import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
+import PriceSummary from './components/PriceSummary';
 
 import EmailParser from './EmailParser';
 
@@ -1512,36 +1513,13 @@ export default function RentalForm({
             <Typography variant="h6" gutterBottom>
               Výpočet ceny
             </Typography>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                gap: 2,
-              }}
-            >
-              <Box>
-                <Typography>
-                  Základná cena:{' '}
-                  <strong>{(calculatedPrice || 0).toFixed(2)} €</strong>
-                </Typography>
-                {extraKmCharge > 0 && (
-                  <Typography color="warning.main">
-                    Doplatok za km:{' '}
-                    <strong>+{extraKmCharge.toFixed(2)} €</strong>
-                  </Typography>
-                )}
-                <Typography variant="h6" color="primary">
-                  Celková cena:{' '}
-                  <strong>
-                    {((calculatedPrice || 0) + extraKmCharge).toFixed(2)} €
-                  </strong>
-                </Typography>
-              </Box>
-              <Typography>
-                Provízia:{' '}
-                <strong>{(calculatedCommission || 0).toFixed(2)} €</strong>
-              </Typography>
-            </Box>
+            <PriceSummary
+              calculatedPrice={calculatedPrice}
+              extraKmCharge={extraKmCharge}
+              calculatedCommission={calculatedCommission}
+              discount={formData.discount}
+              showOriginalPrice={true}
+            />
             {/* Nadpis sekcie s ikonou na zobrazenie/skrytie zľavy/provízie */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>

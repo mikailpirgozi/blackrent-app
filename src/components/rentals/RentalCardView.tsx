@@ -5,7 +5,6 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Error as ErrorIcon,
-  Euro as EuroIcon,
   PhotoLibrary as GalleryIcon,
   Assignment as HandoverIcon,
   PictureAsPdf as PDFIcon,
@@ -32,6 +31,7 @@ import {
 } from '@mui/material';
 import React, { memo } from 'react';
 import { formatDateTime } from '../../utils/formatters';
+import PriceDisplay from './components/PriceDisplay';
 
 import type { Rental } from '../../types';
 
@@ -51,7 +51,7 @@ interface RentalCardViewProps {
   ) => void;
   onOpenGallery: (rental: Rental, protocolType: 'handover' | 'return') => void;
   onViewProtocols: (rental: Rental) => void;
-  protocols: Record<string, { handover?: any; return?: any }>;
+  protocols: Record<string, { handover?: unknown; return?: unknown }>;
   loadingProtocols: string[];
 }
 
@@ -69,7 +69,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   loadingProtocols,
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const getStatusColor = (status: string | undefined) => {
     switch (status?.toLowerCase()) {
@@ -115,7 +115,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
     const isActive =
       rental.status?.toLowerCase() === 'aktívny' ||
       rental.status?.toLowerCase() === 'active';
-    const isFinished =
+    const _isFinished =
       rental.status?.toLowerCase() === 'dokončený' ||
       rental.status?.toLowerCase() === 'completed';
 
@@ -242,14 +242,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           </Box>
 
           {/* Price */}
-          <Box sx={{ mb: 1.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <EuroIcon color="success" fontSize="small" />
-              <Typography variant="h6" fontWeight="bold" color="success.main">
-                {rental.totalPrice?.toFixed(2)}€
-              </Typography>
-            </Box>
-          </Box>
+          <PriceDisplay rental={rental} variant="compact" showExtraKm={false} />
 
           {/* Protocol actions - vždy zobrazené */}
           <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
@@ -552,19 +545,7 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
           </Box>
 
           {/* Price and commission */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <EuroIcon color="success" fontSize="small" />
-              <Typography variant="h6" fontWeight="bold" color="success.main">
-                {rental.totalPrice?.toFixed(2)}€
-              </Typography>
-            </Box>
-            {rental.commission && (
-              <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
-                Provízia: {rental.commission?.toFixed(2)}€
-              </Typography>
-            )}
-          </Box>
+          <PriceDisplay rental={rental} variant="detailed" showExtraKm={true} />
 
           {/* Payment info */}
           <Box sx={{ mb: 2 }}>
