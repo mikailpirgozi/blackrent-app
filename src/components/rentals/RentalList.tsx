@@ -5,7 +5,6 @@ import {
 } from '@mui/icons-material';
 import {
   Box,
-  Card,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -17,7 +16,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
-import { usePermissions } from '../../hooks/usePermissions';
+// import { usePermissions } from '../../hooks/usePermissions'; // Unused
 
 // 🚀 EXTRACTED: Import all our refactored components and hooks
 import { useRentalActions } from '../../hooks/useRentalActions';
@@ -35,7 +34,7 @@ import {
   calculateNextRentalPeriod,
   createClonedRental,
 } from '../../utils/rentalCloneUtils';
-import { formatCurrency, formatDate } from '../../utils/rentalHelpers';
+// import { formatCurrency, formatDate } from '../../utils/rentalHelpers'; // Unused
 import { Can } from '../common/PermissionGuard';
 import {
   DefaultCard,
@@ -50,10 +49,7 @@ import { RentalProtocols } from './components/RentalProtocols';
 import { RentalStats } from './components/RentalStats';
 import { RentalTable } from './components/RentalTable';
 
-// Constants
-const SCROLL_THRESHOLD = 0.75;
-const DEBOUNCE_DELAY = 150;
-const THROTTLE_DELAY = 100;
+// Constants (removed unused constants)
 
 export default function RentalList() {
   // ⚡ PERFORMANCE: Only log renders in development
@@ -61,7 +57,7 @@ export default function RentalList() {
     logger.debug('RentalList render', { timestamp: Date.now() });
   }
 
-  const { state, deleteRental, createRental, updateRental } = useApp();
+  const { state, createRental, updateRental } = useApp();
 
   // 📋 PROTOCOL MENU STATE
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
@@ -70,7 +66,7 @@ export default function RentalList() {
   const [selectedProtocolType, setSelectedProtocolType] = useState<
     'handover' | 'return' | null
   >(null);
-  const permissions = usePermissions();
+  // const permissions = usePermissions(); // Unused for now
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -81,14 +77,11 @@ export default function RentalList() {
     error: paginatedError,
     hasMore,
     totalCount,
-    currentPage,
     searchTerm,
     setSearchTerm,
     loadMore,
     refresh,
     updateFilters,
-    updateRentalInList,
-    handleOptimisticDelete,
   } = useInfiniteRentals();
 
   // 🔍 DEBUG: Základné informácie o komponente
@@ -256,7 +249,7 @@ export default function RentalList() {
     setOpenDialog,
     editingRental,
     setEditingRental,
-    importError,
+    // importError, // Unused for now
     setImportError,
     handleAdd,
     handleEdit,
@@ -344,7 +337,7 @@ export default function RentalList() {
         }
       }
     },
-    [handleEdit, refresh, calculateNextRentalPeriod, createClonedRental]
+    [handleEdit, refresh]
   );
 
   // This was moved above to fix the dependency issue
@@ -352,7 +345,7 @@ export default function RentalList() {
   // Create separate refs for mobile and desktop scroll containers
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const desktopScrollRef = useRef<HTMLDivElement>(null);
-  const scrollHandlerRef = useRef<((event: any) => void) | null>(null);
+  const scrollHandlerRef = useRef<((event: Event) => void) | null>(null);
 
   // 🎯 INFINITE SCROLL: Auto-loading at 75% scroll
   const SCROLL_THRESHOLD = 0.75;
@@ -382,7 +375,7 @@ export default function RentalList() {
 
   // 🎯 UNIFIED SCROLL HANDLER: Auto-trigger loading at 75%
   const createScrollHandler = useCallback(() => {
-    return (event: any) => {
+    return (event: Event) => {
       // Skip if already loading or no more data
       if (paginatedLoading || !hasMore) {
         return;
@@ -509,99 +502,7 @@ export default function RentalList() {
     [vehicleLookupMap]
   );
 
-  // 📱 MOBILE CARD RENDERER - s action buttons
-  const mobileCardRenderer = useCallback(
-    (rental: Rental, index: number) => {
-      const vehicle = getVehicleByRental(rental);
-      const hasHandover = !!protocolsHook.protocols[rental.id]?.handover;
-      const hasReturn = !!protocolsHook.protocols[rental.id]?.return;
-      const statusIndicator = getStatusIndicator(rental);
-
-      return (
-        <Card
-          key={rental.id}
-          sx={{
-            mb: 2,
-            p: 2,
-            borderLeft: `4px solid ${statusIndicator.color}`,
-            position: 'relative',
-            '&:hover': {
-              boxShadow: theme.shadows[4],
-              transform: 'translateY(-1px)',
-              transition: 'all 0.2s ease-in-out',
-            },
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              mb: 1,
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 600, color: 'primary.main' }}
-            >
-              {vehicle
-                ? `${vehicle.brand} ${vehicle.model}`
-                : 'Neznáme vozidlo'}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: statusIndicator.color, fontWeight: 600 }}
-            >
-              {statusIndicator.label}
-            </Typography>
-          </Box>
-
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            📅 {formatDate(rental.startDate.toString())} -{' '}
-            {formatDate(rental.endDate.toString())}
-          </Typography>
-
-          <Typography
-            variant="body2"
-            sx={{ mb: 1, fontWeight: 600, color: 'success.main' }}
-          >
-            💰 {formatCurrency(rental.totalPrice)}
-          </Typography>
-
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            👤 {rental.customerName}
-          </Typography>
-
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <SecondaryButton size="small" onClick={() => handleEdit(rental)}>
-              Upraviť
-            </SecondaryButton>
-            <SecondaryButton
-              size="small"
-              onClick={() => protocolsHook.handleCreateHandover(rental)}
-            >
-              Prevzatie
-            </SecondaryButton>
-            <SecondaryButton
-              size="small"
-              onClick={() => protocolsHook.handleCreateReturn(rental)}
-            >
-              Vrátenie
-            </SecondaryButton>
-          </Box>
-        </Card>
-      );
-    },
-    [
-      getVehicleByRental,
-      protocolsHook.protocols,
-      getStatusIndicator,
-      theme,
-      handleEdit,
-      protocolsHook.handleCreateHandover,
-      protocolsHook.handleCreateReturn,
-    ]
-  );
+  // 📱 MOBILE CARD RENDERER - removed (unused)
 
   // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals
   React.useEffect(() => {
@@ -622,6 +523,7 @@ export default function RentalList() {
     protocolsHook.protocolStatusLoaded,
     protocolsHook.isLoadingProtocolStatus,
     protocolsHook.loadProtocolStatusInBackground,
+    protocolsHook,
   ]);
 
   // 🎯 INFINITE SCROLL: Setup scroll event listeners
@@ -632,6 +534,10 @@ export default function RentalList() {
     const desktopContainer = desktopScrollRef.current;
     const handler = scrollHandlerRef.current;
 
+    // Capture timer refs at effect start for cleanup
+    const debounceTimer = debounceTimerRef.current;
+    const throttleTimer = throttleTimerRef.current;
+
     // Setup desktop scroll listener
     if (!isMobile && desktopContainer && handler) {
       desktopContainer.addEventListener('scroll', handler, { passive: true });
@@ -639,16 +545,20 @@ export default function RentalList() {
 
     // Setup mobile handler reference (used by React Window)
     if (isMobile && handler) {
-      (window as any).__unifiedRentalScrollHandler = handler;
+      (
+        window as Window & {
+          __unifiedRentalScrollHandler?: (event: Event) => void;
+        }
+      ).__unifiedRentalScrollHandler = handler;
     }
 
     return () => {
-      // Cleanup timers
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+      // Cleanup timers using captured values
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
-      if (throttleTimerRef.current) {
-        clearTimeout(throttleTimerRef.current);
+      if (throttleTimer) {
+        clearTimeout(throttleTimer);
       }
 
       // Remove desktop scroll listener
@@ -658,7 +568,11 @@ export default function RentalList() {
 
       // Remove mobile handler reference
       if (isMobile) {
-        delete (window as any).__unifiedRentalScrollHandler;
+        delete (
+          window as Window & {
+            __unifiedRentalScrollHandler?: (event: Event) => void;
+          }
+        ).__unifiedRentalScrollHandler;
       }
     };
   }, [isMobile, createScrollHandler]);
@@ -704,7 +618,7 @@ export default function RentalList() {
   }, [
     selectedProtocolRental,
     selectedProtocolType,
-    protocolsHook.protocols,
+    protocolsHook,
     handleCloseProtocolMenu,
   ]);
 
@@ -742,7 +656,7 @@ export default function RentalList() {
       }
 
       // Parsovanie obrázkov z protokolu
-      const parseImages = (imageData: any): any[] => {
+      const parseImages = (imageData: unknown): unknown[] => {
         if (!imageData) return [];
 
         if (typeof imageData === 'string') {
@@ -927,8 +841,13 @@ export default function RentalList() {
         VirtualizedRentalRow={null}
         onScroll={({ scrollOffset }) => {
           // 🎯 UNIFIED: Use the new unified scroll handler
-          if ((window as any).__unifiedRentalScrollHandler) {
-            (window as any).__unifiedRentalScrollHandler({ scrollOffset });
+          const windowWithHandler = window as Window & {
+            __unifiedRentalScrollHandler?: (event: Event) => void;
+          };
+          if (windowWithHandler.__unifiedRentalScrollHandler) {
+            windowWithHandler.__unifiedRentalScrollHandler({
+              scrollOffset,
+            } as Event);
           }
         }}
       />
@@ -992,10 +911,12 @@ export default function RentalList() {
         setOpenReturnDialog={protocolsHook.setOpenReturnDialog}
         handleSave={async rental => {
           try {
-            if (editingRental) {
+            if (rental.id && editingRental?.id) {
+              // Existujúci prenájom s ID - update
               await updateRental(rental);
               logger.info('✅ Rental updated successfully:', rental.id);
             } else {
+              // Nový prenájom bez ID alebo klonovaný prenájom - create
               await createRental(rental);
               logger.info('✅ Rental created successfully');
             }

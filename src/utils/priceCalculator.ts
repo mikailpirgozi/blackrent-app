@@ -47,11 +47,8 @@ export function calculatePriceBreakdown(rental: Rental): PriceBreakdown {
       discountAmount = rental.discount.value;
       discountPercentage = Math.round((discountAmount / originalPrice) * 100);
     } else {
-      // Fallback pre staré záznamy bez type - považuj za fixnú zľavu
-      console.warn(
-        'Discount without type detected, treating as fixed discount:',
-        rental.discount
-      );
+      // Fallback pre staré záznamy bez type - ticho považuj za fixnú zľavu
+      // (Toto je normálne pre existujúce dáta pred implementáciou typov zliav)
       originalPrice = basePrice + rental.discount.value;
       discountAmount = rental.discount.value;
       discountPercentage = Math.round((discountAmount / originalPrice) * 100);
