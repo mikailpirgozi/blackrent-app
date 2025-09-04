@@ -169,6 +169,45 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
     vehicles,
   ]);
 
+  // 🔧 OPRAVA: Prepočítaj províziu pri manuálnej zmene ceny
+  useEffect(() => {
+    if (!calculatedPrice || calculatedPrice <= 0) {
+      setCalculatedCommission(0);
+      return;
+    }
+
+    const vehicle = vehicles.find(v => v.id === formData.vehicleId);
+    if (!vehicle) {
+      setCalculatedCommission(0);
+      return;
+    }
+
+    // Calculate commission based on manually entered price
+    let commission = 0;
+    if (
+      formData.customCommission?.value &&
+      formData.customCommission.value > 0
+    ) {
+      if (formData.customCommission.type === 'percentage') {
+        commission = (calculatedPrice * formData.customCommission.value) / 100;
+      } else {
+        commission = formData.customCommission.value;
+      }
+    } else if (vehicle.commission) {
+      if (vehicle.commission.type === 'percentage') {
+        commission = (calculatedPrice * vehicle.commission.value) / 100;
+      } else {
+        commission = vehicle.commission.value;
+      }
+    }
+    setCalculatedCommission(commission);
+  }, [
+    calculatedPrice,
+    formData.customCommission,
+    formData.vehicleId,
+    vehicles,
+  ]);
+
   const handleSave = async () => {
     if (!rental) return;
 
