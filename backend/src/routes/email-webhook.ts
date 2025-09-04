@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { PostgresDatabase } from '../models/postgres-database';
 import { logger } from '../utils/logger';
+import { getWebSocketService } from '../services/websocket-service';
 
 const router = Router();
 const postgresDatabase = new PostgresDatabase();
@@ -922,6 +923,22 @@ router.put('/rentals/:id',
       }
       
       logger.info('✅ Rental updated:', id);
+      
+      // 🔴 OPRAVA: Real-time broadcast pre aktualizáciu prenájmu
+      const websocketService = getWebSocketService();
+      if (websocketService) {
+        try {
+          // Načítaj kompletný prenájom pre broadcast
+          const updatedRental = await postgresDatabase.getRental(id);
+          if (updatedRental) {
+            const userName = (req as any).user?.username || 'Neznámy užívateľ';
+            websocketService.broadcastRentalUpdated(updatedRental, userName);
+            logger.info('📢 WebSocket broadcast sent for rental update:', id);
+          }
+        } catch (broadcastError) {
+          logger.error('❌ WebSocket broadcast failed:', broadcastError);
+        }
+      }
       
       res.json({
         success: true,
