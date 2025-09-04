@@ -68,6 +68,9 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
         notes: rental.notes,
         discount: rental.discount,
         customCommission: rental.customCommission,
+        // 🔄 OPRAVA: Pridané isFlexible pole
+        isFlexible: rental.isFlexible || false,
+        flexibleEndDate: rental.flexibleEndDate,
       });
       setCalculatedPrice(rental.totalPrice || 0);
       setCalculatedCommission(rental.commission || 0);
@@ -79,6 +82,11 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
 
   // Auto-calculate price and commission when relevant fields change
   useEffect(() => {
+    // 🔄 OPRAVA: Pre flexibilné prenájmy neprepočítavaj automaticky ceny
+    if (formData.isFlexible) {
+      return;
+    }
+
     if (!formData.vehicleId || !formData.startDate || !formData.endDate) {
       setCalculatedPrice(0);
       setCalculatedCommission(0);
@@ -166,6 +174,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
     formData.endDate,
     formData.discount,
     formData.customCommission,
+    formData.isFlexible,
     vehicles,
   ]);
 
@@ -240,6 +249,9 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
           formData.customCommission.value > 0
             ? formData.customCommission
             : undefined,
+        // 🔄 OPRAVA: Pridané isFlexible pole
+        isFlexible: formData.isFlexible || false,
+        flexibleEndDate: formData.flexibleEndDate,
       };
 
       await apiService.updatePendingRental(rental.id, updatedData);
@@ -370,6 +382,57 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
             </Typography>
           </Grid>
 
+          {/* 🔄 OPRAVA: Typ prenájmu */}
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Typ prenájmu</InputLabel>
+              <Select
+                value={formData.isFlexible ? 'flexible' : 'standard'}
+                onChange={e => {
+                  const isFlexible = e.target.value === 'flexible';
+                  handleInputChange('isFlexible', isFlexible);
+
+                  // Pri zmene na štandardný prenájom prepočítaj ceny
+                  if (
+                    !isFlexible &&
+                    formData.vehicleId &&
+                    formData.startDate &&
+                    formData.endDate
+                  ) {
+                    // Trigger price recalculation by updating a dependency
+                    setFormData(prev => ({ ...prev, isFlexible: false }));
+                  }
+                }}
+                label="Typ prenájmu"
+              >
+                <MenuItem value="standard">🔒 Štandardný prenájom</MenuItem>
+                <MenuItem value="flexible">🔄 Flexibilný prenájom</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* 🔄 OPRAVA: Flexibilný prenájom indikátor */}
+          {formData.isFlexible && (
+            <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: 'warning.light',
+                  border: '2px solid',
+                  borderColor: 'warning.main',
+                  borderRadius: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <Typography variant="body2" color="warning.dark">
+                  🔄 Flexibilný prenájom - cena sa nastavuje manuálne
+                </Typography>
+              </Box>
+            </Grid>
+          )}
+
           <Grid item xs={12} md={6}>
             <DateTimePicker
               label="Začiatok prenájmu *"
@@ -387,7 +450,11 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
 
           <Grid item xs={12} md={6}>
             <DateTimePicker
-              label="Koniec prenájmu *"
+              label={
+                formData.isFlexible
+                  ? 'Koniec prenájmu (voliteľné)'
+                  : 'Koniec prenájmu *'
+              }
               value={formData.endDate ? new Date(formData.endDate) : null}
               onChange={newValue => handleInputChange('endDate', newValue)}
               ampm={false}
@@ -395,10 +462,44 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                 textField: TextField,
               }}
               slotProps={{
-                textField: { fullWidth: true },
+                textField: {
+                  fullWidth: true,
+                  required: !formData.isFlexible,
+                  helperText: formData.isFlexible
+                    ? 'Pre flexibilný prenájom môžete nechať prázdne'
+                    : undefined,
+                },
               }}
             />
           </Grid>
+
+          {/* 🔄 OPRAVA: Flexibilný dátum konca */}
+          {formData.isFlexible && (
+            <Grid item xs={12} md={6}>
+              <DateTimePicker
+                label="Odhadovaný dátum vrátenia"
+                value={
+                  formData.flexibleEndDate
+                    ? new Date(formData.flexibleEndDate)
+                    : null
+                }
+                onChange={newValue =>
+                  handleInputChange('flexibleEndDate', newValue)
+                }
+                ampm={false}
+                slots={{
+                  textField: TextField,
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    helperText:
+                      'Orientačný dátum ukončenia pre flexibilný prenájom',
+                  },
+                }}
+              />
+            </Grid>
+          )}
 
           {/* Financial Info */}
           <Grid item xs={12}>
@@ -422,7 +523,11 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                 setCalculatedPrice(parseFloat(e.target.value) || 0)
               }
               InputProps={{ endAdornment: '€' }}
-              helperText="Automaticky prepočítaná podľa zľavy"
+              helperText={
+                formData.isFlexible
+                  ? 'Manuálne nastavená cena pre flexibilný prenájom'
+                  : 'Automaticky prepočítaná podľa zľavy'
+              }
             />
           </Grid>
 
