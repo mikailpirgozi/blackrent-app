@@ -1,19 +1,17 @@
 import {
-  Refresh as RefreshIcon,
-  PictureAsPdf as PDFIcon,
   PhotoLibrary as GalleryIcon,
+  PictureAsPdf as PDFIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  useTheme,
-  useMediaQuery,
-  Typography,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Button,
   Card,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
@@ -22,31 +20,28 @@ import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 import { usePermissions } from '../../hooks/usePermissions';
 
 // 🚀 EXTRACTED: Import all our refactored components and hooks
-import { useRentalFilters } from '../../hooks/useRentalFilters';
 import { useRentalActions } from '../../hooks/useRentalActions';
+import { useRentalFilters } from '../../hooks/useRentalFilters';
 import { useRentalProtocols } from '../../hooks/useRentalProtocols';
-import { apiService } from '../../services/api';
 
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import { FilterState, ITEMS_PER_PAGE } from '../../types/rental-types';
 import type { Rental } from '../../types';
+import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
+// 🔄 CLONE FUNCTIONALITY
 import {
-  formatCurrency,
-  formatDate,
-  getStatusColor,
-  getStatusLabel,
-  getPaymentMethodLabel,
-} from '../../utils/rentalHelpers';
+  calculateNextRentalPeriod,
+  createClonedRental,
+} from '../../utils/rentalCloneUtils';
+import { formatCurrency, formatDate } from '../../utils/rentalHelpers';
 import { Can } from '../common/PermissionGuard';
 import {
+  DefaultCard,
+  ErrorButton,
   PrimaryButton,
   SecondaryButton,
-  ErrorButton,
-  WarningButton,
-  DefaultCard,
 } from '../ui';
 import { RentalActions } from './components/RentalActions';
 import { RentalExport } from './components/RentalExport';
@@ -281,6 +276,76 @@ export default function RentalList() {
       logger.debug('📜 External scroll restore handler called');
     },
   });
+
+  // 🔄 CLONE RENTAL HANDLER - Backend API verzia
+  const handleCloneRental = useCallback(
+    async (rental: Rental) => {
+      try {
+        logger.info('🔄 Starting rental clone via API', {
+          rentalId: rental.id,
+        });
+
+        // Volaj backend API pre klonovanie
+        const response = await fetch(`/api/rentals/${rental.id}/clone`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Chyba pri kopírovaní prenájmu');
+        }
+
+        const result = await response.json();
+        logger.info('✅ Clone API response', { result });
+
+        if (result.success && result.data) {
+          // Otvor edit formulár s novým prenájmom z API
+          handleEdit(result.data);
+
+          // Refresh zoznamu prenájmov aby sa zobrazil nový
+          refresh();
+
+          logger.info('✅ Clone operation completed successfully', {
+            originalId: rental.id,
+            newId: result.data.id,
+            message: result.message,
+          });
+        } else {
+          throw new Error(result.error || 'Neočakávaná odpoveď z API');
+        }
+      } catch (error) {
+        logger.error('❌ Clone failed', { error, rentalId: rental.id });
+
+        // Fallback na lokálnu logiku ak API zlyhá
+        logger.info('🔄 Falling back to local clone logic');
+        try {
+          const cloneResult = calculateNextRentalPeriod(
+            rental.startDate,
+            rental.endDate
+          );
+          const clonedRental = createClonedRental(rental, cloneResult);
+
+          handleEdit({
+            ...rental,
+            ...clonedRental,
+            id: undefined,
+          } as Rental);
+
+          logger.info('✅ Local clone fallback completed');
+        } catch (fallbackError) {
+          logger.error('❌ Local clone fallback also failed', {
+            fallbackError,
+          });
+          // TODO: Pridať error notification pre používateľa
+        }
+      }
+    },
+    [handleEdit, refresh, calculateNextRentalPeriod, createClonedRental]
+  );
 
   // This was moved above to fix the dependency issue
 
@@ -810,8 +875,7 @@ export default function RentalList() {
         isMobile={isMobile}
         handleEdit={handleEdit}
         handleDelete={handleDelete}
-        handleCreateHandover={protocolsHook.handleCreateHandover}
-        handleCreateReturn={protocolsHook.handleCreateReturn}
+        handleCloneRental={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
         handleOpenProtocolMenu={(rental, type) => {
           logger.debug('📋 Opening protocol menu', rental.id, type);
 

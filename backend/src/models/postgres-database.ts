@@ -50,19 +50,19 @@ export class PostgresDatabase {
   constructor() {
     // 🚀 FÁZA 2.2: OPTIMALIZED CONNECTION POOL pre produkčné škálovanie
     const poolConfig = {
-      // Railway optimalizácie
-      max: 15, // Znížené z 25 - Railway má connection limity 
-      min: 2,  // Minimálne 2 connections ready
-      idleTimeoutMillis: 30000, // 30s - rýchlejšie cleanup
-      connectionTimeoutMillis: 2000, // 2s - rýchly timeout
-      acquireTimeoutMillis: 3000, // 3s pre získanie connection
-      allowExitOnIdle: true,
-      // Keepalive pre produkciu
+      // Railway optimalizácie - zvýšené timeouty pre stabilitu
+      max: 10, // Ešte viac znížené pre Railway stability 
+      min: 1,  // Minimálne 1 connection ready
+      idleTimeoutMillis: 120000, // 120s - ešte dlhšie pre stabilitu
+      connectionTimeoutMillis: 15000, // 15s - ešte dlhší timeout pre Railway
+      acquireTimeoutMillis: 12000, // 12s pre získanie connection
+      allowExitOnIdle: false, // Zakázané pre stabilitu
+      // Keepalive pre produkciu - agresívnejšie
       keepAlive: true,
-      keepAliveInitialDelayMillis: 0,
-      // Performance tuning
-      statement_timeout: 60000, // 60s statement timeout  
-      query_timeout: 45000, // 45s query timeout (enough for IMAP operations)
+      keepAliveInitialDelayMillis: 10000, // 10s delay
+      // Performance tuning - maximálne zvýšené pre Railway stabilitu
+      statement_timeout: 180000, // 180s statement timeout  
+      query_timeout: 150000, // 150s query timeout (enough for IMAP operations)
     };
 
     // Railway.app provides DATABASE_URL
@@ -84,6 +84,26 @@ export class PostgresDatabase {
     });
     }
 
+    // 🔄 CONNECTION ERROR HANDLING - automatické reconnection
+    this.pool.on('error', (err) => {
+      logger.error('🚨 DATABASE POOL ERROR:', err);
+      logger.info('🔄 Attempting to reconnect to database...');
+      
+      // Restart pool po chybe
+      setTimeout(() => {
+        logger.info('🔄 Reinitializing database connection...');
+        this.initTables().catch(console.error);
+      }, 5000);
+    });
+
+    this.pool.on('connect', () => {
+      logger.info('✅ Database connection established');
+    });
+
+    this.pool.on('remove', () => {
+      logger.info('🔌 Database connection removed from pool');
+    });
+
     this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
     
     // 🚀 FÁZA 2.2: Connection cleanup job (každých 2 minúty)
@@ -102,9 +122,66 @@ export class PostgresDatabase {
     }, 5 * 60 * 1000); // Každých 5 minút
   }
 
+  // 🔄 ENHANCED RETRY MECHANISM pre Railway PostgreSQL stability
+  private async executeWithEnhancedRetry<T>(
+    operation: (client: PoolClient) => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: Error = new Error('Unknown database error');
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      let client: PoolClient | null = null;
+      
+      try {
+        client = await this.pool.connect();
+        const result = await operation(client);
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        
+        // Log error details
+        logger.error(`🚨 Database operation failed (attempt ${attempt}/${maxRetries}):`, {
+          error: error.message,
+          code: error.code,
+          attempt,
+          maxRetries
+        });
+        
+        // Check if it's a connection error
+        const isConnectionError = error.message?.includes('Connection terminated') ||
+                                 error.message?.includes('connection') ||
+                                 error.code === 'ECONNRESET' ||
+                                 error.code === 'ENOTFOUND' ||
+                                 error.code === 'ETIMEDOUT';
+        
+        if (isConnectionError && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          logger.info(`🔄 Retrying in ${delay}ms... (${attempt}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else if (!isConnectionError) {
+          // Non-connection errors should not be retried
+          throw error;
+        }
+      } finally {
+        if (client) {
+          try {
+            client.release();
+          } catch (releaseError) {
+            logger.error('🚨 Error releasing client:', releaseError);
+          }
+        }
+      }
+    }
+    
+    // All retries failed
+    logger.error('🚨 All database retry attempts failed');
+    throw lastError;
+  }
+
   // 📧 HELPER: Public query method pre webhook funcionalitu
   async query(sql: string, params: any[] = []): Promise<any> {
-    return this.executeWithRetry(async (client) => {
+    return this.executeWithEnhancedRetry(async (client) => {
       return await client.query(sql, params);
     });
   }

@@ -2,6 +2,7 @@ import {
   Business as BusinessIcon,
   DirectionsCar as CarIcon,
   Check as CheckIcon,
+  ContentCopy as ContentCopyIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   Email as EmailIcon,
@@ -34,6 +35,7 @@ interface RentalTableProps {
   isMobile: boolean;
   handleEdit: (rental: Rental) => void;
   handleDelete: (id: string) => void;
+  handleCloneRental: (rental: Rental) => void; // 🔄 NOVÉ: Clone funkcionalita
   handleOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
   handleViewRental: (rental: Rental) => void;
   onScroll?: (event: { scrollOffset: number }) => void;
@@ -60,6 +62,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   isMobile,
   handleEdit,
   handleDelete,
+  handleCloneRental, // 🔄 NOVÉ: Clone funkcionalita
   handleOpenProtocolMenu,
   // handleViewRental,
   // onScroll,
@@ -158,6 +161,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                 onEdit={handleEdit}
                 onOpenProtocolMenu={handleOpenProtocolMenu}
                 onCheckProtocols={handleCheckProtocols}
+                onClone={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
                 onDelete={id => {
                   const rental = filteredRentals.find(r => r.id === id);
                   if (rental) handleDeleteClick(rental);
@@ -838,14 +842,15 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     {/* Akcie */}
                     <Box
                       sx={{
-                        width: 80,
-                        maxWidth: 80,
+                        width: 120,
+                        maxWidth: 120,
                         p: 1,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        gap: 1,
-                        flexDirection: 'column',
+                        gap: 0.5,
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
                       }}
                     >
                       <IconButton
@@ -871,6 +876,32 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
+
+                      {/* 🔄 CLONE TLAČIDLO */}
+                      <IconButton
+                        size="small"
+                        title="Kopírovať prenájom na ďalšie obdobie"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleCloneRental(rental);
+                        }}
+                        sx={{
+                          bgcolor: '#4caf50',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: '#388e3c',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                          },
+                          '&:active': {
+                            transform: 'scale(0.95)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+
                       <IconButton
                         size="small"
                         title="Zmazať prenájom"

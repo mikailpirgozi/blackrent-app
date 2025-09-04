@@ -1,11 +1,10 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { postgresDatabase } from '../models/postgres-database';
-import type { Rental, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { v4 as uuidv4 } from 'uuid';
+import { postgresDatabase } from '../models/postgres-database';
 import { getWebSocketService } from '../services/websocket-service';
+import type { ApiResponse, Rental } from '../types';
 
 const router = Router();
 
@@ -343,6 +342,240 @@ router.post('/',
     res.status(500).json({
       success: false,
       error: `Chyba pri vytváraní prenájmu: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+    });
+  }
+});
+
+// 🔄 POST /api/rentals/:id/clone - Klonovanie prenájmu na nasledujúce obdobie
+router.post('/:id/clone', 
+  authenticateToken,
+  checkPermission('rentals', 'create'), // Potrebuje create permission pre nový prenájom
+  async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    console.log('🔄 RENTAL CLONE ENDPOINT HIT - ID:', req.params.id);
+    const { id } = req.params;
+    
+    // Získaj originálny prenájom
+    const originalRental = await postgresDatabase.getRental(id);
+    if (!originalRental) {
+      return res.status(404).json({
+        success: false,
+        error: 'Prenájom nebol nájdený'
+      });
+    }
+    
+    console.log('📋 Original rental found:', {
+      id: originalRental.id,
+      startDate: originalRental.startDate,
+      endDate: originalRental.endDate,
+      customerName: originalRental.customerName
+    });
+    
+    // Importuj utility funkcie (budeme ich potrebovať na backend)
+    // Pre teraz použijeme jednoduchú logiku priamo tu
+    const startDate = new Date(originalRental.startDate);
+    const endDate = new Date(originalRental.endDate);
+    
+    // Výpočet dĺžky prenájmu v dňoch
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
+    
+    // Výpočet nového obdobia
+    const newStartDate = new Date(endDate);
+    
+    let newEndDate: Date;
+    let periodType: string;
+    
+    if (durationDays === 1) {
+      // Denný prenájom - posun o deň
+      periodType = 'daily';
+      newStartDate.setDate(newStartDate.getDate() + 1);
+      newEndDate = new Date(newStartDate);
+      newEndDate.setDate(newEndDate.getDate() + 1);
+    } else if (durationDays === 7) {
+      // Týždenný prenájom - posun o týždeň
+      periodType = 'weekly';
+      newStartDate.setDate(newStartDate.getDate() + 1);
+      newEndDate = new Date(newStartDate);
+      newEndDate.setDate(newEndDate.getDate() + 7);
+    } else if (durationDays >= 28 && durationDays <= 31) {
+      // Mesačný prenájom - nový začiatok = pôvodný koniec, nový koniec = +1 mesiac
+      periodType = 'monthly';
+      // newStartDate už je nastavený na endDate (bez zmeny)
+      
+      const originalEndDay = endDate.getDate();
+      const lastDayOfOriginalMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
+      
+      // Vypočítaj nový koniec - posun o mesiac od nového začiatku
+      newEndDate = new Date(newStartDate);
+      newEndDate.setMonth(newEndDate.getMonth() + 1);
+      
+      if (originalEndDay === lastDayOfOriginalMonth) {
+        // Posledný deň mesiaca - nastav na posledný deň nasledujúceho mesiaca
+        const targetMonth = newStartDate.getMonth() + 1;
+        const lastDayOfTargetMonth = new Date(newStartDate.getFullYear(), targetMonth + 1, 0).getDate();
+        
+        newEndDate = new Date(newStartDate);
+        newEndDate.setDate(1); // Najprv nastav na 1. deň
+        newEndDate.setMonth(targetMonth); // Potom nastav mesiac
+        newEndDate.setDate(lastDayOfTargetMonth); // Nakonec nastav správny deň
+      } else {
+        // Zachovaj deň v mesiaci, čas zostáva rovnaký
+        const maxDayInNewMonth = new Date(newEndDate.getFullYear(), newEndDate.getMonth() + 1, 0).getDate();
+        const targetDay = Math.min(originalEndDay, maxDayInNewMonth);
+        newEndDate.setDate(targetDay);
+      }
+    } else {
+      // Vlastná dĺžka - posun o deň a zachovaj dĺžku
+      periodType = 'custom';
+      newStartDate.setDate(newStartDate.getDate() + 1);
+      newEndDate = new Date(newStartDate);
+      newEndDate.setDate(newEndDate.getDate() + durationDays);
+    }
+    
+    console.log('📅 Calculated new period:', {
+      periodType,
+      originalDuration: durationDays,
+      newStartDate: newStartDate.toISOString(),
+      newEndDate: newEndDate.toISOString()
+    });
+    
+    console.log('🔍 Original rental data check:', {
+      orderNumber: originalRental.orderNumber,
+      dailyKilometers: originalRental.dailyKilometers,
+      deposit: originalRental.deposit,
+      paymentMethod: originalRental.paymentMethod
+    });
+    
+    // Vytvor kópiu prenájmu s novými dátumami a resetovanými statusmi
+    const clonedRental = {
+      // Nové dátumy
+      startDate: newStartDate,
+      endDate: newEndDate,
+      
+      // Zachované údaje o zákazníkovi
+      customerId: originalRental.customerId,
+      customerName: originalRental.customerName,
+      customerEmail: originalRental.customerEmail,
+      customerPhone: originalRental.customerPhone,
+      // customerAddress: originalRental.customerAddress, // Neexistuje v type
+      
+      // Zachované údaje o vozidle
+      vehicleId: originalRental.vehicleId,
+      vehicleVin: originalRental.vehicleVin,
+      vehicleCode: originalRental.vehicleCode,
+      vehicleName: originalRental.vehicleName,
+      
+      // Zachované cenové údaje
+      totalPrice: originalRental.totalPrice,
+      commission: originalRental.commission,
+      discount: originalRental.discount,
+      customCommission: originalRental.customCommission,
+      extraKmCharge: originalRental.extraKmCharge,
+      extraKilometerRate: originalRental.extraKilometerRate,
+      
+      // Zachované podmienky prenájmu
+      deposit: originalRental.deposit,
+      allowedKilometers: originalRental.allowedKilometers,
+      dailyKilometers: originalRental.dailyKilometers,
+      returnConditions: originalRental.returnConditions,
+      
+      // Zachované lokácie a nastavenia
+      handoverPlace: originalRental.handoverPlace,
+      pickupLocation: originalRental.pickupLocation,
+      returnLocation: originalRental.returnLocation,
+      paymentMethod: originalRental.paymentMethod,
+      
+      // Zachované flexibilné nastavenia
+      isFlexible: originalRental.isFlexible,
+      flexibleEndDate: originalRental.flexibleEndDate,
+      
+      // Zachované firemné údaje
+      company: originalRental.company,
+      
+      // Zachované poznámky a dodatočné info
+      // notes: originalRental.notes, // Neexistuje v type
+      sourceType: originalRental.sourceType || 'manual',
+      // reservationTime: originalRental.reservationTime, // Neexistuje v type
+      // isPrivateRental: originalRental.isPrivateRental, // Neexistuje v type
+      orderNumber: originalRental.orderNumber, // Číslo objednávky - KOPÍRUJ
+      
+      // RESETOVANÉ STATUSY A PROTOKOLY
+      status: 'pending',
+      paid: false,
+      confirmed: false,
+      approvalStatus: 'pending',
+      
+      // Resetované protokoly
+      handoverProtocolId: null,
+      returnProtocolId: null,
+      
+      // Resetované merania a náklady
+      fuelLevel: null,
+      odometer: null,
+      returnFuelLevel: null,
+      returnOdometer: null,
+      actualKilometers: null,
+      fuelRefillCost: null,
+      damageCost: null,
+      additionalCosts: null,
+      finalPrice: null,
+      
+      // Resetované platby a história
+      payments: [],
+      history: []
+    };
+    
+    console.log('🔄 Creating cloned rental...');
+    
+    console.log('🔍 Cloned rental data check:', {
+      orderNumber: clonedRental.orderNumber,
+      dailyKilometers: clonedRental.dailyKilometers,
+      deposit: clonedRental.deposit,
+      paymentMethod: clonedRental.paymentMethod
+    });
+    
+    // Fix null values pre TypeScript - konvertuj null na undefined pre problematické polia
+    const clonedRentalFixed = {
+      ...clonedRental,
+      fuelLevel: clonedRental.fuelLevel === null ? undefined : clonedRental.fuelLevel,
+      odometer: clonedRental.odometer === null ? undefined : clonedRental.odometer,
+      returnFuelLevel: clonedRental.returnFuelLevel === null ? undefined : clonedRental.returnFuelLevel,
+      returnOdometer: clonedRental.returnOdometer === null ? undefined : clonedRental.returnOdometer,
+      actualKilometers: clonedRental.actualKilometers === null ? undefined : clonedRental.actualKilometers,
+      fuelRefillCost: clonedRental.fuelRefillCost === null ? undefined : clonedRental.fuelRefillCost,
+      handoverProtocolId: clonedRental.handoverProtocolId === null ? undefined : clonedRental.handoverProtocolId,
+      returnProtocolId: clonedRental.returnProtocolId === null ? undefined : clonedRental.returnProtocolId,
+      approvalStatus: 'pending' as const // Reset approval status pre nový rental
+    };
+    
+    // Vytvor nový prenájom v databáze
+    const newRental = await postgresDatabase.createRental(clonedRentalFixed);
+    
+    console.log('✅ Cloned rental created successfully:', {
+      originalId: id,
+      newId: newRental.id,
+      periodType,
+      newPeriod: `${newStartDate.toLocaleDateString('sk-SK')} - ${newEndDate.toLocaleDateString('sk-SK')}`
+    });
+    
+    // Pošli WebSocket notifikáciu
+    const wsService = getWebSocketService();
+    if (wsService) {
+      wsService.broadcastRentalUpdated(newRental, 'system', ['cloned']);
+    }
+    
+    res.json({
+      success: true,
+      data: newRental,
+      message: `Prenájom bol úspešne skopírovaný na obdobie ${newStartDate.toLocaleDateString('sk-SK')} - ${newEndDate.toLocaleDateString('sk-SK')} (${periodType})`
+    });
+    
+  } catch (error) {
+    console.error('❌ Clone rental error:', error);
+    res.status(500).json({
+      success: false,
+      error: `Chyba pri kopírovaní prenájmu: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
     });
   }
 });

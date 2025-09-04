@@ -13,6 +13,7 @@ import {
   Business as BusinessIcon,
   DirectionsCar as CarIcon,
   Check as CheckIcon,
+  ContentCopy as ContentCopyIcon,
   Delete as DeleteIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
@@ -45,6 +46,7 @@ interface MobileRentalRowProps {
   onOpenProtocolMenu: (rental: any, type: 'handover' | 'return') => void;
   onCheckProtocols: (rental: any) => void;
   onDelete?: (id: string) => void;
+  onClone?: (rental: any) => void; // 🔄 NOVÉ: Clone funkcionalita
 }
 
 export const MobileRentalRow = memo<MobileRentalRowProps>(
@@ -61,6 +63,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
     onOpenProtocolMenu,
     onCheckProtocols,
     onDelete,
+    onClone, // 🔄 NOVÉ: Clone funkcionalita
   }) => {
     // 🎯 Memoized handlers to prevent recreation
     const handleCardClick = React.useCallback(() => {
@@ -97,6 +100,15 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
         if (onDelete) onDelete(rental.id);
       },
       [rental.id, onDelete]
+    );
+
+    // 🔄 CLONE HANDLER
+    const handleCloneClick = React.useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onClone) onClone(rental);
+      },
+      [rental, onClone]
     );
 
     // 🎨 Status helpers
@@ -516,6 +528,26 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
                     fontWeight: 600,
                   }}
                 />
+
+                {/* 🔄 CLONE TLAČIDLO - VEDĽA PLATBY */}
+                {onClone && (
+                  <IconButton
+                    onClick={handleCloneClick}
+                    title="Kopírovať prenájom na ďalšie obdobie"
+                    sx={{
+                      color: '#4caf50',
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        bgcolor: 'rgba(76,175,80,0.1)',
+                        transform: 'scale(1.1)',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                )}
 
                 {/* 🗑️ DELETE TLAČIDLO - VEDĽA PLATBY */}
                 {onDelete && (
