@@ -18,6 +18,7 @@ import {
   Divider,
 } from '@mui/material';
 import React, { memo } from 'react';
+import PriceDisplay from './components/PriceDisplay';
 
 import type { Rental } from '../../types';
 import { formatTime } from '../../utils/formatters';
@@ -195,16 +196,7 @@ const RentalMobileCard = memo<RentalMobileCardProps>(
             }}
           >
             <Box>
-              <Typography
-                variant="h6"
-                color="primary"
-                sx={{ fontSize: '1.1rem' }}
-              >
-                €{formatPrice(rental.totalPrice)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Provízia: €{formatPrice(rental.commission)}
-              </Typography>
+              <PriceDisplay rental={rental} variant="compact" showExtraKm={true} />
             </Box>
             <Box
               sx={{

@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material';
 import { formatTime } from '../../utils/formatters';
+import PriceDisplay from './components/PriceDisplay';
 
 import type { Rental } from '../../types';
 
@@ -150,9 +151,7 @@ const RentalTableRow = memo<RentalTableRowProps>(
         </TableCell>
 
         <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            €{formatPrice(rental.totalPrice)}
-          </Typography>
+          <PriceDisplay rental={rental} variant="compact" showExtraKm={false} />
         </TableCell>
 
         <TableCell>

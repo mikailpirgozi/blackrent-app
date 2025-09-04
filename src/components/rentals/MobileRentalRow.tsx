@@ -19,6 +19,7 @@ import {
   Phone as PhoneIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
+import PriceDisplay from './components/PriceDisplay';
 import {
   Box,
   Button,
@@ -371,35 +372,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
                 >
                   Celková cena
                 </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: '1.1rem',
-                    color: '#4caf50',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <EuroIcon fontSize="small" />
-                  {rental.totalPrice?.toFixed(2)}
-                </Typography>
-                {rental.extraKmCharge && rental.extraKmCharge > 0 && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      fontSize: '0.7rem',
-                      color: '#ff9800',
-                      fontWeight: 600,
-                      mt: 0.25,
-                    }}
-                  >
-                    +{rental.extraKmCharge.toFixed(2)}€ extra km
-                  </Typography>
-                )}
+                <PriceDisplay rental={rental} variant="compact" showExtraKm={true} />
               </Box>
             </Box>
 

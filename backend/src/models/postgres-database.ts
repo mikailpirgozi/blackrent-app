@@ -1848,20 +1848,20 @@ export class PostgresDatabase {
         logger.migration('✅ Všetci company_owner users majú company_id');
       }
       
-      // 4. Kontrola UUID konzistentnosti
-      const uuidConsistency = await client.query(`
+      // 4. Kontrola ID konzistentnosti (integer IDs, nie UUID)
+      const idConsistency = await client.query(`
         SELECT 
-          (SELECT COUNT(*) FROM vehicles WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') as valid_vehicle_uuids,
+          (SELECT COUNT(*) FROM vehicles WHERE id IS NOT NULL) as valid_vehicle_ids,
           (SELECT COUNT(*) FROM vehicles) as total_vehicles,
-          (SELECT COUNT(*) FROM users WHERE id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') as valid_user_uuids,
+          (SELECT COUNT(*) FROM users WHERE id IS NOT NULL) as valid_user_ids,
           (SELECT COUNT(*) FROM users) as total_users
       `);
       
-      const uuidData = uuidConsistency.rows[0];
-      if (uuidData.valid_vehicle_uuids == uuidData.total_vehicles && uuidData.valid_user_uuids == uuidData.total_users) {
-        logger.migration('✅ UUID formát je konzistentný');
+      const idData = idConsistency.rows[0];
+      if (idData.valid_vehicle_ids == idData.total_vehicles && idData.valid_user_ids == idData.total_users) {
+        logger.migration('✅ ID formát je konzistentný');
       } else {
-        logger.migration(`⚠️ PROBLÉM: UUID formát nie je konzistentný - Vehicles: ${uuidData.valid_vehicle_uuids}/${uuidData.total_vehicles}, Users: ${uuidData.valid_user_uuids}/${uuidData.total_users}`);
+        logger.migration(`⚠️ PROBLÉM: ID formát nie je konzistentný - Vehicles: ${idData.valid_vehicle_ids}/${idData.total_vehicles}, Users: ${idData.valid_user_ids}/${idData.total_users}`);
       }
       
       logger.migration('✅ Data integrity validation dokončená');
