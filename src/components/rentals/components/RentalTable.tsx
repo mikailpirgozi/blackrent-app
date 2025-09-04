@@ -13,12 +13,13 @@ import {
   Fade,
   IconButton,
   Typography,
-  useTheme,
+  // useTheme,
 } from '@mui/material';
 import React from 'react';
 import { formatDateTime } from '../../../utils/formatters';
+import PriceDisplay from './PriceDisplay';
 
-import type { Rental } from '../../../types';
+import type { Rental, Vehicle } from '../../../types';
 import { MobileRentalRow } from '../MobileRentalRow';
 
 interface RentalTableProps {
@@ -33,12 +34,12 @@ interface RentalTableProps {
   onScroll?: (event: { scrollOffset: number }) => void;
   // Helper functions now imported directly in child components
   // Desktop view props
-  getVehicleByRental: (rental: Rental) => any;
+  getVehicleByRental: (rental: Rental) => Vehicle | undefined;
   protocolStatusMap: Record<
     string,
     { hasHandoverProtocol: boolean; hasReturnProtocol: boolean }
   >;
-  protocols: Record<string, { handover?: any; return?: any }>;
+  protocols: Record<string, { handover?: unknown; return?: unknown }>;
   getStatusIndicator: (rental: Rental) => { color: string; label: string };
   filteredRentals: Rental[];
   desktopScrollRef: React.RefObject<HTMLDivElement>;
@@ -47,7 +48,7 @@ interface RentalTableProps {
   protocolStatusLoaded: boolean;
   handleCheckProtocols: (rental: Rental) => void;
   loadingProtocols: string[];
-  VirtualizedRentalRow: any;
+  VirtualizedRentalRow: React.ComponentType<unknown>;
 }
 
 export const RentalTable: React.FC<RentalTableProps> = ({
@@ -58,8 +59,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   handleCreateHandover,
   handleCreateReturn,
   handleOpenProtocolMenu,
-  handleViewRental,
-  onScroll,
+  // handleViewRental,
+  // onScroll,
   // Desktop view props
   getVehicleByRental,
   protocolStatusMap,
@@ -67,14 +68,14 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   getStatusIndicator,
   filteredRentals,
   desktopScrollRef,
-  mobileScrollRef,
+  // mobileScrollRef,
   isLoadingProtocolStatus,
   protocolStatusLoaded,
   handleCheckProtocols,
   loadingProtocols,
-  VirtualizedRentalRow,
+  // VirtualizedRentalRow,
 }) => {
-  const theme = useTheme();
+  // const theme = useTheme();
 
   return (
     <>
@@ -161,8 +162,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
             >
               <Box
                 sx={{
-                  width: 260,
-                  maxWidth: 260,
+                  width: 280,
+                  maxWidth: 280,
                   p: 2,
                   borderRight: '2px solid #e0e0e0',
                   backgroundColor: '#ffffff',
@@ -181,6 +182,24 @@ export const RentalTable: React.FC<RentalTableProps> = ({
               </Box>
               <Box
                 sx={{
+                  width: 200,
+                  maxWidth: 200,
+                  p: 2,
+                  borderRight: '1px solid #e0e0e0',
+                  textAlign: 'center',
+                  backgroundColor: '#f8f9fa',
+                  overflow: 'hidden',
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
+                >
+                  👤 Zákazník
+                </Typography>
+              </Box>
+              <Box
+                sx={{
                   width: 180,
                   maxWidth: 180,
                   p: 2,
@@ -194,7 +213,25 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                   variant="subtitle1"
                   sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
                 >
-                  👤 Zákazník
+                  📅 Obdobie
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 220,
+                  maxWidth: 220,
+                  p: 2,
+                  borderRight: '1px solid #e0e0e0',
+                  textAlign: 'center',
+                  backgroundColor: '#f8f9fa',
+                  overflow: 'hidden',
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
+                >
+                  💰 Cena
                 </Typography>
               </Box>
               <Box
@@ -212,49 +249,13 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                   variant="subtitle1"
                   sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
                 >
-                  📅 Obdobie
+                  📋 Protokoly
                 </Typography>
               </Box>
               <Box
                 sx={{
                   width: 120,
                   maxWidth: 120,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
-                  💰 Cena
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 140,
-                  maxWidth: 140,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
-                  📋 Protokoly
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 180,
-                  maxWidth: 180,
                   p: 2,
                   textAlign: 'center',
                   backgroundColor: '#f8f9fa',
@@ -336,15 +337,15 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                       position: 'relative',
                     }}
                     onClick={() => {
-                      console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
+                      // console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
                       handleEdit(rental);
                     }}
                   >
                     {/* Vozidlo & Status - sticky left - FIXED WIDTH */}
                     <Box
                       sx={{
-                        width: 260, // FIXED WIDTH instead of minWidth
-                        maxWidth: 260,
+                        width: 280, // FIXED WIDTH instead of minWidth
+                        maxWidth: 280,
                         p: 2,
                         borderRight: '2px solid #e0e0e0',
                         display: 'flex',
@@ -460,8 +461,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     {/* Zákazník - FIXED WIDTH */}
                     <Box
                       sx={{
-                        width: 180,
-                        maxWidth: 180,
+                        width: 200,
+                        maxWidth: 200,
                         p: 2,
                         borderRight: '1px solid #e0e0e0',
                         display: 'flex',
@@ -518,8 +519,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     {/* Obdobie - FIXED WIDTH */}
                     <Box
                       sx={{
-                        width: 160,
-                        maxWidth: 160,
+                        width: 180,
+                        maxWidth: 180,
                         p: 2,
                         borderRight: '1px solid #e0e0e0',
                         display: 'flex',
@@ -565,8 +566,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     {/* Cena - FIXED WIDTH */}
                     <Box
                       sx={{
-                        width: 120,
-                        maxWidth: 120,
+                        width: 220,
+                        maxWidth: 220,
                         p: 2,
                         borderRight: '1px solid #e0e0e0',
                         display: 'flex',
@@ -576,31 +577,11 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                         overflow: 'hidden',
                       }}
                     >
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: '1.1rem',
-                          color: '#4caf50',
-                          mb: 0.5,
-                        }}
-                      >
-                        {rental.totalPrice?.toFixed(2)}€
-                        {rental.extraKmCharge && rental.extraKmCharge > 0 && (
-                          <Typography
-                            component="span"
-                            variant="caption"
-                            sx={{
-                              display: 'block',
-                              fontSize: '0.7rem',
-                              color: '#ff9800',
-                              fontWeight: 600,
-                            }}
-                          >
-                            +{rental.extraKmCharge.toFixed(2)}€ extra km
-                          </Typography>
-                        )}
-                      </Typography>
+                      <PriceDisplay
+                        rental={rental}
+                        variant="compact"
+                        showExtraKm={true}
+                      />
                       <Chip
                         size="small"
                         label={rental.paid ? 'UHRADENÉ' : 'NEUHRADENÉ'}
@@ -617,8 +598,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     {/* Protokoly - FIXED WIDTH */}
                     <Box
                       sx={{
-                        width: 140,
-                        maxWidth: 140,
+                        width: 160,
+                        maxWidth: 160,
                         p: 2,
                         borderRight: '1px solid #e0e0e0',
                         display: 'flex',
@@ -795,8 +776,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     {/* Akcie */}
                     <Box
                       sx={{
-                        width: 180,
-                        maxWidth: 180,
+                        width: 120,
+                        maxWidth: 120,
                         p: 2,
                         display: 'flex',
                         justifyContent: 'center',
