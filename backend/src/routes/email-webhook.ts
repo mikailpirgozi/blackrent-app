@@ -879,7 +879,9 @@ router.put('/rentals/:id',
         'customer_name', 'customer_email', 'customer_phone',
         'vehicle_id', 'vehicle_name', 'vehicle_code',
         'start_date', 'end_date', 'total_price', 'deposit',
-        'handover_place', 'daily_kilometers', 'payment_method', 'notes'
+        'handover_place', 'daily_kilometers', 'payment_method', 'notes',
+        // 🔄 OPRAVA: Pridané flexibilné prenájmy a provízia
+        'is_flexible', 'flexible_end_date', 'commission'
       ];
       
       // Convert camelCase to snake_case and build query
