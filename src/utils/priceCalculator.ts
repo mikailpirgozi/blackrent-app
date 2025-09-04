@@ -41,8 +41,17 @@ export function calculatePriceBreakdown(rental: Rental): PriceBreakdown {
       originalPrice = basePrice / (1 - discountRate);
       discountAmount = originalPrice - basePrice;
       discountPercentage = rental.discount.value;
-    } else {
+    } else if (rental.discount.type === 'fixed') {
       // Pre fixnú zľavu: originalPrice = discountedPrice + discount
+      originalPrice = basePrice + rental.discount.value;
+      discountAmount = rental.discount.value;
+      discountPercentage = Math.round((discountAmount / originalPrice) * 100);
+    } else {
+      // Fallback pre staré záznamy bez type - považuj za fixnú zľavu
+      console.warn(
+        'Discount without type detected, treating as fixed discount:',
+        rental.discount
+      );
       originalPrice = basePrice + rental.discount.value;
       discountAmount = rental.discount.value;
       discountPercentage = Math.round((discountAmount / originalPrice) * 100);
@@ -63,10 +72,7 @@ export function calculatePriceBreakdown(rental: Rental): PriceBreakdown {
 /**
  * Formátuje cenu s možnosťou zobrazenia zľavy
  */
-export function formatPriceWithDiscount(
-  priceBreakdown: PriceBreakdown,
-  _showOriginal: boolean = true
-): {
+export function formatPriceWithDiscount(priceBreakdown: PriceBreakdown): {
   originalPriceText: string;
   finalPriceText: string;
   discountText: string;

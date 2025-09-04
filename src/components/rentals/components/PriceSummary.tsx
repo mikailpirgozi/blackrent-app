@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Typography, Divider, Chip } from '@mui/material';
 import { LocalOffer as DiscountIcon } from '@mui/icons-material';
+import { Box, Chip, Divider, Typography } from '@mui/material';
 import type { Rental } from '../../../types';
 import { calculateOriginalPriceFromDiscounted } from '../../../utils/priceCalculator';
 
@@ -114,4 +114,3 @@ export default function PriceSummary({
     </Box>
   );
 }
-
