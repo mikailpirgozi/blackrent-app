@@ -1,23 +1,22 @@
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
+  Edit as EditIcon,
   Assignment as HandoverProtocolIcon,
+  Phone as PhoneIcon,
   AssignmentReturn as ReturnProtocolIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import {
+  Box,
+  Button,
   Card,
   CardContent,
-  Box,
-  Typography,
   Chip,
-  IconButton,
-  Button,
   Divider,
+  IconButton,
+  Typography,
 } from '@mui/material';
-import React, { memo } from 'react';
+import { memo } from 'react';
 import PriceDisplay from './components/PriceDisplay';
 
 import type { Rental } from '../../types';
@@ -196,7 +195,11 @@ const RentalMobileCard = memo<RentalMobileCardProps>(
             }}
           >
             <Box>
-              <PriceDisplay rental={rental} variant="compact" showExtraKm={true} />
+              <PriceDisplay
+                rental={rental}
+                variant="mobile"
+                showExtraKm={true}
+              />
             </Box>
             <Box
               sx={{

@@ -104,12 +104,60 @@ export class PostgresDatabase {
 
   // 📧 HELPER: Public query method pre webhook funcionalitu
   async query(sql: string, params: any[] = []): Promise<any> {
-    const client = await this.pool.connect();
-    try {
+    return this.executeWithRetry(async (client) => {
       return await client.query(sql, params);
-    } finally {
-      client.release();
+    });
+  }
+
+  // 🛡️ RETRY MECHANISM: Automatický retry pre databázové operácie
+  private async executeWithRetry<T>(
+    operation: (client: PoolClient) => Promise<T>,
+    maxRetries: number = 3,
+    retryDelay: number = 1000
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      let client: PoolClient | null = null;
+      
+      try {
+        client = await this.pool.connect();
+        const result = await operation(client);
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if it's a connection error that we should retry
+        const isConnectionError = 
+          error.message?.includes('Connection terminated') ||
+          error.message?.includes('ECONNRESET') ||
+          error.message?.includes('connection closed') ||
+          error.code === 'ECONNRESET' ||
+          error.code === '57P01'; // PostgreSQL connection error
+        
+        if (isConnectionError && attempt < maxRetries) {
+          logger.error(`🔄 Database connection error (attempt ${attempt}/${maxRetries}):`, error.message);
+          
+          // Wait before retry with exponential backoff
+          const delay = retryDelay * Math.pow(2, attempt - 1);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // If it's not a connection error or we've exhausted retries, throw
+        throw error;
+      } finally {
+        if (client) {
+          try {
+            client.release();
+          } catch (releaseError) {
+            logger.error('Error releasing database client:', releaseError);
+          }
+        }
+      }
     }
+    
+    throw lastError;
   }
 
   private async initTables() {
@@ -3639,6 +3687,8 @@ export class PostgresDatabase {
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
           r.extra_km_charge, r.extra_kilometer_rate,
+          -- 💰 FIX: Pridané chýbajúce discount a custom_commission pre zobrazenie zliav
+          r.discount, r.custom_commission,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           c.name as company_name, v.company as vehicle_company,
@@ -3738,6 +3788,9 @@ export class PostgresDatabase {
       totalPrice: parseFloat(row.total_price) || 0,
       commission: parseFloat(row.commission) || 0,
       paymentMethod: row.payment_method || 'cash',
+      // 💰 FIX: Pridané chýbajúce discount a customCommission parsing
+      discount: row.discount ? (typeof row.discount === 'string' ? JSON.parse(row.discount) : row.discount) : undefined,
+      customCommission: row.custom_commission ? (typeof row.custom_commission === 'string' ? JSON.parse(row.custom_commission) : row.custom_commission) : undefined,
       paid: Boolean(row.paid),
       status: row.status || 'active',
       createdAt: row.created_at ? new Date(row.created_at) : new Date(),
@@ -3806,6 +3859,8 @@ export class PostgresDatabase {
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
           -- 🐛 FIX: Pridané chýbajúce extra_km_charge a extra_kilometer_rate
           r.extra_km_charge, r.extra_kilometer_rate,
+          -- 💰 FIX: Pridané chýbajúce discount a custom_commission pre zobrazenie zliav
+          r.discount, r.custom_commission,
           -- 🔄 NOVÉ: Flexibilné prenájmy polia
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
@@ -4252,11 +4307,9 @@ export class PostgresDatabase {
     }
   }
 
-  // 🛡️ FIXED UPDATE with proper field mapping
+  // 🛡️ FIXED UPDATE with proper field mapping + RETRY MECHANISM
   async updateRental(rental: Rental): Promise<void> {
-    const client = await this.pool.connect();
-    
-    try {
+    await this.executeWithRetry(async (client) => {
       logger.migration(`🔧 RENTAL UPDATE: ${rental.id}`, {
         customer: rental.customerName,
         vehicle: rental.vehicleId,
@@ -4318,13 +4371,8 @@ export class PostgresDatabase {
         ]);
         
         logger.migration(`✅ RENTAL UPDATE SUCCESS: ${rental.id} (${result.rowCount} row updated)`);
-        
-    } catch (error) {
-      console.error(`❌ RENTAL UPDATE ERROR: ${rental.id}`, error);
-      throw error;
-    } finally {
-      client.release();
-    }
+        return result;
+    });
   }
 
   // 🛡️ PROTECTED DELETE with safety checks

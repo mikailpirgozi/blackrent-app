@@ -15,11 +15,9 @@ import {
   Check as CheckIcon,
   Delete as DeleteIcon,
   Email as EmailIcon,
-  Euro as EuroIcon,
   Phone as PhoneIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
-import PriceDisplay from './components/PriceDisplay';
 import {
   Box,
   Button,
@@ -32,6 +30,7 @@ import {
 } from '@mui/material';
 import React, { memo } from 'react';
 import { formatDateTime } from '../../utils/formatters';
+import PriceDisplay from './components/PriceDisplay';
 
 interface MobileRentalRowProps {
   rental: any;
@@ -372,7 +371,11 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
                 >
                   Celková cena
                 </Typography>
-                <PriceDisplay rental={rental} variant="compact" showExtraKm={true} />
+                <PriceDisplay
+                  rental={rental}
+                  variant="mobile"
+                  showExtraKm={true}
+                />
               </Box>
             </Box>
 
