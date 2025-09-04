@@ -4263,7 +4263,10 @@ export class PostgresDatabase {
         price: rental.totalPrice,
         paid: rental.paid,
         status: rental.status,
-        extraKilometerRate: rental.extraKilometerRate
+        extraKilometerRate: rental.extraKilometerRate,
+        // 🔄 OPRAVA: Pridané flexibilné prenájmy do logu
+        isFlexible: rental.isFlexible,
+        flexibleEndDate: rental.flexibleEndDate
       });
       
       // UPDATE with proper field mapping
@@ -4283,8 +4286,10 @@ export class PostgresDatabase {
           deposit = $12,
           allowed_kilometers = $13,
           extra_kilometer_rate = $14,
-          extra_km_charge = $15
-        WHERE id = $16
+          extra_km_charge = $15,
+          is_flexible = $16,
+          flexible_end_date = $17
+        WHERE id = $18
         `, [
           rental.vehicleId || null, // UUID as string, not parseInt
           rental.customerName, 
@@ -4301,6 +4306,9 @@ export class PostgresDatabase {
           rental.allowedKilometers || null,
           rental.extraKilometerRate || null,
           rental.extraKmCharge || null,
+          // 🔄 OPRAVA: Pridané flexibilné prenájmy polia
+          rental.isFlexible || false,
+          rental.flexibleEndDate || null,
           rental.id // UUID as string, not parseInt
         ]);
         
