@@ -290,8 +290,8 @@ router.post('/',
       vehicleId,
       customerId,
       customerName,
-      startDate: new Date(startDate),
-      endDate: new Date(finalEndDate),
+      startDate: startDate,
+      endDate: finalEndDate,
       totalPrice: totalPrice || 0,
       commission: commission || 0,
       paymentMethod: paymentMethod || 'cash',
@@ -373,8 +373,12 @@ router.post('/:id/clone',
     
     // Importuj utility funkcie (budeme ich potrebovať na backend)
     // Pre teraz použijeme jednoduchú logiku priamo tu
-    const startDate = new Date(originalRental.startDate);
-    const endDate = new Date(originalRental.endDate);
+    const startDate = typeof originalRental.startDate === 'string' 
+      ? new Date(originalRental.startDate.replace(' ', 'T'))
+      : originalRental.startDate;
+    const endDate = typeof originalRental.endDate === 'string'
+      ? new Date(originalRental.endDate.replace(' ', 'T'))
+      : originalRental.endDate;
     
     // Výpočet dĺžky prenájmu v dňoch
     const durationMs = endDate.getTime() - startDate.getTime();
@@ -624,8 +628,8 @@ router.put('/:id',
       ...existingRental,
       ...updateData,
       id,
-      startDate: updateData.startDate ? new Date(updateData.startDate) : existingRental.startDate,
-      endDate: updateData.endDate ? new Date(updateData.endDate) : existingRental.endDate
+      startDate: updateData.startDate ? updateData.startDate : existingRental.startDate,
+      endDate: updateData.endDate ? updateData.endDate : existingRental.endDate
     };
 
     console.log('💾 Saving updated rental:', {
