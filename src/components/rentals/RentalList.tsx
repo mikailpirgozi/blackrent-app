@@ -198,6 +198,8 @@ export default function RentalList() {
       vehicleBrand: advancedFilters.vehicleBrand || undefined,
       priceMin: advancedFilters.priceMin || undefined,
       priceMax: advancedFilters.priceMax || undefined,
+      sortBy: advancedFilters.sortBy,
+      sortOrder: advancedFilters.sortOrder,
     };
 
     logger.debug('🔧 FILTERS: Syncing filters to server:', serverFilters);

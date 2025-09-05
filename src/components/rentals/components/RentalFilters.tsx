@@ -1,24 +1,24 @@
 import {
-  Search as SearchIcon,
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Typography,
-  TextField,
-  IconButton,
-  Chip,
   Card,
   CardContent,
+  Chip,
   Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
   Divider,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
@@ -177,6 +177,74 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 ),
               }}
             />
+          </Box>
+
+          {/* Sorting controls */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
+              minWidth: { xs: '100%', md: 'auto' },
+            }}
+          >
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Zoradiť podľa</InputLabel>
+              <Select
+                value={advancedFilters.sortBy}
+                label="Zoradiť podľa"
+                onChange={e =>
+                  handleAdvancedFiltersChange({
+                    ...advancedFilters,
+                    sortBy: e.target.value as
+                      | 'created_at'
+                      | 'start_date'
+                      | 'end_date',
+                  })
+                }
+                sx={{
+                  borderRadius: 2,
+                  backgroundColor: 'background.default',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+              >
+                <MenuItem value="created_at">Dátumu vytvorenia</MenuItem>
+                <MenuItem value="start_date">Dátumu začiatku</MenuItem>
+                <MenuItem value="end_date">Dátumu konca</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 100 }}>
+              <Select
+                value={advancedFilters.sortOrder}
+                onChange={e =>
+                  handleAdvancedFiltersChange({
+                    ...advancedFilters,
+                    sortOrder: e.target.value as 'asc' | 'desc',
+                  })
+                }
+                sx={{
+                  borderRadius: 2,
+                  backgroundColor: 'background.default',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+              >
+                <MenuItem value="desc">
+                  {advancedFilters.sortBy === 'created_at'
+                    ? 'Najnovšie'
+                    : 'Zostupne'}
+                </MenuItem>
+                <MenuItem value="asc">
+                  {advancedFilters.sortBy === 'created_at'
+                    ? 'Najstaršie'
+                    : 'Vzostupne'}
+                </MenuItem>
+              </Select>
+            </FormControl>
           </Box>
 
           {/* Tlačidlá v riadku na mobile, vedľa seba na desktop */}

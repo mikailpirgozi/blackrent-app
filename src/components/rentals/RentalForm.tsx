@@ -1093,7 +1093,11 @@ export default function RentalForm({
 
         <DateTimePicker
           label="Dátum a čas od *"
-          value={formData.startDate ? parseTimezoneFreeDateString(formData.startDate) : null}
+          value={
+            formData.startDate
+              ? parseTimezoneFreeDateString(formData.startDate)
+              : null
+          }
           onChange={newValue => {
             handleInputChange('startDate', newValue);
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
@@ -1114,7 +1118,11 @@ export default function RentalForm({
               ? 'Dátum a čas do (voliteľné)'
               : 'Dátum a čas do *'
           }
-          value={formData.endDate ? parseTimezoneFreeDateString(formData.endDate) : null}
+          value={
+            formData.endDate
+              ? parseTimezoneFreeDateString(formData.endDate)
+              : null
+          }
           onChange={newValue => {
             handleInputChange('endDate', newValue);
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
@@ -1241,7 +1249,9 @@ export default function RentalForm({
                       label="Odhadovaný dátum a čas vrátenia"
                       value={
                         formData.flexibleEndDate
-                          ? parseTimezoneFreeDateString(formData.flexibleEndDate)
+                          ? parseTimezoneFreeDateString(
+                              formData.flexibleEndDate
+                            )
                           : null
                       }
                       onChange={newValue => {
@@ -1443,11 +1453,13 @@ export default function RentalForm({
                         const startDate =
                           formData.startDate instanceof Date
                             ? formData.startDate
-                            : parseTimezoneFreeDateString(formData.startDate) || new Date();
+                            : parseTimezoneFreeDateString(formData.startDate) ||
+                              new Date();
                         const endDate =
                           formData.endDate instanceof Date
                             ? formData.endDate
-                            : parseTimezoneFreeDateString(formData.endDate) || new Date();
+                            : parseTimezoneFreeDateString(formData.endDate) ||
+                              new Date();
                         return calculateRentalDays(startDate, endDate);
                       })()
                     : '?'

@@ -3783,7 +3783,7 @@ export class PostgresDatabase {
         LEFT JOIN companies c ON v.company_id = c.id
         LEFT JOIN customers cust ON r.customer_id = cust.id
         WHERE ${whereClause}
-        ORDER BY r.${params.sortBy || 'created_at'} ${params.sortOrder?.toUpperCase() || 'DESC'}
+        ORDER BY r.${params.sortBy || 'created_at'} ${params.sortOrder?.toUpperCase() || 'ASC'}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { Rental } from '../types';
 
@@ -38,6 +38,10 @@ export interface FilterState {
   showOnlyActive: boolean;
   showOnlyOverdue: boolean;
   showOnlyCompleted: boolean;
+
+  // Zoraďovanie
+  sortBy: 'created_at' | 'start_date' | 'end_date';
+  sortOrder: 'asc' | 'desc';
 }
 
 interface UseRentalFiltersProps {
@@ -120,6 +124,10 @@ export const useRentalFilters = ({
     showOnlyActive: false,
     showOnlyOverdue: false,
     showOnlyCompleted: false,
+
+    // Zoraďovanie
+    sortBy: 'created_at' as const,
+    sortOrder: 'desc' as const,
   });
 
   // Debounce search query

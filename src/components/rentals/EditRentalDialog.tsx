@@ -437,7 +437,11 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
           <Grid item xs={12} md={6}>
             <DateTimePicker
               label="Začiatok prenájmu *"
-              value={formData.startDate ? parseTimezoneFreeDateString(formData.startDate) : null}
+              value={
+                formData.startDate
+                  ? parseTimezoneFreeDateString(formData.startDate)
+                  : null
+              }
               onChange={newValue => handleInputChange('startDate', newValue)}
               ampm={false}
               slots={{
@@ -456,7 +460,11 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                   ? 'Koniec prenájmu (voliteľné)'
                   : 'Koniec prenájmu *'
               }
-              value={formData.endDate ? parseTimezoneFreeDateString(formData.endDate) : null}
+              value={
+                formData.endDate
+                  ? parseTimezoneFreeDateString(formData.endDate)
+                  : null
+              }
               onChange={newValue => handleInputChange('endDate', newValue)}
               ampm={false}
               slots={{

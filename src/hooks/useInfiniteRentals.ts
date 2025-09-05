@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Rental } from '../types';
@@ -18,6 +18,8 @@ interface RentalFilters {
   vehicleBrand?: string;
   priceMin?: string;
   priceMax?: string;
+  sortBy?: 'created_at' | 'start_date' | 'end_date';
+  sortOrder?: 'asc' | 'desc';
 }
 
 interface UseInfiniteRentalsReturn {

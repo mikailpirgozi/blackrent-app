@@ -11,7 +11,17 @@ export const getApiBaseUrl = (): string => {
     return env.API_URL;
   }
 
-  // PRIORITA 2: Pre Vercel deployment používaj Railway API (len ak nie je .env)
+  // PRIORITA 2: Pre lokálny development - používaj relatívne /api (Vite proxy)
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1')
+  ) {
+    console.log('🌐 Localhost detekované, používam Vite proxy: /api');
+    return '/api';
+  }
+
+  // PRIORITA 3: Pre Vercel deployment používaj Railway API
   if (
     typeof window !== 'undefined' &&
     window.location.hostname.includes('vercel.app')
@@ -40,8 +50,8 @@ export const getApiBaseUrl = (): string => {
     return railwayUrl;
   }
 
-  // Pre lokálny development - používaj relatívne /api (Vite proxy)
-  console.log('🌐 Development mode, používam Vite proxy');
+  // Fallback pre development - používaj relatívne /api (Vite proxy)
+  console.log('🌐 Fallback: používam Vite proxy');
   return '/api';
 };
 

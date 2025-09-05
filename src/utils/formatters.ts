@@ -272,28 +272,32 @@ export function getStatusDisplayText(status: string): string {
  * 🕐 TIMEZONE-SAFE DATE PARSING FOR DATETIMEPICKER
  * Parsuje dátum bez timezone konverzie pre použitie v DateTimePicker komponentoch
  */
-export function parseTimezoneFreeDateString(dateValue: string | Date): Date | null {
+export function parseTimezoneFreeDateString(
+  dateValue: string | Date
+): Date | null {
   if (!dateValue) return null;
-  
+
   if (dateValue instanceof Date) {
     return dateValue;
   }
-  
+
   // Ak je string vo formáte "YYYY-MM-DD HH:MM:SS", parsuj ho ako lokálny čas
-  const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  const match = dateValue.match(
+    /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/
+  );
   if (match) {
     const [, year, month, day, hour, minute, second] = match;
     // Vytvor Date objekt s explicitnými hodnotami - bez timezone konverzie
     return new Date(
-      parseInt(year), 
+      parseInt(year),
       parseInt(month) - 1, // Mesiace sú 0-indexed
-      parseInt(day), 
-      parseInt(hour), 
-      parseInt(minute), 
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
       parseInt(second)
     );
   }
-  
+
   // Fallback pre iné formáty
   return new Date(dateValue);
 }

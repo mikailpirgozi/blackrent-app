@@ -1,11 +1,11 @@
 import {
-  FileDownload as ExportIcon,
   FileUpload as DownloadIcon,
+  FileDownload as ExportIcon,
 } from '@mui/icons-material';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
-import React, { useRef, useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { apiService } from '../../../services/api';
@@ -400,12 +400,12 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 if (dateStr.includes('-') || dateStr.includes('T')) {
                   const isoDate = new Date(dateStr);
                   if (!isNaN(isoDate.getTime())) {
-                    // Extrahuje iba dátum bez času v UTC
+                    // ✅ OPRAVENÉ: Extrahuje dátum z UTC času, nie lokálneho
                     return new Date(
                       Date.UTC(
-                        isoDate.getFullYear(),
-                        isoDate.getMonth(),
-                        isoDate.getDate()
+                        isoDate.getUTCFullYear(),
+                        isoDate.getUTCMonth(),
+                        isoDate.getUTCDate()
                       )
                     );
                   }

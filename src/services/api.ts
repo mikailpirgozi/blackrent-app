@@ -1,51 +1,29 @@
 import type {
-  Vehicle,
-  Rental,
+  Company,
   Customer,
   Expense,
   ExpenseCategory,
-  RecurringExpense,
   Insurance,
-  Company,
-  Insurer,
-  Settlement,
-  VehicleDocument,
   InsuranceClaim,
+  Insurer,
+  RecurringExpense,
+  Rental,
+  Settlement,
+  Vehicle,
+  VehicleDocument,
 } from '../types';
-import {
-  withRetry as newWithRetry,
-  parseApiError,
-  createApiErrorHandler,
-  handleApiResponse,
-} from '../utils/apiErrorHandler';
+import { createApiErrorHandler } from '../utils/apiErrorHandler';
 import { getApiBaseUrl } from '../utils/apiUrl';
+import { RequestDeduplicator } from '../utils/debounce';
+import { EnhancedError, analyzeError, withRetry } from '../utils/errorHandling';
 import {
-  debounce,
-  RequestDeduplicator,
-  measurePerformance,
-  type DebounceOptions,
-} from '../utils/debounce';
-import {
-  withRetry,
-  analyzeError,
-  EnhancedError,
-  createNetworkMonitor,
-  type RetryOptions,
-} from '../utils/errorHandling';
-import {
-  getProtocolCache,
-  setProtocolCache,
-  clearProtocolCache,
-  isCacheFresh,
   getCacheInfo,
-  type CachedProtocolStatus,
+  getProtocolCache,
+  isCacheFresh,
+  setProtocolCache,
 } from '../utils/protocolCache';
 // 🔄 PHASE 3: Migrating to unified cache system
-import {
-  unifiedCache,
-  compatibilityCache,
-  type UnifiedCacheOptions as CacheOptions,
-} from '../utils/unifiedCacheSystem';
+import { compatibilityCache } from '../utils/unifiedCacheSystem';
 
 // 🔄 COMPATIBILITY: Alias pre postupnú migráciu
 const apiCache = compatibilityCache;
@@ -751,6 +729,8 @@ class ApiService {
       vehicleBrand?: string;
       priceMin?: string;
       priceMax?: string;
+      sortBy?: 'created_at' | 'start_date' | 'end_date';
+      sortOrder?: 'asc' | 'desc';
     } = {}
   ): Promise<{
     rentals: Rental[];

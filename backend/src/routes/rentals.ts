@@ -44,11 +44,14 @@ router.get('/paginated',
         paymentStatus = 'all',
         vehicleBrand = 'all',
         priceMin = '',
-        priceMax = ''
+        priceMax = '',
+        sortBy = 'created_at',
+        sortOrder = 'asc'
       } = req.query;
 
       console.log('🚗 Rentals PAGINATED GET - params:', { 
         page, limit, search, dateFilter, company, status,
+        sortBy, sortOrder,
         role: req.user?.role, 
         userId: req.user?.id
       });
@@ -74,7 +77,9 @@ router.get('/paginated',
         priceMin: priceMin as string,
         priceMax: priceMax as string,
         userId: req.user?.id,
-        userRole: req.user?.role
+        userRole: req.user?.role,
+        sortBy: sortBy as 'created_at' | 'start_date' | 'end_date',
+        sortOrder: sortOrder as 'asc' | 'desc'
       });
 
       console.log(`📊 Found ${result.rentals.length}/${result.total} rentals (page ${pageNum})`);
