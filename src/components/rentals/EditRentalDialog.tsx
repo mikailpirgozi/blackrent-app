@@ -105,11 +105,11 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
     const startDate =
       formData.startDate instanceof Date
         ? formData.startDate
-        : new Date(formData.startDate || '');
+        : parseTimezoneFreeDateString(formData.startDate) || new Date();
     const endDate =
       formData.endDate instanceof Date
         ? formData.endDate
-        : new Date(formData.endDate || '');
+        : parseTimezoneFreeDateString(formData.endDate) || new Date();
 
     // Removed unused startDateOnly and endDateOnly variables
 

@@ -214,11 +214,11 @@ export default function RentalForm({
           const startDate =
             rental.startDate instanceof Date
               ? rental.startDate
-              : new Date(rental.startDate);
+              : parseTimezoneFreeDateString(rental.startDate) || new Date();
           const endDate =
             rental.endDate instanceof Date
               ? rental.endDate
-              : new Date(rental.endDate);
+              : parseTimezoneFreeDateString(rental.endDate) || new Date();
           const days = calculateRentalDays(startDate, endDate);
           const possibleDailyKm = Math.round(rental.allowedKilometers / days);
           // Nastavíme denné km len ak je to rozumné číslo (napr. deliteľné)
@@ -504,11 +504,11 @@ export default function RentalForm({
       const startDate =
         formData.startDate instanceof Date
           ? formData.startDate
-          : new Date(formData.startDate);
+          : parseTimezoneFreeDateString(formData.startDate) || new Date();
       const endDate =
         formData.endDate instanceof Date
           ? formData.endDate
-          : new Date(formData.endDate);
+          : parseTimezoneFreeDateString(formData.endDate) || new Date();
       const rentalDays = calculateRentalDays(startDate, endDate);
       const totalKm = dailyKilometers * rentalDays;
       setAllowedKilometers(totalKm);
@@ -559,11 +559,11 @@ export default function RentalForm({
     const startDate =
       formData.startDate instanceof Date
         ? formData.startDate
-        : new Date(formData.startDate || '');
+        : parseTimezoneFreeDateString(formData.startDate) || new Date();
     const endDate =
       formData.endDate instanceof Date
         ? formData.endDate
-        : new Date(formData.endDate || '');
+        : parseTimezoneFreeDateString(formData.endDate) || new Date();
 
     const days = calculateRentalDays(startDate, endDate);
 
@@ -1443,11 +1443,11 @@ export default function RentalForm({
                         const startDate =
                           formData.startDate instanceof Date
                             ? formData.startDate
-                            : new Date(formData.startDate);
+                            : parseTimezoneFreeDateString(formData.startDate) || new Date();
                         const endDate =
                           formData.endDate instanceof Date
                             ? formData.endDate
-                            : new Date(formData.endDate);
+                            : parseTimezoneFreeDateString(formData.endDate) || new Date();
                         return calculateRentalDays(startDate, endDate);
                       })()
                     : '?'
