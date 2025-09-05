@@ -518,14 +518,14 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
               {/* Platba status + Delete tlačidlo v jednom riadku */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip
-                  label={rental.paid ? '💰 UHRADENÉ' : '⏰ NEUHRADENÉ'}
+                  label={rental.paid ? 'Uhradené' : 'Neuhradené'}
                   size="small"
                   sx={{
-                    height: 28,
-                    fontSize: '0.75rem',
+                    height: 24,
+                    fontSize: '0.7rem',
                     bgcolor: rental.paid ? '#4caf50' : '#f44336',
                     color: 'white',
-                    fontWeight: 600,
+                    fontWeight: 500,
                   }}
                 />
 

@@ -4113,8 +4113,8 @@ export class PostgresDatabase {
     vehicleId?: string;
     customerId?: string;
     customerName: string;
-    startDate: Date;
-    endDate: Date;
+    startDate: Date | string;
+    endDate: Date | string;
     totalPrice: number;
     commission: number;
     paymentMethod: string;

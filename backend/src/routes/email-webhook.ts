@@ -573,8 +573,8 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
     }
 
     // Parsovanie dátumov z rezervačného času
-    let startDate = new Date();
-    let endDate = new Date();
+    let startDate: Date | string = new Date();
+    let endDate: Date | string = new Date();
     
     // Preferuj handoverDate a returnDate ak sú dostupné (z emailParsingUtils.ts)
     if (parsedData.handoverDate && parsedData.returnDate) {
@@ -616,28 +616,42 @@ router.post('/webhook', async (req: Request, res: Response<ApiResponse>) => {
           const [datePart, timePart] = cleanDateStr.split(' ');
           const [year, month, day] = datePart.split('-');
           
-          // Vytvor dátum presne ako je v emaili - bez timezone (naive datetime)
-          return new Date(`${year}-${month}-${day}T${timePart}`);
+          // OPRAVA: Vráť plain string namiesto Date objektu aby sa zabránilo timezone konverzii
+          return `${year}-${month}-${day} ${timePart}`;
         };
         
         startDate = parseAsPlainTime(timeMatch[1]);
         endDate = parseAsPlainTime(timeMatch[2]);
-        logger.info('✅ Parsed dates from reservationTime (legacy):', {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
+        logger.info('✅ Parsed dates from reservationTime (legacy) - PLAIN STRINGS:', {
+          startDate: startDate,
+          endDate: endDate
         });
       }
     }
     
     // Fallback ak sa nepodarilo parsovať žiadne dátumy
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    if (!startDate || !endDate || (typeof startDate === 'object' && isNaN(startDate.getTime())) || (typeof endDate === 'object' && isNaN(endDate.getTime()))) {
       logger.info('⚠️ Using fallback dates (tomorrow + 3 days)');
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() + 1);
-      startDate.setHours(10, 0, 0, 0); // 10:00 ráno
-      endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 3);
-      endDate.setHours(18, 0, 0, 0); // 18:00 večer
+      const fallbackStart = new Date();
+      fallbackStart.setDate(fallbackStart.getDate() + 1);
+      fallbackStart.setHours(10, 0, 0, 0); // 10:00 ráno
+      const fallbackEnd = new Date(fallbackStart);
+      fallbackEnd.setDate(fallbackEnd.getDate() + 3);
+      fallbackEnd.setHours(18, 0, 0, 0); // 18:00 večer
+      
+      // Konvertuj na plain string formát
+      const formatToPlainString = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hour = String(date.getHours()).padStart(2, '0');
+        const minute = String(date.getMinutes()).padStart(2, '0');
+        const second = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+      };
+      
+      startDate = formatToPlainString(fallbackStart);
+      endDate = formatToPlainString(fallbackEnd);
     }
 
     // Vytvor pending rental

@@ -665,13 +665,14 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                       />
                       <Chip
                         size="small"
-                        label={rental.paid ? 'UHRADENÉ' : 'NEUHRADENÉ'}
+                        label={rental.paid ? 'Uhradené' : 'Neuhradené'}
                         sx={{
-                          height: 20,
-                          fontSize: '0.6rem',
+                          height: 18,
+                          fontSize: '0.65rem',
                           bgcolor: rental.paid ? '#4caf50' : '#f44336',
                           color: 'white',
-                          fontWeight: 700,
+                          fontWeight: 500,
+                          mt: 0.5,
                         }}
                       />
                     </Box>
