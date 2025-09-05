@@ -80,6 +80,8 @@ export class PostgresDatabase {
       database: process.env.DB_NAME || 'blackrent',
       password: process.env.DB_PASSWORD || 'password',
       port: parseInt(process.env.DB_PORT || '5432'),
+      // 🕐 TIMEZONE FIX: Nastavenie timezone na UTC pre konzistentné zobrazenie času
+      options: '-c timezone=UTC',
       ...poolConfig
     });
     }
@@ -3493,6 +3495,8 @@ export class PostgresDatabase {
     priceMax?: string;
     userId?: string;
     userRole?: string;
+    sortBy?: 'created_at' | 'start_date' | 'end_date';
+    sortOrder?: 'asc' | 'desc';
   }): Promise<{ rentals: Rental[]; total: number }> {
     const client = await this.pool.connect();
     try {
@@ -3758,7 +3762,9 @@ export class PostgresDatabase {
       // Main query s LIMIT a OFFSET
       const mainQuery = `
         SELECT 
-          r.id, r.vehicle_id, r.customer_id, r.start_date, r.end_date, 
+          r.id, r.vehicle_id, r.customer_id, 
+          to_char(r.start_date, 'YYYY-MM-DD HH24:MI:SS') as start_date, 
+          to_char(r.end_date, 'YYYY-MM-DD HH24:MI:SS') as end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
@@ -3777,7 +3783,7 @@ export class PostgresDatabase {
         LEFT JOIN companies c ON v.company_id = c.id
         LEFT JOIN customers cust ON r.customer_id = cust.id
         WHERE ${whereClause}
-        ORDER BY r.created_at DESC
+        ORDER BY r.${params.sortBy || 'created_at'} ${params.sortOrder?.toUpperCase() || 'DESC'}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
@@ -3859,7 +3865,7 @@ export class PostgresDatabase {
       // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
       customerEmail: row.customer_db_email || row.customer_email || undefined,
       customerPhone: row.customer_db_phone || row.customer_phone || undefined,
-      // IMPORTANT: Vrátiť dátumy ako stringy pre zachovanie presných časov
+      // IMPORTANT: Dátumy už prídu ako stringy z PostgreSQL (::text)
       startDate: row.start_date,
       endDate: row.end_date,
       totalPrice: parseFloat(row.total_price) || 0,
@@ -3930,7 +3936,9 @@ export class PostgresDatabase {
       // 🔧 FIX: Remove ::uuid cast - if vehicle_id is already uuid, casting is unnecessary
       const result = await client.query(`
         SELECT 
-          r.id, r.vehicle_id, r.customer_id, r.start_date, r.end_date, 
+          r.id, r.vehicle_id, r.customer_id, 
+          to_char(r.start_date, 'YYYY-MM-DD HH24:MI:SS') as start_date, 
+          to_char(r.end_date, 'YYYY-MM-DD HH24:MI:SS') as end_date, 
           r.total_price, r.commission, r.payment_method, r.paid, r.status, 
           r.customer_name, r.customer_email, r.customer_phone, r.created_at, r.order_number, r.deposit, 
           r.allowed_kilometers, r.daily_kilometers, r.handover_place, r.company, r.vehicle_name,
@@ -4002,8 +4010,8 @@ export class PostgresDatabase {
         // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
         customerEmail: row.customer_db_email || row.customer_email || undefined,
         customerPhone: row.customer_db_phone || row.customer_phone || undefined,
-        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        startDate: row.start_date, // Dátumy už prídu ako stringy z PostgreSQL (::text)
+        endDate: row.end_date, // Dátumy už prídu ako stringy z PostgreSQL (::text)
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method || 'cash',
@@ -4310,7 +4318,14 @@ export class PostgresDatabase {
     try {
       logger.migration('🔍 getRental called for ID:', id);
       const result = await client.query(`
-        SELECT r.*, v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company,
+        SELECT r.id, r.vehicle_id, r.customer_id, 
+               to_char(r.start_date, 'YYYY-MM-DD HH24:MI:SS') as start_date, 
+               to_char(r.end_date, 'YYYY-MM-DD HH24:MI:SS') as end_date,
+               r.total_price, r.commission, r.payment_method, r.paid, r.status, r.customer_name, r.customer_email, 
+               r.customer_phone, r.created_at, r.order_number, r.deposit, r.allowed_kilometers, r.daily_kilometers, 
+               r.handover_place, r.company, r.vehicle_name, r.extra_km_charge, r.extra_kilometer_rate, r.discount, 
+               r.custom_commission, r.is_flexible, r.flexible_end_date, r.confirmed, r.payments, r.history,
+               v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company,
                COALESCE(c.name, v.company, 'BlackRent') as billing_company_name
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
@@ -4334,8 +4349,8 @@ export class PostgresDatabase {
         vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
         customerId: undefined, // customer_id stĺpec neexistuje v rentals tabuľke
         customerName: row.customer_name,
-        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        startDate: row.start_date, // Dátumy už prídu ako stringy z PostgreSQL (::text)
+        endDate: row.end_date, // Dátumy už prídu ako stringy z PostgreSQL (::text)
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method,
@@ -5446,21 +5461,18 @@ export class PostgresDatabase {
     try {
       logger.migration('🏢 Creating company:', companyData.name);
       
+      // Používame len existujúce stĺpce v companies tabuľke
       const result = await client.query(
-        `INSERT INTO companies (
-          name, personal_iban, business_iban, owner_name, 
-          contact_email, contact_phone, default_commission_rate, is_active
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-        RETURNING *`, 
+        `INSERT INTO companies (name, address, phone, email, ic, dic) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`, 
         [
           companyData.name,
-          companyData.personalIban || null,
-          companyData.businessIban || null,
-          companyData.ownerName || null,
-          companyData.contactEmail || null,
-          companyData.contactPhone || null,
-          companyData.defaultCommissionRate || 20.00,
-          companyData.isActive !== false
+          '', // address - prázdne
+          companyData.contactPhone || '', // phone
+          companyData.contactEmail || '', // email  
+          '', // ic - prázdne
+          ''  // dic - prázdne
         ]
       );
       
@@ -5478,17 +5490,10 @@ export class PostgresDatabase {
         phone: row.phone || '',
         contractStartDate: undefined,
         contractEndDate: undefined,
-        commissionRate: parseFloat(row.default_commission_rate || '20'),
-        isActive: row.is_active !== false,
+        commissionRate: 20, // Default hodnota keďže nemáme default_commission_rate stĺpec
+        isActive: true, // Default hodnota keďže nemáme is_active stĺpec
         createdAt: new Date(row.created_at),
-        updatedAt: undefined,
-        // 🆕 NOVÉ POLIA
-        personalIban: row.personal_iban || '',
-        businessIban: row.business_iban || '',
-        ownerName: row.owner_name || '',
-        contactEmail: row.contact_email || '',
-        contactPhone: row.contact_phone || '',
-        defaultCommissionRate: parseFloat(row.default_commission_rate || '20')
+        updatedAt: undefined
       };
     } catch (error) {
       console.error('❌ Error creating company:', error);
