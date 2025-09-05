@@ -24,6 +24,7 @@ import React, { useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
 import type { Customer, Rental, Vehicle } from '../../types';
+import { parseTimezoneFreeDateString } from '../../utils/formatters';
 import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
 
 interface EditRentalDialogProps {
@@ -436,7 +437,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
           <Grid item xs={12} md={6}>
             <DateTimePicker
               label="Začiatok prenájmu *"
-              value={formData.startDate ? new Date(formData.startDate) : null}
+              value={formData.startDate ? parseTimezoneFreeDateString(formData.startDate) : null}
               onChange={newValue => handleInputChange('startDate', newValue)}
               ampm={false}
               slots={{
@@ -455,7 +456,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                   ? 'Koniec prenájmu (voliteľné)'
                   : 'Koniec prenájmu *'
               }
-              value={formData.endDate ? new Date(formData.endDate) : null}
+              value={formData.endDate ? parseTimezoneFreeDateString(formData.endDate) : null}
               onChange={newValue => handleInputChange('endDate', newValue)}
               ampm={false}
               slots={{
@@ -480,7 +481,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                 label="Odhadovaný dátum vrátenia"
                 value={
                   formData.flexibleEndDate
-                    ? new Date(formData.flexibleEndDate)
+                    ? parseTimezoneFreeDateString(formData.flexibleEndDate)
                     : null
                 }
                 onChange={newValue =>

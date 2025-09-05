@@ -28,6 +28,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
+import { parseTimezoneFreeDateString } from '../../utils/formatters';
 import type {
   Customer,
   PaymentMethod,
@@ -1092,7 +1093,7 @@ export default function RentalForm({
 
         <DateTimePicker
           label="Dátum a čas od *"
-          value={formData.startDate ? new Date(formData.startDate) : null}
+          value={formData.startDate ? parseTimezoneFreeDateString(formData.startDate) : null}
           onChange={newValue => {
             handleInputChange('startDate', newValue);
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
@@ -1113,7 +1114,7 @@ export default function RentalForm({
               ? 'Dátum a čas do (voliteľné)'
               : 'Dátum a čas do *'
           }
-          value={formData.endDate ? new Date(formData.endDate) : null}
+          value={formData.endDate ? parseTimezoneFreeDateString(formData.endDate) : null}
           onChange={newValue => {
             handleInputChange('endDate', newValue);
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
@@ -1240,7 +1241,7 @@ export default function RentalForm({
                       label="Odhadovaný dátum a čas vrátenia"
                       value={
                         formData.flexibleEndDate
-                          ? new Date(formData.flexibleEndDate)
+                          ? parseTimezoneFreeDateString(formData.flexibleEndDate)
                           : null
                       }
                       onChange={newValue => {
