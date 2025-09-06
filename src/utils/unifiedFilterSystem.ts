@@ -123,7 +123,7 @@ class UnifiedFilterEngine {
     if (options.enableMemoization && this.cache.has(cacheKey)) {
       this.stats.hits++;
       logger.debug('🗄️ UNIFIED FILTER: Cache HIT');
-      return this.cache.get(cacheKey);
+      return this.cache.get(cacheKey) as FilterResult<T>;
     }
 
     // 🔍 Apply all filters
@@ -586,23 +586,23 @@ export const compatibilityFilters = {
   // Wrapper pre RentalFilters.tsx
   applyBasicFilters: (data: Rental[], filters: Record<string, unknown>) => {
     return unifiedFilterEngine.filter(data, {
-      vehicle: filters.filterVehicle,
-      company: filters.filterCompany,
-      customer: filters.filterCustomer,
-      status: filters.filterStatus,
-      paid: filters.filterPaid,
-      dateFrom: filters.filterDateFrom,
-      dateTo: filters.filterDateTo,
-      paymentMethod: filters.filterPaymentMethod,
-      searchQuery: filters.searchQuery,
-      showActive: filters.showActive,
-      showTodayReturns: filters.showTodayReturns,
-      showTomorrowReturns: filters.showTomorrowReturns,
-      showUnconfirmed: filters.showUnconfirmed,
-      showFuture: filters.showFuture,
-      showOldConfirmed: filters.showOldConfirmed,
-      showConfirmed: filters.showConfirmed,
-      showAll: filters.showAll,
+      vehicle: filters.filterVehicle as string | undefined,
+      company: filters.filterCompany as string | undefined,
+      customer: filters.filterCustomer as string | undefined,
+      status: filters.filterStatus as string | undefined,
+      paid: filters.filterPaid as string | undefined,
+      dateFrom: filters.filterDateFrom as string | undefined,
+      dateTo: filters.filterDateTo as string | undefined,
+      paymentMethod: filters.filterPaymentMethod as string | undefined,
+      searchQuery: filters.searchQuery as string | undefined,
+      showActive: filters.showActive as boolean | undefined,
+      showTodayReturns: filters.showTodayReturns as boolean | undefined,
+      showTomorrowReturns: filters.showTomorrowReturns as boolean | undefined,
+      showUnconfirmed: filters.showUnconfirmed as boolean | undefined,
+      showFuture: filters.showFuture as boolean | undefined,
+      showOldConfirmed: filters.showOldConfirmed as boolean | undefined,
+      showConfirmed: filters.showConfirmed as boolean | undefined,
+      showAll: filters.showAll as boolean | undefined,
       enableMemoization: true,
     });
   },

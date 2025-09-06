@@ -35,20 +35,9 @@ import type {
   VehicleCategory,
   VehicleDocument,
 } from '../../types';
-import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
-
-// 🔧 INTERFACES PRE TYPE SAFETY
-interface UnifiedDocumentData {
-  id?: string;
-  vehicleId: string;
-  type: DocumentType;
-  documentNumber?: string;
-  validFrom?: Date;
-  validTo?: Date;
-  price?: number;
-  notes?: string;
-  kmState?: number;
-}
+import UnifiedDocumentForm, {
+  type UnifiedDocumentData,
+} from '../common/UnifiedDocumentForm';
 
 // 🗑️ REMOVED: Unused ExpiryStatusData interface
 // interface ExpiryStatusData { ... }
@@ -186,8 +175,10 @@ export default function VehicleForm({
 
     setUnifiedDocumentData({
       vehicleId: formData.id,
-      type: 'stk', // Default typ
-    });
+      type: 'stk' as const, // Default typ
+      validFrom: new Date(),
+      validTo: new Date(),
+    } as UnifiedDocumentData);
     setShowUnifiedDocumentForm(true);
   };
 
@@ -195,7 +186,7 @@ export default function VehicleForm({
     setUnifiedDocumentData({
       id: doc.id,
       vehicleId: doc.vehicleId,
-      type: doc.documentType,
+      type: doc.documentType as UnifiedDocumentData['type'],
       documentNumber: doc.documentNumber,
       validFrom: doc.validFrom,
       validTo: doc.validTo,
@@ -221,31 +212,31 @@ export default function VehicleForm({
     try {
       if (data.id) {
         // Aktualizácia existujúceho dokumentu
-        const vehicleDocData = {
+        const vehicleDocData: VehicleDocument = {
           id: data.id,
           vehicleId: data.vehicleId,
-          documentType: data.type,
-          validFrom: data.validFrom,
-          validTo: data.validTo,
+          documentType: data.type as DocumentType,
+          validFrom: data.validFrom || new Date(),
+          validTo: data.validTo || new Date(),
           documentNumber: data.documentNumber,
           price: data.price,
           notes: data.notes,
-          kmState: data.kmState, // Pre STK/EK s km stavom
-        };
+          ...(data.kmState && { kmState: data.kmState }), // Pre STK/EK s km stavom
+        } as VehicleDocument;
         await updateVehicleDocument(vehicleDocData);
       } else {
         // Vytvorenie nového dokumentu
-        const vehicleDocData = {
+        const vehicleDocData: VehicleDocument = {
           id: uuidv4(),
           vehicleId: data.vehicleId,
-          documentType: data.type,
-          validFrom: data.validFrom,
-          validTo: data.validTo,
+          documentType: data.type as DocumentType,
+          validFrom: data.validFrom || new Date(),
+          validTo: data.validTo || new Date(),
           documentNumber: data.documentNumber,
           price: data.price,
           notes: data.notes,
-          kmState: data.kmState, // Pre STK/EK s km stavom
-        };
+          ...(data.kmState && { kmState: data.kmState }), // Pre STK/EK s km stavom
+        } as VehicleDocument;
         await createVehicleDocument(vehicleDocData);
       }
 
@@ -669,7 +660,12 @@ export default function VehicleForm({
                               </Typography>
                               <Chip
                                 label={expiryStatus.text}
-                                color={expiryStatus.color}
+                                color={
+                                  expiryStatus.color as
+                                    | 'error'
+                                    | 'warning'
+                                    | 'success'
+                                }
                                 size="small"
                               />
                             </Box>
@@ -772,7 +768,9 @@ export default function VehicleForm({
       >
         <UnifiedDocumentForm
           document={unifiedDocumentData}
-          onSave={handleUnifiedDocumentSave}
+          onSave={document =>
+            handleUnifiedDocumentSave(document as UnifiedDocumentData)
+          }
           onCancel={() => {
             setShowUnifiedDocumentForm(false);
             setUnifiedDocumentData(null);
