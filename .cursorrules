@@ -1,80 +1,136 @@
-# BLACKRENT PROJECT RULES
+# 🚨 BLACKRENT PROJECT - ABSOLUTE ZERO TOLERANCE RULES 🚨
 
-## CONTEXT DETECTION
-- IF working in `customer-website/` → apply CUSTOMER WEBSITE rules
-- IF working in main app (`src/`, `backend/`, project root) → apply INTERNAL APP rules
-- IF both touched → ask only if two+ equally plausible approaches exist; otherwise choose the safest and state the choice briefly.
+## 🔥 CRITICAL: ZERO ERRORS, ZERO WARNINGS POLICY
 
----
+**ABSOLÚTNE PRAVIDLO:** Pri každej úprave kódu MUSÍŠ automaticky opraviť VŠETKY errors a warnings. NIKDY nemôžeš nechať kód s chybami!
 
-## CUSTOMER WEBSITE RULES (`customer-website/`)
-### UI & DESIGN
-- Use EXACT styles from `/customer-website/Anima/` export.
-- Assets ONLY from `/customer-website/public/assets/` – NEVER external image/CDN URLs.
-- Preserve ALL Tailwind classes from the export; NO custom colors/fonts/spacings unless present in export.
-- Breakpoints: 1728px, 1440px, 744px, 360px.
-- Do NOT modify exported files. Interactivity goes into NEW wrapper components outside the export. No moving elements between sections.
+### ⚡ AUTOMATICKÉ OPRAVOVANIE - POVINNÉ
 
-### Code
-- TypeScript + React function components.
-- TailwindCSS only (no inline `<style>`).
-- Keep components small & reusable.
-- Dev: `cd customer-website && npm run dev` (port 3002).
+Pred každým commitom MUSÍŠ:
 
----
+1. **Spustiť ESLint fix:** `npx eslint src --ext .ts,.tsx --fix`
+2. **Skontrolovať warnings:** `npx eslint src --ext .ts,.tsx --max-warnings=0`
+3. **Spustiť TypeScript check:** `npm run build` (frontend + backend)
+4. **Opraviť VŠETKY chyby** - bez výnimky!
 
-## INTERNAL APP RULES (main project)
-### Development
-- Dev commands: `npm run dev:start` (if defined) or `npm run dev` (Vite).
-- Components live in `/src/components/`.
-- Own layout system; different breakpoints than customer site.
+### 🎯 PRÍSNE ESLINT PRAVIDLÁ
 
-### Database & Migrations
-- Use **Railway PostgreSQL** via **ENV variables** (no secrets in code or rules).
-- Never connect AI to **production** DB. Use **staging** + seed data.
-- Migrations via migration tool; no destructive SQL without review.
+Tieto pravidlá sú nastavené ako **ERROR** (nie warning):
 
----
+- `@typescript-eslint/no-explicit-any` - ZAKÁZANÉ `any` typy
+- `@typescript-eslint/no-unused-vars` - ZAKÁZANÉ nepoužívané premenné
+- `@typescript-eslint/consistent-type-imports` - Konzistentné importy
+- `@typescript-eslint/ban-ts-comment` - ZAKÁZANÉ `@ts-ignore`
+- `react-hooks/exhaustive-deps` - Správne React dependencies
+- `no-case-declarations` - Správne case deklarácie
+- `@typescript-eslint/ban-types` - ZAKÁZANÉ nebezpečné typy
 
-## UNIVERSAL RULES
-### Tech & Code Style
-- TypeScript `"strict": true` – NEVER use `any`.
-- Modern React (hooks). Logic separated from UI.
-- API calls: Fetch/Axios with **timeout** & **error handling**.
-- Validation at boundaries: **Zod** for inputs & API responses.
-- Naming: kebab-case folders, PascalCase components.
-- Prefer minimal, localized edits. For large/legacy files: propose a short refactor plan, then apply after approval.
+### 🛠️ AUTOMATICKÉ OPRAVY
 
-### Env & Config
-- **Vite front-end:** use `import.meta.env.VITE_*` (not `process.env`).  
-  - Keep env values in `.env.local` and access via `src/lib/env.ts`.
-- Feature flags in FE: `import.meta.env.VITE_FLAG_*` → helper `flag('EXTRA_KM')` from `src/lib/flags.ts`.
-- API paths: use `apiPath('/endpoint')` from `src/utils/apiPath.ts` for unified API base selection.
-- No secrets in repository, rules, or commits.
+**Nepoužívané importy/premenné:**
+```typescript
+// ❌ ZLÉ
+import { UnusedIcon } from '@mui/icons-material';
+const unusedVariable = 'test';
 
-### Logging & Diagnostics
-- Use structured logger (e.g., `log({requestId, ...}, msg)`), not raw `console.log`.
-- Keep **info/warn/error** in production; strip **debug** on build if needed.
-- Provide minimal **MRE** when fixing bugs. Add requestId to async flows.
+// ✅ SPRÁVNE - zakomentuj alebo odstráň
+// import { UnusedIcon } from '@mui/icons-material';
+// const unusedVariable = 'test';
+```
 
-### Tests & Quality
-- Each new function: define API signature + **mini unit test** first (Vitest).
-- Lint & format must pass before commit (ESLint + Prettier).
-- Fix **all** TypeScript errors; warnings should be addressed or justified.
+**Any typy:**
+```typescript
+// ❌ ZLÉ
+const data: any = {};
+const users: any[] = [];
 
-### Communication with AI
-- Be concise. Return **diffs + test instructions**.
-- Ask only when ambiguity would risk breaking behavior; otherwise pick the safest option and state it in 1–2 sentences.
-- Suggest solutions proactively (e.g., helper `apiPath`, `env`, `flag`).
+// ✅ SPRÁVNE
+const data: Record<string, unknown> = {};
+const users: Record<string, unknown>[] = [];
+```
 
-### Assets
-- Never hotlink external assets (images/fonts). Store locally in `public/` or project assets.
-- API endpoints are not "assets" – calling external APIs is allowed per env config.
+**React hooks dependencies:**
+```typescript
+// ❌ ZLÉ
+useEffect(() => {
+  loadData();
+}, []);
 
-### Critical Safety
-- Preserve existing functionality & data.
-- When copying code, keep behavior identical unless change is requested; document intentional differences.
-- Do not run destructive DB ops on production. Use staging.
+// ✅ SPRÁVNE
+const loadData = useCallback(() => {
+  // logic
+}, [dependency1, dependency2]);
 
-### Language
-- Respond in Slovak language.
+useEffect(() => {
+  loadData();
+}, [loadData]);
+```
+
+**TypeScript importy:**
+```typescript
+// ❌ ZLÉ
+import React from 'react';
+import { Component } from 'react';
+
+// ✅ SPRÁVNE
+import type React from 'react';
+import type { Component } from 'react';
+```
+
+### 🚀 WORKFLOW PRE KAŽDÚ ÚPRAVU
+
+1. **Urob zmenu v kóde**
+2. **Automaticky spusti:** `npx eslint src --ext .ts,.tsx --fix`
+3. **Skontroluj:** `npx eslint src --ext .ts,.tsx --max-warnings=0`
+4. **Ak sú chyby:** Oprav ich VŠETKY
+5. **Test build:** `npm run build && cd backend && npm run build`
+6. **Commit len ak je 0 errors, 0 warnings**
+
+### 🎯 CURSOR AI INŠTRUKCIE
+
+Keď upravuješ kód:
+
+1. **VŽDY** po úprave spusti ESLint fix
+2. **VŽDY** skontroluj že nie sú warnings/errors
+3. **VŽDY** oprav všetky problémy pred pokračovaním
+4. **NIKDY** nenechaj kód s chybami
+5. **VŽDY** používaj správne TypeScript typy
+6. **VŽDY** odstráň nepoužívané importy/premenné
+7. **VŽDY** oprav React hooks dependencies
+
+### 🔧 RÝCHLE PRÍKAZY
+
+```bash
+# Oprav všetky ESLint chyby
+npx eslint src --ext .ts,.tsx --fix
+
+# Skontroluj že nie sú warnings
+npx eslint src --ext .ts,.tsx --max-warnings=0
+
+# Test buildy
+npm run build
+cd backend && npm run build
+
+# Commit s automatickým formátovaním
+npm run commit
+```
+
+### 🚨 ABSOLÚTNY ZÁKAZ
+
+- ❌ Commitovať kód s warnings/errors
+- ❌ Používať `any` typy
+- ❌ Nechávať nepoužívané importy/premenné
+- ❌ Ignorovať React hooks dependencies
+- ❌ Používať `@ts-ignore` namiesto `@ts-expect-error`
+- ❌ Nechávať nedokončené opravy
+
+### ✅ POVINNÉ AKCIE
+
+- ✅ Vždy 0 errors, 0 warnings
+- ✅ Automatické opravovanie po každej úprave
+- ✅ Správne TypeScript typy
+- ✅ Čisté importy a premenné
+- ✅ Správne React patterns
+- ✅ Build test pred commitom
+
+**PAMÄTAJ: Kvalita kódu je priorita #1. Radšej menej funkcionalít ale perfektný kód!**

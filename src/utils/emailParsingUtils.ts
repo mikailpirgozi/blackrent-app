@@ -224,7 +224,10 @@ export function parseEmailText(text: string): ParsedEmailData {
       text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
       text.match(/denne[:\s]*(\d+)\s*km/i) ||
       text.match(/(\d+)\s*km\s*daily/i);
-    logger.debug('🔍 DEBUG: explicitDailyKmMatch result:', explicitDailyKmMatch);
+    logger.debug(
+      '🔍 DEBUG: explicitDailyKmMatch result:',
+      explicitDailyKmMatch
+    );
 
     if (explicitDailyKmMatch) {
       data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);

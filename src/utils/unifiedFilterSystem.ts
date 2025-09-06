@@ -498,7 +498,10 @@ class UnifiedFilterEngine {
   /**
    * 🔑 Generate cache key for memoization
    */
-  private generateCacheKey(data: unknown[], options: UnifiedFilterOptions): string {
+  private generateCacheKey(
+    data: unknown[],
+    options: UnifiedFilterOptions
+  ): string {
     const dataHash = data.length; // Simple hash based on length
     const optionsHash = JSON.stringify(options);
     return `filter_${dataHash}_${btoa(optionsHash).slice(0, 10)}`;

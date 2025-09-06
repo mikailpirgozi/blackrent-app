@@ -98,7 +98,7 @@ const Statistics: React.FC = () => {
   const [selectedYear] = useState(new Date().getFullYear());
   const [selectedMonth] = useState(new Date().getMonth());
   const [tabValue, setTabValue] = useState(0);
-  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  // const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'month' | 'year' | 'all'>('month');
 
   // Nové state pre filtrovanie
@@ -723,10 +723,10 @@ const Statistics: React.FC = () => {
   }, [
     state.rentals,
     state.expenses,
-    state.vehicles,
     state.protocols,
     selectedYear,
     selectedMonth,
+    getFilteredVehicles,
     timeRange,
     filterYear,
     filterMonth,

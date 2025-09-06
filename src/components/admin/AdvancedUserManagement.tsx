@@ -10,13 +10,13 @@ import {
   Security as SecurityIcon,
   Timeline as TimelineIcon,
   PersonAdd as PersonAddIcon,
-  Settings as SettingsIcon,
+  // Settings as SettingsIcon,
   Visibility as ViewIcon,
   Block as BlockIcon,
-  VpnKey as KeyIcon,
+  // VpnKey as KeyIcon,
   Analytics as AnalyticsIcon,
   ExpandMore as ExpandMoreIcon,
-  Check as CheckIcon,
+  // Check as CheckIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -46,16 +46,16 @@ import {
   InputLabel,
   Grid,
   Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
+  // List,
+  // ListItem,
+  // ListItemAvatar,
+  // ListItemText,
+  // ListItemSecondaryAction,
   Divider,
   Alert,
   Skeleton,
-  useTheme,
-  alpha,
+  // useTheme,
+  // alpha,
   Tooltip,
   Accordion,
   AccordionSummary,
@@ -65,7 +65,7 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 
@@ -92,13 +92,13 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const AdvancedUserManagement: React.FC = () => {
-  const theme = useTheme();
+  // const theme = useTheme();
   const { state } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<Record<string, unknown> | null>(null);
   const [editForm, setEditForm] = useState({
     firstName: '',
     lastName: '',
@@ -108,8 +108,8 @@ const AdvancedUserManagement: React.FC = () => {
     roleId: '',
     departmentId: '',
   });
-  const [userPermissions, setUserPermissions] = useState<any[]>([]);
-  const [companies, setCompanies] = useState<any[]>([]);
+  const [userPermissions, setUserPermissions] = useState<Record<string, unknown>[]>([]);
+  const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
 
   // API Base URL helper
   const getApiBaseUrl = () => {
@@ -125,20 +125,20 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   // State for different entities
-  const [organization, setOrganization] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
-  const [activityLog, setActivityLog] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [organization, setOrganization] = useState<Record<string, unknown> | null>(null);
+  const [users, setUsers] = useState<Record<string, unknown>[]>([]);
+  const [roles, setRoles] = useState<Record<string, unknown>[]>([]);
+  const [departments, setDepartments] = useState<Record<string, unknown>[]>([]);
+  const [teams, setTeams] = useState<Record<string, unknown>[]>([]);
+  const [activityLog, setActivityLog] = useState<Record<string, unknown>[]>([]);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
 
   // Dialog states
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [departmentDialogOpen, setDepartmentDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  // const [selectedItem, setSelectedItem] = useState<Record<string, unknown> | null>(null);
 
   // Form states
   const [userForm, setUserForm] = useState({
@@ -179,11 +179,7 @@ const AdvancedUserManagement: React.FC = () => {
     teamLeadId: '',
   });
 
-  useEffect(() => {
-    loadData();
-  }, [currentTab]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -231,7 +227,11 @@ const AdvancedUserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentTab]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const loadOrganizationStats = async () => {
     const response = await fetch(
@@ -1736,7 +1736,7 @@ const AdvancedUserManagement: React.FC = () => {
                                       if (existingIndex >= 0) {
                                         (
                                           newPermissions[existingIndex]
-                                            .permissions as any
+                                            .permissions as Record<string, unknown>
                                         )[resource].read = e.target.checked;
                                       } else {
                                         const newPerm = {
@@ -1790,7 +1790,7 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (newPerm.permissions as any)[
+                                        (newPerm.permissions as Record<string, unknown>)[
                                           resource
                                         ].read = e.target.checked;
                                         newPermissions.push(newPerm);
@@ -1821,7 +1821,7 @@ const AdvancedUserManagement: React.FC = () => {
                                       if (existingIndex >= 0) {
                                         (
                                           newPermissions[existingIndex]
-                                            .permissions as any
+                                            .permissions as Record<string, unknown>
                                         )[resource].write = e.target.checked;
                                       } else {
                                         const newPerm = {
@@ -1875,7 +1875,7 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (newPerm.permissions as any)[
+                                        (newPerm.permissions as Record<string, unknown>)[
                                           resource
                                         ].write = e.target.checked;
                                         newPermissions.push(newPerm);
@@ -1906,7 +1906,7 @@ const AdvancedUserManagement: React.FC = () => {
                                       if (existingIndex >= 0) {
                                         (
                                           newPermissions[existingIndex]
-                                            .permissions as any
+                                            .permissions as Record<string, unknown>
                                         )[resource].delete = e.target.checked;
                                       } else {
                                         const newPerm = {
@@ -1960,7 +1960,7 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (newPerm.permissions as any)[
+                                        (newPerm.permissions as Record<string, unknown>)[
                                           resource
                                         ].delete = e.target.checked;
                                         newPermissions.push(newPerm);

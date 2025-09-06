@@ -38,19 +38,21 @@ module.exports = {
     'Figma-Context-MCP/**', // MCP server
   ],
   rules: {
-    // TypeScript
-    '@typescript-eslint/no-explicit-any':
-      process.env.NODE_ENV === 'production' ? 'error' : 'warn',
-    '@typescript-eslint/consistent-type-imports': 'warn',
+    // TypeScript - STRICT RULES
+    '@typescript-eslint/no-explicit-any': 'error', // VŽDY error
+    '@typescript-eslint/no-unused-vars': 'error', // VŽDY error
+    '@typescript-eslint/consistent-type-imports': 'error',
+    '@typescript-eslint/ban-ts-comment': 'error',
 
-    // React
+    // React - STRICT RULES
     'react/prop-types': 'off',
-    'react/no-unescaped-entities': 'off', // povoliť úvodzovky v JSX
-    'react/react-in-jsx-scope': 'off', // React 17+ automatický import
+    'react/no-unescaped-entities': 'off',
+    'react/react-in-jsx-scope': 'off',
+    'react-hooks/exhaustive-deps': 'error', // VŽDY error
 
     // Importy - zjednodušené
-    'import/order': 'off', // vypnuté kvôli resolver problémom
-    'import/no-unresolved': 'off', // vypnuté kvôli resolver problémom
+    'import/order': 'off',
+    'import/no-unresolved': 'off',
     'import/namespace': 'off',
     'import/default': 'off',
     'import/no-named-as-default': 'off',
@@ -62,17 +64,11 @@ module.exports = {
         ? ['error', { allow: ['warn', 'error'] }]
         : 'off',
 
-    // Nepoužívané premenné: len warning v development
-    '@typescript-eslint/no-unused-vars':
-      process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    // Case declarations: VŽDY error
+    'no-case-declarations': 'error',
 
-    // Case declarations: povoliť v development
-    'no-case-declarations':
-      process.env.NODE_ENV === 'production' ? 'error' : 'off',
-
-    // Banned types: povoliť v development
-    '@typescript-eslint/ban-types':
-      process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    // Banned types: VŽDY error
+    '@typescript-eslint/ban-types': 'error',
 
     // Test files: vitest globals
     'vitest/no-disabled-tests': 'warn',

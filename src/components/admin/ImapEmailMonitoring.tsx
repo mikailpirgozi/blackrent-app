@@ -4,7 +4,7 @@ import {
   Stop as StopIcon,
   Refresh as RefreshIcon,
   CheckCircle as TestIcon,
-  Settings as SettingsIcon,
+  // Settings as SettingsIcon,
   Info as InfoIcon,
   PlayArrow,
 } from '@mui/icons-material';

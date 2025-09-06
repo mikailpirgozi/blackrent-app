@@ -17,7 +17,7 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Divider,
+  // Divider,
   List,
   ListItem,
   ListItemText,
@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 
-import { apiService as api, getAPI_BASE_URL } from '../../services/api';
+import { getAPI_BASE_URL } from '../../services/api';
 
 interface R2Status {
   configured: boolean;
