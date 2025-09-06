@@ -1,14 +1,21 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Assignment as DocumentIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  Divider,
   FormControl,
   FormControlLabel,
+  Grid,
+  IconButton,
   InputLabel,
   MenuItem,
   Radio,
@@ -16,29 +23,35 @@ import {
   Select,
   TextField,
   Typography,
-  Card,
-  CardContent,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
-  Divider,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import type {
-  Vehicle,
-  PricingTier,
-  VehicleDocument,
   DocumentType,
+  PricingTier,
+  Vehicle,
   VehicleCategory,
+  VehicleDocument,
 } from '../../types';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
+
+// 🔧 INTERFACES PRE TYPE SAFETY
+interface UnifiedDocumentData {
+  id?: string;
+  vehicleId: string;
+  type: DocumentType;
+  documentNumber?: string;
+  validFrom?: Date;
+  validTo?: Date;
+  price?: number;
+  notes?: string;
+  kmState?: number;
+}
+
+// 🗑️ REMOVED: Unused ExpiryStatusData interface
+// interface ExpiryStatusData { ... }
 
 import TechnicalCertificateUpload from './TechnicalCertificateUpload';
 
@@ -85,10 +98,9 @@ export default function VehicleForm({
   const [vehicleDocuments, setVehicleDocuments] = useState<VehicleDocument[]>(
     []
   );
-  const [editingDocument, setEditingDocument] =
-    useState<VehicleDocument | null>(null);
   const [showUnifiedDocumentForm, setShowUnifiedDocumentForm] = useState(false);
-  const [unifiedDocumentData, setUnifiedDocumentData] = useState<any>(null);
+  const [unifiedDocumentData, setUnifiedDocumentData] =
+    useState<UnifiedDocumentData | null>(null);
 
   useEffect(() => {
     if (vehicle) {
@@ -101,7 +113,7 @@ export default function VehicleForm({
     }
   }, [vehicle, state.vehicleDocuments]);
 
-  const handleInputChange = (field: keyof Vehicle, value: any) => {
+  const handleInputChange = (field: keyof Vehicle, value: unknown) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
 
@@ -129,30 +141,16 @@ export default function VehicleForm({
   const handlePricingChange = (
     index: number,
     field: keyof PricingTier,
-    value: any
+    value: string | number
   ) => {
     const newPricing = [...(formData.pricing || [])];
     newPricing[index] = { ...newPricing[index], [field]: value };
     setFormData(prev => ({ ...prev, pricing: newPricing }));
   };
 
-  const _addPricingTier = () => {
-    const newPricing = [...(formData.pricing || [])];
-    const lastTier = newPricing[newPricing.length - 1];
-    newPricing.push({
-      id: uuidv4(),
-      minDays: lastTier ? lastTier.maxDays + 1 : 1,
-      maxDays: lastTier ? lastTier.maxDays + 3 : 3,
-      pricePerDay: 0,
-    });
-    setFormData(prev => ({ ...prev, pricing: newPricing }));
-  };
-
-  const _removePricingTier = (index: number) => {
-    const newPricing = [...(formData.pricing || [])];
-    newPricing.splice(index, 1);
-    setFormData(prev => ({ ...prev, pricing: newPricing }));
-  };
+  // 🗑️ REMOVED: Unused pricing tier functions
+  // const _addPricingTier = () => { ... }
+  // const _removePricingTier = (index: number) => { ... }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,17 +170,8 @@ export default function VehicleForm({
     onSave(completeVehicle);
   };
 
-  // 🔍 FILTROVANIE AKTÍVNYCH FIRIEM + company names
-  const allCompanies = Array.from(
-    new Set([
-      ...state.companies
-        .filter(c => c.isActive !== false) // Len aktívne firmy
-        .map(c => c.name),
-      ...state.vehicles
-        .map(v => v.company)
-        .filter((c): c is string => Boolean(c)),
-    ])
-  ).sort();
+  // 🗑️ REMOVED: Unused allCompanies variable
+  // const allCompanies = Array.from(...).sort();
 
   // 🏢 AKTÍVNE FIRMY PRE DROPDOWN
   const activeCompanies =
@@ -212,7 +201,7 @@ export default function VehicleForm({
       validTo: doc.validTo,
       price: doc.price,
       notes: doc.notes,
-      kmState: (doc as any).kmState, // Pre STK/EK s km stavom
+      kmState: (doc as VehicleDocument & { kmState?: number }).kmState, // Pre STK/EK s km stavom
     });
     setShowUnifiedDocumentForm(true);
   };
@@ -228,7 +217,7 @@ export default function VehicleForm({
     }
   };
 
-  const handleUnifiedDocumentSave = async (data: any) => {
+  const handleUnifiedDocumentSave = async (data: UnifiedDocumentData) => {
     try {
       if (data.id) {
         // Aktualizácia existujúceho dokumentu
@@ -680,7 +669,7 @@ export default function VehicleForm({
                               </Typography>
                               <Chip
                                 label={expiryStatus.text}
-                                color={expiryStatus.color as any}
+                                color={expiryStatus.color}
                                 size="small"
                               />
                             </Box>
