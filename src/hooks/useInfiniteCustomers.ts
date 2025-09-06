@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Customer } from '../types';
@@ -99,9 +99,10 @@ export function useInfiniteCustomers(
           `✅ Loaded ${newCustomers.length} customers (${result.pagination.totalItems} total)`
         );
       } catch (error: unknown) {
-        const errorMessage = err.message || 'Chyba pri načítavaní zákazníkov';
+        const errorMessage =
+          (error as Error).message || 'Chyba pri načítavaní zákazníkov';
         setError(errorMessage);
-        logger.error('❌ Failed to load customers', err);
+        logger.error('❌ Failed to load customers', error);
       } finally {
         setLoading(false);
         loadingRef.current = false;
@@ -150,7 +151,7 @@ export function useInfiniteCustomers(
       setInitialLoad(false);
       loadCustomers(1, true);
     }
-  }, []);
+  }, [initialLoad, loadCustomers]);
 
   // Filter changes
   useEffect(() => {
@@ -161,7 +162,7 @@ export function useInfiniteCustomers(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [filters]);
+  }, [filters, initialLoad, loadCustomers]);
 
   // Search term changes - trigger new search
   useEffect(() => {
@@ -176,7 +177,7 @@ export function useInfiniteCustomers(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [searchTerm]);
+  }, [searchTerm, initialLoad, loadCustomers]);
 
   // Debug logging
   useEffect(() => {

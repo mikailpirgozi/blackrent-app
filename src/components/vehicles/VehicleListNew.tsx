@@ -1,68 +1,59 @@
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  History as HistoryIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  CalendarToday as CalendarIcon,
-  Business as BusinessIcon,
-  DirectionsCar as CarIcon,
-  Build as MaintenanceIcon,
-  CheckCircle as AvailableIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  Home as HomeIcon,
-} from '@mui/icons-material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  IconButton,
-  Tooltip,
-  Chip,
-  Alert,
-  useMediaQuery,
-  useTheme,
   Card,
   CardContent,
-  Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Checkbox,
   FormControlLabel,
-  Grid,
-  Divider,
-  FormGroup,
-  Tabs,
   Tab,
-  DialogActions,
+  Tabs,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { flushSync } from 'react-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
-import { apiService } from '../../services/api';
 import type { Vehicle, VehicleCategory } from '../../types';
-import { VehicleStatus } from '../../types';
+
+// 📝 INTERFACES: Proper TypeScript types
+// interface OwnershipHistoryItem {
+//   id: string;
+//   vehicleId: string;
+//   previousOwnerId?: string;
+//   newOwnerId: string;
+//   transferDate: string;
+//   transferReason?: string;
+//   notes?: string;
+// } // Unused - ownership history disabled
+
+interface InvestorData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  notes: string;
+}
+
+interface InvestorShare {
+  id: string;
+  investorId: string;
+  companyId: string;
+  ownershipPercentage: number;
+  investmentAmount: number;
+  isPrimaryContact: boolean;
+}
+
+// interface ShareData {
+//   companyId: string;
+//   ownershipPercentage: number;
+//   investmentAmount: number;
+//   isPrimaryContact: boolean;
+// } // Unused interface
 import { getApiBaseUrl } from '../../utils/apiUrl';
-import {
-  getStatusColor,
-  getStatusBgColor,
-  getStatusText,
-  getStatusIcon,
-} from '../../utils/vehicles/vehicleHelpers';
 import { EnhancedLoading } from '../common/EnhancedLoading';
-import { Can } from '../common/PermissionGuard';
-import CompanyDocumentManager from '../companies/CompanyDocumentManager';
 
 import InvestorCard from './components/InvestorCard';
 import OwnerCard from './components/OwnerCard';
@@ -72,7 +63,6 @@ import VehicleFilters from './components/VehicleFilters';
 import VehicleImportExport from './components/VehicleImportExport';
 import VehicleKmHistory from './components/VehicleKmHistory';
 import VehicleTable from './components/VehicleTable';
-import VehicleForm from './VehicleForm';
 
 export default function VehicleListNew() {
   const {
@@ -102,7 +92,7 @@ export default function VehicleListNew() {
       screenWidth:
         typeof window !== 'undefined' ? window.innerWidth : 'unknown',
     });
-  }, []); // Spustí sa len raz pri mount
+  }, [isMobile]); // Spustí sa len raz pri mount
 
   // States
   const [currentTab, setCurrentTab] = useState(0); // 🆕 Tab state
@@ -138,10 +128,12 @@ export default function VehicleListNew() {
   const [showPrivate, setShowPrivate] = useState(false); // 🏠 Súkromné vozidlá defaultne skryté
   const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
   const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
-  const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false);
-  const [selectedVehicleHistory, setSelectedVehicleHistory] =
-    useState<Vehicle | null>(null);
-  const [ownershipHistory, setOwnershipHistory] = useState<any[]>([]);
+  // const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false); // Unused - ownership history disabled
+  // const [selectedVehicleHistory, setSelectedVehicleHistory] =
+  //   useState<Vehicle | null>(null); // Unused - ownership history disabled
+  // const [ownershipHistory, setOwnershipHistory] = useState<
+  //   OwnershipHistoryItem[]
+  // >([]);  // Unused - ownership history disabled
 
   // 🚗 História kilometrov
   const [kmHistoryDialog, setKmHistoryDialog] = useState(false);
@@ -164,12 +156,12 @@ export default function VehicleListNew() {
   // 🤝 State pre spoluinvestorov
   const [createInvestorDialogOpen, setCreateInvestorDialogOpen] =
     useState(false);
-  const [investors, setInvestors] = useState<any[]>([]);
-  const [investorShares, setInvestorShares] = useState<any[]>([]);
+  const [investors, setInvestors] = useState<InvestorData[]>([]);
+  const [investorShares, setInvestorShares] = useState<InvestorShare[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
   const [assignShareDialogOpen, setAssignShareDialogOpen] = useState(false);
   const [selectedInvestorForShare, setSelectedInvestorForShare] =
-    useState<any>(null);
+    useState<InvestorData | null>(null);
   const [newShareData, setNewShareData] = useState({
     companyId: '',
     ownershipPercentage: 0,
@@ -345,7 +337,7 @@ export default function VehicleListNew() {
   };
 
   // 🤝 Načítanie spoluinvestorov
-  const loadInvestors = async () => {
+  const loadInvestors = useCallback(async () => {
     try {
       setLoadingInvestors(true);
 
@@ -383,14 +375,14 @@ export default function VehicleListNew() {
     } finally {
       setLoadingInvestors(false);
     }
-  };
+  }, [state.companies]);
 
   // Načítaj investorov pri zmene tabu
   useEffect(() => {
     if (currentTab === 2) {
       loadInvestors();
     }
-  }, [currentTab]);
+  }, [currentTab, loadInvestors]);
 
   // 🤝 Handler pre priradenie podielu
   const handleAssignShare = async () => {
@@ -435,29 +427,29 @@ export default function VehicleListNew() {
     }
   };
 
-  const handleShowOwnershipHistory = async (vehicle: Vehicle) => {
-    try {
-      setSelectedVehicleHistory(vehicle);
-      // Použijem fetch API namiesto private request metódy
-      const token = localStorage.getItem('token');
-      const apiBaseUrl = getApiBaseUrl();
-      const response = await fetch(
-        `${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      const data = await response.json();
-      setOwnershipHistory(data.data.ownershipHistory || []);
-      setOwnershipHistoryDialog(true);
-    } catch (error) {
-      console.error('Error fetching ownership history:', error);
-      alert('Chyba pri načítaní histórie transferov');
-    }
-  };
+  // const handleShowOwnershipHistory = async (vehicle: Vehicle) => {
+  //   try {
+  //     setSelectedVehicleHistory(vehicle);
+  //     // Použijem fetch API namiesto private request metódy
+  //     const token = localStorage.getItem('token');
+  //     const apiBaseUrl = getApiBaseUrl();
+  //     const response = await fetch(
+  //       `${apiBaseUrl}/vehicles/${vehicle.id}/ownership-history`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           'Content-Type': 'application/json',
+  //         },
+  //       }
+  //     );
+  //     const data = await response.json();
+  //     setOwnershipHistory(data.data.ownershipHistory || []);
+  //     setOwnershipHistoryDialog(true);
+  //   } catch (error) {
+  //     console.error('Error fetching ownership history:', error);
+  //     alert('Chyba pri načítaní histórie transferov');
+  //   }
+  // }; // Unused function
 
   const handleDelete = async (vehicleId: string) => {
     if (window.confirm('Naozaj chcete vymazať toto vozidlo?')) {
@@ -530,7 +522,7 @@ export default function VehicleListNew() {
       brand: filterBrand,
       model: filterModel,
       company: filterCompany,
-      status: filterStatus as any, // Type casting for backwards compatibility
+      status: filterStatus as VehicleCategory, // Type casting for backwards compatibility
       category: filterCategory,
       // Status group filters (backwards compatibility)
       showAvailable,
@@ -642,9 +634,9 @@ export default function VehicleListNew() {
   const uniqueCompanies = [
     ...new Set(state.vehicles.map(v => v.company).filter(Boolean)),
   ].sort() as string[];
-  const uniqueCategories = [
-    ...new Set(state.vehicles.map(v => v.category).filter(Boolean)),
-  ].sort() as VehicleCategory[]; // 🚗 Unique categories
+  // const uniqueCategories = [
+  //   ...new Set(state.vehicles.map(v => v.category).filter(Boolean)),
+  // ].sort() as VehicleCategory[]; // 🚗 Unique categories - unused
 
   // 🆕 TabPanel component
   interface TabPanelProps {
@@ -1084,11 +1076,11 @@ export default function VehicleListNew() {
         editingVehicle={editingVehicle}
         onCloseDialog={handleCloseDialog}
         onSubmit={handleSubmit}
-        // Ownership History Dialog
-        ownershipHistoryDialog={ownershipHistoryDialog}
-        selectedVehicleHistory={selectedVehicleHistory}
-        ownershipHistory={ownershipHistory}
-        onCloseOwnershipHistory={() => setOwnershipHistoryDialog(false)}
+        // Ownership History Dialog - DISABLED
+        ownershipHistoryDialog={false}
+        selectedVehicleHistory={null}
+        ownershipHistory={[]}
+        onCloseOwnershipHistory={() => {}}
         // Create Company Dialog
         createCompanyDialogOpen={createCompanyDialogOpen}
         newCompanyData={newCompanyData}

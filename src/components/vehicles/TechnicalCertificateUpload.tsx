@@ -1,29 +1,29 @@
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Assignment as DocumentIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
   Card,
   CardContent,
-  TextField,
+  Chip,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
   List,
   ListItem,
-  ListItemText,
   ListItemSecondaryAction,
-  IconButton,
-  Alert,
-  Chip,
+  ListItemText,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { VehicleDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
@@ -55,7 +55,7 @@ export default function TechnicalCertificateUpload({
   >([]);
 
   // Načítanie technických preukazov
-  const loadTechnicalCertificates = async () => {
+  const loadTechnicalCertificates = useCallback(async () => {
     try {
       setLoading(true);
       const token =
@@ -90,11 +90,11 @@ export default function TechnicalCertificateUpload({
     } finally {
       setLoading(false);
     }
-  };
+  }, [vehicleId]);
 
   useEffect(() => {
     loadTechnicalCertificates();
-  }, [vehicleId]);
+  }, [vehicleId, loadTechnicalCertificates]);
 
   // Upload súborov
   const handleFileUploadSuccess = (

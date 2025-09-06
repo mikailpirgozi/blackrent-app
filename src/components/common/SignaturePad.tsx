@@ -1,6 +1,6 @@
 import { Clear as ClearIcon, Save as SaveIcon } from '@mui/icons-material';
-import { Box, Button, Typography, Paper, TextField } from '@mui/material';
-import React, { useRef, useEffect, useState } from 'react';
+import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
@@ -116,7 +116,7 @@ export default function SignaturePad({
     setHasSignature(false);
   };
 
-  const loadSignatureTemplate = () => {
+  const loadSignatureTemplate = useCallback(() => {
     if (signerRole !== 'employee' || !state.user?.signatureTemplate) return;
 
     const canvas = canvasRef.current;
@@ -132,7 +132,7 @@ export default function SignaturePad({
       setHasSignature(true);
     };
     img.src = state.user.signatureTemplate;
-  };
+  }, [signerRole, state.user?.signatureTemplate]);
 
   // Automatické načítanie signature template pre zamestnancov
   useEffect(() => {
@@ -152,7 +152,12 @@ export default function SignaturePad({
       console.log('✅ Automaticky načítavam signature template');
       loadSignatureTemplate();
     }
-  }, [signerRole, state.user?.signatureTemplate, hasSignature]);
+  }, [
+    signerRole,
+    state.user?.signatureTemplate,
+    hasSignature,
+    loadSignatureTemplate,
+  ]);
 
   const handleSave = () => {
     const canvas = canvasRef.current;

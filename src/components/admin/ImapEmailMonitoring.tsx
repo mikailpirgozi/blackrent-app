@@ -1,29 +1,29 @@
 import {
   Email as EmailIcon,
-  PlayArrow as StartIcon,
-  Stop as StopIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as TestIcon,
   // Settings as SettingsIcon,
   Info as InfoIcon,
   PlayArrow,
+  Refresh as RefreshIcon,
+  PlayArrow as StartIcon,
+  Stop as StopIcon,
+  CheckCircle as TestIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Alert,
   Chip,
-  Grid,
-  Paper,
-  Divider,
   CircularProgress,
+  Divider,
+  Grid,
   IconButton,
+  Paper,
   Tooltip,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
 
@@ -57,15 +57,15 @@ const ImapEmailMonitoring: React.FC = () => {
   const [initialLoading, setInitialLoading] = useState(true);
 
   // Definujeme fetchStatus PRED useEffect hooks
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const data = await apiService.getImapStatus();
       setStatus(data);
     } catch (error: unknown) {
-      console.error('Error fetching IMAP status:', err);
+      console.error('Error fetching IMAP status:', error);
       setError('Nepodarilo sa načítať status IMAP monitoringu');
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initializeStatus = async () => {
@@ -75,7 +75,7 @@ const ImapEmailMonitoring: React.FC = () => {
     };
 
     initializeStatus();
-  }, []);
+  }, [fetchStatus]);
 
   // Separátny useEffect pre interval - spúšťa sa len ak je IMAP povolené
   useEffect(() => {
@@ -85,7 +85,7 @@ const ImapEmailMonitoring: React.FC = () => {
 
     const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
-  }, [status?.enabled]);
+  }, [status, fetchStatus]);
 
   // Ak sa IMAP ešte načítava, zobraz loading
   if (initialLoading) {

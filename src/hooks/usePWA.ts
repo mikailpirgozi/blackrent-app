@@ -1,7 +1,7 @@
 // 📱 PWA Management Hook
 // Provides install prompt, service worker management, and offline detection
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useError } from '../context/ErrorContext';
 
@@ -46,26 +46,7 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const refreshing = useRef(false);
 
-  // Initialize PWA features - singleton pattern to prevent duplicates
-  useEffect(() => {
-    if (!isInitialized) {
-      isInitialized = true;
-      initializePWA();
-      setupEventListeners();
-    } else if (globalSWRegistration) {
-      // If already initialized, just update state with existing registration
-      setState(prev => ({ ...prev, swRegistration: globalSWRegistration }));
-    }
-
-    return () => {
-      // Don't remove event listeners if other instances are still using them
-      if (isInitialized) {
-        removeEventListeners();
-      }
-    };
-  }, []);
-
-  const initializePWA = async () => {
+  const initializePWA = useCallback(async () => {
     try {
       // Check if app is already installed
       checkInstallationStatus();
@@ -97,9 +78,9 @@ export const usePWA = (): PWAState & PWAActions => {
       // Don't show error for PWA initialization - it's not critical
       console.warn('PWA features will be limited without Service Worker');
     }
-  };
+  }, [registerServiceWorker]);
 
-  const setupEventListeners = () => {
+  const setupEventListeners = useCallback(() => {
     // Install prompt event
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
@@ -109,9 +90,9 @@ export const usePWA = (): PWAState & PWAActions => {
     // Online/offline events
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-  };
+  }, []);
 
-  const removeEventListeners = () => {
+  const removeEventListeners = useCallback(() => {
     window.removeEventListener(
       'beforeinstallprompt',
       handleBeforeInstallPrompt
@@ -119,7 +100,7 @@ export const usePWA = (): PWAState & PWAActions => {
     window.removeEventListener('appinstalled', handleAppInstalled);
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
-  };
+  }, []);
 
   const handleBeforeInstallPrompt = (event: Event) => {
     event.preventDefault();
@@ -164,13 +145,14 @@ export const usePWA = (): PWAState & PWAActions => {
     // Check if running as installed PWA
     const isInstalled =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
+      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+        true;
 
     setState(prev => ({ ...prev, isInstalled }));
   };
 
   const registerServiceWorker =
-    async (): Promise<ServiceWorkerRegistration | null> => {
+    useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
       if (!('serviceWorker' in navigator)) {
         console.warn('Service Worker not supported');
         return null;
@@ -240,7 +222,7 @@ export const usePWA = (): PWAState & PWAActions => {
         }
         return null;
       }
-    };
+    }, [showError]);
 
   const handleServiceWorkerMessage = (event: MessageEvent) => {
     const { type, message } = event.data;
@@ -259,6 +241,25 @@ export const usePWA = (): PWAState & PWAActions => {
         console.log('📨 PWA: Service Worker message:', type, message);
     }
   };
+
+  // Initialize PWA features - singleton pattern to prevent duplicates
+  useEffect(() => {
+    if (!isInitialized) {
+      isInitialized = true;
+      initializePWA();
+      setupEventListeners();
+    } else if (globalSWRegistration) {
+      // If already initialized, just update state with existing registration
+      setState(prev => ({ ...prev, swRegistration: globalSWRegistration }));
+    }
+
+    return () => {
+      // Don't remove event listeners if other instances are still using them
+      if (isInitialized) {
+        removeEventListeners();
+      }
+    };
+  }, [initializePWA, setupEventListeners, removeEventListeners]);
 
   // Actions
   const promptInstall = async (): Promise<boolean> => {

@@ -1,52 +1,45 @@
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   PersonAdd as PersonAddIcon,
-  Visibility as ViewIcon,
-  Block as BlockIcon,
-  Check as CheckIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
+  Avatar,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Skeleton,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Grid,
-  Avatar,
-  Alert,
-  Skeleton,
-  useTheme,
-  useMediaQuery,
   Tooltip,
-  Switch,
-  FormControlLabel,
-  CircularProgress,
-  Stack,
-  Divider,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 
@@ -94,8 +87,11 @@ const BasicUserManagement: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Investors for dropdown
-  const [investors, setInvestors] = useState<any[]>([]);
+  const [investors, setInvestors] = useState<Record<string, unknown>[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
+
+  // Loading states
+  const [creatingUser, setCreatingUser] = useState(false);
 
   // Form states
   const [userForm, setUserForm] = useState({
@@ -118,20 +114,15 @@ const BasicUserManagement: React.FC = () => {
     return `${protocol}//${hostname}:3001/api`;
   };
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return (
       state.token ||
       localStorage.getItem('blackrent_token') ||
       sessionStorage.getItem('blackrent_token')
     );
-  };
+  }, [state.token]);
 
-  useEffect(() => {
-    loadUsers();
-    loadInvestors();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -148,16 +139,16 @@ const BasicUserManagement: React.FC = () => {
 
         // Transform data to match our interface
         const transformedUsers = (data.data || data.users || []).map(
-          (user: any) => ({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            firstName: user.first_name || user.firstName,
-            lastName: user.last_name || user.lastName,
+          (user: Record<string, unknown>) => ({
+            id: user.id as string,
+            username: user.username as string,
+            email: user.email as string,
+            role: user.role as string,
+            firstName: (user.first_name || user.firstName) as string,
+            lastName: (user.last_name || user.lastName) as string,
             isActive: user.is_active !== false, // default to true if undefined
-            lastLogin: user.last_login || user.lastLogin,
-            createdAt: user.created_at || user.createdAt,
+            lastLogin: (user.last_login || user.lastLogin) as string,
+            createdAt: (user.created_at || user.createdAt) as string,
           })
         );
 
@@ -172,9 +163,9 @@ const BasicUserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthToken]);
 
-  const loadInvestors = async () => {
+  const loadInvestors = useCallback(async () => {
     try {
       setLoadingInvestors(true);
       const response = await fetch(
@@ -200,31 +191,90 @@ const BasicUserManagement: React.FC = () => {
     } finally {
       setLoadingInvestors(false);
     }
-  };
+  }, [getAuthToken]);
+
+  useEffect(() => {
+    loadUsers();
+    loadInvestors();
+  }, [loadUsers, loadInvestors]);
 
   const handleCreateUser = async () => {
+    console.log('🚀 Starting user creation process...');
+    console.log('📝 User form data:', userForm);
+
+    // Validate required fields
+    if (!userForm.username || !userForm.email || !userForm.password) {
+      const missingFields = [];
+      if (!userForm.username) missingFields.push('používateľské meno');
+      if (!userForm.email) missingFields.push('email');
+      if (!userForm.password) missingFields.push('heslo');
+
+      const errorMsg = `Chýbajú povinné polia: ${missingFields.join(', ')}`;
+      console.error('❌ Validation failed:', errorMsg);
+      setError(errorMsg);
+      return;
+    }
+
+    setCreatingUser(true);
+    setError(null);
+
     try {
-      const response = await fetch(`${getApiBaseUrl()}/auth/users`, {
+      const apiUrl = `${getApiBaseUrl()}/auth/users`;
+      const token = getAuthToken();
+
+      console.log('🌐 API URL:', apiUrl);
+      console.log('🔑 Token exists:', !!token);
+      console.log('📤 Request payload:', JSON.stringify(userForm, null, 2));
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAuthToken()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(userForm),
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log(
+        '📡 Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
+
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('✅ User created successfully:', responseData);
+
         setUserDialogOpen(false);
         resetUserForm();
         await loadUsers();
         setError(null);
+
+        console.log('🎉 User creation process completed successfully!');
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Chyba pri vytváraní používateľa');
+        console.error('❌ Server error response:', errorData);
+        console.error('❌ Response status:', response.status);
+        console.error('❌ Response statusText:', response.statusText);
+
+        setError(
+          errorData.error ||
+            errorData.message ||
+            `Chyba pri vytváraní používateľa (${response.status})`
+        );
       }
     } catch (error) {
-      console.error('Error creating user:', error);
-      setError('Chyba pri vytváraní používateľa');
+      console.error('💥 Network/Request error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Neznáma chyba';
+      console.error('💥 Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+      });
+      setError(`Chyba pri vytváraní používateľa: ${errorMessage}`);
+    } finally {
+      setCreatingUser(false);
     }
   };
 
@@ -246,7 +296,7 @@ const BasicUserManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const updateData: any = { ...userForm };
+      const updateData: Record<string, unknown> = { ...userForm };
       // Don't send empty password
       if (!updateData.password) {
         delete updateData.password;
@@ -888,12 +938,16 @@ const BasicUserManagement: React.FC = () => {
                     Žiadne priradenie - bežný používateľ
                   </MenuItem>
                   {investors.map(investor => (
-                    <MenuItem key={investor.id} value={investor.id}>
-                      {investor.firstName} {investor.lastName} - Podiely:{' '}
-                      {investor.companies
-                        .map(
-                          (c: any) =>
-                            `${c.companyName} (${c.ownershipPercentage}%)`
+                    <MenuItem
+                      key={investor.id as string}
+                      value={investor.id as string}
+                    >
+                      {investor.firstName as string}{' '}
+                      {investor.lastName as string} - Podiely:{' '}
+                      {(investor.companies as Record<string, unknown>[])
+                        ?.map(
+                          (c: Record<string, unknown>) =>
+                            `${c.companyName as string} (${c.ownershipPercentage as number}%)`
                         )
                         .join(', ')}
                     </MenuItem>
@@ -933,10 +987,14 @@ const BasicUserManagement: React.FC = () => {
           <Button
             variant="contained"
             onClick={handleCreateUser}
+            disabled={creatingUser}
             fullWidth={isMobile}
             sx={{ minWidth: isMobile ? '100%' : 'auto' }}
+            startIcon={
+              creatingUser ? <CircularProgress size={16} /> : undefined
+            }
           >
-            Vytvoriť
+            {creatingUser ? 'Vytváram...' : 'Vytvoriť'}
           </Button>
         </DialogActions>
       </Dialog>

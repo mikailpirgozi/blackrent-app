@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+} from 'react';
 
 import { apiService, getAPI_BASE_URL } from '../services/api';
 import type {
@@ -118,29 +124,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     StorageManager.clearAuthData();
   };
 
-  const validateToken = async (token: string): Promise<boolean> => {
-    try {
-      logger.debug('🔍 Validating token...');
-      const response = await fetch(`${getAPI_BASE_URL()}/auth/me`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  // const validateToken = async (token: string): Promise<boolean> => {
+  //   try {
+  //     logger.debug('🔍 Validating token...');
+  //     const response = await fetch(`${getAPI_BASE_URL()}/auth/me`, {
+  //       method: 'GET',
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         'Content-Type': 'application/json',
+  //       },
+  //     });
 
-      if (response.ok) {
-        logger.debug('✅ Token is valid');
-        return true;
-      } else {
-        console.warn('❌ Token validation failed:', response.status);
-        return false;
-      }
-    } catch (error) {
-      console.warn('❌ Token validation error:', error);
-      return false;
-    }
-  };
+  //     if (response.ok) {
+  //       logger.debug('✅ Token is valid');
+  //       return true;
+  //     } else {
+  //       console.warn('❌ Token validation failed:', response.status);
+  //       return false;
+  //     }
+  //   } catch (error) {
+  //     console.warn('❌ Token validation error:', error);
+  //     return false;
+  //   }
+  // };
 
   const restoreSession = React.useCallback(async () => {
     try {
@@ -303,7 +309,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [state.isAuthenticated, state.token, state.user, restoreSession]);
 
   // Function to load user company access
-  const loadUserCompanyAccess = async () => {
+  const loadUserCompanyAccess = useCallback(async () => {
     if (!state.user || state.user.role === 'admin') {
       setUserCompanyAccess([]);
       return;
@@ -317,7 +323,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('❌ Error loading user company access:', error);
       setUserCompanyAccess([]);
     }
-  };
+  }, [state.user]);
 
   // Load permissions when user changes
   useEffect(() => {
@@ -326,7 +332,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } else {
       setUserCompanyAccess([]);
     }
-  }, [state.user, state.isAuthenticated]);
+  }, [state.user, state.isAuthenticated, loadUserCompanyAccess]);
 
   const login = async (
     credentials: LoginCredentials,
@@ -399,7 +405,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         online: navigator.onLine,
         userAgent: navigator.userAgent,
         connectionType:
-          (navigator as any).connection?.effectiveType || 'unknown',
+          (navigator as Navigator & { connection?: { effectiveType?: string } })
+            .connection?.effectiveType || 'unknown',
       });
       dispatch({ type: 'LOGIN_FAILURE' });
       return false;
@@ -428,7 +435,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Pre ostatných používateľov skontroluj permissions v aspoň jednej firme
     return userCompanyAccess.some(access => {
-      const resourcePermissions = (access.permissions as any)[resource];
+      const resourcePermissions = (
+        access.permissions as Record<string, unknown>
+      )[resource];
       if (!resourcePermissions) return false;
 
       // Convert action to permission key (read -> read, create/update/delete -> write)

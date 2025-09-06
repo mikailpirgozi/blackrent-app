@@ -1,13 +1,38 @@
+import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { postgresDatabase } from '../models/postgres-database';
-import type { AuthResponse, User, ApiResponse, AuthRequest } from '../types';
-import { LoginCredentials } from '../types';
-import { authenticateToken, requireRole } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken, requireRole } from '../middleware/auth';
+import { postgresDatabase } from '../models/postgres-database';
+import type { ApiResponse, AuthRequest, AuthResponse, User } from '../types';
 import { logger } from '../utils/logger';
+
+interface JWTPayload {
+  userId: string;
+  username: string;
+  role: string;
+  exp: number;
+  iat: number;
+}
+
+interface DatabaseFixes {
+  currentColumns: string[];
+  columnsAdded: string[];
+  newColumns?: string[];
+  brandRenamed?: boolean;
+  brandRenameError?: string;
+  [key: string]: unknown; // Pre dynamické error properties
+}
+
+interface StepResult {
+  step: number;
+  name: string;
+  success: boolean;
+  error?: string;
+  created?: number;
+  data?: Record<string, unknown>;
+}
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
@@ -30,7 +55,7 @@ router.post('/create-admin', async (req: Request, res: Response<ApiResponse>) =>
     const hashedPassword = await bcrypt.hash('admin123', 12);
     
     // Vytvor admin používateľa priamo cez databázu
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       await client.query(
         'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
@@ -73,7 +98,7 @@ router.get('/create-admin', async (req: Request, res: Response<ApiResponse>) => 
     const hashedPassword = await bcrypt.hash('Black123', 12);
     
     // Vytvor admin používateľa priamo cez databázu
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       await client.query(
         'INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)',
@@ -94,11 +119,11 @@ router.get('/create-admin', async (req: Request, res: Response<ApiResponse>) => 
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri vytváraní admin používateľa:', error);
     return res.status(500).json({
       success: false,
-      error: 'Chyba pri vytváraní admin používateľa: ' + error.message
+      error: 'Chyba pri vytváraní admin používateľa: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -109,7 +134,7 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
     logger.auth('🔧 GET request - Resetujem admin používateľa...');
     
     // Vymaž existujúceho admin používateľa
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
       logger.auth('🗑️ Starý admin účet vymazaný');
@@ -137,11 +162,11 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri resetovaní admin používateľa:', error);
     return res.status(500).json({
       success: false,
-      error: 'Chyba pri resetovaní admin používateľa: ' + error.message
+      error: 'Chyba pri resetovaní admin používateľa: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -151,7 +176,7 @@ router.get('/init-database', async (req: Request, res: Response<ApiResponse>) =>
   try {
     logger.auth('🔧 GET request - Inicializujem databázu a vytváram vzorové dáta...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       // NAJSKÔR VYTVORIŤ VŠETKY TABUĽKY!
       logger.auth('📋 Vytváranie tabuliek...');
@@ -292,11 +317,11 @@ router.get('/init-database', async (req: Request, res: Response<ApiResponse>) =>
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri inicializácii databázy:', error);
     return res.status(500).json({
       success: false,
-      error: 'Chyba pri inicializácii databázy: ' + error.message
+      error: 'Chyba pri inicializácii databázy: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -306,7 +331,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
   try {
     logger.auth('🔧 GET request - Vytváram vzorové dáta...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       // Skontroluj či už existujú dáta
       const vehicleCount = await client.query('SELECT COUNT(*) FROM vehicles');
@@ -327,7 +352,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
       // 1. FIRMY
       const existingCompanies = await client.query('SELECT name FROM companies WHERE name IN ($1, $2, $3)', 
         ['ABC Rent', 'Premium Cars', 'City Rent']);
-      const existingNames = existingCompanies.rows.map((row: any) => row.name);
+      const existingNames = existingCompanies.rows.map((row: { name: string }) => row.name);
       const companiesToInsert = ['ABC Rent', 'Premium Cars', 'City Rent'].filter(name => !existingNames.includes(name));
       
       if (companiesToInsert.length > 0) {
@@ -339,7 +364,7 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
       // 2. POISŤOVNE
       const existingInsurers = await client.query('SELECT name FROM insurers WHERE name IN ($1, $2)', 
         ['Allianz', 'Generali']);
-      const existingInsurerNames = existingInsurers.rows.map((row: any) => row.name);
+      const existingInsurerNames = existingInsurers.rows.map((row: { name: string }) => row.name);
       const insurersToInsert = ['Allianz', 'Generali'].filter(name => !existingInsurerNames.includes(name));
       
       if (insurersToInsert.length > 0) {
@@ -442,11 +467,11 @@ router.get('/create-sample-data', async (req: Request, res: Response<ApiResponse
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri vytváraní vzorových dát:', error);
     return res.status(500).json({
       success: false,
-      error: 'Chyba pri vytváraní vzorových dát: ' + error.message
+      error: 'Chyba pri vytváraní vzorových dát: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -460,7 +485,7 @@ router.post('/reset-admin', async (req: Request, res: Response<ApiResponse>) => 
     const adminPassword = password || 'Black123'; // Default heslo alebo z request
     
     // Vymaž existujúceho admin používateľa
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
       logger.auth('🗑️ Starý admin účet vymazaný');
@@ -510,7 +535,7 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     logger.auth('🔍 LOGIN DEBUG - Getting user from database...');
     
     // Get user directly from database with detailed logging
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     let user;
     
     try {  
@@ -621,7 +646,7 @@ router.get('/reset-pavlik', async (req: Request, res: Response<ApiResponse>) => 
     const hashedPassword = await bcrypt.hash('pavlik123', 12);
     
     // Aktualizuj heslo pre pavlik
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       const result = await client.query(
         'UPDATE users SET password_hash = $1 WHERE username = $2 RETURNING username',
@@ -654,7 +679,7 @@ router.get('/reset-pavlik', async (req: Request, res: Response<ApiResponse>) => 
 });
 
 // GET /api/auth/me - Získanie informácií o aktuálnom používateľovi
-router.get('/me', authenticateToken, (req: any, res: Response<ApiResponse>) => {
+router.get('/me', authenticateToken, (req: AuthRequest, res: Response<ApiResponse>) => {
   res.json({
     success: true,
     data: req.user
@@ -885,7 +910,10 @@ router.delete('/users/:id', authenticateToken, requireRole(['admin']), async (re
 router.post('/change-password', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = (req as any).user.id;
+    const userId = (req as AuthRequest).user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -950,7 +978,7 @@ router.get('/setup-admin', async (req: Request, res: Response<ApiResponse>) => {
     const hashedPassword = await bcrypt.hash('Black123', 12);
     
     // Vymaž a vytvor nového admin používateľa
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       // Vymaž starý admin ak existuje
       await client.query('DELETE FROM users WHERE username = $1', ['admin']);
@@ -982,7 +1010,7 @@ router.get('/setup-admin', async (req: Request, res: Response<ApiResponse>) => {
 // GET /api/auth/init-admin - Super jednoduchý init pre admin
 router.get('/init-admin', async (req: Request, res: Response) => {
   try {
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     
     try {
       // Najskôr skús vytvoriť novú users tabuľku ak neexistuje
@@ -1050,7 +1078,7 @@ router.post('/init-database', async (req: Request, res: Response<ApiResponse>) =
   try {
     logger.auth('🚨 EMERGENCY: Initializing database...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     
     try {
       // First drop all existing tables to ensure clean slate
@@ -1228,7 +1256,7 @@ router.post('/init-database', async (req: Request, res: Response<ApiResponse>) =
 // GET /api/auth/fix-customers - Debug endpoint na opravenie customers tabuľky
 router.get('/fix-customers', async (req: Request, res: Response) => {
   try {
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     
     try {
       // Zisti ako vyzerá customers tabuľka
@@ -1242,18 +1270,18 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
       logger.auth('📋 Current customers table schema:', schema.rows);
       
       // Skús opraviť customers tabuľku
-      if (schema.rows.some((col: any) => col.column_name === 'first_name')) {
+      if (schema.rows.some((col: { column_name: string }) => col.column_name === 'first_name')) {
         logger.auth('🔧 Found first_name column, fixing...');
         
         // Rename first_name to name if needed
         await client.query(`
           ALTER TABLE customers RENAME COLUMN first_name TO name
-        `).catch((e: any) => logger.auth('Rename error:', e.message));
+        `).catch((e: unknown) => logger.auth('Rename error:', e instanceof Error ? e.message : String(e)));
         
         // Remove last_name if exists  
         await client.query(`
           ALTER TABLE customers DROP COLUMN IF EXISTS last_name
-        `).catch((e: any) => logger.auth('Drop error:', e.message));
+        `).catch((e: unknown) => logger.auth('Drop error:', e instanceof Error ? e.message : String(e)));
       }
       
       // Ensure proper constraints
@@ -1261,7 +1289,7 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
         ALTER TABLE customers 
         ALTER COLUMN name SET NOT NULL,
         ALTER COLUMN name TYPE VARCHAR(100)
-      `).catch((e: any) => logger.auth('Constraint error:', e.message));
+      `).catch((e: unknown) => logger.auth('Constraint error:', e instanceof Error ? e.message : String(e)));
       
       // Get final schema
       const finalSchema = await client.query(`
@@ -1304,7 +1332,7 @@ router.get('/fix-customers', async (req: Request, res: Response) => {
 // GET /api/auth/debug-db - Simple database debug endpoint
 router.get('/debug-db', async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     
     try {
       // Check tables
@@ -1336,7 +1364,7 @@ router.get('/debug-db', async (req: Request, res: Response<ApiResponse>) => {
         success: true,
         data: {
           database_connected: true,
-          tables: tablesQuery.rows.map((r: any) => r.table_name),
+          tables: tablesQuery.rows.map((r: { table_name: string }) => r.table_name),
           admin_user: adminQuery.rows[0] || null,
           counts: countsQuery.rows[0]
         }
@@ -1360,7 +1388,7 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
   try {
     logger.auth('🔧 GET request - FORCE vytváram vzorové dáta (ignorujem existujúce)...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       const created = {
         companies: 0,
@@ -1379,8 +1407,8 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
           RETURNING name
         `);
         created.companies = result.rows.length;
-      } catch (e: any) {
-        logger.auth('⚠️ Firmy:', e.message);
+      } catch (e: unknown) {
+        logger.auth('⚠️ Firmy:', e instanceof Error ? e.message : String(e));
       }
       
       // 2. POISŤOVNE  
@@ -1391,8 +1419,8 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
           RETURNING name
         `);
         created.insurers = result.rows.length;
-      } catch (e: any) {
-        logger.auth('⚠️ Poisťovne:', e.message);
+      } catch (e: unknown) {
+        logger.auth('⚠️ Poisťovne:', e instanceof Error ? e.message : String(e));
       }
       
       // 3. VOZIDLÁ - FORCE INSERT ALEBO IGNORE
@@ -1477,8 +1505,8 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
           }
         }
         
-      } catch (vehicleError: any) {
-        logger.auth('⚠️ Chyba pri vozidlách/dátach:', vehicleError.message);
+      } catch (vehicleError: unknown) {
+        logger.auth('⚠️ Chyba pri vozidlách/dátach:', vehicleError instanceof Error ? vehicleError.message : String(vehicleError));
       }
       
       logger.auth('🎉 FORCE vytvorenie dát dokončené!', created);
@@ -1502,11 +1530,11 @@ router.get('/force-create-data', async (req: Request, res: Response<ApiResponse>
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri FORCE vytváraní vzorových dát:', error);
     return res.status(500).json({
       success: false,
-      error: 'Chyba pri FORCE vytváraní vzorových dát: ' + error.message
+      error: 'Chyba pri FORCE vytváraní vzorových dát: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -1516,16 +1544,16 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
   try {
     logger.auth('🔍 DEBUG - Kontrolujem existenciu tabuliek...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
-      const tables: any = {};
+      const tables: Record<string, unknown> = {};
       
       // Test existencie tabuliek
       try {
         const result = await client.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
-        tables.allTables = result.rows.map((row: any) => row.tablename);
-      } catch (e: any) {
-        tables.allTablesError = e.message;
+        tables.allTables = result.rows.map((row: { tablename: string }) => row.tablename);
+      } catch (e: unknown) {
+        tables.allTablesError = e instanceof Error ? e.message : String(e);
       }
       
       // SCHÉMA VEHICLES TABUĽKY  
@@ -1537,8 +1565,8 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
           ORDER BY ordinal_position
         `);
         tables.vehiclesSchema = schemaResult.rows;
-      } catch (e: any) {
-        tables.vehiclesSchemaError = e.message;
+      } catch (e: unknown) {
+        tables.vehiclesSchemaError = e instanceof Error ? e.message : String(e);
       }
       
       // Test konkrétnych tabuliek
@@ -1552,10 +1580,10 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
             count: result.rows[0].count,
             countType: typeof result.rows[0].count
           };
-        } catch (e: any) {
+        } catch (e: unknown) {
           tables[table] = {
             exists: false,
-            error: e.message
+            error: e instanceof Error ? e.message : String(e)
           };
         }
       }
@@ -1572,10 +1600,10 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
           inserted: testResult.rows.length,
           data: testResult.rows
         };
-      } catch (e: any) {
+      } catch (e: unknown) {
         tables.testInsert = {
           success: false,
-          error: e.message
+          error: e instanceof Error ? e.message : String(e)
         };
       }
       
@@ -1589,11 +1617,11 @@ router.get('/debug-tables', async (req: Request, res: Response<ApiResponse>) => 
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri DEBUG tables:', error);
     return res.status(500).json({
       success: false,
-      error: 'DEBUG error: ' + error.message
+      error: 'DEBUG error: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -1603,7 +1631,7 @@ router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiRespons
   try {
     logger.auth('🚗 TEST - Vytváram jedno testové vozidlo...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       // Skús vytvoriť jedno vozidlo bez ON CONFLICT
       const result = await client.query(`
@@ -1634,12 +1662,12 @@ router.get('/simple-vehicle-test', async (req: Request, res: Response<ApiRespons
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri test vozidla:', error);
     return res.json({
       success: false,
-      error: 'Chyba pri test vozidla: ' + error.message,
-      data: { detail: error.detail || null }
+      error: 'Chyba pri test vozidla: ' + (error instanceof Error ? error.message : String(error)),
+      data: { detail: (error as { detail?: string })?.detail || null }
     });
   }
 });
@@ -1649,9 +1677,12 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
   try {
     logger.auth('🔧 FIX - Opravujem schému vehicles tabuľky...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
-      const fixes: any = {};
+      const fixes: DatabaseFixes = {
+        currentColumns: [],
+        columnsAdded: []
+      };
       
       // 1. SKONTROLUJ AKTUÁLNU SCHÉMU
       const currentSchema = await client.query(`
@@ -1660,15 +1691,15 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
         WHERE table_name = 'vehicles' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
-      fixes.currentColumns = currentSchema.rows.map((row: any) => row.column_name);
+      fixes.currentColumns = currentSchema.rows.map((row: { column_name: string }) => row.column_name);
       
       // 2. OPRAV STĹPCE: make -> brand
       if (fixes.currentColumns.includes('make')) {
         try {
           await client.query('ALTER TABLE vehicles RENAME COLUMN make TO brand');
           fixes.brandRenamed = true;
-        } catch (e: any) {
-          fixes.brandRenameError = e.message;
+        } catch (e: unknown) {
+          fixes.brandRenameError = e instanceof Error ? e.message : String(e);
         }
       }
       
@@ -1692,8 +1723,8 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
               : `ALTER TABLE vehicles ADD COLUMN ${col.name} ${col.type}`;
             await client.query(alterQuery);
             fixes.columnsAdded.push(col.name);
-          } catch (e: any) {
-            fixes[`${col.name}_error`] = e.message;
+          } catch (e: unknown) {
+            fixes[`${col.name}_error`] = e instanceof Error ? e.message : String(e);
           }
         }
       }
@@ -1705,7 +1736,7 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
         WHERE table_name = 'vehicles' AND table_schema = 'public'
         ORDER BY ordinal_position
       `);
-      fixes.newColumns = newSchema.rows.map((row: any) => row.column_name);
+      fixes.newColumns = newSchema.rows.map((row: { column_name: string }) => row.column_name);
       
       logger.auth('🔧 Schema fixes completed:', fixes);
       
@@ -1717,11 +1748,11 @@ router.get('/fix-vehicles-schema', async (req: Request, res: Response<ApiRespons
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri oprave schémy:', error);
     return res.status(500).json({
       success: false,
-      error: 'Chyba pri oprave schémy: ' + error.message
+      error: 'Chyba pri oprave schémy: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -1731,9 +1762,9 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
   try {
     logger.auth('📋 STEP-BY-STEP - Postupne vytváram vzorové dáta...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
-      const steps: any = [];
+      const steps: StepResult[] = [];
       
       // KROK 1: FIRMA
       try {
@@ -1743,8 +1774,8 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
           RETURNING name
         `);
         steps.push({ step: 1, name: 'firma', success: true, created: companyResult.rows.length });
-      } catch (e: any) {
-        steps.push({ step: 1, name: 'firma', success: false, error: e.message });
+      } catch (e: unknown) {
+        steps.push({ step: 1, name: 'firma', success: false, error: e instanceof Error ? e.message : String(e) });
       }
       
       // KROK 2: VOZIDLO  
@@ -1759,8 +1790,8 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
           JSON.stringify({ type: 'percentage', value: 15 })
         ]);
         steps.push({ step: 2, name: 'vozidlo', success: true, created: vehicleResult.rows.length, data: vehicleResult.rows[0] });
-      } catch (e: any) {
-        steps.push({ step: 2, name: 'vozidlo', success: false, error: e.message });
+      } catch (e: unknown) {
+        steps.push({ step: 2, name: 'vozidlo', success: false, error: e instanceof Error ? e.message : String(e) });
       }
       
       // KROK 3: ZÁKAZNÍK
@@ -1771,13 +1802,13 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
           RETURNING id, name
         `);
         steps.push({ step: 3, name: 'zákazník', success: true, created: customerResult.rows.length, data: customerResult.rows[0] });
-      } catch (e: any) {
-        steps.push({ step: 3, name: 'zákazník', success: false, error: e.message });
+      } catch (e: unknown) {
+        steps.push({ step: 3, name: 'zákazník', success: false, error: e instanceof Error ? e.message : String(e) });
       }
       
       // KROK 4: PRENÁJOM (len ak máme vozidlo a zákazníka)
-      const vehicleStep = steps.find((s: any) => s.name === 'vozidlo');
-      const customerStep = steps.find((s: any) => s.name === 'zákazník');
+      const vehicleStep = steps.find(s => s.name === 'vozidlo');
+      const customerStep = steps.find(s => s.name === 'zákazník');
       
       if (vehicleStep?.success && customerStep?.success) {
         try {
@@ -1785,10 +1816,14 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
             INSERT INTO rentals (vehicle_id, customer_id, customer_name, start_date, end_date, total_price, commission, payment_method, paid, confirmed, handover_place) 
             VALUES ($1, $2, $3, '2025-01-20', '2025-01-23', 240.00, 36.00, 'bank_transfer', true, true, 'Bratislava Test')
             RETURNING id
-          `, [vehicleStep.data.id, customerStep.data.id, customerStep.data.name]);
+          `, [
+            (vehicleStep.data as { id: string }).id, 
+            (customerStep.data as { id: string; name: string }).id, 
+            (customerStep.data as { id: string; name: string }).name
+          ]);
           steps.push({ step: 4, name: 'prenájom', success: true, created: rentalResult.rows.length });
-        } catch (e: any) {
-          steps.push({ step: 4, name: 'prenájom', success: false, error: e.message });
+        } catch (e: unknown) {
+          steps.push({ step: 4, name: 'prenájom', success: false, error: e instanceof Error ? e.message : String(e) });
         }
       } else {
         steps.push({ step: 4, name: 'prenájom', success: false, error: 'Chýba vozidlo alebo zákazník' });
@@ -1804,11 +1839,11 @@ router.get('/step-by-step-data', async (req: Request, res: Response<ApiResponse>
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri step-by-step:', error);
     return res.status(500).json({
       success: false,
-      error: 'Step-by-step error: ' + error.message
+      error: 'Step-by-step error: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -1835,7 +1870,7 @@ router.put('/signature-template', authenticateToken, async (req: AuthRequest, re
     }
     
     // Update signature template in database
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       await client.query(
         'UPDATE users SET signature_template = $1 WHERE id = $2',
@@ -1856,7 +1891,7 @@ router.put('/signature-template', authenticateToken, async (req: AuthRequest, re
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error updating signature template:', error);
     res.status(500).json({
       success: false,
@@ -1880,7 +1915,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
     }
     
     // Update user profile in database
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       await client.query(
         'UPDATE users SET first_name = $1, last_name = $2 WHERE id = $3',
@@ -1906,7 +1941,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error updating user profile:', error);
     res.status(500).json({
       success: false,
@@ -1937,7 +1972,7 @@ router.get('/debug-token', async (req: Request, res: Response<ApiResponse>) => {
 
     try {
       // Manuálne overenie tokenu
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
       logger.auth('🔍 TOKEN DEBUG - Token successfully decoded:', decoded);
       
       // Skús získať používateľa z databázy
@@ -1992,11 +2027,11 @@ router.get('/debug-token', async (req: Request, res: Response<ApiResponse>) => {
 });
 
 // DEBUG endpoint na kontrolu users tabuľky a migrácií
-router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
+router.get('/debug-users-table', async (req: Request, res: Response<ApiResponse>) => {
   try {
     logger.auth('🔍 DEBUG: Kontrolujem users tabuľku...');
     
-    const client = await (postgresDatabase as any).pool.connect();
+    const client = await postgresDatabase.dbPool.connect();
     try {
       // 1. Skontroluj či existuje users tabuľka
       const tableExists = await client.query(`
@@ -2013,7 +2048,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
         return res.json({
           success: false,
           error: 'Users tabuľka neexistuje',
-          debug: { tableExists: false }
+          data: { tableExists: false }
         });
       }
       
@@ -2028,9 +2063,9 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
       logger.auth('🔍 Stĺpce v users tabuľke:', columns.rows);
       
       // 3. Skontroluj či existujú potrebné stĺpce
-      const hasFirstName = columns.rows.some((col: any) => col.column_name === 'first_name');
-      const hasLastName = columns.rows.some((col: any) => col.column_name === 'last_name');
-      const hasSignatureTemplate = columns.rows.some((col: any) => col.column_name === 'signature_template');
+      const hasFirstName = columns.rows.some((col: { column_name: string }) => col.column_name === 'first_name');
+      const hasLastName = columns.rows.some((col: { column_name: string }) => col.column_name === 'last_name');
+      const hasSignatureTemplate = columns.rows.some((col: { column_name: string }) => col.column_name === 'signature_template');
       
       // 4. Ak chýbajú stĺpce, spusti migráciu
       if (!hasFirstName || !hasLastName || !hasSignatureTemplate) {
@@ -2059,7 +2094,7 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
       return res.json({
         success: true,
         message: 'Users tabuľka debug dokončený',
-        debug: {
+        data: {
           tableExists: true,
           columns: columns.rows,
           hasFirstName,
@@ -2072,11 +2107,11 @@ router.get('/debug-users-table', async (req: Request, res: Response<any>) => {
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ DEBUG chyba:', error);
     return res.status(500).json({
       success: false,
-      error: 'DEBUG chyba: ' + error.message
+      error: 'DEBUG chyba: ' + (error instanceof Error ? error.message : String(error))
     });
   }
 });

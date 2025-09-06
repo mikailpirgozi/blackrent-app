@@ -222,7 +222,7 @@ export function useInfiniteRentals(
       setInitialLoad(false);
       loadRentals(1, true);
     }
-  }, []);
+  }, [initialLoad, loadRentals]);
 
   // Filter changes
   useEffect(() => {
@@ -233,7 +233,7 @@ export function useInfiniteRentals(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [filters]); // Only depend on filters, not loadRentals to avoid infinite loop
+  }, [filters, initialLoad, loadRentals]); // Only depend on filters, not loadRentals to avoid infinite loop
 
   // Search term changes - trigger new search
   useEffect(() => {
@@ -248,7 +248,7 @@ export function useInfiniteRentals(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [searchTerm]); // New search when search term changes
+  }, [searchTerm, initialLoad, loadRentals]); // New search when search term changes
 
   // 🔴 ENHANCED: Listen for WebSocket refresh events s smart updates
   useEffect(() => {
@@ -303,7 +303,7 @@ export function useInfiniteRentals(
         handleOptimisticUpdate as EventListener
       );
     };
-  }, [refresh, updateRentalInList]);
+  }, [refresh, updateRentalInList, handleSmartRentalUpdate]);
 
   // Debug logging
   useEffect(() => {

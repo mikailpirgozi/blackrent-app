@@ -1,43 +1,28 @@
 import {
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Pending as PendingIcon,
-  Euro as EuroIcon,
-  Assignment as HandoverIcon,
-  AssignmentReturn as ReturnIcon,
-} from '@mui/icons-material';
-import {
   Box,
-  Typography,
   Card,
   CardContent,
-  Grid,
-  Chip,
-  useTheme,
-  useMediaQuery,
   Divider,
-  Stack,
+  Grid,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import {
-  format,
-  isToday,
-  isTomorrow,
-  isAfter,
-  isBefore,
-  startOfDay,
-} from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { isAfter, isBefore, isToday, isTomorrow } from 'date-fns';
 import React, { useMemo } from 'react';
 
 import type { Rental } from '../../types';
 
+interface ProtocolData {
+  handover?: Record<string, unknown>;
+  return?: Record<string, unknown>;
+}
+
 interface RentalDashboardProps {
   rentals: Rental[];
-  protocols?: Record<string, { handover?: any; return?: any }>;
+  protocols?: Record<string, ProtocolData>;
   isLoading?: boolean;
-  onQuickFilter?: (filterType: string, value?: any) => void;
+  onQuickFilter?: (filterType: string, value?: string | number) => void;
 }
 
 interface DashboardStats {
@@ -54,6 +39,23 @@ interface DashboardStats {
   withReturn: number;
   totalRevenue: number;
   avgDailyRevenue: number;
+}
+
+interface MetricData {
+  label: string;
+  value: number;
+  color: 'error' | 'warning' | 'success' | 'info';
+  urgent: boolean;
+  filterType: string;
+  clickable: boolean;
+}
+
+interface ThemePalette {
+  error: { main: string };
+  warning: { main: string };
+  success: { main: string };
+  info: { main: string };
+  primary: { main: string };
 }
 
 const RentalDashboard: React.FC<RentalDashboardProps> = ({
@@ -122,12 +124,6 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
       return isToday(createdDate);
     });
 
-    // Začínajúce dnes - prenájmy ktoré dnes začínajú
-    const startingToday = rentals.filter(rental => {
-      const startDate = new Date(rental.startDate);
-      return isToday(startDate);
-    });
-
     const unpaid = rentals.filter(rental => !rental.paid);
     const pending = rentals.filter(
       rental => rental.status === 'pending' || !rental.confirmed
@@ -163,7 +159,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
   }, [rentals, protocols]);
 
   // 📊 Všetky metriky v jednom kompaktnom riadku
-  const allMetrics = [
+  const allMetrics: MetricData[] = [
     {
       label: 'Preterminované',
       value: stats.overdue,
@@ -295,9 +291,9 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
                 }
                 sx={{
                   background: metric.urgent
-                    ? `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}15 0%, ${(theme.palette as any)[metric.color].main}25 100%)`
-                    : `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}10 0%, ${(theme.palette as any)[metric.color].main}20 100%)`,
-                  border: `1px solid ${(theme.palette as any)[metric.color].main}30`,
+                    ? `linear-gradient(135deg, ${(theme.palette as ThemePalette)[metric.color].main}15 0%, ${(theme.palette as ThemePalette)[metric.color].main}25 100%)`
+                    : `linear-gradient(135deg, ${(theme.palette as ThemePalette)[metric.color].main}10 0%, ${(theme.palette as ThemePalette)[metric.color].main}20 100%)`,
+                  border: `1px solid ${(theme.palette as ThemePalette)[metric.color].main}30`,
                   borderRadius: 1,
                   transition: 'all 0.2s ease',
                   cursor: metric.clickable ? 'pointer' : 'default',
@@ -305,7 +301,7 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
                   '&:hover': metric.clickable
                     ? {
                         transform: 'translateY(-1px)',
-                        boxShadow: `0 4px 15px ${(theme.palette as any)[metric.color].main}30`,
+                        boxShadow: `0 4px 15px ${(theme.palette as ThemePalette)[metric.color].main}30`,
                       }
                     : {},
                 }}

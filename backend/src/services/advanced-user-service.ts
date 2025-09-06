@@ -1,8 +1,8 @@
 // 🏢 Advanced User Management Service
 // Multi-tenant user management with enhanced permissions
 
-import type { Pool } from 'pg';
 import bcrypt from 'bcrypt';
+import type { Pool } from 'pg';
 import { postgresDatabase } from '../models/postgres-database';
 
 export interface Organization {
@@ -22,8 +22,8 @@ export interface Organization {
   subscriptionExpiresAt?: Date;
   maxUsers: number;
   maxVehicles: number;
-  settings: Record<string, any>;
-  branding: Record<string, any>;
+  settings: Record<string, unknown>;
+  branding: Record<string, unknown>;
   createdAt: Date;
   updatedAt?: Date;
   createdBy?: string;
@@ -38,7 +38,7 @@ export interface Department {
   managerId?: string;
   monthlyBudget?: number;
   vehicleLimit?: number;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -51,7 +51,7 @@ export interface Role {
   description?: string;
   level: number;
   parentRoleId?: string;
-  permissions: Record<string, any>;
+  permissions: Record<string, unknown>;
   isSystem: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -78,7 +78,7 @@ export interface AdvancedUser {
   salary?: number;
   managerId?: string;
   roleId: string;
-  customPermissions: Record<string, any>;
+  customPermissions: Record<string, unknown>;
   isActive: boolean;
   isVerified: boolean;
   emailVerifiedAt?: Date;
@@ -93,7 +93,7 @@ export interface AdvancedUser {
   language: string;
   timezone: string;
   theme: string;
-  preferences: Record<string, any>;
+  preferences: Record<string, unknown>;
   createdAt: Date;
   updatedAt?: Date;
   createdBy?: string;
@@ -105,8 +105,8 @@ export interface UserSession {
   tokenHash: string;
   ipAddress?: string;
   userAgent?: string;
-  deviceInfo?: Record<string, any>;
-  location?: Record<string, any>;
+  deviceInfo?: Record<string, unknown>;
+  location?: Record<string, unknown>;
   createdAt: Date;
   lastUsedAt: Date;
   expiresAt: Date;
@@ -124,8 +124,8 @@ export interface ActivityLog {
   userAgent?: string;
   method?: string;
   endpoint?: string;
-  oldValues?: Record<string, any>;
-  newValues?: Record<string, any>;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
   success: boolean;
   errorMessage?: string;
   createdAt: Date;
@@ -139,7 +139,7 @@ export interface Team {
   description?: string;
   teamLeadId?: string;
   isActive: boolean;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   createdAt: Date;
   updatedAt?: Date;
   createdBy?: string;
@@ -159,7 +159,7 @@ class AdvancedUserService {
   private pool: Pool;
 
   constructor() {
-    this.pool = (postgresDatabase as any).pool;
+    this.pool = (postgresDatabase as unknown as { pool: Pool }).pool;
   }
 
   // ================================================================================
@@ -250,7 +250,7 @@ class AdvancedUserService {
     return result.rows.length > 0 ? this.mapOrganization(result.rows[0]) : null;
   }
 
-  async getOrganizationStats(organizationId: string): Promise<any> {
+  async getOrganizationStats(organizationId: string): Promise<Record<string, unknown> | null> {
     const result = await this.pool.query(
       'SELECT * FROM organization_stats WHERE id = $1',
       [organizationId]
@@ -460,10 +460,10 @@ class AdvancedUserService {
       timezone = 'Europe/Bratislava',
       theme = 'light',
       preferences = {}
-    } = data as any;
+    } = data as Partial<AdvancedUser> & { password?: string };
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password || '', 10);
 
     const result = await this.pool.query(
       `INSERT INTO users_advanced (
@@ -502,7 +502,7 @@ class AdvancedUserService {
     return result.rows.map(row => this.mapAdvancedUser(row));
   }
 
-  async getUserDetails(userId: string): Promise<any> {
+  async getUserDetails(userId: string): Promise<Record<string, unknown> | null> {
     const result = await this.pool.query(
       'SELECT * FROM user_details WHERE id = $1',
       [userId]
@@ -602,38 +602,38 @@ class AdvancedUserService {
     );
   }
 
-  async getActivityLog(organizationId: string, filters: any = {}, limit = 100): Promise<ActivityLog[]> {
+  async getActivityLog(organizationId: string, filters: Record<string, unknown> = {}, limit = 100): Promise<ActivityLog[]> {
     let query = 'SELECT * FROM user_activity_log WHERE organization_id = $1';
     const values = [organizationId];
     let paramCount = 2;
 
     if (filters.userId) {
       query += ` AND user_id = $${paramCount}`;
-      values.push(filters.userId);
+      values.push(filters.userId as string);
       paramCount++;
     }
 
     if (filters.action) {
       query += ` AND action = $${paramCount}`;
-      values.push(filters.action);
+      values.push(filters.action as string);
       paramCount++;
     }
 
     if (filters.resourceType) {
       query += ` AND resource_type = $${paramCount}`;
-      values.push(filters.resourceType);
+      values.push(filters.resourceType as string);
       paramCount++;
     }
 
     if (filters.startDate) {
       query += ` AND created_at >= $${paramCount}`;
-      values.push(filters.startDate);
+      values.push(filters.startDate as string);
       paramCount++;
     }
 
     if (filters.endDate) {
       query += ` AND created_at <= $${paramCount}`;
-      values.push(filters.endDate);
+      values.push(filters.endDate as string);
       paramCount++;
     }
 
@@ -686,7 +686,7 @@ class AdvancedUserService {
     return result.rows.map(row => this.mapTeam(row));
   }
 
-  async getTeamMembers(teamId: string): Promise<any[]> {
+  async getTeamMembers(teamId: string): Promise<Record<string, unknown>[]> {
     const result = await this.pool.query(
       `SELECT tm.*, u.first_name, u.last_name, u.email, u.job_title
        FROM team_members tm
@@ -728,16 +728,18 @@ class AdvancedUserService {
     return false;
   }
 
-  private hasPermission(permissions: any, resource: string, action: string): boolean {
+  private hasPermission(permissions: Record<string, unknown>, resource: string, action: string): boolean {
     if (!permissions) return false;
 
     // Check wildcard permissions
-    if (permissions['*'] && (permissions['*'].actions.includes('*') || permissions['*'].actions.includes(action))) {
+    const wildcardPerm = permissions['*'] as { actions?: string[] } | undefined;
+    if (wildcardPerm?.actions && (wildcardPerm.actions.includes('*') || wildcardPerm.actions.includes(action))) {
       return true;
     }
 
     // Check specific resource permissions
-    if (permissions[resource] && permissions[resource].actions.includes(action)) {
+    const resourcePerm = permissions[resource] as { actions?: string[] } | undefined;
+    if (resourcePerm?.actions && resourcePerm.actions.includes(action)) {
       return true;
     }
 
@@ -756,153 +758,153 @@ class AdvancedUserService {
     return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
   }
 
-  private mapOrganization(row: any): Organization {
+  private mapOrganization(row: Record<string, unknown>): Organization {
     return {
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      domain: row.domain,
-      businessId: row.business_id,
-      taxId: row.tax_id,
-      address: row.address,
-      phone: row.phone,
-      email: row.email,
-      website: row.website,
-      logoUrl: row.logo_url,
-      subscriptionPlan: row.subscription_plan,
-      subscriptionStatus: row.subscription_status,
-      subscriptionExpiresAt: row.subscription_expires_at,
-      maxUsers: row.max_users,
-      maxVehicles: row.max_vehicles,
-      settings: row.settings || {},
-      branding: row.branding || {},
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      createdBy: row.created_by
+      id: row.id as string,
+      name: row.name as string,
+      slug: row.slug as string,
+      domain: row.domain as string | undefined,
+      businessId: row.business_id as string | undefined,
+      taxId: row.tax_id as string | undefined,
+      address: row.address as string | undefined,
+      phone: row.phone as string | undefined,
+      email: row.email as string | undefined,
+      website: row.website as string | undefined,
+      logoUrl: row.logo_url as string | undefined,
+      subscriptionPlan: row.subscription_plan as 'basic' | 'premium' | 'enterprise',
+      subscriptionStatus: row.subscription_status as 'active' | 'suspended' | 'cancelled',
+      subscriptionExpiresAt: row.subscription_expires_at as Date | undefined,
+      maxUsers: row.max_users as number,
+      maxVehicles: row.max_vehicles as number,
+      settings: (row.settings as Record<string, unknown>) || ({} as Record<string, unknown>),
+      branding: (row.branding as Record<string, unknown>) || ({} as Record<string, unknown>),
+      createdAt: row.created_at as Date,
+      updatedAt: row.updated_at as Date | undefined,
+      createdBy: row.created_by as string | undefined
     };
   }
 
-  private mapDepartment(row: any): Department {
+  private mapDepartment(row: Record<string, unknown>): Department {
     return {
-      id: row.id,
-      organizationId: row.organization_id,
-      name: row.name,
-      description: row.description,
-      parentDepartmentId: row.parent_department_id,
-      managerId: row.manager_id,
-      monthlyBudget: row.monthly_budget,
-      vehicleLimit: row.vehicle_limit,
-      settings: row.settings || {},
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
+      id: row.id as string,
+      organizationId: row.organization_id as string,
+      name: row.name as string,
+      description: row.description as string | undefined,
+      parentDepartmentId: row.parent_department_id as string | undefined,
+      managerId: row.manager_id as string | undefined,
+      monthlyBudget: row.monthly_budget as number | undefined,
+      vehicleLimit: row.vehicle_limit as number | undefined,
+      settings: (row.settings as Record<string, unknown>) || ({} as Record<string, unknown>),
+      createdAt: row.created_at as Date,
+      updatedAt: row.updated_at as Date | undefined
     };
   }
 
-  private mapRole(row: any): Role {
+  private mapRole(row: Record<string, unknown>): Role {
     return {
-      id: row.id,
-      organizationId: row.organization_id,
-      name: row.name,
-      displayName: row.display_name,
-      description: row.description,
-      level: row.level,
-      parentRoleId: row.parent_role_id,
-      permissions: row.permissions || {},
-      isSystem: row.is_system,
-      isActive: row.is_active,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      createdBy: row.created_by
+      id: row.id as string,
+      organizationId: row.organization_id as string,
+      name: row.name as string,
+      displayName: row.display_name as string,
+      description: row.description as string | undefined,
+      level: row.level as number,
+      parentRoleId: row.parent_role_id as string | undefined,
+      permissions: (row.permissions as Record<string, unknown>) || ({} as Record<string, unknown>),
+      isSystem: row.is_system as boolean,
+      isActive: row.is_active as boolean,
+      createdAt: row.created_at as Date,
+      updatedAt: row.updated_at as Date | undefined,
+      createdBy: row.created_by as string | undefined
     };
   }
 
-  private mapAdvancedUser(row: any): AdvancedUser {
+  private mapAdvancedUser(row: Record<string, unknown>): AdvancedUser {
     return {
-      id: row.id,
-      organizationId: row.organization_id,
-      departmentId: row.department_id,
-      username: row.username,
-      email: row.email,
-      passwordHash: row.password_hash,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      middleName: row.middle_name,
-      phone: row.phone,
-      avatarUrl: row.avatar_url,
-      employeeNumber: row.employee_number,
-      jobTitle: row.job_title,
-      hireDate: row.hire_date,
-      terminationDate: row.termination_date,
-      salary: row.salary,
-      managerId: row.manager_id,
-      roleId: row.role_id,
-      customPermissions: row.custom_permissions || {},
-      isActive: row.is_active,
-      isVerified: row.is_verified,
-      emailVerifiedAt: row.email_verified_at,
-      lastLoginAt: row.last_login_at,
-      lastLoginIp: row.last_login_ip,
-      loginCount: row.login_count,
-      failedLoginAttempts: row.failed_login_attempts,
-      lockedUntil: row.locked_until,
-      twoFactorEnabled: row.two_factor_enabled,
-      twoFactorSecret: row.two_factor_secret,
-      backupCodes: row.backup_codes,
-      language: row.language,
-      timezone: row.timezone,
-      theme: row.theme,
-      preferences: row.preferences || {},
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      createdBy: row.created_by
+      id: row.id as string,
+      organizationId: row.organization_id as string,
+      departmentId: row.department_id as string | undefined,
+      username: row.username as string,
+      email: row.email as string,
+      passwordHash: row.password_hash as string,
+      firstName: row.first_name as string | undefined,
+      lastName: row.last_name as string | undefined,
+      middleName: row.middle_name as string | undefined,
+      phone: row.phone as string | undefined,
+      avatarUrl: row.avatar_url as string | undefined,
+      employeeNumber: row.employee_number as string | undefined,
+      jobTitle: row.job_title as string | undefined,
+      hireDate: row.hire_date as Date | undefined,
+      terminationDate: row.termination_date as Date | undefined,
+      salary: row.salary as number | undefined,
+      managerId: row.manager_id as string | undefined,
+      roleId: row.role_id as string,
+      customPermissions: (row.custom_permissions as Record<string, unknown>) || ({} as Record<string, unknown>),
+      isActive: row.is_active as boolean,
+      isVerified: row.is_verified as boolean,
+      emailVerifiedAt: row.email_verified_at as Date | undefined,
+      lastLoginAt: row.last_login_at as Date | undefined,
+      lastLoginIp: row.last_login_ip as string | undefined,
+      loginCount: row.login_count as number,
+      failedLoginAttempts: row.failed_login_attempts as number,
+      lockedUntil: row.locked_until as Date | undefined,
+      twoFactorEnabled: row.two_factor_enabled as boolean,
+      twoFactorSecret: row.two_factor_secret as string | undefined,
+      backupCodes: row.backup_codes as string[] | undefined,
+      language: row.language as string,
+      timezone: row.timezone as string,
+      theme: row.theme as string,
+      preferences: (row.preferences as Record<string, unknown>) || ({} as Record<string, unknown>),
+      createdAt: row.created_at as Date,
+      updatedAt: row.updated_at as Date | undefined,
+      createdBy: row.created_by as string | undefined
     };
   }
 
-  private mapActivityLog(row: any): ActivityLog {
+  private mapActivityLog(row: Record<string, unknown>): ActivityLog {
     return {
-      id: row.id,
-      userId: row.user_id,
-      organizationId: row.organization_id,
-      action: row.action,
-      resourceType: row.resource_type,
-      resourceId: row.resource_id,
-      ipAddress: row.ip_address,
-      userAgent: row.user_agent,
-      method: row.method,
-      endpoint: row.endpoint,
-      oldValues: row.old_values,
-      newValues: row.new_values,
-      success: row.success,
-      errorMessage: row.error_message,
-      createdAt: row.created_at,
-      durationMs: row.duration_ms
+      id: row.id as string,
+      userId: row.user_id as string,
+      organizationId: row.organization_id as string,
+      action: row.action as string,
+      resourceType: row.resource_type as string | undefined,
+      resourceId: row.resource_id as string | undefined,
+      ipAddress: row.ip_address as string | undefined,
+      userAgent: row.user_agent as string | undefined,
+      method: row.method as string | undefined,
+      endpoint: row.endpoint as string | undefined,
+      oldValues: row.old_values as Record<string, unknown> | undefined,
+      newValues: row.new_values as Record<string, unknown> | undefined,
+      success: row.success as boolean,
+      errorMessage: row.error_message as string | undefined,
+      createdAt: row.created_at as Date,
+      durationMs: row.duration_ms as number | undefined
     };
   }
 
-  private mapTeam(row: any): Team {
+  private mapTeam(row: Record<string, unknown>): Team {
     return {
-      id: row.id,
-      organizationId: row.organization_id,
-      name: row.name,
-      description: row.description,
-      teamLeadId: row.team_lead_id,
-      isActive: row.is_active,
-      settings: row.settings || {},
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      createdBy: row.created_by
+      id: row.id as string,
+      organizationId: row.organization_id as string,
+      name: row.name as string,
+      description: row.description as string | undefined,
+      teamLeadId: row.team_lead_id as string | undefined,
+      isActive: row.is_active as boolean,
+      settings: (row.settings as Record<string, unknown>) || ({} as Record<string, unknown>),
+      createdAt: row.created_at as Date,
+      updatedAt: row.updated_at as Date | undefined,
+      createdBy: row.created_by as string | undefined
     };
   }
 
-  private mapTeamMember(row: any): TeamMember {
+  private mapTeamMember(row: Record<string, unknown>): TeamMember {
     return {
-      id: row.id,
-      teamId: row.team_id,
-      userId: row.user_id,
-      role: row.role,
-      joinedAt: row.joined_at,
-      leftAt: row.left_at,
-      isActive: row.is_active
+      id: row.id as string,
+      teamId: row.team_id as string,
+      userId: row.user_id as string,
+      role: row.role as string,
+      joinedAt: row.joined_at as Date,
+      leftAt: row.left_at as Date | undefined,
+      isActive: row.is_active as boolean
     };
   }
 }

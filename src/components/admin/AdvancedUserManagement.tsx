@@ -3,69 +3,68 @@
 
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Group as GroupIcon,
-  Business as BusinessIcon,
-  Security as SecurityIcon,
-  Timeline as TimelineIcon,
-  PersonAdd as PersonAddIcon,
-  // Settings as SettingsIcon,
-  Visibility as ViewIcon,
-  Block as BlockIcon,
   // VpnKey as KeyIcon,
   Analytics as AnalyticsIcon,
+  Block as BlockIcon,
+  Business as BusinessIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
   ExpandMore as ExpandMoreIcon,
-  // Check as CheckIcon,
+  Group as GroupIcon,
+  PersonAdd as PersonAddIcon,
+  Security as SecurityIcon,
+  Timeline as TimelineIcon,
+  // Settings as SettingsIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Avatar,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Tab,
-  Tabs,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
-  IconButton,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Grid,
-  Avatar,
+  DialogContent,
+  DialogTitle,
   // List,
   // ListItem,
   // ListItemAvatar,
   // ListItemText,
   // ListItemSecondaryAction,
   Divider,
-  Alert,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
   Skeleton,
+  Switch,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tabs,
+  TextField,
   // useTheme,
   // alpha,
   Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Switch,
-  FormControlLabel,
+  Typography,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 
@@ -98,7 +97,10 @@ const AdvancedUserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<Record<string, unknown> | null>(null);
+  const [editingUser, setEditingUser] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [editForm, setEditForm] = useState({
     firstName: '',
     lastName: '',
@@ -108,7 +110,9 @@ const AdvancedUserManagement: React.FC = () => {
     roleId: '',
     departmentId: '',
   });
-  const [userPermissions, setUserPermissions] = useState<Record<string, unknown>[]>([]);
+  const [userPermissions, setUserPermissions] = useState<
+    Record<string, unknown>[]
+  >([]);
   const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
 
   // API Base URL helper
@@ -125,7 +129,10 @@ const AdvancedUserManagement: React.FC = () => {
   };
 
   // State for different entities
-  const [organization, setOrganization] = useState<Record<string, unknown> | null>(null);
+  const [organization, setOrganization] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [users, setUsers] = useState<Record<string, unknown>[]>([]);
   const [roles, setRoles] = useState<Record<string, unknown>[]>([]);
   const [departments, setDepartments] = useState<Record<string, unknown>[]>([]);
@@ -227,13 +234,23 @@ const AdvancedUserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentTab]);
+  }, [
+    currentTab,
+    getAuthToken,
+    loadOrganizationStats,
+    loadUsers,
+    loadCompanies,
+    loadRoles,
+    loadDepartments,
+    loadTeams,
+    loadActivityLog,
+  ]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const loadOrganizationStats = async () => {
+  const loadOrganizationStats = useCallback(async () => {
     const response = await fetch(
       `${getApiBaseUrl()}/advanced-users/organization/stats`,
       {
@@ -247,9 +264,9 @@ const AdvancedUserManagement: React.FC = () => {
       const data = await response.json();
       setStats(data.stats);
     }
-  };
+  }, [getAuthToken]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     const response = await fetch(`${getApiBaseUrl()}/advanced-users/users`, {
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
@@ -260,9 +277,9 @@ const AdvancedUserManagement: React.FC = () => {
       const data = await response.json();
       setUsers(data.users);
     }
-  };
+  }, [getAuthToken]);
 
-  const loadCompanies = async () => {
+  const loadCompanies = useCallback(async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/companies`, {
         headers: {
@@ -281,7 +298,7 @@ const AdvancedUserManagement: React.FC = () => {
       console.warn('Chyba pri načítavaní firiem');
       setCompanies([]);
     }
-  };
+  }, [getAuthToken]);
 
   const loadUserPermissions = async (userId: string) => {
     try {
@@ -305,7 +322,7 @@ const AdvancedUserManagement: React.FC = () => {
     }
   };
 
-  const loadRoles = async () => {
+  const loadRoles = useCallback(async () => {
     const response = await fetch(`${getApiBaseUrl()}/advanced-users/roles`, {
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
@@ -316,9 +333,9 @@ const AdvancedUserManagement: React.FC = () => {
       const data = await response.json();
       setRoles(data.roles);
     }
-  };
+  }, [getAuthToken]);
 
-  const loadDepartments = async () => {
+  const loadDepartments = useCallback(async () => {
     const response = await fetch(
       `${getApiBaseUrl()}/advanced-users/departments`,
       {
@@ -332,9 +349,9 @@ const AdvancedUserManagement: React.FC = () => {
       const data = await response.json();
       setDepartments(data.departments);
     }
-  };
+  }, [getAuthToken]);
 
-  const loadTeams = async () => {
+  const loadTeams = useCallback(async () => {
     const response = await fetch(`${getApiBaseUrl()}/advanced-users/teams`, {
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
@@ -345,9 +362,9 @@ const AdvancedUserManagement: React.FC = () => {
       const data = await response.json();
       setTeams(data.teams);
     }
-  };
+  }, [getAuthToken]);
 
-  const loadActivityLog = async () => {
+  const loadActivityLog = useCallback(async () => {
     const response = await fetch(
       `${getApiBaseUrl()}/advanced-users/activity-log?limit=50`,
       {
@@ -361,7 +378,7 @@ const AdvancedUserManagement: React.FC = () => {
       const data = await response.json();
       setActivityLog(data.activityLog);
     }
-  };
+  }, [getAuthToken]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
@@ -640,13 +657,13 @@ const AdvancedUserManagement: React.FC = () => {
     });
   };
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return (
       state.token ||
       localStorage.getItem('blackrent_token') ||
       sessionStorage.getItem('blackrent_token')
     );
-  };
+  }, [state.token]);
 
   const getRoleLevel = (level: number) => {
     const levels = {
@@ -1736,7 +1753,10 @@ const AdvancedUserManagement: React.FC = () => {
                                       if (existingIndex >= 0) {
                                         (
                                           newPermissions[existingIndex]
-                                            .permissions as Record<string, unknown>
+                                            .permissions as Record<
+                                            string,
+                                            unknown
+                                          >
                                         )[resource].read = e.target.checked;
                                       } else {
                                         const newPerm = {
@@ -1790,9 +1810,12 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (newPerm.permissions as Record<string, unknown>)[
-                                          resource
-                                        ].read = e.target.checked;
+                                        (
+                                          newPerm.permissions as Record<
+                                            string,
+                                            unknown
+                                          >
+                                        )[resource].read = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
 
@@ -1821,7 +1844,10 @@ const AdvancedUserManagement: React.FC = () => {
                                       if (existingIndex >= 0) {
                                         (
                                           newPermissions[existingIndex]
-                                            .permissions as Record<string, unknown>
+                                            .permissions as Record<
+                                            string,
+                                            unknown
+                                          >
                                         )[resource].write = e.target.checked;
                                       } else {
                                         const newPerm = {
@@ -1875,9 +1901,12 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (newPerm.permissions as Record<string, unknown>)[
-                                          resource
-                                        ].write = e.target.checked;
+                                        (
+                                          newPerm.permissions as Record<
+                                            string,
+                                            unknown
+                                          >
+                                        )[resource].write = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
 
@@ -1906,7 +1935,10 @@ const AdvancedUserManagement: React.FC = () => {
                                       if (existingIndex >= 0) {
                                         (
                                           newPermissions[existingIndex]
-                                            .permissions as Record<string, unknown>
+                                            .permissions as Record<
+                                            string,
+                                            unknown
+                                          >
                                         )[resource].delete = e.target.checked;
                                       } else {
                                         const newPerm = {
@@ -1960,9 +1992,12 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (newPerm.permissions as Record<string, unknown>)[
-                                          resource
-                                        ].delete = e.target.checked;
+                                        (
+                                          newPerm.permissions as Record<
+                                            string,
+                                            unknown
+                                          >
+                                        )[resource].delete = e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
 

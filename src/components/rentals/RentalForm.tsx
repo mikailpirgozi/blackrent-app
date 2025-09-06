@@ -28,7 +28,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import { parseTimezoneFreeDateString } from '../../utils/formatters';
 import type {
   Customer,
   PaymentMethod,
@@ -36,6 +35,7 @@ import type {
   RentalPayment,
   Vehicle,
 } from '../../types';
+import { parseTimezoneFreeDateString } from '../../utils/formatters';
 import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
 import PriceSummary from './components/PriceSummary';
 
@@ -106,16 +106,19 @@ export default function RentalForm({
   // ═══════════════════════════════════════════════════════════════════
   // 📍 SECTION 3: LOCATION & PLACES STATE
   // ═══════════════════════════════════════════════════════════════════
-  const defaultPlaces = [
-    'Bratislava',
-    'Košice',
-    'Žilina',
-    'Trnava',
-    'Nitra',
-    'Banská Bystrica',
-    'Prešov',
-    'Trenčín',
-  ];
+  const defaultPlaces = useMemo(
+    () => [
+      'Bratislava',
+      'Košice',
+      'Žilina',
+      'Trnava',
+      'Nitra',
+      'Banská Bystrica',
+      'Prešov',
+      'Trenčín',
+    ],
+    []
+  );
   const [handoverPlace, setHandoverPlace] = useState('');
   const [addingPlace, setAddingPlace] = useState(false);
   const [newPlace, setNewPlace] = useState('');
@@ -288,7 +291,7 @@ export default function RentalForm({
       // Reset pre nový prenájom
       setSelectedVehicle(null);
     }
-  }, [rental, state.customers, state.vehicles]);
+  }, [rental, state.customers, state.vehicles, defaultPlaces]);
 
   // Sleduj zmeny vo vehicleId a aktualizuj selectedVehicle
   useEffect(() => {
@@ -319,6 +322,7 @@ export default function RentalForm({
     selectedVehicle?.id,
     preserveImportedValues,
     extraKilometerRate,
+    selectedVehicle,
   ]);
 
   const handleInputChange = (field: keyof Rental, value: unknown) => {

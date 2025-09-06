@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { ProtocolImage, ProtocolVideo } from '../types';
 
@@ -33,7 +33,7 @@ export const useProtocolMedia = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadMedia = async () => {
+  const loadMedia = useCallback(async () => {
     if (!protocolId) return;
 
     setLoading(true);
@@ -80,11 +80,11 @@ export const useProtocolMedia = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [protocolId, protocolType]);
 
   useEffect(() => {
     loadMedia();
-  }, [protocolId, protocolType]);
+  }, [protocolId, protocolType, loadMedia]);
 
   return {
     media,

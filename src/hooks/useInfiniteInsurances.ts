@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Insurance } from '../types';
@@ -103,7 +103,7 @@ export function useInfiniteInsurances(
         setLoading(false);
       }
     },
-    [filters]
+    [filters, loading]
   );
 
   // 📄 Load more insurances (next page)
@@ -137,14 +137,7 @@ export function useInfiniteInsurances(
     setCurrentPage(1);
     setHasMore(true);
     loadInsurances(1, true);
-  }, [
-    filters.search,
-    filters.type,
-    filters.company,
-    filters.status,
-    filters.vehicleId,
-    loadInsurances,
-  ]);
+  }, [filters, loadInsurances]);
 
   // 📊 Memoized return value for performance
   return useMemo(
@@ -171,7 +164,6 @@ export function useInfiniteInsurances(
       totalCount,
       currentPage,
       filters,
-      setFilters,
       setSearchTerm,
     ]
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Company } from '../types';
@@ -99,9 +99,10 @@ export function useInfiniteCompanies(
           `✅ Loaded ${newCompanies.length} companies (${result.pagination.totalItems} total)`
         );
       } catch (error: unknown) {
-        const errorMessage = err.message || 'Chyba pri načítavaní firiem';
+        const errorMessage =
+          (error as Error).message || 'Chyba pri načítavaní firiem';
         setError(errorMessage);
-        logger.error('❌ Failed to load companies', err);
+        logger.error('❌ Failed to load companies', error);
       } finally {
         setLoading(false);
         loadingRef.current = false;
@@ -150,7 +151,7 @@ export function useInfiniteCompanies(
       setInitialLoad(false);
       loadCompanies(1, true);
     }
-  }, []);
+  }, [initialLoad, loadCompanies]);
 
   // Filter changes
   useEffect(() => {
@@ -161,7 +162,7 @@ export function useInfiniteCompanies(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [filters]);
+  }, [filters, initialLoad, loadCompanies]);
 
   // Search term changes - trigger new search
   useEffect(() => {
@@ -176,7 +177,7 @@ export function useInfiniteCompanies(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [searchTerm]);
+  }, [searchTerm, initialLoad, loadCompanies]);
 
   // Debug logging
   useEffect(() => {

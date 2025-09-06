@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Vehicle } from '../types';
@@ -104,9 +104,10 @@ export function useInfiniteVehicles(
           `✅ Loaded ${newVehicles.length} vehicles (${result.pagination.totalItems} total)`
         );
       } catch (error: unknown) {
-        const errorMessage = err.message || 'Chyba pri načítavaní vozidiel';
+        const errorMessage =
+          (error as Error).message || 'Chyba pri načítavaní vozidiel';
         setError(errorMessage);
-        logger.error('❌ Failed to load vehicles', err);
+        logger.error('❌ Failed to load vehicles', error);
       } finally {
         setLoading(false);
         loadingRef.current = false;
@@ -155,7 +156,7 @@ export function useInfiniteVehicles(
       setInitialLoad(false);
       loadVehicles(1, true);
     }
-  }, []);
+  }, [initialLoad, loadVehicles]);
 
   // Filter changes
   useEffect(() => {
@@ -166,7 +167,7 @@ export function useInfiniteVehicles(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [filters]);
+  }, [filters, initialLoad, loadVehicles]);
 
   // Search term changes - trigger new search
   useEffect(() => {
@@ -181,7 +182,7 @@ export function useInfiniteVehicles(
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [searchTerm]);
+  }, [searchTerm, initialLoad, loadVehicles]);
 
   // Debug logging
   useEffect(() => {

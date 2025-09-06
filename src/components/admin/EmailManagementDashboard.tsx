@@ -58,7 +58,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiService, getAPI_BASE_URL } from '../../services/api';
 import type { Rental } from '../../types';
@@ -195,7 +195,7 @@ const EmailManagementDashboard: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
 
   // Fetch emails with filters
-  const fetchEmails = async () => {
+  const fetchEmails = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -252,20 +252,20 @@ const EmailManagementDashboard: React.FC = () => {
         setError('Chyba pri načítaní emailov');
       }
     } catch (error: unknown) {
-      console.error('❌ EMAIL DASHBOARD - Fetch emails error:', err);
+      console.error('❌ EMAIL DASHBOARD - Fetch emails error:', error);
       console.error('❌ ERROR Details:', {
-        message: err.message,
-        status: err.status,
-        stack: err.stack,
+        message: (error as Error).message,
+        status: (error as { status?: number }).status,
+        stack: (error as Error).stack,
       });
-      setError(`Chyba pri načítaní emailov: ${err.message}`);
+      setError(`Chyba pri načítaní emailov: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, statusFilter, senderFilter]);
 
   // Fetch statistics
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       console.log('📊 Fetching stats with direct fetch...');
 
@@ -296,9 +296,9 @@ const EmailManagementDashboard: React.FC = () => {
         setStats(response.data);
       }
     } catch (error: unknown) {
-      console.error('Fetch stats error:', err);
+      console.error('Fetch stats error:', error);
     }
-  };
+  }, []);
 
   // View email detail
   const viewEmailDetail = async (emailId: string) => {
@@ -540,7 +540,7 @@ const EmailManagementDashboard: React.FC = () => {
   };
 
   // IMAP API Functions
-  const fetchImapStatus = async () => {
+  const fetchImapStatus = useCallback(async () => {
     try {
       const token =
         localStorage.getItem('blackrent_token') ||
@@ -564,7 +564,7 @@ const EmailManagementDashboard: React.FC = () => {
     } catch (err) {
       console.error('❌ IMAP Status error:', err);
     }
-  };
+  }, []);
 
   const testImapConnection = async () => {
     try {
@@ -663,7 +663,7 @@ const EmailManagementDashboard: React.FC = () => {
   // PENDING RENTALS FUNCTIONS
   // ============================================
 
-  const fetchPendingRentals = async () => {
+  const fetchPendingRentals = useCallback(async () => {
     try {
       setPendingLoading(true);
       setError(null);
@@ -671,13 +671,13 @@ const EmailManagementDashboard: React.FC = () => {
       console.log('✅ Loaded pending rentals:', rentals?.length || 0);
       setPendingRentals(rentals || []);
     } catch (error: unknown) {
-      console.error('❌ Error fetching pending rentals:', err);
+      console.error('❌ Error fetching pending rentals:', error);
       setError('Nepodarilo sa načítať čakajúce prenájmy');
       setPendingRentals([]);
     } finally {
       setPendingLoading(false);
     }
-  };
+  }, []);
 
   const handleApproveRental = async (rentalId: string) => {
     try {
@@ -945,8 +945,15 @@ const EmailManagementDashboard: React.FC = () => {
     fetchStats();
     fetchImapStatus(); // Load IMAP status
     fetchPendingRentals(); // Load pending rentals
-    fetchArchivedEmails(); // Load archived emails
-  }, [currentPage, statusFilter, senderFilter]);
+  }, [
+    currentPage,
+    statusFilter,
+    senderFilter,
+    fetchEmails,
+    fetchStats,
+    fetchImapStatus,
+    fetchPendingRentals,
+  ]);
 
   // Status chip styling
   const getStatusChip = (status: string, actionTaken?: string) => {

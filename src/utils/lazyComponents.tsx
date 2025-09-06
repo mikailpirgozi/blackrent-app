@@ -31,14 +31,14 @@ interface LazyComponentOptions {
   preload?: boolean;
 }
 
-interface RetryableLazyComponent<T = {}>
+interface RetryableLazyComponent<T = Record<string, unknown>>
   extends LazyExoticComponent<ComponentType<T>> {
   preload: () => Promise<{ default: ComponentType<T> }>;
   retry: () => void;
 }
 
 // Enhanced lazy loading with retry and preload capabilities
-export function createLazyComponent<T = {}>(
+export function createLazyComponent<T = Record<string, unknown>>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
   options: LazyComponentOptions = {}
 ): RetryableLazyComponent<T> {
@@ -149,7 +149,7 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
 );
 
 // Route-level lazy component with page loader
-export function createLazyRoute<T = {}>(
+export function createLazyRoute<T = Record<string, unknown>>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
   options: Omit<LazyComponentOptions, 'loading'> = {}
 ): RetryableLazyComponent<T> {
@@ -216,7 +216,9 @@ export const preloadRouteOnHover = (
 };
 
 // Advanced lazy loading with intersection observer
-export const createIntersectionLazyComponent = <T extends {} = {}>(
+export const createIntersectionLazyComponent = <
+  T extends Record<string, unknown> = Record<string, unknown>,
+>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
   options: LazyComponentOptions & {
     rootMargin?: string;
@@ -306,7 +308,7 @@ export const withPerformanceTracking = <T extends ComponentType<unknown>>(
 
 // Bundle splitting utilities
 export const createChunkedImport = () => {
-  return <T = {},>(
+  return <T = Record<string, unknown>,>(
     importFunc: () => Promise<{ default: ComponentType<T> }>
   ): (() => Promise<{ default: ComponentType<T> }>) => {
     // Add webpack magic comment for chunk naming
