@@ -1,7 +1,7 @@
 // 📱 PWA Management Hook
 // Provides install prompt, service worker management, and offline detection
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useError } from '../context/ErrorContext';
 
@@ -45,6 +45,79 @@ export const usePWA = (): PWAState & PWAActions => {
   });
 
   const refreshing = useRef(false);
+
+  const registerServiceWorker =
+    useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
+      if (!('serviceWorker' in navigator)) {
+        console.warn('Service Worker not supported');
+        return null;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+        });
+
+        console.log(
+          '✅ Service Worker registered successfully:',
+          registration.scope
+        );
+
+        // 🚫 DISABLED: Zakážeme automatické update detection
+        // Toto môže triggernúť neočakávané refreshy na mobile
+
+        console.log('🔄 PWA: Service Worker update detection DISABLED');
+        console.log(
+          '📱 This prevents automatic mobile refreshes caused by SW updates'
+        );
+
+        // PÔVODNÝ KÓD (ZAKÁZANÝ):
+        // registration.addEventListener('updatefound', () => {
+        //   const newWorker = registration.installing;
+        //   if (!newWorker) return;
+        //   newWorker.addEventListener('statechange', () => {
+        //     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        //       setState(prev => ({ ...prev, isUpdateAvailable: true }));
+        //       console.log('🔄 PWA: Update available');
+        //     }
+        //   });
+        // });
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener(
+          'message',
+          handleServiceWorkerMessage
+        );
+
+        // PWA functions activated silently - no user notification needed
+
+        return registration;
+      } catch (error) {
+        console.error('Service Worker registration failed:', error);
+
+        // Only show error for critical failures in production
+        if (
+          error instanceof Error &&
+          !error.message.includes('Failed to fetch') &&
+          !error.message.includes('NetworkError') &&
+          !error.message.includes('Load failed') &&
+          process.env.NODE_ENV === 'development'
+        ) {
+          showError({
+            message: 'Service Worker registrácia zlyhala',
+            category: 'client',
+            severity: 'warning',
+            context: { error: error.message },
+          });
+        } else {
+          console.warn(
+            'Service Worker registration failed silently:',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+        }
+        return null;
+      }
+    }, [showError]);
 
   const initializePWA = useCallback(async () => {
     try {
@@ -150,79 +223,6 @@ export const usePWA = (): PWAState & PWAActions => {
 
     setState(prev => ({ ...prev, isInstalled }));
   };
-
-  const registerServiceWorker =
-    useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
-      if (!('serviceWorker' in navigator)) {
-        console.warn('Service Worker not supported');
-        return null;
-      }
-
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/',
-        });
-
-        console.log(
-          '✅ Service Worker registered successfully:',
-          registration.scope
-        );
-
-        // 🚫 DISABLED: Zakážeme automatické update detection
-        // Toto môže triggernúť neočakávané refreshy na mobile
-
-        console.log('🔄 PWA: Service Worker update detection DISABLED');
-        console.log(
-          '📱 This prevents automatic mobile refreshes caused by SW updates'
-        );
-
-        // PÔVODNÝ KÓD (ZAKÁZANÝ):
-        // registration.addEventListener('updatefound', () => {
-        //   const newWorker = registration.installing;
-        //   if (!newWorker) return;
-        //   newWorker.addEventListener('statechange', () => {
-        //     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-        //       setState(prev => ({ ...prev, isUpdateAvailable: true }));
-        //       console.log('🔄 PWA: Update available');
-        //     }
-        //   });
-        // });
-
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener(
-          'message',
-          handleServiceWorkerMessage
-        );
-
-        // PWA functions activated silently - no user notification needed
-
-        return registration;
-      } catch (error) {
-        console.error('Service Worker registration failed:', error);
-
-        // Only show error for critical failures in production
-        if (
-          error instanceof Error &&
-          !error.message.includes('Failed to fetch') &&
-          !error.message.includes('NetworkError') &&
-          !error.message.includes('Load failed') &&
-          process.env.NODE_ENV === 'development'
-        ) {
-          showError({
-            message: 'Service Worker registrácia zlyhala',
-            category: 'client',
-            severity: 'warning',
-            context: { error: error.message },
-          });
-        } else {
-          console.warn(
-            'Service Worker registration failed silently:',
-            error instanceof Error ? error.message : 'Unknown error'
-          );
-        }
-        return null;
-      }
-    }, [showError]);
 
   const handleServiceWorkerMessage = (event: MessageEvent) => {
     const { type, message } = event.data;
