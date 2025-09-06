@@ -5,6 +5,12 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Expense } from '../types';
 
+// Interface pre PostgreSQL query výsledky
+interface QueryResult {
+  rows: Record<string, unknown>[];
+  rowCount?: number;
+}
+
 const router = Router();
 
 // 🔍 CONTEXT FUNCTIONS
@@ -496,7 +502,7 @@ router.post('/batch-import',
             }
 
             // Príprava dát pre vytvorenie - hľadanie vozidla podľa názvu firmy
-            let processedVehicleId = undefined;
+            let processedVehicleId: string | undefined = undefined;
             if (expenseData.vehicleId && expenseData.vehicleId.toString().trim() !== '') {
               const vehicleIdStr = expenseData.vehicleId.toString().trim();
               
@@ -511,7 +517,7 @@ router.post('/batch-import',
                 processedVehicleId = undefined;
               } else if (!isNaN(parseInt(vehicleIdStr)) && isFinite(parseInt(vehicleIdStr))) {
                 // Ak je to číslo, použij priamo
-                processedVehicleId = parseInt(vehicleIdStr);
+                processedVehicleId = vehicleIdStr;
               } else {
                 // Ak nie je číslo, skús nájsť vozidlo podľa PRESNÉHO názvu firmy
                 try {
@@ -520,10 +526,10 @@ router.post('/batch-import',
                     WHERE company = $1
                     LIMIT 1
                   `;
-                  const vehicleResult = await postgresDatabase.query(vehicleQuery, [vehicleIdStr]);
+                  const vehicleResult = await postgresDatabase.query(vehicleQuery, [vehicleIdStr]) as QueryResult;
                   
                   if (vehicleResult.rows.length > 0) {
-                    processedVehicleId = vehicleResult.rows[0].id;
+                    processedVehicleId = vehicleResult.rows[0].id as string;
                     console.log(`✅ PRESNÁ ZHODA firmy "${vehicleIdStr}": ID ${processedVehicleId}`);
                   } else {
                     console.warn(`⚠️ ŽIADNA PRESNÁ ZHODA pre firmu "${vehicleIdStr}", náklad bude bez vozidla`);
