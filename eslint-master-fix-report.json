@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-09-06T22:06:52.377Z",
+  "duration": "1.0",
+  "initial": {
+    "totalFiles": 177,
+    "totalErrors": 676,
+    "success": true
+  },
+  "final": {
+    "totalFiles": 177,
+    "totalErrors": 676,
+    "success": true
+  },
+  "fixed": 0,
+  "successRate": "0.0",
+  "phases": {
+    "bulk": 0,
+    "smart": 0,
+    "specialized": 0,
+    "final": 0
+  },
+  "builds": {
+    "initial": true,
+    "final": true
+  }
+}

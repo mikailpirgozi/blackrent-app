@@ -81,7 +81,7 @@ interface AppState {
     rentalId: string;
     createdBy: string;
     createdAt: Date;
-    rentalData?: Record<string, unknown>;
+    rentalData?: Rental;
   }>;
   loading: boolean;
   error: string | null;
@@ -122,7 +122,7 @@ type AppAction =
         rentalId: string;
         createdBy: string;
         createdAt: Date;
-        rentalData?: Record<string, unknown>;
+        rentalData?: Rental;
       }>;
     }
   | { type: 'ADD_VEHICLE'; payload: Vehicle }
@@ -874,7 +874,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('❌ FALLBACK tiež zlyhal:', fallbackError);
         dispatch({
           type: 'SET_ERROR',
-          payload: error.message || 'Chyba pri načítavaní dát',
+          payload:
+            error instanceof Error ? error.message : 'Chyba pri načítavaní dát',
         });
       }
     } finally {

@@ -54,29 +54,33 @@ export function useInfiniteInsurances(
         console.log(`📄 Loading insurances page ${page}...`);
 
         // Build query parameters
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: ITEMS_PER_PAGE.toString(),
+        const params = {
+          page,
+          limit: ITEMS_PER_PAGE,
           ...(filters.search && { search: filters.search }),
           ...(filters.type && { type: filters.type }),
           ...(filters.company && { company: filters.company }),
           ...(filters.status &&
             filters.status !== 'all' && { status: filters.status }),
           ...(filters.vehicleId && { vehicleId: filters.vehicleId }),
-        });
+        };
 
         console.log(
           '🔗 Making API call to:',
-          `/insurances/paginated?${params}`
+          `/insurances/paginated with params:`,
+          params
         );
-        const response = await apiService.getInsurancesPaginated(
-          params.toString()
-        );
+        const response = await apiService.getInsurancesPaginated(params);
         console.log('📡 API Response:', response);
 
-        // Response už je rozbalený z request() metódy - obsahuje priamo { data: [...], pagination: {...} }
-        if (response && response.data && response.pagination) {
-          const { data: newInsurances, pagination } = response;
+        // Backend vracia {success: true, data: {insurances: [...], pagination: {...}}}
+        if (
+          response &&
+          response.data &&
+          response.data.insurances &&
+          response.data.pagination
+        ) {
+          const { insurances: newInsurances, pagination } = response.data;
 
           console.log(
             `✅ Loaded ${newInsurances.length} insurances (page ${page})`
@@ -86,7 +90,7 @@ export function useInfiniteInsurances(
             reset ? newInsurances : [...prev, ...newInsurances]
           );
           setCurrentPage(page);
-          setTotalCount(pagination.total);
+          setTotalCount(pagination.totalItems);
           setHasMore(page < pagination.totalPages);
         } else {
           console.error('❌ Unexpected response format:', response);

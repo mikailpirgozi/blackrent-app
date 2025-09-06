@@ -135,34 +135,46 @@ export class FeatureManager {
       }
 
       // Fetch from API
-      const response = await fetch('/api/v2-test/test-feature-flag', {
-        method: 'POST',
+      const response = await fetch(`/api/feature-flags/${flagName}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify({
-          flagName,
-          userId,
-        }),
       });
 
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
       }
 
-      const data: FeatureFlagResponse = await response.json();
+      const data = await response.json();
+
+      // Backend vracia formát: { success: true, flag: { name, enabled, percentage, users } }
+      const flagData = data.flag;
 
       // Cache result
       this.cache.set(flagName, {
         flag: {
-          enabled: data.flag.configuration.enabled,
-          users: data.flag.configuration.allowedUsers,
-          percentage: data.flag.configuration.percentage,
+          enabled: flagData.enabled,
+          users: flagData.users || [],
+          percentage: flagData.percentage || 0,
         },
         timestamp: Date.now(),
       });
 
-      return data;
+      // Transform to expected format
+      return {
+        flag: {
+          name: flagData.name,
+          enabled: flagData.enabled,
+          reason: flagData.enabled ? 'enabled' : 'disabled',
+          configuration: {
+            enabled: flagData.enabled,
+            percentage: flagData.percentage || 0,
+            allowedUsers: flagData.users || [],
+          },
+        },
+      };
     } catch (error) {
       console.error(`Failed to get feature flag ${flagName}:`, error);
       return null;

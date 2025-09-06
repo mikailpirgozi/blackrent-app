@@ -119,9 +119,10 @@ export function useInfiniteRentals(
         );
         // API response processed successfully
       } catch (error: unknown) {
-        const errorMessage = err.message || 'Chyba pri načítavaní prenájmov';
+        const errorMessage =
+          (error as Error).message || 'Chyba pri načítavaní prenájmov';
         setError(errorMessage);
-        logger.error('❌ Failed to load rentals', err);
+        logger.error('❌ Failed to load rentals', error);
       } finally {
         setLoading(false);
         loadingRef.current = false;

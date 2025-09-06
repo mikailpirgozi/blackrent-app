@@ -6,7 +6,7 @@
  */
 
 import type { CardProps } from '@mui/material';
-import { Card, CardContent, CardActions, Box } from '@mui/material';
+import { Card, CardActions, CardContent } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React from 'react';
 
@@ -20,10 +20,12 @@ export type CardVariant =
   | 'compact';
 
 // 🎨 Styled Card s BlackRent dizajnom
-const StyledCard = styled(Card)<{
-  variant?: CardVariant;
+const StyledCard = styled(Card, {
+  shouldForwardProp: prop => prop !== 'clickable' && prop !== 'cardVariant',
+})<{
+  cardVariant?: CardVariant;
   clickable?: boolean;
-}>(({ theme, variant = 'default', clickable = false }) => {
+}>(({ theme, cardVariant = 'default', clickable = false }) => {
   // 🎨 Base štýly
   const baseStyles = {
     borderRadius: '12px',
@@ -107,7 +109,7 @@ const StyledCard = styled(Card)<{
 
   return {
     ...baseStyles,
-    ...variantStyles[variant as keyof typeof variantStyles],
+    ...variantStyles[cardVariant as keyof typeof variantStyles],
   };
 });
 
@@ -118,8 +120,8 @@ export interface UnifiedCardProps extends Omit<CardProps, 'variant'> {
   padding?: 'none' | 'small' | 'medium' | 'large';
   children?: React.ReactNode;
   actions?: React.ReactNode;
-  contentProps?: any;
-  actionsProps?: any;
+  contentProps?: Record<string, unknown>;
+  actionsProps?: Record<string, unknown>;
 }
 
 // 🎨 Unified Card Component
@@ -141,10 +143,10 @@ export const UnifiedCard: React.FC<UnifiedCardProps> = ({
     large: { p: 3 },
   };
 
-  const { variant: _, clickable: __, ...cardProps } = props as any;
+  const { ...cardProps } = props as Record<string, unknown>;
 
   return (
-    <StyledCard variant={variant} clickable={clickable} {...cardProps}>
+    <StyledCard cardVariant={variant} clickable={clickable} {...cardProps}>
       <CardContent sx={paddingStyles[padding]} {...contentProps}>
         {children}
       </CardContent>

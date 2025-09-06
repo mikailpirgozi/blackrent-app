@@ -1,19 +1,18 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { postgresDatabase } from '../models/postgres-database';
-import type { Insurance, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { v4 as uuidv4 } from 'uuid';
+import { postgresDatabase } from '../models/postgres-database';
+import type { ApiResponse, Insurance } from '../types';
 
 const router = Router();
 
 // Helper function for filtering insurances based on query parameters
-const filterInsurances = (insurances: Insurance[], query: any) => {
+const filterInsurances = (insurances: Insurance[], query: Record<string, unknown>) => {
   let filtered = [...insurances];
   
   // Search filter
-  if (query.search) {
+  if (query.search && typeof query.search === 'string') {
     const searchTerm = query.search.toLowerCase();
     filtered = filtered.filter(insurance => 
       insurance.type?.toLowerCase().includes(searchTerm) ||
@@ -23,17 +22,17 @@ const filterInsurances = (insurances: Insurance[], query: any) => {
   }
   
   // Type filter
-  if (query.type) {
+  if (query.type && typeof query.type === 'string') {
     filtered = filtered.filter(insurance => insurance.type === query.type);
   }
   
   // Company filter
-  if (query.company) {
+  if (query.company && typeof query.company === 'string') {
     filtered = filtered.filter(insurance => insurance.company === query.company);
   }
   
   // Status filter (valid, expiring, expired)
-  if (query.status && query.status !== 'all') {
+  if (query.status && typeof query.status === 'string' && query.status !== 'all') {
     const today = new Date();
     const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
     
@@ -54,7 +53,7 @@ const filterInsurances = (insurances: Insurance[], query: any) => {
   }
   
   // Vehicle filter
-  if (query.vehicleId) {
+  if (query.vehicleId && typeof query.vehicleId === 'string') {
     filtered = filtered.filter(insurance => insurance.vehicleId === query.vehicleId);
   }
   
@@ -156,12 +155,11 @@ router.get('/paginated',
       res.json({
         success: true,
         data: {
-          data: paginatedInsurances,
+          insurances: paginatedInsurances,
           pagination: {
-            page,
-            limit,
-            total: totalCount,
+            currentPage: page,
             totalPages,
+            totalItems: totalCount,
             hasMore: page < totalPages
           }
         }
