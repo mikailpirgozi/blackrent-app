@@ -24,10 +24,10 @@ export interface EnhancedErrorMessage {
  * 🎯 Generuje user-friendly error message na základe kontextu
  */
 export const getEnhancedErrorMessage = (
-  error: any,
+  error: unknown,
   context: ErrorContext = {}
 ): EnhancedErrorMessage => {
-  const { action, entity, location } = context;
+  const { action, entity } = context;
 
   // Network/Connection errors
   if (isNetworkError(error)) {
@@ -138,8 +138,9 @@ export const getEnhancedErrorMessage = (
 };
 
 // Helper functions pre detekciu typov chýb
-const isNetworkError = (error: any): boolean => {
-  const message = error?.message?.toLowerCase() || '';
+const isNetworkError = (error: unknown): boolean => {
+  const errorObj = error as { message?: string };
+  const message = errorObj?.message?.toLowerCase() || '';
   return (
     message.includes('failed to fetch') ||
     message.includes('network error') ||
@@ -148,33 +149,40 @@ const isNetworkError = (error: any): boolean => {
   );
 };
 
-const isAuthError = (error: any): boolean => {
-  return error?.status === 401 || error?.status === 403;
+const isAuthError = (error: unknown): boolean => {
+  const errorObj = error as { status?: number };
+  return errorObj?.status === 401 || errorObj?.status === 403;
 };
 
-const isValidationError = (error: any): boolean => {
-  return error?.status === 400 || error?.status === 422;
+const isValidationError = (error: unknown): boolean => {
+  const errorObj = error as { status?: number };
+  return errorObj?.status === 400 || errorObj?.status === 422;
 };
 
-const isServerError = (error: any): boolean => {
-  return error?.status >= 500 && error?.status < 600;
+const isServerError = (error: unknown): boolean => {
+  const errorObj = error as { status?: number };
+  return (errorObj?.status ?? 0) >= 500 && (errorObj?.status ?? 0) < 600;
 };
 
-const isPermissionError = (error: any): boolean => {
-  return error?.status === 403;
+const isPermissionError = (error: unknown): boolean => {
+  const errorObj = error as { status?: number };
+  return errorObj?.status === 403;
 };
 
-const isRateLimitError = (error: any): boolean => {
-  return error?.status === 429;
+const isRateLimitError = (error: unknown): boolean => {
+  const errorObj = error as { status?: number };
+  return errorObj?.status === 429;
 };
 
-const isNotFoundError = (error: any): boolean => {
-  return error?.status === 404;
+const isNotFoundError = (error: unknown): boolean => {
+  const errorObj = error as { status?: number };
+  return errorObj?.status === 404;
 };
 
 // Specific error message generators
-const getAuthErrorMessage = (error: any): string => {
-  switch (error?.status) {
+const getAuthErrorMessage = (error: unknown): string => {
+  const errorObj = error as { status?: number };
+  switch (errorObj?.status) {
     case 401:
       return 'Vaša relácia vypršala. Prihláste sa znova.';
     case 403:
@@ -184,25 +192,27 @@ const getAuthErrorMessage = (error: any): string => {
   }
 };
 
-const getValidationErrorMessage = (error: any, entity?: string): string => {
+const getValidationErrorMessage = (error: unknown, entity?: string): string => {
+  const errorObj = error as { details?: string };
   const entityName = getEntityName(entity);
 
-  if (error?.details) {
-    return `Neplatné údaje pre ${entityName}: ${error.details}`;
+  if (errorObj?.details) {
+    return `Neplatné údaje pre ${entityName}: ${errorObj.details}`;
   }
 
   return `Skontrolujte údaje pre ${entityName}. Niektoré polia sú neplatné.`;
 };
 
 const getServerErrorMessage = (
-  error: any,
+  error: unknown,
   action?: string,
   entity?: string
 ): string => {
+  const errorObj = error as { status?: number };
   const actionText = getActionText(action);
   const entityName = getEntityName(entity);
 
-  if (error?.status >= 500) {
+  if ((errorObj?.status ?? 0) >= 500) {
     return `Nepodarilo sa ${actionText} ${entityName} kvôli problému so serverom.`;
   }
 
@@ -259,10 +269,7 @@ const getActionText = (action?: string): string => {
 /**
  * 🎨 Error recovery suggestions na základe kontextu
  */
-export const getRecoverySuggestions = (
-  error: any,
-  context: ErrorContext = {}
-): string[] => {
+export const getRecoverySuggestions = (error: unknown): string[] => {
   const suggestions: string[] = [];
 
   if (isNetworkError(error)) {
