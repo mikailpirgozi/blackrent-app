@@ -45,7 +45,7 @@ export interface EmailDetail {
   email: EmailEntry & {
     email_content?: string;
     email_html?: string;
-    parsed_data?: any;
+    parsed_data?: Record<string, unknown>;
   };
   actions: Array<{
     id: string;

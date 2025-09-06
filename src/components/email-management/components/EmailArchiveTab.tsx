@@ -6,17 +6,20 @@
 import {
   Archive as ArchiveIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Refresh as RefreshIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
-  Card,
-  CardContent,
-  Typography,
+  Avatar,
   Box,
   Button,
+  Card,
+  CardContent,
+  Chip,
   CircularProgress,
+  IconButton,
   Pagination,
+  Paper,
   Stack,
   Table,
   TableBody,
@@ -24,21 +27,18 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
   Tooltip,
-  Chip,
-  Avatar,
-  useTheme,
+  Typography,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useEmailApi } from '../hooks/useEmailApi';
 import type {
-  EmailEntry,
-  EmailDetail,
   ArchivePagination,
+  EmailDetail,
+  EmailEntry,
 } from '../types/email-types';
 import { truncateText } from '../utils/email-formatters';
 
@@ -82,10 +82,10 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
   // API Hook
   const {
     actionLoading,
-    error,
-    success,
-    setError,
-    setSuccess,
+    // error,
+    // success,
+    // setError,
+    // setSuccess,
     viewEmailDetail,
     fetchArchivedEmails,
     bulkArchiveEmails,
@@ -97,20 +97,23 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
   // Load archived emails when filter changes
   useEffect(() => {
     loadArchivedEmails(0);
-  }, [senderFilter]);
+  }, [senderFilter, loadArchivedEmails]);
 
-  const loadArchivedEmails = async (offset = 0) => {
-    try {
-      setArchiveLoading(true);
-      const result = await fetchArchivedEmails(offset, senderFilter);
-      setArchivedEmails(result.emails);
-      setArchivePagination(result.pagination);
-    } catch (err) {
-      // Error handled by hook
-    } finally {
-      setArchiveLoading(false);
-    }
-  };
+  const loadArchivedEmails = useCallback(
+    async (offset = 0) => {
+      try {
+        setArchiveLoading(true);
+        const result = await fetchArchivedEmails(offset, senderFilter);
+        setArchivedEmails(result.emails);
+        setArchivePagination(result.pagination);
+      } catch (err) {
+        // Error handled by hook
+      } finally {
+        setArchiveLoading(false);
+      }
+    },
+    [fetchArchivedEmails, senderFilter]
+  );
 
   const handleViewEmail = async (emailId: string) => {
     const emailDetail = await viewEmailDetail(emailId);

@@ -634,7 +634,7 @@ class ApiService {
       insuranceClaims: InsuranceClaim[];
       insurers: Insurer[];
       settlements: Settlement[];
-    }>('/bulk-data');
+    }>('/bulk/data');
   }
 
   // Vehicle Documents API - chýbajúca metóda
@@ -691,7 +691,7 @@ class ApiService {
   }
 
   // Bulk Protocol Status API - chýbajúca metóda
-  async getBulkProtocolStatus(rentalIds: string[]): Promise<{
+  async getBulkProtocolStatus(): Promise<{
     [rentalId: string]: {
       hasHandoverProtocol: boolean;
       hasReturnProtocol: boolean;
@@ -706,10 +706,18 @@ class ApiService {
         handoverProtocolId?: string;
         returnProtocolId?: string;
       };
-    }>('/protocols/bulk-status', {
-      method: 'POST',
-      body: JSON.stringify({ rentalIds }),
-    });
+    }>('/protocols/bulk-status');
+  }
+
+  // All Protocols for Statistics API - chýbajúca metóda
+  async getAllProtocolsForStats(): Promise<{
+    handoverProtocols: HandoverProtocol[];
+    returnProtocols: ReturnProtocol[];
+  }> {
+    return this.request<{
+      handoverProtocols: HandoverProtocol[];
+      returnProtocols: ReturnProtocol[];
+    }>('/protocols/all-for-stats');
   }
 }
 

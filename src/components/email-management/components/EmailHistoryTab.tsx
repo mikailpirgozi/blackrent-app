@@ -5,18 +5,22 @@
 
 import {
   CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
   Archive as ArchiveIcon,
   Delete as DeleteIcon,
+  Cancel as RejectIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
+  Avatar,
+  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Box,
+  Chip,
   CircularProgress,
+  IconButton,
   Pagination,
+  Paper,
   Stack,
   Table,
   TableBody,
@@ -24,20 +28,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Button,
-  IconButton,
   Tooltip,
-  Chip,
-  Avatar,
-  useTheme,
+  Typography,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useEmailApi } from '../hooks/useEmailApi';
-import type { EmailEntry, EmailDetail } from '../types/email-types';
-import { PAGE_SIZE } from '../utils/email-constants';
+import type { EmailDetail, EmailEntry } from '../types/email-types';
+// import { PAGE_SIZE } from '../utils/email-constants';
 import { truncateText } from '../utils/email-formatters';
 
 import { EmailDetailDialog } from './dialogs/EmailDetailDialog';
@@ -55,8 +55,8 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
+  // const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
 
   // State
   const [emails, setEmails] = useState<EmailEntry[]>([]);
@@ -85,10 +85,10 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
   const {
     loading,
     actionLoading,
-    error,
-    success,
-    setError,
-    setSuccess,
+    // error,
+    // success,
+    // setError,
+    // setSuccess,
     fetchEmails,
     viewEmailDetail,
     approveEmail,
@@ -106,9 +106,9 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
     });
 
     loadEmails();
-  }, [currentPage, statusFilter, senderFilter]);
+  }, [currentPage, statusFilter, senderFilter, loadEmails]);
 
-  const loadEmails = async () => {
+  const loadEmails = useCallback(async () => {
     try {
       const result = await fetchEmails(currentPage, statusFilter, senderFilter);
       setEmails(result.emails);
@@ -117,7 +117,7 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
     } catch (err) {
       // Error handled by hook
     }
-  };
+  }, [fetchEmails, currentPage, statusFilter, senderFilter]);
 
   const handleViewEmail = async (emailId: string) => {
     const emailDetail = await viewEmailDetail(emailId);

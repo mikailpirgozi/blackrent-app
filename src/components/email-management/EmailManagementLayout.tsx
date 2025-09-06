@@ -4,28 +4,28 @@
  */
 
 import {
+  Archive as ArchiveIcon,
   Email as EmailIcon,
+  NotificationsNone as NotificationIcon,
+  Schedule as PendingIcon,
+  Refresh as RefreshIcon,
   PlayArrow as StartIcon,
   Stop as StopIcon,
-  Refresh as RefreshIcon,
   CheckCircle as TestIcon,
-  Schedule as PendingIcon,
-  Archive as ArchiveIcon,
-  NotificationsNone as NotificationIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Typography,
-  Button,
   Alert,
-  Chip,
-  Tabs,
-  Tab,
   Badge,
-  useTheme,
+  Box,
+  Button,
+  Chip,
+  Tab,
+  Tabs,
+  Typography,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // Hooks
 import { EmailArchiveTab } from './components/EmailArchiveTab';
@@ -117,7 +117,7 @@ const EmailManagementLayout: React.FC = () => {
     };
 
     initializeData();
-  }, []);
+  }, [fetchStats, fetchImapStatus, fetchPendingRentals]);
 
   // Handle filter changes
   const handleClearFilters = () => {

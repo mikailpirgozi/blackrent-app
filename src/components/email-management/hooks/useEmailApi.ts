@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 
-import { apiService, getAPI_BASE_URL } from '../../../services/api';
+import { getAPI_BASE_URL } from '../../../services/api';
 import type {
   EmailEntry,
   EmailStats,

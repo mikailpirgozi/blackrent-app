@@ -3,7 +3,7 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 import { apiService } from '../../../services/api';
 import type { Rental } from '../../../types';
@@ -27,7 +27,7 @@ export const usePendingRentals = () => {
       setPendingRentals(rentals || []);
       return rentals || [];
     } catch (error: unknown) {
-      console.error('❌ Error fetching pending rentals:', err);
+      console.error('❌ Error fetching pending rentals:', error);
       setError('Nepodarilo sa načítať čakajúce prenájmy');
       setPendingRentals([]);
       return [];
@@ -46,7 +46,7 @@ export const usePendingRentals = () => {
         setSuccess('Prenájom bol úspešne schválený');
         return true;
       } catch (error: unknown) {
-        console.error('Error approving rental:', err);
+        console.error('Error approving rental:', error);
         setError('Nepodarilo sa schváliť prenájom');
         return false;
       } finally {
@@ -66,7 +66,7 @@ export const usePendingRentals = () => {
         setSuccess('Prenájom bol zamietnutý');
         return true;
       } catch (error: unknown) {
-        console.error('Error rejecting rental:', err);
+        console.error('Error rejecting rental:', error);
         setError('Nepodarilo sa zamietnuť prenájom');
         return false;
       } finally {

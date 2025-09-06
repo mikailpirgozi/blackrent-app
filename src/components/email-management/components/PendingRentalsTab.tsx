@@ -5,34 +5,34 @@
 
 import {
   CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
-  Euro as EuroIcon,
   CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
+  DirectionsCar as CarIcon,
   CheckCircle,
+  Euro as EuroIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  LocationOn as LocationIcon,
+  Person as PersonIcon,
+  Refresh as RefreshIcon,
+  Cancel as RejectIcon,
 } from '@mui/icons-material';
 import {
-  Card,
-  CardContent,
-  Typography,
   Box,
   Button,
-  CircularProgress,
-  Grid,
+  Card,
+  CardContent,
   Chip,
+  CircularProgress,
   Collapse,
   Divider,
+  Grid,
   IconButton,
   Tooltip,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { Rental } from '../../../types';
+// import { Rental } from '../../../types';
 import { usePendingRentals } from '../hooks/usePendingRentals';
 import { formatCurrency, formatDate } from '../utils/email-formatters';
 
@@ -55,10 +55,10 @@ export const PendingRentalsTab: React.FC = () => {
     pendingLoading,
     expandedRentals,
     actionLoading,
-    error,
-    success,
-    setError,
-    setSuccess,
+    // error,
+    // success,
+    // setError,
+    // setSuccess,
     fetchPendingRentals,
     handleApproveRental,
     handleRejectRental,
