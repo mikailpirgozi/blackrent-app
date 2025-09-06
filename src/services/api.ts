@@ -719,6 +719,24 @@ class ApiService {
       returnProtocols: ReturnProtocol[];
     }>('/protocols/all-for-stats');
   }
+
+  // Email Webhook API - Pending Rentals
+  async getPendingAutomaticRentals(): Promise<Rental[]> {
+    return this.request<Rental[]>('/email-webhook/pending');
+  }
+
+  async approveAutomaticRental(rentalId: string): Promise<void> {
+    return this.request<void>(`/email-webhook/approve/${rentalId}`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectAutomaticRental(rentalId: string, reason: string): Promise<void> {
+    return this.request<void>(`/email-webhook/reject/${rentalId}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
 }
 
 export const apiService = new ApiService();
