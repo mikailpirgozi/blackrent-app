@@ -5,6 +5,28 @@ import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, C
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
 
+// Helper function to convert unknown error to typed error
+function toError(error: unknown): Error & { code?: string } {
+  if (error instanceof Error) {
+    return error as Error & { code?: string };
+  }
+  return new Error(String(error)) as Error & { code?: string };
+}
+
+// Helper function to safely convert unknown to string
+function toString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value);
+}
+
+// Helper function to safely convert unknown to number
+function toNumber(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  const num = Number(value);
+  return isNaN(num) ? 0 : num;
+}
+
+
 export class PostgresDatabase {
   private pool: Pool;
   private protocolTablesInitialized: boolean = false;
@@ -29,20 +51,20 @@ export class PostgresDatabase {
   private readonly VEHICLE_CACHE_TTL = 10 * 60 * 1000; // 10 minút
 
   // 🚀 FÁZA 2.2: CONNECTION REUSE pre calendar API
-  private calendarConnection: any = null;
+  private calendarConnection: PoolClient | null = null;
   private calendarConnectionLastUsed: number = 0;
   private readonly CONNECTION_REUSE_TIMEOUT = 60000; // 1 minúta
 
   // 🚀 FÁZA 2.3: SMART CACHING LAYER - hierarchical cache system
   private calendarCache = new Map<string, {
-    data: any;
+    data: Record<string, unknown>;
     timestamp: number;
     dateRange: { start: Date; end: Date };
   }>();
   private readonly CALENDAR_CACHE_TTL = 5 * 60 * 1000; // 5 minút
 
   private unavailabilityCache = new Map<string, {
-    data: any[];
+    data: Record<string, unknown>[];
     timestamp: number;
   }>();
   private readonly UNAVAILABILITY_CACHE_TTL = 3 * 60 * 1000; // 3 minúty
@@ -139,23 +161,24 @@ export class PostgresDatabase {
         client = await this.pool.connect();
         const result = await operation(client);
         return result;
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        lastError = errorObj;
         
         // Log error details
         logger.error(`🚨 Database operation failed (attempt ${attempt}/${maxRetries}):`, {
-          error: error.message,
-          code: error.code,
+          error: errorObj.message,
+          code: errorObj.code,
           attempt,
           maxRetries
         });
         
         // Check if it's a connection error
-        const isConnectionError = error.message?.includes('Connection terminated') ||
-                                 error.message?.includes('connection') ||
-                                 error.code === 'ECONNRESET' ||
-                                 error.code === 'ENOTFOUND' ||
-                                 error.code === 'ETIMEDOUT';
+        const isConnectionError = errorObj.message?.includes('Connection terminated') ||
+                                 errorObj.message?.includes('connection') ||
+                                 errorObj.code === 'ECONNRESET' ||
+                                 errorObj.code === 'ENOTFOUND' ||
+                                 errorObj.code === 'ETIMEDOUT';
         
         if (isConnectionError && attempt < maxRetries) {
           const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
@@ -182,7 +205,7 @@ export class PostgresDatabase {
   }
 
   // 📧 HELPER: Public query method pre webhook funcionalitu
-  async query(sql: string, params: any[] = []): Promise<any> {
+  async query(sql: string, params: unknown[] = []): Promise<unknown> {
     return this.executeWithEnhancedRetry(async (client) => {
       return await client.query(sql, params);
     });
@@ -194,7 +217,7 @@ export class PostgresDatabase {
     maxRetries: number = 3,
     retryDelay: number = 1000
   ): Promise<T> {
-    let lastError: any;
+    let lastError: Error | undefined;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       let client: PoolClient | null = null;
@@ -203,19 +226,20 @@ export class PostgresDatabase {
         client = await this.pool.connect();
         const result = await operation(client);
         return result;
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        lastError = error instanceof Error ? error : new Error(String(error));
         
         // Check if it's a connection error that we should retry
+        const errorObj = toError(error);
         const isConnectionError = 
-          error.message?.includes('Connection terminated') ||
-          error.message?.includes('ECONNRESET') ||
-          error.message?.includes('connection closed') ||
-          error.code === 'ECONNRESET' ||
-          error.code === '57P01'; // PostgreSQL connection error
+          errorObj?.message?.includes('Connection terminated') ||
+          errorObj?.message?.includes('ECONNRESET') ||
+          errorObj?.message?.includes('connection closed') ||
+          errorObj?.code === 'ECONNRESET' ||
+          errorObj?.code === '57P01'; // PostgreSQL connection error
         
         if (isConnectionError && attempt < maxRetries) {
-          logger.error(`🔄 Database connection error (attempt ${attempt}/${maxRetries}):`, error.message);
+          logger.error(`🔄 Database connection error (attempt ${attempt}/${maxRetries}):`, errorObj?.message || 'Unknown error');
           
           // Wait before retry with exponential backoff
           const delay = retryDelay * Math.pow(2, attempt - 1);
@@ -236,7 +260,7 @@ export class PostgresDatabase {
       }
     }
     
-    throw lastError;
+    throw lastError || new Error('Unknown database error');
   }
 
   private async initTables() {
@@ -629,7 +653,7 @@ export class PostgresDatabase {
     }
   }
 
-  private async runMigrations(client: any) {
+  private async runMigrations(client: PoolClient) {
     try {
       logger.migration('🔄 Spúšťam databázové migrácie...');
       
@@ -644,8 +668,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'available';
         `);
         logger.migration('✅ Migrácia 1: Stĺpce do vehicles pridané');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 1 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 1 chyba:', errorObj.message);
       }
       
       // Migrácia 2: Pridanie základných polí do rentals tabuľky
@@ -666,8 +691,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS handover_place TEXT;
         `);
         logger.migration('✅ Migrácia 2: Stĺpce do rentals pridané');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 2 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 2 chyba:', errorObj.message);
       }
       
       // Migrácia 2b: Pridanie chýbajúcich stĺpcov do customers
@@ -680,8 +706,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
         `);
         logger.migration('✅ Migrácia 2b: Stĺpce do customers pridané');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 2b chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 2b chyba:', errorObj.message);
       }
       
       // Migrácia 3: Zvýšenie limitov varchar polí
@@ -708,8 +735,9 @@ export class PostgresDatabase {
           ALTER COLUMN status TYPE VARCHAR(30);
         `);
         logger.migration('✅ Migrácia 3: VARCHAR limity aktualizované');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 3 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 3 chyba:', errorObj.message);
       }
       
       // Migrácia 4: Nastavenie NOT NULL pre dôležité polia
@@ -722,8 +750,9 @@ export class PostgresDatabase {
           ALTER TABLE vehicles ALTER COLUMN company SET NOT NULL;
         `);
         logger.migration('✅ Migrácia 4: NOT NULL constraints nastavené');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 4 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 4 chyba:', errorObj.message);
       }
       
       // Migrácia 5: Pridanie signature_template a user info stĺpcov do users tabuľky
@@ -736,8 +765,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
         `);
         logger.migration('✅ Migrácia 5: signature_template, first_name, last_name stĺpce pridané do users');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 5 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 5 chyba:', errorObj.message);
       }
       
       // Migrácia 6: Pridanie rozšírených polí do rentals tabuľky
@@ -760,8 +790,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS return_protocol_id UUID;
         `);
         logger.migration('✅ Migrácia 5: Rozšírené polia do rentals pridané');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 5 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 5 chyba:', errorObj.message);
       }
       
       // Migrácia 6: Aktualizácia pricing tiers pre všetky existujúce vozidlá
@@ -814,23 +845,25 @@ export class PostgresDatabase {
         }
         
         logger.migration(`✅ Migrácia 6: Pricing aktualizované pre ${vehiclesResult.rows.length} vozidiel`);
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 6 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 6 chyba:', errorObj.message);
       }
       
       // Migrácia 7: Aktualizácia commission na 20% pre všetky vozidlá
       try {
         logger.migration('📋 Migrácia 7: Aktualizácia commission na 20%...');
         
-        const commissionResult = await client.query(`
+        await client.query(`
           UPDATE vehicles 
           SET commission = '{"type": "percentage", "value": 20}'::jsonb
           WHERE commission->>'value' != '20'
         `);
         
         logger.migration(`✅ Migrácia 7: Commission aktualizovaná na 20% pre všetky vozidlá`);
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 7 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 7 chyba:', errorObj.message);
       }
       
       // Migrácia 8: Pridanie owner_name stĺpca do vehicles tabuľky
@@ -841,8 +874,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255);
         `);
         logger.migration('✅ Migrácia 8: owner_name stĺpec pridaný do vehicles tabuľky');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 8 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 8 chyba:', errorObj.message);
       }
       
             // Migrácia 9: Pridanie company_id stĺpca do vehicles tabuľky
@@ -853,8 +887,9 @@ export class PostgresDatabase {
           ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id);
         `);
         logger.migration('✅ Migrácia 9: company_id stĺpec pridaný do vehicles tabuľky');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 9 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 9 chyba:', errorObj.message);
       }
 
       // Migrácia 10: Oprava company_id typu v users tabuľke z INTEGER na UUID
@@ -878,8 +913,9 @@ export class PostgresDatabase {
         `);
         
         logger.migration('✅ Migrácia 10: company_id typ opravený na UUID');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 10 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 10 chyba:', errorObj.message);
         // Ak zlyhá konverzia, skús pridať stĺpec nanovo
         try {
           await client.query(`
@@ -887,8 +923,9 @@ export class PostgresDatabase {
             ALTER TABLE users ADD COLUMN company_id UUID REFERENCES companies(id);
           `);
           logger.migration('✅ Migrácia 10: company_id stĺpec znovu vytvorený ako UUID');
-        } catch (retryError: any) {
-          logger.migration('⚠️ Migrácia 10 retry chyba:', retryError.message);
+        } catch (retryError: unknown) {
+          const retryErrorObj = toError(retryError);
+          logger.migration('⚠️ Migrácia 10 retry chyba:', retryErrorObj.message);
         }
       }
 
@@ -933,8 +970,9 @@ export class PostgresDatabase {
         `);
         
         logger.migration('✅ Migrácia 11: vehicles.id typ opravený na UUID');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 11 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 11 chyba:', errorObj.message);
         // Ak zlyhá konverzia, skús pridať stĺpec nanovo
         try {
           await client.query(`
@@ -942,8 +980,9 @@ export class PostgresDatabase {
             ALTER TABLE vehicles ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
           `);
           logger.migration('✅ Migrácia 11: vehicles.id stĺpec znovu vytvorený ako UUID');
-        } catch (retryError: any) {
-          logger.migration('⚠️ Migrácia 11 retry chyba:', retryError.message);
+        } catch (retryError: unknown) {
+          const retryErrorObj = toError(retryError);
+          logger.migration('⚠️ Migrácia 11 retry chyba:', retryErrorObj.message);
         }
       }
 
@@ -957,8 +996,9 @@ export class PostgresDatabase {
         `);
         
         logger.migration('✅ Migrácia 12: users.id typ opravený na UUID');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 12 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 12 chyba:', errorObj.message);
         // Ak zlyhá konverzia, skús pridať stĺpec nanovo
         try {
           await client.query(`
@@ -966,8 +1006,9 @@ export class PostgresDatabase {
             ALTER TABLE users ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
           `);
           logger.migration('✅ Migrácia 12: users.id stĺpec znovu vytvorený ako UUID');
-        } catch (retryError: any) {
-          logger.migration('⚠️ Migrácia 12 retry chyba:', retryError.message);
+        } catch (retryError: unknown) {
+          const retryErrorObj = toError(retryError);
+          logger.migration('⚠️ Migrácia 12 retry chyba:', retryErrorObj.message);
         }
       }
       
@@ -1214,7 +1255,7 @@ export class PostgresDatabase {
         try {
           await client.query('ALTER TABLE vehicles DROP COLUMN IF EXISTS owner_name');
           logger.migration('   ✅ vehicles.owner_name odstránené');
-        } catch (e: any) {
+        } catch (e: unknown) {
           logger.migration('   ⚠️ vehicles.owner_name už neexistuje');
         }
         
@@ -1245,8 +1286,9 @@ export class PostgresDatabase {
         
         logger.migration('✅ Migrácia 14: Final Company Cleanup dokončená');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 14 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 14 chyba:', errorObj.message);
       }
       
       // ❌ MIGRÁCIA 15 ZMAZANÁ - Spôsobovala chaos s vehicle_id remappingom ❌
@@ -1275,8 +1317,9 @@ export class PostgresDatabase {
         
         logger.migration('✅ Migrácia 16: STK stĺpec úspešne pridaný');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 16 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 16 chyba:', errorObj.message);
       }
 
       // Migrácia 17: Pridanie Foreign Key constraint pre rentals.vehicle_id
@@ -1311,8 +1354,9 @@ export class PostgresDatabase {
           logger.migration('   ℹ️ FK constraint už existuje');
         }
         logger.migration('✅ Migrácia 17: FK constraint úspešne pridaný');
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 17 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 17 chyba:', errorObj.message);
       }
 
       // Migrácia 18: Vehicle Ownership History - Pre tracking zmien vlastníctva vozidiel
@@ -1396,8 +1440,9 @@ export class PostgresDatabase {
         
         logger.migration('✅ Migrácia 18: Vehicle Ownership History úspešne vytvorená');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 18 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 18 chyba:', errorObj.message);
       }
 
       // Migrácia 19: Vehicle Company Snapshot - Zamrazenie historických prenájmov 🎯
@@ -1464,8 +1509,9 @@ export class PostgresDatabase {
         logger.migration(`   ✅ Migrácia dokončená pre ${migratedCount} prenájmov`);
         logger.migration('✅ Migrácia 19: Vehicle Company Snapshot úspešne vytvorená');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 19 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 19 chyba:', errorObj.message);
       }
 
       // Migrácia 20: CLEAN SOLUTION - Nahradiť komplikovaný snapshot jednoduchým company field 🎯
@@ -1501,14 +1547,16 @@ export class PostgresDatabase {
         try {
           await client.query(`ALTER TABLE rentals DROP COLUMN IF EXISTS vehicle_company_snapshot`);
           logger.migration('   ✅ vehicle_company_snapshot stĺpec odstránený');
-        } catch (dropError: any) {
-          logger.migration('   ⚠️ Nemožno odstrániť vehicle_company_snapshot:', dropError.message);
+        } catch (dropError: unknown) {
+          const dropErrorObj = toError(dropError);
+          logger.migration('   ⚠️ Nemožno odstrániť vehicle_company_snapshot:', dropErrorObj.message);
         }
         
         logger.migration('✅ Migrácia 20: CLEAN SOLUTION úspešne dokončená');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 20 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 20 chyba:', errorObj.message);
       }
 
       // Migrácia 21: 🛡️ BULLETPROOF - Historický backfill company (NIKDY sa nezmení!) ✅
@@ -1560,8 +1608,9 @@ export class PostgresDatabase {
         logger.migration(`   ✅ Zostáva ${nullCompanyCount.rows[0].count} prenájmov bez company`);
         logger.migration('✅ Migrácia 21: 🛡️ BULLETPROOF historické company FIX dokončený');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 21 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 21 chyba:', errorObj.message);
       }
 
       // Migrácia 22: ⚡ PERFORMANCE INDEXY - Optimalizácia rýchlosti načítavania dát
@@ -1606,8 +1655,9 @@ export class PostgresDatabase {
 
         logger.migration('✅ Migrácia 22: ⚡ Performance indexy úspešne pridané (očakávaná úspora: 30-50% rýchlosť)');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 22 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 22 chyba:', errorObj.message);
       }
 
       // Migrácia 23: 🔄 FLEXIBILNÉ PRENÁJMY - Pridanie stĺpcov pre hybridný prístup
@@ -1655,8 +1705,9 @@ export class PostgresDatabase {
         logger.migration('   • auto_extend: automatické predĺženie');
         logger.migration('   • override_history: história zmien');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 23 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 23 chyba:', errorObj.message);
       }
 
       // Migrácia 24: 🚗 VEHICLE CATEGORIES - Pridanie kategórií vozidiel pre lepšie filtrovanie
@@ -1706,8 +1757,9 @@ export class PostgresDatabase {
         logger.migration('   🎯 Vozidlá teraz môžu byť kategorizované pre lepšie filtrovanie');
         logger.migration('   🔍 Frontend môže používať multi-select category filter');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 24 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 24 chyba:', errorObj.message);
       }
 
       // Migrácia 25: 🗑️ AUDIT LOGGING REMOVAL - Odstraňujeme audit logs systém
@@ -1721,8 +1773,9 @@ export class PostgresDatabase {
         logger.migration('   🧹 Tabuľka audit_logs a všetky indexy odstránené');
         logger.migration('   ⚡ Znížená záťaž na databázu a lepšie performance');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 25 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 25 chyba:', errorObj.message);
       }
 
       // Migrácia 27: 📁 EMAIL ARCHIVE SYSTEM - Pridanie archived_at stĺpca
@@ -1767,8 +1820,9 @@ export class PostgresDatabase {
         } else {
           logger.migration('   ✅ Migrácia 27: Email archive systém už existuje');
         }
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 27 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 27 chyba:', errorObj.message);
       }
 
       // Migrácia 26: 📧 IMAP EMAIL SUPPORT - Pridanie customer email stĺpcov do rentals
@@ -1782,7 +1836,7 @@ export class PostgresDatabase {
           WHERE table_name = 'rentals' AND column_name IN ('customer_email', 'customer_phone', 'order_number', 'vehicle_name', 'vehicle_code', 'handover_place', 'daily_kilometers', 'approval_status', 'auto_processed_at', 'email_content')
         `);
         
-        const existingColumns = columnCheck.rows.map((row: any) => row.column_name);
+        const existingColumns = columnCheck.rows.map((row: { column_name: string }) => row.column_name);
         const neededColumns = [
           'customer_email', 'customer_phone', 'order_number', 'vehicle_name', 
           'vehicle_code', 'handover_place', 'daily_kilometers', 'approval_status', 
@@ -1828,8 +1882,9 @@ export class PostgresDatabase {
         logger.migration('   ⚖️ Approval status workflow pre email objednávky');
         logger.migration('   🔍 Optimalizované indexy pre email vyhľadávanie');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 26 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 26 chyba:', errorObj.message);
       }
 
       // Migrácia 27: 📧 EMAIL MANAGEMENT DASHBOARD - Email History & Tracking
@@ -1918,12 +1973,14 @@ export class PostgresDatabase {
         logger.migration('   🔍 Optimalizované indexy pre search & filtering');
         logger.migration('   ⚡ Auto-update triggers pre timestamp tracking');
         
-      } catch (error: any) {
-        logger.migration('⚠️ Migrácia 27 chyba:', error.message);
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 27 chyba:', errorObj.message);
       }
 
-    } catch (error: any) {
-      logger.migration('⚠️ Migrácie celkovo preskočené:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.migration('⚠️ Migrácie celkovo preskočené:', errorMessage);
     }
   }
 
@@ -1993,8 +2050,9 @@ export class PostgresDatabase {
       
       logger.migration('✅ Data integrity validation dokončená');
       
-    } catch (error: any) {
-      logger.migration('⚠️ Data integrity validation chyba:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.migration('⚠️ Data integrity validation chyba:', errorMessage);
     }
   }
 
@@ -2025,7 +2083,8 @@ export class PostgresDatabase {
       logger.migration('📊 Počet záznamov: vehicles:', vehicleCount.rows[0].count, 'customers:', customerCount.rows[0].count, 'rentals:', rentalCount.rows[0].count);
       
       // VYPNUTÉ: Automatické vytváranie testových dát
-      if (false && rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
+      const createTestData = false;
+      if (createTestData && rentalCount.rows[0].count === '0' && vehicleCount.rows[0].count === '0') {
         logger.migration('📋 Vytváranie testovacích dát...');
         
         // Vytvorenie firiem - jednoducho bez duplicitov
@@ -2042,8 +2101,9 @@ export class PostgresDatabase {
             await client.query(`INSERT INTO companies (name) VALUES ${values}`, companiesToInsert);
             logger.migration('✅ Firmy vytvorené:', companiesToInsert);
           }
-        } catch (error: any) {
-          logger.migration('⚠️ Chyba pri vytváraní firiem:', error.message);
+        } catch (error: unknown) {
+          const errorObj = toError(error);
+          logger.migration('⚠️ Chyba pri vytváraní firiem:', errorObj.message);
         }
         
         // Vytvorenie poisťovní
@@ -2060,8 +2120,9 @@ export class PostgresDatabase {
             await client.query(`INSERT INTO insurers (name) VALUES ${values}`, insurersToInsert);
             logger.migration('✅ Poisťovne vytvorené:', insurersToInsert);
           }
-        } catch (error: any) {
-          logger.migration('⚠️ Chyba pri vytváraní poisťovní:', error.message);
+        } catch (error: unknown) {
+          const errorObj = toError(error);
+          logger.migration('⚠️ Chyba pri vytváraní poisťovní:', errorObj.message);
         }
         
         // Vytvorenie vozidiel - len ak neexistujú
@@ -2175,8 +2236,9 @@ export class PostgresDatabase {
           } else {
             logger.migration('ℹ️ Vozidlá už existujú, preskakujem vytváranie testovacích dát');
           }
-                 } catch (vehicleError: any) {
-           logger.migration('⚠️ Chyba pri vytváraní vozidiel:', vehicleError.message);
+                 } catch (vehicleError: unknown) {
+           const vehicleErrorObj = toError(vehicleError);
+           logger.migration('⚠️ Chyba pri vytváraní vozidiel:', vehicleErrorObj.message);
          }
       } else {
         logger.migration('ℹ️ Databáza už obsahuje dáta, preskakujem vytváranie testovacích dát');
@@ -2449,7 +2511,11 @@ export class PostgresDatabase {
     // Získaj nové connection a ulož ho pre reuse
     logger.migration('🔄 ACQUIRING new calendar connection');
     if (this.calendarConnection) {
-      try { this.calendarConnection.release(); } catch (e) {}
+      try { 
+        this.calendarConnection.release(); 
+      } catch (e) {
+        // Ignoruj chyby pri release - connection môže byť už uzavretý
+      }
     }
     
     this.calendarConnection = await this.pool.connect();
@@ -2491,8 +2557,6 @@ export class PostgresDatabase {
   }
 
   private cleanupExpiredCache(): void {
-    const now = Date.now();
-    
     // Cleanup calendar cache
     const calendarBefore = this.calendarCache.size;
     for (const [key, entry] of this.calendarCache.entries()) {
@@ -2518,12 +2582,44 @@ export class PostgresDatabase {
   }
 
   // 🚀 FÁZA 2.4: DATA STRUCTURE OPTIMIZATION
-  private optimizeCalendarDataStructure(data: any): any {
+  private optimizeCalendarDataStructure(data: Record<string, unknown>): Record<string, unknown> {
     const startTime = Date.now();
     
+    // Define types for calendar optimization
+    interface CalendarVehicle {
+      id: string;
+      brand: string;
+      model: string;
+      licensePlate: string;
+      status: string;
+    }
+    
+    interface CalendarDay {
+      date: string;
+      vehicles: Array<{
+        vehicleId: string;
+        status: string;
+        rentalId?: string;
+        customerName?: string;
+        isFlexible?: boolean;
+        rentalType?: string;
+        unavailabilityType?: string;
+      }>;
+    }
+    
+    interface OptimizedVehicleRef {
+      vi?: number; // Vehicle index reference
+      s: string; // Status
+      ri?: string; // Rental ID
+      cn?: string; // Customer name
+      f?: boolean; // Is flexible
+      rt?: string; // Rental type
+      ut?: string; // Unavailability type
+    }
+    
     // Create vehicle lookup map (deduplication)
-    const vehicleMap = new Map();
-    data.vehicles.forEach((vehicle: any, index: number) => {
+    const vehicleMap = new Map<string, { i: number; brand: string; model: string; licensePlate: string; status: string }>();
+    (data.vehicles as CalendarVehicle[]).forEach((vehicle: CalendarVehicle, index: number) => {
       vehicleMap.set(vehicle.id, {
         i: index, // Vehicle index instead of full object
         brand: vehicle.brand,
@@ -2534,20 +2630,21 @@ export class PostgresDatabase {
     });
 
     // Optimize calendar structure - replace duplicate vehicle data with references
-    const optimizedCalendar = data.calendar.map((day: any) => {
+    const optimizedCalendar = (data.calendar as CalendarDay[]).map((day: CalendarDay) => {
       return {
         date: day.date,
-        vehicles: day.vehicles.map((vehicle: any) => {
+        vehicles: day.vehicles.map((vehicle) => {
           const vehicleRef = vehicleMap.get(vehicle.vehicleId);
-          return {
+          const result: OptimizedVehicleRef = {
             vi: vehicleRef?.i, // Vehicle index reference
             s: vehicle.status, // Status
-            ...(vehicle.rentalId && { ri: vehicle.rentalId }), // Rental ID only if exists
-            ...(vehicle.customerName && { cn: vehicle.customerName }), // Customer name only if exists
-            ...(vehicle.isFlexible !== undefined && { f: vehicle.isFlexible }), // Flexible flag
-            ...(vehicle.rentalType !== 'standard' && { rt: vehicle.rentalType }), // Rental type only if not standard
-            ...(vehicle.unavailabilityType && { ut: vehicle.unavailabilityType }) // Unavailability type
           };
+          if (vehicle.rentalId) result.ri = vehicle.rentalId;
+          if (vehicle.customerName) result.cn = vehicle.customerName;
+          if (vehicle.isFlexible !== undefined) result.f = vehicle.isFlexible;
+          if (vehicle.rentalType !== 'standard') result.rt = vehicle.rentalType;
+          if (vehicle.unavailabilityType) result.ut = vehicle.unavailabilityType;
+          return result;
         })
       };
     });
@@ -2718,8 +2815,8 @@ export class PostgresDatabase {
     licensePlate: string;
     vin?: string;
     company: string;
-    pricing: any[];
-    commission: any;
+    pricing: Record<string, unknown>[];
+    commission: Record<string, unknown>;
     status: string;
     year?: number;
     extraKilometerRate?: number; // 🚗 NOVÉ: Extra kilometer rate
@@ -2867,17 +2964,20 @@ export class PostgresDatabase {
             companyId = newCompany.rows[0].id.toString();
             logger.migration(`🆕 Vytvorená nová firma: "${vehicle.company}" → ID: ${companyId}`);
           }
-        } catch (companyError: any) {
-          console.error('❌ Chyba pri aktualizácii firmy:', companyError.message);
+        } catch (companyError: unknown) {
+          const companyErrorObj = toError(companyError);
+          console.error('❌ Chyba pri aktualizácii firmy:', companyErrorObj.message);
           // Ak zlyhá, ponechaj pôvodné company_id
         }
       }
 
       // 🚗 NOVÉ: Pridanie extraKilometerRate do pricing JSONB
-      const pricingWithExtraKm: any[] = [...vehicle.pricing];
+      const pricingWithExtraKm = [...vehicle.pricing] as unknown as Record<string, unknown>[];
       if (vehicle.extraKilometerRate !== undefined) {
         // Odstráň staré extraKilometerRate objekty
-        const cleanPricing = pricingWithExtraKm.filter((item: any) => item.extraKilometerRate === undefined);
+        const cleanPricing = pricingWithExtraKm.filter((item: Record<string, unknown>) => 
+          !('extraKilometerRate' in item)
+        );
         // Pridaj nový extraKilometerRate
         cleanPricing.push({ extraKilometerRate: vehicle.extraKilometerRate });
         pricingWithExtraKm.length = 0;
@@ -3009,7 +3109,7 @@ export class PostgresDatabase {
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: unknown[] = [];
       let paramIndex = 1;
 
       // Search filter (brand, model, license plate, VIN)
@@ -3154,7 +3254,7 @@ export class PostgresDatabase {
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: unknown[] = [];
       let paramIndex = 1;
 
       // Search filter (name, email, phone, address)
@@ -3269,7 +3369,7 @@ export class PostgresDatabase {
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: unknown[] = [];
       let paramIndex = 1;
 
       // Search filter (username, email, first_name, last_name)
@@ -3386,7 +3486,7 @@ export class PostgresDatabase {
 
       // Build WHERE clause dynamically
       const whereClauses: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: unknown[] = [];
       let paramIndex = 1;
 
       // Search filter (name, email, phone)
@@ -3506,7 +3606,7 @@ export class PostgresDatabase {
 
       // Základný WHERE clause
       const whereConditions: string[] = ['1=1'];
-      const queryParams: any[] = [];
+      const queryParams: unknown[] = [];
       let paramIndex = 1;
 
       // 🔍 SEARCH filter - live vyhľadávanie s normalizáciou diakritiky
@@ -3538,11 +3638,12 @@ export class PostgresDatabase {
         let skipNormalDateFiltering = false;
 
         switch (params.dateFilter) {
-          case 'today':
+          case 'today': {
             startDate = new Date(today.setHours(0, 0, 0, 0));
             endDate = new Date(today.setHours(23, 59, 59, 999));
             break;
-          case 'today_activity':
+          }
+          case 'today_activity': {
             // Filtruj prenájmy ktoré sa dnes začínajú ALEBO končia - KOMBINOVANÝ FILTER
             const todayStart = new Date(today);
             todayStart.setHours(0, 0, 0, 0);
@@ -3556,7 +3657,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'today_returns':
+          }
+          case 'today_returns': {
             // Filtruj prenájmy ktoré sa končia dnes - ŠPECIALNY FILTER
             const todayStartReturns = new Date(today);
             todayStartReturns.setHours(0, 0, 0, 0);
@@ -3567,7 +3669,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'tomorrow_returns':
+          }
+          case 'tomorrow_returns': {
             // Filtruj prenájmy ktoré sa končia zajtra - ŠPECIALNY FILTER
             const tomorrow = new Date(today);
             tomorrow.setDate(today.getDate() + 1);
@@ -3580,7 +3683,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'week_activity':
+          }
+          case 'week_activity': {
             // Filtruj prenájmy ktoré sa tento týždeň začínajú ALEBO končia - KOMBINOVANÝ FILTER
             const endOfWeekActivity = new Date(today);
             endOfWeekActivity.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
@@ -3593,7 +3697,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'week_returns':
+          }
+          case 'week_returns': {
             // Filtruj prenájmy ktoré sa končia tento týždeň (do nedele)
             const endOfWeek = new Date(today);
             endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
@@ -3603,6 +3708,7 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
+          }
           case 'overdue':
             // Filtruj preterminované prenájmy - skončili ale nemajú return protokol
             whereConditions.push(`r.end_date < $${paramIndex} AND r.return_protocol_id IS NULL`);
@@ -3610,7 +3716,7 @@ export class PostgresDatabase {
             paramIndex++;
             skipNormalDateFiltering = true;
             break;
-          case 'new_today':
+          case 'new_today': {
             // Filtruj prenájmy vytvorené dnes
             const todayStartForNew = new Date(today);
             todayStartForNew.setHours(0, 0, 0, 0);
@@ -3621,7 +3727,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'starting_today':
+          }
+          case 'starting_today': {
             // Filtruj prenájmy ktoré dnes začínajú
             const todayStartForStarting = new Date(today);
             todayStartForStarting.setHours(0, 0, 0, 0);
@@ -3632,7 +3739,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'week_handovers':
+          }
+          case 'week_handovers': {
             // Filtruj prenájmy ktoré sa začínajú tento týždeň (do nedele)
             const endOfWeekForHandovers = new Date(today);
             endOfWeekForHandovers.setDate(today.getDate() + (7 - today.getDay())); // Najbližšia nedeľa
@@ -3642,7 +3750,8 @@ export class PostgresDatabase {
             paramIndex += 2;
             skipNormalDateFiltering = true;
             break;
-          case 'week':
+          }
+          case 'week': {
             const weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
             weekStart.setHours(0, 0, 0, 0);
@@ -3652,6 +3761,7 @@ export class PostgresDatabase {
             startDate = weekStart;
             endDate = weekEnd;
             break;
+          }
           case 'month':
             startDate = new Date(today.getFullYear(), today.getMonth(), 1);
             endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -3855,61 +3965,61 @@ export class PostgresDatabase {
   }
 
   // 🔧 HELPER: Transform database row to Rental object
-  private transformRowToRental(row: any): Rental {
+  private transformRowToRental(row: Record<string, unknown>): Rental {
     return {
-      id: row.id?.toString() || '',
-      vehicleId: row.vehicle_id?.toString(),
-      vehicleVin: row.vin || undefined, // 🆔 VIN číslo z JOIN s vehicles
-      customerId: row.customer_id?.toString(),
-      customerName: row.customer_name || 'Neznámy zákazník',
+      id: toString(row.id),
+      vehicleId: row.vehicle_id ? toString(row.vehicle_id) : undefined,
+      vehicleVin: row.vin ? toString(row.vin) : undefined, // 🆔 VIN číslo z JOIN s vehicles
+      customerId: row.customer_id ? toString(row.customer_id) : undefined,
+      customerName: toString(row.customer_name) || 'Neznámy zákazník',
       // 📧 CUSTOMER EMAIL & PHONE: Fallback systém pre protokoly
-      customerEmail: row.customer_db_email || row.customer_email || undefined,
-      customerPhone: row.customer_db_phone || row.customer_phone || undefined,
+      customerEmail: toString(row.customer_db_email || row.customer_email) || undefined,
+      customerPhone: toString(row.customer_db_phone || row.customer_phone) || undefined,
       // IMPORTANT: Dátumy už prídu ako stringy z PostgreSQL (::text)
-      startDate: row.start_date,
-      endDate: row.end_date,
-      totalPrice: parseFloat(row.total_price) || 0,
-      commission: parseFloat(row.commission) || 0,
-      paymentMethod: row.payment_method || 'cash',
+      startDate: toString(row.start_date) as string | Date,
+      endDate: toString(row.end_date) as string | Date,
+      totalPrice: toNumber(row.total_price),
+      commission: toNumber(row.commission),
+      paymentMethod: (toString(row.payment_method) || 'cash') as any,
       // 💰 FIX: Pridané chýbajúce discount a customCommission parsing
-      discount: row.discount ? (typeof row.discount === 'string' ? JSON.parse(row.discount) : row.discount) : undefined,
-      customCommission: row.custom_commission ? (typeof row.custom_commission === 'string' ? JSON.parse(row.custom_commission) : row.custom_commission) : undefined,
+      discount: this.safeJsonParse(row.discount, undefined) as any,
+      customCommission: this.safeJsonParse(row.custom_commission, undefined) as any,
       paid: Boolean(row.paid),
-      status: row.status || 'active',
-      createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-      orderNumber: row.order_number || undefined,
-      deposit: row.deposit ? parseFloat(row.deposit) : undefined,
-      allowedKilometers: row.allowed_kilometers || undefined,
-      dailyKilometers: row.daily_kilometers || undefined,
-      handoverPlace: row.handover_place || undefined,
+      status: (toString(row.status) || 'active') as any,
+      createdAt: row.created_at ? new Date(toString(row.created_at)) : new Date(),
+      orderNumber: row.order_number ? toString(row.order_number) : undefined,
+      deposit: row.deposit ? toNumber(row.deposit) : undefined,
+      allowedKilometers: row.allowed_kilometers ? toNumber(row.allowed_kilometers) : undefined,
+      dailyKilometers: row.daily_kilometers ? toNumber(row.daily_kilometers) : undefined,
+      handoverPlace: row.handover_place ? toString(row.handover_place) : undefined,
       // 🐛 FIX: Pridané chýbajúce extraKmCharge a extraKilometerRate mapovanie
-      extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
-      extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
-      company: row.company || undefined,
-      vehicleName: row.vehicle_name || undefined,  // 🚗 NOVÉ: Vehicle name field
+      extraKmCharge: row.extra_km_charge ? toNumber(row.extra_km_charge) : undefined,
+      extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? toNumber(row.extra_kilometer_rate) : undefined,
+      company: toString(row.company) || 'Neznáma firma',
+      vehicleName: row.vehicle_name ? toString(row.vehicle_name) : undefined,  // 🚗 NOVÉ: Vehicle name field
       // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy polia
       isFlexible: Boolean(row.is_flexible),
-      flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+      flexibleEndDate: row.flexible_end_date ? new Date(toString(row.flexible_end_date)) : undefined,
       // 👤 CUSTOMER OBJECT: Pre protokoly a ostatné použitie
       customer: (row.customer_db_id || row.customer_db_email || row.customer_db_phone) ? {
-        id: row.customer_db_id?.toString() || row.customer_id?.toString() || '',
-        name: row.customer_db_name || row.customer_name || 'Neznámy zákazník',
-        email: row.customer_db_email || row.customer_email || '',
-        phone: row.customer_db_phone || row.customer_phone || '',
-        createdAt: row.customer_created_at ? new Date(row.customer_created_at) : new Date()
+        id: toString(row.customer_db_id || row.customer_id),
+        name: toString(row.customer_db_name || row.customer_name) || 'Neznámy zákazník',
+        email: toString(row.customer_db_email || row.customer_email) || '',
+        phone: toString(row.customer_db_phone || row.customer_phone) || '',
+        createdAt: row.customer_created_at ? new Date(toString(row.customer_created_at)) : new Date()
       } : undefined,
       // Vehicle information from JOIN
       vehicle: row.brand ? {
-        id: row.vehicle_id?.toString() || '',
-        brand: row.brand,
-        model: row.model,
-        licensePlate: row.license_plate,
-        vin: row.vin || null, // 🆔 VIN číslo
-        company: row.vehicle_company || row.company_name || 'N/A',
-        pricing: row.pricing ? (typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing) : [],
-        commission: row.v_commission ? (typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission) : { type: 'percentage', value: 0 },
-        status: row.v_status || 'available',
-        ownerCompanyId: row.company_id || undefined
+        id: toString(row.vehicle_id),
+        brand: toString(row.brand),
+        model: toString(row.model),
+        licensePlate: toString(row.license_plate),
+        vin: row.vin ? toString(row.vin) : undefined, // 🆔 VIN číslo
+        company: toString(row.vehicle_company || row.company_name) || 'N/A',
+        pricing: this.safeJsonParse(row.pricing, []) as any,
+        commission: this.safeJsonParse(row.v_commission, { type: 'percentage', value: 0 }) as any,
+        status: (toString(row.v_status) || 'available') as any,
+        ownerCompanyId: row.company_id ? toString(row.company_id) : undefined
       } : undefined
     };
   }
@@ -4103,7 +4213,7 @@ export class PostgresDatabase {
   }
 
   // Bezpečné parsovanie JSON polí
-  private safeJsonParse(value: any, fallback = undefined) {
+  private safeJsonParse(value: unknown, fallback: unknown = undefined): unknown {
     if (!value) return fallback;
     if (typeof value === 'object') return value;
     if (typeof value === 'string') {
@@ -4126,15 +4236,15 @@ export class PostgresDatabase {
     totalPrice: number;
     commission: number;
     paymentMethod: string;
-    discount?: any;
-    customCommission?: any;
+    discount?: Record<string, unknown>;
+    customCommission?: Record<string, unknown>;
     extraKmCharge?: number;
     paid?: boolean;
     status?: string;
     handoverPlace?: string;
     confirmed?: boolean;
-    payments?: any;
-    history?: any;
+    payments?: Record<string, unknown>[];
+    history?: Record<string, unknown>[];
     orderNumber?: string;
     deposit?: number;
     allowedKilometers?: number;
@@ -4184,7 +4294,7 @@ export class PostgresDatabase {
           const pricing = vehicleResult.rows[0].pricing;
           if (pricing && typeof pricing === 'object') {
             // Hľadáme extraKilometerRate v pricing JSONB
-            const extraKmItem = pricing.find?.((item: any) => item?.extraKilometerRate !== undefined);
+            const extraKmItem = (pricing as any[])?.find?.((item: any) => item?.extraKilometerRate !== undefined);
             vehicleExtraKmPrice = extraKmItem?.extraKilometerRate ? 
               parseFloat(extraKmItem.extraKilometerRate) : 0.30;
           } else {
@@ -4268,15 +4378,15 @@ export class PostgresDatabase {
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method,
-        discount: this.safeJsonParse(row.discount),
-        customCommission: this.safeJsonParse(row.custom_commission),
+        discount: this.safeJsonParse(row.discount, undefined) as any,
+        customCommission: this.safeJsonParse(row.custom_commission, undefined) as any,
         extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
         paid: Boolean(row.paid),
         status: row.status || 'pending',
         handoverPlace: row.handover_place,
         confirmed: Boolean(row.confirmed),
-        payments: this.safeJsonParse(row.payments),
-        history: this.safeJsonParse(row.history),
+        payments: this.safeJsonParse(row.payments, []) as any,
+        history: this.safeJsonParse(row.history, []) as any,
         orderNumber: row.order_number,
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
@@ -4307,6 +4417,52 @@ export class PostgresDatabase {
       // 🚀 FÁZA 2.3: Calendar cache invalidation po vytvorení prenájmu
       this.invalidateCalendarCache();
       this.invalidateUnavailabilityCache();
+      
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString(),
+        customerId: row.customer_id?.toString(),
+        customerName: row.customer_name,
+        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        totalPrice: parseFloat(row.total_price) || 0,
+        commission: parseFloat(row.commission) || 0,
+        paymentMethod: row.payment_method,
+        discount: this.safeJsonParse(row.discount, undefined) as any,
+        customCommission: this.safeJsonParse(row.custom_commission, undefined) as any,
+        extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
+        paid: Boolean(row.paid),
+        status: row.status || 'pending',
+        handoverPlace: row.handover_place,
+        confirmed: Boolean(row.confirmed),
+        payments: this.safeJsonParse(row.payments, []) as any,
+        history: this.safeJsonParse(row.history, []) as any,
+        orderNumber: row.order_number,
+        deposit: row.deposit ? parseFloat(row.deposit) : undefined,
+        allowedKilometers: row.allowed_kilometers || undefined,
+        dailyKilometers: row.daily_kilometers || undefined,
+        extraKilometerRate: row.extra_kilometer_rate !== null && row.extra_kilometer_rate !== undefined ? parseFloat(row.extra_kilometer_rate) : undefined,
+
+        returnConditions: row.return_conditions || undefined,
+        fuelLevel: row.fuel_level || undefined,
+        odometer: row.odometer || undefined,
+        returnFuelLevel: row.return_fuel_level || undefined,
+        returnOdometer: row.return_odometer || undefined,
+        actualKilometers: row.actual_kilometers || undefined,
+        fuelRefillCost: row.fuel_refill_cost ? parseFloat(row.fuel_refill_cost) : undefined,
+        handoverProtocolId: row.handover_protocol_id || undefined,
+        returnProtocolId: row.return_protocol_id || undefined,
+        company: row.company || undefined,  // 🎯 CLEAN SOLUTION field
+        vehicleName: row.vehicle_name || undefined,  // 🚗 NOVÉ: Vehicle name field
+        createdAt: new Date(row.created_at),
+        // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
+        isFlexible: Boolean(row.is_flexible),
+        flexibleEndDate: row.flexible_end_date ? new Date(row.flexible_end_date) : undefined,
+        // 📧 NOVÉ: Automatické spracovanie emailov polia (len existujúce stĺpce)
+        approvalStatus: row.approval_status || 'approved',
+        emailContent: row.email_content || undefined,
+        autoProcessedAt: row.auto_processed_at ? new Date(row.auto_processed_at) : undefined
+      };
       
     } finally {
       client.release();
@@ -4729,8 +4885,9 @@ export class PostgresDatabase {
             await client.query('INSERT INTO companies (name) VALUES ($1)', [expenseData.company.trim()]);
             logger.migration('✅ Company vytvorená pre expense:', expenseData.company.trim());
           }
-        } catch (companyError: any) {
-          logger.migration('⚠️ Company pre expense už existuje:', companyError.message);
+        } catch (companyError: unknown) {
+          const companyErrorObj = toError(companyError);
+          logger.migration('⚠️ Company pre expense už existuje:', companyErrorObj.message);
         }
       }
 
@@ -4776,8 +4933,9 @@ export class PostgresDatabase {
           if (existingCompany.rows.length === 0) {
             await client.query('INSERT INTO companies (name) VALUES ($1)', [expense.company.trim()]);
           }
-        } catch (companyError: any) {
-          logger.migration('⚠️ Company update pre expense error:', companyError.message);
+        } catch (companyError: unknown) {
+          const companyErrorObj = toError(companyError);
+          logger.migration('⚠️ Company update pre expense error:', companyErrorObj.message);
         }
       }
 
@@ -5152,8 +5310,9 @@ export class PostgresDatabase {
           results.generated++;
           logger.migration(`✅ Generated expense: ${row.description} for ${recurringExpense.generationDate.toISOString().split('T')[0]}`);
 
-        } catch (error: any) {
-          results.errors.push(`Error generating ${row.name}: ${error.message}`);
+        } catch (error: unknown) {
+          const errorObj = toError(error);
+          results.errors.push(`Error generating ${row.name}: ${errorObj.message}`);
           console.error(`❌ Error generating recurring expense ${row.name}:`, error);
         }
       }
