@@ -8,9 +8,9 @@
  * - useOptimizedFilters.ts (performance optimalizácie)
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 
-import type { Rental, Vehicle, Customer } from '../types';
+import type { Customer, Rental, Vehicle } from '../types';
 
 import { logger } from './smartLogger';
 
@@ -87,7 +87,7 @@ export interface SearchSuggestion {
   type: 'rental' | 'customer' | 'vehicle' | 'company';
   label: string;
   value: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -95,7 +95,7 @@ export interface SearchSuggestion {
  * Hlavná trieda ktorá kombinuje všetky filter funkcie
  */
 class UnifiedFilterEngine {
-  private cache = new Map<string, any>();
+  private cache = new Map<string, FilterResult<Rental>>();
   private stats = { hits: 0, misses: 0 };
 
   /**
@@ -263,14 +263,14 @@ class UnifiedFilterEngine {
     }
 
     if (options.protocolStatus && options.protocolStatus !== 'all') {
-      filtered = filtered.filter(rental => {
+      filtered = filtered.filter(() => {
         // Logic for protocol status filtering
         return true; // Placeholder
       });
     }
 
     if (options.vehicleBrand && options.vehicleBrand !== 'all') {
-      filtered = filtered.filter(rental => {
+      filtered = filtered.filter(() => {
         // Need vehicle data for brand filtering
         return true; // Placeholder
       });
@@ -376,7 +376,7 @@ class UnifiedFilterEngine {
 
     const filtered = data.filter(rental => {
       return searchFields.some(field => {
-        const value = (rental as any)[field];
+        const value = (rental as Record<string, unknown>)[field];
         return value && value.toString().toLowerCase().includes(query);
       });
     });
@@ -466,29 +466,34 @@ class UnifiedFilterEngine {
     const now = new Date();
 
     switch (timeFilter) {
-      case 'today':
+      case 'today': {
         const today = now.toISOString().split('T')[0];
         return data.filter(
           rental =>
             new Date(rental.startDate).toISOString().split('T')[0] === today ||
             new Date(rental.endDate).toISOString().split('T')[0] === today
         );
+      }
 
-      case 'week':
+      case 'week': {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         return data.filter(rental => new Date(rental.startDate) >= weekAgo);
+      }
 
-      case 'month':
+      case 'month': {
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         return data.filter(rental => new Date(rental.startDate) >= monthAgo);
+      }
 
-      case 'quarter':
+      case 'quarter': {
         const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         return data.filter(rental => new Date(rental.startDate) >= quarterAgo);
+      }
 
-      case 'year':
+      case 'year': {
         const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         return data.filter(rental => new Date(rental.startDate) >= yearAgo);
+      }
 
       default:
         return data;
@@ -579,7 +584,7 @@ export const useUnifiedFilters = <T extends Rental>(
  */
 export const compatibilityFilters = {
   // Wrapper pre RentalFilters.tsx
-  applyBasicFilters: (data: Rental[], filters: any) => {
+  applyBasicFilters: (data: Rental[], filters: Record<string, unknown>) => {
     return unifiedFilterEngine.filter(data, {
       vehicle: filters.filterVehicle,
       company: filters.filterCompany,
@@ -603,7 +608,7 @@ export const compatibilityFilters = {
   },
 
   // Wrapper pre RentalAdvancedFilters.tsx
-  applyAdvancedFilters: (data: Rental[], filters: any) => {
+  applyAdvancedFilters: (data: Rental[], filters: UnifiedFilterOptions) => {
     return unifiedFilterEngine.filter(data, {
       ...filters,
       enableMemoization: true,
@@ -613,7 +618,15 @@ export const compatibilityFilters = {
   },
 
   // Wrapper pre EnhancedRentalSearch.tsx
-  applySearchFilters: (data: Rental[], query: string, context: any) => {
+  applySearchFilters: (
+    data: Rental[],
+    query: string,
+    context: {
+      vehicles?: Vehicle[];
+      customers?: Customer[];
+      companies?: string[];
+    }
+  ) => {
     return unifiedFilterEngine.filter(
       data,
       {
