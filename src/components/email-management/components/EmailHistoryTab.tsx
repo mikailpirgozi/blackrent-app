@@ -97,17 +97,6 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
     deleteEmail,
   } = useEmailApi();
 
-  // Load emails when filters or page change
-  useEffect(() => {
-    console.log('🚀 EMAIL HISTORY TAB useEffect triggered', {
-      currentPage,
-      statusFilter,
-      senderFilter,
-    });
-
-    loadEmails();
-  }, [currentPage, statusFilter, senderFilter, loadEmails]);
-
   const loadEmails = useCallback(async () => {
     try {
       const result = await fetchEmails(currentPage, statusFilter, senderFilter);
@@ -118,6 +107,17 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
       // Error handled by hook
     }
   }, [fetchEmails, currentPage, statusFilter, senderFilter]);
+
+  // Load emails when filters or page change
+  useEffect(() => {
+    console.log('🚀 EMAIL HISTORY TAB useEffect triggered', {
+      currentPage,
+      statusFilter,
+      senderFilter,
+    });
+
+    loadEmails();
+  }, [currentPage, statusFilter, senderFilter, loadEmails]);
 
   const handleViewEmail = async (emailId: string) => {
     const emailDetail = await viewEmailDetail(emailId);

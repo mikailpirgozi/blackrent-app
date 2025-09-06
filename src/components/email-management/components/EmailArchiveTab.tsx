@@ -94,11 +94,6 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
     clearHistoricalEmails,
   } = useEmailApi();
 
-  // Load archived emails when filter changes
-  useEffect(() => {
-    loadArchivedEmails(0);
-  }, [senderFilter, loadArchivedEmails]);
-
   const loadArchivedEmails = useCallback(
     async (offset = 0) => {
       try {
@@ -114,6 +109,11 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
     },
     [fetchArchivedEmails, senderFilter]
   );
+
+  // Load archived emails when filter changes
+  useEffect(() => {
+    loadArchivedEmails(0);
+  }, [senderFilter, loadArchivedEmails]);
 
   const handleViewEmail = async (emailId: string) => {
     const emailDetail = await viewEmailDetail(emailId);
