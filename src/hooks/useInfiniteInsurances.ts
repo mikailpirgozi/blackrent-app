@@ -73,14 +73,9 @@ export function useInfiniteInsurances(
         const response = await apiService.getInsurancesPaginated(params);
         console.log('📡 API Response:', response);
 
-        // Backend vracia {success: true, data: {insurances: [...], pagination: {...}}}
-        if (
-          response &&
-          response.data &&
-          response.data.insurances &&
-          response.data.pagination
-        ) {
-          const { insurances: newInsurances, pagination } = response.data;
+        // API service už rozbalí response a vracia priamo {insurances: [...], pagination: {...}}
+        if (response && response.insurances && response.pagination) {
+          const { insurances: newInsurances, pagination } = response;
 
           console.log(
             `✅ Loaded ${newInsurances.length} insurances (page ${page})`
