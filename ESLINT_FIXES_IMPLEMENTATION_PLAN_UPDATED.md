@@ -32,7 +32,7 @@
 
 ## 🎯 SYSTEMATICKÝ PRÍSTUP: JEDEN SÚBOR = VŠETKY CHYBY
 
-### ✅ HOTOVÉ SÚBORY (25 súborov - 0 chýb každý):
+### ✅ HOTOVÉ SÚBORY (27 súborov - 0 chýb každý):
 - ✅ `src/utils/lazyComponents.tsx` - všetky {} typy opravené
 - ✅ `backend/src/routes/auth.ts` - **NOVÉ!** 38 TypeScript chýb opravených (pool access, JWT interfaces, proper typing)
 - ✅ `src/components/rentals/RentalForm.tsx` - **NOVÉ!** react-hooks deps + useMemo pre defaultPlaces opravené
@@ -56,6 +56,8 @@
 - ✅ `src/components/rentals/RentalDashboard.tsx` - **NOVÉ!** 23 chýb opravených (14x unused vars + 9x any typy)
 - ✅ `backend/src/services/imap-email-service.ts` - **NOVÉ!** 23 chýb opravených (19x any typy, 2x unused vars, 2x ban-types)
 - ✅ `src/hooks/useRentalProtocols.ts` - **NOVÉ!** 18 chýb opravených (všetky any typy nahradené proper interfaces)
+- ✅ `src/components/insurances/VehicleCentricInsuranceList.tsx` - **NOVÉ!** 16 chýb opravených (12x any + 3x unused + 1x missing backend field)
+- ✅ `src/components/settlements/SettlementListNew.tsx` - **NOVÉ!** 16 chýb opravených (6x unused vars + 6x any + 3x hooks + 2x TypeScript)
 
 ---
 
@@ -123,8 +125,35 @@
 3. ✅ **Type assertions:** Opravené sorting funkcií s proper typing
 4. ✅ **Build test:** Frontend build funguje bez chýb
 
-### 2.2 VehicleCentricInsuranceList.tsx (16 chýb)
-### 2.3 SettlementListNew.tsx (16 chýb)
+### ✅ 2.2 VehicleCentricInsuranceList.tsx (16 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **12x @typescript-eslint/no-explicit-any** - všetky any typy nahradené proper interfaces
+- ✅ **3x @typescript-eslint/no-unused-vars** - odstránené nepoužívané premenné
+- ✅ **1x missing backend field** - kompletná implementácia `kmState` poľa
+
+**Dokončené akcie:**
+1. ✅ **Interface fixes:** Definované `StatusFilter`, `ExpiryStatus`, `DocumentFormData` → `UnifiedDocumentData`
+2. ✅ **Unused vars cleanup:** Odstránené `filters`, `setActiveTab` (unused part)
+3. ✅ **Any types fix:** Nahradené všetky `as any` casts proper typing
+4. ✅ **Missing field fix:** Kompletná implementácia `kmState` - frontend interface, backend interface, databázová migrácia, CRUD operácie
+5. ✅ **Type guards:** Implementovaný `isValidDocumentType` pre bezpečné type casting
+6. ✅ **Build test:** Frontend + Backend build funguje bez chýb
+
+### ✅ 2.3 SettlementListNew.tsx (16 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **6x @typescript-eslint/no-unused-vars** - odstránené nepoužívané importy (ReceiptIcon, DateIcon, Stack, Alert, sk locale)
+- ✅ **6x @typescript-eslint/no-explicit-any** - nahradené proper Vehicle interface typing
+- ✅ **3x react-hooks/exhaustive-deps** - pridané proper memoization pre settlements, vehicles, companies
+- ✅ **2x TypeScript errors** - opravené createSettlement typing s CreateSettlementRequest interface
+
+**Dokončené akcie:**
+1. ✅ **Unused imports cleanup:** Odstránené všetky nepoužívané importy a locale
+2. ✅ **Vehicle typing:** Nahradené všetky `any` typy proper `Vehicle` interface
+3. ✅ **React hooks fix:** Pridané `useMemo` pre context data pre zabránenie zbytočných re-renderov
+4. ✅ **API typing fix:** Vytvorené `CreateSettlementRequest` interface matching backend API
+5. ✅ **Unused variable fix:** Zakomentované `totalCommission` pre budúce použitie
+6. ✅ **Build test:** Frontend + Backend build funguje bez chýb
+
 ### 2.4 ResponsiveTable.tsx (15 chýb)
 ### 2.5 CustomerListNew.tsx (15 chýb)
 ### 2.6 AvailabilityCalendar.tsx (15 chýb)
@@ -210,34 +239,106 @@ npx eslint . --ext .ts,.tsx --format json | jq -r '.[] | select(.messages | leng
 
 ---
 
-## 🎯 NEXT ACTION: VehicleCentricInsuranceList.tsx (16 chýb)
+## 🔧 SYSTEMATICKÝ PRÍSTUP PRE CHÝBAJÚCE DATABÁZOVÉ POLIA
 
-**Pripravený na implementáciu:**
-1. Analyzovať všetky chyby v súbore (pravdepodobne any typy + unused vars)
-2. Definovať proper interfaces pre insurance data
-3. Opraviť všetky any typy
-4. Odstrániť nepoužívané importy/premenné
-5. Opraviť react-hooks dependencies ak potrebné
-6. Build + funkčný test
-7. Commit a pokračovať na SettlementListNew.tsx
+### 📋 WORKFLOW PRE MISSING BACKEND FIELDS:
+
+Keď sa počas ESLint opráv objaví chýbajúce pole v backend (ako `kmState`):
+
+#### 🎯 **KROK 1: IDENTIFIKÁCIA**
+```bash
+# Nájdi kde sa pole používa ale nie je definované
+npx tsc --noEmit | grep "Property.*does not exist"
+```
+
+#### 🎯 **KROK 2: FRONTEND INTERFACE**
+```typescript
+// src/types/index.ts
+interface Insurance {
+  // ... existing fields
+  kmState?: number; // ✅ Pridaj chýbajúce pole
+}
+```
+
+#### 🎯 **KROK 3: BACKEND INTERFACE**
+```typescript
+// backend/src/types/index.ts
+interface Insurance {
+  // ... existing fields
+  kmState?: number; // ✅ Pridaj chýbajúce pole
+}
+```
+
+#### 🎯 **KROK 4: DATABÁZOVÁ MIGRÁCIA**
+```typescript
+// backend/src/models/postgres-database.ts
+// V initializeDatabase() pridaj migráciu:
+try {
+  await client.query(`
+    ALTER TABLE insurances ADD COLUMN IF NOT EXISTS km_state INTEGER
+  `);
+  logger.db('✅ Insurance km_state column migration completed');
+} catch (error) {
+  logger.db('ℹ️ Insurance km_state column already exists:', error);
+}
+```
+
+#### 🎯 **KROK 5: CRUD OPERÁCIE**
+```typescript
+// Aktualizuj všetky CRUD metódy:
+// 1. getInsurances() - pridaj km_state do SELECT a mapping
+// 2. createInsurance() - pridaj km_state do INSERT
+// 3. updateInsurance() - pridaj km_state do UPDATE
+```
+
+#### 🎯 **KROK 6: VALIDÁCIA**
+```bash
+# Test frontend build
+npm run build
+
+# Test backend build  
+cd backend && npm run build
+
+# Test že nie sú TypeScript chyby
+npx tsc --noEmit
+```
+
+### ✅ **PRÍKLAD ÚSPEŠNEJ IMPLEMENTÁCIE:**
+- **Pole:** `kmState` pre Insurance a VehicleDocument
+- **Použitie:** Stav kilometrov pre Kasko poistenie a STK/EK
+- **Implementácia:** Frontend interface → Backend interface → DB migrácia → CRUD operácie
+- **Výsledok:** 0 TypeScript chýb, fungujúce buildy
+
+### 🚨 **DÔLEŽITÉ PRAVIDLÁ:**
+1. **VŽDY** implementuj kompletne (frontend + backend + databáza)
+2. **VŽDY** otestuj oba buildy pred commitom
+3. **VŽDY** použij `IF NOT EXISTS` pre databázové migrácie
+4. **VŽDY** pridaj proper TypeScript typing (nie `any`)
+5. **VŽDY** aktualizuj všetky CRUD operácie
+
+---
+
+## 🎯 NEXT ACTION: ResponsiveTable.tsx (15 chýb)
 
 ---
 
 ## ✅ AKTUÁLNY PROGRESS
 
-### HOTOVÉ SÚBORY (25/190+):
-- ✅ 25 súborov kompletne opravených (0 chýb každý)
+### HOTOVÉ SÚBORY (27/190+):
+- ✅ 27 súborov kompletne opravených (0 chýb každý)
 - ✅ Všetky React hooks dependencies opravené v hotových súboroch
 - ✅ Backend auth.ts kompletne refaktorovaný (38 TypeScript chýb)
 - ✅ **DEAD CODE CLEANUP:** 7 súborov odstránených (216+ chýb)
 - ✅ **NOVÉ OPRAVY:** RentalDashboard.tsx (23), RentalForm.tsx (1), AuthContext.tsx (3), usePWA.ts (5)
 
-### PROGRESS: ~449/1455 chýb opravených (30.9%)
-**Aktuálny cieľ:** ~1006 chýb zostáva
+### PROGRESS: ~481/1455 chýb opravených (33.1%)
+**Aktuálny cieľ:** ~974 chýb zostáva
 
-**NOVÉ OPRAVY:**
-- ✅ `backend/src/services/imap-email-service.ts` - 23 chýb (19x any + 2x unused + 2x ban-types)
+**NAJNOVŠIE OPRAVY:**
+- ✅ `src/components/settlements/SettlementListNew.tsx` - 16 chýb (6x unused vars + 6x any + 3x hooks + 2x TypeScript)
+- ✅ `src/components/insurances/VehicleCentricInsuranceList.tsx` - 16 chýb (12x any + 3x unused + 1x missing backend field)
 - ✅ `src/hooks/useRentalProtocols.ts` - 18 chýb (všetky any typy)
+- ✅ `backend/src/services/imap-email-service.ts` - 23 chýb (19x any + 2x unused + 2x ban-types)
 
 ---
 
