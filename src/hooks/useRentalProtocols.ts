@@ -1,23 +1,62 @@
 import type React from 'react';
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
-import type { Rental, ProtocolImage, ProtocolVideo } from '../types';
+import type { ProtocolImage, ProtocolVideo, Rental } from '../types';
 import { logger } from '../utils/logger';
+
+// Protocol data interfaces
+interface ProtocolData {
+  id: string;
+  rentalId: string;
+  createdAt: string;
+  completedAt?: string;
+  status: string;
+  images?: ProtocolImage[];
+  videos?: ProtocolVideo[];
+  signatures?: Record<string, unknown>;
+  notes?: string;
+  [key: string]: unknown;
+}
+
+interface ProtocolsData {
+  handover?: ProtocolData;
+  return?: ProtocolData;
+}
+
+interface BulkProtocolStatusItem {
+  rentalId: string;
+  hasHandoverProtocol: boolean;
+  hasReturnProtocol: boolean;
+  handoverProtocolId?: string;
+  returnProtocolId?: string;
+}
+
+interface ImageParsingCacheItem {
+  images: ProtocolImage[];
+  videos: ProtocolVideo[];
+  timestamp: number;
+}
+
+// API response interfaces
+interface ApiProtocolsResponse {
+  handoverProtocols?: ProtocolData[];
+  returnProtocols?: ProtocolData[];
+}
 
 interface UseRentalProtocolsProps {
   onProtocolUpdate?: (
     rentalId: string,
     protocolType: 'handover' | 'return',
-    data: any
+    data: ProtocolData
   ) => void;
 }
 
 interface UseRentalProtocolsReturn {
   // Protocol state
-  protocols: Record<string, { handover?: any; return?: any }>;
+  protocols: Record<string, ProtocolsData>;
   setProtocols: React.Dispatch<
-    React.SetStateAction<Record<string, { handover?: any; return?: any }>>
+    React.SetStateAction<Record<string, ProtocolsData>>
   >;
   loadingProtocols: string[];
   setLoadingProtocols: (loading: string[]) => void;
@@ -84,13 +123,10 @@ interface UseRentalProtocolsReturn {
   setGalleryTitle: (title: string) => void;
 
   // Image parsing cache
-  imageParsingCache: Map<
-    string,
-    { images: any[]; videos: any[]; timestamp: number }
-  >;
+  imageParsingCache: Map<string, ImageParsingCacheItem>;
 
   // Protocol handlers
-  loadProtocolsForRental: (rentalId: string) => Promise<any>;
+  loadProtocolsForRental: (rentalId: string) => Promise<ProtocolsData | null>;
   loadProtocolStatusInBackground: () => Promise<void>;
   preloadTopProtocols: (rentals: Rental[]) => Promise<void>;
   handleCreateHandover: (rental: Rental) => Promise<void>;
@@ -107,7 +143,7 @@ interface UseRentalProtocolsReturn {
   onProtocolUpdate?: (
     rentalId: string,
     protocolType: 'handover' | 'return',
-    data: any
+    data: ProtocolData
   ) => void;
 }
 
@@ -115,9 +151,7 @@ export const useRentalProtocols = ({
   onProtocolUpdate,
 }: UseRentalProtocolsProps = {}): UseRentalProtocolsReturn => {
   // Protocol state
-  const [protocols, setProtocols] = useState<
-    Record<string, { handover?: any; return?: any }>
-  >({});
+  const [protocols, setProtocols] = useState<Record<string, ProtocolsData>>({});
   const [loadingProtocols, setLoadingProtocols] = useState<string[]>([]);
 
   // ⚡ BACKGROUND PROTOCOL LOADING STATE
@@ -161,14 +195,7 @@ export const useRentalProtocols = ({
 
   // 💾 IMAGE PARSING CACHE - cache pre parsed images aby sa neparovali zakaždým
   const [imageParsingCache] = useState(
-    new Map<
-      string,
-      {
-        images: any[];
-        videos: any[];
-        timestamp: number;
-      }
-    >()
+    new Map<string, ImageParsingCacheItem>()
   );
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
@@ -192,33 +219,36 @@ export const useRentalProtocols = ({
           hasData: !!data,
         });
 
+        // Type assertion pre API response
+        const apiData = data as ApiProtocolsResponse;
+
         // ✅ NAJNOVŠÍ PROTOKOL: Zoradiť podľa createdAt a vziať najnovší
         const latestHandover =
-          data?.handoverProtocols?.length > 0
-            ? data.handoverProtocols.sort(
-                (a: any, b: any) =>
+          apiData?.handoverProtocols?.length > 0
+            ? apiData.handoverProtocols.sort(
+                (a: ProtocolData, b: ProtocolData) =>
                   new Date(b.createdAt || b.completedAt || 0).getTime() -
                   new Date(a.createdAt || a.completedAt || 0).getTime()
               )[0]
             : undefined;
 
         const latestReturn =
-          data?.returnProtocols?.length > 0
-            ? data.returnProtocols.sort(
-                (a: any, b: any) =>
+          apiData?.returnProtocols?.length > 0
+            ? apiData.returnProtocols.sort(
+                (a: ProtocolData, b: ProtocolData) =>
                   new Date(b.createdAt || b.completedAt || 0).getTime() -
                   new Date(a.createdAt || a.completedAt || 0).getTime()
               )[0]
             : undefined;
 
         logger.debug('Protocols API response', {
-          hasData: !!data,
-          handoverCount: data?.handoverProtocols?.length || 0,
-          returnCount: data?.returnProtocols?.length || 0,
+          hasData: !!apiData,
+          handoverCount: apiData?.handoverProtocols?.length || 0,
+          returnCount: apiData?.returnProtocols?.length || 0,
           rentalId,
         });
 
-        const protocolData = {
+        const protocolData: ProtocolsData = {
           handover: latestHandover,
           return: latestReturn,
         };
@@ -313,7 +343,7 @@ export const useRentalProtocols = ({
         }
       > = {};
 
-      bulkProtocolStatus.forEach((item: any) => {
+      bulkProtocolStatus.forEach((item: BulkProtocolStatusItem) => {
         statusMap[item.rentalId] = {
           hasHandoverProtocol: item.hasHandoverProtocol,
           hasReturnProtocol: item.hasReturnProtocol,
