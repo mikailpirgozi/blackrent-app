@@ -46,53 +46,53 @@ class SmartLogger {
     return messageLevelIndex >= currentLevelIndex;
   }
 
-  debug(message: string, data?: any, category?: string): void {
+  debug(message: string, data?: unknown, category?: string): void {
     if (this.shouldLog('debug', category)) {
       console.log(`🔍 ${message}`, data || '');
     }
   }
 
-  info(message: string, data?: any, category?: string): void {
+  info(message: string, data?: unknown, category?: string): void {
     if (this.shouldLog('info', category)) {
       console.info(`ℹ️ ${message}`, data || '');
     }
   }
 
-  warn(message: string, data?: any, category?: string): void {
+  warn(message: string, data?: unknown, category?: string): void {
     if (this.shouldLog('warn', category)) {
       console.warn(`⚠️ ${message}`, data || '');
     }
   }
 
-  error(message: string, error?: any, category?: string): void {
+  error(message: string, error?: unknown, category?: string): void {
     if (this.shouldLog('error', category)) {
       console.error(`❌ ${message}`, error || '');
     }
   }
 
   // Performance logging - always important
-  performance(message: string, data?: any): void {
+  performance(message: string, data?: unknown): void {
     if (this.shouldLog('info', 'performance')) {
       console.log(`⚡ PERFORMANCE: ${message}`, data || '');
     }
   }
 
   // Component render tracking - only in development
-  render(componentName: string, props?: any): void {
+  render(componentName: string, props?: unknown): void {
     if (process.env.NODE_ENV === 'development' && this.shouldLog('debug')) {
       console.log(`🔄 ${componentName} render`, props ? { props } : '');
     }
   }
 
   // API call tracking
-  api(message: string, data?: any): void {
+  api(message: string, data?: unknown): void {
     if (this.shouldLog('debug', 'api')) {
       console.log(`🌐 API: ${message}`, data || '');
     }
   }
 
   // Cache operations
-  cache(message: string, data?: any): void {
+  cache(message: string, data?: unknown): void {
     if (this.shouldLog('debug', 'cache')) {
       console.log(`🗄️ CACHE: ${message}`, data || '');
     }
@@ -103,15 +103,15 @@ class SmartLogger {
 export const logger = new SmartLogger();
 
 // Backward compatibility helpers
-export const logDebug = (message: string, data?: any) =>
+export const logDebug = (message: string, data?: unknown) =>
   logger.debug(message, data);
-export const logInfo = (message: string, data?: any) =>
+export const logInfo = (message: string, data?: unknown) =>
   logger.info(message, data);
-export const logWarn = (message: string, data?: any) =>
+export const logWarn = (message: string, data?: unknown) =>
   logger.warn(message, data);
-export const logError = (message: string, error?: any) =>
+export const logError = (message: string, error?: unknown) =>
   logger.error(message, error);
-export const logPerformance = (message: string, data?: any) =>
+export const logPerformance = (message: string, data?: unknown) =>
   logger.performance(message, data);
 
 export default logger;
