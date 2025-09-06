@@ -1,54 +1,44 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  History as HistoryIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Person as PersonIcon,
-  CalendarToday as CalendarIcon,
-  Business as BusinessIcon,
   Download as DownloadIcon,
+  Edit as EditIcon,
+  Email as EmailIcon,
+  FilterList as FilterListIcon,
+  History as HistoryIcon,
+  Phone as PhoneIcon,
+  Search as SearchIcon,
   Upload as UploadIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  IconButton,
-  Tooltip,
-  Alert,
-  useMediaQuery,
-  useTheme,
+  Button,
+  Checkbox,
+  Chip,
   CircularProgress,
   Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Grid,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
+  FormControlLabel,
   FormGroup,
-  Chip,
-  Button,
+  Grid,
+  IconButton,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import type { Customer } from '../../types';
-import { PrimaryButton, SecondaryButton, DefaultCard, StatusChip } from '../ui';
+import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
 
 import CustomerForm from './CustomerForm';
 import CustomerRentalHistory from './CustomerRentalHistory';
@@ -72,8 +62,6 @@ export default function CustomerListNew() {
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] =
     useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
-  const [importError, setImportError] = useState('');
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Filters
   const [filterName, setFilterName] = useState('');
@@ -143,13 +131,17 @@ export default function CustomerListNew() {
     if (!file) return;
 
     Papa.parse(file, {
-      complete: async (results: any) => {
+      complete: async (results: { data: unknown[][] }) => {
         try {
           // Konvertuj parsované dáta späť na CSV string
           const csvString = Papa.unparse(results.data);
 
           const { apiService } = await import('../../services/api');
-          const result = await apiService.importCustomersCSV(csvString);
+          const result = (await apiService.importCustomersCSV(csvString)) as {
+            success: boolean;
+            message?: string;
+            error?: string;
+          };
 
           if (result.success) {
             alert(result.message);

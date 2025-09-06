@@ -465,6 +465,16 @@ export class PostgresDatabase {
         logger.db('ℹ️ Insurance file_paths column migration error:', error);
       }
 
+      // Pridáme stĺpec km_state ak neexistuje (migrácia pre Kasko poistenie)
+      try {
+        await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS km_state INTEGER
+        `);
+        logger.db('✅ Insurance km_state column migration completed');
+      } catch (error) {
+        logger.db('ℹ️ Insurance km_state column already exists or error occurred:', error);
+      }
+
       // Tabuľka firiem
       await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
@@ -5441,7 +5451,8 @@ export class PostgresDatabase {
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
         greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
+        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta
+        kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       }));
     } finally {
       client.release();
@@ -5464,6 +5475,7 @@ export class PostgresDatabase {
     coverageAmount?: number;
     greenCardValidFrom?: Date;
     greenCardValidTo?: Date;
+    kmState?: number; // 🚗 Stav kilometrov pre Kasko poistenie
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
@@ -5488,7 +5500,7 @@ export class PostgresDatabase {
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, created_at',
+        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, km_state) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, km_state, created_at',
         [
           insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // Convert string to integer
           finalInsurerId || null, 
@@ -5502,7 +5514,8 @@ export class PostgresDatabase {
           insuranceData.filePath || null, // Zachováme pre backward compatibility
           filePaths, // Nové pole pre viacero súborov
           insuranceData.greenCardValidFrom || null, // 🟢 Biela karta od
-          insuranceData.greenCardValidTo || null // 🟢 Biela karta do
+          insuranceData.greenCardValidTo || null, // 🟢 Biela karta do
+          insuranceData.kmState || null // 🚗 Stav kilometrov pre Kasko
         ]
       );
 
@@ -5520,7 +5533,8 @@ export class PostgresDatabase {
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
         greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
+        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta
+        kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       };
     } finally {
       client.release();
@@ -5541,6 +5555,7 @@ export class PostgresDatabase {
     filePaths?: string[]; // Nové pole pre viacero súborov
     greenCardValidFrom?: Date;
     greenCardValidTo?: Date;
+    kmState?: number; // 🚗 Stav kilometrov pre Kasko poistenie
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
@@ -5564,10 +5579,10 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         UPDATE insurances 
-        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, valid_from = $5, valid_to = $6, price = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, green_card_valid_from = $12, green_card_valid_to = $13
-        WHERE id = $14 
-        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to
-      `, [insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.greenCardValidFrom || null, insuranceData.greenCardValidTo || null, id]);
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, valid_from = $5, valid_to = $6, price = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, green_card_valid_from = $12, green_card_valid_to = $13, km_state = $14
+        WHERE id = $15 
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, km_state
+      `, [insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.greenCardValidFrom || null, insuranceData.greenCardValidTo || null, insuranceData.kmState || null, id]);
 
       if (result.rows.length === 0) {
         throw new Error('Poistka nebola nájdená');
@@ -5594,7 +5609,8 @@ export class PostgresDatabase {
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
         greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined // 🟢 Biela karta
+        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta
+        kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       };
     } finally {
       client.release();

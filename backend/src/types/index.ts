@@ -114,8 +114,8 @@ export interface Rental {
     user: string;
     changes: {
       field: string;
-      oldValue: any;
-      newValue: any;
+      oldValue: unknown;
+      newValue: unknown;
     }[];
   }[];
   orderNumber?: string;
@@ -300,6 +300,8 @@ export interface Insurance {
   // 🟢 BIELA KARTA: Platnosť zelenej karty (manuálne zadávané)
   greenCardValidFrom?: Date;
   greenCardValidTo?: Date;
+  // 🚗 KASKO: Stav kilometrov pri poistení (pre Kasko poistenie)
+  kmState?: number;
 }
 
 export interface Settlement {
@@ -517,13 +519,13 @@ export interface AuthRequest extends Request {
   user?: Omit<User, 'password'>;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
   error?: string;
   code?: string;
-  _meta?: any;
+  _meta?: Record<string, unknown>;
   user?: T;
 }
 
@@ -607,7 +609,7 @@ export interface HandoverProtocol {
     currency: string;
     allowedKilometers?: number;
     extraKilometerRate?: number;
-    insuranceDetails?: any;
+    insuranceDetails?: Record<string, unknown>;
   };
   pdfUrl?: string;
   emailSent?: boolean;
@@ -656,7 +658,7 @@ export interface ReturnProtocol {
     currency: string;
     allowedKilometers?: number;
     extraKilometerRate?: number;
-    insuranceDetails?: any;
+    insuranceDetails?: Record<string, unknown>;
   };
   pdfUrl?: string;
   emailSent?: boolean;

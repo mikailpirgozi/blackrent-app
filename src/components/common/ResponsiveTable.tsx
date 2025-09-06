@@ -3,10 +3,8 @@ import {
   Card,
   CardContent,
   Checkbox,
-  Chip,
-  Grid,
-  IconButton,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -16,12 +14,14 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  Button,
-  Stack,
-  Divider,
-  CircularProgress,
 } from '@mui/material';
 import React from 'react';
+
+// Generic table row data interface
+export interface TableRowData {
+  id: string;
+  [key: string]: unknown;
+}
 
 export interface ResponsiveTableColumn {
   id: string;
@@ -32,22 +32,21 @@ export interface ResponsiveTableColumn {
     | string
     | number
     | { xs?: string; sm?: string; md?: string; lg?: string; xl?: string };
-  render?: (value: any, row: any) => React.ReactNode;
-  format?: (value: any) => string;
+  render?: (value: unknown, row: TableRowData) => React.ReactNode;
+  format?: (value: unknown) => string;
 }
 
 export interface ResponsiveTableProps {
   columns: ResponsiveTableColumn[];
-  data: any[];
+  data: TableRowData[];
   selectable?: boolean;
   selected?: string[];
   onSelectionChange?: (selected: string[]) => void;
-  onRowClick?: (row: any) => void;
-  getRowId?: (row: any) => string;
-  getRowColor?: (row: any) => string;
-  mobileCardRenderer?: (row: any, index: number) => React.ReactNode;
+  onRowClick?: (row: TableRowData) => void;
+  getRowId?: (row: TableRowData) => string;
+  getRowColor?: (row: TableRowData) => string;
+  mobileCardRenderer?: (row: TableRowData, index: number) => React.ReactNode;
   emptyMessage?: string;
-  loading?: boolean;
 }
 
 export default function ResponsiveTable({
@@ -61,7 +60,6 @@ export default function ResponsiveTable({
   getRowColor,
   mobileCardRenderer,
   emptyMessage = 'Žiadne dáta',
-  loading = false,
 }: ResponsiveTableProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));

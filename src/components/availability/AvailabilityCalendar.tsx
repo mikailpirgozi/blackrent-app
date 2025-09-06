@@ -1,47 +1,42 @@
 import {
+  CalendarToday,
   ChevronLeft,
   ChevronRight,
-  CalendarToday,
-  CheckCircle,
-  Cancel,
-  Warning,
   DirectionsCar,
-  Build,
   Refresh,
 } from '@mui/icons-material';
 import {
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  IconButton,
-  Tooltip,
-  CircularProgress,
   Alert,
+  Box,
   Card,
   CardContent,
   Chip,
+  CircularProgress,
+  Grid,
+  IconButton,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameDay,
   addMonths,
-  subMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  isSameDay,
   isToday,
+  startOfMonth,
+  subMonths,
 } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
 
 // 🚀 NOVÉ TYPY PRE KALENDÁRNE DÁTA
@@ -71,8 +66,8 @@ interface CalendarData {
     licensePlate: string;
     status: string;
   }>;
-  rentals?: any[];
-  unavailabilities?: any[];
+  rentals?: Record<string, unknown>[];
+  unavailabilities?: Record<string, unknown>[];
 }
 
 interface AvailabilityCalendarProps {
@@ -84,7 +79,7 @@ interface AvailabilityCalendarProps {
   searchQuery?: string;
   isMobile?: boolean;
   selectedCompany?: string;
-  categoryFilter?: any[];
+  categoryFilter?: string[];
   availableFromDate?: string;
   availableToDate?: string;
 }
@@ -124,54 +119,13 @@ const getVehicleStatusColor = (
   }
 };
 
-// 🎨 HELPER: Získanie názvu stavu pre zobrazenie
-const getVehicleStatusLabel = (
-  status: string,
-  unavailabilityType?: string
-): string => {
-  switch (status) {
-    case 'available':
-      return 'Dostupné';
-    case 'rented':
-      return 'Prenajatý';
-    case 'maintenance':
-      return 'Údržba';
-    case 'unavailable':
-      switch (unavailabilityType) {
-        case 'private_rental':
-          return 'Súkromný prenájom';
-        case 'service':
-          return 'Servis';
-        case 'repair':
-          return 'Oprava';
-        case 'blocked':
-          return 'Blokované';
-        case 'cleaning':
-          return 'Čistenie';
-        case 'inspection':
-          return 'Kontrola';
-        default:
-          return 'Nedostupné';
-      }
-    default:
-      return 'Neznámy stav';
-  }
-};
-
 const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
-  vehicleId,
   onDateSelect,
   selectedDate,
   loading: externalLoading = false,
   error: externalError,
   searchQuery,
-  isMobile,
-  selectedCompany,
-  categoryFilter,
-  availableFromDate,
-  availableToDate,
 }) => {
-  const { getFilteredVehicles } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
   const [loading, setLoading] = useState(false);

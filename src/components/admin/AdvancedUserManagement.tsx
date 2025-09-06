@@ -147,6 +147,15 @@ const AdvancedUserManagement: React.FC = () => {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   // const [selectedItem, setSelectedItem] = useState<Record<string, unknown> | null>(null);
 
+  // Auth token helper - musí byť pred useEffect
+  const getAuthToken = useCallback(() => {
+    return (
+      state.token ||
+      localStorage.getItem('blackrent_token') ||
+      sessionStorage.getItem('blackrent_token')
+    );
+  }, [state.token]);
+
   // Form states
   const [userForm, setUserForm] = useState({
     username: '',
@@ -656,14 +665,6 @@ const AdvancedUserManagement: React.FC = () => {
       teamLeadId: '',
     });
   };
-
-  const getAuthToken = useCallback(() => {
-    return (
-      state.token ||
-      localStorage.getItem('blackrent_token') ||
-      sessionStorage.getItem('blackrent_token')
-    );
-  }, [state.token]);
 
   const getRoleLevel = (level: number) => {
     const levels = {

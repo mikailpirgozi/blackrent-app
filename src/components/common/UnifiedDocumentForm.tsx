@@ -4,41 +4,42 @@ import BuildIcon from '@mui/icons-material/Build';
 import HighwayIcon from '@mui/icons-material/LocalShipping';
 import SecurityIcon from '@mui/icons-material/Security';
 import {
+  Alert,
+  Autocomplete,
   Box,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Typography,
   Card,
   CardContent,
-  Divider,
-  Alert,
   Chip,
-  Autocomplete,
+  Divider,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import type { PaymentFrequency } from '../../types';
-import { Insurance, VehicleDocument } from '../../types';
 
 import R2FileUpload from './R2FileUpload';
 
-interface UnifiedDocumentData {
+export interface UnifiedDocumentData {
   id?: string;
   vehicleId: string;
   type:
     | 'insurance_pzp'
     | 'insurance_kasko'
     | 'insurance_pzp_kasko'
+    | 'insurance'
     | 'stk'
     | 'ek'
-    | 'vignette';
+    | 'vignette'
+    | 'technical_certificate';
 
   // Insurance specific
   policyNumber?: string;
@@ -447,7 +448,8 @@ export default function UnifiedDocumentForm({
                           onChange={e =>
                             setFormData(prev => ({
                               ...prev,
-                              type: e.target.value as any,
+                              type: e.target
+                                .value as UnifiedDocumentData['type'],
                             }))
                           }
                         >

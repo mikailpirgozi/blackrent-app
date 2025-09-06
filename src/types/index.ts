@@ -239,6 +239,7 @@ export interface VehicleDocument {
   price?: number;
   notes?: string;
   filePath?: string;
+  kmState?: number; // 🚗 Stav kilometrov pre STK/EK dokumenty
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -280,6 +281,8 @@ export interface Insurance {
   // 🟢 BIELA KARTA: Platnosť zelenej karty (manuálne zadávané)
   greenCardValidFrom?: Date;
   greenCardValidTo?: Date;
+  // 🚗 KASKO: Stav kilometrov pri poistení (pre Kasko poistenie)
+  kmState?: number;
 }
 
 export interface Settlement {

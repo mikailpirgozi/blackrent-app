@@ -13,67 +13,60 @@
  */
 
 import {
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  CheckCircle as AvailableIcon,
-  Cancel as UnavailableIcon,
-  Build as MaintenanceIcon,
-  Refresh as RefreshIcon,
-  FilterList as FilterIcon,
-  Visibility as ViewIcon,
   Add as AddIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
+  CheckCircle as AvailableIcon,
+  DirectionsCar as CarIcon,
+  FilterList as FilterIcon,
+  Build as MaintenanceIcon,
+  Refresh as RefreshIcon,
+  Cancel as UnavailableIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  Grid,
-  IconButton,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Table,
+  Button,
   Card,
   Chip,
-  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Switch,
+  Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
+  TextField,
   Tooltip,
-  useTheme,
+  Typography,
   useMediaQuery,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Switch,
-  FormControlLabel,
+  useTheme,
 } from '@mui/material';
-import { format, addDays, parseISO } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 // 🔄 PHASE 4: Migrated to unified cache system
 import { apiService } from '../../services/api';
-import type { VehicleCategory, Vehicle } from '../../types';
+import type { Vehicle, VehicleCategory } from '../../types';
 import { logger } from '../../utils/smartLogger';
 import { unifiedCache } from '../../utils/unifiedCacheSystem';
-import {
-  PrimaryButton,
-  SecondaryButton,
-  WarningButton,
-  DefaultCard,
-  StatusChip,
-} from '../ui';
+import { PrimaryButton, SecondaryButton, WarningButton } from '../ui';
 
 import AddUnavailabilityModal from './AddUnavailabilityModal';
 
@@ -149,8 +142,20 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   ] = useState<Vehicle | undefined>();
   const [selectedDateForUnavailability, setSelectedDateForUnavailability] =
     useState<Date | undefined>();
-  const [editingUnavailability, setEditingUnavailability] =
-    useState<any>(undefined);
+  const [editingUnavailability, setEditingUnavailability] = useState<
+    | {
+        id: string;
+        vehicleId: string;
+        startDate: Date;
+        endDate: Date;
+        type: string;
+        reason: string;
+        notes: string;
+        priority: number;
+        recurring: boolean;
+      }
+    | undefined
+  >(undefined);
 
   // ⚡ PROGRESSIVE LOADING STATE
   const [loadMoreState, setLoadMoreState] = useState<LoadMoreState>({
@@ -252,7 +257,19 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       // 🔄 PHASE 4: Using unified cache system
       const cachedData = null; // Will be handled by unified cache in API calls
 
-      let calendarData: any[] = [];
+      let calendarData: Array<{
+        date: string;
+        vehicles: Array<{
+          vehicleId: number;
+          status: string;
+          customer_name?: string;
+          rental_id?: string;
+          reason?: string;
+          customerName?: string;
+          rentalId?: string;
+          unavailabilityReason?: string;
+        }>;
+      }> = [];
       if (cachedData && !forceRefresh) {
         logger.cache('Using cached availability data for calculation');
         // 🔄 PHASE 4: Cache handled by unified system
@@ -267,9 +284,21 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             forceRefresh,
           });
 
-          const response = await apiService.get<{ calendar: any[] }>(
-            `/availability/calendar?startDate=${dateFrom}&endDate=${dateTo}`
-          );
+          const response = await apiService.get<{
+            calendar: Array<{
+              date: string;
+              vehicles: Array<{
+                vehicleId: number;
+                status: string;
+                customer_name?: string;
+                rental_id?: string;
+                reason?: string;
+                customerName?: string;
+                rentalId?: string;
+                unavailabilityReason?: string;
+              }>;
+            }>;
+          }>(`/availability/calendar?startDate=${dateFrom}&endDate=${dateTo}`);
 
           if (response.calendar) {
             calendarData = response.calendar;
@@ -339,7 +368,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           );
 
           const vehicleStatus = dayData?.vehicles?.find(
-            (v: any) => v.vehicleId === parseInt(vehicle.id)
+            v => v.vehicleId === parseInt(vehicle.id)
           );
 
           if (!vehicleStatus) {
@@ -377,7 +406,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           brand: vehicle.brand,
           category: vehicle.category || 'other',
           company: vehicle.company || '',
-          location: (vehicle as any).location || '',
+          location:
+            ((vehicle as Record<string, unknown>).location as string) || '',
           dailyStatus,
           availableDays,
           totalDays,
@@ -387,7 +417,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
       return result;
     },
-    [availableVehicles]
+    [availableVehicles, state.rentals]
   );
 
   /**
@@ -494,13 +524,22 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         setLoading(true);
 
         // Get all unavailabilities for this vehicle
-        const response = await apiService.get<any[]>(
-          `/vehicle-unavailability?vehicleId=${parseInt(vehicleId)}`
-        );
+        const response = await apiService.get<
+          Array<{
+            id: string;
+            startDate: string;
+            endDate: string;
+            type: string;
+            reason: string;
+            notes?: string;
+            priority?: number;
+            recurring?: boolean;
+          }>
+        >(`/vehicle-unavailability?vehicleId=${parseInt(vehicleId)}`);
 
         // Find the unavailability that includes the clicked date
         const clickedDateObj = parseISO(clickedDate);
-        const unavailability = response.find((u: any) => {
+        const unavailability = response.find(u => {
           const startDate = new Date(u.startDate);
           const endDate = new Date(u.endDate);
           return (
@@ -681,7 +720,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       const today = new Date();
 
       switch (preset) {
-        case 'today':
+        case 'today': {
           const newFilters1 = {
             ...filters,
             dateFrom: format(today, 'yyyy-MM-dd'),
@@ -694,7 +733,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             canLoadMore: true,
           }));
           break;
-        case 'week':
+        }
+        case 'week': {
           const newFilters7 = {
             ...filters,
             dateFrom: format(today, 'yyyy-MM-dd'),
@@ -707,7 +747,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             canLoadMore: true,
           }));
           break;
-        case 'month':
+        }
+        case 'month': {
           const newFilters30 = {
             ...filters,
             dateFrom: format(today, 'yyyy-MM-dd'),
@@ -720,12 +761,14 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
             canLoadMore: true,
           }));
           break;
-        case 'available-only':
+        }
+        case 'available-only': {
           setFilters(prev => ({
             ...prev,
             availableOnly: !prev.availableOnly,
           }));
           break;
+        }
       }
     },
     [filters]
@@ -912,6 +955,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     loadAvailabilityData,
     state?.dataLoaded?.vehicles,
     authState?.isAuthenticated,
+    filters,
   ]);
 
   // Loading state

@@ -51,13 +51,16 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import type { ChipProps } from '@mui/material/Chip';
 import { addDays, format, isAfter, isValid, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useEffect, useMemo, useState } from 'react';
+import type { UnifiedDocumentData } from '../common/UnifiedDocumentForm';
 
 import { useApp } from '../../context/AppContext';
 import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
 import type {
+  DocumentType,
   Insurance,
   PaymentFrequency,
   Vehicle,
@@ -111,7 +114,22 @@ interface VehicleWithDocuments {
 
 type SortOption = 'name' | 'problems' | 'expiry';
 
-const getExpiryStatus = (validTo: Date | string, documentType: string) => {
+// Interface pre status filter
+type StatusFilter = 'all' | 'valid' | 'expiring' | 'expired';
+
+// Interface pre expiry status
+interface ExpiryStatus {
+  status: 'valid' | 'expiring' | 'expired' | 'invalid';
+  text: string;
+  color: ChipProps['color'];
+  bgColor?: string;
+  daysLeft?: number;
+}
+
+const getExpiryStatus = (
+  validTo: Date | string,
+  documentType: string
+): ExpiryStatus => {
   try {
     const today = new Date();
 
@@ -259,16 +277,15 @@ export default function VehicleCentricInsuranceList() {
     error,
     hasMore,
     loadMore,
-    refresh,
     totalCount,
-    filters,
     setFilters,
     setSearchTerm,
   } = useInfiniteInsurances();
 
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<any>(null);
+  const [editingDocument, setEditingDocument] =
+    useState<UnifiedDocumentData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
@@ -290,7 +307,7 @@ export default function VehicleCentricInsuranceList() {
       search: searchQuery,
       type: filterType || undefined,
       company: filterCompany || undefined,
-      status: (filterStatus as any) || 'all',
+      status: (filterStatus as StatusFilter) || 'all',
       vehicleId: filterVehicle || undefined,
     });
   }, [
@@ -317,14 +334,13 @@ export default function VehicleCentricInsuranceList() {
 
       // Check if it's PZP + Kasko (has both green card and km state)
       if (
-        (insurance as any).kmState !== undefined &&
-        ((insurance as any).greenCardValidFrom ||
-          (insurance as any).greenCardValidTo)
+        insurance.kmState !== undefined &&
+        (insurance.greenCardValidFrom || insurance.greenCardValidTo)
       ) {
         insuranceType = 'insurance_pzp_kasko';
       }
       // If insurance has kmState only, it's Kasko
-      else if ((insurance as any).kmState !== undefined) {
+      else if (insurance.kmState !== undefined) {
         insuranceType = 'insurance_kasko';
       }
       // Check if it's explicitly marked as PZP+Kasko in type field (more specific first)
@@ -361,7 +377,7 @@ export default function VehicleCentricInsuranceList() {
         filePaths: insurance.filePaths,
         createdAt: insurance.validTo,
         originalData: insurance,
-        kmState: (insurance as any).kmState,
+        kmState: insurance.kmState,
       });
     });
 
@@ -371,7 +387,7 @@ export default function VehicleCentricInsuranceList() {
         docs.push({
           id: doc.id,
           vehicleId: doc.vehicleId,
-          type: doc.documentType as any,
+          type: doc.documentType,
           documentNumber: doc.documentNumber,
           validFrom: doc.validFrom,
           validTo: doc.validTo,
@@ -380,7 +396,7 @@ export default function VehicleCentricInsuranceList() {
           filePath: doc.filePath,
           createdAt: doc.validTo,
           originalData: doc,
-          kmState: (doc as any).kmState, // STK/EK môžu mať stav km
+          kmState: doc.kmState, // STK/EK môžu mať stav km
         });
       });
     }
@@ -623,7 +639,7 @@ export default function VehicleCentricInsuranceList() {
           : undefined,
       kmState: doc.kmState, // 🚗 Stav kilometrov
     };
-    setEditingDocument(formData as any);
+    setEditingDocument(formData);
     setOpenDialog(true);
   };
 
@@ -647,7 +663,7 @@ export default function VehicleCentricInsuranceList() {
     }
   };
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: UnifiedDocumentData) => {
     try {
       if (editingDocument) {
         if (
@@ -685,19 +701,28 @@ export default function VehicleCentricInsuranceList() {
           };
           await updateInsurance(insuranceData);
         } else {
-          const vehicleDocData = {
-            id: editingDocument.id || '',
-            vehicleId: data.vehicleId,
-            documentType: data.type,
-            validFrom: data.validFrom,
-            validTo: data.validTo,
-            documentNumber: data.documentNumber,
-            price: data.price,
-            notes: data.notes,
-            filePath: data.filePath,
-            kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
+          // Type guard pre DocumentType
+          const isValidDocumentType = (type: string): type is DocumentType => {
+            return ['stk', 'ek', 'vignette', 'technical_certificate'].includes(
+              type
+            );
           };
-          await updateVehicleDocument(vehicleDocData);
+
+          if (isValidDocumentType(data.type)) {
+            const vehicleDocData = {
+              id: editingDocument.id || '',
+              vehicleId: data.vehicleId,
+              documentType: data.type,
+              validFrom: data.validFrom,
+              validTo: data.validTo,
+              documentNumber: data.documentNumber,
+              price: data.price,
+              notes: data.notes,
+              filePath: data.filePath,
+              kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
+            };
+            await updateVehicleDocument(vehicleDocData);
+          }
         }
       } else {
         if (
@@ -767,10 +792,6 @@ export default function VehicleCentricInsuranceList() {
 
   const hasActiveFilters =
     searchQuery || filterVehicle || filterCompany || filterType || filterStatus;
-
-  const handleRefresh = () => {
-    refresh();
-  };
 
   return (
     <Box
@@ -2068,7 +2089,7 @@ function DocumentListItem({
 
                   <Chip
                     label={expiryStatus.text}
-                    color={expiryStatus.color as any}
+                    color={expiryStatus.color}
                     size="small"
                     variant="filled"
                     sx={{
@@ -2159,7 +2180,7 @@ function DocumentListItem({
                         getExpiryStatus(
                           document.originalData.greenCardValidTo,
                           'greencard'
-                        ).color as any
+                        ).color
                       }
                       size="small"
                       variant="outlined"
