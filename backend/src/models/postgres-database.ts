@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
-import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument } from '../types';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -3595,7 +3595,7 @@ export class PostgresDatabase {
     priceMax?: string;
     userId?: string;
     userRole?: string;
-    sortBy?: 'created_at' | 'start_date' | 'end_date';
+    sortBy?: 'created_at' | 'start_date' | 'end_date' | 'smart_priority';
     sortOrder?: 'asc' | 'desc';
   }): Promise<{ rentals: Rental[]; total: number }> {
     const client = await this.pool.connect();
@@ -3869,6 +3869,51 @@ export class PostgresDatabase {
       const countResult = await client.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0].total);
 
+      // 🎯 SMART PRIORITY SORTING: Logické zoradenie podľa priority aktivít
+      let orderByClause;
+      
+      if (params.sortBy === 'smart_priority' || (!params.sortBy && !params.sortOrder)) {
+        // Default: Smart priority sorting
+        orderByClause = `
+          ORDER BY 
+            -- 🎯 PRIORITY CALCULATION: Vypočítaj priority score pre každý prenájom
+            CASE 
+              -- PRIORITA 1: Dnes sa odovzdávajú alebo preberajú (najvyššia priorita)
+              WHEN DATE(r.start_date) = CURRENT_DATE OR DATE(r.end_date) = CURRENT_DATE THEN 1
+              
+              -- PRIORITA 2: Tento týždeň sa odovzdávajú alebo preberajú (najbližšie dni)
+              WHEN (r.start_date >= CURRENT_DATE AND r.start_date <= CURRENT_DATE + INTERVAL '7 days')
+                   OR (r.end_date >= CURRENT_DATE AND r.end_date <= CURRENT_DATE + INTERVAL '7 days') THEN 2
+              
+              -- PRIORITA 3: Aktívne prenájmy (prebiehajú práve teraz)
+              WHEN r.start_date <= CURRENT_DATE AND r.end_date >= CURRENT_DATE THEN 3
+              
+              -- PRIORITA 4: Budúce prenájmy (začínajú sa v budúcnosti)
+              WHEN r.start_date > CURRENT_DATE THEN 4
+              
+              -- PRIORITA 5: Historické ukončené prenájmy (najnižšia priorita - až na konci)
+              WHEN r.end_date < CURRENT_DATE THEN 5
+              
+              -- PRIORITA 6: Fallback pre neočakávané stavy
+              ELSE 6
+            END ASC,
+            
+            -- 📅 SECONDARY SORT: V rámci rovnakej priority zoraď podľa relevantného dátumu
+            CASE 
+              -- Pre budúce prenájmy zoraď podľa start_date (kedy sa začínajú)
+              WHEN r.start_date > CURRENT_DATE THEN r.start_date
+              -- Pre aktívne a ukončené zoraď podľa end_date (kedy sa končia/skončili)
+              ELSE r.end_date
+            END ASC,
+            
+            -- 🕐 TERTIARY SORT: Ako posledné kritérium použij čas vytvorenia
+            r.created_at DESC
+        `;
+      } else {
+        // Klasické zoradenie podľa používateľom zvoleného kritéria
+        orderByClause = `ORDER BY r.${params.sortBy} ${params.sortOrder?.toUpperCase() || 'ASC'}`;
+      }
+
       // Main query s LIMIT a OFFSET
       const mainQuery = `
         SELECT 
@@ -3887,13 +3932,24 @@ export class PostgresDatabase {
           c.name as company_name, v.company as vehicle_company,
           -- 👤 CUSTOMER INFO: Načítanie kompletných zákazníckych údajov pre protokoly
           cust.id as customer_db_id, cust.name as customer_db_name, 
-          cust.email as customer_db_email, cust.phone as customer_db_phone, cust.created_at as customer_created_at
+          cust.email as customer_db_email, cust.phone as customer_db_phone, cust.created_at as customer_created_at,
+          
+          -- 🎯 PRIORITY DEBUG: Pridaj priority score pre debugging
+          CASE 
+            WHEN DATE(r.start_date) = CURRENT_DATE OR DATE(r.end_date) = CURRENT_DATE THEN 1
+            WHEN (r.start_date >= CURRENT_DATE AND r.start_date <= CURRENT_DATE + INTERVAL '7 days')
+                 OR (r.end_date >= CURRENT_DATE AND r.end_date <= CURRENT_DATE + INTERVAL '7 days') THEN 2
+            WHEN r.start_date <= CURRENT_DATE AND r.end_date >= CURRENT_DATE THEN 3
+            WHEN r.start_date > CURRENT_DATE THEN 4
+            WHEN r.end_date < CURRENT_DATE THEN 5
+            ELSE 6
+          END as priority_score
         FROM rentals r
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         LEFT JOIN companies c ON v.company_id = c.id
         LEFT JOIN customers cust ON r.customer_id = cust.id
         WHERE ${whereClause}
-        ORDER BY r.${params.sortBy || 'created_at'} ${params.sortOrder?.toUpperCase() || 'ASC'}
+        ${orderByClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
@@ -3901,6 +3957,35 @@ export class PostgresDatabase {
       const result = await client.query(mainQuery, queryParams);
 
       logger.migration(`📊 Paginated query: ${result.rows.length}/${total} rentals (limit: ${params.limit}, offset: ${params.offset})`);
+
+      // 🎯 DEBUG: Log priority distribution pre analýzu
+      if (params.sortBy === 'smart_priority' || (!params.sortBy && !params.sortOrder)) {
+        const priorityStats = result.rows.reduce((acc: Record<number, number>, row) => {
+          const priority = row.priority_score as number;
+          acc[priority] = (acc[priority] || 0) + 1;
+          return acc;
+        }, {});
+        
+        logger.migration(`🎯 SMART PRIORITY STATS:`, {
+          'Priority 1 (Dnes)': priorityStats[1] || 0,
+          'Priority 2 (Týždeň)': priorityStats[2] || 0,
+          'Priority 3 (Aktívne)': priorityStats[3] || 0,
+          'Priority 4 (Budúce)': priorityStats[4] || 0,
+          'Priority 5 (Historické)': priorityStats[5] || 0,
+          'Priority 6 (Fallback)': priorityStats[6] || 0
+        });
+
+        // Log prvých 3 prenájmov pre debugging
+        if (result.rows.length > 0) {
+          const topRentals = result.rows.slice(0, 3).map(row => ({
+            customer: row.customer_name,
+            startDate: row.start_date,
+            endDate: row.end_date,
+            priority: row.priority_score
+          }));
+          logger.migration(`🔝 TOP 3 RENTALS:`, topRentals);
+        }
+      }
 
       // 🐛 DEBUG: Log rentals with extra_km_charge
       const rentalsWithExtraKm = result.rows.filter(row => row.extra_km_charge);
@@ -3980,12 +4065,12 @@ export class PostgresDatabase {
       endDate: toString(row.end_date) as string | Date,
       totalPrice: toNumber(row.total_price),
       commission: toNumber(row.commission),
-      paymentMethod: (toString(row.payment_method) || 'cash') as any,
+      paymentMethod: (toString(row.payment_method) || 'cash') as 'cash' | 'bank_transfer' | 'vrp',
       // 💰 FIX: Pridané chýbajúce discount a customCommission parsing
-      discount: this.safeJsonParse(row.discount, undefined) as any,
-      customCommission: this.safeJsonParse(row.custom_commission, undefined) as any,
+      discount: this.safeJsonParse(row.discount, undefined) as { type: 'percentage' | 'fixed'; value: number } | undefined,
+      customCommission: this.safeJsonParse(row.custom_commission, undefined) as { type: 'percentage' | 'fixed'; value: number } | undefined,
       paid: Boolean(row.paid),
-      status: (toString(row.status) || 'active') as any,
+      status: (toString(row.status) || 'active') as 'pending' | 'active' | 'finished',
       createdAt: row.created_at ? new Date(toString(row.created_at)) : new Date(),
       orderNumber: row.order_number ? toString(row.order_number) : undefined,
       deposit: row.deposit ? toNumber(row.deposit) : undefined,
@@ -4016,9 +4101,9 @@ export class PostgresDatabase {
         licensePlate: toString(row.license_plate),
         vin: row.vin ? toString(row.vin) : undefined, // 🆔 VIN číslo
         company: toString(row.vehicle_company || row.company_name) || 'N/A',
-        pricing: this.safeJsonParse(row.pricing, []) as any,
-        commission: this.safeJsonParse(row.v_commission, { type: 'percentage', value: 0 }) as any,
-        status: (toString(row.v_status) || 'available') as any,
+        pricing: this.safeJsonParse(row.pricing, []) as { id: string; minDays: number; maxDays: number; pricePerDay: number }[],
+        commission: this.safeJsonParse(row.v_commission, { type: 'percentage', value: 0 }) as { type: 'percentage' | 'fixed'; value: number },
+        status: (toString(row.v_status) || 'available') as 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'transferred' | 'private',
         ownerCompanyId: row.company_id ? toString(row.company_id) : undefined
       } : undefined
     };
@@ -4294,9 +4379,9 @@ export class PostgresDatabase {
           const pricing = vehicleResult.rows[0].pricing;
           if (pricing && typeof pricing === 'object') {
             // Hľadáme extraKilometerRate v pricing JSONB
-            const extraKmItem = (pricing as any[])?.find?.((item: any) => item?.extraKilometerRate !== undefined);
+            const extraKmItem = (pricing as { extraKilometerRate?: number }[])?.find?.((item: { extraKilometerRate?: number }) => item?.extraKilometerRate !== undefined);
             vehicleExtraKmPrice = extraKmItem?.extraKilometerRate ? 
-              parseFloat(extraKmItem.extraKilometerRate) : 0.30;
+              parseFloat(String(extraKmItem.extraKilometerRate)) : 0.30;
           } else {
             vehicleExtraKmPrice = 0.30;
           }
@@ -4378,15 +4463,15 @@ export class PostgresDatabase {
         totalPrice: parseFloat(row.total_price) || 0,
         commission: parseFloat(row.commission) || 0,
         paymentMethod: row.payment_method,
-        discount: this.safeJsonParse(row.discount, undefined) as any,
-        customCommission: this.safeJsonParse(row.custom_commission, undefined) as any,
+        discount: this.safeJsonParse(row.discount, undefined) as { type: 'percentage' | 'fixed'; value: number } | undefined,
+        customCommission: this.safeJsonParse(row.custom_commission, undefined) as { type: 'percentage' | 'fixed'; value: number } | undefined,
         extraKmCharge: row.extra_km_charge ? parseFloat(row.extra_km_charge) : undefined,
         paid: Boolean(row.paid),
         status: row.status || 'pending',
         handoverPlace: row.handover_place,
         confirmed: Boolean(row.confirmed),
-        payments: this.safeJsonParse(row.payments, []) as any,
-        history: this.safeJsonParse(row.history, []) as any,
+        payments: this.safeJsonParse(row.payments, []) as { id: string; date: Date; amount: number; isPaid: boolean; note?: string; paymentMethod?: 'cash' | 'bank_transfer' | 'vrp'; invoiceNumber?: string }[],
+        history: this.safeJsonParse(row.history, []) as { date: Date | string; user: string; changes: { field: string; oldValue: unknown; newValue: unknown }[] }[],
         orderNumber: row.order_number,
         deposit: row.deposit ? parseFloat(row.deposit) : undefined,
         allowedKilometers: row.allowed_kilometers || undefined,
@@ -4631,11 +4716,10 @@ export class PostgresDatabase {
         //   'SELECT id FROM return_protocols WHERE rental_id = $1', 
         //   [parseInt(id)]
         // );
-        const handoverProtocols = { rows: [] as any[] };
-        const returnProtocols = { rows: [] as any[] };
+        const handoverProtocols = { rows: [] as { id: string }[] };
+        const returnProtocols = { rows: [] as { id: string }[] };
         
         // Vymaž handover protokoly vrátane R2 súborov
-        let handoverDeletedCount = 0;
         for (const protocol of handoverProtocols.rows) {
           try {
             // Vymaž súbory z R2 storage
@@ -4644,11 +4728,9 @@ export class PostgresDatabase {
           } catch (error) {
             console.error(`❌ Error deleting R2 files for handover protocol ${protocol.id}:`, error);
           }
-          handoverDeletedCount++;
         }
         
         // Vymaž return protokoly vrátane R2 súborov
-        let returnDeletedCount = 0;
         for (const protocol of returnProtocols.rows) {
           try {
             // Vymaž súbory z R2 storage
@@ -4657,7 +4739,6 @@ export class PostgresDatabase {
           } catch (error) {
             console.error(`❌ Error deleting R2 files for return protocol ${protocol.id}:`, error);
           }
-          returnDeletedCount++;
         }
         
         // DOČASNE PRESKOČENÉ: Vymaž protokoly z databázy (UUID vs INT problém)
@@ -4719,7 +4800,7 @@ export class PostgresDatabase {
         'SELECT id, name, email, phone, created_at FROM customers ORDER BY created_at DESC'
       );
       
-      return result.rows.map((row: any) => ({
+      return result.rows.map((row: { id: string; name: string; email: string; phone: string; created_at: string }) => ({
         id: row.id.toString(),
         name: row.name,
         email: row.email,
@@ -6088,7 +6169,7 @@ export class PostgresDatabase {
       const allExpenses = await this.getExpenses();
 
       // Map to Settlement interface format
-      return result.rows.map((row: any) => {
+      return result.rows.map((row: { id: string; from_date: string; to_date: string; company: string; total_revenue: string; total_commission: string; total_rentals: string; created_at: string; status: string; total_income?: string; total_expenses?: string; commission?: string; profit?: string }) => {
         const fromDate = new Date(row.from_date || new Date());
         const toDate = new Date(row.to_date || new Date());
         const company = row.company || 'Default Company';
@@ -6125,10 +6206,10 @@ export class PostgresDatabase {
           },
           rentals: filteredRentals,
           expenses: filteredExpenses,
-          totalIncome: parseFloat(row.total_income) || 0,
-          totalExpenses: parseFloat(row.total_expenses) || 0,
-          totalCommission: parseFloat(row.commission) || 0,
-          profit: parseFloat(row.profit) || 0,
+          totalIncome: parseFloat(row.total_income || '0') || 0,
+          totalExpenses: parseFloat(row.total_expenses || '0') || 0,
+          totalCommission: parseFloat(row.commission || '0') || 0,
+          profit: parseFloat(row.profit || '0') || 0,
           company: company,
           vehicleId: undefined
         };
@@ -6211,8 +6292,8 @@ export class PostgresDatabase {
     commission?: number;
     profit?: number;
     summary?: string;
-    rentals?: any[];
-    expenses?: any[];
+    rentals?: Rental[];
+    expenses?: Expense[];
   }): Promise<Settlement> {
     const client = await this.pool.connect();
     try {
@@ -6276,7 +6357,7 @@ export class PostgresDatabase {
     }
   }
 
-  async updateSettlement(id: string, updateData: any): Promise<Settlement> {
+  async updateSettlement(id: string, updateData: { totalIncome?: number; totalExpenses?: number; commission?: number; profit?: number; summary?: string }): Promise<Settlement> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(`
@@ -6294,7 +6375,7 @@ export class PostgresDatabase {
         id,
         updateData.totalIncome,
         updateData.totalExpenses,
-        updateData.totalCommission,
+        updateData.commission,
         updateData.profit,
         updateData.summary
       ]);
@@ -6330,7 +6411,7 @@ export class PostgresDatabase {
   }
 
   // PROTOCOLS HELPER METHODS
-  private extractMediaData(mediaArray: any[]): any[] {
+  private extractMediaData(mediaArray: unknown[]): { url: string; type: string; category?: string }[] {
     try {
       if (!Array.isArray(mediaArray)) {
         logger.migration('⚠️ extractMediaData: mediaArray is not an array, returning empty array');
@@ -6361,7 +6442,8 @@ export class PostgresDatabase {
             }
             // Ak je item objekt, použij ho ako je
             if (item && typeof item === 'object') {
-              logger.migration('🔍 extractMediaData: Found object item:', item.id || 'no id');
+              const itemObj = item as Record<string, unknown>;
+              logger.migration('🔍 extractMediaData: Found object item:', itemObj.id || 'no id');
               return item;
             }
             logger.migration('⚠️ extractMediaData: Ignoring invalid item:', item);
@@ -6371,7 +6453,7 @@ export class PostgresDatabase {
             return null;
           }
         })
-        .filter(item => item !== null);
+        .filter((item): item is { url: string; type: string; category?: string } => item !== null);
       
       logger.migration('✅ extractMediaData: Successfully extracted', mediaData.length, 'media items');
       return mediaData;
@@ -6381,23 +6463,22 @@ export class PostgresDatabase {
     }
   }
 
-  private mapMediaObjectsFromDB(mediaData: any[]): any[] {
+  private mapMediaObjectsFromDB(mediaData: unknown[]): { id: string; url: string; type: string; description: string; timestamp: Date; compressed: boolean; category?: string }[] {
     if (!Array.isArray(mediaData)) {
       logger.migration('⚠️ mapMediaObjectsFromDB: mediaData is not an array, returning empty array');
       return [];
     }
     
     return mediaData
-      .filter(item => item !== null && typeof item === 'object')
+      .filter((item): item is Record<string, unknown> => item !== null && typeof item === 'object')
       .map(item => ({
-        id: item.id || `${Date.now()}_${Math.random()}`,
-        url: item.url || item,
-        type: item.type || this.getMediaTypeFromUrl(item.url || ''),
-        description: item.description || '',
-        timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-        compressed: item.compressed || false,
-        originalSize: item.originalSize,
-        compressedSize: item.compressedSize
+        id: (item.id as string) || `${Date.now()}_${Math.random()}`,
+        url: (item.url as string) || String(item),
+        type: (item.type as string) || this.getMediaTypeFromUrl((item.url as string) || ''),
+        description: (item.description as string) || '',
+        timestamp: item.timestamp ? new Date(item.timestamp as string) : new Date(),
+        compressed: Boolean(item.compressed),
+        category: item.category as string | undefined
       }));
   }
 
@@ -6695,7 +6776,7 @@ export class PostgresDatabase {
   }
 
   // HANDOVER PROTOCOLS
-  async createHandoverProtocol(protocolData: any): Promise<any> {
+  async createHandoverProtocol(protocolData: { id: string; rentalId: string; pdfUrl?: string; media?: unknown[]; vehicleImages?: unknown[]; vehicleVideos?: unknown[]; documentImages?: unknown[]; damageImages?: unknown[]; vehicleCondition?: Record<string, unknown>; [key: string]: unknown }): Promise<{ id: string; rentalId: string; pdfUrl?: string; media?: unknown[] }> {
     const client = await this.pool.connect();
     try {
       logger.migration('🔄 [DB] createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
@@ -6732,12 +6813,12 @@ export class PostgresDatabase {
       `, [
         protocolData.rentalId, // UUID as string, not parseInt
         protocolData.location || '',
-        protocolData.vehicleCondition?.odometer || 0,
-        protocolData.vehicleCondition?.fuelLevel || 100,
-        protocolData.vehicleCondition?.fuelType || 'Benzín',
-        protocolData.vehicleCondition?.exteriorCondition || 'Dobrý',
-        protocolData.vehicleCondition?.interiorCondition || 'Dobrý',
-        protocolData.vehicleCondition?.notes || '',
+        (protocolData.vehicleCondition?.odometer as number) || 0,
+        (protocolData.vehicleCondition?.fuelLevel as number) || 100,
+        (protocolData.vehicleCondition?.fuelType as string) || 'Benzín',
+        (protocolData.vehicleCondition?.exteriorCondition as string) || 'Dobrý',
+        (protocolData.vehicleCondition?.interiorCondition as string) || 'Dobrý',
+        (protocolData.vehicleCondition?.notes as string) || '',
         JSON.stringify(protocolData.vehicleImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
         JSON.stringify(protocolData.vehicleVideos || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
         JSON.stringify(protocolData.documentImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
@@ -6789,7 +6870,7 @@ export class PostgresDatabase {
     }
   }
 
-  async getHandoverProtocolsByRental(rentalId: string): Promise<any[]> {
+  async getHandoverProtocolsByRental(rentalId: string): Promise<HandoverProtocol[]> {
     const client = await this.pool.connect();
     try {
       // ✅ PERFORMANCE: Odstránené initProtocolTables() - tabuľky už existujú
@@ -6800,7 +6881,7 @@ export class PostgresDatabase {
         ORDER BY created_at DESC
       `, [parseInt(rentalId)]);
 
-      return result.rows.map(row => this.mapHandoverProtocolFromDB(row));
+      return result.rows.map((row: Record<string, unknown>) => this.mapHandoverProtocolFromDB(row));
 
     } catch (error) {
       console.error('❌ Error fetching handover protocols:', error);
@@ -6810,7 +6891,7 @@ export class PostgresDatabase {
     }
   }
 
-  async getHandoverProtocolById(id: string): Promise<any | null> {
+  async getHandoverProtocolById(id: string): Promise<HandoverProtocol | null> {
     const client = await this.pool.connect();
     try {
       await this.initProtocolTables();
@@ -6820,7 +6901,7 @@ export class PostgresDatabase {
       `, [id]);
 
       if (result.rows.length === 0) return null;
-      return this.mapHandoverProtocolFromDB(result.rows[0]);
+      return this.mapHandoverProtocolFromDB(result.rows[0] as Record<string, unknown>);
 
     } catch (error) {
       console.error('❌ Error fetching handover protocol:', error);
@@ -6831,7 +6912,7 @@ export class PostgresDatabase {
   }
 
   // RETURN PROTOCOLS
-  async createReturnProtocol(protocolData: any): Promise<any> {
+  async createReturnProtocol(protocolData: Partial<ReturnProtocol> & { id: string; rentalId: string }): Promise<ReturnProtocol> {
     const client = await this.pool.connect();
     try {
       await this.initProtocolTables();
@@ -6908,7 +6989,7 @@ export class PostgresDatabase {
     }
   }
 
-  async getReturnProtocolsByRental(rentalId: string): Promise<any[]> {
+  async getReturnProtocolsByRental(rentalId: string): Promise<ReturnProtocol[]> {
     const client = await this.pool.connect();
     try {
       // ✅ PERFORMANCE: Odstránené initProtocolTables() - tabuľky už existujú
@@ -6929,7 +7010,7 @@ export class PostgresDatabase {
     }
   }
 
-  async getReturnProtocolById(id: string): Promise<any | null> {
+  async getReturnProtocolById(id: string): Promise<ReturnProtocol | null> {
     const client = await this.pool.connect();
     try {
       await this.initProtocolTables();
@@ -6939,7 +7020,7 @@ export class PostgresDatabase {
       `, [id]);
 
       if (result.rows.length === 0) return null;
-      return this.mapReturnProtocolFromDB(result.rows[0]);
+      return this.mapReturnProtocolFromDB(result.rows[0] as Record<string, unknown>);
 
     } catch (error) {
       console.error('❌ Error fetching return protocol:', error);
@@ -6949,7 +7030,7 @@ export class PostgresDatabase {
     }
   }
 
-  async updateReturnProtocol(id: string, updateData: any): Promise<any> {
+  async updateReturnProtocol(id: string, updateData: Partial<ReturnProtocol>): Promise<ReturnProtocol> {
     const client = await this.pool.connect();
     try {
       await this.initProtocolTables();
@@ -6974,8 +7055,10 @@ export class PostgresDatabase {
         updateData.notes
       ]);
 
-      if (result.rows.length === 0) return null;
-      return this.mapReturnProtocolFromDB(result.rows[0]);
+      if (result.rows.length === 0) {
+        throw new Error('Return protocol not found');
+      }
+      return this.mapReturnProtocolFromDB(result.rows[0] as Record<string, unknown>);
 
     } catch (error) {
       console.error('❌ Error updating return protocol:', error);
@@ -6986,9 +7069,9 @@ export class PostgresDatabase {
   }
 
   // Mapping methods
-  private mapHandoverProtocolFromDB(row: any): any {
+  private mapHandoverProtocolFromDB(row: Record<string, unknown>): HandoverProtocol {
     // Safe JSON parsing function for JSONB fields
-    const safeJsonParse = (value: any, fallback: any = []) => {
+    const safeJsonParse = (value: unknown, fallback: unknown = []) => {
       logger.migration('🔍 [DB] safeJsonParse input:', {
         value: value,
         type: typeof value,
@@ -7052,34 +7135,45 @@ export class PostgresDatabase {
       vehicle_images_raw: row.vehicle_images_urls
     });
 
-    const mappedProtocol = {
-      id: row.id,
-      rentalId: row.rental_id,
-      type: 'handover',
-      status: row.status || 'completed',
-      location: row.location,
-      createdAt: new Date(row.created_at),
-      completedAt: row.completed_at ? new Date(row.completed_at) : new Date(row.created_at),
+    const mappedProtocol: HandoverProtocol = {
+      id: toString(row.id),
+      rentalId: toString(row.rental_id),
+      type: 'handover' as const,
+      status: (toString(row.status) || 'completed') as 'draft' | 'completed' | 'cancelled',
+      location: toString(row.location),
+      createdAt: new Date(String(row.created_at)),
+      completedAt: row.completed_at ? new Date(String(row.completed_at)) : new Date(String(row.created_at)),
       vehicleCondition: {
-        odometer: row.odometer || 0,
-        fuelLevel: row.fuel_level || 100,
-        fuelType: row.fuel_type || 'Benzín',
-        exteriorCondition: row.exterior_condition || 'Dobrý',
-        interiorCondition: row.interior_condition || 'Dobrý',
-        notes: row.condition_notes || ''
+        odometer: toNumber(row.odometer),
+        fuelLevel: toNumber(row.fuel_level) || 100,
+        fuelType: (toString(row.fuel_type) || 'gasoline') as 'gasoline' | 'diesel' | 'electric' | 'hybrid',
+        exteriorCondition: toString(row.exterior_condition) || 'Dobrý',
+        interiorCondition: toString(row.interior_condition) || 'Dobrý',
+        notes: toString(row.condition_notes)
       },
-      vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ JSONB - automaticky parsované
-      vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ JSONB - automaticky parsované
-      documentImages: safeJsonParse(row.document_images_urls, []), // ✅ JSONB - automaticky parsované
-      damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ JSONB - automaticky parsované
-      damages: safeJsonParse(row.damages, []),
-      signatures: safeJsonParse(row.signatures, []),
-      rentalData: safeJsonParse(row.rental_data, {}),
-      pdfUrl: row.pdf_url,
-      emailSent: row.email_sent || false,
-      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
-      notes: row.notes,
-      createdBy: row.created_by
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vehicleImages: safeJsonParse(row.vehicle_images_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      documentImages: safeJsonParse(row.document_images_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      documentVideos: safeJsonParse(row.document_videos_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      damageImages: safeJsonParse(row.damage_images_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      damageVideos: safeJsonParse(row.damage_videos_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      damages: safeJsonParse(row.damages, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signatures: safeJsonParse(row.signatures, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rentalData: safeJsonParse(row.rental_data, {}) as any,
+      pdfUrl: toString(row.pdf_url) || undefined,
+      emailSent: Boolean(row.email_sent),
+      emailSentAt: row.email_sent_at ? new Date(String(row.email_sent_at)) : undefined,
+      notes: toString(row.notes) || undefined,
+      createdBy: toString(row.created_by)
     };
 
     logger.migration('🔄 [DB] Mapped protocol media:', {
@@ -7093,9 +7187,9 @@ export class PostgresDatabase {
     return mappedProtocol;
   }
 
-  private mapReturnProtocolFromDB(row: any): any {
+  private mapReturnProtocolFromDB(row: Record<string, unknown>): ReturnProtocol {
     // Safe JSON parsing function for JSONB fields
-    const safeJsonParse = (value: any, fallback: any = []) => {
+    const safeJsonParse = (value: unknown, fallback: unknown = []) => {
       if (!value || value === 'null' || value === 'undefined') {
         return fallback;
       }
@@ -7116,44 +7210,56 @@ export class PostgresDatabase {
     };
 
     return {
-      id: row.id,
-      rentalId: row.rental_id,
-      handoverProtocolId: row.handover_protocol_id,
-      type: 'return',
-      status: row.status || 'draft',
-      location: row.location,
-      createdAt: new Date(row.created_at),
-      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+      id: toString(row.id),
+      rentalId: toString(row.rental_id),
+      handoverProtocolId: toString(row.handover_protocol_id),
+      type: 'return' as const,
+      status: (toString(row.status) || 'draft') as 'draft' | 'completed' | 'cancelled',
+      location: toString(row.location),
+      createdAt: new Date(String(row.created_at)),
+      completedAt: row.completed_at ? new Date(String(row.completed_at)) : undefined,
       vehicleCondition: {
-        odometer: row.odometer || 0,
-        fuelLevel: row.fuel_level || 100,
-        fuelType: row.fuel_type || 'Benzín',
-        exteriorCondition: row.exterior_condition || 'Dobrý',
-        interiorCondition: row.interior_condition || 'Dobrý',
-        notes: row.condition_notes || ''
+        odometer: toNumber(row.odometer),
+        fuelLevel: toNumber(row.fuel_level) || 100,
+        fuelType: (toString(row.fuel_type) || 'gasoline') as 'gasoline' | 'diesel' | 'electric' | 'hybrid',
+        exteriorCondition: toString(row.exterior_condition) || 'Dobrý',
+        interiorCondition: toString(row.interior_condition) || 'Dobrý',
+        notes: toString(row.condition_notes)
       },
-      vehicleImages: safeJsonParse(row.vehicle_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      documentImages: safeJsonParse(row.document_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      damageImages: safeJsonParse(row.damage_images_urls, []), // ✅ PRIAMO - bez mapMediaObjectsFromDB
-      damages: safeJsonParse(row.damages, []),
-      newDamages: safeJsonParse(row.new_damages, []),
-      signatures: safeJsonParse(row.signatures, []),
-      kilometersUsed: row.kilometers_used || 0,
-      kilometerOverage: row.kilometer_overage || 0,
-      kilometerFee: parseFloat(row.kilometer_fee) || 0,
-      fuelUsed: row.fuel_used || 0,
-      fuelFee: parseFloat(row.fuel_fee) || 0,
-      totalExtraFees: parseFloat(row.total_extra_fees) || 0,
-      depositRefund: parseFloat(row.deposit_refund) || 0,
-      additionalCharges: parseFloat(row.additional_charges) || 0,
-      finalRefund: parseFloat(row.final_refund) || 0,
-      rentalData: safeJsonParse(row.rental_data, {}),
-      pdfUrl: row.pdf_url,
-      emailSent: row.email_sent || false,
-      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
-      notes: row.notes,
-      createdBy: row.created_by
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vehicleImages: safeJsonParse(row.vehicle_images_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vehicleVideos: safeJsonParse(row.vehicle_videos_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      documentImages: safeJsonParse(row.document_images_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      documentVideos: safeJsonParse(row.document_videos_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      damageImages: safeJsonParse(row.damage_images_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      damageVideos: safeJsonParse(row.damage_videos_urls, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      damages: safeJsonParse(row.damages, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      newDamages: safeJsonParse(row.new_damages, []) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signatures: safeJsonParse(row.signatures, []) as any,
+      kilometersUsed: toNumber(row.kilometers_used),
+      kilometerOverage: toNumber(row.kilometer_overage),
+      kilometerFee: toNumber(row.kilometer_fee),
+      fuelUsed: toNumber(row.fuel_used),
+      fuelFee: toNumber(row.fuel_fee),
+      totalExtraFees: toNumber(row.total_extra_fees),
+      depositRefund: toNumber(row.deposit_refund),
+      additionalCharges: toNumber(row.additional_charges),
+      finalRefund: toNumber(row.final_refund),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rentalData: safeJsonParse(row.rental_data, {}) as any,
+      pdfUrl: toString(row.pdf_url) || undefined,
+      emailSent: Boolean(row.email_sent),
+      emailSentAt: row.email_sent_at ? new Date(String(row.email_sent_at)) : undefined,
+      notes: toString(row.notes) || undefined,
+      createdBy: toString(row.created_by)
     };
   }
 
@@ -7249,7 +7355,7 @@ export class PostgresDatabase {
   }
 
   // 🚀 NOVÁ METÓDA: Aktualizácia handover protokolu
-  async updateHandoverProtocol(id: string, updateData: any): Promise<any> {
+  async updateHandoverProtocol(id: string, updateData: Partial<HandoverProtocol>): Promise<HandoverProtocol> {
     const client = await this.pool.connect();
     try {
       logger.migration('🔄 Updating handover protocol:', id);
@@ -7257,7 +7363,7 @@ export class PostgresDatabase {
 
       // Dynamické vytvorenie SET klauzuly
       const setFields: string[] = [];
-      const values: any[] = [];
+      const values: unknown[] = [];
       let paramIndex = 1;
 
       // Mapovanie polí
@@ -7336,7 +7442,7 @@ export class PostgresDatabase {
   // VEHICLE UNAVAILABILITY CRUD METHODS
   // ========================================
 
-  async getVehicleUnavailabilities(vehicleId?: string, startDate?: Date, endDate?: Date): Promise<any[]> {
+  async getVehicleUnavailabilities(vehicleId?: string, startDate?: Date, endDate?: Date): Promise<VehicleUnavailability[]> {
     const client = await this.pool.connect();
     try {
       let query = `
@@ -7345,7 +7451,7 @@ export class PostgresDatabase {
         LEFT JOIN vehicles v ON vu.vehicle_id = v.id
         WHERE 1=1
       `;
-      const params: any[] = [];
+      const params: unknown[] = [];
       let paramIndex = 1;
 
       // Filter by vehicle ID
@@ -7366,32 +7472,36 @@ export class PostgresDatabase {
 
       const result = await client.query(query, params);
       
-      return result.rows.map(row => ({
-        id: row.id,
-        vehicleId: row.vehicle_id,
+      return result.rows.map((row: Record<string, unknown>): VehicleUnavailability => ({
+        id: toString(row.id),
+        vehicleId: toString(row.vehicle_id),
         vehicle: row.brand ? {
-          brand: row.brand,
-          model: row.model,
-          licensePlate: row.license_plate
+          id: toString(row.vehicle_id),
+          brand: toString(row.brand),
+          model: toString(row.model),
+          licensePlate: toString(row.license_plate),
+          pricing: [],
+          commission: { type: 'percentage', value: 0 },
+          status: 'available' as const
         } : undefined,
-        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        reason: row.reason,
-        type: row.type,
-        notes: row.notes,
-        priority: row.priority,
-        recurring: row.recurring,
-        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-        createdBy: row.created_by
+        startDate: row.start_date as Date | string, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date as Date | string, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        reason: toString(row.reason),
+        type: toString(row.type) as 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented' | 'private_rental',
+        notes: toString(row.notes),
+        priority: toNumber(row.priority) as 1 | 2 | 3,
+        recurring: Boolean(row.recurring),
+        recurringConfig: row.recurring_config ? JSON.parse(toString(row.recurring_config)) : undefined,
+        createdAt: new Date(String(row.created_at)),
+        updatedAt: new Date(String(row.updated_at)),
+        createdBy: toString(row.created_by)
       }));
     } finally {
       client.release();
     }
   }
 
-  async getVehicleUnavailability(id: string): Promise<any | null> {
+  async getVehicleUnavailability(id: string): Promise<VehicleUnavailability | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(`
@@ -7403,26 +7513,30 @@ export class PostgresDatabase {
       
       if (result.rows.length === 0) return null;
       
-      const row = result.rows[0];
+      const row = result.rows[0] as Record<string, unknown>;
       return {
-        id: row.id,
-        vehicleId: row.vehicle_id,
+        id: toString(row.id),
+        vehicleId: toString(row.vehicle_id),
         vehicle: row.brand ? {
-          brand: row.brand,
-          model: row.model,
-          licensePlate: row.license_plate
+          id: toString(row.vehicle_id),
+          brand: toString(row.brand),
+          model: toString(row.model),
+          licensePlate: toString(row.license_plate),
+          pricing: [],
+          commission: { type: 'percentage', value: 0 },
+          status: 'available' as const
         } : undefined,
-        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        reason: row.reason,
-        type: row.type,
-        notes: row.notes,
-        priority: row.priority,
-        recurring: row.recurring,
-        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-        createdBy: row.created_by
+        startDate: row.start_date as Date | string, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date as Date | string, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        reason: toString(row.reason),
+        type: toString(row.type) as 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented' | 'private_rental',
+        notes: toString(row.notes),
+        priority: toNumber(row.priority) as 1 | 2 | 3,
+        recurring: Boolean(row.recurring),
+        recurringConfig: row.recurring_config ? JSON.parse(toString(row.recurring_config)) : undefined,
+        createdAt: new Date(String(row.created_at)),
+        updatedAt: new Date(String(row.updated_at)),
+        createdBy: toString(row.created_by)
       };
     } finally {
       client.release();
@@ -7438,9 +7552,9 @@ export class PostgresDatabase {
     notes?: string;
     priority?: number;
     recurring?: boolean;
-    recurringConfig?: any;
+    recurringConfig?: Record<string, unknown>;
     createdBy?: string;
-  }): Promise<any> {
+  }): Promise<VehicleUnavailability> {
     const client = await this.pool.connect();
     try {
       // Validate dates
@@ -7510,13 +7624,13 @@ export class PostgresDatabase {
     notes: string;
     priority: number;
     recurring: boolean;
-    recurringConfig: any;
-  }>): Promise<any> {
+    recurringConfig: Record<string, unknown>;
+  }>): Promise<VehicleUnavailability> {
     const client = await this.pool.connect();
     try {
       // Build dynamic update query
       const setFields: string[] = [];
-      const values: any[] = [];
+      const values: unknown[] = [];
       let paramIndex = 1;
 
       for (const [key, value] of Object.entries(data)) {
@@ -7592,7 +7706,7 @@ export class PostgresDatabase {
   }
 
   // 🚀 FÁZA 2.1 + 2.2 + 2.3: HYBRID OPTIMIZED - smart cache + pre-filtered CTE + connection reuse  
-  async getCalendarDataUnified(startDate: Date, endDate: Date): Promise<any> {
+  async getCalendarDataUnified(startDate: Date, endDate: Date): Promise<Record<string, unknown>> {
     // 🚀 FÁZA 2.3: SMART CACHE CHECK - skús nájsť v cache
     const cacheKey = this.generateCacheKey('calendar', startDate, endDate);
     const cachedEntry = this.calendarCache.get(cacheKey);
@@ -7692,8 +7806,8 @@ export class PostgresDatabase {
       logger.migration('✅ UNIFIED QUERY: Retrieved', result.rows.length, 'calendar records');
       
       // 🚀 FÁZA 1.2: Pôvodná logika grupovanie podľa dátumu (funguje správne)
-      const groupedByDate = result.rows.reduce((acc: any, row: any) => {
-        const dateStr = row.date.toISOString().split('T')[0];
+      const groupedByDate = result.rows.reduce((acc: Record<string, unknown>, row: Record<string, unknown>) => {
+        const dateStr = (row.date as Date).toISOString().split('T')[0];
         
         if (!acc[dateStr]) {
           acc[dateStr] = {
@@ -7702,7 +7816,8 @@ export class PostgresDatabase {
           };
         }
         
-        acc[dateStr].vehicles.push({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (acc[dateStr] as any).vehicles.push({
           vehicleId: row.vehicle_id,
           vehicleName: row.vehicle_name,
           licensePlate: row.license_plate,
@@ -7717,18 +7832,18 @@ export class PostgresDatabase {
         });
         
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, unknown>);
       
       // Konvertovanie na array
       const calendarData = Object.values(groupedByDate);
       
       // 🚀 FÁZA 1.2: Pôvodná extrakcia vehicles z SQL result (FUNKČNÁ VERZIA)
-      const vehicles = [...new Map(result.rows.map((row: any) => [
+      const vehicles = [...new Map(result.rows.map((row: Record<string, unknown>) => [
         row.vehicle_id, 
         {
           id: row.vehicle_id,
-          brand: row.vehicle_name.split(' ')[0],
-          model: row.vehicle_name.split(' ').slice(1).join(' '),
+          brand: toString(row.vehicle_name).split(' ')[0],
+          model: toString(row.vehicle_name).split(' ').slice(1).join(' '),
           licensePlate: row.license_plate,
           status: 'available' // Default status
         }
@@ -7736,8 +7851,8 @@ export class PostgresDatabase {
       
       // Extrakcia nedostupností pre backward compatibility
       const unavailabilities = result.rows
-        .filter((row: any) => row.unavailability_id)
-        .map((row: any) => ({
+        .filter((row: Record<string, unknown>) => row.unavailability_id)
+        .map((row: Record<string, unknown>) => ({
           id: row.unavailability_id,
           vehicleId: row.vehicle_id,
           startDate: startDate,
@@ -7781,7 +7896,7 @@ export class PostgresDatabase {
   }
 
   // Get unavailabilities for specific date range (for calendar)
-  async getUnavailabilitiesForDateRange(startDate: Date, endDate: Date): Promise<any[]> {
+  async getUnavailabilitiesForDateRange(startDate: Date, endDate: Date): Promise<VehicleUnavailability[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(`
@@ -7792,25 +7907,29 @@ export class PostgresDatabase {
         ORDER BY vu.start_date ASC, v.brand ASC, v.model ASC
       `, [startDate, endDate]);
       
-      return result.rows.map(row => ({
-        id: row.id,
-        vehicleId: row.vehicle_id,
+      return result.rows.map((row: Record<string, unknown>): VehicleUnavailability => ({
+        id: toString(row.id),
+        vehicleId: toString(row.vehicle_id),
         vehicle: row.brand ? {
-          brand: row.brand,
-          model: row.model,
-          licensePlate: row.license_plate
+          id: toString(row.vehicle_id),
+          brand: toString(row.brand),
+          model: toString(row.model),
+          licensePlate: toString(row.license_plate),
+          pricing: [],
+          commission: { type: 'percentage', value: 0 },
+          status: 'available' as const
         } : undefined,
-        startDate: row.start_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        endDate: row.end_date, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        reason: row.reason,
-        type: row.type,
-        notes: row.notes,
-        priority: row.priority,
-        recurring: row.recurring,
-        recurringConfig: row.recurring_config ? JSON.parse(row.recurring_config) : undefined,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-        createdBy: row.created_by
+        startDate: row.start_date as Date | string, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        endDate: row.end_date as Date | string, // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
+        reason: toString(row.reason),
+        type: toString(row.type) as 'maintenance' | 'service' | 'repair' | 'blocked' | 'cleaning' | 'inspection' | 'rented' | 'private_rental',
+        notes: toString(row.notes),
+        priority: toNumber(row.priority) as 1 | 2 | 3,
+        recurring: Boolean(row.recurring),
+        recurringConfig: row.recurring_config ? JSON.parse(toString(row.recurring_config)) : undefined,
+        createdAt: new Date(String(row.created_at)),
+        updatedAt: new Date(String(row.updated_at)),
+        createdBy: toString(row.created_by)
       }));
     } finally {
       client.release();
@@ -7822,7 +7941,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM vehicle_documents';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';
@@ -7944,8 +8063,8 @@ export class PostgresDatabase {
   async getInsuranceClaims(vehicleId?: string): Promise<InsuranceClaim[]> {
     const client = await this.pool.connect();
     try {
-      let query = 'SELECT * FROM insurance_claims';
-      const params: any[] = [];
+    let query = 'SELECT * FROM insurance_claims';
+    const params: unknown[] = [];
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';
@@ -8947,7 +9066,7 @@ export class PostgresDatabase {
     rentalId: string;
     createdBy: string;
     createdAt: Date;
-    rentalData?: any;
+    rentalData?: Record<string, unknown>;
   }>> {
     const client = await this.pool.connect();
     try {
@@ -9045,7 +9164,8 @@ export class PostgresDatabase {
       ];
 
       const result = await client.query(query, values);
-      return this.mapCompanyDocument(result.rows[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return this.mapCompanyDocument(result.rows[0] as Record<string, unknown>);
     } finally {
       client.release();
     }
@@ -9065,6 +9185,7 @@ export class PostgresDatabase {
         JOIN companies c ON cd.company_id = c.id
         WHERE cd.company_id = $1
       `;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const values: any[] = [typeof companyId === 'string' ? parseInt(companyId) : companyId];
       let paramCount = 1;
 
@@ -9130,22 +9251,22 @@ export class PostgresDatabase {
     return this.getCompanyDocuments(companyId, 'invoice', year, month);
   }
 
-  private mapCompanyDocument(row: any): CompanyDocument {
+  private mapCompanyDocument(row: Record<string, unknown>): CompanyDocument {
     return {
-      id: row.id,
-      companyId: parseInt(row.company_id),
-      documentType: row.document_type,
-      documentMonth: row.document_month,
-      documentYear: row.document_year,
-      documentName: row.document_name,
-      description: row.description,
-      filePath: row.file_path,
-      fileSize: row.file_size,
-      fileType: row.file_type,
-      originalFilename: row.original_filename,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
-      createdBy: row.created_by
+      id: toString(row.id),
+      companyId: toNumber(row.company_id),
+      documentType: toString(row.document_type) as 'contract' | 'invoice',
+      documentMonth: row.document_month ? toNumber(row.document_month) : undefined,
+      documentYear: row.document_year ? toNumber(row.document_year) : undefined,
+      documentName: toString(row.document_name),
+      description: toString(row.description) || undefined,
+      filePath: toString(row.file_path),
+      fileSize: row.file_size ? toNumber(row.file_size) : undefined,
+      fileType: toString(row.file_type) || undefined,
+      originalFilename: toString(row.original_filename) || undefined,
+      createdAt: new Date(String(row.created_at)),
+      updatedAt: new Date(String(row.updated_at)),
+      createdBy: toString(row.created_by) || undefined
     };
   }
 

@@ -83,6 +83,7 @@ export interface Rental {
   vehicleId?: string;
   vehicle?: Vehicle;
   vehicleVin?: string; // 🆔 VIN číslo vozidla (z JOIN s vehicles)
+  vehicleName?: string; // 🚗 NOVÉ: Vehicle name field (brand + model)
   customerId?: string;
   customer?: Customer;
   customerName: string;
@@ -139,7 +140,6 @@ export interface Rental {
   pickupLocation?: string;
   returnLocation?: string;
   vehicleCode?: string;
-  vehicleName?: string;
   // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
   isFlexible?: boolean;  // Hlavný indikátor flexibilného prenájmu
   flexibleEndDate?: Date; // Orientačný koniec pre flexible prenájmy

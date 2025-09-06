@@ -1,9 +1,8 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import { authenticateToken } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse } from '../types';
-import { authenticateToken } from '../middleware/auth';
-import { checkPermission } from '../middleware/permissions';
 
 const router = Router();
 
@@ -29,13 +28,12 @@ router.get('/data',
       try {
         const [
           vehicles,
-          rentals, 
+          rentals,
           customers,
           companies,
           insurers,
           expenses,
           insurances,
-          settlements,
           vehicleDocuments,
           insuranceClaims
         ] = await Promise.all([
@@ -46,10 +44,13 @@ router.get('/data',
           postgresDatabase.getInsurers(),
           postgresDatabase.getExpenses(),
           postgresDatabase.getInsurances(),
-          postgresDatabase.getSettlements(),
+          // postgresDatabase.getSettlements(), // DOČASNE VYPNUTÉ - problém s tabuľkou
           postgresDatabase.getVehicleDocuments(),
           postgresDatabase.getInsuranceClaims()
         ]);
+
+        // DOČASNE: prázdne settlements
+        const settlements: any[] = [];
 
         const rawDataTime = Date.now() - rawDataStart;
         console.log(`✅ BULK: Raw data loaded in ${rawDataTime}ms`);

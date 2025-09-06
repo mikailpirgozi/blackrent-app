@@ -45,16 +45,11 @@ router.get('/paginated',
         vehicleBrand = 'all',
         priceMin = '',
         priceMax = '',
-        sortBy = 'created_at',
+        sortBy = 'smart_priority',
         sortOrder = 'asc'
       } = req.query;
 
-      console.log('🚗 Rentals PAGINATED GET - params:', { 
-        page, limit, search, dateFilter, company, status,
-        sortBy, sortOrder,
-        role: req.user?.role, 
-        userId: req.user?.id
-      });
+      // Debug: Rentals PAGINATED GET - params logged
 
       const pageNum = parseInt(page as string);
       const limitNum = parseInt(limit as string);
@@ -78,11 +73,11 @@ router.get('/paginated',
         priceMax: priceMax as string,
         userId: req.user?.id,
         userRole: req.user?.role,
-        sortBy: sortBy as 'created_at' | 'start_date' | 'end_date',
+        sortBy: sortBy as 'created_at' | 'start_date' | 'end_date' | 'smart_priority',
         sortOrder: sortOrder as 'asc' | 'desc'
       });
 
-      console.log(`📊 Found ${result.rentals.length}/${result.total} rentals (page ${pageNum})`);
+      // Debug: Found rentals count logged
 
       res.json({
         success: true,
@@ -115,19 +110,14 @@ router.get('/',
     try {
       let rentals = await postgresDatabase.getRentals();
       
-      console.log('🚗 Rentals GET - user:', { 
-        role: req.user?.role, 
-        userId: req.user?.id,
-        totalRentals: rentals.length 
-      });
+      // console.log('🚗 Rentals GET - user:', { role: req.user?.role, userId: req.user?.id, totalRentals: rentals.length });
       
       // 🎯 CLEAN SOLUTION: Rental má svoj company field - žiadny enrichment potrebný! ✅
-      console.log('🚀 CLEAN: Rentals already have company field from database');
+      // console.log('🚀 CLEAN: Rentals already have company field from database');
       
       // 🔐 PERMISSION FILTERING - Apply company-based filtering for non-admin users
       if (req.user?.role !== 'admin' && req.user) {
         const user = req.user; // TypeScript safe assignment
-        const originalCount = rentals.length;
         
         // Získaj company access pre používateľa
         const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
@@ -155,26 +145,13 @@ router.get('/',
           return false; // If no vehicle or company info, don't show
         });
         
-        console.log('🔐 Rentals Permission Filter:', {
-          userId: user!.id,
-          allowedCompanyIds,
-          originalCount,
-          filteredCount: rentals.length,
-          filterType: 'historical_ownership_based'
-        });
+        // console.log('🔐 Rentals Permission Filter:', { userId: user!.id, allowedCompanyIds, filteredCount: rentals.length, filterType: 'historical_ownership_based' });
       }
       
       // 🔧 DEBUG: Log final response data (first rental)
-      console.log('🔍 FINAL RESPONSE DATA (first rental):');
+      // console.log('🔍 FINAL RESPONSE DATA (first rental):');
       if (rentals.length > 0) {
-        console.log('  Response:', {
-          customer: rentals[0].customerName,
-          company: rentals[0].company,
-          vehicleId: rentals[0].vehicleId,
-          vehicle_exists: !!rentals[0].vehicle,
-          vehicle_brand: rentals[0].vehicle?.brand || 'NULL',
-          vehicle_json: JSON.stringify(rentals[0].vehicle, null, 2)
-        });
+        // console.log('  Response:', { customer: rentals[0].customerName, company: rentals[0].company, vehicleId: rentals[0].vehicleId, vehicle_exists: !!rentals[0].vehicle, vehicle_brand: rentals[0].vehicle?.brand || 'NULL', vehicle_json: JSON.stringify(rentals[0].vehicle, null, 2) });
       }
 
       res.json({
@@ -281,7 +258,7 @@ router.post('/',
         const oneYearFromStart = new Date(new Date(startDate).getTime() + 365 * 24 * 60 * 60 * 1000);
         finalEndDate = oneYearFromStart.toISOString();
       }
-      console.log('🔄 Flexibilný prenájom: Automaticky nastavený endDate na', finalEndDate);
+      // console.log('🔄 Flexibilný prenájom: Automaticky nastavený endDate na', finalEndDate);
     }
 
     if (!finalEndDate) {
@@ -331,7 +308,7 @@ router.post('/',
     // 🔴 Real-time broadcast: Nový prenájom vytvorený
     const websocketService = getWebSocketService();
     if (websocketService) {
-      const userName = (req as any).user?.username || 'Neznámy užívateľ';
+      const userName = req.user?.username || 'Neznámy užívateľ';
       websocketService.broadcastRentalCreated(createdRental, userName);
     }
 
@@ -357,7 +334,7 @@ router.post('/:id/clone',
   checkPermission('rentals', 'create'), // Potrebuje create permission pre nový prenájom
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔄 RENTAL CLONE ENDPOINT HIT - ID:', req.params.id);
+    // console.log('🔄 RENTAL CLONE ENDPOINT HIT - ID:', req.params.id);
     const { id } = req.params;
     
     // Získaj originálny prenájom
@@ -369,12 +346,7 @@ router.post('/:id/clone',
       });
     }
     
-    console.log('📋 Original rental found:', {
-      id: originalRental.id,
-      startDate: originalRental.startDate,
-      endDate: originalRental.endDate,
-      customerName: originalRental.customerName
-    });
+    // console.log('📋 Original rental found:', { id: originalRental.id, startDate: originalRental.startDate, endDate: originalRental.endDate, customerName: originalRental.customerName });
     
     // Importuj utility funkcie (budeme ich potrebovať na backend)
     // Pre teraz použijeme jednoduchú logiku priamo tu
@@ -442,19 +414,9 @@ router.post('/:id/clone',
       newEndDate.setDate(newEndDate.getDate() + durationDays);
     }
     
-    console.log('📅 Calculated new period:', {
-      periodType,
-      originalDuration: durationDays,
-      newStartDate: newStartDate.toISOString(),
-      newEndDate: newEndDate.toISOString()
-    });
+    // console.log('📅 Calculated new period:', { periodType, originalDuration: durationDays, newStartDate: newStartDate.toISOString(), newEndDate: newEndDate.toISOString() });
     
-    console.log('🔍 Original rental data check:', {
-      orderNumber: originalRental.orderNumber,
-      dailyKilometers: originalRental.dailyKilometers,
-      deposit: originalRental.deposit,
-      paymentMethod: originalRental.paymentMethod
-    });
+    // console.log('🔍 Original rental data check:', { orderNumber: originalRental.orderNumber, dailyKilometers: originalRental.dailyKilometers, deposit: originalRental.deposit, paymentMethod: originalRental.paymentMethod });
     
     // Vytvor kópiu prenájmu s novými dátumami a resetovanými statusmi
     const clonedRental = {
@@ -535,14 +497,9 @@ router.post('/:id/clone',
       history: []
     };
     
-    console.log('🔄 Creating cloned rental...');
+    // console.log('🔄 Creating cloned rental...');
     
-    console.log('🔍 Cloned rental data check:', {
-      orderNumber: clonedRental.orderNumber,
-      dailyKilometers: clonedRental.dailyKilometers,
-      deposit: clonedRental.deposit,
-      paymentMethod: clonedRental.paymentMethod
-    });
+    // console.log('🔍 Cloned rental data check:', { orderNumber: clonedRental.orderNumber, dailyKilometers: clonedRental.dailyKilometers, deposit: clonedRental.deposit, paymentMethod: clonedRental.paymentMethod });
     
     // Fix null values pre TypeScript - konvertuj null na undefined pre problematické polia
     const clonedRentalFixed = {
@@ -561,12 +518,7 @@ router.post('/:id/clone',
     // Vytvor nový prenájom v databáze
     const newRental = await postgresDatabase.createRental(clonedRentalFixed);
     
-    console.log('✅ Cloned rental created successfully:', {
-      originalId: id,
-      newId: newRental.id,
-      periodType,
-      newPeriod: `${newStartDate.toLocaleDateString('sk-SK')} - ${newEndDate.toLocaleDateString('sk-SK')}`
-    });
+    // console.log('✅ Cloned rental created successfully:', { originalId: id, newId: newRental.id, periodType, newPeriod: `${newStartDate.toLocaleDateString('sk-SK')} - ${newEndDate.toLocaleDateString('sk-SK')}` });
     
     // Pošli WebSocket notifikáciu
     const wsService = getWebSocketService();
@@ -595,39 +547,23 @@ router.put('/:id',
   checkPermission('rentals', 'update', { getContext: getRentalContext }),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🚀 RENTAL UPDATE ENDPOINT HIT - ID:', req.params.id);
+    // console.log('🚀 RENTAL UPDATE ENDPOINT HIT - ID:', req.params.id);
     const { id } = req.params;
     const updateData = req.body;
 
-    console.log('🔄 RENTAL UPDATE request:', {
-      rentalId: id,
-      userId: req.user?.id,
-      updateFields: Object.keys(updateData),
-      vehicleId: updateData.vehicleId,
-      customerName: updateData.customerName,
-      totalPrice: updateData.totalPrice,
-      paid: updateData.paid,
-      status: updateData.status,
-      extraKilometerRate: updateData.extraKilometerRate,
-      fullUpdateData: updateData
-    });
+    // console.log('🔄 RENTAL UPDATE request:', { rentalId: id, userId: req.user?.id, updateFields: Object.keys(updateData), vehicleId: updateData.vehicleId, customerName: updateData.customerName, totalPrice: updateData.totalPrice, paid: updateData.paid, status: updateData.status, extraKilometerRate: updateData.extraKilometerRate, fullUpdateData: updateData });
 
     // Skontroluj, či prenájom existuje
     const existingRental = await postgresDatabase.getRental(id);
     if (!existingRental) {
-      console.log('❌ Rental not found:', id);
+      // console.log('❌ Rental not found:', id);
       return res.status(404).json({
         success: false,
         error: 'Prenájom nenájdený'
       });
     }
 
-    console.log('📋 Existing rental data:', {
-      id: existingRental.id,
-      vehicleId: existingRental.vehicleId,
-      customerName: existingRental.customerName,
-      hasVehicle: !!existingRental.vehicle
-    });
+    // console.log('📋 Existing rental data:', { id: existingRental.id, vehicleId: existingRental.vehicleId, customerName: existingRental.customerName, hasVehicle: !!existingRental.vehicle });
 
     const updatedRental: Rental = {
       ...existingRental,
@@ -637,26 +573,18 @@ router.put('/:id',
       endDate: updateData.endDate ? updateData.endDate : existingRental.endDate
     };
 
-    console.log('💾 Saving updated rental:', {
-      id: updatedRental.id,
-      vehicleId: updatedRental.vehicleId,
-      customerName: updatedRental.customerName
-    });
+    // console.log('💾 Saving updated rental:', { id: updatedRental.id, vehicleId: updatedRental.vehicleId, customerName: updatedRental.customerName });
 
     await postgresDatabase.updateRental(updatedRental);
 
     // Znovu načítaj prenájom z databázy pre overenie
     const savedRental = await postgresDatabase.getRental(id);
-    console.log('✅ Rental saved successfully:', {
-      id: savedRental?.id,
-      vehicleId: savedRental?.vehicleId,
-      hasVehicle: !!savedRental?.vehicle
-    });
+    // console.log('✅ Rental saved successfully:', { id: savedRental?.id, vehicleId: savedRental?.vehicleId, hasVehicle: !!savedRental?.vehicle });
 
     // 🔴 Real-time broadcast: Prenájom aktualizovaný
     const websocketService = getWebSocketService();
     if (websocketService && savedRental) {
-      const userName = (req as any).user?.username || 'Neznámy užívateľ';
+      const userName = req.user?.username || 'Neznámy užívateľ';
       websocketService.broadcastRentalUpdated(savedRental, userName);
     }
 
@@ -682,29 +610,21 @@ router.delete('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user.id;
-    const userRole = (req as any).user.role;
-
-    console.log(`🗑️ Pokus o vymazanie prenájmu ID: ${id}, používateľ: ${userId}, rola: ${userRole}`);
-
     // Skontroluj, či prenájom existuje
     const existingRental = await postgresDatabase.getRental(id);
     if (!existingRental) {
-      console.log(`❌ Prenájom ${id} nenájdený v databáze`);
       return res.status(404).json({
         success: false,
         error: 'Prenájom nenájdený'
       });
     }
 
-    console.log(`✅ Prenájom ${id} nájdený, vymazávam...`);
     await postgresDatabase.deleteRental(id);
-    console.log(`🎉 Prenájom ${id} úspešne vymazaný`);
 
     // 🔴 Real-time broadcast: Prenájom zmazaný
     const websocketService = getWebSocketService();
     if (websocketService) {
-      const userName = (req as any).user?.username || 'Neznámy užívateľ';
+      const userName = req.user?.username || 'Neznámy užívateľ';
       websocketService.broadcastRentalDeleted(id, existingRental.customerName, userName);
     }
 
@@ -728,7 +648,7 @@ router.post('/batch-import',
   checkPermission('rentals', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      console.log('📥 Starting batch rental import...');
+      // console.log('📥 Starting batch rental import...');
       const { rentals } = req.body;
 
       if (!rentals || !Array.isArray(rentals)) {
@@ -738,7 +658,7 @@ router.post('/batch-import',
         });
       }
 
-      console.log(`📊 Processing ${rentals.length} rentals in batch...`);
+      // console.log(`📊 Processing ${rentals.length} rentals in batch...`);
       
       const results = [];
       const errors = [];
@@ -750,19 +670,14 @@ router.post('/batch-import',
       for (let i = 0; i < rentals.length; i++) {
         // Progress logging
         if (i % progressInterval === 0 || i === rentals.length - 1) {
-          const progress = Math.round(((i + 1) / rentals.length) * 100);
-          console.log(`📊 Batch Import Progress: ${progress}% (${i + 1}/${rentals.length})`);
+          // console.log(`📊 Batch Import Progress: ${Math.round(((i + 1) / rentals.length) * 100)}% (${i + 1}/${rentals.length})`);
         }
 
         try {
           const rentalData = rentals[i];
           
           // 🔍 DEBUG: Log price data
-          console.log(`🔍 BATCH IMPORT PRICE DEBUG [${i}]:`, {
-            customerName: rentalData.customerName,
-            totalPrice: rentalData.totalPrice,
-            typeOf: typeof rentalData.totalPrice
-          });
+          // console.log(`🔍 BATCH IMPORT PRICE DEBUG [${i}]:`, { customerName: rentalData.customerName, totalPrice: rentalData.totalPrice, typeOf: typeof rentalData.totalPrice });
 
           const createdRental = await postgresDatabase.createRental(rentalData);
           results.push({
@@ -784,7 +699,7 @@ router.post('/batch-import',
         }
       }
 
-      console.log(`✅ Batch import completed: ${processed}/${rentals.length} successful`);
+      // console.log(`✅ Batch import completed: ${processed}/${rentals.length} successful`);
 
       res.json({
         success: true,

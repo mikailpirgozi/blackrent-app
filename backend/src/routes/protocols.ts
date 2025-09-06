@@ -1,14 +1,14 @@
 import type { Request, Response } from 'express';
 import express from 'express';
 import multer from 'multer';
-import { postgresDatabase } from '../models/postgres-database';
-import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
-import { authenticateToken } from '../middleware/auth';
-import { r2Storage } from '../utils/r2-storage';
-import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
+import { authenticateToken } from '../middleware/auth';
+import { postgresDatabase } from '../models/postgres-database';
 import { emailService } from '../services/email-service';
 import { getWebSocketService } from '../services/websocket-service';
+import type { HandoverProtocol, ReturnProtocol } from '../types';
+import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
+import { r2Storage } from '../utils/r2-storage';
 
 const router = express.Router();
 
@@ -176,7 +176,7 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
     console.log('📄 PDF proxy request for protocol:', protocolId);
     
     // Pokús sa najskôr nájsť handover protokol
-    let protocol = await postgresDatabase.getHandoverProtocolById(protocolId);
+    let protocol: any = await postgresDatabase.getHandoverProtocolById(protocolId);
     let protocolType = 'handover';
     
     // Ak nie je handover, skús return
@@ -199,9 +199,9 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
       try {
         let generatedPdfBuffer: Buffer;
         if (protocolType === 'handover') {
-          generatedPdfBuffer = await generateHandoverPDF(protocol);
+          generatedPdfBuffer = await generateHandoverPDF(protocol as any);
         } else {
-          generatedPdfBuffer = await generateReturnPDF(protocol);
+          generatedPdfBuffer = await generateReturnPDF(protocol as any);
         }
         
         pdfBuffer = generatedPdfBuffer.buffer.slice(
@@ -218,7 +218,7 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
       console.log('📄 Fetching PDF from R2:', protocol.pdfUrl);
       
       // Fetch PDF z R2
-      const pdfResponse = await fetch(protocol.pdfUrl);
+      const pdfResponse = await fetch((protocol as any).pdfUrl);
       
       if (!pdfResponse.ok) {
         console.error('❌ Failed to fetch PDF from R2:', pdfResponse.status);
@@ -266,7 +266,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
     
     // 1. Uloženie protokolu do databázy
     const originalRentalData = protocolData.rentalData;
-    const protocol = await postgresDatabase.createHandoverProtocol(protocolData);
+    const protocol = await postgresDatabase.createHandoverProtocol(protocolData as any);
     console.log('✅ Handover protocol created in DB:', protocol.id);
     
     let pdfUrl: string | null = null;
@@ -340,8 +340,8 @@ router.post('/handover', authenticateToken, async (req, res) => {
             if (emailSent) {
               await postgresDatabase.updateHandoverProtocol(protocol.id, { 
                 emailSent: true,
-                pdfEmailUrl: pdfUrl
-              });
+                pdfUrl: pdfUrl
+              } as any);
               
               emailResult = {
                 sent: true,

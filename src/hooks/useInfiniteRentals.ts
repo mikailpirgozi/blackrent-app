@@ -18,7 +18,7 @@ interface RentalFilters {
   vehicleBrand?: string;
   priceMin?: string;
   priceMax?: string;
-  sortBy?: 'created_at' | 'start_date' | 'end_date';
+  sortBy?: 'created_at' | 'start_date' | 'end_date' | 'smart_priority';
   sortOrder?: 'asc' | 'desc';
 }
 

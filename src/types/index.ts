@@ -100,8 +100,8 @@ export interface Rental {
     user: string;
     changes: {
       field: string;
-      oldValue: any;
-      newValue: any;
+      oldValue: unknown;
+      newValue: unknown;
     }[];
   }[];
   orderNumber?: string;
@@ -528,7 +528,7 @@ export interface AuthResponse {
   error?: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -630,7 +630,11 @@ export interface HandoverProtocol {
     currency: string;
     allowedKilometers?: number;
     extraKilometerRate?: number;
-    insuranceDetails?: any;
+    insuranceDetails?: {
+      company?: string;
+      type?: string;
+      policyNumber?: string;
+    };
     pickupLocation?: string;
     returnLocation?: string;
     returnConditions?: string;
@@ -703,7 +707,11 @@ export interface ReturnProtocol {
     currency: string;
     allowedKilometers?: number;
     extraKilometerRate?: number;
-    insuranceDetails?: any;
+    insuranceDetails?: {
+      company?: string;
+      type?: string;
+      policyNumber?: string;
+    };
     pickupLocation?: string;
     returnLocation?: string;
     returnConditions?: string;
