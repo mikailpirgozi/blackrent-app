@@ -8,6 +8,44 @@ interface QueryResult {
   rowCount?: number;
 }
 
+
+interface ImapMessage {
+  on(event: 'body', callback: (stream: ImapStream) => void): void;
+  on(event: string, callback: (data: unknown) => void): void;
+  once: (event: string, callback: () => void) => void;
+}
+
+
+interface ImapSearchResults {
+  length: number;
+  [index: number]: number;
+}
+
+interface ImapStream {
+  on: (event: string, callback: (chunk: Buffer) => void) => void;
+}
+
+interface EmailAttachment {
+  filename?: string;
+  contentType: string;
+  size: number;
+  content: Buffer;
+}
+
+interface ParsedEmail {
+  from?: { text: string };
+  subject?: string;
+  text?: string;
+  html?: string | Buffer;
+  date?: Date;
+  messageId?: string;
+  attachments?: EmailAttachment[];
+}
+
+// Function type definitions
+type ResolveFunction = () => void;
+type RejectFunction = (error: Error) => void;
+
 interface EmailData {
   from: string;
   subject: string;
@@ -174,7 +212,7 @@ class ImapEmailService {
     }
     
     return new Promise((resolve, reject) => {
-      this.imap!.openBox('INBOX', false, (err: any, box: any) => {
+      this.imap!.openBox('INBOX', false, (err: Error | null) => {
         if (err) {
           reject(err);
           return;
@@ -184,7 +222,7 @@ class ImapEmailService {
         console.log('🔥 NOVÝ KÓD: Hľadám len OBJEDNÁVKY (predmet: "Objednávka od zákaznika")');
         
         // Najprv skús UNSEEN emaily s filtrom na objednávky
-        this.imap!.search(['UNSEEN', ['SUBJECT', 'Objednávka od zákaznika']], (err: any, results: any) => {
+        this.imap!.search(['UNSEEN', ['SUBJECT', 'Objednávka od zákaznika']], (err: Error | null, results?: ImapSearchResults) => {
           if (err) {
             reject(err);
             return;
@@ -206,7 +244,7 @@ class ImapEmailService {
             year: 'numeric' 
           }); // napr. "Aug 23, 2025"
           
-          this.imap!.search([['SINCE', todayStr], ['SUBJECT', 'Objednávka od zákaznika']], (err2: any, dateResults: any) => {
+          this.imap!.search([['SINCE', todayStr], ['SUBJECT', 'Objednávka od zákaznika']], (err2: Error | null, dateResults?: ImapSearchResults) => {
             if (err2) {
               reject(err2);
               return;
@@ -226,7 +264,7 @@ class ImapEmailService {
     });
   }
 
-  private processFetchedEmails(results: any[], resolve: Function, reject: Function): void {
+  private processFetchedEmails(results: ImapSearchResults, resolve: ResolveFunction, reject: RejectFunction): void {
     const fetch = this.imap!.fetch(results, { 
       bodies: '',
       markSeen: false // Neoznačuj ako prečítané hneď
@@ -235,7 +273,7 @@ class ImapEmailService {
     let processed = 0;
     const total = results.length;
 
-    fetch.on('message', (msg: any, seqno: number) => {
+    fetch.on('message', (msg: ImapMessage, seqno: number) => {
       this.processMessage(msg, seqno)
         .then(() => {
           processed++;
@@ -255,12 +293,12 @@ class ImapEmailService {
     fetch.once('error', reject);
   }
 
-  private async processMessage(msg: any, seqno: number): Promise<void> {
+  private async processMessage(msg: ImapMessage, seqno: number): Promise<void> {
     return new Promise((resolve, reject) => {
       let buffer = '';
 
-      msg.on('body', (stream: any) => {
-        stream.on('data', (chunk: any) => {
+      msg.on('body', (stream: ImapStream) => {
+        stream.on('data', (chunk: Buffer) => {
           buffer += chunk.toString('utf8');
         });
       });
@@ -270,7 +308,7 @@ class ImapEmailService {
         let emailHistoryId: string | null = null;
         
         try {
-          const parsed = await simpleParser(buffer);
+          const parsed = await simpleParser(buffer) as ParsedEmail;
           emailData = {
             from: parsed.from?.text || '',
             subject: parsed.subject || '',
@@ -290,7 +328,7 @@ class ImapEmailService {
           // Skontroluj prílohy
           if (parsed.attachments && parsed.attachments.length > 0) {
             console.log(`📎 EMAIL PRÍLOHY: ${parsed.attachments.length}`);
-            parsed.attachments.forEach((att: any, index: number) => {
+            parsed.attachments.forEach((att: EmailAttachment, index: number) => {
               console.log(`📎 Príloha ${index + 1}: ${att.filename} (${att.contentType})`);
             });
           }
@@ -323,7 +361,7 @@ class ImapEmailService {
           // Ak máme emailHistoryId, označ ako error v histórii
           if (emailHistoryId) {
             try {
-              await this.updateEmailHistory(emailHistoryId, 'rejected', 'rejected', null, `Processing error: ${error}`);
+              await this.updateEmailHistory(emailHistoryId, 'rejected', 'rejected', undefined, `Processing error: ${error}`);
             } catch (historyError) {
               console.error('❌ Chyba pri ukladaní error do email histórie:', historyError);
             }
@@ -693,8 +731,8 @@ class ImapEmailService {
           endDate = new Date(endDateString);
           
           // Uložím plain stringy pre použitie v SQL
-          (startDate as any).plainString = startDateString;
-          (endDate as any).plainString = endDateString;
+          (startDate as unknown as Record<string, unknown>).plainString = startDateString;
+          (endDate as unknown as Record<string, unknown>).plainString = endDateString;
         }
       }
 
@@ -754,7 +792,7 @@ class ImapEmailService {
   }
 
   // 🎯 IDENTICKÁ VEHICLE MATCHING LOGIKA AKO V FRONTEND EmailParser.tsx
-  private async getAllVehicles(): Promise<any[]> {
+  private async getAllVehicles(): Promise<Record<string, unknown>[]> {
     try {
       const result = await postgresDatabase.query(`
         SELECT id, brand, model, license_plate
@@ -783,21 +821,21 @@ class ImapEmailService {
         vehicleCode: parsedData.vehicleCode,
         vehiclesAvailable: vehicles.length,
         vehiclesList: vehicles.map(v => ({ 
-          id: v.id.substring(0, 8), 
+          id: String(v.id).substring(0, 8), 
           plate: v.license_plate, 
-          normalized: this.normalizeSpz(v.license_plate || ''),
+          normalized: this.normalizeSpz(String(v.license_plate || '')),
           brand: v.brand, 
           model: v.model 
         }))
       });
       
       // Nájdenie vozidla - primárne podľa ŠPZ, potom podľa názvu
-      let selectedVehicle: any = undefined;
+      let selectedVehicle: Record<string, unknown> | undefined = undefined;
       
       if (parsedData.vehicleCode) {
         // Najprv hľadám podľa ŠPZ (kódu) s normalizáciou
         const normalizedCode = this.normalizeSpz(parsedData.vehicleCode);
-        selectedVehicle = vehicles.find(v => this.normalizeSpz(v.license_plate || '') === normalizedCode);
+        selectedVehicle = vehicles.find(v => this.normalizeSpz(String(v.license_plate || '')) === normalizedCode);
         
         console.log('🔍 Vehicle search details:', {
           searchingFor: parsedData.vehicleCode,
@@ -822,7 +860,7 @@ class ImapEmailService {
         console.log('🔍 Name search result:', {
           found: !!selectedVehicle,
           foundVehicle: selectedVehicle ? { 
-            id: selectedVehicle.id.substring(0, 8), 
+            id: String(selectedVehicle.id).substring(0, 8), 
             plate: selectedVehicle.license_plate, 
             brand: selectedVehicle.brand, 
             model: selectedVehicle.model 
@@ -836,8 +874,8 @@ class ImapEmailService {
           : (selectedVehicle.brand || selectedVehicle.model || 'Unknown Vehicle');
         
         return {
-          id: selectedVehicle.id,
-          name: vehicleName
+          id: String(selectedVehicle.id),
+          name: String(vehicleName)
         };
       }
 
@@ -889,7 +927,7 @@ class ImapEmailService {
     historyId: string, 
     status: string, 
     actionTaken: string, 
-    parsedData?: any,
+    parsedData?: Record<string, unknown>,
     errorMessage?: string
   ): Promise<void> {
     try {
@@ -949,14 +987,11 @@ class ImapEmailService {
         return;
       }
 
-      // Parsovanie mena na firstName a lastName
-      const nameParts = rentalData.customerName.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || firstName;
+      // Parsovanie mena na firstName a lastName - už nie je potrebné pre nový kód
 
       // Použijem plain stringy pre časy ak sú dostupné
-      const startDateValue = (rentalData.startDate as any)?.plainString || rentalData.startDate;
-      const endDateValue = (rentalData.endDate as any)?.plainString || rentalData.endDate;
+      const startDateValue = (rentalData.startDate as unknown as Record<string, unknown>)?.plainString || rentalData.startDate;
+      const endDateValue = (rentalData.endDate as unknown as Record<string, unknown>)?.plainString || rentalData.endDate;
       
       // Vytvor pending rental
       const result = await postgresDatabase.query(`
