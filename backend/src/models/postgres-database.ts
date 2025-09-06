@@ -5443,15 +5443,15 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString() || '', // Priamo z insurances.vehicle_id
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: row.valid_from ? new Date(row.valid_from) : new Date(), // Správny stĺpec
-        validTo: row.valid_to ? new Date(row.valid_to) : new Date(), // Správny stĺpec
-        price: parseFloat(row.price) || 0, // Správny stĺpec
+        validFrom: row.start_date ? new Date(row.start_date) : new Date(), // start_date (nie valid_from!)
+        validTo: row.end_date ? new Date(row.end_date) : new Date(), // end_date (nie valid_to!)
+        price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: row.insurer_name || '', // Načítaný názov poistovne z JOIN
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta
+        greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
+        greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
         kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       }));
     } finally {
@@ -5500,21 +5500,19 @@ export class PostgresDatabase {
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, km_state) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, km_state, created_at',
+        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, created_at',
         [
-          insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // Convert string to integer
+          insuranceData.vehicleId || null, // UUID - NIE integer!
           finalInsurerId || null, 
           insuranceData.policyNumber, 
           insuranceData.type,
           insuranceData.coverageAmount || insuranceData.price, // coverage_amount
-          insuranceData.price, // price (nie premium!)
-          insuranceData.validFrom, // valid_from (nie start_date!)
-          insuranceData.validTo, // valid_to (nie end_date!)
+          insuranceData.price, // premium (nie price!)
+          insuranceData.validFrom, // start_date (nie valid_from!)
+          insuranceData.validTo, // end_date (nie valid_to!)
           insuranceData.paymentFrequency || 'yearly', 
           insuranceData.filePath || null, // Zachováme pre backward compatibility
           filePaths, // Nové pole pre viacero súborov
-          insuranceData.greenCardValidFrom || null, // 🟢 Biela karta od
-          insuranceData.greenCardValidTo || null, // 🟢 Biela karta do
           insuranceData.kmState || null // 🚗 Stav kilometrov pre Kasko
         ]
       );
@@ -5525,15 +5523,15 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString() || '', // Z databázy
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: new Date(row.valid_from), // Správny stĺpec
-        validTo: new Date(row.valid_to), // Správny stĺpec  
-        price: parseFloat(row.price) || 0, // Správny stĺpec
+        validFrom: new Date(row.start_date), // start_date (nie valid_from!)
+        validTo: new Date(row.end_date), // end_date (nie valid_to!)
+        price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: insuranceData.company || '',
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta
+        greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
+        greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
         kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       };
     } finally {
@@ -5579,10 +5577,10 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         UPDATE insurances 
-        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, valid_from = $5, valid_to = $6, price = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, green_card_valid_from = $12, green_card_valid_to = $13, km_state = $14
-        WHERE id = $15 
-        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, price, valid_from, valid_to, payment_frequency, file_path, file_paths, green_card_valid_from, green_card_valid_to, km_state
-      `, [insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.greenCardValidFrom || null, insuranceData.greenCardValidTo || null, insuranceData.kmState || null, id]);
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12
+        WHERE id = $13 
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state
+      `, [insuranceData.vehicleId || null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.kmState || null, id]);
 
       if (result.rows.length === 0) {
         throw new Error('Poistka nebola nájdená');
@@ -5601,15 +5599,15 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString() || '', // Z databázy
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: new Date(row.valid_from), // Správny stĺpec
-        validTo: new Date(row.valid_to), // Správny stĺpec
-        price: parseFloat(row.price) || 0, // Správny stĺpec
+        validFrom: new Date(row.start_date), // start_date (nie valid_from!)
+        validTo: new Date(row.end_date), // end_date (nie valid_to!)
+        price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: insurerName || insuranceData.company || '', // Použijem načítaný názov poistovne
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta
+        greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
+        greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
         kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       };
     } finally {

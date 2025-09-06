@@ -507,6 +507,11 @@ export default function RentalList() {
   // 📱 MOBILE CARD RENDERER - removed (unused)
 
   // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals
+  const loadProtocolStatusRef = React.useRef(
+    protocolsHook.loadProtocolStatusInBackground
+  );
+  loadProtocolStatusRef.current = protocolsHook.loadProtocolStatusInBackground;
+
   React.useEffect(() => {
     if (
       paginatedRentals.length > 0 &&
@@ -515,7 +520,7 @@ export default function RentalList() {
     ) {
       // Spusti na pozadí za 100ms aby sa nestratila rýchlosť UI
       const timer = setTimeout(() => {
-        protocolsHook.loadProtocolStatusInBackground();
+        loadProtocolStatusRef.current();
       }, 100);
 
       return () => clearTimeout(timer);
@@ -524,8 +529,6 @@ export default function RentalList() {
     paginatedRentals.length,
     protocolsHook.protocolStatusLoaded,
     protocolsHook.isLoadingProtocolStatus,
-    protocolsHook.loadProtocolStatusInBackground,
-    protocolsHook,
   ]);
 
   // 🎯 INFINITE SCROLL: Setup scroll event listeners
