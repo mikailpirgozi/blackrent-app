@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Insurance } from '../types';
@@ -41,12 +41,14 @@ export function useInfiniteInsurances(
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState<InsuranceFilters>(initialFilters);
+  const loadingRef = useRef(false);
 
   // 🔍 Load insurances with pagination and filtering
   const loadInsurances = useCallback(
     async (page: number = 1, reset: boolean = false) => {
-      if (loading) return;
+      if (loadingRef.current) return;
 
+      loadingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -99,10 +101,11 @@ export function useInfiniteInsurances(
         });
         setError('Chyba pri načítavaní poistiek');
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
     },
-    [filters, loading]
+    [filters] // Odstránil loading z dependency array
   );
 
   // 📄 Load more insurances (next page)
