@@ -1,18 +1,16 @@
 import {
   Add as AddIcon,
-  Visibility as ViewIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Receipt as ReceiptIcon,
   AccountBalance as BankIcon,
-  TrendingUp as ProfitIcon,
-  TrendingDown as LossIcon,
-  DateRange as DateIcon,
-  Euro as EuroIcon,
   Business as CompanyIcon,
-  DirectionsCar as VehicleIcon,
+  Delete as DeleteIcon,
+  Euro as EuroIcon,
+  FilterList as FilterListIcon,
+  TrendingDown as LossIcon,
+  TrendingUp as ProfitIcon,
   Assessment as ReportIcon,
+  Search as SearchIcon,
+  DirectionsCar as VehicleIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -20,34 +18,45 @@ import {
   Card,
   CardContent,
   Chip,
-  Dialog,
-  IconButton,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Stack,
-  Divider,
-  Grid,
-  useMediaQuery,
-  useTheme,
-  Tooltip,
-  Alert,
   CircularProgress,
+  Dialog,
+  Divider,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
-import type { Settlement } from '../../types';
+import type { Settlement, Vehicle } from '../../types';
+
+// Type for creating new settlement (matches backend API)
+interface CreateSettlementRequest {
+  company?: string;
+  period: {
+    from: Date;
+    to: Date;
+  };
+  totalIncome: number;
+  totalExpenses: number;
+  totalCommission: number;
+  profit: number;
+  vehicleId?: string;
+}
 
 import SettlementDetail from './SettlementDetail';
 
@@ -62,10 +71,13 @@ const SettlementListNew: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
-  // Get data from context
-  const settlements = state.settlements || [];
-  const vehicles = getFilteredVehicles();
-  const companies = state.companies || [];
+  // Get data from context with proper memoization
+  const settlements = useMemo(
+    () => state.settlements || [],
+    [state.settlements]
+  );
+  const vehicles = useMemo(() => getFilteredVehicles(), [getFilteredVehicles]);
+  const companies = useMemo(() => state.companies || [], [state.companies]);
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,7 +107,7 @@ const SettlementListNew: React.FC = () => {
   // Vehicle options for autocomplete
   const vehicleOptions = useMemo(
     () =>
-      vehicles.map((vehicle: any) => ({
+      vehicles.map((vehicle: Vehicle) => ({
         id: vehicle.id,
         label: `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`,
         company: vehicle.company,
@@ -161,15 +173,16 @@ const SettlementListNew: React.FC = () => {
     [filteredSettlements]
   );
 
-  const totalCommission = useMemo(
-    () =>
-      filteredSettlements.reduce(
-        (sum: number, settlement: Settlement) =>
-          sum + settlement.totalCommission,
-        0
-      ),
-    [filteredSettlements]
-  );
+  // Note: totalCommission calculated but not used in UI - keeping for potential future use
+  // const totalCommission = useMemo(
+  //   () =>
+  //     filteredSettlements.reduce(
+  //       (sum: number, settlement: Settlement) =>
+  //         sum + settlement.totalCommission,
+  //       0
+  //     ),
+  //   [filteredSettlements]
+  // );
 
   // Handlers
   const handleCreateSettlement = () => {
@@ -236,7 +249,7 @@ const SettlementListNew: React.FC = () => {
       // Ak sú vybrané firmy, vytvor settlement pre každú firmu
       if (selectedCompanies.length > 0) {
         for (const company of selectedCompanies) {
-          const settlementData = {
+          const settlementData: CreateSettlementRequest = {
             period: {
               from: fromDate,
               to: toDate,
@@ -249,15 +262,15 @@ const SettlementListNew: React.FC = () => {
             profit: 0,
           };
 
-          await createSettlement(settlementData as any);
+          await createSettlement(settlementData as unknown as Settlement);
         }
       }
 
       // Ak sú vybrané vozidlá, vytvor settlement pre každé vozidlo
       if (selectedVehicleIds.length > 0) {
         for (const vehicleId of selectedVehicleIds) {
-          const vehicle = vehicles.find((v: any) => v.id === vehicleId);
-          const settlementData = {
+          const vehicle = vehicles.find((v: Vehicle) => v.id === vehicleId);
+          const settlementData: CreateSettlementRequest = {
             period: {
               from: fromDate,
               to: toDate,
@@ -270,7 +283,7 @@ const SettlementListNew: React.FC = () => {
             profit: 0,
           };
 
-          await createSettlement(settlementData as any);
+          await createSettlement(settlementData as unknown as Settlement);
         }
       }
 
@@ -433,7 +446,7 @@ const SettlementListNew: React.FC = () => {
                       label="Vozidlo"
                     >
                       <MenuItem value="">Všetky vozidlá</MenuItem>
-                      {vehicles.map((vehicle: any) => (
+                      {vehicles.map((vehicle: Vehicle) => (
                         <MenuItem key={vehicle.id} value={vehicle.id}>
                           {vehicle.brand} {vehicle.model} -{' '}
                           {vehicle.licensePlate}
@@ -601,7 +614,7 @@ const SettlementListNew: React.FC = () => {
           ) : (
             filteredSettlements.map((settlement: Settlement) => {
               const vehicle = settlement.vehicleId
-                ? vehicles.find((v: any) => v.id === settlement.vehicleId)
+                ? vehicles.find((v: Vehicle) => v.id === settlement.vehicleId)
                 : null;
               const isProfit = settlement.profit >= 0;
 
@@ -903,7 +916,9 @@ const SettlementListNew: React.FC = () => {
               filteredSettlements.map(
                 (settlement: Settlement, index: number) => {
                   const vehicle = settlement.vehicleId
-                    ? vehicles.find((v: any) => v.id === settlement.vehicleId)
+                    ? vehicles.find(
+                        (v: Vehicle) => v.id === settlement.vehicleId
+                      )
                     : null;
                   const isProfit = settlement.profit >= 0;
 
