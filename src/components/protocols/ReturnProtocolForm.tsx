@@ -1,45 +1,42 @@
 import {
-  Save,
-  Close,
-  PhotoCamera,
-  LocationOn,
-  SpeedOutlined,
   Calculate,
-  Person,
+  Cancel,
+  Check,
+  Close,
   DirectionsCar,
   Edit,
-  Check,
-  Cancel,
+  LocationOn,
+  Person,
+  PhotoCamera,
+  Save,
+  SpeedOutlined,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
-  TextField,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  LinearProgress,
-  IconButton,
-  Alert,
+  Chip,
   Divider,
   Grid,
-  Chip,
+  IconButton,
+  LinearProgress,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useAuth } from '../../context/AuthContext';
 import type {
-  ReturnProtocol,
-  Rental,
   HandoverProtocol,
   ProtocolImage,
-  ProtocolVideo,
   ProtocolSignature,
+  ProtocolVideo,
+  Rental,
+  ReturnProtocol,
+  Vehicle,
 } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
@@ -111,12 +108,7 @@ export default function ReturnProtocolForm({
     finalRefund: 0,
   });
 
-  // Prepočítaj poplatky pri zmene
-  useEffect(() => {
-    calculateFees();
-  }, [formData.odometer, formData.fuelLevel, customKmRate]);
-
-  const calculateFees = () => {
+  const calculateFees = useCallback(() => {
     const currentOdometer = formData.odometer || 0;
     const startingOdometer = handoverProtocol?.vehicleCondition?.odometer || 0;
     const allowedKm = rental.allowedKilometers || 0;
@@ -164,7 +156,22 @@ export default function ReturnProtocolForm({
       additionalCharges,
       finalRefund,
     });
-  };
+  }, [
+    formData.odometer,
+    formData.fuelLevel,
+    handoverProtocol?.vehicleCondition?.odometer,
+    handoverProtocol?.vehicleCondition?.fuelLevel,
+    rental.allowedKilometers,
+    rental.extraKilometerRate,
+    rental.deposit,
+    customKmRate,
+    originalKmRate,
+  ]);
+
+  // Prepočítaj poplatky pri zmene
+  useEffect(() => {
+    calculateFees();
+  }, [calculateFees]);
 
   // 🔧 NOVÉ: Funkcie pre editáciu ceny za km
   const handleStartEditKmRate = () => {
@@ -209,7 +216,7 @@ export default function ReturnProtocolForm({
     );
   }
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -324,18 +331,40 @@ export default function ReturnProtocolForm({
         finalRefund: fees.finalRefund,
         rentalData: {
           orderNumber: rental.orderNumber || '',
-          vehicle: rental.vehicle || ({} as any),
+          vehicle:
+            rental.vehicle ||
+            ({
+              id: '',
+              brand: '',
+              model: '',
+              licensePlate: '',
+              pricing: [],
+              commission: { type: 'percentage', value: 0 },
+              status: 'available',
+            } as Vehicle),
           customer: {
             id: rental.customerId || '',
             name: rental.customerName || '',
             email:
-              rental.customer?.email || (rental as any).customerEmail || '',
+              rental.customer?.email ||
+              ((rental as unknown as Record<string, unknown>)
+                .customerEmail as string) ||
+              '',
             phone:
-              rental.customer?.phone || (rental as any).customerPhone || '',
+              rental.customer?.phone ||
+              ((rental as unknown as Record<string, unknown>)
+                .customerPhone as string) ||
+              '',
             createdAt: rental.customer?.createdAt || new Date(),
           },
-          startDate: rental.startDate,
-          endDate: rental.endDate,
+          startDate:
+            typeof rental.startDate === 'string'
+              ? new Date(rental.startDate)
+              : rental.startDate,
+          endDate:
+            typeof rental.endDate === 'string'
+              ? new Date(rental.endDate)
+              : rental.endDate,
           totalPrice: rental.totalPrice,
           deposit: rental.deposit || 0,
           currency: 'EUR',
@@ -397,38 +426,42 @@ export default function ReturnProtocolForm({
             }
           : undefined,
         // Vyčisti main protocol media arrays
-        vehicleImages: (protocol.vehicleImages || []).map((img: any) => ({
-          id: img.id,
-          url: img.url,
-          type: img.type,
-          mediaType: img.mediaType,
-          description: img.description || '',
-          timestamp: img.timestamp,
-        })),
-        vehicleVideos: (protocol.vehicleVideos || []).map((vid: any) => ({
-          id: vid.id,
-          url: vid.url,
-          type: vid.type,
-          mediaType: vid.mediaType,
-          description: vid.description || '',
-          timestamp: vid.timestamp,
-        })),
-        documentImages: (protocol.documentImages || []).map((img: any) => ({
-          id: img.id,
-          url: img.url,
-          type: img.type,
-          mediaType: img.mediaType,
-          description: img.description || '',
-          timestamp: img.timestamp,
-        })),
-        damageImages: (protocol.damageImages || []).map((img: any) => ({
-          id: img.id,
-          url: img.url,
-          type: img.type,
-          mediaType: img.mediaType,
-          description: img.description || '',
-          timestamp: img.timestamp,
-        })),
+        vehicleImages: (protocol.vehicleImages || []).map(
+          (img: ProtocolImage) => ({
+            id: img.id,
+            url: img.url,
+            type: img.type,
+            description: img.description || '',
+            timestamp: img.timestamp,
+          })
+        ),
+        vehicleVideos: (protocol.vehicleVideos || []).map(
+          (vid: ProtocolVideo) => ({
+            id: vid.id,
+            url: vid.url,
+            type: vid.type,
+            description: vid.description || '',
+            timestamp: vid.timestamp,
+          })
+        ),
+        documentImages: (protocol.documentImages || []).map(
+          (img: ProtocolImage) => ({
+            id: img.id,
+            url: img.url,
+            type: img.type,
+            description: img.description || '',
+            timestamp: img.timestamp,
+          })
+        ),
+        damageImages: (protocol.damageImages || []).map(
+          (img: ProtocolImage) => ({
+            id: img.id,
+            url: img.url,
+            type: img.type,
+            description: img.description || '',
+            timestamp: img.timestamp,
+          })
+        ),
       };
 
       console.log('🧹 Cleaned protocol for DB:', cleanedProtocol);
@@ -1001,7 +1034,7 @@ export default function ReturnProtocolForm({
           {/* Existujúce podpisy */}
           {formData.signatures.length > 0 && (
             <Box sx={{ mb: 2 }}>
-              {formData.signatures.map((signature, index) => (
+              {formData.signatures.map(signature => (
                 <Card
                   key={signature.id}
                   variant="outlined"
