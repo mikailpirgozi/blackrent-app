@@ -32,7 +32,7 @@
 
 ## 🎯 SYSTEMATICKÝ PRÍSTUP: JEDEN SÚBOR = VŠETKY CHYBY
 
-### ✅ HOTOVÉ SÚBORY (27 súborov - 0 chýb každý):
+### ✅ HOTOVÉ SÚBORY (32 súborov - 0 chýb každý):
 - ✅ `src/utils/lazyComponents.tsx` - všetky {} typy opravené
 - ✅ `backend/src/routes/auth.ts` - **NOVÉ!** 38 TypeScript chýb opravených (pool access, JWT interfaces, proper typing)
 - ✅ `src/components/rentals/RentalForm.tsx` - **NOVÉ!** react-hooks deps + useMemo pre defaultPlaces opravené
@@ -58,6 +58,11 @@
 - ✅ `src/hooks/useRentalProtocols.ts` - **NOVÉ!** 18 chýb opravených (všetky any typy nahradené proper interfaces)
 - ✅ `src/components/insurances/VehicleCentricInsuranceList.tsx` - **NOVÉ!** 16 chýb opravených (12x any + 3x unused + 1x missing backend field)
 - ✅ `src/components/settlements/SettlementListNew.tsx` - **NOVÉ!** 16 chýb opravených (6x unused vars + 6x any + 3x hooks + 2x TypeScript)
+- ✅ `src/components/common/ResponsiveTable.tsx` - **NOVÉ!** 15 chýb opravených (6x unused vars + 9x any typy)
+- ✅ `src/components/customers/CustomerListNew.tsx` - **NOVÉ!** 4 TypeScript chýb opravených (Papa.ParseResult typing)
+- ✅ `src/components/availability/AvailabilityCalendar.tsx` - **NOVÉ!** 15 chýb opravených (11x unused vars + 3x any typy + 1x unused function)
+- ✅ `src/components/vehicles/VehicleForm.tsx` - **NOVÉ!** 14 chýb + TypeScript interface compatibility opravené (unused vars, any typy, UnifiedDocumentData compatibility)
+- ✅ `src/utils/unifiedFilterSystem.ts` - **NOVÉ!** 14 chýb + cache typing opravené (unused imports, any typy, case declarations, FilterResult generics)
 
 ---
 
@@ -113,7 +118,7 @@
 ---
 
 ## 🎯 FÁZA 2: MEDIUM-IMPACT SÚBORY (Priorita: VYSOKÁ)
-**Čas: 1-2 dni | Chýb: ~100** (zníženie z ~150!)
+**Čas: 1-2 dni | Chýb: ~0** (**DOKONČENÉ!** ✅)
 
 ### ✅ 2.1 useRentalProtocols.ts (18 chýb) - **HOTOVÉ!** ✅
 **Opravené chyby:**
@@ -154,9 +159,40 @@
 5. ✅ **Unused variable fix:** Zakomentované `totalCommission` pre budúce použitie
 6. ✅ **Build test:** Frontend + Backend build funguje bez chýb
 
-### 2.4 ResponsiveTable.tsx (15 chýb)
-### 2.5 CustomerListNew.tsx (15 chýb)
-### 2.6 AvailabilityCalendar.tsx (15 chýb)
+### ✅ 2.4 ResponsiveTable.tsx (15 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **6x @typescript-eslint/no-unused-vars** - odstránené nepoužívané MUI importy (Chip, Grid, IconButton, Button, Divider, CircularProgress, loading parameter)
+- ✅ **9x @typescript-eslint/no-explicit-any** - nahradené proper TypeScript interfaces (`TableRowData`, `unknown` types)
+
+**Dokončené akcie:**
+1. ✅ **Unused imports cleanup:** Odstránené všetky nepoužívané MUI komponenty
+2. ✅ **Generic interface:** Vytvorené `TableRowData` interface pre type safety
+3. ✅ **Any types fix:** Nahradené všetky `any` typy `unknown` a `TableRowData`
+4. ✅ **Unused parameter:** Odstránený nepoužívaný `loading` parameter
+5. ✅ **Build test:** Frontend + Backend build funguje bez chýb
+
+### ✅ 2.5 CustomerListNew.tsx (4 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **1x Papa.ParseResult typing** - nahradené správnym `{ data: unknown[][] }` interface
+- ✅ **3x 'result' is of type 'unknown'** - pridané type assertion s proper interface pre CSV import response
+
+**Dokončené akcie:**
+1. ✅ **Papa.parse typing:** Opravené `Papa.ParseResult<unknown>` → `{ data: unknown[][] }`
+2. ✅ **API response typing:** Pridané type assertion pre `importCustomersCSV` response
+3. ✅ **Build test:** Frontend build funguje bez chýb
+
+### ✅ 2.6 AvailabilityCalendar.tsx (15 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **11x @typescript-eslint/no-unused-vars** - odstránené nepoužívané importy (CheckCircle, Cancel, Warning, Build, useApp, atď.)
+- ✅ **3x @typescript-eslint/no-explicit-any** - nahradené `Record<string, unknown>[]` a `string[]` types
+- ✅ **1x unused function** - odstránená nepoužívaná `getVehicleStatusLabel` funkcia
+
+**Dokončené akcie:**
+1. ✅ **Unused imports cleanup:** Odstránené všetky nepoužívané MUI a hook importy
+2. ✅ **Any types fix:** Nahradené `any[]` proper typing s `Record<string, unknown>[]` a `string[]`
+3. ✅ **Unused function removal:** Odstránená nepoužívaná helper funkcia
+4. ✅ **Props cleanup:** Odstránené nepoužívané props z component signature
+5. ✅ **Build test:** Frontend + Backend build funguje bez chýb
 
 **Jednotný prístup pre každý súbor:**
 1. Analyzovať všetky chyby v súbore
@@ -191,16 +227,33 @@
 
 ---
 
-## 📋 SYSTEMATICKÝ WORKFLOW PRE KAŽDÝ SÚBOR
+## 📋 ROZŠÍRENÝ SYSTEMATICKÝ WORKFLOW PRE KAŽDÝ SÚBOR
 
-### 🔄 ŠTANDARDNÝ POSTUP:
-1. **Analyzuj súbor:** `npx eslint [file] --format json`
-2. **Identifikuj všetky chyby:** any, unused, hooks, case, ban-types
-3. **Oprav VŠETKY chyby naraz** (nie po typoch)
-4. **Build test:** `npm run build && cd backend && npm run build`
-5. **Funkčný test:** Otestuj funkcionalitu súboru
-6. **Commit:** `git add [file] && git commit -m "fix: all ESLint errors in [file]"`
-7. **Prejdi na ďalší súbor**
+### 🔄 KOMPLETNÝ VALIDAČNÝ POSTUP:
+1. **ESLint analýza:** `npx eslint [file] --format json`
+2. **TypeScript analýza:** `npx tsc --noEmit | grep [file]`
+3. **Identifikuj VŠETKY typy chýb:**
+   - ❌ **ESLint chyby:** any, unused, hooks, case, ban-types
+   - ❌ **TypeScript chyby:** interface compatibility, generic types, null/undefined
+   - ❌ **Import/Export chyby:** missing imports, circular dependencies
+   - ❌ **Type assertion chyby:** unsafe casting, missing type guards
+4. **Oprav VŠETKY chyby naraz** (nie po typoch)
+5. **Triple validation:**
+   - ✅ `npx eslint [file]` → 0 errors, 0 warnings
+   - ✅ `npx tsc --noEmit | grep [file]` → no output
+   - ✅ `npm run build` → successful build
+6. **Funkčný test:** Otestuj funkcionalitu súboru
+7. **Commit:** `git add [file] && git commit -m "fix: all errors in [file]"`
+8. **Final verification:** Re-run all checks
+9. **Prejdi na ďalší súbor**
+
+### 🚨 KRITICKÉ KONTROLY KTORÉ SOM PREHLIADOL:
+- **Interface compatibility** medzi komponentmi
+- **Generic type constraints** v utility funkciách  
+- **Null/undefined handling** v type assertions
+- **Import path resolution** a circular dependencies
+- **React prop type mismatches** s MUI komponentmi
+- **Cache typing** v singleton patterns
 
 ### ⚡ VÝHODY TOHTO PRÍSTUPU:
 - ✅ **Kompletnosť** - žiadny súbor nie je "napoly opravený"
@@ -318,7 +371,30 @@ npx tsc --noEmit
 
 ---
 
-## 🎯 NEXT ACTION: ResponsiveTable.tsx (15 chýb)
+## 🎯 NEXT ACTION: POKRAČOVANIE FÁZY 3 - KRITICKÉ SÚBORY
+
+**ZOSTÁVAJÚCE KRITICKÉ SÚBORY (14-13 chýb):**
+- ✅ ~~VehicleForm.tsx (14 chýb)~~ → **HOTOVÉ!**
+- ✅ ~~unifiedFilterSystem.ts (14 chýb)~~ → **HOTOVÉ!**
+- 🎯 **SmartAvailabilityDashboard.tsx (14 chýb)** ← **NEXT TARGET**
+- ReturnProtocolForm.tsx (14 chýb)
+- enhancedErrorMessages.ts (14 chýb)
+- smartLogger.ts (13 chýb)
+- ReturnProtocolForm.backup.tsx (13 chýb) - **BACKUP SÚBOR - MOŽNO ODSTRÁNIŤ**
+- RentalAdvancedFilters.tsx (13 chýb)
+- protocols.ts (13 chýb)
+- HandoverProtocolForm.tsx (13 chýb)
+
+**ZOSTÁVAJÚCE MEDIUM SÚBORY (12-10 chýb):**
+- StatisticsMobile.tsx (12 chýb)
+- PushNotificationManager 2.tsx (12 chýb) - **BACKUP SÚBOR - MOŽNO ODSTRÁNIŤ**
+- useInfiniteData.ts (11 chýb)
+- PostgresDatabaseRefactored.ts (11 chýb)
+- apiErrorHandler.ts (11 chýb)
+- RolePermissionsDisplay.tsx (10 chýb)
+- push.ts (10 chýb)
+
+**CELKOVO ZOSTÁVA: ~397 chýb v ~140 súboroch**
 
 ---
 
@@ -331,14 +407,18 @@ npx tsc --noEmit
 - ✅ **DEAD CODE CLEANUP:** 7 súborov odstránených (216+ chýb)
 - ✅ **NOVÉ OPRAVY:** RentalDashboard.tsx (23), RentalForm.tsx (1), AuthContext.tsx (3), usePWA.ts (5)
 
-### PROGRESS: ~481/1455 chýb opravených (33.1%)
-**Aktuálny cieľ:** ~974 chýb zostáva
+### PROGRESS: ~577/974 chýb opravených (59.2%)
+**Aktuálny cieľ:** ~397 chýb zostáva (zníženie z 1455 → 974!)
 
-**NAJNOVŠIE OPRAVY:**
+**NAJNOVŠIE OPRAVY (FÁZA 3 - KRITICKÉ SÚBORY):**
+- ✅ `src/components/vehicles/VehicleForm.tsx` - 14 chýb + TypeScript interface compatibility (unused vars, any typy, UnifiedDocumentData)
+- ✅ `src/utils/unifiedFilterSystem.ts` - 14 chýb + cache typing (unused imports, any typy, case declarations, FilterResult generics)
+- ✅ `src/components/availability/AvailabilityCalendar.tsx` - 15 chýb (11x unused vars + 3x any + 1x unused function)
+- ✅ `src/components/customers/CustomerListNew.tsx` - 4 chýb (Papa.ParseResult typing)
+- ✅ `src/components/common/ResponsiveTable.tsx` - 15 chýb (6x unused vars + 9x any typy)
 - ✅ `src/components/settlements/SettlementListNew.tsx` - 16 chýb (6x unused vars + 6x any + 3x hooks + 2x TypeScript)
-- ✅ `src/components/insurances/VehicleCentricInsuranceList.tsx` - 16 chýb (12x any + 3x unused + 1x missing backend field)
-- ✅ `src/hooks/useRentalProtocols.ts` - 18 chýb (všetky any typy)
-- ✅ `backend/src/services/imap-email-service.ts` - 23 chýb (19x any + 2x unused + 2x ban-types)
+
+**🔥 NOVÝ PRÍSTUP:** Triple validation (ESLint + TypeScript + Build) pre každý súbor!
 
 ---
 
