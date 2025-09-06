@@ -4,21 +4,17 @@
  * Expandable section pre mobile statistics s smooth animations
  */
 
-import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-} from '@mui/icons-material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  IconButton,
-  Collapse,
-  Paper,
-  useTheme,
-  Badge,
   Chip,
+  Collapse,
+  IconButton,
+  Paper,
+  Typography,
+  useTheme,
 } from '@mui/material';
-import React, { useState, memo } from 'react';
+import React, { memo, useState } from 'react';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -27,7 +23,14 @@ interface CollapsibleSectionProps {
   badge?: number | string;
   defaultExpanded?: boolean;
   children: React.ReactNode;
-  color?: string;
+  color?:
+    | 'primary'
+    | 'success'
+    | 'warning'
+    | 'error'
+    | 'info'
+    | 'secondary'
+    | string;
   compact?: boolean;
   disabled?: boolean;
 }

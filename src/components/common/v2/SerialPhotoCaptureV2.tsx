@@ -57,114 +57,119 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check feature flag
-  useEffect(() => {
-    const checkFeatureFlag = async () => {
-      try {
-        const enabled = await featureManager.isEnabled(
-          'PROTOCOL_V2_ENABLED',
-          userId
-        );
-        setIsV2Enabled(enabled);
-      } catch (error) {
-        console.error('Failed to check V2 feature flag:', error);
-        setIsV2Enabled(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  /**
+   * Helper funkcie pre state updates
+   */
+  const updateQueueItemStatus = useCallback(
+    (
+      id: string,
+      status: QueueItem['status'],
+      progress: number,
+      error?: string
+    ) => {
+      setUploadQueue(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, status, progress, error } : item
+        )
+      );
+    },
+    []
+  );
 
-    checkFeatureFlag();
-  }, [userId]);
-
-  // Polling pre status updates
-  useEffect(() => {
-    if (uploadQueue.length === 0) return;
-
-    const processingPhotos = uploadQueue.filter(
-      item => item.status === 'uploading' || item.status === 'processing'
-    );
-
-    if (processingPhotos.length === 0) return;
-
-    processingIntervalRef.current = setInterval(async () => {
-      for (const item of processingPhotos) {
-        if (item.photoId) {
-          await checkPhotoStatus(item.photoId);
-        }
-      }
-    }, 2000); // Check každé 2 sekundy
-
-    return () => {
-      if (processingIntervalRef.current) {
-        clearInterval(processingIntervalRef.current);
-      }
-    };
-  }, [uploadQueue, checkPhotoStatus]);
+  const updateQueueItem = useCallback(
+    (id: string, updates: Partial<QueueItem>) => {
+      setUploadQueue(prev =>
+        prev.map(item => (item.id === id ? { ...item, ...updates } : item))
+      );
+    },
+    []
+  );
 
   /**
-   * Handling file capture/selection
+   * Check photo status directly
    */
-  const handleCapture = useCallback(
-    async (files: FileList | File[]) => {
-      if (disabled || !isV2Enabled) return;
-
-      const fileArray = Array.from(files);
-
-      // Check limits
-      if (uploadQueue.length + fileArray.length > maxPhotos) {
-        alert(`Maximálny počet fotografií je ${maxPhotos}`);
-        return;
-      }
-
-      // Generovanie previews a queue items
-      const newItems: QueueItem[] = [];
-      const newPreviews: Preview[] = [];
-
-      for (const file of fileArray) {
-        // Validácia súboru
-        if (!file.type.startsWith('image/')) {
-          console.warn(`Skipped non-image file: ${file.name}`);
-          continue;
+  const checkPhotoStatus = useCallback(
+    async (photoId: string) => {
+      try {
+        const response = await fetch(
+          `/api/v2/protocols/photos/${photoId}/status`
+        );
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            const item = uploadQueue.find(q => q.photoId === photoId);
+            if (item) {
+              updateQueueItem(item.id, {
+                status:
+                  result.photo.status === 'completed'
+                    ? 'completed'
+                    : 'processing',
+                progress: result.photo.progress || 0,
+                urls: result.photo.urls,
+              });
+            }
+          }
         }
-
-        if (file.size > 50 * 1024 * 1024) {
-          // 50MB limit
-          alert(`Súbor ${file.name} je príliš veľký (max 50MB)`);
-          continue;
-        }
-
-        // Generovanie preview
-        const preview: Preview = {
-          id: uuid.v4(),
-          url: URL.createObjectURL(file),
-          file,
-          timestamp: new Date(),
-        };
-
-        // Queue item
-        const queueItem: QueueItem = {
-          id: preview.id,
-          file,
-          status: 'pending',
-          progress: 0,
-          retries: 0,
-        };
-
-        newItems.push(queueItem);
-        newPreviews.push(preview);
-      }
-
-      // Update state
-      setUploadQueue(prev => [...prev, ...newItems]);
-      setPreviews(prev => [...prev, ...newPreviews]);
-
-      // Trigger uploads
-      for (const item of newItems) {
-        processQueueItem(item);
+      } catch (error) {
+        console.warn(`Failed to check status for photo ${photoId}:`, error);
       }
     },
-    [disabled, isV2Enabled, uploadQueue.length, maxPhotos, processQueueItem]
+    [uploadQueue, updateQueueItem]
+  );
+
+  /**
+   * Monitoring photo processing status
+   */
+  const monitorPhotoProcessing = useCallback(
+    async (itemId: string, photoId: string) => {
+      try {
+        const response = await fetch(
+          `/api/v2/protocols/photos/${photoId}/status`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Status check failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Status check failed');
+        }
+
+        const photo = result.photo;
+
+        // Update queue item
+        updateQueueItem(itemId, {
+          status: photo.status === 'completed' ? 'completed' : 'processing',
+          progress: photo.progress || 0,
+          urls: photo.urls,
+          error: photo.error,
+          processedAt: photo.processedAt
+            ? new Date(photo.processedAt)
+            : undefined,
+        });
+
+        // Notify completion
+        if (photo.status === 'completed' && onUploadComplete) {
+          onUploadComplete(photoId, photo.urls);
+        }
+
+        // Continue monitoring ak ešte nie je hotové
+        if (photo.status !== 'completed' && photo.status !== 'failed') {
+          setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
+        }
+      } catch (error) {
+        console.error(`Failed to check photo status ${photoId}:`, error);
+        updateQueueItemStatus(
+          itemId,
+          'failed',
+          0,
+          error instanceof Error ? error.message : 'Status check failed'
+        );
+      }
+    },
+    [onUploadComplete, updateQueueItem, updateQueueItemStatus]
   );
 
   /**
@@ -253,117 +258,124 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         }
       }
     },
-    [monitorPhotoProcessing, protocolId, userId]
+    [
+      monitorPhotoProcessing,
+      protocolId,
+      userId,
+      updateQueueItem,
+      updateQueueItemStatus,
+    ]
   );
 
   /**
-   * Monitoring photo processing status
+   * Handling file capture/selection
    */
-  const monitorPhotoProcessing = useCallback(
-    async (itemId: string, photoId: string) => {
-      try {
-        const response = await fetch(
-          `/api/v2/protocols/photos/${photoId}/status`
-        );
+  const handleCapture = useCallback(
+    async (files: FileList | File[]) => {
+      if (disabled || !isV2Enabled) return;
 
-        if (!response.ok) {
-          throw new Error(`Status check failed: ${response.status}`);
+      const fileArray = Array.from(files);
+
+      // Check limits
+      if (uploadQueue.length + fileArray.length > maxPhotos) {
+        alert(`Maximálny počet fotografií je ${maxPhotos}`);
+        return;
+      }
+
+      // Generovanie previews a queue items
+      const newItems: QueueItem[] = [];
+      const newPreviews: Preview[] = [];
+
+      for (const file of fileArray) {
+        // Validácia súboru
+        if (!file.type.startsWith('image/')) {
+          console.warn(`Skipped non-image file: ${file.name}`);
+          continue;
         }
 
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Status check failed');
+        if (file.size > 50 * 1024 * 1024) {
+          // 50MB limit
+          alert(`Súbor ${file.name} je príliš veľký (max 50MB)`);
+          continue;
         }
 
-        const photo = result.photo;
+        // Generovanie preview
+        const preview: Preview = {
+          id: uuid.v4(),
+          url: URL.createObjectURL(file),
+          file,
+          timestamp: new Date(),
+        };
 
-        // Update queue item
-        updateQueueItem(itemId, {
-          status: photo.status === 'completed' ? 'completed' : 'processing',
-          progress: photo.progress || 0,
-          urls: photo.urls,
-          error: photo.error,
-          processedAt: photo.processedAt
-            ? new Date(photo.processedAt)
-            : undefined,
-        });
+        // Queue item
+        const queueItem: QueueItem = {
+          id: preview.id,
+          file,
+          status: 'pending',
+          progress: 0,
+          retries: 0,
+        };
 
-        // Notify completion
-        if (photo.status === 'completed' && onUploadComplete) {
-          onUploadComplete(photoId, photo.urls);
-        }
+        newItems.push(queueItem);
+        newPreviews.push(preview);
+      }
 
-        // Continue monitoring ak ešte nie je hotové
-        if (photo.status !== 'completed' && photo.status !== 'failed') {
-          setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
-        }
-      } catch (error) {
-        console.error(`Failed to check photo status ${photoId}:`, error);
-        updateQueueItemStatus(
-          itemId,
-          'failed',
-          0,
-          error instanceof Error ? error.message : 'Status check failed'
-        );
+      // Update state
+      setUploadQueue(prev => [...prev, ...newItems]);
+      setPreviews(prev => [...prev, ...newPreviews]);
+
+      // Trigger uploads
+      for (const item of newItems) {
+        processQueueItem(item);
       }
     },
-    [onUploadComplete]
+    [disabled, isV2Enabled, uploadQueue.length, maxPhotos, processQueueItem]
   );
 
-  /**
-   * Check photo status directly
-   */
-  const checkPhotoStatus = useCallback(
-    async (photoId: string) => {
+  // Check feature flag
+  useEffect(() => {
+    const checkFeatureFlag = async () => {
       try {
-        const response = await fetch(
-          `/api/v2/protocols/photos/${photoId}/status`
+        const enabled = await featureManager.isEnabled(
+          'PROTOCOL_V2_ENABLED',
+          userId
         );
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            const item = uploadQueue.find(q => q.photoId === photoId);
-            if (item) {
-              updateQueueItem(item.id, {
-                status:
-                  result.photo.status === 'completed'
-                    ? 'completed'
-                    : 'processing',
-                progress: result.photo.progress || 0,
-                urls: result.photo.urls,
-              });
-            }
-          }
-        }
+        setIsV2Enabled(enabled);
       } catch (error) {
-        console.warn(`Failed to check status for photo ${photoId}:`, error);
+        console.error('Failed to check V2 feature flag:', error);
+        setIsV2Enabled(false);
+      } finally {
+        setIsLoading(false);
       }
-    },
-    [uploadQueue]
-  );
+    };
 
-  /**
-   * Helper funkcie pre state updates
-   */
-  const updateQueueItemStatus = (
-    id: string,
-    status: QueueItem['status'],
-    progress: number,
-    error?: string
-  ) => {
-    setUploadQueue(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, status, progress, error } : item
-      )
-    );
-  };
+    checkFeatureFlag();
+  }, [userId]);
 
-  const updateQueueItem = (id: string, updates: Partial<QueueItem>) => {
-    setUploadQueue(prev =>
-      prev.map(item => (item.id === id ? { ...item, ...updates } : item))
+  // Polling pre status updates
+  useEffect(() => {
+    if (uploadQueue.length === 0) return;
+
+    const processingPhotos = uploadQueue.filter(
+      item => item.status === 'uploading' || item.status === 'processing'
     );
-  };
+
+    if (processingPhotos.length === 0) return;
+
+    processingIntervalRef.current = setInterval(async () => {
+      for (const item of processingPhotos) {
+        if (item.photoId) {
+          await checkPhotoStatus(item.photoId);
+        }
+      }
+    }, 2000); // Check každé 2 sekundy
+
+    return () => {
+      if (processingIntervalRef.current) {
+        clearInterval(processingIntervalRef.current);
+      }
+    };
+  }, [uploadQueue, checkPhotoStatus]);
 
   /**
    * File input handling

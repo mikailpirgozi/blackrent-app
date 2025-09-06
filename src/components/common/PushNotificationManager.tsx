@@ -2,51 +2,41 @@
 // Complete UI for managing push notifications
 
 import {
+  Error as ErrorIcon,
   NotificationsActive,
   NotificationsOff,
+  VolumeOff as QuietIcon,
   Settings as SettingsIcon,
   Science as TestIcon,
-  Analytics as AnalyticsIcon,
-  Schedule as ScheduleIcon,
-  VolumeOff as QuietIcon,
-  CheckCircle as SuccessIcon,
-  Error as ErrorIcon,
   Warning as WarningIcon,
-  Info as InfoIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Switch,
-  FormControlLabel,
-  Button,
-  Alert,
   Chip,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControlLabel,
   FormGroup,
-  useTheme,
-  alpha,
   Skeleton,
+  Switch,
+  TextField,
+  Typography,
+  alpha,
+  useTheme,
 } from '@mui/material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   pushNotificationService,
-  type PushNotificationPreferences,
   type NotificationPayload,
+  type PushNotificationPreferences,
 } from '../../services/pushNotifications';
 
 interface PushNotificationManagerProps {
@@ -87,7 +77,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
 
     try {
       // Initialize service
-      const initialized = await pushNotificationService.initialize();
+      await pushNotificationService.initialize();
 
       // Get status
       const status = await pushNotificationService.getSubscriptionStatus();

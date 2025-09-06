@@ -337,7 +337,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                 );
 
                 return {
-                  vehicleId: vehicle.id,
+                  vehicleId: parseInt(vehicle.id),
                   status: vehicleRental ? 'rented' : 'available',
                   customer_name: vehicleRental?.customerName,
                   rental_id: vehicleRental?.id,
@@ -383,7 +383,13 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
           return {
             date,
-            status: vehicleStatus.status || 'available',
+            status:
+              (vehicleStatus.status as
+                | 'available'
+                | 'rented'
+                | 'maintenance'
+                | 'service'
+                | 'blocked') || 'available',
             reason:
               vehicleStatus.unavailabilityReason ||
               (vehicleStatus.status === 'rented' ? 'Prenájom' : undefined),
@@ -407,7 +413,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           category: vehicle.category || 'other',
           company: vehicle.company || '',
           location:
-            ((vehicle as Record<string, unknown>).location as string) || '',
+            ((vehicle as unknown as Record<string, unknown>)
+              .location as string) || '',
           dailyStatus,
           availableDays,
           totalDays,

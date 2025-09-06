@@ -4,29 +4,29 @@
  * Mobile-optimized chart wrapper s responsive design
  */
 
-import { Box, useTheme, useMediaQuery, Typography } from '@mui/material';
+import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import React, { memo } from 'react';
 import {
-  ResponsiveContainer,
-  BarChart,
+  Area,
+  AreaChart,
   Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  AreaChart,
-  Area,
 } from 'recharts';
 
 interface ResponsiveChartProps {
   type: 'bar' | 'line' | 'pie' | 'area';
-  data: any[];
+  data: Array<Record<string, unknown>>;
   title?: string;
   height?: number;
   showLegend?: boolean;
@@ -56,7 +56,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1'],
   dataKey = 'value',
   xAxisKey = 'name',
-  yAxisKey = 'value',
+  // yAxisKey = 'value', // unused
   nameKey = 'name',
   valueKey = 'value',
   series = [],
@@ -69,7 +69,15 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   const chartHeight = isMobile ? Math.min(height, 250) : height;
 
   // Custom tooltip for better mobile experience
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: unknown[];
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <Box
@@ -85,7 +93,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
           <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
             {label}
           </Typography>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: Record<string, unknown>, index: number) => (
             <Typography
               key={index}
               variant="caption"
@@ -109,7 +117,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   };
 
   // Mobile-optimized legend
-  const renderLegend = (props: any) => {
+  const renderLegend = (props: { payload?: unknown[] }) => {
     if (!showLegend) return null;
 
     const { payload } = props;
@@ -125,7 +133,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
           mt: 1,
         }}
       >
-        {payload.map((entry: any, index: number) => (
+        {payload?.map((entry: Record<string, unknown>, index: number) => (
           <Box
             key={index}
             sx={{
@@ -183,7 +191,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
             {showLegend && <Legend content={renderLegend} />}
 
             {series.length > 0 ? (
-              series.map((s, index) => (
+              series.map(s => (
                 <Bar
                   key={s.key}
                   dataKey={s.key}
@@ -219,7 +227,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
             {showLegend && <Legend content={renderLegend} />}
 
             {series.length > 0 ? (
-              series.map((s, index) => (
+              series.map(s => (
                 <Line
                   key={s.key}
                   type="monotone"
@@ -259,7 +267,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
             {showLegend && <Legend content={renderLegend} />}
 
             {series.length > 0 ? (
-              series.map((s, index) => (
+              series.map(s => (
                 <Area
                   key={s.key}
                   type="monotone"

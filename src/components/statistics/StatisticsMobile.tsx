@@ -5,38 +5,46 @@
  */
 
 import {
-  Assessment as StatsIcon,
-  Euro as EuroIcon,
+  Business as BusinessIcon,
+  CalendarToday as CalendarIcon,
   DirectionsCar as CarIcon,
+  Euro as EuroIcon,
+  Percent as PercentIcon,
   Person as PersonIcon,
   Receipt as ReceiptIcon,
-  Business as BusinessIcon,
-  TrendingUp as TrendIcon,
-  CalendarToday as CalendarIcon,
   Refresh as RefreshIcon,
-  Percent as PercentIcon,
+  Assessment as StatsIcon,
+  TrendingUp as TrendIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Stack,
-  useTheme,
-  Typography,
   Alert,
+  Box,
+  Button,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  Typography,
+  useTheme,
 } from '@mui/material';
-import React, { useState, memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 
 import CollapsibleSection from './CollapsibleSection';
 import ResponsiveChart from './ResponsiveChart';
 import StatisticsCard from './StatisticsCard';
 
+interface ChartDataItem extends Record<string, unknown> {
+  name: string;
+  revenue: number;
+  rentals?: number;
+  commission?: number;
+  utilization?: number;
+}
+
 interface StatisticsMobileProps {
-  stats: any; // Statistics data from parent component
+  stats: Record<string, unknown>; // Statistics data from parent component
   timeRange: 'month' | 'year' | 'all';
   onTimeRangeChange: (range: 'month' | 'year' | 'all') => void;
   filterYear: number;
@@ -61,40 +69,48 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
   const theme = useTheme();
 
   // State pre expanded sections
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+  const [expandedSections] = useState<Set<string>>(
     new Set(['overview']) // Overview je default expanded
   );
 
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
-    }
-    setExpandedSections(newExpanded);
-  };
+  // const toggleSection = (sectionId: string) => {
+  //   const newExpanded = new Set(expandedSections);
+  //   if (newExpanded.has(sectionId)) {
+  //     newExpanded.delete(sectionId);
+  //   } else {
+  //     newExpanded.add(sectionId);
+  //   }
+  //   setExpandedSections(newExpanded);
+  // };
 
   // Prepare chart data
-  const chartData = useMemo(() => {
+  const chartData = useMemo((): {
+    monthly: ChartDataItem[];
+    vehicleStats: ChartDataItem[];
+    topCustomers: ChartDataItem[];
+  } => {
     if (!stats) return { monthly: [], vehicleStats: [], topCustomers: [] };
 
     // Monthly revenue data - podporuj monthlyStats (mobil starý) alebo monthlyData (desktop nový)
-    const monthlyData =
+    const monthlyData: ChartDataItem[] =
       stats.monthlyStats && Array.isArray(stats.monthlyStats)
-        ? stats.monthlyStats.map((month: any, index: number) => ({
-            name: `${index + 1}/${filterYear}`,
-            revenue: month.totalRevenue || 0,
-            rentals: month.totalRentals || 0,
-            commission: month.totalCommission || 0,
-          }))
+        ? (stats.monthlyStats as Record<string, unknown>[]).map(
+            (month: Record<string, unknown>, index: number): ChartDataItem => ({
+              name: `${index + 1}/${filterYear}`,
+              revenue: Number(month.totalRevenue || 0),
+              rentals: Number(month.totalRentals || 0),
+              commission: Number(month.totalCommission || 0),
+            })
+          )
         : stats.monthlyData && Array.isArray(stats.monthlyData)
-          ? stats.monthlyData.map((m: any) => ({
-              name: m.month,
-              revenue: m.revenue || 0,
-              rentals: m.rentals || 0,
-              commission: m.commission || 0,
-            }))
+          ? (stats.monthlyData as Record<string, unknown>[]).map(
+              (m: Record<string, unknown>): ChartDataItem => ({
+                name: String(m.month),
+                revenue: Number(m.revenue || 0),
+                rentals: Number(m.rentals || 0),
+                commission: Number(m.commission || 0),
+              })
+            )
           : [];
 
     // Vehicle statistics - podporuj topVehiclesByRevenue alebo vehiclesByRevenue (desktop nový)
@@ -105,15 +121,25 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           ? stats.vehiclesByRevenue
           : [];
 
-    const vehicleData = vehiclesSource.slice(0, 5).map((v: any) => ({
-      name:
-        v.name ||
-        (v.vehicle
-          ? `${v.vehicle.brand} ${v.vehicle.model}`
-          : `${v.brand ?? ''} ${v.model ?? ''}`.trim()),
-      revenue: v.totalRevenue || v.revenue || 0,
-      utilization: v.utilizationRate || v.utilizationPercentage || 0,
-    }));
+    const vehicleData: ChartDataItem[] = (
+      vehiclesSource as Record<string, unknown>[]
+    )
+      .slice(0, 5)
+      .map(
+        (v: Record<string, unknown>): ChartDataItem => ({
+          name: String(
+            v.name ||
+              ((v.vehicle as Record<string, unknown>)
+                ? `${(v.vehicle as Record<string, unknown>).brand || ''} ${(v.vehicle as Record<string, unknown>).model || ''}`
+                : `${v.brand ?? ''} ${v.model ?? ''}`.trim()) ||
+              'Neznáme vozidlo'
+          ),
+          revenue: Number(v.totalRevenue || v.revenue || 0),
+          utilization: Number(
+            v.utilizationRate || v.utilizationPercentage || 0
+          ),
+        })
+      );
 
     // Top customers - podporuj topCustomersByRevenue alebo customersByRevenue (desktop nový)
     const customersSource =
@@ -123,11 +149,17 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           ? stats.customersByRevenue
           : [];
 
-    const customerData = customersSource.slice(0, 5).map((c: any) => ({
-      name: c.customerName || c.customer?.name || 'Neznámy zákazník',
-      revenue: c.totalRevenue || c.revenue || 0,
-      rentals: c.totalRentals || c.rentalCount || 0,
-    }));
+    const customerData: ChartDataItem[] = customersSource.slice(0, 5).map(
+      (c: Record<string, unknown>): ChartDataItem => ({
+        name: String(
+          c.customerName ||
+            (c.customer as Record<string, unknown>)?.name ||
+            'Neznámy zákazník'
+        ),
+        revenue: Number(c.totalRevenue || c.revenue || 0),
+        rentals: Number(c.totalRentals || c.rentalCount || 0),
+      })
+    );
 
     return {
       monthly: monthlyData,
@@ -144,14 +176,20 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
         : [];
     const totalRentals = rentals.length || stats?.totalRentals || 0;
     const activeVehicleIds = new Set<string>();
-    rentals.forEach((r: any) => {
-      if (r.vehicleId) activeVehicleIds.add(r.vehicleId);
-      else if (r.vehicle?.id) activeVehicleIds.add(r.vehicle.id);
+    rentals.forEach((r: Record<string, unknown>) => {
+      if (r.vehicleId) activeVehicleIds.add(r.vehicleId as string);
+      else if ((r.vehicle as Record<string, unknown>)?.id)
+        activeVehicleIds.add(
+          (r.vehicle as Record<string, unknown>).id as string
+        );
     });
     const activeVehicles = activeVehicleIds.size;
     const customerKeys = new Set<string>();
-    rentals.forEach((r: any) => {
-      const key = r.customerId || r.customerName || r.customer?.id;
+    rentals.forEach((r: Record<string, unknown>) => {
+      const key =
+        r.customerId ||
+        r.customerName ||
+        (r.customer as Record<string, unknown>)?.id;
       if (key) customerKeys.add(String(key));
     });
     const totalCustomers = customerKeys.size;
@@ -206,7 +244,9 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
             <Select
               value={timeRange}
               label="Časové obdobie"
-              onChange={e => onTimeRangeChange(e.target.value as any)}
+              onChange={e =>
+                onTimeRangeChange(e.target.value as 'month' | 'year' | 'all')
+              }
             >
               <MenuItem value="month">Mesiac</MenuItem>
               <MenuItem value="year">Rok</MenuItem>
@@ -284,11 +324,13 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               icon={<EuroIcon />}
               color="success"
               trend={
-                stats.revenueTrend && {
-                  value: stats.revenueTrend,
-                  period: 'vs minulý mesiac',
-                  isPositive: stats.revenueTrend > 0,
-                }
+                stats.revenueTrend && typeof stats.revenueTrend === 'number'
+                  ? {
+                      value: stats.revenueTrend as number,
+                      period: 'vs minulý mesiac',
+                      isPositive: (stats.revenueTrend as number) > 0,
+                    }
+                  : undefined
               }
               compact
             />
@@ -311,11 +353,13 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               icon={<ReceiptIcon />}
               color="primary"
               trend={
-                stats.rentalsTrend && {
-                  value: stats.rentalsTrend,
-                  period: 'vs minulý mesiac',
-                  isPositive: stats.rentalsTrend > 0,
-                }
+                stats.rentalsTrend && typeof stats.rentalsTrend === 'number'
+                  ? {
+                      value: stats.rentalsTrend as number,
+                      period: 'vs minulý mesiac',
+                      isPositive: (stats.rentalsTrend as number) > 0,
+                    }
+                  : undefined
               }
               compact
             />
@@ -390,19 +434,29 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           title="Najlepšie vozidlá"
           icon={<CarIcon />}
           color="primary"
-          defaultExpanded={expandedSections.has('vehicles')}
+          defaultExpanded={false}
           badge={chartData.vehicleStats.length}
           compact
         >
-          <ResponsiveChart
-            type="bar"
-            data={chartData.vehicleStats}
-            height={200}
-            xAxisKey="name"
-            dataKey="revenue"
-            showGrid={false}
-            colors={[theme.palette.primary.main]}
-          />
+          {chartData.vehicleStats.length > 0 ? (
+            <ResponsiveChart
+              type="bar"
+              data={chartData.vehicleStats}
+              height={200}
+              xAxisKey="name"
+              dataKey="revenue"
+              showGrid={false}
+              colors={[theme.palette.primary.main]}
+            />
+          ) : (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ p: 2, textAlign: 'center' }}
+            >
+              Žiadne dáta o vozidlách
+            </Typography>
+          )}
         </CollapsibleSection>
       </Box>
 
@@ -434,7 +488,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           ? stats.companiesStats
           : stats?.companyStats && typeof stats.companyStats === 'object'
             ? Object.entries(stats.companyStats).map(
-                ([companyName, data]: any) => ({
+                ([companyName, data]: [string, Record<string, unknown>]) => ({
                   companyName,
                   totalRevenue: data.revenue || 0,
                   totalRentals: data.count || 0,
@@ -454,10 +508,12 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               <Grid container spacing={2}>
                 {companiesArray
                   .slice(0, 3)
-                  .map((company: any, index: number) => (
+                  .map((company: Record<string, unknown>, index: number) => (
                     <Grid item xs={12} key={index}>
                       <StatisticsCard
-                        title={company.companyName || 'Nezadaná firma'}
+                        title={
+                          (company.companyName as string) || 'Nezadaná firma'
+                        }
                         value={`€${(company.totalRevenue || 0).toLocaleString()}`}
                         subtitle={`${company.totalRentals || 0} prenájmov`}
                         icon={<BusinessIcon />}
@@ -492,55 +548,86 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
       )}
 
       {/* Employee Performance */}
-      {stats.employeeStats && stats.employeeStats.activeEmployees > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <CollapsibleSection
-            title="Výkon zamestnancov"
-            icon={<PersonIcon />}
-            color="success"
-            defaultExpanded={false}
-            badge={stats.employeeStats.activeEmployees}
-            compact
-          >
-            <Grid container spacing={2}>
-              {stats.employeeStats.topEmployeesByProtocols
-                .slice(0, 3)
-                .map((employee: any, index: number) => (
-                  <Grid item xs={12} key={index}>
-                    <StatisticsCard
-                      title={employee.employeeName}
-                      value={`${employee.totalProtocols} protokolov`}
-                      subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
-                      icon={<PersonIcon />}
-                      color={
-                        index === 0
-                          ? 'success'
-                          : index === 1
-                            ? 'warning'
-                            : 'info'
-                      }
-                      compact
-                    />
-                  </Grid>
-                ))}
-            </Grid>
-
-            {/* Summary stats */}
-            <Box
-              sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}
+      {stats.employeeStats &&
+        (stats.employeeStats as Record<string, unknown>).activeEmployees &&
+        typeof (stats.employeeStats as Record<string, unknown>)
+          .activeEmployees === 'number' &&
+        ((stats.employeeStats as Record<string, unknown>)
+          .activeEmployees as number) > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <CollapsibleSection
+              title="Výkon zamestnancov"
+              icon={<PersonIcon />}
+              color="success"
+              defaultExpanded={false}
+              badge={
+                (stats.employeeStats as Record<string, unknown>)
+                  .activeEmployees as number
+              }
+              compact
             >
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                📊 Celkové štatistiky protokolov
-              </Typography>
-              <Typography variant="caption" sx={{ display: 'block' }}>
-                {stats.employeeStats.totalProtocols} protokolov •{' '}
-                {stats.employeeStats.totalHandovers} odovzdaní •{' '}
-                {stats.employeeStats.totalReturns} prebraní
-              </Typography>
-            </Box>
-          </CollapsibleSection>
-        </Box>
-      )}
+              <Grid container spacing={2}>
+                {(
+                  (stats.employeeStats as Record<string, unknown>)
+                    .topEmployeesByProtocols as Record<string, unknown>[]
+                )
+                  .slice(0, 3)
+                  .map((employee: Record<string, unknown>, index: number) => (
+                    <Grid item xs={12} key={index}>
+                      <StatisticsCard
+                        title={
+                          (employee.employeeName as string) ||
+                          'Neznámy zamestnanec'
+                        }
+                        value={`${employee.totalProtocols} protokolov`}
+                        subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
+                        icon={<PersonIcon />}
+                        color={
+                          index === 0
+                            ? 'success'
+                            : index === 1
+                              ? 'warning'
+                              : 'info'
+                        }
+                        compact
+                      />
+                    </Grid>
+                  ))}
+              </Grid>
+
+              {/* Summary stats */}
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 2,
+                  bgcolor: 'background.paper',
+                  borderRadius: 2,
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                  📊 Celkové štatistiky protokolov
+                </Typography>
+                <Typography variant="caption" sx={{ display: 'block' }}>
+                  {String(
+                    (stats.employeeStats as Record<string, unknown>)
+                      .totalProtocols || 0
+                  )}{' '}
+                  protokolov •{' '}
+                  {String(
+                    (stats.employeeStats as Record<string, unknown>)
+                      .totalHandovers || 0
+                  )}{' '}
+                  odovzdaní •{' '}
+                  {String(
+                    (stats.employeeStats as Record<string, unknown>)
+                      .totalReturns || 0
+                  )}{' '}
+                  prebraní
+                </Typography>
+              </Box>
+            </CollapsibleSection>
+          </Box>
+        )}
 
       {/* Performance Summary */}
       <Box sx={{ mt: 2, mb: 3 }}>
@@ -554,10 +641,12 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               : timeRange === 'year'
                 ? `Rok ${filterYear}`
                 : 'Celkové obdobie'}
-            : {derivedTotals.totalRentals || 0} prenájmov • €
-            {stats.totalRevenuePeriod?.toLocaleString() || 0} príjem • €
-            {stats.totalCommissionPeriod?.toLocaleString() || 0} provízie • €
-            {stats.blackHoldingExpenses?.toLocaleString() || 0} náklady BH
+            : {String(derivedTotals.totalRentals || 0)} prenájmov • €
+            {String(stats.totalRevenuePeriod?.toLocaleString() || 0)} príjem • €
+            {String(stats.totalCommissionPeriod?.toLocaleString() || 0)}{' '}
+            provízie • €
+            {String(stats.blackHoldingExpenses?.toLocaleString() || 0)} náklady
+            BH
           </Typography>
         </Alert>
       </Box>

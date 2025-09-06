@@ -5,14 +5,73 @@
  */
 
 import type { Pool } from 'pg';
-import { DatabaseConnection } from './base/DatabaseConnection';
-import { VehicleRepository } from '../repositories/VehicleRepository';
-import { RentalRepository } from '../repositories/RentalRepository';
-import { CustomerRepository } from '../repositories/CustomerRepository';
-import { UserRepository } from '../repositories/UserRepository';
 import { CompanyRepository } from '../repositories/CompanyRepository';
-import type { Vehicle, Rental, Customer, User, UserPermission, UserCompanyAccess, CompanyPermissions, Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare } from '../types';
+import { CustomerRepository } from '../repositories/CustomerRepository';
+import { RentalRepository } from '../repositories/RentalRepository';
+import { UserRepository } from '../repositories/UserRepository';
+import { VehicleRepository } from '../repositories/VehicleRepository';
+import type { Commission, Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, Insurance, Rental, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehiclePricing } from '../types';
 import { logger } from '../utils/logger';
+import { DatabaseConnection } from './base/DatabaseConnection';
+
+// Pagination interfaces
+interface PaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+interface VehiclePaginationParams extends PaginationParams {
+  status?: string;
+  company?: string;
+  category?: string;
+}
+
+interface RentalPaginationParams extends PaginationParams {
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+// Create data interfaces
+interface CreateVehicleData {
+  brand: string;
+  model: string;
+  licensePlate: string;
+  vin?: string;
+  company: string;
+  pricing: VehiclePricing[];
+  commission: Commission;
+  status: string;
+  year?: number;
+}
+
+interface CreateRentalData {
+  vehicleId?: string;
+  customerId?: string;
+  customerName: string;
+  startDate: Date;
+  endDate: Date;
+  totalPrice: number;
+  commission: number;
+  paymentMethod: string;
+  discount?: {
+    type: 'percentage' | 'fixed';
+    value: number;
+    reason?: string;
+  };
+  customCommission?: {
+    type: 'percentage' | 'fixed';
+    value: number;
+    reason?: string;
+  };
+}
+
+interface CreateCustomerData {
+  name: string;
+  email: string;
+  phone: string;
+}
 
 export class PostgresDatabaseRefactored {
   private pool: Pool;
@@ -54,7 +113,7 @@ export class PostgresDatabaseRefactored {
     return this.vehicleRepository.getVehicle(id);
   }
 
-  async createVehicle(vehicleData: any): Promise<Vehicle> {
+  async createVehicle(vehicleData: CreateVehicleData): Promise<Vehicle> {
     return this.vehicleRepository.createVehicle(vehicleData);
   }
 
@@ -66,7 +125,7 @@ export class PostgresDatabaseRefactored {
     return this.vehicleRepository.deleteVehicle(id);
   }
 
-  async getVehiclesPaginated(params: any) {
+  async getVehiclesPaginated(params: VehiclePaginationParams) {
     return this.vehicleRepository.getVehiclesPaginated(params);
   }
 
@@ -82,7 +141,7 @@ export class PostgresDatabaseRefactored {
     return this.rentalRepository.getRentalsForDateRange(startDate, endDate);
   }
 
-  async getRentalsPaginated(params: any) {
+  async getRentalsPaginated(params: RentalPaginationParams) {
     return this.rentalRepository.getRentalsPaginated(params);
   }
 
@@ -90,7 +149,7 @@ export class PostgresDatabaseRefactored {
     return this.rentalRepository.getRental(id);
   }
 
-  async createRental(rentalData: any): Promise<Rental> {
+  async createRental(rentalData: CreateRentalData): Promise<Rental> {
     return this.rentalRepository.createRental(rentalData);
   }
 
@@ -110,11 +169,11 @@ export class PostgresDatabaseRefactored {
     return this.customerRepository.getCustomers();
   }
 
-  async getCustomersPaginated(params: any) {
+  async getCustomersPaginated(params: PaginationParams) {
     return this.customerRepository.getCustomersPaginated(params);
   }
 
-  async createCustomer(customerData: any): Promise<Customer> {
+  async createCustomer(customerData: CreateCustomerData): Promise<Customer> {
     return this.customerRepository.createCustomer(customerData);
   }
 
@@ -309,7 +368,7 @@ export class PostgresDatabaseRefactored {
     return this.companyRepository.getCompanyInvestorShares(companyId);
   }
 
-  async getInvestorsWithShares(): Promise<any[]> {
+  async getInvestorsWithShares(): Promise<Array<CompanyInvestor & { shares: CompanyInvestorShare[] }>> {
     return this.companyRepository.getInvestorsWithShares();
   }
 
@@ -373,22 +432,22 @@ export class PostgresDatabaseRefactored {
   // ============================================================================
 
   // TODO: Implementovať InsuranceRepository
-  async getInsurances(): Promise<any[]> {
+  async getInsurances(): Promise<Insurance[]> {
     throw new Error('InsuranceRepository not implemented yet - use original database');
   }
 
   // TODO: Implementovať ExpenseRepository  
-  async getExpenses(): Promise<any[]> {
+  async getExpenses(): Promise<Expense[]> {
     throw new Error('ExpenseRepository not implemented yet - use original database');
   }
 
   // TODO: Implementovať ProtocolRepository
-  async getHandoverProtocolsByRental(): Promise<any[]> {
+  async getHandoverProtocolsByRental(): Promise<unknown[]> {
     throw new Error('ProtocolRepository not implemented yet - use original database');
   }
 
   // TODO: Implementovať SettlementRepository
-  async getSettlements(): Promise<any[]> {
+  async getSettlements(): Promise<Settlement[]> {
     throw new Error('SettlementRepository not implemented yet - use original database');
   }
 

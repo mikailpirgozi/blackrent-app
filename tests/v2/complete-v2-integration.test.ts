@@ -3,6 +3,8 @@
  * Testuje všetky komponenty implementované v FÁZE 2
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { FeatureManager } from '../../src/config/featureFlags';
 
@@ -112,9 +114,9 @@ describe('Protocol V2 Integration Tests', () => {
     it('should cache feature flag results', () => {
       // V test mode sa používa sync verzia ktorá necachuje výsledky
       // ale testujeme že hashUserId funkcia funguje správne
-      const hash1 = (featureManager as any).hashUserId('user1');
-      const hash2 = (featureManager as any).hashUserId('user1');
-      const hash3 = (featureManager as any).hashUserId('user2');
+      const hash1 = (featureManager as unknown as { hashUserId: (id: string) => string }).hashUserId('user1');
+      const hash2 = (featureManager as unknown as { hashUserId: (id: string) => string }).hashUserId('user1');
+      const hash3 = (featureManager as unknown as { hashUserId: (id: string) => string }).hashUserId('user2');
       
       // Same user should produce same hash
       expect(hash1).toBe(hash2);
@@ -221,7 +223,6 @@ describe('Protocol V2 Integration Tests', () => {
       
       // Test že processor správne validuje vstup
       expect(() => {
-        // @ts-expect-error - testujeme nesprávny vstup
         processor.generateDerivatives(null);
       }).toBeDefined();
       
@@ -507,8 +508,8 @@ describe('Protocol V2 Integration Tests', () => {
       
       try {
         await mockRedis.connect();
-      } catch (error: any) {
-        expect(error.message).toBe('Connection failed');
+      } catch (error: unknown) {
+        expect((error as Error).message).toBe('Connection failed');
       }
     });
     
@@ -539,7 +540,7 @@ describe('Protocol V2 Integration Tests', () => {
     });
     
     it('should validate data before processing', () => {
-      const validateProtocolData = (data: any) => {
+      const validateProtocolData = (data: Record<string, unknown>) => {
         if (!data.id) throw new Error('ID is required');
         if (!data.type) throw new Error('Type is required');
         return true;

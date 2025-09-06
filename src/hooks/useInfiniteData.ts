@@ -8,17 +8,22 @@
  * - Works with all data types
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import type { Customer, Rental, Vehicle } from '../types';
 import { debounce } from '../utils/debounce';
 
 interface UseInfiniteDataOptions<T> {
   data: T[];
   pageSize?: number;
   searchQuery?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   sortFn?: (a: T, b: T) => number;
-  filterFn?: (item: T, query: string, filters: Record<string, any>) => boolean;
+  filterFn?: (
+    item: T,
+    query: string,
+    filters: Record<string, unknown>
+  ) => boolean;
 }
 
 interface UseInfiniteDataReturn<T> {
@@ -124,71 +129,82 @@ export function useInfiniteData<T>({
 
 // 🎯 Specialized hooks for different data types
 export const useInfiniteRentals = (
-  options: Omit<UseInfiniteDataOptions<any>, 'filterFn'>
+  options: Omit<UseInfiniteDataOptions<Rental>, 'filterFn'>
 ) => {
-  const filterFn = useCallback((rental: any, query: string, filters: any) => {
-    const searchMatch =
-      !query ||
-      rental.customerName?.toLowerCase().includes(query.toLowerCase()) ||
-      rental.vehicle?.brand?.toLowerCase().includes(query.toLowerCase()) ||
-      rental.vehicle?.model?.toLowerCase().includes(query.toLowerCase()) ||
-      rental.vehicle?.licensePlate?.toLowerCase().includes(query.toLowerCase());
+  const filterFn = useCallback(
+    (rental: Rental, query: string, filters: Record<string, unknown>) => {
+      const searchMatch =
+        !query ||
+        rental.customerName?.toLowerCase().includes(query.toLowerCase()) ||
+        rental.vehicle?.brand?.toLowerCase().includes(query.toLowerCase()) ||
+        rental.vehicle?.model?.toLowerCase().includes(query.toLowerCase()) ||
+        rental.vehicle?.licensePlate
+          ?.toLowerCase()
+          .includes(query.toLowerCase());
 
-    const statusMatch =
-      !filters.status ||
-      filters.status === 'all' ||
-      rental.status === filters.status;
+      const statusMatch =
+        !filters.status ||
+        filters.status === 'all' ||
+        rental.status === filters.status;
 
-    return searchMatch && statusMatch;
-  }, []);
+      return !!(searchMatch && statusMatch);
+    },
+    []
+  );
 
   return useInfiniteData({ ...options, filterFn });
 };
 
 export const useInfiniteVehicles = (
-  options: Omit<UseInfiniteDataOptions<any>, 'filterFn'>
+  options: Omit<UseInfiniteDataOptions<Vehicle>, 'filterFn'>
 ) => {
-  const filterFn = useCallback((vehicle: any, query: string, filters: any) => {
-    const searchMatch =
-      !query ||
-      vehicle.brand?.toLowerCase().includes(query.toLowerCase()) ||
-      vehicle.model?.toLowerCase().includes(query.toLowerCase()) ||
-      vehicle.licensePlate?.toLowerCase().includes(query.toLowerCase()) ||
-      vehicle.company?.toLowerCase().includes(query.toLowerCase());
+  const filterFn = useCallback(
+    (vehicle: Vehicle, query: string, filters: Record<string, unknown>) => {
+      const searchMatch =
+        !query ||
+        vehicle.brand?.toLowerCase().includes(query.toLowerCase()) ||
+        vehicle.model?.toLowerCase().includes(query.toLowerCase()) ||
+        vehicle.licensePlate?.toLowerCase().includes(query.toLowerCase()) ||
+        vehicle.company?.toLowerCase().includes(query.toLowerCase());
 
-    const brandMatch =
-      !filters.brand ||
-      filters.brand === 'all' ||
-      vehicle.brand === filters.brand;
+      const brandMatch =
+        !filters.brand ||
+        filters.brand === 'all' ||
+        vehicle.brand === filters.brand;
 
-    const statusMatch =
-      !filters.status ||
-      filters.status === 'all' ||
-      vehicle.status === filters.status;
+      const statusMatch =
+        !filters.status ||
+        filters.status === 'all' ||
+        vehicle.status === filters.status;
 
-    return searchMatch && brandMatch && statusMatch;
-  }, []);
+      return !!(searchMatch && brandMatch && statusMatch);
+    },
+    []
+  );
 
   return useInfiniteData({ ...options, filterFn });
 };
 
 export const useInfiniteCustomers = (
-  options: Omit<UseInfiniteDataOptions<any>, 'filterFn'>
+  options: Omit<UseInfiniteDataOptions<Customer>, 'filterFn'>
 ) => {
-  const filterFn = useCallback((customer: any, query: string, filters: any) => {
-    const searchMatch =
-      !query ||
-      customer.name?.toLowerCase().includes(query.toLowerCase()) ||
-      customer.email?.toLowerCase().includes(query.toLowerCase()) ||
-      customer.phone?.toLowerCase().includes(query.toLowerCase());
+  const filterFn = useCallback(
+    (customer: Customer, query: string, filters: Record<string, unknown>) => {
+      const searchMatch =
+        !query ||
+        customer.name?.toLowerCase().includes(query.toLowerCase()) ||
+        customer.email?.toLowerCase().includes(query.toLowerCase()) ||
+        customer.phone?.toLowerCase().includes(query.toLowerCase());
 
-    const emailMatch =
-      filters.showWithEmail === undefined ||
-      (filters.showWithEmail && customer.email) ||
-      (filters.showWithoutEmail && !customer.email);
+      const emailMatch =
+        filters.showWithEmail === undefined ||
+        (filters.showWithEmail && !!customer.email) ||
+        (!filters.showWithEmail && !customer.email);
 
-    return searchMatch && emailMatch;
-  }, []);
+      return !!(searchMatch && emailMatch);
+    },
+    []
+  );
 
   return useInfiniteData({ ...options, filterFn });
 };

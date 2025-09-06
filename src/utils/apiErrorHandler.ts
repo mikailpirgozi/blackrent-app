@@ -3,18 +3,34 @@
 
 import { createError, ERROR_MESSAGES } from '../types/errors';
 
+// Error interfaces
+interface ApiError {
+  name?: string;
+  code?: string;
+  status?: number;
+  message?: string;
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+}
+
+interface ErrorContext {
+  [key: string]: unknown;
+}
+
 interface RetryConfig {
   maxRetries: number;
   baseDelay: number; // Base delay in ms
   exponentialBackoff: boolean;
-  retryCondition?: (error: any, attempt: number) => boolean;
+  retryCondition?: (error: ApiError) => boolean;
 }
 
 interface ApiErrorHandlerConfig {
-  showUserError: (error: any) => string;
-  logError?: (error: any, context?: Record<string, any>) => void;
+  showUserError: (error: ApiError) => string;
+  logError?: (error: ApiError, context?: ErrorContext) => void;
   onRetryAttempt?: (attempt: number, maxRetries: number) => void;
-  onRetryFailed?: (error: any, attempts: number) => void;
+  onRetryFailed?: (error: ApiError, attempts: number) => void;
 }
 
 // Default retry configuration
@@ -22,15 +38,15 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
   baseDelay: 1000,
   exponentialBackoff: true,
-  retryCondition: (error, attempt) => {
+  retryCondition: (error: ApiError) => {
     // Retry on network errors, 5xx errors, and timeouts
     if (error.name === 'NetworkError') return true;
     if (error.code === 'NETWORK_ERROR') return true;
-    if (error.status >= 500) return true;
+    if (error.status && error.status >= 500) return true;
     if (error.code === 'TIMEOUT') return true;
 
     // Don't retry on client errors (4xx) except 408 (timeout), 429 (rate limit)
-    if (error.status >= 400 && error.status < 500) {
+    if (error.status && error.status >= 400 && error.status < 500) {
       return error.status === 408 || error.status === 429;
     }
 
@@ -55,7 +71,9 @@ const calculateDelay = (attempt: number, config: RetryConfig): number => {
 };
 
 // Parse and categorize API errors
-export const parseApiError = (error: any) => {
+export const parseApiError = (error: unknown) => {
+  const apiError = error as ApiError;
+
   // Network errors
   if (!navigator.onLine) {
     return createError(
@@ -67,19 +85,19 @@ export const parseApiError = (error: any) => {
     );
   }
 
-  if (error.name === 'NetworkError' || error.code === 'NETWORK_ERROR') {
+  if (apiError.name === 'NetworkError' || apiError.code === 'NETWORK_ERROR') {
     return createError(
       ERROR_MESSAGES.NETWORK_TIMEOUT,
       'network',
       'error',
-      error.message,
+      apiError.message,
       { networkError: true, originalError: error }
     );
   }
 
   // HTTP errors
-  if (error.status) {
-    const status = error.status;
+  if (apiError.status) {
+    const status = apiError.status;
 
     if (status === 401) {
       return createError(
@@ -87,7 +105,10 @@ export const parseApiError = (error: any) => {
         'authorization',
         'warning',
         'Authentication required',
-        { status, endpoint: error.config?.url }
+        {
+          status,
+          endpoint: (apiError as { config?: { url?: string } }).config?.url,
+        }
       );
     }
 
@@ -97,7 +118,10 @@ export const parseApiError = (error: any) => {
         'authorization',
         'warning',
         'Insufficient permissions',
-        { status, endpoint: error.config?.url }
+        {
+          status,
+          endpoint: (apiError as { config?: { url?: string } }).config?.url,
+        }
       );
     }
 
@@ -107,7 +131,10 @@ export const parseApiError = (error: any) => {
         'client',
         'warning',
         'Resource not found',
-        { status, endpoint: error.config?.url }
+        {
+          status,
+          endpoint: (apiError as { config?: { url?: string } }).config?.url,
+        }
       );
     }
 
@@ -119,8 +146,9 @@ export const parseApiError = (error: any) => {
         'Validation failed',
         {
           status,
-          endpoint: error.config?.url,
-          validationErrors: error.data?.errors,
+          endpoint: (apiError as { config?: { url?: string } }).config?.url,
+          validationErrors: (apiError as { data?: { errors?: unknown } }).data
+            ?.errors,
         }
       );
     }
@@ -131,7 +159,10 @@ export const parseApiError = (error: any) => {
         'client',
         'warning',
         'Rate limit exceeded',
-        { status, endpoint: error.config?.url }
+        {
+          status,
+          endpoint: (apiError as { config?: { url?: string } }).config?.url,
+        }
       );
     }
 
@@ -141,13 +172,16 @@ export const parseApiError = (error: any) => {
         'server',
         'error',
         `Server returned ${status}`,
-        { status, endpoint: error.config?.url }
+        {
+          status,
+          endpoint: (apiError as { config?: { url?: string } }).config?.url,
+        }
       );
     }
   }
 
   // Timeout errors
-  if (error.code === 'TIMEOUT' || error.message?.includes('timeout')) {
+  if (apiError.code === 'TIMEOUT' || apiError.message?.includes('timeout')) {
     return createError(
       ERROR_MESSAGES.NETWORK_TIMEOUT,
       'network',
@@ -162,8 +196,8 @@ export const parseApiError = (error: any) => {
     ERROR_MESSAGES.UNKNOWN_ERROR,
     'unknown',
     'error',
-    error.message || 'Unknown error occurred',
-    { originalError: error }
+    apiError.message || 'Unknown error occurred',
+    { originalError: apiError }
   );
 };
 
@@ -174,7 +208,7 @@ export const withRetry = async <T>(
   errorHandler: ApiErrorHandlerConfig
 ): Promise<T> => {
   const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= retryConfig.maxRetries + 1; attempt++) {
     try {
@@ -188,7 +222,7 @@ export const withRetry = async <T>(
       }
 
       // Check if we should retry this error
-      if (!retryConfig.retryCondition?.(error, attempt)) {
+      if (!retryConfig.retryCondition?.(error as ApiError)) {
         break;
       }
 
@@ -208,7 +242,7 @@ export const withRetry = async <T>(
   const errorId = errorHandler.showUserError(parsedError);
 
   if (errorHandler.logError) {
-    errorHandler.logError(lastError, {
+    errorHandler.logError(lastError as ApiError, {
       attempts: retryConfig.maxRetries + 1,
       errorId,
       parsed: parsedError,
@@ -216,7 +250,10 @@ export const withRetry = async <T>(
   }
 
   if (errorHandler.onRetryFailed) {
-    errorHandler.onRetryFailed(lastError, retryConfig.maxRetries + 1);
+    errorHandler.onRetryFailed(
+      lastError as ApiError,
+      retryConfig.maxRetries + 1
+    );
   }
 
   throw lastError;
@@ -265,8 +302,8 @@ export const handleApiResponse = async <T>(
 
 // Pre-configured error handler factory
 export const createApiErrorHandler = (
-  showUserError: (error: any) => string,
-  logError?: (error: any, context?: Record<string, any>) => void
+  showUserError: (error: ApiError) => string,
+  logError?: (error: ApiError, context?: ErrorContext) => void
 ): ApiErrorHandlerConfig => ({
   showUserError,
   logError,

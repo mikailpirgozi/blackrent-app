@@ -119,7 +119,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // Minimal cleanup to prevent memory leaks
         logger.debug('🔴 MOBILE DEBUG: HandoverProtocolForm UNMOUNTING');
       };
-    }, []);
+    }, [rental?.id]);
 
     // Log open state changes only in development
     React.useEffect(() => {
@@ -248,7 +248,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
     // }, [hasRecoveredData, recoveryState.recoveredData, restoreFormData, clearRecoveryData]);
 
     // 🚀 OPTIMALIZÁCIA: Memoized input change handler
-    const handleInputChange = useCallback((field: string, value: any) => {
+    const handleInputChange = useCallback((field: string, value: unknown) => {
       setFormData(prev => ({ ...prev, [field]: value }));
     }, []);
 
@@ -321,7 +321,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
     // 🚀 OPTIMALIZÁCIA: Quick Save - najprv uloží protokol, PDF na pozadí
     const performSave = useCallback(async (): Promise<{
-      protocol: any;
+      protocol: HandoverProtocol | null;
       email?: { sent: boolean; recipient?: string; error?: string };
     }> => {
       // logMobile('INFO', 'HandoverProtocol', 'Save operation started', {
@@ -415,19 +415,31 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           signatures: formData.signatures,
           rentalData: {
             orderNumber: rental.orderNumber || '',
-            vehicle: rental.vehicle || ({} as any),
+            vehicle: rental.vehicle || ({} as Vehicle),
             vehicleVin: rental.vehicleVin || rental.vehicle?.vin || undefined, // 🆔 VIN číslo
             customer: {
               id: rental.customerId || '',
               name: rental.customerName || '',
               email:
-                rental.customer?.email || (rental as any).customerEmail || '',
+                rental.customer?.email ||
+                ((rental as unknown as Record<string, unknown>)
+                  .customerEmail as string) ||
+                '',
               phone:
-                rental.customer?.phone || (rental as any).customerPhone || '',
+                rental.customer?.phone ||
+                ((rental as unknown as Record<string, unknown>)
+                  .customerPhone as string) ||
+                '',
               createdAt: rental.customer?.createdAt || new Date(),
             },
-            startDate: rental.startDate,
-            endDate: rental.endDate,
+            startDate:
+              typeof rental.startDate === 'string'
+                ? new Date(rental.startDate)
+                : rental.startDate,
+            endDate:
+              typeof rental.endDate === 'string'
+                ? new Date(rental.endDate)
+                : rental.endDate,
             totalPrice: rental.totalPrice,
             deposit: rental.deposit || 0,
             currency: 'EUR',
@@ -467,38 +479,50 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               }
             : undefined,
           // Vyčisti main protocol media arrays
-          vehicleImages: (protocol.vehicleImages || []).map((img: any) => ({
-            id: img.id,
-            url: img.url,
-            type: img.type,
-            mediaType: img.mediaType,
-            description: img.description || '',
-            timestamp: img.timestamp,
-          })),
-          vehicleVideos: (protocol.vehicleVideos || []).map((vid: any) => ({
-            id: vid.id,
-            url: vid.url,
-            type: vid.type,
-            mediaType: vid.mediaType,
-            description: vid.description || '',
-            timestamp: vid.timestamp,
-          })),
-          documentImages: (protocol.documentImages || []).map((img: any) => ({
-            id: img.id,
-            url: img.url,
-            type: img.type,
-            mediaType: img.mediaType,
-            description: img.description || '',
-            timestamp: img.timestamp,
-          })),
-          damageImages: (protocol.damageImages || []).map((img: any) => ({
-            id: img.id,
-            url: img.url,
-            type: img.type,
-            mediaType: img.mediaType,
-            description: img.description || '',
-            timestamp: img.timestamp,
-          })),
+          vehicleImages: (protocol.vehicleImages || []).map(
+            (img: ProtocolImage) => ({
+              id: img.id,
+              url: img.url,
+              type: img.type,
+              mediaType:
+                (img as unknown as { mediaType?: string }).mediaType || 'image',
+              description: img.description || '',
+              timestamp: img.timestamp,
+            })
+          ),
+          vehicleVideos: (protocol.vehicleVideos || []).map(
+            (vid: ProtocolVideo) => ({
+              id: vid.id,
+              url: vid.url,
+              type: vid.type,
+              mediaType:
+                (vid as unknown as { mediaType?: string }).mediaType || 'video',
+              description: vid.description || '',
+              timestamp: vid.timestamp,
+            })
+          ),
+          documentImages: (protocol.documentImages || []).map(
+            (img: ProtocolImage) => ({
+              id: img.id,
+              url: img.url,
+              type: img.type,
+              mediaType:
+                (img as unknown as { mediaType?: string }).mediaType || 'image',
+              description: img.description || '',
+              timestamp: img.timestamp,
+            })
+          ),
+          damageImages: (protocol.damageImages || []).map(
+            (img: ProtocolImage) => ({
+              id: img.id,
+              url: img.url,
+              type: img.type,
+              mediaType:
+                (img as unknown as { mediaType?: string }).mediaType || 'image',
+              description: img.description || '',
+              timestamp: img.timestamp,
+            })
+          ),
         };
 
         logger.debug('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
@@ -661,7 +685,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       } finally {
         setLoading(false);
       }
-    }, [formData, rental, currentVehicle, onSave, onClose]);
+    }, [formData, rental, currentVehicle, onSave, state.user]);
 
     const handleSave = useCallback(async () => {
       try {
@@ -710,7 +734,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         });
         console.error('❌ Protocol save failed in handleSave:', error);
       }
-    }, [performSave, onSave, onClose]);
+    }, [performSave, onClose]);
 
     // 🔧 MOBILE PROTECTION: Immediate rendering - no lazy loading delays
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
@@ -744,7 +768,15 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         // Kontrola memory
         if ('memory' in performance) {
-          const memInfo = (performance as any).memory;
+          const memInfo = (
+            performance as {
+              memory: {
+                usedJSHeapSize: number;
+                totalJSHeapSize: number;
+                jsHeapSizeLimit: number;
+              };
+            }
+          ).memory;
           logger.debug('💾 Memory usage:', {
             used: Math.round(memInfo.usedJSHeapSize / 1024 / 1024) + 'MB',
             total: Math.round(memInfo.totalJSHeapSize / 1024 / 1024) + 'MB',

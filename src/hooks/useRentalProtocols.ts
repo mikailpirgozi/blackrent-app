@@ -224,7 +224,7 @@ export const useRentalProtocols = ({
 
         // ✅ NAJNOVŠÍ PROTOKOL: Zoradiť podľa createdAt a vziať najnovší
         const latestHandover =
-          apiData?.handoverProtocols?.length > 0
+          apiData?.handoverProtocols && apiData.handoverProtocols.length > 0
             ? apiData.handoverProtocols.sort(
                 (a: ProtocolData, b: ProtocolData) =>
                   new Date(b.createdAt || b.completedAt || 0).getTime() -
@@ -233,7 +233,7 @@ export const useRentalProtocols = ({
             : undefined;
 
         const latestReturn =
-          apiData?.returnProtocols?.length > 0
+          apiData?.returnProtocols && apiData.returnProtocols.length > 0
             ? apiData.returnProtocols.sort(
                 (a: ProtocolData, b: ProtocolData) =>
                   new Date(b.createdAt || b.completedAt || 0).getTime() -
