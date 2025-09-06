@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
 import express from 'express';
-import multer from 'multer';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 import { authenticateToken } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
@@ -19,7 +18,7 @@ const isValidUUID = (uuid: string): boolean => {
 };
 
 // 🗂️ Helper: Generate meaningful PDF filename with R2 organization
-const generatePDFPath = (protocolData: any, protocolId: string, protocolType: 'handover' | 'return'): string => {
+const generatePDFPath = (protocolData: HandoverProtocol | ReturnProtocol, protocolId: string, protocolType: 'handover' | 'return'): string => {
   try {
     const { rentalData } = protocolData;
     
@@ -80,11 +79,11 @@ const generatePDFPath = (protocolData: any, protocolId: string, protocolType: 'h
   }
 };
 
-// Multer config for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-});
+// Multer config for file uploads (currently unused but kept for future use)
+// const upload = multer({
+//   storage: multer.memoryStorage(),
+//   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+// });
 
 // Get all protocols for a rental
 router.get('/rental/:rentalId', async (req, res) => {
@@ -176,7 +175,7 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
     console.log('📄 PDF proxy request for protocol:', protocolId);
     
     // Pokús sa najskôr nájsť handover protokol
-    let protocol: any = await postgresDatabase.getHandoverProtocolById(protocolId);
+    let protocol: HandoverProtocol | ReturnProtocol | null = await postgresDatabase.getHandoverProtocolById(protocolId);
     let protocolType = 'handover';
     
     // Ak nie je handover, skús return
@@ -199,9 +198,9 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
       try {
         let generatedPdfBuffer: Buffer;
         if (protocolType === 'handover') {
-          generatedPdfBuffer = await generateHandoverPDF(protocol as any);
+          generatedPdfBuffer = await generateHandoverPDF(protocol as HandoverProtocol);
         } else {
-          generatedPdfBuffer = await generateReturnPDF(protocol as any);
+          generatedPdfBuffer = await generateReturnPDF(protocol as ReturnProtocol);
         }
         
         pdfBuffer = generatedPdfBuffer.buffer.slice(
@@ -218,7 +217,7 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
       console.log('📄 Fetching PDF from R2:', protocol.pdfUrl);
       
       // Fetch PDF z R2
-      const pdfResponse = await fetch((protocol as any).pdfUrl);
+      const pdfResponse = await fetch(protocol.pdfUrl!);
       
       if (!pdfResponse.ok) {
         console.error('❌ Failed to fetch PDF from R2:', pdfResponse.status);
@@ -266,7 +265,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
     
     // 1. Uloženie protokolu do databázy
     const originalRentalData = protocolData.rentalData;
-    const protocol = await postgresDatabase.createHandoverProtocol(protocolData as any);
+    const protocol = await postgresDatabase.createHandoverProtocol(protocolData as unknown as Parameters<typeof postgresDatabase.createHandoverProtocol>[0]);
     console.log('✅ Handover protocol created in DB:', protocol.id);
     
     let pdfUrl: string | null = null;
@@ -341,7 +340,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
               await postgresDatabase.updateHandoverProtocol(protocol.id, { 
                 emailSent: true,
                 pdfUrl: pdfUrl
-              } as any);
+              });
               
               emailResult = {
                 sent: true,
@@ -365,7 +364,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
     const websocketService = getWebSocketService();
     if (websocketService && protocolData.rentalId) {
       try {
-        const userName = (req as any).user?.username || 'Neznámy užívateľ';
+        const userName = (req as { user?: { username?: string } }).user?.username || 'Neznámy užívateľ';
         websocketService.broadcastProtocolCreated(
           protocolData.rentalId, 
           'handover', 
@@ -447,7 +446,7 @@ router.post('/return', authenticateToken, async (req, res) => {
           }
           
           // Aktualizuj prenájom s doplatkom za km a novou províziou
-          const updatedRental: any = {
+          const updatedRental = {
             ...currentRental,
             extraKmCharge: protocolData.kilometerFee,
             totalPrice: newTotalPrice,
@@ -455,7 +454,7 @@ router.post('/return', authenticateToken, async (req, res) => {
             status: 'finished'
           };
           
-          await postgresDatabase.updateRental(updatedRental);
+          await postgresDatabase.updateRental(updatedRental as unknown as Parameters<typeof postgresDatabase.updateRental>[0]);
           console.log('✅ Rental updated with extra km charge and recalculated commission:', {
             rentalId: updatedRental.id,
             extraKmCharge: protocolData.kilometerFee,
@@ -522,7 +521,7 @@ router.post('/return', authenticateToken, async (req, res) => {
     const websocketService = getWebSocketService();
     if (websocketService && protocolData.rentalId) {
       try {
-        const userName = (req as any).user?.username || 'Neznámy užívateľ';
+        const userName = (req as { user?: { username?: string } }).user?.username || 'Neznámy užívateľ';
         websocketService.broadcastProtocolCreated(
           protocolData.rentalId, 
           'return', 
@@ -690,13 +689,13 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
       createdBy: 'admin'
     };
     
-    const pdfBuffer = await generateHandoverPDF(testProtocolData as any);
+    const pdfBuffer = await generateHandoverPDF(testProtocolData as unknown as HandoverProtocol);
     console.log('✅ TEST: PDF generated, size:', (pdfBuffer.length / 1024).toFixed(1), 'KB');
     
     const emailSent = await emailService.sendTestProtocolEmail(
       testCustomer,
       pdfBuffer,
-      testProtocolData as any
+      testProtocolData as unknown as HandoverProtocol
     );
     
     if (emailSent) {
