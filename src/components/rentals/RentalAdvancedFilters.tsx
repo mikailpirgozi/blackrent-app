@@ -1,38 +1,31 @@
 import {
+  CalendarToday as CalendarIcon,
+  DirectionsCar as CarIcon,
+  Clear as ClearIcon,
+  Euro as EuroIcon,
   ExpandMore as ExpandMoreIcon,
   FilterList as FilterListIcon,
-  CalendarToday as CalendarIcon,
-  Euro as EuroIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  DirectionsCar as CarIcon,
   Payment as PaymentIcon,
+  Person as PersonIcon,
   Assignment as ProtocolIcon,
-  Clear as ClearIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
-  Typography,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Button,
   Chip,
   Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  FormControlLabel,
-  Checkbox,
-  FormGroup,
-  useMediaQuery,
-  useTheme,
+  FormControl,
+  Grid,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
@@ -99,41 +92,39 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   availableVehicleBrands = [],
   availableInsuranceCompanies = [],
   availableInsuranceTypes = [],
-  searchQuery = '',
-  onSearchChange = () => {},
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const handleFilterChange = (key: keyof FilterState, value: any) => {
+  const handleFilterChange = (key: keyof FilterState, value: unknown) => {
     onFiltersChange({
       ...filters,
       [key]: value,
     });
   };
 
-  const handleQuickFilter = (type: string, value: string) => {
+  const handleQuickFilter = (type: string) => {
     switch (type) {
-      case 'today':
+      case 'today': {
         const today = new Date().toISOString().split('T')[0];
         handleFilterChange('timeFilter', 'today');
         handleFilterChange('dateFrom', today);
         handleFilterChange('dateTo', today);
         break;
-      case 'week':
+      }
+      case 'week': {
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         handleFilterChange('timeFilter', 'week');
         handleFilterChange('dateFrom', weekAgo.toISOString().split('T')[0]);
         handleFilterChange('dateTo', new Date().toISOString().split('T')[0]);
         break;
-      case 'month':
+      }
+      case 'month': {
         const monthAgo = new Date();
         monthAgo.setMonth(monthAgo.getMonth() - 1);
         handleFilterChange('timeFilter', 'month');
         handleFilterChange('dateFrom', monthAgo.toISOString().split('T')[0]);
         handleFilterChange('dateTo', new Date().toISOString().split('T')[0]);
         break;
+      }
       case 'active':
         handleFilterChange('showOnlyActive', true);
         handleFilterChange('showOnlyOverdue', false);
@@ -228,42 +219,42 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
         >
           <Chip
             label="Dnes"
-            onClick={() => handleQuickFilter('today', 'today')}
+            onClick={() => handleQuickFilter('today')}
             color={filters.timeFilter === 'today' ? 'primary' : 'default'}
             variant={filters.timeFilter === 'today' ? 'filled' : 'outlined'}
             size="small"
           />
           <Chip
             label="Posledný týždeň"
-            onClick={() => handleQuickFilter('week', 'week')}
+            onClick={() => handleQuickFilter('week')}
             color={filters.timeFilter === 'week' ? 'primary' : 'default'}
             variant={filters.timeFilter === 'week' ? 'filled' : 'outlined'}
             size="small"
           />
           <Chip
             label="Posledný mesiac"
-            onClick={() => handleQuickFilter('month', 'month')}
+            onClick={() => handleQuickFilter('month')}
             color={filters.timeFilter === 'month' ? 'primary' : 'default'}
             variant={filters.timeFilter === 'month' ? 'filled' : 'outlined'}
             size="small"
           />
           <Chip
             label="Aktívne"
-            onClick={() => handleQuickFilter('active', 'active')}
+            onClick={() => handleQuickFilter('active')}
             color={filters.showOnlyActive ? 'success' : 'default'}
             variant={filters.showOnlyActive ? 'filled' : 'outlined'}
             size="small"
           />
           <Chip
             label="Po termíne"
-            onClick={() => handleQuickFilter('overdue', 'overdue')}
+            onClick={() => handleQuickFilter('overdue')}
             color={filters.showOnlyOverdue ? 'error' : 'default'}
             variant={filters.showOnlyOverdue ? 'filled' : 'outlined'}
             size="small"
           />
           <Chip
             label="Dokončené"
-            onClick={() => handleQuickFilter('completed', 'completed')}
+            onClick={() => handleQuickFilter('completed')}
             color={filters.showOnlyCompleted ? 'default' : 'default'}
             variant={filters.showOnlyCompleted ? 'filled' : 'outlined'}
             size="small"
