@@ -172,6 +172,34 @@ class ApiService {
     sessionStorage.removeItem('blackrent_user');
   }
 
+  // Generická GET metóda
+  async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint);
+  }
+
+  // Generická POST metóda
+  async post<T>(endpoint: string, data?: Record<string, unknown>): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  // Generická PUT metóda
+  async put<T>(endpoint: string, data?: Record<string, unknown>): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  // Generická DELETE metóda
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+    });
+  }
+
   // Vozidlá
   async getVehicles(): Promise<Vehicle[]> {
     return this.request<Vehicle[]>('/vehicles');
