@@ -26,7 +26,7 @@ export const usePendingRentals = () => {
       console.log('✅ Loaded pending rentals:', rentals?.length || 0);
       setPendingRentals(rentals || []);
       return rentals || [];
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('❌ Error fetching pending rentals:', err);
       setError('Nepodarilo sa načítať čakajúce prenájmy');
       setPendingRentals([]);
@@ -45,7 +45,7 @@ export const usePendingRentals = () => {
         setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
         setSuccess('Prenájom bol úspešne schválený');
         return true;
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('Error approving rental:', err);
         setError('Nepodarilo sa schváliť prenájom');
         return false;
@@ -65,7 +65,7 @@ export const usePendingRentals = () => {
         setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
         setSuccess('Prenájom bol zamietnutý');
         return true;
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('Error rejecting rental:', err);
         setError('Nepodarilo sa zamietnuť prenájom');
         return false;

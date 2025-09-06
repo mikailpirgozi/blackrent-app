@@ -34,20 +34,20 @@ export const filterDefined = <T>(items: (T | undefined)[]): T[] => {
 /**
  * Type-safe unique brands extractor
  */
-export const extractUniqueBrands = (vehicles: any[]): string[] => {
+export const extractUniqueBrands = (vehicles: unknown[]): string[] => {
   return createUniqueStringArray(vehicles, v => v.brand);
 };
 
 /**
  * Type-safe unique models extractor
  */
-export const extractUniqueModels = (vehicles: any[]): string[] => {
+export const extractUniqueModels = (vehicles: unknown[]): string[] => {
   return createUniqueStringArray(vehicles, v => v.model);
 };
 
 /**
  * Type-safe unique companies extractor
  */
-export const extractUniqueCompanies = (vehicles: any[]): string[] => {
+export const extractUniqueCompanies = (vehicles: unknown[]): string[] => {
   return createUniqueStringArray(vehicles, v => v.company);
 };

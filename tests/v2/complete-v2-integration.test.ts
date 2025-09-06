@@ -221,7 +221,7 @@ describe('Protocol V2 Integration Tests', () => {
       
       // Test že processor správne validuje vstup
       expect(() => {
-        // @ts-ignore - testujeme nesprávny vstup
+        // @ts-expect-error - testujeme nesprávny vstup
         processor.generateDerivatives(null);
       }).toBeDefined();
       
@@ -364,7 +364,7 @@ describe('Protocol V2 Integration Tests', () => {
   
   describe('🎯 7. API ENDPOINTS', () => {
     // Mock API tests
-    const mockApiCall = async (endpoint: string, method = 'GET', body?: any) => {
+    const mockApiCall = async (endpoint: string, _method = 'GET', _body?: unknown) => {
       return {
         status: 200,
         data: { success: true }
@@ -411,7 +411,7 @@ describe('Protocol V2 Integration Tests', () => {
       const startTime = Date.now();
       
       // Simulate concurrent processing
-      const promises = Array.from({ length: 10 }, (_, i) => 
+      const promises = Array.from({ length: 10 }, () => 
         new Promise(resolve => setTimeout(resolve, 10))
       );
       

@@ -260,7 +260,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
 
       onSuccess();
       handleClose();
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('Error creating unavailability:', err);
 
       // Handle specific error codes
@@ -305,7 +305,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
       );
       onSuccess();
       handleClose();
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('Error deleting unavailability:', err);
       setError(err.response?.data?.error || 'Chyba pri rušení nedostupnosti');
     } finally {

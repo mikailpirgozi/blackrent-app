@@ -98,7 +98,7 @@ export function useInfiniteCompanies(
         logger.info(
           `✅ Loaded ${newCompanies.length} companies (${result.pagination.totalItems} total)`
         );
-      } catch (err: any) {
+      } catch (error: unknown) {
         const errorMessage = err.message || 'Chyba pri načítavaní firiem';
         setError(errorMessage);
         logger.error('❌ Failed to load companies', err);

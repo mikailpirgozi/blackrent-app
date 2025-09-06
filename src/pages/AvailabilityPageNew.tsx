@@ -1,45 +1,42 @@
 import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
   Clear as ClearIcon,
-  Today as TodayIcon,
+  FilterList as FilterListIcon,
   Refresh as RefreshIcon,
+  Search as SearchIcon,
+  Today as TodayIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
+  Button,
   Card,
   CardContent,
-  TextField,
-  IconButton,
-  Button,
+  Checkbox,
+  Chip,
   Collapse,
   Divider,
-  Grid,
   FormControl,
+  Grid,
+  IconButton,
   InputLabel,
-  Select,
+  ListItemText,
   MenuItem,
+  Select,
+  TextField,
+  Typography,
   useMediaQuery,
   useTheme,
-  Chip,
-  Checkbox,
-  ListItemText,
 } from '@mui/material';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 
 import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 import { useApp } from '../context/AppContext';
 import type { VehicleCategory } from '../types';
-import { Vehicle } from '../types';
 // 🔄 PHASE 4: Migrated to unified cache system
 import { unifiedCache } from '../utils/unifiedCacheSystem';
 
 const AvailabilityPageNew: React.FC = () => {
-  const { state, getFilteredVehicles } = useApp();
+  const { getFilteredVehicles } = useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
@@ -82,8 +79,10 @@ const AvailabilityPageNew: React.FC = () => {
   ];
 
   // Handle category selection
-  const handleCategoryChange = (event: any) => {
-    const value = event.target.value as VehicleCategory[];
+  const handleCategoryChange = (event: {
+    target: { value: VehicleCategory[] };
+  }) => {
+    const value = event.target.value;
     setSelectedCategories(value);
   };
 

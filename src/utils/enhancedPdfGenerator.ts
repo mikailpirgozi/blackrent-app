@@ -11,8 +11,8 @@ export interface ProtocolData {
   vehicleImages: ProcessedImage[];
   documentImages: ProcessedImage[];
   damageImages: ProcessedImage[];
-  damages: any[];
-  signatures: any[];
+  damages: unknown[];
+  signatures: unknown[];
   notes: string;
   createdAt: Date;
   completedAt: Date;
@@ -282,7 +282,7 @@ export class EnhancedPDFGenerator {
   /**
    * Vloženie podpisov priamo do PDF
    */
-  private async embedSignatures(signatures: any[]) {
+  private async embedSignatures(signatures: unknown[]) {
     this.addSectionTitle('PODPISY');
 
     if (signatures.length === 0) {
@@ -387,7 +387,7 @@ export class EnhancedPDFGenerator {
   /**
    * Pridanie škôd
    */
-  private addDamages(damages: any[]) {
+  private addDamages(damages: unknown[]) {
     this.addSectionTitle('ŠKODY A POŠKODENIA');
 
     if (damages.length === 0) {

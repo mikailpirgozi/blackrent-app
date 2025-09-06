@@ -1,48 +1,48 @@
 import {
-  Save,
-  PhotoCamera,
-  LocationOn,
-  SpeedOutlined,
-  Person,
   DirectionsCar,
+  LocationOn,
+  Person,
+  PhotoCamera,
   Receipt,
+  Save,
+  SpeedOutlined,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
+  Divider,
+  FormControl,
+  Grid,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Select,
   TextField,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  LinearProgress,
-  Chip,
-  Grid,
-  Divider,
-  Alert,
 } from '@mui/material';
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import type {
   HandoverProtocol,
-  Rental,
   ProtocolImage,
-  ProtocolVideo,
   ProtocolSignature,
+  ProtocolVideo,
+  Rental,
   Vehicle,
 } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { logger } from '../../utils/logger';
 import {
-  getSmartDefaults,
-  cacheFormDefaults,
   cacheCompanyDefaults,
+  cacheFormDefaults,
+  getSmartDefaults,
 } from '../../utils/protocolFormCache';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
@@ -77,6 +77,8 @@ const SignatureDisplay = memo<{
     />
   );
 });
+
+SignatureDisplay.displayName = 'SignatureDisplay';
 
 const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
   ({ open, onClose, rental, onSave }) => {

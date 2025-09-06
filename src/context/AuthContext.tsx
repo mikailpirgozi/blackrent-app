@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
 
 import { apiService, getAPI_BASE_URL } from '../services/api';
 import type {
-  User,
   AuthState,
   LoginCredentials,
+  User,
   UserCompanyAccess,
 } from '../types';
 import logger from '../utils/logger';
@@ -107,7 +107,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     UserCompanyAccess[]
   >([]);
 
-  const getAuthData = (): { token: string | null; user: any | null } => {
+  const getAuthData = (): {
+    token: string | null;
+    user: Record<string, unknown> | null;
+  } => {
     return StorageManager.getAuthData();
   };
 
@@ -117,7 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const validateToken = async (token: string): Promise<boolean> => {
     try {
-      console.log('🔍 Validating token...');
+      logger.debug('🔍 Validating token...');
       const response = await fetch(`${getAPI_BASE_URL()}/auth/me`, {
         method: 'GET',
         headers: {
@@ -127,7 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log('✅ Token is valid');
+        logger.debug('✅ Token is valid');
         return true;
       } else {
         console.warn('❌ Token validation failed:', response.status);
@@ -175,9 +178,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // ORIGINAL VALIDATION CODE (DISABLED):
         // validateToken(token).then((isValid) => {
         //   if (isValid) {
-        //     console.log('✅ Background validation: Token is valid');
+        //     logger.debug('✅ Background validation: Token is valid');
         //   } else {
-        //     console.log('❌ Background validation: Token is invalid, clearing auth data');
+        //     logger.debug('❌ Background validation: Token is invalid, clearing auth data');
         //     clearAuthData();
         //     dispatch({ type: 'LOGOUT' });
         //     if (!window.location.pathname.includes('/login')) {
@@ -188,8 +191,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         //   console.warn('⚠️ Background validation error:', error);
         // });
       } else {
-        console.log('❌ No auth data found');
-        console.log('🔍 Storage debug:', {
+        logger.debug('❌ No auth data found');
+        logger.debug('🔍 Storage debug:', {
           localStorage: {
             token: !!localStorage.getItem('blackrent_token'),
             user: !!localStorage.getItem('blackrent_user'),
@@ -207,13 +210,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Pokus o emergency restore
       try {
-        console.log('🆘 Emergency restore attempt...');
+        logger.debug('🆘 Emergency restore attempt...');
         const { token, user } = getAuthData();
         if (token && user) {
-          console.log('🔄 Emergency restore successful');
+          logger.debug('🔄 Emergency restore successful');
           dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
         } else {
-          console.log('❌ Emergency restore failed - no data');
+          logger.debug('❌ Emergency restore failed - no data');
           dispatch({ type: 'SET_LOADING', payload: false });
         }
       } catch (emergencyError) {
@@ -225,25 +228,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Počiatočná inicializácia - načítanie z storage (len raz)
   useEffect(() => {
-    console.log('🏁 AuthProvider mounted, starting session restore...');
+    logger.debug('🏁 AuthProvider mounted, starting session restore...');
     restoreSession();
   }, [restoreSession]);
 
   // Separate useEffect pre handling page visibility a periodicke obnovenie
   useEffect(() => {
-    console.log('🔧 Setting up session management...');
+    logger.debug('🔧 Setting up session management...');
 
     // Handling pre page visibility - overí token keď sa používateľ vráti k aplikácii
     const handleVisibilityChange = async () => {
       if (!document.hidden && state.isAuthenticated && state.token) {
-        console.log('👁️ App became visible, refreshing session...');
+        logger.debug('👁️ App became visible, refreshing session...');
 
         // Skús obnoviť session dáta z storage (môžu sa zmeniť v inom tabe)
         const { token: storedToken, user: storedUser } = getAuthData();
 
         if (storedToken && storedUser) {
           if (storedToken !== state.token) {
-            console.log(
+            logger.debug(
               '🔄 Session change detected in another tab, updating...'
             );
             dispatch({
@@ -251,11 +254,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               payload: { user: storedUser, token: storedToken },
             });
           } else {
-            console.log('✅ Session unchanged, refreshing storage...');
+            logger.debug('✅ Session unchanged, refreshing storage...');
             StorageManager.setAuthData(state.token, state.user, true);
           }
         } else {
-          console.log(
+          logger.debug(
             '⚠️ No session data found on visibility change, but keeping active session'
           );
           // Neprerušuj session, len obnov storage
@@ -267,7 +270,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Periodické obnovenie session dát (každých 30 sekúnd)
     const sessionRefreshInterval = setInterval(() => {
       if (state.isAuthenticated && state.token && state.user) {
-        console.log('🔄 Periodic session refresh...');
+        logger.debug('🔄 Periodic session refresh...');
         // VŽDY nastav remember me na true pre perzistentné prihlásenie
         StorageManager.setAuthData(state.token, state.user, true);
       }
@@ -276,13 +279,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Handling pre storage changes (cross-tab synchronization)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'blackrent_token' || e.key === 'blackrent_user') {
-        console.log('🔄 Storage change detected:', e.key);
+        logger.debug('🔄 Storage change detected:', e.key);
         if (e.newValue) {
-          console.log('✅ New session data available');
+          logger.debug('✅ New session data available');
           // Obnov session z aktualizovaných dát
           restoreSession();
         } else {
-          console.log('⚠️ Session data removed');
+          logger.debug('⚠️ Session data removed');
           // Neodhlasuj automaticky, používateľ môže mať viacero tabov
         }
       }
@@ -309,7 +312,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const access = await apiService.getUserCompanyAccess(state.user.id);
       setUserCompanyAccess(access);
-      console.log('🔐 Loaded user company access:', access);
+      logger.debug('🔐 Loaded user company access:', access);
     } catch (error) {
       console.error('❌ Error loading user company access:', error);
       setUserCompanyAccess([]);
@@ -332,22 +335,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
-      console.log('🔐 Starting login process...');
-      console.log('👤 Username:', credentials.username);
-      console.log('💾 Remember me:', rememberMe);
-      console.log('🌐 Location:', window.location.href);
-      console.log('🔗 API Base URL:', getAPI_BASE_URL());
+      logger.debug('🔐 Starting login process...');
+      logger.debug('👤 Username:', credentials.username);
+      logger.debug('💾 Remember me:', rememberMe);
+      logger.debug('🌐 Location:', window.location.href);
+      logger.debug('🔗 API Base URL:', getAPI_BASE_URL());
 
-      console.log('📡 Making login request to apiService.login...');
+      logger.debug('📡 Making login request to apiService.login...');
       const result = await apiService.login(
         credentials.username,
         credentials.password
       );
 
-      console.log('✅ Login API successful!');
-      console.log('👤 User:', result.user.username);
-      console.log('🔑 Token received:', !!result.token);
-      // console.log('🔑 Token preview:', result.token ? result.token.substring(0, 20) + '...' : 'NO TOKEN'); // SECURITY: Disabled
+      logger.debug('✅ Login API successful!');
+      logger.debug('👤 User:', result.user.username);
+      logger.debug('🔑 Token received:', !!result.token);
+      // logger.debug('🔑 Token preview:', result.token ? result.token.substring(0, 20) + '...' : 'NO TOKEN'); // SECURITY: Disabled
 
       // VŽDY nastav remember me na true pre perzistentné prihlásenie
       const persistentRememberMe = true;
@@ -359,7 +362,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Overenie uloženia
       const verification = getAuthData();
-      console.log('🔍 Storage verification:', {
+      logger.debug('🔍 Storage verification:', {
         tokenSaved: !!verification.token,
         userSaved: !!verification.user,
         tokensMatch: verification.token === result.token,
@@ -368,8 +371,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       dispatch({ type: 'LOGIN_SUCCESS', payload: result });
 
-      console.log('🎉 Login process completed successfully!');
-      console.log('🔍 Auth state after login:', {
+      logger.debug('🎉 Login process completed successfully!');
+      logger.debug('🔍 Auth state after login:', {
         isAuthenticated: true,
         token: !!result.token,
         user: result.user.username,
@@ -378,7 +381,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // 🔍 Extra debug - wait a moment and check final state
       setTimeout(() => {
-        console.log('🔍 Auth state after dispatch (delayed check):', {
+        logger.debug('🔍 Auth state after dispatch (delayed check):', {
           isAuthenticated: true,
           isLoading: false,
           hasToken: !!result.token,
@@ -387,7 +390,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }, 50);
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Login error:', error);
       console.error('❌ Error type:', error?.constructor?.name || 'Unknown');
       console.error('❌ Error message:', error?.message || 'No message');
@@ -405,15 +408,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      console.log('🚪 Starting logout process...');
+      logger.debug('🚪 Starting logout process...');
       await apiService.logout();
     } catch (error) {
       console.error('⚠️ Logout API error:', error);
     } finally {
-      console.log('🧹 Clearing auth data...');
+      logger.debug('🧹 Clearing auth data...');
       dispatch({ type: 'LOGOUT' });
       clearAuthData();
-      console.log('✅ Logout completed');
+      logger.debug('✅ Logout completed');
     }
   };
 

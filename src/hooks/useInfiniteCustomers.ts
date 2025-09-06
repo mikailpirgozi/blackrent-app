@@ -98,7 +98,7 @@ export function useInfiniteCustomers(
         logger.info(
           `✅ Loaded ${newCustomers.length} customers (${result.pagination.totalItems} total)`
         );
-      } catch (err: any) {
+      } catch (error: unknown) {
         const errorMessage = err.message || 'Chyba pri načítavaní zákazníkov';
         setError(errorMessage);
         logger.error('❌ Failed to load customers', err);

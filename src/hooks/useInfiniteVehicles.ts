@@ -103,7 +103,7 @@ export function useInfiniteVehicles(
         logger.info(
           `✅ Loaded ${newVehicles.length} vehicles (${result.pagination.totalItems} total)`
         );
-      } catch (err: any) {
+      } catch (error: unknown) {
         const errorMessage = err.message || 'Chyba pri načítavaní vozidiel';
         setError(errorMessage);
         logger.error('❌ Failed to load vehicles', err);

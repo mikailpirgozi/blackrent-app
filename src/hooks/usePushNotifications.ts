@@ -1,12 +1,12 @@
 // 🔔 Push Notifications React Hook
 // Easy-to-use React hook for push notification management
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   pushNotificationService,
-  type PushNotificationPreferences,
   type NotificationPayload,
+  type PushNotificationPreferences,
 } from '../services/pushNotifications';
 
 interface UsePushNotificationsReturn {
@@ -65,8 +65,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
           await pushNotificationService.getNotificationPreferences();
         setPreferences(prefs);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to initialize push notifications');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to initialize push notifications';
+      setError(errorMessage);
       console.error('Push notifications initialization error:', err);
     } finally {
       setLoading(false);
@@ -94,8 +98,10 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       } else {
         throw new Error('Failed to subscribe to push notifications');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to subscribe');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to subscribe';
+      setError(errorMessage);
       console.error('Push notification subscription error:', err);
       return false;
     } finally {
@@ -118,8 +124,10 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       } else {
         throw new Error('Failed to unsubscribe from push notifications');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to unsubscribe');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to unsubscribe';
+      setError(errorMessage);
       console.error('Push notification unsubscription error:', err);
       return false;
     } finally {
@@ -152,10 +160,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         }
 
         return true;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Revert on error
         setPreferences(oldPreferences);
-        setError(err.message || 'Failed to update preferences');
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to update preferences';
+        setError(errorMessage);
         console.error('Push notification preferences update error:', err);
         return false;
       }
@@ -177,8 +187,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         }
 
         return true;
-      } catch (err: any) {
-        setError(err.message || 'Failed to send test notification');
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Failed to send test notification';
+        setError(errorMessage);
         console.error('Test notification error:', err);
         return false;
       }

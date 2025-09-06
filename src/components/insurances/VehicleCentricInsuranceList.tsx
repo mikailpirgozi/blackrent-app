@@ -1,74 +1,68 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  DirectionsCar as CarIcon,
-  Security as SecurityIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Schedule as ScheduleIcon,
-  Assessment as ReportIcon,
-  Close as CloseIcon,
   Assignment as AssignmentIcon,
-  LocalShipping as HighwayIcon,
   Build as BuildIcon,
-  AttachFile as FileIcon,
-  Refresh as RefreshIcon,
-  GetApp as DownloadIcon,
-  ExpandMore as ExpandMoreIcon,
+  DirectionsCar as CarIcon,
+  CheckCircle as CheckCircleIcon,
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Error as ErrorIcon,
   ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  AttachFile as FileIcon,
+  FilterList as FilterListIcon,
+  LocalShipping as HighwayIcon,
+  Assessment as ReportIcon,
+  Schedule as ScheduleIcon,
+  Search as SearchIcon,
+  Security as SecurityIcon,
   Sort as SortIcon,
-  PriorityHigh as PriorityHighIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
+  Avatar,
+  Badge,
   Box,
   Button,
   Card,
   CardContent,
   Chip,
-  Dialog,
-  IconButton,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Divider,
-  useMediaQuery,
-  useTheme,
-  Tooltip,
-  Alert,
   CircularProgress,
-  Fab,
   Collapse,
-  Avatar,
+  Dialog,
+  Divider,
+  Fab,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,
   ListItemSecondaryAction,
-  Paper,
-  Stack,
-  Badge,
+  ListItemText,
+  MenuItem,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import { format, isAfter, addDays, parseISO, isValid } from 'date-fns';
+import { addDays, format, isAfter, isValid, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
 import type {
   Insurance,
   PaymentFrequency,
-  VehicleDocument,
   Vehicle,
+  VehicleDocument,
 } from '../../types';
-import { getApiBaseUrl } from '../../utils/apiUrl';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 
 import InsuranceClaimList from './InsuranceClaimList';
@@ -333,20 +327,20 @@ export default function VehicleCentricInsuranceList() {
       else if ((insurance as any).kmState !== undefined) {
         insuranceType = 'insurance_kasko';
       }
-      // Check if it's explicitly marked as Kasko in type field
-      else if (
-        insurance.type &&
-        insurance.type.toLowerCase().includes('kasko')
-      ) {
-        insuranceType = 'insurance_kasko';
-      }
-      // Check if it's explicitly marked as PZP+Kasko in type field
+      // Check if it's explicitly marked as PZP+Kasko in type field (more specific first)
       else if (
         insurance.type &&
         insurance.type.toLowerCase().includes('pzp') &&
         insurance.type.toLowerCase().includes('kasko')
       ) {
         insuranceType = 'insurance_pzp_kasko';
+      }
+      // Check if it's explicitly marked as Kasko in type field
+      else if (
+        insurance.type &&
+        insurance.type.toLowerCase().includes('kasko')
+      ) {
+        insuranceType = 'insurance_kasko';
       }
       // Default to backward compatibility
       else {

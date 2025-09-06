@@ -86,7 +86,7 @@ export function usePagination<T>(
 export function useMemoizedFilter<T>(
   data: T[],
   filterFn: (item: T) => boolean,
-  dependencies: any[] = []
+  dependencies: unknown[] = []
 ): T[] {
   return useMemo(() => {
     // Bezpečnostná kontrola - ak data nie je pole, vráť prázdne pole

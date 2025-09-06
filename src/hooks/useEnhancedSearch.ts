@@ -201,7 +201,7 @@ export const useEnhancedSearch = ({
           console.log(
             `🔍 Search completed: "${searchQuery}" → ${searchResults.length} results (${duration.toFixed(2)}ms)`
           );
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (error.name !== 'AbortError') {
             console.error('Search error:', error);
             setResults([]);
@@ -259,7 +259,7 @@ export const useEnhancedSearch = ({
           ].slice(0, maxSuggestions);
 
           setSuggestions(allSuggestions);
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (error.name !== 'AbortError') {
             console.error('Suggestions error:', error);
             setSuggestions([]);

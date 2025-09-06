@@ -91,7 +91,7 @@ export default function R2Configuration() {
 
       const data = await response.json();
       setSuccess(data.message);
-    } catch (err: any) {
+    } catch (error: unknown) {
       setError(err.message || 'Chyba pri spúšťaní migrácie');
       console.error('Migration error:', err);
     } finally {

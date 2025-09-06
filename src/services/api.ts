@@ -21,6 +21,7 @@ import {
   getProtocolCache,
   isCacheFresh,
   setProtocolCache,
+  type CachedProtocolStatus,
 } from '../utils/protocolCache';
 // 🔄 PHASE 3: Migrating to unified cache system
 import { compatibilityCache } from '../utils/unifiedCacheSystem';
@@ -393,17 +394,7 @@ class ApiService {
   }
 
   // ⚡ BULK PROTOCOL STATUS - Získa protocol status pre všetky rentals naraz s SMART CACHE
-  async getBulkProtocolStatus(): Promise<
-    {
-      rentalId: string;
-      hasHandoverProtocol: boolean;
-      hasReturnProtocol: boolean;
-      handoverProtocolId?: string;
-      returnProtocolId?: string;
-      handoverCreatedAt?: Date;
-      returnCreatedAt?: Date;
-    }[]
-  > {
+  async getBulkProtocolStatus(): Promise<CachedProtocolStatus[]> {
     // ⚡ REQUEST DEDUPLICATION - prevent duplicate requests
     return this.requestDeduplicator.deduplicate(
       'bulk-protocol-status',
@@ -434,17 +425,24 @@ class ApiService {
   /**
    * 🌐 Load protocol status from API - extracted for reuse
    */
-  private async loadProtocolStatusFromAPI(): Promise<unknown[]> {
+  private async loadProtocolStatusFromAPI(): Promise<CachedProtocolStatus[]> {
     try {
-      const response = await this.request<unknown>('/protocols/bulk-status');
+      const response = await this.request<
+        Record<string, unknown>[] | { data: Record<string, unknown>[] }
+      >('/protocols/bulk-status');
 
       // 🚀 SMART RESPONSE HANDLING - Backend môže vrátiť Array alebo API wrapper
-      let protocolData;
+      let protocolData: Record<string, unknown>[];
 
       if (Array.isArray(response)) {
         // Backend vracia priamy Array: [...]
         protocolData = response;
-      } else if (response && Array.isArray(response.data)) {
+      } else if (
+        response &&
+        typeof response === 'object' &&
+        'data' in response &&
+        Array.isArray(response.data)
+      ) {
         // Backend vracia API wrapper: { success: true, data: [...] }
         protocolData = response.data;
       } else {
@@ -461,18 +459,22 @@ class ApiService {
       }
 
       // Transformuj dáta s bezpečným pristupom
-      const transformedData = protocolData.map(
-        (item: Record<string, unknown>) => ({
-          rentalId: item?.rentalId || '',
+      const transformedData: CachedProtocolStatus[] = protocolData.map(
+        (item: Record<string, unknown>): CachedProtocolStatus => ({
+          rentalId: String(item?.rentalId || ''),
           hasHandoverProtocol: Boolean(item?.hasHandoverProtocol),
           hasReturnProtocol: Boolean(item?.hasReturnProtocol),
-          handoverProtocolId: item?.handoverProtocolId || undefined,
-          returnProtocolId: item?.returnProtocolId || undefined,
+          handoverProtocolId: item?.handoverProtocolId
+            ? String(item.handoverProtocolId)
+            : undefined,
+          returnProtocolId: item?.returnProtocolId
+            ? String(item.returnProtocolId)
+            : undefined,
           handoverCreatedAt: item.handoverCreatedAt
-            ? new Date(item.handoverCreatedAt)
+            ? new Date(String(item.handoverCreatedAt))
             : undefined,
           returnCreatedAt: item.returnCreatedAt
-            ? new Date(item.returnCreatedAt)
+            ? new Date(String(item.returnCreatedAt))
             : undefined,
         })
       );
@@ -483,7 +485,10 @@ class ApiService {
       return transformedData;
     } catch (error: unknown) {
       console.error('❌ getBulkProtocolStatus error:', error);
-      console.error('❌ Error details:', error.message);
+      console.error(
+        '❌ Error details:',
+        error instanceof Error ? error.message : String(error)
+      );
 
       // 🔄 FALLBACK - použiť starý cache ak existuje
       const cached = getProtocolCache();
@@ -506,29 +511,40 @@ class ApiService {
         // console.log('🔄 Refreshing protocol cache in background...');
       }
 
-      const response = await this.request<any>('/protocols/bulk-status');
+      const response = await this.request<
+        { data?: Record<string, unknown>[] } | Record<string, unknown>[]
+      >('/protocols/bulk-status');
 
-      let protocolData;
+      let protocolData: Record<string, unknown>[];
       if (Array.isArray(response)) {
         protocolData = response;
-      } else if (response && Array.isArray(response.data)) {
+      } else if (
+        response &&
+        typeof response === 'object' &&
+        'data' in response &&
+        Array.isArray(response.data)
+      ) {
         protocolData = response.data;
       } else {
         throw new Error('Invalid response format');
       }
 
-      const transformedData = protocolData.map(
-        (item: Record<string, unknown>) => ({
-          rentalId: item?.rentalId || '',
+      const transformedData: CachedProtocolStatus[] = protocolData.map(
+        (item: Record<string, unknown>): CachedProtocolStatus => ({
+          rentalId: String(item?.rentalId || ''),
           hasHandoverProtocol: Boolean(item?.hasHandoverProtocol),
           hasReturnProtocol: Boolean(item?.hasReturnProtocol),
-          handoverProtocolId: item?.handoverProtocolId || undefined,
-          returnProtocolId: item?.returnProtocolId || undefined,
+          handoverProtocolId: item?.handoverProtocolId
+            ? String(item.handoverProtocolId)
+            : undefined,
+          returnProtocolId: item?.returnProtocolId
+            ? String(item.returnProtocolId)
+            : undefined,
           handoverCreatedAt: item.handoverCreatedAt
-            ? new Date(item.handoverCreatedAt)
+            ? new Date(String(item.handoverCreatedAt))
             : undefined,
           returnCreatedAt: item.returnCreatedAt
-            ? new Date(item.returnCreatedAt)
+            ? new Date(String(item.returnCreatedAt))
             : undefined,
         })
       );
@@ -538,7 +554,10 @@ class ApiService {
         // console.log('✅ Background cache refresh completed');
       }
     } catch (error) {
-      console.warn('⚠️ Background cache refresh failed:', error);
+      console.warn(
+        '⚠️ Background cache refresh failed:',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 
@@ -574,7 +593,25 @@ class ApiService {
           async () => {
             // console.log('🌐 Loading vehicle ownership history from API...');
             const response = await this.request<{
-              vehicleHistories: Record<string, unknown>[];
+              vehicleHistories: Array<{
+                vehicleId: string;
+                vehicle: {
+                  id: string;
+                  brand: string;
+                  model: string;
+                  licensePlate: string;
+                  ownerCompanyId?: string;
+                };
+                history: Array<{
+                  id: string;
+                  ownerCompanyId: string;
+                  ownerCompanyName: string;
+                  validFrom: string;
+                  validTo: string | null;
+                  transferReason: string;
+                  transferNotes: string | null;
+                }>;
+              }>;
               totalVehicles: number;
               loadTimeMs: number;
             }>('/vehicles/bulk-ownership-history');
@@ -638,8 +675,8 @@ class ApiService {
     return response.blob();
   }
 
-  async importVehiclesCSV(csvData: string): Promise<any> {
-    return this.request<any>('/vehicles/import/csv', {
+  async importVehiclesCSV(csvData: string): Promise<unknown> {
+    return this.request<unknown>('/vehicles/import/csv', {
       method: 'POST',
       body: JSON.stringify({ csvData }),
     });
@@ -661,8 +698,8 @@ class ApiService {
     return response.blob();
   }
 
-  async importCustomersCSV(csvData: string): Promise<any> {
-    return this.request<any>('/customers/import/csv', {
+  async importCustomersCSV(csvData: string): Promise<unknown> {
+    return this.request<unknown>('/customers/import/csv', {
       method: 'POST',
       body: JSON.stringify({ csvData }),
     });
@@ -684,8 +721,8 @@ class ApiService {
     return response.blob();
   }
 
-  async importExpensesCSV(csvData: string): Promise<any> {
-    return this.request<any>('/expenses/import/csv', {
+  async importExpensesCSV(csvData: string): Promise<unknown> {
+    return this.request<unknown>('/expenses/import/csv', {
       method: 'POST',
       body: JSON.stringify({ csvData }),
     });
@@ -1058,7 +1095,7 @@ class ApiService {
       rentalId: string;
       createdBy: string;
       createdAt: Date;
-      rentalData?: any;
+      rentalData?: Rental;
     }>
   > {
     return this.request<
@@ -1068,7 +1105,7 @@ class ApiService {
         rentalId: string;
         createdBy: string;
         createdAt: Date;
-        rentalData?: any;
+        rentalData?: Rental;
       }>
     >('/protocols/all-for-stats');
   }
@@ -1078,8 +1115,8 @@ class ApiService {
     return this.request<Insurance[]>('/insurances');
   }
 
-  async getInsurancesPaginated(params: string): Promise<any> {
-    return this.request<any>(`/insurances/paginated?${params}`);
+  async getInsurancesPaginated(params: string): Promise<unknown> {
+    return this.request<unknown>(`/insurances/paginated?${params}`);
   }
 
   async createInsurance(insurance: Insurance): Promise<void> {
@@ -1271,7 +1308,7 @@ class ApiService {
   // Protokoly
   async getProtocolsByRental(
     rentalId: string
-  ): Promise<{ handoverProtocols: any[]; returnProtocols: any[] }> {
+  ): Promise<{ handoverProtocols: unknown[]; returnProtocols: unknown[] }> {
     const url = `${getAPI_BASE_URL()}/protocols/rental/${rentalId}`;
     const token = this.getAuthToken();
 
@@ -1315,14 +1352,19 @@ class ApiService {
       // console.log('🔍 Raw API response for protocols:', data);
 
       // Backend vracia priamo dáta, nie ApiResponse formát
-      return data as { handoverProtocols: any[]; returnProtocols: any[] };
+      return data as {
+        handoverProtocols: unknown[];
+        returnProtocols: unknown[];
+      };
     } catch (error) {
       console.error('❌ API chyba pri načítaní protokolov:', error);
       throw error;
     }
   }
 
-  async createHandoverProtocol(protocolData: any): Promise<any> {
+  async createHandoverProtocol(
+    protocolData: Record<string, unknown>
+  ): Promise<unknown> {
     // console.log('🔄 API createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
 
     // Ensure all required fields are present
@@ -1355,7 +1397,7 @@ class ApiService {
     // console.log('🔄 API createHandoverProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
 
     try {
-      const result = await this.request<any>('/protocols/handover', {
+      const result = await this.request<unknown>('/protocols/handover', {
         method: 'POST',
         body: JSON.stringify(completeProtocolData),
       });
@@ -1369,7 +1411,9 @@ class ApiService {
     }
   }
 
-  async createReturnProtocol(protocolData: any): Promise<any> {
+  async createReturnProtocol(
+    protocolData: Record<string, unknown>
+  ): Promise<unknown> {
     // console.log('🔄 API createReturnProtocol - input:', JSON.stringify(protocolData, null, 2));
 
     // Ensure all required fields are present
@@ -1382,7 +1426,7 @@ class ApiService {
     // console.log('🔄 API createReturnProtocol - complete data:', JSON.stringify(completeProtocolData, null, 2));
 
     try {
-      const result = await this.request<any>('/protocols/return', {
+      const result = await this.request<unknown>('/protocols/return', {
         method: 'POST',
         body: JSON.stringify(completeProtocolData),
       });
@@ -1420,10 +1464,10 @@ class ApiService {
   }
 
   // Signature template management
-  async updateSignatureTemplate(signatureTemplate: string): Promise<any> {
+  async updateSignatureTemplate(signatureTemplate: string): Promise<unknown> {
     // console.log('🖊️ API updateSignatureTemplate - saving signature template');
 
-    const response = await this.request<any>('/auth/signature-template', {
+    const response = await this.request<unknown>('/auth/signature-template', {
       method: 'PUT',
       body: JSON.stringify({ signatureTemplate }),
     });
@@ -1433,10 +1477,13 @@ class ApiService {
   }
 
   // User profile management
-  async updateUserProfile(firstName: string, lastName: string): Promise<any> {
+  async updateUserProfile(
+    firstName: string,
+    lastName: string
+  ): Promise<unknown> {
     // console.log('👤 API updateUserProfile - updating user profile');
 
-    const response = await this.request<any>('/auth/profile', {
+    const response = await this.request<unknown>('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify({ firstName, lastName }),
     });
@@ -1446,10 +1493,10 @@ class ApiService {
   }
 
   // 👥 USER MANAGEMENT API METHODS
-  async getUsers(): Promise<any[]> {
+  async getUsers(): Promise<unknown[]> {
     // console.log('👥 API getUsers - fetching all users');
 
-    const response = await this.request<any>('/auth/users');
+    const response = await this.request<unknown>('/auth/users');
     // console.log('👥 API getUsers - response:', response);
     // console.log('👥 API getUsers - response type:', typeof response);
     // console.log('👥 API getUsers - is array:', Array.isArray(response));
@@ -1458,10 +1505,10 @@ class ApiService {
     return Array.isArray(response) ? response : [];
   }
 
-  async createUser(userData: any): Promise<any> {
+  async createUser(userData: Record<string, unknown>): Promise<unknown> {
     // console.log('👤 API createUser - creating user:', userData);
 
-    const response = await this.request<any>('/auth/users', {
+    const response = await this.request<unknown>('/auth/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -1473,10 +1520,13 @@ class ApiService {
     return response;
   }
 
-  async updateUser(userId: string, userData: any): Promise<any> {
+  async updateUser(
+    userId: string,
+    userData: Record<string, unknown>
+  ): Promise<unknown> {
     // console.log('👤 API updateUser - updating user:', userId, userData);
 
-    const response = await this.request<any>(`/auth/users/${userId}`, {
+    const response = await this.request<unknown>(`/auth/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
@@ -1499,10 +1549,10 @@ class ApiService {
   }
 
   // 🔐 PERMISSIONS API METHODS
-  async getUserCompanyAccess(userId: string): Promise<any[]> {
+  async getUserCompanyAccess(userId: string): Promise<unknown[]> {
     // console.log('🔐 API getUserCompanyAccess - fetching user company access:', userId);
 
-    const response = await this.request<any>(
+    const response = await this.request<unknown>(
       `/permissions/user/${userId}/access`
     );
     // console.log('🔐 API getUserCompanyAccess - response:', response);
@@ -1513,11 +1563,11 @@ class ApiService {
   async setUserPermission(
     userId: string,
     companyId: string,
-    permissions: any
-  ): Promise<any> {
+    permissions: Record<string, unknown>
+  ): Promise<unknown> {
     // console.log('🔐 API setUserPermission - setting permissions:', { userId, companyId, permissions });
 
-    const response = await this.request<any>(
+    const response = await this.request<unknown>(
       `/permissions/user/${userId}/company/${companyId}`,
       {
         method: 'POST',
@@ -1543,11 +1593,15 @@ class ApiService {
   }
 
   async setUserPermissionsBulk(
-    assignments: Array<{ userId: string; companyId: string; permissions: any }>
-  ): Promise<any> {
+    assignments: Array<{
+      userId: string;
+      companyId: string;
+      permissions: Record<string, unknown>;
+    }>
+  ): Promise<unknown> {
     // console.log('🔐 API setUserPermissionsBulk - bulk setting permissions:', assignments);
 
-    const response = await this.request<any>('/permissions/bulk', {
+    const response = await this.request<unknown>('/permissions/bulk', {
       method: 'POST',
       body: JSON.stringify({ assignments }),
     });
@@ -1580,11 +1634,11 @@ class ApiService {
   }
 
   // 📧 Email Webhook APIs
-  private convertSnakeToCamelCase(obj: any): any {
+  private convertSnakeToCamelCase(obj: unknown): unknown {
     if (Array.isArray(obj)) {
       return obj.map(item => this.convertSnakeToCamelCase(item));
     } else if (obj !== null && typeof obj === 'object') {
-      const converted: any = {};
+      const converted: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
           letter.toUpperCase()
@@ -1598,12 +1652,14 @@ class ApiService {
 
   async getPendingAutomaticRentals(): Promise<Rental[]> {
     // this.request už extrahuje 'data' z {success, data} response
-    const responseData = await this.request<any[]>('/email-webhook/pending');
+    const responseData = await this.request<unknown[]>(
+      '/email-webhook/pending'
+    );
 
     // Konvertuj snake_case na camelCase
     const convertedData = this.convertSnakeToCamelCase(responseData);
 
-    return convertedData || [];
+    return (Array.isArray(convertedData) ? convertedData : []) as Rental[];
   }
 
   async approveAutomaticRental(rentalId: string): Promise<void> {
@@ -1631,7 +1687,7 @@ class ApiService {
   ): Promise<void> {
     await this.request<{
       success: boolean;
-      data: any;
+      data: unknown;
     }>(`/email-webhook/rentals/${rentalId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -1639,31 +1695,31 @@ class ApiService {
   }
 
   async getWebhookStats(): Promise<{
-    stats: any[];
-    log: any[];
+    stats: unknown[];
+    log: unknown[];
   }> {
     const response = await this.request<{
       success: boolean;
       data: {
-        stats: any[];
-        log: any[];
+        stats: unknown[];
+        log: unknown[];
       };
     }>('/email-webhook/stats');
     return response.data;
   }
 
   // IMAP Email Monitoring methods
-  async getImapStatus(): Promise<any> {
-    const response = await this.request<any>('/email-imap/status', {
+  async getImapStatus(): Promise<unknown> {
+    const response = await this.request<unknown>('/email-imap/status', {
       method: 'GET',
     });
     return response;
   }
 
-  async testImapConnection(): Promise<any> {
+  async testImapConnection(): Promise<unknown> {
     // console.log('🧪 API: IMAP test pripojenia...');
 
-    const response = await this.request<any>('/email-imap/test', {
+    const response = await this.request<unknown>('/email-imap/test', {
       method: 'GET',
     });
 
@@ -1674,28 +1730,30 @@ class ApiService {
   }
 
   async startImapMonitoring(): Promise<void> {
-    await this.request<any>('/email-imap/start', { method: 'POST' });
+    await this.request<unknown>('/email-imap/start', { method: 'POST' });
   }
 
   async stopImapMonitoring(): Promise<void> {
-    await this.request<any>('/email-imap/stop', { method: 'POST' });
+    await this.request<unknown>('/email-imap/stop', { method: 'POST' });
   }
 
   async checkImapNow(): Promise<void> {
-    await this.request<any>('/email-imap/check-now', { method: 'POST' });
+    await this.request<unknown>('/email-imap/check-now', { method: 'POST' });
   }
 
   // ==================== AUDIT LOGS API ====================
 
-  async getAuditLogs(params: string): Promise<{ logs: any[]; total: number }> {
-    return await this.request<{ logs: any[]; total: number }>(
+  async getAuditLogs(
+    params: string
+  ): Promise<{ logs: unknown[]; total: number }> {
+    return await this.request<{ logs: unknown[]; total: number }>(
       `/audit/logs?${params}`,
       { method: 'GET' }
     );
   }
 
-  async getAuditStats(days: number): Promise<any> {
-    return await this.request<any>(`/audit/stats?days=${days}`, {
+  async getAuditStats(days: number): Promise<unknown> {
+    return await this.request<unknown>(`/audit/stats?days=${days}`, {
       method: 'GET',
     });
   }

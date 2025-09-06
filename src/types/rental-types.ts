@@ -1,4 +1,4 @@
-import type { Rental, Vehicle, Customer, PaymentMethod } from './index';
+import type { Customer, PaymentMethod, Rental, Vehicle } from './index';
 
 // ═══════════════════════════════════════════════════════════════════
 // 🎯 FILTER TYPES
@@ -94,7 +94,7 @@ export interface RentalFiltersProps {
 export interface RentalTableProps {
   rentals: Rental[];
   vehicles: Vehicle[];
-  protocols: Record<string, { handover?: any; return?: any }>;
+  protocols: Record<string, { handover?: unknown; return?: unknown }>;
   protocolStatusMap: Record<
     string,
     {
@@ -121,7 +121,7 @@ export interface RentalTableProps {
   // Scroll refs
   mobileScrollRef: React.RefObject<HTMLDivElement>;
   desktopScrollRef: React.RefObject<HTMLDivElement>;
-  scrollHandlerRef: React.MutableRefObject<((event: any) => void) | null>;
+  scrollHandlerRef: React.MutableRefObject<((event: Event) => void) | null>;
   // Pagination
   hasMore: boolean;
   paginatedLoading: boolean;
@@ -137,7 +137,7 @@ export interface RentalExportProps {
   filteredRentals: Rental[];
   state: {
     customers: Customer[];
-    companies: any[];
+    companies: unknown[];
     vehicles: Vehicle[];
     rentals: Rental[];
   };
@@ -147,9 +147,9 @@ export interface RentalExportProps {
 
 export interface RentalStatsProps {
   rentals: Rental[];
-  protocols?: Record<string, { handover?: any; return?: any }>;
+  protocols?: Record<string, { handover?: unknown; return?: unknown }>;
   isLoading?: boolean;
-  onQuickFilter?: (filterType: string, value?: any) => void;
+  onQuickFilter?: (filterType: string, value?: unknown) => void;
 }
 
 export interface RentalProtocolsProps {
@@ -170,8 +170,8 @@ export interface RentalProtocolsProps {
     type: 'handover' | 'return';
     title: string;
   } | null;
-  galleryImages: any[]; // Should be ProtocolImage[]
-  galleryVideos: any[]; // Should be ProtocolVideo[]
+  galleryImages: unknown[]; // Should be ProtocolImage[]
+  galleryVideos: unknown[]; // Should be ProtocolVideo[]
   galleryTitle: string;
 
   // Handlers
@@ -192,7 +192,7 @@ export interface RentalProtocolsProps {
 export interface UseRentalFiltersProps {
   rentals: Rental[];
   vehicles?: Vehicle[];
-  protocols?: Record<string, { handover?: any; return?: any }>;
+  protocols?: Record<string, { handover?: unknown; return?: unknown }>;
 }
 
 export interface UseRentalFiltersReturn {
@@ -256,15 +256,15 @@ export interface UseRentalProtocolsProps {
   onProtocolUpdate?: (
     rentalId: string,
     protocolType: 'handover' | 'return',
-    data: any
+    data: unknown
   ) => void;
 }
 
 export interface UseRentalProtocolsReturn {
   // Protocol state
-  protocols: Record<string, { handover?: any; return?: any }>;
+  protocols: Record<string, { handover?: unknown; return?: unknown }>;
   setProtocols: (
-    protocols: Record<string, { handover?: any; return?: any }>
+    protocols: Record<string, { handover?: unknown; return?: unknown }>
   ) => void;
   loadingProtocols: string[];
   setLoadingProtocols: (loading: string[]) => void;
@@ -321,17 +321,17 @@ export interface UseRentalProtocolsReturn {
 
   // Gallery state
   galleryOpenRef: React.MutableRefObject<boolean>;
-  galleryImages: any[];
-  setGalleryImages: (images: any[]) => void;
-  galleryVideos: any[];
-  setGalleryVideos: (videos: any[]) => void;
+  galleryImages: unknown[];
+  setGalleryImages: (images: unknown[]) => void;
+  galleryVideos: unknown[];
+  setGalleryVideos: (videos: unknown[]) => void;
   galleryTitle: string;
   setGalleryTitle: (title: string) => void;
 
   // Image parsing cache
   imageParsingCache: Map<
     string,
-    { images: any[]; videos: any[]; timestamp: number }
+    { images: unknown[]; videos: unknown[]; timestamp: number }
   >;
 
   // Protocol handlers
@@ -489,13 +489,13 @@ export interface BatchImportResult {
   errors: Array<{
     row: number;
     error: string;
-    data?: any;
+    data?: unknown;
   }>;
 }
 
 export interface ProtocolsResponse {
-  handoverProtocols: any[];
-  returnProtocols: any[];
+  handoverProtocols: unknown[];
+  returnProtocols: unknown[];
 }
 
 // ═══════════════════════════════════════════════════════════════════

@@ -333,7 +333,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
       const rentals = await apiService.getPendingAutomaticRentals();
       console.log('✅ Loaded pending rentals:', rentals?.length || 0);
       setPendingRentals(rentals);
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('❌ Error fetching pending rentals:', err);
       setError('Nepodarilo sa načítať čakajúce prenájmy');
       setPendingRentals([]);
@@ -348,7 +348,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
       // Remove from pending list
       setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
       onRentalApproved?.(rentalId);
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('Error approving rental:', err);
       setError('Nepodarilo sa schváliť prenájom');
     }
@@ -360,7 +360,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
       // Remove from pending list
       setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
       onRentalRejected?.(rentalId);
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('Error rejecting rental:', err);
       setError('Nepodarilo sa zamietnuť prenájom');
     }

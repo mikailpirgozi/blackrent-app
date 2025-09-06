@@ -1,25 +1,28 @@
 import {
-  Menu as MenuIcon,
-  AttachMoney,
   AccountCircle,
-  Logout,
-  Lock as LockIcon,
-  DashboardOutlined,
-  CarRental,
-  GroupOutlined,
-  ReceiptLongOutlined,
-  AssessmentOutlined,
-  SecurityOutlined,
   AdminPanelSettingsOutlined,
-  LightMode,
-  DarkMode,
+  AssessmentOutlined,
+  AttachMoney,
   CalendarToday,
+  CarRental,
+  DarkMode,
+  DashboardOutlined,
   Email,
+  GroupOutlined,
+  LightMode,
+  Lock as LockIcon,
+  Logout,
+  Menu as MenuIcon,
+  ReceiptLongOutlined,
+  SecurityOutlined,
 } from '@mui/icons-material';
 import {
   AppBar,
+  Avatar,
   Box,
+  Chip,
   CssBaseline,
+  Divider,
   Drawer,
   IconButton,
   List,
@@ -27,23 +30,20 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Toolbar,
-  Typography,
   Menu,
   MenuItem,
-  Avatar,
-  Divider,
-  Chip,
+  Toolbar,
+  Typography,
 } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 import {
-  usePermissions,
   getUserRoleDisplayName,
+  usePermissions,
 } from '../hooks/usePermissions';
 import type { EnhancedError } from '../utils/errorHandling';
 
@@ -154,6 +154,7 @@ export default function Layout({ children }: LayoutProps) {
   const handleErrorRetry = async () => {
     // The retry logic is handled by the component that triggered the error
     // This is just for UI feedback
+    // eslint-disable-next-line no-console
     console.log('🔄 Retry requested from ErrorToast');
   };
 
@@ -281,7 +282,7 @@ export default function Layout({ children }: LayoutProps) {
         </Toolbar>
 
         <List sx={{ px: 2, pb: 12 }}>
-          {menuItems.map((item, index) => (
+          {menuItems.map(item => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
                 onClick={() => handleNavigate(item.path)}

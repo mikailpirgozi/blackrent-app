@@ -1,105 +1,59 @@
 import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  AttachMoney as MoneyIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
-  Receipt as ReceiptIcon,
-  CalendarToday as CalendarIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  Refresh as RefreshIcon,
-  Download as DownloadIcon,
-  FilterList as FilterListIcon,
-  Assessment as AssessmentIcon,
-  Euro as EuroIcon,
-  ShowChart as ShowChartIcon,
-  Business as BusinessIcon,
-  Payment as PaymentIcon,
-  Dashboard as DashboardIcon,
-  Percent as PercentIcon,
-  CreditCard as CreditCardIcon,
   AccountBalance as AccountBalanceIcon,
+  Assessment as AssessmentIcon,
+  Business as BusinessIcon,
+  CalendarToday as CalendarIcon,
+  DirectionsCar as CarIcon,
+  CreditCard as CreditCardIcon,
+  Dashboard as DashboardIcon,
+  Euro as EuroIcon,
+  Payment as PaymentIcon,
+  Percent as PercentIcon,
+  Person as PersonIcon,
+  Refresh as RefreshIcon,
+  ShowChart as ShowChartIcon,
+  TrendingDown as TrendingDownIcon,
+  TrendingUp as TrendingUpIcon,
   EmojiEvents as TrophyIcon,
-  Star as StarIcon,
-  AccessTime as TimeIcon,
-  Speed as SpeedIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import {
+  Alert,
   Box,
-  Typography,
+  Button,
   Card,
   CardContent,
-  Paper,
-  Grid,
   FormControl,
+  Grid,
   InputLabel,
-  Select,
   MenuItem,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
+  Select,
   Tab,
-  useTheme,
+  Tabs,
+  Typography,
   useMediaQuery,
-  Button,
-  Collapse,
-  IconButton,
-  Avatar,
-  Divider,
-  Alert,
-  Fade,
-  Skeleton,
-  Badge,
-  LinearProgress,
+  useTheme,
 } from '@mui/material';
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
   differenceInDays,
+  endOfMonth,
+  endOfYear,
+  format,
+  getDaysInMonth,
   isAfter,
   isBefore,
+  startOfMonth,
   startOfYear,
-  endOfYear,
-  getDaysInMonth,
+  subMonths,
 } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useMemo } from 'react';
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from 'recharts';
+import React, { useMemo, useState } from 'react';
 
 import { useApp } from '../context/AppContext';
 import { logger } from '../utils/smartLogger';
 
 import ChartsTab from './statistics/ChartsTab';
 import CompaniesTab from './statistics/CompaniesTab';
-import CustomTooltip from './statistics/CustomTooltip';
 import EmployeesTab from './statistics/EmployeesTab';
 import OverviewTab from './statistics/OverviewTab';
 import PaymentsTab from './statistics/PaymentsTab';
@@ -141,8 +95,8 @@ const Statistics: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth] = useState(new Date().getMonth());
   const [tabValue, setTabValue] = useState(0);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'month' | 'year' | 'all'>('month');
@@ -332,7 +286,7 @@ const Statistics: React.FC = () => {
         string,
         {
           customerName: string;
-          customer?: any;
+          customer?: Record<string, unknown>;
           totalRevenue: number;
           rentalCount: number;
           totalDaysRented: number;
@@ -782,9 +736,9 @@ const Statistics: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const toggleMonthExpansion = (monthKey: string) => {
-    setExpandedMonth(expandedMonth === monthKey ? null : monthKey);
-  };
+  // const toggleMonthExpansion = (monthKey: string) => {
+  //   setExpandedMonth(expandedMonth === monthKey ? null : monthKey);
+  // };
 
   // Custom Tooltip pre grafy
 

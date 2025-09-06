@@ -1,9 +1,9 @@
 import type { Vehicle, VehicleCategory } from './index';
-import { VehicleStatus } from './index';
+// import { VehicleStatus } from './index'; // Unused import
 
 // 🆕 OWNER CARD COMPONENT - Rozbaliteľná karta majiteľa s vozidlami
 export interface OwnerCardProps {
-  company: any; // Company type
+  company: Record<string, unknown>; // Company type
   vehicles: Vehicle[];
   onVehicleUpdate: (vehicleId: string, companyId: string) => Promise<void>;
   onVehicleEdit: (vehicle: Vehicle) => void;
@@ -11,11 +11,11 @@ export interface OwnerCardProps {
 
 // 🤝 INVESTOR CARD COMPONENT - Rozbaliteľná karta spoluinvestora s podielmi
 export interface InvestorCardProps {
-  investor: any; // CompanyInvestor type
-  shares: any[]; // CompanyInvestorShare[]
-  companies: any[]; // Company[]
+  investor: Record<string, unknown>; // CompanyInvestor type
+  shares: Record<string, unknown>[]; // CompanyInvestorShare[]
+  companies: Record<string, unknown>[]; // Company[]
   onShareUpdate: () => void;
-  onAssignShare: (investor: any) => void;
+  onAssignShare: (investor: Record<string, unknown>) => void;
 }
 
 // 📊 VEHICLE FILTERS STATE
@@ -69,11 +69,11 @@ export interface CompanyCreationState {
 // 🤝 INVESTOR MANAGEMENT STATE
 export interface InvestorManagementState {
   createInvestorDialogOpen: boolean;
-  investors: any[];
-  investorShares: any[];
+  investors: Record<string, unknown>[];
+  investorShares: Record<string, unknown>[];
   loadingInvestors: boolean;
   assignShareDialogOpen: boolean;
-  selectedInvestorForShare: any;
+  selectedInvestorForShare: Record<string, unknown> | null;
   newShareData: {
     companyId: string;
     ownershipPercentage: number;
@@ -93,7 +93,7 @@ export interface InvestorManagementState {
 export interface OwnershipHistoryState {
   ownershipHistoryDialog: boolean;
   selectedVehicleHistory: Vehicle | null;
-  ownershipHistory: any[];
+  ownershipHistory: Record<string, unknown>[];
 }
 
 // 🎯 TAB STATE

@@ -1,21 +1,25 @@
 // 🔄 Enhanced Lazy Loading Utilities
 // Advanced code splitting with error boundaries, preloading, and retry logic
 
-import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
+import type {
+  ComponentProps,
+  ComponentType,
+  LazyExoticComponent,
+  ReactNode,
+} from 'react';
 import React, { Suspense } from 'react';
 
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import {
-  LoadingState,
-  PageLoader,
   ComponentLoader,
+  PageLoader,
 } from '../components/common/LoadingStates';
 
 // Preload cache to avoid duplicate dynamic imports
-const preloadCache = new Map<
-  string,
-  Promise<{ default: ComponentType<any> }>
->();
+// const preloadCache = new Map<
+//   string,
+//   Promise<{ default: ComponentType<unknown> }>
+// >();
 
 interface LazyComponentOptions {
   loading?: ReactNode;
@@ -39,7 +43,6 @@ export function createLazyComponent<T = {}>(
   options: LazyComponentOptions = {}
 ): RetryableLazyComponent<T> {
   const {
-    loading = <ComponentLoader />,
     delay = 0,
     timeout = 30000,
     retry = true,
@@ -157,22 +160,27 @@ export function createLazyRoute<T = {}>(
 }
 
 // Component-level lazy loading
-export function createLazyComponentWithLoader<T extends {} = {}>(
+export function createLazyComponentWithLoader<T = Record<string, unknown>>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
   loadingComponent?: ReactNode,
   options: LazyComponentOptions = {}
 ): React.FC<T> {
   const LazyComponent = createLazyComponent(importFunc, options);
 
-  return (props: T) => (
+  const WrappedComponent: React.FC<T> = (props: T) => (
     <LazyWrapper loading={loadingComponent}>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <LazyComponent {...(props as any)} />
     </LazyWrapper>
   );
+
+  WrappedComponent.displayName = `LazyComponentWithLoader`;
+
+  return WrappedComponent;
 }
 
 // Preload utilities
-export const preloadComponent = <T extends ComponentType<any>>(
+export const preloadComponent = <T extends ComponentType<unknown>>(
   LazyComponent: RetryableLazyComponent<T>
 ): void => {
   if ('preload' in LazyComponent) {
@@ -181,7 +189,7 @@ export const preloadComponent = <T extends ComponentType<any>>(
 };
 
 export const preloadComponents = (
-  components: Array<RetryableLazyComponent<any>>
+  components: Array<RetryableLazyComponent<ComponentType<unknown>>>
 ): Promise<void> => {
   const preloadPromises = components
     .filter(component => 'preload' in component)
@@ -197,9 +205,9 @@ export const preloadComponents = (
 // Route-based preloading
 export const preloadRouteOnHover = (
   routePath: string,
-  LazyComponent: RetryableLazyComponent<any>
+  LazyComponent: RetryableLazyComponent<ComponentType<unknown>>
 ) => {
-  return (event: React.MouseEvent) => {
+  return () => {
     // Only preload if not on mobile (to avoid unnecessary data usage)
     if (!window.matchMedia('(max-width: 768px)').matches) {
       preloadComponent(LazyComponent);
@@ -217,7 +225,7 @@ export const createIntersectionLazyComponent = <T extends {} = {}>(
 ): React.FC<T> => {
   const { rootMargin = '50px', threshold = 0.1, ...lazyOptions } = options;
 
-  return (props: T) => {
+  const LazyIntersectionComponent: React.FC<T> = (props: T) => {
     const [shouldLoad, setShouldLoad] = React.useState(false);
     const elementRef = React.useRef<HTMLDivElement>(null);
 
@@ -252,18 +260,23 @@ export const createIntersectionLazyComponent = <T extends {} = {}>(
 
     return (
       <LazyWrapper>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <LazyComponent {...(props as any)} />
       </LazyWrapper>
     );
   };
+
+  LazyIntersectionComponent.displayName = 'LazyIntersectionComponent';
+
+  return LazyIntersectionComponent;
 };
 
 // Performance monitoring for lazy components
-export const withPerformanceTracking = <T extends ComponentType<any>>(
+export const withPerformanceTracking = <T extends ComponentType<unknown>>(
   LazyComponent: T,
   componentName: string
 ): T => {
-  const WrappedComponent = (props: any) => {
+  const WrappedComponent: React.FC<ComponentProps<T>> = props => {
     React.useEffect(() => {
       const startTime = performance.now();
 
@@ -272,7 +285,7 @@ export const withPerformanceTracking = <T extends ComponentType<any>>(
         const loadTime = endTime - startTime;
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(
+          console.debug(
             `📊 Component ${componentName} load time: ${loadTime.toFixed(2)}ms`
           );
 
@@ -283,7 +296,8 @@ export const withPerformanceTracking = <T extends ComponentType<any>>(
       };
     }, []);
 
-    return <LazyComponent {...props} />;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <LazyComponent {...(props as any)} />;
   };
 
   WrappedComponent.displayName = `withPerformanceTracking(${componentName})`;
@@ -291,7 +305,7 @@ export const withPerformanceTracking = <T extends ComponentType<any>>(
 };
 
 // Bundle splitting utilities
-export const createChunkedImport = (chunkName: string) => {
+export const createChunkedImport = () => {
   return <T = {},>(
     importFunc: () => Promise<{ default: ComponentType<T> }>
   ): (() => Promise<{ default: ComponentType<T> }>) => {
@@ -302,8 +316,7 @@ export const createChunkedImport = (chunkName: string) => {
 
 // Export commonly used lazy components factory
 export const createLazyPageComponent = (
-  importFunc: () => Promise<{ default: ComponentType<any> }>,
-  pageName: string
+  importFunc: () => Promise<{ default: ComponentType<unknown> }>
 ) => {
   return createLazyRoute(importFunc, {
     timeout: 10000,

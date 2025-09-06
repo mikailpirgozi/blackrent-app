@@ -1,7 +1,7 @@
 // ⚡ Performance Optimization Hooks
 // Comprehensive performance monitoring, memory leak prevention, and optimization utilities
 
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Memory leak prevention hook
 export const useCleanup = () => {
@@ -63,7 +63,7 @@ export const useDebouncedState = <T>(
 };
 
 // Throttled callback hook
-export const useThrottledCallback = <T extends (...args: any[]) => any>(
+export const useThrottledCallback = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): T => {
@@ -346,7 +346,15 @@ export const useMemoryMonitor = () => {
     }
 
     const updateMemoryInfo = () => {
-      const memory = (performance as any).memory;
+      const memory = (
+        performance as {
+          memory: {
+            usedJSHeapSize: number;
+            totalJSHeapSize: number;
+            jsHeapSizeLimit: number;
+          };
+        }
+      ).memory;
 
       setMemoryInfo({
         usedJSHeapSize: memory.usedJSHeapSize,

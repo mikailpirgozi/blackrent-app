@@ -4,7 +4,7 @@
  * Performance optimization for search and API calls
  */
 
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
@@ -36,6 +36,7 @@ export function measurePerformance<T>(
   const start = performance.now();
   const result = fn();
   const end = performance.now();
+  // eslint-disable-next-line no-console
   console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
   return result;
 }
@@ -46,7 +47,7 @@ export type DebounceOptions = {
   onDuplicate?: () => void;
 };
 
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
@@ -62,7 +63,7 @@ export function throttle<T extends (...args: any[]) => any>(
 }
 
 export class RequestDeduplicator {
-  private pendingRequests = new Map<string, Promise<any>>();
+  private pendingRequests = new Map<string, Promise<unknown>>();
 
   async deduplicate<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
     if (this.pendingRequests.has(key)) {

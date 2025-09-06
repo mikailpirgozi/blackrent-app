@@ -109,7 +109,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       ]);
       setRecurringExpenses(recurring);
       setExpenseCategories(categories);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError('Chyba pri načítavaní dát: ' + error.message);
     } finally {
       setLoading(false);
@@ -206,7 +206,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         await apiService.deleteRecurringExpense(recurring.id);
         setSuccess('Pravidelný náklad úspešne zmazaný');
         await loadData();
-      } catch (error: any) {
+      } catch (error: unknown) {
         setError('Chyba pri mazaní: ' + error.message);
       } finally {
         setLoading(false);
@@ -227,7 +227,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         setSuccess('Náklad úspešne vygenerovaný');
         await loadData();
         onExpensesChanged?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         setError('Chyba pri generovaní: ' + error.message);
       } finally {
         setLoading(false);
@@ -246,7 +246,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         );
         await loadData();
         onExpensesChanged?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         setError('Chyba pri generovaní: ' + error.message);
       } finally {
         setLoading(false);
@@ -313,7 +313,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
 
       setFormOpen(false);
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError('Chyba pri ukladaní: ' + error.message);
     } finally {
       setLoading(false);

@@ -6,6 +6,7 @@
 /// <reference types="vite/client" />
 
 import { env } from '@/lib/env';
+import { logger } from './logger';
 
 /**
  * Získa správnu API base URL na základe prostredia
@@ -46,7 +47,7 @@ export function apiPath(endpoint: string): string {
 
 // Debug log len v development
 if (env.DEV) {
-  console.log('🔗 API Path configured:', {
+  logger.debug('🔗 API Path configured:', {
     base: getApiPath(),
     mode: env.MODE,
     customUrl: !!env.API_URL,

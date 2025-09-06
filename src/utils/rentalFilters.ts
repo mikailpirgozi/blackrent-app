@@ -282,7 +282,7 @@ export const getUniqueFilterValues = (
 /**
  * 🔍 Create vehicle lookup map for fast access
  */
-export const createVehicleLookup = (vehicles: any[]): VehicleLookup => {
+export const createVehicleLookup = (vehicles: unknown[]): VehicleLookup => {
   const lookup: VehicleLookup = {};
 
   vehicles.forEach(vehicle => {

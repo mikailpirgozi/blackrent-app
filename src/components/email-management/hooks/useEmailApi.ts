@@ -99,7 +99,7 @@ export const useEmailApi = () => {
         } else {
           throw new Error('Chyba pri načítaní emailov');
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('❌ EMAIL DASHBOARD - Fetch emails error:', err);
         console.error('❌ ERROR Details:', {
           message: err.message,
@@ -136,7 +136,7 @@ export const useEmailApi = () => {
         return response.data;
       }
       return null;
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('Fetch stats error:', err);
       return null;
     }
@@ -160,7 +160,7 @@ export const useEmailApi = () => {
           setError('Chyba pri načítaní detailu emailu');
           return null;
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('❌ View email error:', err);
         setError('Chyba pri načítaní detailu emailu');
         return null;
@@ -191,7 +191,7 @@ export const useEmailApi = () => {
           setError(response.error || 'Chyba pri schvaľovaní emailu');
           return false;
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('Approve email error:', err);
         setError('Chyba pri schvaľovaní emailu');
         return false;
@@ -224,7 +224,7 @@ export const useEmailApi = () => {
           setError(response.error || 'Chyba pri zamietaní emailu');
           return false;
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('Reject email error:', err);
         setError('Chyba pri zamietaní emailu');
         return false;
@@ -256,7 +256,7 @@ export const useEmailApi = () => {
           setError(response.error || 'Chyba pri archivovaní emailu');
           return false;
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('Archive email error:', err);
         setError('Chyba pri archivovaní emailu');
         return false;
@@ -296,7 +296,7 @@ export const useEmailApi = () => {
           setError(response.error || 'Chyba pri mazaní emailu');
           return false;
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         console.error('Delete email error:', err);
         setError('Chyba pri mazaní emailu');
         return false;
@@ -335,7 +335,7 @@ export const useEmailApi = () => {
         setError(response.error || 'Chyba pri mazaní historických emailov');
         return false;
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
       console.error('Clear historical emails error:', err);
       setError('Chyba pri mazaní historických emailov');
       return false;

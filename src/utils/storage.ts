@@ -1,4 +1,5 @@
 // Utility funkcie pre prácu s cookies a persistent storage
+import { logger } from './logger';
 
 export class StorageManager {
   private static COOKIE_PREFIX = 'blackrent_';
@@ -22,7 +23,7 @@ export class StorageManager {
       const cookieString = `${this.COOKIE_PREFIX}${name}=${encodeURIComponent(value)};expires=${expiresString};path=/;${isSecure ? 'secure;' : ''}samesite=lax`;
 
       document.cookie = cookieString;
-      console.log(`🍪 Cookie nastavené: ${name}, secure: ${isSecure}`);
+      logger.debug(`🍪 Cookie nastavené: ${name}, secure: ${isSecure}`);
     } catch (error) {
       console.error('Chyba pri nastavovaní cookie:', error);
     }
@@ -55,7 +56,7 @@ export class StorageManager {
   static removeCookie(name: string): void {
     try {
       document.cookie = `${this.COOKIE_PREFIX}${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
-      console.log(`🗑️ Cookie zmazané: ${name}`);
+      logger.debug(`🗑️ Cookie zmazané: ${name}`);
     } catch (error) {
       console.error('Chyba pri mazaní cookie:', error);
     }
@@ -66,11 +67,11 @@ export class StorageManager {
    */
   static setAuthData(
     token: string,
-    user: any,
+    user: Record<string, unknown>,
     rememberMe: boolean = true
   ): void {
     try {
-      console.log('💾 Ukladám auth data...', {
+      logger.debug('💾 Ukladám auth data...', {
         rememberMe,
         token: !!token,
         user: !!user,
@@ -107,7 +108,7 @@ export class StorageManager {
         }
       }
 
-      console.log('✅ Auth data uložené úspešne');
+      logger.debug('✅ Auth data uložené úspešne');
     } catch (error) {
       console.error('Chyba pri ukladaní auth data:', error);
       // Posledný fallback - aspoň localStorage
@@ -125,14 +126,17 @@ export class StorageManager {
   /**
    * Načíta token a user data s fallback na localStorage
    */
-  static getAuthData(): { token: string | null; user: any | null } {
+  static getAuthData(): {
+    token: string | null;
+    user: Record<string, unknown> | null;
+  } {
     try {
       // Primárne: localStorage (najspoľahlivejšie)
       let token = localStorage.getItem('blackrent_token');
       let userStr = localStorage.getItem('blackrent_user');
 
       if (token && userStr) {
-        console.log('📦 Auth data načítané z localStorage');
+        logger.debug('📦 Auth data načítané z localStorage');
         return {
           token,
           user: JSON.parse(userStr),
@@ -144,7 +148,7 @@ export class StorageManager {
       userStr = this.getCookie('user');
 
       if (token && userStr) {
-        console.log('🍪 Auth data načítané z cookies');
+        logger.debug('🍪 Auth data načítané z cookies');
         try {
           return {
             token,
@@ -160,7 +164,7 @@ export class StorageManager {
       userStr = sessionStorage.getItem('blackrent_user');
 
       if (token && userStr) {
-        console.log('🗂️ Auth data načítané z sessionStorage');
+        logger.debug('🗂️ Auth data načítané z sessionStorage');
         try {
           return {
             token,
@@ -174,7 +178,7 @@ export class StorageManager {
         }
       }
 
-      console.log('❌ Žiadne auth data nenájdené');
+      logger.debug('❌ Žiadne auth data nenájdené');
       return { token: null, user: null };
     } catch (error) {
       console.error('Chyba pri načítaní auth data:', error);
@@ -187,7 +191,7 @@ export class StorageManager {
    */
   static clearAuthData(): void {
     try {
-      console.log('🧹 Mažem všetky auth data...');
+      logger.debug('🧹 Mažem všetky auth data...');
 
       // Vymaž cookies
       this.removeCookie('token');
@@ -203,7 +207,7 @@ export class StorageManager {
       sessionStorage.removeItem('blackrent_token');
       sessionStorage.removeItem('blackrent_user');
 
-      console.log('✅ Všetky auth data vymazané');
+      logger.debug('✅ Všetky auth data vymazané');
     } catch (error) {
       console.error('Chyba pri mazaní auth data:', error);
     }
@@ -268,7 +272,7 @@ export class StorageManager {
       const allOK = localOK && cookieOK && sessionOK;
 
       if (allOK) {
-        console.log('✅ Storage: All tests passed');
+        logger.debug('✅ Storage: All tests passed');
       } else {
         console.warn('⚠️ Storage issues:', {
           localStorage: localOK ? 'OK' : 'FAIL',

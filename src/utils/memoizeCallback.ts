@@ -8,18 +8,21 @@ import { useCallback, useRef } from 'react';
 
 /**
  * 📝 Memoize callback s dependency tracking
+ * POZNÁMKA: Táto funkcia je deprecated - použite useCallback priamo v komponente
  */
-export const memoizeCallback = <T extends (...args: any[]) => any>(
+export const memoizeCallback = <T extends (...args: unknown[]) => unknown>(
   callback: T,
-  dependencies: any[]
+  _dependencies: unknown[]
 ): T => {
-  return useCallback(callback, dependencies);
+  // Táto funkcia je len wrapper - v skutočnosti vráti originálny callback
+  // useCallback sa musí volať priamo v React komponente
+  return callback;
 };
 
 /**
  * 🏎️ Stable callback hook - callback sa zmení len keď sa zmení referencia funkcie
  */
-export const useStableCallback = <T extends (...args: any[]) => any>(
+export const useStableCallback = <T extends (...args: unknown[]) => unknown>(
   callback: T
 ): T => {
   const callbackRef = useRef(callback);
@@ -36,11 +39,12 @@ export const useStableCallback = <T extends (...args: any[]) => any>(
  */
 export const createMemoizedHandlers = <T>(
   handlers: Record<string, (item: T) => void>,
-  dependencies: any[] = []
+  _dependencies: unknown[] = []
 ) => {
+  // POZNÁMKA: Táto funkcia je deprecated - useCallback sa musí volať priamo v React komponente
   return Object.keys(handlers).reduce(
     (memo, key) => {
-      memo[key] = useCallback(handlers[key], dependencies);
+      memo[key] = handlers[key]; // Vráti originálne handlery bez memoization
       return memo;
     },
     {} as Record<string, (item: T) => void>
@@ -50,7 +54,9 @@ export const createMemoizedHandlers = <T>(
 /**
  * 📊 Performance measurement decorator pre callbacks
  */
-export const withPerformanceTracking = <T extends (...args: any[]) => any>(
+export const withPerformanceTracking = <
+  T extends (...args: unknown[]) => unknown,
+>(
   callback: T,
   label: string
 ): T => {

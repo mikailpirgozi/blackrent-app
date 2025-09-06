@@ -1,15 +1,11 @@
 // 🔴 REACT WEBSOCKET HOOK - BlackRent
 // Custom React hook pre jednoduché použitie WebSocket real-time updates
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { WebSocketClient } from '../services/websocket-client';
-import {
-  getWebSocketClient,
-  WebSocketEvents,
-} from '../services/websocket-client';
+import { getWebSocketClient } from '../services/websocket-client';
 import type { Rental, Vehicle } from '../types';
-import { Customer } from '../types';
 
 // Notification typy
 export interface NotificationData {
@@ -24,7 +20,7 @@ export interface NotificationData {
   title: string;
   message: string;
   timestamp: string;
-  data?: any;
+  data?: unknown;
   read?: boolean;
 }
 
@@ -35,7 +31,7 @@ export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState<{
     count: number;
-    users: any[];
+    users: unknown[];
   }>({ count: 0, users: [] });
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const clientRef = useRef<WebSocketClient | null>(null);
@@ -55,7 +51,10 @@ export function useWebSocket() {
       // Removed redundant log - already logged in websocket-client.ts
     };
 
-    const handleConnectedUsers = (data: { count: number; users: any[] }) => {
+    const handleConnectedUsers = (data: {
+      count: number;
+      users: unknown[];
+    }) => {
       setConnectedUsers(data);
     };
 
@@ -127,22 +126,25 @@ export function useRentalUpdates(
   useEffect(() => {
     if (!client) return;
 
-    const handleRentalCreated = (data: any) => {
+    const handleRentalCreated = (data: unknown) => {
       console.log('📢 Rental created:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
-      onRentalChange?.('created', data.rental);
+      const rentalData = data as { rental?: Rental };
+      onRentalChange?.('created', rentalData.rental);
     };
 
-    const handleRentalUpdated = (data: any) => {
+    const handleRentalUpdated = (data: unknown) => {
       console.log('📢 Rental updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
-      onRentalChange?.('updated', data.rental);
+      const rentalData = data as { rental?: Rental };
+      onRentalChange?.('updated', rentalData.rental);
     };
 
-    const handleRentalDeleted = (data: any) => {
+    const handleRentalDeleted = (data: unknown) => {
       console.log('📢 Rental deleted:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
-      onRentalChange?.('deleted', undefined, data.rentalId);
+      const rentalData = data as { rentalId?: string };
+      onRentalChange?.('deleted', undefined, rentalData.rentalId);
     };
 
     // Register event listeners
@@ -170,10 +172,13 @@ export function useVehicleUpdates(
   useEffect(() => {
     if (!client) return;
 
-    const handleVehicleUpdated = (data: any) => {
+    const handleVehicleUpdated = (data: unknown) => {
       console.log('📢 Vehicle updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
-      onVehicleChange?.(data.vehicle);
+      const vehicleData = data as { vehicle?: Vehicle };
+      if (vehicleData.vehicle) {
+        onVehicleChange?.(vehicleData.vehicle);
+      }
     };
 
     client.on('vehicle:updated', handleVehicleUpdated);
@@ -188,14 +193,14 @@ export function useVehicleUpdates(
  * Hook pre real-time protocol updates
  */
 export function useProtocolUpdates(
-  onProtocolChange?: (type: string, data: any) => void
+  onProtocolChange?: (type: string, data: unknown) => void
 ) {
   const { client, addNotification } = useWebSocket();
 
   useEffect(() => {
     if (!client) return;
 
-    const handleProtocolCreated = (data: any) => {
+    const handleProtocolCreated = (data: unknown) => {
       console.log('📢 Protocol created:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       onProtocolChange?.('created', data);
@@ -206,7 +211,7 @@ export function useProtocolUpdates(
       );
     };
 
-    const handleProtocolUpdated = (data: any) => {
+    const handleProtocolUpdated = (data: unknown) => {
       console.log('📢 Protocol updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       onProtocolChange?.('updated', data);
@@ -238,24 +243,35 @@ export function useSystemNotifications() {
   useEffect(() => {
     if (!client) return;
 
-    const handleSystemNotification = (data: any) => {
+    const handleSystemNotification = (data: unknown) => {
       console.log('📢 System notification:', data);
+      const notificationData = data as {
+        type?: string;
+        message?: string;
+        timestamp?: string;
+        details?: unknown;
+      };
       addNotification({
         type: 'system',
-        title: `${data.type === 'error' ? '❌' : data.type === 'warning' ? '⚠️' : 'ℹ️'} Systém`,
-        message: data.message,
-        timestamp: data.timestamp,
-        data: data.details,
+        title: `${notificationData.type === 'error' ? '❌' : notificationData.type === 'warning' ? '⚠️' : 'ℹ️'} Systém`,
+        message: notificationData.message || '',
+        timestamp: notificationData.timestamp || new Date().toISOString(),
+        data: notificationData.details,
       });
     };
 
-    const handleMigration = (data: any) => {
+    const handleMigration = (data: unknown) => {
       console.log('📢 Migration completed:', data);
+      const migrationData = data as {
+        success?: boolean;
+        message?: string;
+        timestamp?: string;
+      };
       addNotification({
         type: 'system',
-        title: data.success ? '✅ Migrácia' : '❌ Migrácia',
-        message: data.message,
-        timestamp: data.timestamp,
+        title: migrationData.success ? '✅ Migrácia' : '❌ Migrácia',
+        message: migrationData.message || '',
+        timestamp: migrationData.timestamp || new Date().toISOString(),
         data: data,
       });
     };
@@ -291,7 +307,7 @@ export function useWebSocketTest() {
       console.log(`🏓 Pong received - latency: ${latency}ms`);
     };
 
-    const handleTest = (data: any) => {
+    const handleTest = (data: unknown) => {
       console.log('🧪 Test message:', data);
     };
 

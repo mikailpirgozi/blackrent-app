@@ -268,9 +268,9 @@ export const logError = (error: AppError, context?: Record<string, any>) => {
     `🚨 ${error.severity.toUpperCase()} - ${error.category.toUpperCase()}`
   );
   console.error('Message:', error.message);
-  if (error.details) console.log('Details:', error.details);
-  if (error.stack) console.log('Stack:', error.stack);
-  if (logData.context) console.log('Context:', logData.context);
+  if (error.details) logger.debug('Details:', error.details);
+  if (error.stack) logger.debug('Stack:', error.stack);
+  if (logData.context) logger.debug('Context:', logData.context);
   console.groupEnd();
 
   // In production, you could send this to an error reporting service

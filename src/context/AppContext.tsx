@@ -1,25 +1,25 @@
 import type { ReactNode } from 'react';
 import React, {
   createContext,
-  useContext,
-  useReducer,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useReducer,
 } from 'react';
 
 import { apiService } from '../services/api';
 import type {
-  Vehicle,
-  Rental,
+  Company,
+  Customer,
   Expense,
   Insurance,
-  Settlement,
-  Customer,
-  Company,
-  Insurer,
-  VehicleDocument,
   InsuranceClaim,
+  Insurer,
+  Rental,
+  Settlement,
+  Vehicle,
   VehicleCategory,
+  VehicleDocument,
   VehicleStatus,
 } from '../types';
 import logger from '../utils/logger';
@@ -81,7 +81,7 @@ interface AppState {
     rentalId: string;
     createdBy: string;
     createdAt: Date;
-    rentalData?: any;
+    rentalData?: Record<string, unknown>;
   }>;
   loading: boolean;
   error: string | null;
@@ -122,7 +122,7 @@ type AppAction =
         rentalId: string;
         createdBy: string;
         createdAt: Date;
-        rentalData?: any;
+        rentalData?: Record<string, unknown>;
       }>;
     }
   | { type: 'ADD_VEHICLE'; payload: Vehicle }
@@ -861,11 +861,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // Nastav čas načítania pre cache
       dispatch({ type: 'SET_LAST_LOAD_TIME', payload: Date.now() });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Chyba pri načítavaní BULK dát:', error);
 
       // FALLBACK: Ak BULK API zlyhá, použij starý spôsob
-      console.log(
+      logger.debug(
         '🔄 FALLBACK: Bulk API zlyhal, používam individuálne API calls...'
       );
       try {
@@ -884,10 +884,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // FALLBACK funkcia - pôvodný spôsob načítania
   const loadDataFallback = async (): Promise<void> => {
-    console.log('📦 FALLBACK: Načítavam dáta individuálnymi API calls...');
+    logger.debug('📦 FALLBACK: Načítavam dáta individuálnymi API calls...');
 
     // OPTIMALIZÁCIA: Načítaj najdôležitejšie dáta PRVÉ
-    console.log('📦 1. Načítavam kľúčové dáta (vehicles, customers)...');
+    logger.debug('📦 1. Načítavam kľúčové dáta (vehicles, customers)...');
     const [vehicles, customers] = await Promise.all([
       apiService.getVehicles(false, true), // Načítaj aj súkromné vozidlá
       apiService.getCustomers(),
@@ -906,7 +906,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     // OPTIMALIZÁCIA: Načítaj ostatné dáta PARALELNE
-    console.log('📦 2. Načítavam ostatné dáta paralelne...');
+    logger.debug('📦 2. Načítavam ostatné dáta paralelne...');
     const [
       rentals,
       expenses,
@@ -927,7 +927,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiService.getInsuranceClaims(),
     ]);
 
-    console.log('✅ FALLBACK: Dáta úspešne načítané individuálne:', {
+    logger.debug('✅ FALLBACK: Dáta úspešne načítané individuálne:', {
       vehicles: vehicles.length,
       rentals: rentals.length,
     });
@@ -1030,7 +1030,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } else if (!authState.isAuthenticated && !authState.isLoading) {
         // Clear data and cache when user logs out
-        console.log('Používateľ nie je prihlásený, mažem dáta a cache...');
+        logger.debug('Používateľ nie je prihlásený, mažem dáta a cache...');
         dispatch({ type: 'CLEAR_ALL_DATA' });
 
         // Clear unified cache
@@ -1071,11 +1071,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unifiedCache.invalidateEntity('vehicle');
 
       // 🔄 REFRESH: Reload ALL vehicles to ensure fresh data
-      console.log('🔄 Reloading all vehicles after update...');
+      logger.debug('🔄 Reloading all vehicles after update...');
       const freshVehicles = await apiService.getVehicles(false, true); // Načítaj aj súkromné vozidlá
       dispatch({ type: 'SET_VEHICLES', payload: freshVehicles });
 
-      console.log('✅ All vehicles reloaded with fresh data');
+      logger.debug('✅ All vehicles reloaded with fresh data');
     } catch (error) {
       console.error('Chyba pri aktualizácii vozidla:', error);
       throw error;
@@ -1197,9 +1197,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteRental = async (id: string): Promise<void> => {
     try {
-      console.log(`🗑️ AppContext: Mazanie prenájmu ID: ${id}`);
+      logger.debug(`🗑️ AppContext: Mazanie prenájmu ID: ${id}`);
       await apiService.deleteRental(id);
-      console.log(`✅ AppContext: Prenájom ${id} úspešne vymazaný z API`);
+      logger.debug(`✅ AppContext: Prenájom ${id} úspešne vymazaný z API`);
       dispatch({ type: 'DELETE_RENTAL', payload: id });
 
       // 🗄️ UNIFIED CACHE: Smart invalidation
@@ -1213,7 +1213,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         error instanceof Error &&
         error.message.includes('Prenájom nenájdený')
       ) {
-        console.log(
+        logger.debug(
           '🔄 AppContext: Prenájom už neexistuje, aktualizujem dáta...'
         );
         // Načítaj znovu všetky dáta z API

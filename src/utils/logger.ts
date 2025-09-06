@@ -10,34 +10,40 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 export const logger = {
   // 🐛 Debug logy - len v development
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
+      // eslint-disable-next-line no-console
       console.log(...args);
     }
   },
 
   // ℹ️ Info logy - vždy
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
+    // eslint-disable-next-line no-console
     console.log(...args);
   },
 
   // ⚠️ Warning logy - vždy
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
+    // eslint-disable-next-line no-console
     console.warn(...args);
   },
 
   // 🚨 Error logy - vždy
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
+    // eslint-disable-next-line no-console
     console.error(...args);
   },
 
   // 📊 Performance logy - vždy (dôležité pre monitoring)
-  perf: (...args: any[]) => {
+  perf: (...args: unknown[]) => {
+    // eslint-disable-next-line no-console
     console.log(...args);
   },
 
   // 🔐 Auth logy - vždy (dôležité pre security debugging)
-  auth: (...args: any[]) => {
+  auth: (...args: unknown[]) => {
+    // eslint-disable-next-line no-console
     console.log(...args);
   },
 };

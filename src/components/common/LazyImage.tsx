@@ -5,19 +5,19 @@
  */
 
 import {
-  Refresh as RefreshIcon,
-  Image as ImageIcon,
   Error as ErrorIcon,
+  Image as ImageIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  IconButton,
   Fade,
+  IconButton,
   Skeleton,
+  Typography,
   useTheme,
 } from '@mui/material';
-import React, { memo, forwardRef } from 'react';
+import React, { forwardRef, memo } from 'react';
 
 import { useLazyImage, useProgressiveImage } from '../../hooks/useLazyImage';
 
@@ -71,22 +71,29 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
   ) => {
     const theme = useTheme();
 
+    // Always call both hooks to avoid conditional hook calls
+    const progressiveImageHook = useProgressiveImage(
+      lowQualitySrc || src,
+      src,
+      {
+        threshold,
+        rootMargin,
+        retryAttempts,
+        onLoad,
+        onError,
+      }
+    );
+
+    const lazyImageHook = useLazyImage(src, {
+      threshold,
+      rootMargin,
+      retryAttempts,
+      onLoad,
+      onError,
+    });
+
     // Use progressive loading if low quality src is provided
-    const lazyImageHook = lowQualitySrc
-      ? useProgressiveImage(lowQualitySrc, src, {
-          threshold,
-          rootMargin,
-          retryAttempts,
-          onLoad,
-          onError,
-        })
-      : useLazyImage(src, {
-          threshold,
-          rootMargin,
-          retryAttempts,
-          onLoad,
-          onError,
-        });
+    const imageHook = lowQualitySrc ? progressiveImageHook : lazyImageHook;
 
     const {
       src: loadedSrc,
@@ -95,10 +102,10 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
       isInView,
       retry,
       imageRef,
-    } = lazyImageHook;
+    } = imageHook;
 
-    const isProgressive = 'isHighQuality' in lazyImageHook;
-    const isHighQuality = isProgressive ? lazyImageHook.isHighQuality : true;
+    const isProgressive = 'isHighQuality' in imageHook;
+    const isHighQuality = isProgressive ? imageHook.isHighQuality : true;
 
     // Container styles
     const containerStyles = {

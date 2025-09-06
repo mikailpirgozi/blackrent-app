@@ -7,11 +7,11 @@ export interface ProtocolData {
   rental: any;
   location: string;
   vehicleCondition: any;
-  vehicleImages: any[];
-  documentImages: any[];
-  damageImages: any[];
-  damages: any[];
-  signatures: any[];
+  vehicleImages: unknown[];
+  documentImages: unknown[];
+  damageImages: unknown[];
+  damages: unknown[];
+  signatures: unknown[];
   notes: string;
   createdAt: Date;
   completedAt: Date;
@@ -294,7 +294,7 @@ class PDFGenerator {
    * Pridanie fotiek vozidla
    */
   private async addVehicleImages(
-    images: any[],
+    images: unknown[],
     maxWidth: number,
     maxHeight: number,
     quality: number
@@ -432,7 +432,7 @@ class PDFGenerator {
    * Pridanie dokumentov
    */
   private async addDocumentImages(
-    images: any[],
+    images: unknown[],
     maxWidth: number,
     maxHeight: number,
     quality: number
@@ -558,7 +558,7 @@ class PDFGenerator {
   /**
    * Pridanie škôd
    */
-  private addDamages(damages: any[]) {
+  private addDamages(damages: unknown[]) {
     this.addSectionTitle('ŠKODY A POŠKODENIA');
 
     if (damages.length === 0) {
@@ -622,7 +622,7 @@ class PDFGenerator {
    * Pridanie podpisov
    */
   private async addSignatures(
-    signatures: any[],
+    signatures: unknown[],
     maxWidth: number,
     maxHeight: number,
     quality: number
@@ -991,7 +991,7 @@ class PDFGenerator {
   /**
    * Pridanie URL na novú stranu
    */
-  private addImageUrlsPage(images: any[]) {
+  private addImageUrlsPage(images: unknown[]) {
     this.doc.addPage();
     this.currentY = 30;
 

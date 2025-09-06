@@ -20,7 +20,7 @@ export interface AppError {
   stack?: string;
   retry?: boolean;
   dismissed?: boolean;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface ErrorContext {
@@ -83,7 +83,7 @@ export const createError = (
   category: ErrorCategory,
   severity: ErrorSeverity = 'error',
   details?: string,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): Omit<AppError, 'id' | 'timestamp'> => ({
   message,
   category,

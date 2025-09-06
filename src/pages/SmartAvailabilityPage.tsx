@@ -5,7 +5,7 @@
  * Nahradí pôvodný AvailabilityPage s lepším UX
  */
 
-import { Box, Container } from '@mui/material';
+import { Container } from '@mui/material';
 import React from 'react';
 
 import SmartAvailabilityDashboard from '../components/availability/SmartAvailabilityDashboard';

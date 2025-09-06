@@ -3,13 +3,12 @@ import { useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePermissionsContext } from '../context/PermissionsContext';
 import type {
-  UserRole,
+  CompanyPermissions,
   Permission,
   PermissionResult,
   UserCompanyAccess,
-  CompanyPermissions,
+  UserRole,
 } from '../types';
-import { ResourcePermission } from '../types';
 
 // 🔐 FRONTEND ROLE PERMISSIONS MATRIX (fallback pre admin)
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -111,10 +110,10 @@ export function hasCompanyPermission(
 
 // 🛡️ LEGACY PERMISSION CHECK FUNCTION (pre spätnú kompatibilitu)
 export function hasLegacyPermission(
-  userRole: UserRole,
-  resource: Permission['resource'],
-  action: Permission['actions'][0],
-  context?: {
+  _userRole: UserRole,
+  _resource: Permission['resource'],
+  _action: Permission['actions'][0],
+  _context?: {
     userId?: string;
     companyId?: string;
     resourceOwnerId?: string;
@@ -122,10 +121,8 @@ export function hasLegacyPermission(
     amount?: number;
   }
 ): PermissionResult {
-  const rolePermissions = ROLE_PERMISSIONS[userRole];
-
   // Admin má vždy práva
-  if (userRole === 'admin') {
+  if (_userRole === 'admin') {
     return { hasAccess: true, requiresApproval: false };
   }
 
@@ -263,7 +260,7 @@ export function usePermissions() {
       hasPermission: (
         resource: Permission['resource'],
         action: Permission['actions'][0],
-        context?: any
+        context?: Record<string, unknown>
       ): PermissionResult => {
         // Pre admin používame legacy funkciu
         if (user.role === 'admin') {

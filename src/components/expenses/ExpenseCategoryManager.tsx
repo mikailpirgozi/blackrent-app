@@ -113,7 +113,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
     try {
       const result = await apiService.getExpenseCategories();
       setCategories(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError('Chyba pri načítavaní kategórií: ' + error.message);
     } finally {
       setLoading(false);
@@ -182,7 +182,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
         setSuccess('Kategória úspešne zmazaná');
         await loadCategories();
         onCategoriesChanged?.();
-      } catch (error: any) {
+      } catch (error: unknown) {
         setError('Chyba pri mazaní kategórie: ' + error.message);
       } finally {
         setLoading(false);
@@ -229,7 +229,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       setFormOpen(false);
       await loadCategories();
       onCategoriesChanged?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError('Chyba pri ukladaní kategórie: ' + error.message);
     } finally {
       setLoading(false);
