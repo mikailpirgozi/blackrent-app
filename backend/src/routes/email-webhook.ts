@@ -4,8 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { PostgresDatabase } from '../models/postgres-database';
-import { logger } from '../utils/logger';
 import { getWebSocketService } from '../services/websocket-service';
+import { logger } from '../utils/logger';
+
+// Interface pre PostgreSQL query výsledky
+interface QueryResult {
+  rows: Record<string, unknown>[];
+  rowCount?: number;
+}
 
 const router = Router();
 const postgresDatabase = new PostgresDatabase();
@@ -748,7 +754,7 @@ router.get('/pending',
         WHERE auto_processed_at IS NOT NULL 
         AND approval_status = 'pending'
         ORDER BY auto_processed_at DESC
-      `);
+      `) as QueryResult;
       
       res.json({
         success: true,
@@ -819,7 +825,7 @@ router.post('/reject/:id',
         SELECT order_number, customer_name 
         FROM rentals 
         WHERE id = $1 AND approval_status = 'pending'
-      `, [id]);
+      `, [id]) as QueryResult;
       
       if (rentalData.rows.length === 0) {
         return res.status(404).json({
@@ -828,7 +834,7 @@ router.post('/reject/:id',
         });
       }
       
-      const { order_number, customer_name } = rentalData.rows[0];
+      const { order_number, customer_name } = (rentalData as QueryResult).rows[0];
       
       // 🚫 BLACKLIST: Pridaj do blacklistu aby sa už nikdy nevytvorila automaticky
       if (order_number) {
@@ -927,7 +933,7 @@ router.put('/rentals/:id',
         RETURNING *
       `;
       
-      const result = await postgresDatabase.query(query, values);
+      const result = await postgresDatabase.query(query, values) as QueryResult;
       
       if (result.rows.length === 0) {
         return res.status(404).json({
@@ -956,7 +962,7 @@ router.put('/rentals/:id',
       
       res.json({
         success: true,
-        data: result.rows[0]
+        data: (result as QueryResult).rows[0]
       });
     } catch (error) {
       console.error('Update pending rental error:', error);
@@ -976,7 +982,7 @@ router.get('/stats',
     try {
       const statsResult = await postgresDatabase.query(`
         SELECT * FROM automatic_rentals_stats
-      `);
+      `) as QueryResult;
       
   
       const logResult = { rows: [] };
@@ -1018,7 +1024,7 @@ router.post('/blacklist/:orderNumber', async (req, res) => {
       DELETE FROM rentals 
       WHERE order_number = $1 AND approval_status = 'pending'
       RETURNING id
-    `, [orderNumber]);
+    `, [orderNumber]) as QueryResult;
 
     const deletedCount = deleteResult.rows.length;
 

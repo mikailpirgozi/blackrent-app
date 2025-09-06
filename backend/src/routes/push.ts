@@ -6,6 +6,12 @@ import webpush from 'web-push';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
 
+// Interface pre PostgreSQL query výsledky
+interface QueryResult {
+  rows: Record<string, unknown>[];
+  rowCount?: number;
+}
+
 const router = express.Router();
 
 // VAPID keys configuration
@@ -67,7 +73,7 @@ router.post('/subscription', authenticateToken, async (req, res) => {
         subscription.keys?.auth || '',
         userAgent || ''
       ]
-    );
+    ) as QueryResult;
 
     console.log(`✅ Push subscription saved for user ${userId}`);
 
@@ -143,7 +149,7 @@ router.post('/send', authenticateToken, requireRole(['admin']), async (req, res)
       params.push(targetUsers);
     }
 
-    const subscriptions = await postgresDatabase.query(query, params);
+    const subscriptions = await postgresDatabase.query(query, params) as QueryResult;
 
     if (subscriptions.rows.length === 0) {
       return res.status(404).json({
@@ -177,13 +183,13 @@ router.post('/send', authenticateToken, requireRole(['admin']), async (req, res)
     };
 
     // Send notifications to all subscriptions
-    const sendPromises = subscriptions.rows.map(async (sub: any) => {
+    const sendPromises = subscriptions.rows.map(async (sub: Record<string, unknown>) => {
       try {
         const pushSubscription = {
-          endpoint: sub.endpoint,
+          endpoint: sub.endpoint as string,
           keys: {
-            p256dh: sub.p256dh_key,
-            auth: sub.auth_key
+            p256dh: sub.p256dh_key as string,
+            auth: sub.auth_key as string
           }
         };
 
@@ -197,7 +203,7 @@ router.post('/send', authenticateToken, requireRole(['admin']), async (req, res)
         );
 
         // Log successful delivery
-        await logNotificationDelivery(sub.id, 'sent', notificationPayload);
+        await logNotificationDelivery(sub.id as string, 'sent', notificationPayload);
         
         return { subscriptionId: sub.id, status: 'sent' };
 
@@ -213,7 +219,7 @@ router.post('/send', authenticateToken, requireRole(['admin']), async (req, res)
           console.log(`🗑️ Deactivated expired subscription ${sub.id}`);
         }
 
-        await logNotificationDelivery(sub.id, 'failed', notificationPayload, error.message);
+        await logNotificationDelivery(sub.id as string, 'failed', notificationPayload, error.message);
         
         return { subscriptionId: sub.id, status: 'failed', error: error.message };
       }
@@ -223,8 +229,8 @@ router.post('/send', authenticateToken, requireRole(['admin']), async (req, res)
     
     const summary = {
       total: results.length,
-      sent: results.filter(r => r.status === 'sent').length,
-      failed: results.filter(r => r.status === 'failed').length
+      sent: results.filter((r: { status: string }) => r.status === 'sent').length,
+      failed: results.filter((r: { status: string }) => r.status === 'failed').length
     };
 
     console.log(`📊 Push notification summary:`, summary);
@@ -255,7 +261,7 @@ router.post('/send-to-user/:userId', authenticateToken, requireRole(['admin', 'm
       [userId]
     );
 
-    if (subscriptions.rows.length === 0) {
+    if ((subscriptions as QueryResult).rows.length === 0) {
       return res.status(404).json({
         error: 'No active subscriptions found for user'
       });
@@ -263,7 +269,7 @@ router.post('/send-to-user/:userId', authenticateToken, requireRole(['admin', 'm
 
     // Send notification using the main send logic
     const sendResult = await sendPushNotificationToSubscriptions(
-      subscriptions.rows,
+      (subscriptions as QueryResult).rows,
       notificationData
     );
 
@@ -315,8 +321,8 @@ router.get('/analytics', authenticateToken, requireRole(['admin']), async (req, 
     `);
 
     res.json({
-      analytics: analytics.rows,
-      subscriptionStats: subscriptionStats.rows[0]
+      analytics: (analytics as QueryResult).rows,
+      subscriptionStats: (subscriptionStats as QueryResult).rows[0]
     });
 
   } catch (error) {
@@ -335,11 +341,11 @@ router.get('/subscription/status', authenticateToken, async (req, res) => {
     const subscriptions = await postgresDatabase.query(
       'SELECT id, endpoint, active, created_at FROM push_subscriptions WHERE user_id = $1',
       [userId]
-    );
+    ) as QueryResult;
 
     res.json({
       subscriptions: subscriptions.rows,
-      hasActiveSubscription: subscriptions.rows.some((sub: any) => sub.active)
+      hasActiveSubscription: subscriptions.rows.some((sub: Record<string, unknown>) => sub.active)
     });
 
   } catch (error) {
@@ -365,11 +371,11 @@ router.post('/trigger/rental-request', authenticateToken, async (req, res) => {
       [rentalId]
     );
 
-    if (rental.rows.length === 0) {
+    if ((rental as QueryResult).rows.length === 0) {
       return res.status(404).json({ error: 'Rental not found' });
     }
 
-    const rentalData = rental.rows[0];
+    const rentalData = (rental as QueryResult).rows[0];
 
     // Send notification to admins
     const adminUsers = await postgresDatabase.query(
@@ -416,7 +422,7 @@ router.post('/trigger/rental-request', authenticateToken, async (req, res) => {
     );
 
     const result = await sendPushNotificationToSubscriptions(
-      adminSubscriptions.rows,
+      (adminSubscriptions as QueryResult).rows,
       notificationData
     );
 
@@ -493,8 +499,8 @@ async function sendPushNotificationToSubscriptions(subscriptions: any[], notific
     success: true,
     summary: {
       total: results.length,
-      sent: results.filter(r => r.status === 'sent').length,
-      failed: results.filter(r => r.status === 'failed').length
+      sent: results.filter((r: { status: string }) => r.status === 'sent').length,
+      failed: results.filter((r: { status: string }) => r.status === 'failed').length
     },
     results
   };

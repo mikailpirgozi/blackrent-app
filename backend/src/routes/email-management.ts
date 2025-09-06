@@ -5,6 +5,29 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import { calculateRentalDays } from '../utils/rentalDaysCalculator';
 
+// Interface pre PostgreSQL query výsledky
+interface QueryResult {
+  rows: Record<string, unknown>[];
+  rowCount?: number;
+}
+
+// Interface pre parsované email dáta
+interface ParsedEmailData {
+  reservationTime?: string;
+  totalAmount?: number;
+  vehicleTotalAmount?: number;
+  paymentMethod?: string;
+  customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
+  vehicleCode?: string;
+  vehicleName?: string;
+  dailyKilometers?: string;
+  pickupPlace?: string;
+  deposit?: number;
+  orderNumber?: string;
+}
+
 const router = Router();
 
 interface ApiResponse<T = unknown> {
@@ -104,13 +127,13 @@ router.get('/',
         WHERE ${whereClause}
       `;
       
-      const countResult = await postgresDatabase.query(countQuery, params.slice(0, -2));
-      const total = parseInt(countResult.rows[0].total);
+      const countResult = await postgresDatabase.query(countQuery, params.slice(0, -2)) as QueryResult;
+      const total = parseInt((countResult.rows[0] as Record<string, unknown>).total as string);
 
       res.json({
         success: true,
         data: {
-          emails: result.rows,
+          emails: (result as QueryResult).rows,
           pagination: {
             total,
             limit: parseInt(limit as string),
@@ -152,7 +175,7 @@ router.get('/:id',
         WHERE eph.id = $1
       `, [id]);
 
-      if (result.rows.length === 0) {
+      if ((result as QueryResult).rows.length === 0) {
         return res.status(404).json({
           success: false,
           error: 'Email nenájdený'
@@ -173,8 +196,8 @@ router.get('/:id',
       res.json({
         success: true,
         data: {
-          email: result.rows[0],
-          actions: actionsResult.rows
+          email: (result as QueryResult).rows[0],
+          actions: (actionsResult as QueryResult).rows
         }
       });
 
@@ -200,7 +223,7 @@ router.post('/:id/approve',
       // Get email data
       const emailResult = await postgresDatabase.query(`
         SELECT * FROM email_processing_history WHERE id = $1
-      `, [id]);
+      `, [id]) as QueryResult;
 
       if (emailResult.rows.length === 0) {
         return res.status(404).json({
@@ -245,7 +268,7 @@ router.post('/:id/approve',
           });
         }
 
-        const parsedData = email.parsed_data;
+        const parsedData = email.parsed_data as ParsedEmailData;
 
         try {
           // Create rental from parsed data (using correct column names)
@@ -319,7 +342,7 @@ router.post('/:id/approve',
               // Try to find existing customer by email
               const customerResult = await postgresDatabase.query(`
                 SELECT id FROM customers WHERE email = $1
-              `, [parsedData.customerEmail]);
+              `, [parsedData.customerEmail]) as QueryResult;
               
               if (customerResult.rows.length > 0) {
                 customerId = customerResult.rows[0].id;
@@ -333,7 +356,7 @@ router.post('/:id/approve',
                   INSERT INTO customers (first_name, last_name, name, email, phone, created_at)
                   VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
                   RETURNING id
-                `, [firstName, lastName, parsedData.customerName, parsedData.customerEmail, parsedData.customerPhone]);
+                `, [firstName, lastName, parsedData.customerName, parsedData.customerEmail, parsedData.customerPhone]) as QueryResult;
                 customerId = newCustomerResult.rows[0].id;
               }
             } catch (customerError) {
@@ -348,7 +371,7 @@ router.post('/:id/approve',
             try {
               const vehicleResult = await postgresDatabase.query(`
                 SELECT id, pricing FROM vehicles WHERE license_plate = $1 OR license_plate = $2
-              `, [parsedData.vehicleCode, parsedData.vehicleCode.toUpperCase()]);
+              `, [parsedData.vehicleCode, parsedData.vehicleCode.toUpperCase()]) as QueryResult;
               
               if (vehicleResult.rows.length > 0) {
                 vehicleId = vehicleResult.rows[0].id;
@@ -402,7 +425,7 @@ router.post('/:id/approve',
             `Email: ${parsedData.customerEmail}, Telefón: ${parsedData.customerPhone}, Vozidlo: ${parsedData.vehicleName} (${parsedData.vehicleCode}), Denné km: ${parsedData.dailyKilometers}, Extra km: ${extraKilometerRate}€/km`
           ]);
 
-          const rentalId = result.rows[0].id;
+          const rentalId = (result as QueryResult).rows[0].id;
 
           // Update email with rental_id and approved status
           await postgresDatabase.query(`
@@ -612,10 +635,10 @@ router.post('/bulk-archive',
         WHERE id IN (${placeholders})
         AND status NOT IN ('archived')
         RETURNING id
-      `, params);
+      `, params) as QueryResult;
 
       // Log actions for each archived email
-      const logPromises = result.rows.map((row: Record<string, unknown>) => 
+      const logPromises = (result as QueryResult).rows.map((row: Record<string, unknown>) => 
         postgresDatabase.query(`
           INSERT INTO email_action_logs (email_id, user_id, action, notes)
           VALUES ($1, $2, 'archived', $3)
@@ -627,8 +650,8 @@ router.post('/bulk-archive',
       res.json({
         success: true,
         data: {
-          message: `${result.rows.length} emailov úspešne archivovaných`,
-          archivedCount: result.rows.length
+          message: `${(result as QueryResult).rows.length} emailov úspešne archivovaných`,
+          archivedCount: (result as QueryResult).rows.length
         }
       });
 
@@ -667,10 +690,10 @@ router.post('/auto-archive',
         AND processed_at < CURRENT_TIMESTAMP - INTERVAL '$1 days'
         AND archived_at IS NULL
         RETURNING id, subject, sender
-      `, params);
+      `, params) as QueryResult;
 
       // Log actions for each auto-archived email
-      const logPromises = result.rows.map((row: Record<string, unknown>) => 
+      const logPromises = (result as QueryResult).rows.map((row: Record<string, unknown>) => 
         postgresDatabase.query(`
           INSERT INTO email_action_logs (email_id, user_id, action, notes)
           VALUES ($1, $2, 'archived', $3)
@@ -682,9 +705,9 @@ router.post('/auto-archive',
       res.json({
         success: true,
         data: {
-          message: `${result.rows.length} starých emailov automaticky archivovaných`,
-          archivedCount: result.rows.length,
-          archivedEmails: result.rows
+          message: `${(result as QueryResult).rows.length} starých emailov automaticky archivovaných`,
+          archivedCount: (result as QueryResult).rows.length,
+          archivedEmails: (result as QueryResult).rows
         }
       });
 
@@ -782,13 +805,13 @@ router.get('/archive/list',
         WHERE ${whereClause}
       `;
       
-      const countResult = await postgresDatabase.query(countQuery, params.slice(0, -2));
-      const total = parseInt(countResult.rows[0].total);
+      const countResult = await postgresDatabase.query(countQuery, params.slice(0, -2)) as QueryResult;
+      const total = parseInt((countResult.rows[0] as Record<string, unknown>).total as string);
 
       res.json({
         success: true,
         data: {
-          emails: result.rows,
+          emails: (result as QueryResult).rows,
           pagination: {
             total,
             limit: parseInt(limit as string),
@@ -820,7 +843,7 @@ router.post('/:id/unarchive',
       // Get current email to determine previous status
       const emailResult = await postgresDatabase.query(`
         SELECT * FROM email_processing_history WHERE id = $1
-      `, [id]);
+      `, [id]) as QueryResult;
 
       if (emailResult.rows.length === 0) {
         return res.status(404).json({
@@ -898,9 +921,9 @@ router.delete('/clear-historical',
         SELECT COUNT(*) as count
         FROM email_processing_history 
         WHERE received_at < $1
-      `, [todayStr]);
+      `, [todayStr]) as QueryResult;
 
-      const emailsToDelete = parseInt(countResult.rows[0].count);
+      const emailsToDelete = parseInt((countResult.rows[0] as Record<string, unknown>).count as string);
       // Clear historical count debug removed
 
       if (emailsToDelete === 0) {
@@ -917,7 +940,7 @@ router.delete('/clear-historical',
       const deleteResult = await postgresDatabase.query(`
         DELETE FROM email_processing_history 
         WHERE received_at < $1
-      `, [todayStr]);
+      `, [todayStr]) as QueryResult;
 
       // Clear historical success debug removed
 
@@ -1027,9 +1050,9 @@ router.get('/stats/dashboard',
       res.json({
         success: true,
         data: {
-          today: todayStats.rows[0],
-          weeklyTrend: weekStats.rows,
-          topSenders: topSenders.rows
+          today: (todayStats as QueryResult).rows[0],
+          weeklyTrend: (weekStats as QueryResult).rows,
+          topSenders: (topSenders as QueryResult).rows
         }
       });
 

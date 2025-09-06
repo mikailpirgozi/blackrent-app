@@ -2,6 +2,12 @@ import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import { postgresDatabase } from '../models/postgres-database';
 
+// Interface pre PostgreSQL query výsledky
+interface QueryResult {
+  rows: Record<string, unknown>[];
+  rowCount?: number;
+}
+
 interface EmailData {
   from: string;
   subject: string;
@@ -754,7 +760,7 @@ class ImapEmailService {
         SELECT id, brand, model, license_plate
         FROM vehicles 
         WHERE license_plate IS NOT NULL
-      `);
+      `) as QueryResult;
       return result.rows;
     } catch (error) {
       console.error('❌ Chyba pri načítaní vozidiel:', error);
@@ -870,7 +876,7 @@ class ImapEmailService {
         JSON.stringify(parsedData)
       ]);
       
-      const historyId = result.rows[0].id;
+      const historyId = (result as QueryResult).rows[0].id as string;
       console.log(`📧 EMAIL HISTORY: Uložený email ${emailData.messageId} (ID: ${historyId})`);
       return historyId;
     } catch (error) {
@@ -926,8 +932,8 @@ class ImapEmailService {
         [rentalData.orderNumber]
       );
 
-      if (blacklistCheck.rows.length > 0) {
-        const reason = blacklistCheck.rows[0].reason;
+      if ((blacklistCheck as QueryResult).rows.length > 0) {
+        const reason = (blacklistCheck as QueryResult).rows[0].reason;
         console.log(`🚫 BLACKLIST: Objednávka ${rentalData.orderNumber} je zablokovaná (${reason}), preskakujem`);
         return;
       }
@@ -938,7 +944,7 @@ class ImapEmailService {
         [rentalData.orderNumber]
       );
 
-      if (existingRental.rows.length > 0) {
+      if ((existingRental as QueryResult).rows.length > 0) {
         console.log(`⚠️ DB: Objednávka ${rentalData.orderNumber} už existuje, preskakujem`);
         return;
       }
@@ -987,7 +993,7 @@ class ImapEmailService {
         })
       ]);
 
-      console.log(`✅ DB: Vytvorený pending rental ${rentalData.orderNumber} (ID: ${result.rows[0].id})`);
+      console.log(`✅ DB: Vytvorený pending rental ${rentalData.orderNumber} (ID: ${(result as QueryResult).rows[0].id})`);
 
       // 🆕 Prepoj rental s email históriou
       if (emailHistoryId) {
@@ -995,14 +1001,14 @@ class ImapEmailService {
           UPDATE email_processing_history 
           SET rental_id = $1 
           WHERE id = $2
-        `, [result.rows[0].id, emailHistoryId]);
+        `, [(result as QueryResult).rows[0].id, emailHistoryId]);
         
-        console.log(`🔗 EMAIL HISTORY: Prepojený rental ${result.rows[0].id} s email ${emailHistoryId}`);
+        console.log(`🔗 EMAIL HISTORY: Prepojený rental ${(result as QueryResult).rows[0].id} s email ${emailHistoryId}`);
       }
 
       // Log do konzoly
       console.log('📊 AUTO-PROCESSING:', {
-        rentalId: result.rows[0].id,
+        rentalId: (result as QueryResult).rows[0].id,
         orderNumber: rentalData.orderNumber,
         customerName: rentalData.customerName,
         processedAt: new Date().toISOString(),
