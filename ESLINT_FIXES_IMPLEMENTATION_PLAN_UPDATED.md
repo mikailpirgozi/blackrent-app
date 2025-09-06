@@ -32,7 +32,7 @@
 
 ## 🎯 SYSTEMATICKÝ PRÍSTUP: JEDEN SÚBOR = VŠETKY CHYBY
 
-### ✅ HOTOVÉ SÚBORY (23 súborov - 0 chýb každý):
+### ✅ HOTOVÉ SÚBORY (25 súborov - 0 chýb každý):
 - ✅ `src/utils/lazyComponents.tsx` - všetky {} typy opravené
 - ✅ `backend/src/routes/auth.ts` - **NOVÉ!** 38 TypeScript chýb opravených (pool access, JWT interfaces, proper typing)
 - ✅ `src/components/rentals/RentalForm.tsx` - **NOVÉ!** react-hooks deps + useMemo pre defaultPlaces opravené
@@ -54,6 +54,8 @@
 - ✅ `src/components/vehicles/VehicleListNew.tsx` - **NOVÉ!** 51 chýb opravených (unused imports, any typy, react-hooks)
 - ✅ `backend/src/services/advanced-user-service.ts` - **NOVÉ!** 25 any typov opravených s proper interfaces
 - ✅ `src/components/rentals/RentalDashboard.tsx` - **NOVÉ!** 23 chýb opravených (14x unused vars + 9x any typy)
+- ✅ `backend/src/services/imap-email-service.ts` - **NOVÉ!** 23 chýb opravených (19x any typy, 2x unused vars, 2x ban-types)
+- ✅ `src/hooks/useRentalProtocols.ts` - **NOVÉ!** 18 chýb opravených (všetky any typy nahradené proper interfaces)
 
 ---
 
@@ -93,25 +95,34 @@
 3. ✅ **Theme typing:** Opravené theme.palette any typy s proper typing
 4. ✅ **Build test:** Komponenta funguje bez chýb
 
-### 1.4 imap-email-service.ts (23 chýb)
-**Konkrétne chyby:**
-- ❌ **19x @typescript-eslint/no-explicit-any** - any typy v email handling
-- ❌ **2x @typescript-eslint/no-unused-vars** - nepoužívané premenné
-- ❌ **2x @typescript-eslint/ban-types** - zakázané typy (Function, Object)
+### ✅ 1.4 imap-email-service.ts (23 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **19x @typescript-eslint/no-explicit-any** - všetky any typy nahradené proper interfaces
+- ✅ **2x @typescript-eslint/no-unused-vars** - odstránené nepoužívané premenné
+- ✅ **2x @typescript-eslint/ban-types** - nahradené Function proper function signatures
 
-**Konkrétne akcie:**
-1. **Email interfaces:** Definovať `EmailMessage`, `ImapConfig`, `EmailAttachment`
-2. **IMAP types:** Type všetky IMAP connection a response objekty
-3. **Ban-types fix:** Nahradiť `Function` proper function signatures
-4. **Unused cleanup:** Odstrániť nepoužívané premenné
-5. **Error handling:** Type všetky email service errors
+**Dokončené akcie:**
+1. ✅ **Email interfaces:** Definované `ImapMessage`, `ImapStream`, `EmailAttachment`, `ParsedEmail`
+2. ✅ **IMAP types:** Všetky IMAP connection a response objekty typované
+3. ✅ **Ban-types fix:** Nahradené `Function` proper function signatures
+4. ✅ **Unused cleanup:** Odstránené nepoužívané premenné a interfaces
+5. ✅ **Build test:** Backend build funguje bez chýb
 
 ---
 
 ## 🎯 FÁZA 2: MEDIUM-IMPACT SÚBORY (Priorita: VYSOKÁ)
 **Čas: 1-2 dni | Chýb: ~100** (zníženie z ~150!)
 
-### 2.1 useRentalProtocols.ts (18 chýb)
+### ✅ 2.1 useRentalProtocols.ts (18 chýb) - **HOTOVÉ!** ✅
+**Opravené chyby:**
+- ✅ **18x @typescript-eslint/no-explicit-any** - všetky any typy nahradené proper interfaces
+
+**Dokončené akcie:**
+1. ✅ **Protocol interfaces:** Definované `ProtocolData`, `ProtocolsData`, `BulkProtocolStatusItem`
+2. ✅ **API typing:** Pridané `ApiProtocolsResponse` interface pre API responses
+3. ✅ **Type assertions:** Opravené sorting funkcií s proper typing
+4. ✅ **Build test:** Frontend build funguje bez chýb
+
 ### 2.2 VehicleCentricInsuranceList.tsx (16 chýb)
 ### 2.3 SettlementListNew.tsx (16 chýb)
 ### 2.4 ResponsiveTable.tsx (15 chýb)
@@ -199,30 +210,34 @@ npx eslint . --ext .ts,.tsx --format json | jq -r '.[] | select(.messages | leng
 
 ---
 
-## 🎯 NEXT ACTION: imap-email-service.ts (23 chýb)
+## 🎯 NEXT ACTION: VehicleCentricInsuranceList.tsx (16 chýb)
 
 **Pripravený na implementáciu:**
-1. Analyzovať všetky chyby v súbore (19 any + 2 unused + 2 ban-types)
-2. Definovať EmailMessage, ImapConfig, EmailAttachment interfaces
-3. Opraviť všetky any typy v email handling
-4. Nahradiť Function s proper function signatures
-5. Odstrániť nepoužívané premenné
+1. Analyzovať všetky chyby v súbore (pravdepodobne any typy + unused vars)
+2. Definovať proper interfaces pre insurance data
+3. Opraviť všetky any typy
+4. Odstrániť nepoužívané importy/premenné
+5. Opraviť react-hooks dependencies ak potrebné
 6. Build + funkčný test
-7. Commit a pokračovať na useRentalProtocols.ts
+7. Commit a pokračovať na SettlementListNew.tsx
 
 ---
 
 ## ✅ AKTUÁLNY PROGRESS
 
-### HOTOVÉ SÚBORY (23/190+):
-- ✅ 23 súborov kompletne opravených (0 chýb každý)
+### HOTOVÉ SÚBORY (25/190+):
+- ✅ 25 súborov kompletne opravených (0 chýb každý)
 - ✅ Všetky React hooks dependencies opravené v hotových súboroch
 - ✅ Backend auth.ts kompletne refaktorovaný (38 TypeScript chýb)
 - ✅ **DEAD CODE CLEANUP:** 7 súborov odstránených (216+ chýb)
 - ✅ **NOVÉ OPRAVY:** RentalDashboard.tsx (23), RentalForm.tsx (1), AuthContext.tsx (3), usePWA.ts (5)
 
-### PROGRESS: ~408/1455 chýb opravených (28.0%)
-**Aktuálny cieľ:** ~1047 chýb zostáva
+### PROGRESS: ~449/1455 chýb opravených (30.9%)
+**Aktuálny cieľ:** ~1006 chýb zostáva
+
+**NOVÉ OPRAVY:**
+- ✅ `backend/src/services/imap-email-service.ts` - 23 chýb (19x any + 2x unused + 2x ban-types)
+- ✅ `src/hooks/useRentalProtocols.ts` - 18 chýb (všetky any typy)
 
 ---
 
