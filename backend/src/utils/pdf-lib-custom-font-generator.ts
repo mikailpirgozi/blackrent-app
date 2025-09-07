@@ -1,9 +1,9 @@
-import { PDFDocument, rgb, PageSizes } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import type { HandoverProtocol, ReturnProtocol } from '../types';
-import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 import fs from 'fs';
 import path from 'path';
+import { PDFDocument, PageSizes, rgb } from 'pdf-lib';
+import type { HandoverProtocol, ProtocolDamage, ProtocolImage, ProtocolSignature, ReturnProtocol } from '../types';
+import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**
  * PDF-lib CUSTOM Font Generator - Používa vlastný font používateľa
@@ -18,10 +18,15 @@ export class PDFLibCustomFontGenerator {
   private primaryColor = rgb(0.1, 0.46, 0.82);
   private secondaryColor = rgb(0.26, 0.26, 0.26);
   private lightGray = rgb(0.94, 0.94, 0.94);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private currentPage: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private font: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private boldFont: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private lightFont: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mediumFont: any;
   
   // 🎨 PÔVODNÁ TYPOGRAFICKÁ HIERARCHIA (bez simulácie váh)
@@ -465,6 +470,7 @@ export class PDFLibCustomFontGenerator {
   /**
    * 🎨 Pomocná metóda pre výber správneho fontu podľa typografie
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getFontByType(fontType: string): any {
     switch (fontType) {
       case 'bold':
@@ -569,7 +575,7 @@ export class PDFLibCustomFontGenerator {
   /**
    * Sekcia pre poškodenia s vlastným fontom
    */
-  private addDamagesSection(damages: any[]): void {
+  private addDamagesSection(damages: ProtocolDamage[]): void {
     this.addInfoSection('Zaznamenané poškodenia', 
       damages.map((damage, index) => [
         `Poškodenie ${index + 1}:`,
@@ -599,7 +605,7 @@ export class PDFLibCustomFontGenerator {
   /**
    * Sekcia pre podpisy
    */
-  private addSignaturesSection(signatures: any[]): void {
+  private addSignaturesSection(signatures: ProtocolSignature[]): void {
     const signatureData: [string, string][] = [];
     
     signatures.forEach((signature, index) => {
@@ -772,7 +778,7 @@ export class PDFLibCustomFontGenerator {
    */
   private async convertWebPToJpeg(webpBytes: Uint8Array): Promise<Uint8Array | null> {
     try {
-      const sharp = require('sharp');
+      const sharp = (await import('sharp')).default;
       
       // Konvertuj WebP na JPEG s kvalitou 85%
       const jpegBuffer = await sharp(Buffer.from(webpBytes))
@@ -837,6 +843,25 @@ export class PDFLibCustomFontGenerator {
         const uint8Array = new Uint8Array(arrayBuffer);
         
         console.log(`✅ R2 image downloaded: ${uint8Array.length} bytes`);
+        
+        // 🔍 DETEKCIA SKUTOČNÉHO FORMÁTU PODĽA MAGIC BYTES aj pre R2 obrázky
+        console.log('🔍 First 16 bytes of R2 image:', Array.from(uint8Array.slice(0, 16)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+        const formatInfo = this.detectImageFormat(uint8Array);
+        console.log(`🔍 Detected R2 image format: ${formatInfo.format} (MIME: ${formatInfo.mimeType})`);
+        
+        // 🔄 KONVERZIA WebP → JPEG ak je potrebná
+        if (formatInfo.format === 'webp') {
+          console.log('🔄 Converting R2 WebP to JPEG for PDF compatibility...');
+          const convertedBytes = await this.convertWebPToJpeg(uint8Array);
+          if (convertedBytes) {
+            console.log(`✅ R2 WebP converted to JPEG: ${convertedBytes.length} bytes`);
+            return convertedBytes;
+          } else {
+            console.log('⚠️ R2 WebP conversion not available, will use placeholder');
+            return null; // Vráti null aby sa použil placeholder
+          }
+        }
+        
         return uint8Array;
         
       } else {
@@ -853,7 +878,7 @@ export class PDFLibCustomFontGenerator {
   /**
    * 🖼️ Pridanie obrázkov do PDF pomocou pdf-lib - MODERNÝ DESIGN
    */
-  private async addImagesSection(title: string, images: any[]): Promise<void> {
+  private async addImagesSection(title: string, images: ProtocolImage[]): Promise<void> {
     console.log(`🖼️ DEBUG: addImagesSection called with title: ${title}, images count: ${images?.length || 0}`);
     console.log(`🖼️ DEBUG: First image sample:`, images?.[0] ? { id: images[0].id, url: images[0].url?.substring(0, 50) + '...', type: images[0].type } : 'No images');
     
@@ -889,11 +914,11 @@ export class PDFLibCustomFontGenerator {
     
     this.currentY -= 30;
 
-    // 🖼️ USPORIADANIE OBRÁZKOV 4 V RADE - KOMPAKTNE
-    const imagesPerRow = 4;
-    const imageSpacing = 8; // Veľmi malý spacing - blízko seba
-    const maxImageWidth = 120; // Menšie obrázky pre 4 v rade
-    const maxImageHeight = 90; // Menšie obrázky pre úsporu miesta
+    // 🖼️ USPORIADANIE OBRÁZKOV 3 V RADE - VÄČŠIE A KVALITNEJŠIE
+    const imagesPerRow = 3; // 🔧 ZLEPŠENÉ: 3 namiesto 4 pre väčšie obrázky
+    const imageSpacing = 12; // 🔧 ZLEPŠENÉ: Väčší spacing pre lepší vzhľad
+    const maxImageWidth = 160; // 🔧 ZLEPŠENÉ: Väčšie obrázky (160px namiesto 120px)
+    const maxImageHeight = 120; // 🔧 ZLEPŠENÉ: Väčšie obrázky (120px namiesto 90px)
     
     const availableWidth = this.pageWidth - 2 * this.margin;
     const imageAreaWidth = (availableWidth - imageSpacing) / imagesPerRow;
@@ -906,8 +931,10 @@ export class PDFLibCustomFontGenerator {
       const image = images[i];
       
       try {
-        // Stiahnuť obrázok z R2  
-        const imageBytes = await this.downloadImageFromR2(image.url);
+        // Stiahnuť obrázok z R2 - použij komprimovanú verziu pre PDF ak existuje
+        const imageUrl = image.compressedUrl || image.url;
+        console.log(`🔍 Using image URL for PDF: ${String(imageUrl).substring(0, 100)}...`);
+        const imageBytes = await this.downloadImageFromR2(String(imageUrl));
         
         if (!imageBytes) {
           // Placeholder pre chybný obrázok alebo nepodporovaný formát
@@ -916,19 +943,33 @@ export class PDFLibCustomFontGenerator {
           continue;
         }
 
-        // Embed obrázok do PDF
+        // Embed obrázok do PDF - inteligentná detekcia formátu
         let pdfImage;
         try {
-          pdfImage = await this.doc.embedJpg(imageBytes);
-        } catch (jpgError) {
-          try {
+          // 🔍 Detekcia formátu pre správne embedovanie
+          const formatInfo = this.detectImageFormat(imageBytes);
+          console.log(`🔍 Embedding image as ${formatInfo.format}`);
+          
+          if (formatInfo.format === 'jpeg' || formatInfo.format === 'jpg') {
+            pdfImage = await this.doc.embedJpg(imageBytes);
+          } else if (formatInfo.format === 'png') {
             pdfImage = await this.doc.embedPng(imageBytes);
-          } catch (pngError) {
-            console.error('❌ Failed to embed image:', pngError);
-            await this.addImagePlaceholderInGrid(i + 1, 'Nepodporovaný formát obrázka', currentCol, actualMaxWidth, 100);
-            this.moveToNextGridPosition();
-            continue;
+          } else {
+            // Fallback: skús JPEG najprv, potom PNG
+            try {
+              pdfImage = await this.doc.embedJpg(imageBytes);
+              console.log('✅ Successfully embedded as JPEG (fallback)');
+            } catch (jpgError) {
+              console.log('⚠️ JPEG embed failed, trying PNG...');
+              pdfImage = await this.doc.embedPng(imageBytes);
+              console.log('✅ Successfully embedded as PNG (fallback)');
+            }
           }
+        } catch (error) {
+          console.error('❌ Failed to embed image:', error instanceof Error ? error.message : String(error));
+          await this.addImagePlaceholderInGrid(i + 1, 'Nepodporovaný formát obrázka', currentCol, actualMaxWidth, 100);
+          this.moveToNextGridPosition();
+          continue;
         }
 
         // 🎯 VÝPOČET ROZMEROV - VÄČŠIE OBRÁZKY

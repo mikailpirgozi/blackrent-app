@@ -5479,48 +5479,60 @@ export class PostgresDatabase {
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
+      console.log('🔧 INSURANCE: createInsurance called with data:', insuranceData);
+      
       // 🔧 JEDNODUCHÉ: Databáza má vehicle_id stĺpec, takže nemusíme mapovať
       
       // 🔧 BEZPEČNÉ: Nájdeme insurerId podľa company názvu
       let finalInsurerId: number | undefined = insuranceData.insurerId;
       
       if (!finalInsurerId && insuranceData.company) {
+        console.log('🔧 INSURANCE: Looking for insurer with name:', insuranceData.company);
         const insurerResult = await client.query(
           'SELECT id FROM insurers WHERE name = $1 LIMIT 1',
           [insuranceData.company]
         );
         
+        console.log('🔧 INSURANCE: Insurer query result:', insurerResult.rows);
+        
         if (insurerResult.rows.length > 0) {
           finalInsurerId = insurerResult.rows[0].id;
           logger.migration(`🔧 INSURANCE: Mapped company "${insuranceData.company}" to insurerId ${finalInsurerId}`);
+        } else {
+          console.log('🔧 INSURANCE: No insurer found with name:', insuranceData.company);
         }
       }
       
       // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta + viacero súborov
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
+      const insertParams = [
+        insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // INTEGER - konverzia z string na int
+        finalInsurerId || null, 
+        insuranceData.policyNumber, 
+        insuranceData.type,
+        insuranceData.coverageAmount || insuranceData.price, // coverage_amount
+        insuranceData.price, // premium (nie price!)
+        insuranceData.validFrom, // start_date (nie valid_from!)
+        insuranceData.validTo, // end_date (nie valid_to!)
+        insuranceData.paymentFrequency || 'yearly', 
+        insuranceData.filePath || null, // Zachováme pre backward compatibility
+        filePaths, // Nové pole pre viacero súborov
+        insuranceData.kmState || null // 🚗 Stav kilometrov pre Kasko
+      ];
+      
+      console.log('🔧 INSURANCE: Insert parameters:', insertParams);
+      
       const result = await client.query(
         'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, created_at',
-        [
-          insuranceData.vehicleId || null, // UUID - NIE integer!
-          finalInsurerId || null, 
-          insuranceData.policyNumber, 
-          insuranceData.type,
-          insuranceData.coverageAmount || insuranceData.price, // coverage_amount
-          insuranceData.price, // premium (nie price!)
-          insuranceData.validFrom, // start_date (nie valid_from!)
-          insuranceData.validTo, // end_date (nie valid_to!)
-          insuranceData.paymentFrequency || 'yearly', 
-          insuranceData.filePath || null, // Zachováme pre backward compatibility
-          filePaths, // Nové pole pre viacero súborov
-          insuranceData.kmState || null // 🚗 Stav kilometrov pre Kasko
-        ]
+        insertParams
       );
 
       const row = result.rows[0];
+      console.log('🔧 INSURANCE: Successfully created insurance with ID:', row.id);
       return {
         id: row.id.toString(),
-        vehicleId: row.vehicle_id?.toString() || '', // Z databázy
+        vehicleId: row.vehicle_id?.toString() || '', // INTEGER konvertovaný na string
         type: row.type,
         policyNumber: row.policy_number || '',
         validFrom: new Date(row.start_date), // start_date (nie valid_from!)
@@ -5534,6 +5546,9 @@ export class PostgresDatabase {
         greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
         kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
       };
+    } catch (error) {
+      console.error('🔧 INSURANCE: Error in createInsurance:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -6813,6 +6828,21 @@ export class PostgresDatabase {
         damageImages: protocolData.damageImages?.length || 0
       });
 
+      // 🔍 DEBUG: Detailná analýza vehicleImages
+      if (protocolData.vehicleImages && protocolData.vehicleImages.length > 0) {
+        const firstImage = protocolData.vehicleImages[0] as Record<string, unknown>;
+        logger.migration('🔍 [DB] First vehicleImage structure:', {
+          id: firstImage.id,
+          hasUrl: !!firstImage.url,
+          hasOriginalUrl: !!firstImage.originalUrl,
+          hasCompressedUrl: !!firstImage.compressedUrl,
+          url: typeof firstImage.url === 'string' ? firstImage.url.substring(0, 80) + '...' : 'undefined',
+          originalUrl: typeof firstImage.originalUrl === 'string' ? firstImage.originalUrl.substring(0, 80) + '...' : 'undefined',
+          compressedUrl: typeof firstImage.compressedUrl === 'string' ? firstImage.compressedUrl.substring(0, 80) + '...' : 'undefined',
+          allKeys: Object.keys(firstImage)
+        });
+      }
+
       logger.migration('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
 
       const result = await client.query(`
@@ -6893,7 +6923,7 @@ export class PostgresDatabase {
         SELECT * FROM handover_protocols 
         WHERE rental_id = $1::integer 
         ORDER BY created_at DESC
-      `, [parseInt(rentalId)]);
+      `, [rentalId]);
 
       return result.rows.map((row: Record<string, unknown>) => this.mapHandoverProtocolFromDB(row));
 
@@ -7012,7 +7042,7 @@ export class PostgresDatabase {
         SELECT * FROM return_protocols 
         WHERE rental_id = $1::integer 
         ORDER BY created_at DESC
-      `, [parseInt(rentalId)]);
+      `, [rentalId]);
 
       return result.rows.map(row => this.mapReturnProtocolFromDB(row));
 
@@ -7959,7 +7989,7 @@ export class PostgresDatabase {
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';
-        params.push(vehicleId);
+        params.push(parseInt(vehicleId)); // Konverzia string na integer
       }
 
       query += ' ORDER BY valid_to ASC';
@@ -7999,13 +8029,13 @@ export class PostgresDatabase {
         `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
          RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at`,
-        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null]
+        [parseInt(documentData.vehicleId), documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null]
       );
 
       const row = result.rows[0];
       return {
         id: row.id.toString(),
-        vehicleId: row.vehicle_id,
+        vehicleId: row.vehicle_id?.toString() || '', // INTEGER konvertovaný na string
         documentType: row.document_type,
         validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
         validTo: new Date(row.valid_to),
@@ -8528,14 +8558,14 @@ export class PostgresDatabase {
     try {
       const result = await client.query(`
         SELECT 
-          i.id, i.first_name, i.last_name, i.email,
-          s.company_id, s.ownership_percentage,
+          i.id, i.investor_name, i.investor_email,
+          s.company_id, s.share_percentage,
           c.name as company_name
         FROM company_investors i
         LEFT JOIN company_investor_shares s ON i.id = s.investor_id
         LEFT JOIN companies c ON s.company_id = c.id
-        WHERE i.is_active = true
-        ORDER BY i.first_name, i.last_name, c.name
+        WHERE i.status = 'active'
+        ORDER BY i.investor_name, c.name
       `);
 
       // Zoskupenie podľa investora
@@ -8545,11 +8575,16 @@ export class PostgresDatabase {
         const investorId = row.id;
         
         if (!investorsMap.has(investorId)) {
+          // Rozdelíme investor_name na firstName a lastName
+          const nameParts = (row.investor_name || '').split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          
           investorsMap.set(investorId, {
             id: investorId,
-            firstName: row.first_name,
-            lastName: row.last_name,
-            email: row.email,
+            firstName: firstName,
+            lastName: lastName,
+            email: row.investor_email,
             companies: []
           });
         }
@@ -8559,7 +8594,7 @@ export class PostgresDatabase {
           investorsMap.get(investorId).companies.push({
             companyId: row.company_id.toString(),
             companyName: row.company_name,
-            ownershipPercentage: parseFloat(row.ownership_percentage)
+            ownershipPercentage: parseFloat(row.share_percentage)
           });
         }
       });

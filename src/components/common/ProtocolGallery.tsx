@@ -1,28 +1,23 @@
 import {
   Close,
+  Download,
   NavigateBefore,
   NavigateNext,
-  Fullscreen,
-  FullscreenExit,
-  Download,
   PhotoLibrary,
   PlayArrow,
   ZoomIn,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
   Box,
-  Typography,
-  Grid,
   Chip,
-  Button,
-  useTheme,
-  useMediaQuery,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { ProtocolImage, ProtocolVideo } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
@@ -83,44 +78,52 @@ export default function ProtocolGallery({
     setZoom(1);
   }, [selectedIndex]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     setSelectedIndex(prev => (prev === 0 ? totalCount - 1 : prev - 1));
-  };
+  }, [totalCount]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setSelectedIndex(prev => (prev === totalCount - 1 ? 0 : prev + 1));
-  };
+  }, [totalCount]);
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (!open) return;
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!open) return;
 
-    console.log('🎹 ProtocolGallery keyboard event:', event.key, 'open:', open);
+      console.log(
+        '🎹 ProtocolGallery keyboard event:',
+        event.key,
+        'open:',
+        open
+      );
 
-    switch (event.key) {
-      case 'ArrowLeft':
-        handlePrevious();
-        break;
-      case 'ArrowRight':
-        handleNext();
-        break;
-      case 'Escape':
-        console.log('🚪 Manual Escape pressed - closing gallery');
-        onClose(); // Direct call, bypass MUI
-        break;
-      case '+':
-      case '=':
-        setZoom(prev => Math.min(prev + 0.25, 3));
-        break;
-      case '-':
-        setZoom(prev => Math.max(prev - 0.25, 0.5));
-        break;
-    }
-  };
+      switch (event.key) {
+        case 'ArrowLeft':
+          handlePrevious();
+          break;
+        case 'ArrowRight':
+          handleNext();
+          break;
+        case 'Escape':
+          console.log('🚪 Manual Escape pressed - closing gallery');
+          onClose(); // Direct call, bypass MUI
+          break;
+        case '+':
+        case '=':
+          setZoom(prev => Math.min(prev + 0.25, 3));
+          break;
+        case '-':
+          setZoom(prev => Math.max(prev - 0.25, 0.5));
+          break;
+      }
+    },
+    [open, onClose, handlePrevious, handleNext, setZoom]
+  );
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose, handlePrevious, handleNext, setZoom]);
+  }, [handleKeyDown]);
 
   // Helper function to convert R2 URL to proxy URL
   const getProxyUrl = (r2Url: string | undefined): string => {
@@ -157,7 +160,9 @@ export default function ProtocolGallery({
 
     try {
       // Použi proxy URL pre download
-      const downloadUrl = getProxyUrl(currentMedia.url);
+      const downloadUrl = getProxyUrl(
+        currentMedia.originalUrl || currentMedia.url
+      );
       if (!downloadUrl) {
         alert('Nepodarilo sa stiahnuť súbor - neplatné URL');
         return;
@@ -260,9 +265,15 @@ export default function ProtocolGallery({
               {images.map((image, index) => {
                 console.log(`🖼️ Rendering image ${index}:`, {
                   id: image.id,
-                  url: image.url,
+                  url: image.url?.substring(0, 100) + '...',
+                  originalUrl:
+                    (image as Record<string, unknown>).originalUrl
+                      ?.toString()
+                      .substring(0, 100) + '...',
                   type: image.type,
                   hasUrl: !!image.url,
+                  hasOriginalUrl: !!(image as Record<string, unknown>)
+                    .originalUrl,
                   urlType: typeof image.url,
                 });
 
@@ -292,7 +303,7 @@ export default function ProtocolGallery({
                     >
                       {image.url ? (
                         <img
-                          src={getProxyUrl(image.url)}
+                          src={getProxyUrl(image.originalUrl || image.url)}
                           alt={image.description || `Obrázok ${index + 1}`}
                           style={{
                             width: '100%',
@@ -592,7 +603,9 @@ export default function ProtocolGallery({
                   // Image
                   currentMedia.url ? (
                     <img
-                      src={getProxyUrl(currentMedia.url)}
+                      src={getProxyUrl(
+                        currentMedia.originalUrl || currentMedia.url
+                      )}
                       alt={currentMedia.description || 'Obrázok'}
                       style={{
                         maxWidth: `${100 * zoom}%`,
@@ -621,7 +634,9 @@ export default function ProtocolGallery({
                 ) : // Video
                 currentMedia.url ? (
                   <video
-                    src={getProxyUrl(currentMedia.url)}
+                    src={getProxyUrl(
+                      currentMedia.originalUrl || currentMedia.url
+                    )}
                     controls
                     style={{
                       maxWidth: `${100 * zoom}%`,

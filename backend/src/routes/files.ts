@@ -10,20 +10,20 @@ import { r2Storage } from '../utils/r2-storage';
 
 // 📸 Helper: Generate meaningful media filename with organized structure
 const generateMeaningfulFilename = (
-  protocolInfo: any, 
+  protocolInfo: Record<string, unknown>,
   mediaType: string, 
   category: string, 
   originalFilename: string,
-  index: number = 1
+  timestamp: number = Date.now()
 ): string => {
   try {
     // Extract file extension
     const extension = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
     
     // Vehicle info
-    const brand = protocolInfo.brand || 'Unknown';
-    const model = protocolInfo.model || 'Unknown';
-    const licensePlate = protocolInfo.license_plate || 'NoPlate';
+    const brand = String(protocolInfo.brand || 'Unknown');
+    const model = String(protocolInfo.model || 'Unknown');
+    const licensePlate = String(protocolInfo.license_plate || 'NoPlate');
     
     // Media type mapping to readable names
     const mediaTypeNames = {
@@ -49,23 +49,23 @@ const generateMeaningfulFilename = (
     
     // Generate meaningful filename
     const vehicleName = `${brand}_${model}`.replace(/[^a-zA-Z0-9]/g, '_');
-    const plateClean = licensePlate.replace(/[^a-zA-Z0-9]/g, '_');
-    const indexPadded = String(index).padStart(2, '0');
+    const plateClean = String(licensePlate).replace(/[^a-zA-Z0-9]/g, '_');
+    const timestampStr = String(timestamp);
     
     // Different patterns based on media type
     let meaningfulName: string;
     
     if (mediaType === 'vehicle') {
-      meaningfulName = `${vehicleName}_${plateClean}_${mediaTypeName}_${indexPadded}.${extension}`;
+      meaningfulName = `${vehicleName}_${plateClean}_${mediaTypeName}_${timestampStr}.${extension}`;
     } else if (mediaType === 'damage') {
-      meaningfulName = `${vehicleName}_${plateClean}_Damage_${indexPadded}.${extension}`;
+      meaningfulName = `${vehicleName}_${plateClean}_Damage_${timestampStr}.${extension}`;
     } else if (mediaType === 'document') {
-      meaningfulName = `${vehicleName}_${plateClean}_Document_${indexPadded}.${extension}`;
+      meaningfulName = `${vehicleName}_${plateClean}_Document_${timestampStr}.${extension}`;
     } else if (mediaType === 'fuel' || mediaType === 'odometer') {
-      meaningfulName = `${vehicleName}_${plateClean}_${mediaTypeName}_${indexPadded}.${extension}`;
+      meaningfulName = `${vehicleName}_${plateClean}_${mediaTypeName}_${timestampStr}.${extension}`;
     } else {
       // Fallback
-      meaningfulName = `${vehicleName}_${plateClean}_${categoryName}_${indexPadded}.${extension}`;
+      meaningfulName = `${vehicleName}_${plateClean}_${categoryName}_${timestampStr}.${extension}`;
     }
     
     logger.info('📸 Generated meaningful filename:', {
@@ -670,7 +670,7 @@ router.post('/protocol-photo',
 
     // Vytvorenie objektu pre databázu
     const photoObject = {
-      id: require('uuid').v4(), // Generovanie UUID pre fotku
+      id: (await import('uuid')).v4(), // Generovanie UUID pre fotku
       url: url,
       type: mediaType,
       description: label || req.file.originalname,
@@ -705,7 +705,6 @@ router.post('/protocol-photo',
 async function getProtocolInfo(protocolId: string, protocolType: string) {
   const client = await postgresDatabase.dbPool.connect();
   try {
-    let query: string;
     let tableName: string;
     
     if (protocolType === 'handover') {
@@ -717,7 +716,7 @@ async function getProtocolInfo(protocolId: string, protocolType: string) {
     }
     
     // Získanie informácií o protokole, prenájme a vozidle
-    query = `
+    const query = `
       SELECT 
         p.id as protocol_id,
         p.rental_id,
@@ -791,7 +790,7 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
     };
 
     // 🔍 Získanie informácií o protokole (s fallbackom na prenájom)
-    let protocolInfo: any;
+    let protocolInfo: Record<string, unknown>;
     try {
       if (protocolId && isValidUUID(String(protocolId))) {
         protocolInfo = await getProtocolInfo(protocolId, protocolType);
@@ -845,15 +844,15 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
 
     // 🗂️ Príprava premenných pre organizáciu
     const dateComponents = r2OrganizationManager.generateDateComponents(
-      protocolInfo.start_date ? new Date(protocolInfo.start_date) : (protocolInfo.created_at ? new Date(protocolInfo.created_at) : new Date())
+      protocolInfo.start_date ? new Date(String(protocolInfo.start_date)) : (protocolInfo.created_at ? new Date(String(protocolInfo.created_at)) : new Date())
     );
     
-    const companyName = r2OrganizationManager.getCompanyName(protocolInfo.company_name);
+    const companyName = r2OrganizationManager.getCompanyName(String(protocolInfo.company_name || ''));
     
     const vehicleName = r2OrganizationManager.generateVehicleName(
-      protocolInfo.brand || 'Unknown',
-      protocolInfo.model || 'Unknown', 
-      protocolInfo.license_plate || 'NoPlate'
+      String(protocolInfo.brand || 'Unknown'),
+      String(protocolInfo.model || 'Unknown'), 
+      String(protocolInfo.license_plate || 'NoPlate')
     );
     
     // Detekcia kategórie ak nie je zadaná
@@ -863,13 +862,14 @@ router.post('/presigned-upload', authenticateToken, async (req, res) => {
       console.warn(`⚠️ Neplatná kategória: ${detectedCategory}, používam 'other'`);
     }
 
-    // 📸 Generovanie zmysluplného filename (namiesto pôvodného)
+    // 📸 Generovanie zmysluplného filename s unikátnym timestampom
+    const timestamp = Date.now();
     const meaningfulFilename = generateMeaningfulFilename(
       protocolInfo, 
       mediaType || 'vehicle', 
       detectedCategory, 
       filename,
-      1 // Môžeme neskôr implementovať counter pre duplicates
+      timestamp // Unikátny timestamp namiesto pevného indexu
     );
 
     // 🛠️ Generovanie organizovanej cesty s novým filename
@@ -991,7 +991,7 @@ router.post('/download-zip', async (req, res) => {
           fileKey = filePath.split('/').slice(3).join('/'); // Skip domain parts
         } else {
           // Fallback - remove domain
-          fileKey = filePath.replace(/^https?:\/\/[^\/]+\//, '');
+          fileKey = filePath.replace(/^https?:\/\/[^/]+\//, '');
         }
         
         logger.info(`🔍 Processing file ${i + 1}: ${filePath} -> ${fileKey}`);
@@ -1002,7 +1002,7 @@ router.post('/download-zip', async (req, res) => {
         if (fileBuffer) {
           // Generovanie názvu súboru v ZIP
           const originalFileName = filePath.split('/').pop() || `subor_${i + 1}`;
-          const fileExtension = originalFileName.split('.').pop() || '';
+          // const fileExtension = originalFileName.split('.').pop() || '';
           const zipFileName = `${i + 1}_${originalFileName}`;
           
           // Pridanie súboru do ZIP

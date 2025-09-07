@@ -483,6 +483,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
+              originalUrl: img.originalUrl, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -505,6 +507,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
+              originalUrl: img.originalUrl, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -516,6 +520,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
+              originalUrl: img.originalUrl, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',

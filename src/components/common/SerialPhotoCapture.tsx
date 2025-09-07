@@ -30,7 +30,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { ProtocolImage, ProtocolVideo } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
-import { isWebPSupported } from '../../utils/imageCompression';
+import { compressImage, isWebPSupported } from '../../utils/imageCompression';
 import { lintImage } from '../../utils/imageLint';
 
 // import { Grid } from '@mui/material';
@@ -82,6 +82,9 @@ interface CapturedMedia {
   originalSize?: number;
   compressedSize?: number;
   compressionRatio?: number;
+  // 🌟 NOVÉ: URL pre rôzne kvality
+  originalUrl?: string; // Vysoká kvalita pre galériu
+  compressedUrl?: string; // Nízka kvalita pre PDF
 }
 
 export default function SerialPhotoCapture({
@@ -121,6 +124,41 @@ export default function SerialPhotoCapture({
   useEffect(() => {
     isWebPSupported().then(setWebPSupported);
   }, []);
+
+  // 🌟 NOVÉ: Vytvorenie komprimovanej verzie pre PDF
+  const createCompressedVersion = useCallback(
+    async (file: File): Promise<File> => {
+      try {
+        const compressed = await compressImage(file, {
+          maxWidth: 1200, // 🔧 ZLEPŠENÉ: Väčšie rozlíšenie pre lepšiu kvalitu v PDF
+          maxHeight: 900, // 🔧 ZLEPŠENÉ: Väčšie rozlíšenie pre lepšiu kvalitu v PDF
+          quality: 0.8, // 🔧 ZLEPŠENÉ: Vyššia kvalita (80% namiesto 60%)
+          maxSize: 300, // 🔧 ZLEPŠENÉ: Väčší limit (300KB namiesto 100KB)
+          format: 'image/jpeg',
+        });
+
+        const compressedFile = new File(
+          [compressed.compressedBlob],
+          file.name
+            .replace('.jpg', '_compressed.jpg')
+            .replace('.webp', '_compressed.jpg'),
+          { type: 'image/jpeg' }
+        );
+
+        logger.debug('✅ Image compressed for PDF:', {
+          original: (file.size / 1024).toFixed(1) + 'KB',
+          compressed: (compressedFile.size / 1024).toFixed(1) + 'KB',
+          ratio: compressed.compressionRatio.toFixed(1) + '%',
+        });
+
+        return compressedFile;
+      } catch (error) {
+        logger.debug('⚠️ Compression failed, using original:', error);
+        return file; // Fallback na originál
+      }
+    },
+    []
+  );
 
   // ⚡ NOVÉ: Keyboard shortcuts pre rýchle fotenie
   useEffect(() => {
@@ -165,6 +203,11 @@ export default function SerialPhotoCapture({
 
       const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
         method: 'POST',
+        headers: {
+          ...(localStorage.getItem('blackrent_token') && {
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          }),
+        },
         body: formData,
       });
 
@@ -180,7 +223,7 @@ export default function SerialPhotoCapture({
   );
 
   const uploadToR2 = useCallback(
-    async (file: File): Promise<string> => {
+    async (file: File, suffix = ''): Promise<string> => {
       // Fallback na base64 ak R2 nie je povolené
       if (!autoUploadToR2) {
         return new Promise(resolve => {
@@ -200,11 +243,16 @@ export default function SerialPhotoCapture({
         const apiBaseUrl = getApiBaseUrl();
 
         // 🚀 NOVÝ SYSTÉM: Signed URL upload
+        const finalFilename = suffix
+          ? file.name.replace(/(\.[^.]+)$/, `${suffix}$1`)
+          : file.name;
+
         logger.debug('🔄 Getting presigned URL for:', {
           protocolId: entityId,
-          filename: file.name,
+          filename: finalFilename,
           size: file.size,
           contentType: file.type,
+          suffix: suffix,
         });
 
         // 1. Získanie presigned URL
@@ -223,7 +271,7 @@ export default function SerialPhotoCapture({
               rentalId: entityId,
               protocolType: protocolType,
               mediaType: mediaType,
-              filename: file.name,
+              filename: finalFilename,
               contentType: file.type,
               category: category,
             }),
@@ -239,14 +287,21 @@ export default function SerialPhotoCapture({
         const presignedData = await presignedResponse.json();
         logger.debug('✅ Presigned URL received:', presignedData);
 
-        // 2. Upload priamo do R2 cez presigned URL
+        // 2. Upload priamo do R2 cez presigned URL s timeout a error handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
         const uploadResponse = await fetch(presignedData.presignedUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': file.type,
           },
           body: file,
+          signal: controller.signal,
+          mode: 'cors', // Explicitne nastavenie CORS
         });
+
+        clearTimeout(timeoutId);
 
         if (!uploadResponse.ok) {
           throw new Error(`Failed to upload to R2: ${uploadResponse.status}`);
@@ -285,6 +340,19 @@ export default function SerialPhotoCapture({
         return presignedData.publicUrl;
       } catch (error) {
         console.error('❌ Signed URL upload failed:', error);
+
+        // Detailnejšie error handling
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            logger.error('⏰ R2 upload timeout - connection too slow');
+          } else if (error.message.includes('Failed to fetch')) {
+            logger.error(
+              '🌐 Network error during R2 upload - checking connection'
+            );
+          } else {
+            logger.error('🔧 R2 upload error:', error.message);
+          }
+        }
 
         // Fallback na direct upload ak signed URL zlyhá
         logger.debug('🔄 Falling back to direct upload...');
@@ -394,17 +462,31 @@ export default function SerialPhotoCapture({
             filename: processedFile.name,
           });
 
+          // 🌟 NOVÉ: Dual-quality upload aj pre file upload
           let url: string;
+          let originalUrl: string | undefined;
+          let compressedUrl: string | undefined;
+
           if (autoUploadToR2 && entityId) {
-            logger.debug('✅ STARTING R2 UPLOAD:', processedFile.name);
+            logger.debug('✅ STARTING DUAL R2 UPLOAD:', processedFile.name);
             setUploadingToR2(true);
             setUploadProgress((processedCount / files.length) * 100);
             try {
-              url = await uploadToR2(processedFile);
-              logger.debug('✅ R2 UPLOAD SUCCESS:', url);
+              // 1. Upload originál (už optimalizovaný cez imageLint)
+              originalUrl = await uploadToR2(processedFile);
+              logger.debug('✅ ORIGINAL R2 UPLOAD SUCCESS:', originalUrl);
+
+              // 2. Vytvor a upload komprimovanú verziu pre PDF
+              const compressedFile =
+                await createCompressedVersion(processedFile);
+              compressedUrl = await uploadToR2(compressedFile, '_compressed');
+              logger.debug('✅ COMPRESSED R2 UPLOAD SUCCESS:', compressedUrl);
+
+              // Pre galériu používaj originál (metadata sa uložia pri save protokolu)
+              url = originalUrl;
             } catch (error) {
               console.error(
-                '❌ R2 UPLOAD FAILED, falling back to base64:',
+                '❌ DUAL R2 UPLOAD FAILED, falling back to base64:',
                 error
               );
               url = await new Promise<string>(resolve => {
@@ -430,7 +512,7 @@ export default function SerialPhotoCapture({
             type: isVideo ? 'video' : 'image',
             mediaType,
             description: '',
-            preview: url,
+            preview: originalUrl || url, // Pre galériu používaj originál
             timestamp: new Date(),
             compressed,
             originalSize,
@@ -439,6 +521,9 @@ export default function SerialPhotoCapture({
               originalSize > 0
                 ? ((originalSize - compressedSize) / originalSize) * 100
                 : 0,
+            // 🌟 NOVÉ: URL pre rôzne kvality
+            originalUrl: originalUrl,
+            compressedUrl: compressedUrl,
           };
 
           newMedia.push(media);
@@ -476,6 +561,7 @@ export default function SerialPhotoCapture({
       autoUploadToR2,
       entityId,
       uploadToR2,
+      createCompressedVersion,
     ]
   );
 
@@ -499,18 +585,37 @@ export default function SerialPhotoCapture({
         size: file.size,
       });
 
-      // Okamžitý upload na R2 ak je povolený
+      // Premenné pre URL
+      let originalUrl: string | undefined;
+      let compressedUrl: string | undefined;
+
+      // Okamžitý upload na R2 ak je povolený - DVE VERZIE
       if (autoUploadToR2 && entityId) {
-        logger.debug('🚀 NATIVE CAMERA: Starting R2 upload for:', file.name);
+        logger.debug(
+          '🚀 NATIVE CAMERA: Starting dual R2 upload for:',
+          file.name
+        );
         setUploadingToR2(true);
 
         try {
-          const r2Url = await uploadToR2(file);
-          logger.debug('✅ NATIVE CAMERA: R2 upload success:', r2Url);
+          // 1. ORIGINÁL - vysoká kvalita pre galériu
+          originalUrl = await uploadToR2(file);
+          logger.debug(
+            '✅ NATIVE CAMERA: Original R2 upload success:',
+            originalUrl
+          );
 
-          // Zruš dočasný blob URL a použij R2 URL
+          // 2. KOMPRIMOVANÁ VERZIA - nízka kvalita pre PDF
+          const compressedFile = await createCompressedVersion(file);
+          compressedUrl = await uploadToR2(compressedFile, '_compressed');
+          logger.debug(
+            '✅ NATIVE CAMERA: Compressed R2 upload success:',
+            compressedUrl
+          );
+
+          // Zruš dočasný blob URL a použij originálnu R2 URL pre galériu
           URL.revokeObjectURL(preview);
-          preview = r2Url;
+          preview = originalUrl;
         } catch (error) {
           console.error(
             '❌ NATIVE CAMERA: R2 upload failed, using blob URL:',
@@ -539,13 +644,24 @@ export default function SerialPhotoCapture({
         originalSize: imageBlob.size,
         compressedSize: imageBlob.size,
         compressionRatio: 0,
+        // 🌟 NOVÉ: URL pre rôzne kvality
+        originalUrl: originalUrl,
+        compressedUrl: compressedUrl,
       };
+
+      // URL sa už nastavili počas uploadu vyššie
 
       // Pridaj do capturedMedia
       setCapturedMedia(prev => [...prev, media]);
       logger.debug('✅ Fotka z natívnej kamery pridaná', media);
     },
-    [allowedTypes, autoUploadToR2, entityId, uploadToR2]
+    [
+      allowedTypes,
+      autoUploadToR2,
+      entityId,
+      uploadToR2,
+      createCompressedVersion,
+    ]
   );
 
   const handleMediaTypeChange = (
@@ -580,15 +696,15 @@ export default function SerialPhotoCapture({
     const videos: ProtocolVideo[] = [];
 
     for (const media of capturedMedia) {
-      // ✅ PRIAMO R2 URL - žiadne base64 konverzie
-      let url = media.preview;
+      // 🌟 NOVÉ: Používaj originálnu verziu ako hlavné URL (pre galériu)
+      let url = media.originalUrl || media.preview;
 
       // Ak je to už R2 URL, použij ho priamo
       if (
         url.startsWith('https://') &&
         (url.includes('r2.dev') || url.includes('cloudflare.com'))
       ) {
-        logger.debug('✅ Using existing R2 URL:', url);
+        logger.debug('✅ Using original R2 URL for gallery:', url);
       } else {
         // 🎯 KOMPRESOVAŤ obrázky pre PDF (max 800x600, qualita 0.7)
         logger.debug(
@@ -671,16 +787,40 @@ export default function SerialPhotoCapture({
       }
 
       if (media.type === 'image') {
-        images.push({
+        // 🔍 DEBUG: Skontroluj čo má media objekt
+        logger.debug('🔍 SAVE DEBUG - Media object:', {
           id: media.id,
-          url: url,
+          hasOriginalUrl: !!media.originalUrl,
+          hasCompressedUrl: !!media.compressedUrl,
+          originalUrl: media.originalUrl?.substring(0, 80) + '...',
+          compressedUrl: media.compressedUrl?.substring(0, 80) + '...',
+          url: url?.substring(0, 80) + '...',
+        });
+
+        const protocolImage = {
+          id: media.id,
+          url: url, // Originálne URL pre galériu (WebP, vysoká kvalita)
           type: media.mediaType,
           description: media.description,
           timestamp: media.timestamp,
           compressed: media.compressed,
           originalSize: media.originalSize,
           compressedSize: media.compressedSize,
+          // 🌟 NOVÉ: URL pre rôzne kvality
+          originalUrl: media.originalUrl, // Vysoká kvalita pre galériu
+          compressedUrl: media.compressedUrl, // Nízka kvalita pre PDF
+        };
+
+        // 🔍 DEBUG: Skontroluj finálny objekt
+        logger.debug('🔍 SAVE DEBUG - Final ProtocolImage:', {
+          id: protocolImage.id,
+          hasOriginalUrl: !!protocolImage.originalUrl,
+          hasCompressedUrl: !!protocolImage.compressedUrl,
+          originalUrl: protocolImage.originalUrl?.substring(0, 80) + '...',
+          compressedUrl: protocolImage.compressedUrl?.substring(0, 80) + '...',
         });
+
+        images.push(protocolImage);
       } else {
         videos.push({
           id: media.id,
@@ -733,9 +873,7 @@ export default function SerialPhotoCapture({
             alignItems: 'center',
           }}
         >
-          <Typography variant="h6" color="text.primary">
-            {title}
-          </Typography>
+          {title}
           <IconButton onClick={handleClose} color="inherit">
             <Close />
           </IconButton>
@@ -977,7 +1115,7 @@ export default function SerialPhotoCapture({
                 <Box sx={{ position: 'relative', mb: 2 }}>
                   {media.type === 'image' ? (
                     <img
-                      src={media.preview}
+                      src={media.originalUrl || media.preview}
                       alt={media.description}
                       style={{ width: '100%', height: 150, objectFit: 'cover' }}
                     />
@@ -986,7 +1124,7 @@ export default function SerialPhotoCapture({
                       sx={{
                         width: '100%',
                         height: 150,
-                        backgroundImage: `url(${media.preview})`,
+                        backgroundImage: `url(${media.originalUrl || media.preview})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         display: 'flex',
@@ -1045,7 +1183,15 @@ export default function SerialPhotoCapture({
                     value={media.mediaType}
                     label="Typ"
                     onChange={e =>
-                      handleMediaTypeChange(media.id, e.target.value as string)
+                      handleMediaTypeChange(
+                        media.id,
+                        e.target.value as
+                          | 'vehicle'
+                          | 'damage'
+                          | 'document'
+                          | 'fuel'
+                          | 'odometer'
+                      )
                     }
                   >
                     {allowedTypes.map(type => (
@@ -1119,13 +1265,13 @@ export default function SerialPhotoCapture({
             <Box sx={{ textAlign: 'center' }}>
               {previewMedia.type === 'image' ? (
                 <img
-                  src={previewMedia.preview}
+                  src={previewMedia.originalUrl || previewMedia.preview}
                   alt={previewMedia.description}
                   style={{ maxWidth: '100%', maxHeight: '70vh' }}
                 />
               ) : (
                 <video
-                  src={previewMedia.preview}
+                  src={previewMedia.originalUrl || previewMedia.preview}
                   controls
                   style={{ maxWidth: '100%', maxHeight: '70vh' }}
                 />

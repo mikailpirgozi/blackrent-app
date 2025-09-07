@@ -675,12 +675,32 @@ class ApiService {
     }>('/bulk/data');
   }
 
-  // Vehicle Documents API - chýbajúca metóda
+  // Vehicle Documents API
   async getVehicleDocuments(vehicleId?: string): Promise<VehicleDocument[]> {
     const endpoint = vehicleId
-      ? `/vehicles/${vehicleId}/documents`
+      ? `/vehicle-documents?vehicleId=${vehicleId}`
       : '/vehicle-documents';
     return this.request<VehicleDocument[]>(endpoint);
+  }
+
+  async createVehicleDocument(document: VehicleDocument): Promise<void> {
+    return this.request<void>('/vehicle-documents', {
+      method: 'POST',
+      body: JSON.stringify(document),
+    });
+  }
+
+  async updateVehicleDocument(document: VehicleDocument): Promise<void> {
+    return this.request<void>(`/vehicle-documents/${document.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(document),
+    });
+  }
+
+  async deleteVehicleDocument(id: string): Promise<void> {
+    return this.request<void>(`/vehicle-documents/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Rentals Paginated API - chýbajúca metóda
@@ -773,6 +793,34 @@ class ApiService {
     return this.request<void>(`/email-webhook/reject/${rentalId}`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    });
+  }
+
+  // Vehicle Unavailability methods
+  async createVehicleUnavailability(unavailability: {
+    vehicleId: string;
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    type:
+      | 'maintenance'
+      | 'service'
+      | 'repair'
+      | 'blocked'
+      | 'cleaning'
+      | 'inspection'
+      | 'private_rental';
+    notes?: string;
+    priority: 1 | 2 | 3;
+    recurring?: boolean;
+    recurringConfig?: {
+      interval: 'days' | 'weeks' | 'months' | 'years';
+      value: number;
+    };
+  }): Promise<void> {
+    return this.request<void>('/vehicle-unavailability', {
+      method: 'POST',
+      body: JSON.stringify(unavailability),
     });
   }
 }

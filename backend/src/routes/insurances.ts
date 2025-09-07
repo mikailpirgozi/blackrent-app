@@ -179,14 +179,40 @@ router.post('/',
   checkPermission('insurances', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
+    console.log('🔧 INSURANCE POST: Request body:', req.body);
+    
     const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
+      console.log('🔧 INSURANCE POST: Validation failed:', {
+        vehicleId: !!vehicleId,
+        type: !!type,
+        policyNumber: !!policyNumber,
+        validFrom: !!validFrom,
+        validTo: !!validTo,
+        price: typeof price,
+        company: !!company
+      });
       return res.status(400).json({
         success: false,
         error: 'Všetky povinné polia musia byť vyplnené'
       });
     }
+
+    console.log('🔧 INSURANCE POST: Calling createInsurance with data:', {
+      vehicleId,
+      type,
+      policyNumber,
+      validFrom: new Date(validFrom),
+      validTo: new Date(validTo),
+      price,
+      company,
+      paymentFrequency,
+      filePath,
+      filePaths,
+      greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
+      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
+    });
 
     const createdInsurance = await postgresDatabase.createInsurance({
       vehicleId,
@@ -203,6 +229,8 @@ router.post('/',
       greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
     });
 
+    console.log('🔧 INSURANCE POST: Successfully created insurance:', createdInsurance);
+
     res.status(201).json({
       success: true,
       message: 'Poistka úspešne vytvorená',
@@ -210,7 +238,7 @@ router.post('/',
     });
 
   } catch (error) {
-    console.error('Create insurance error:', error);
+    console.error('🔧 INSURANCE POST: Create insurance error:', error);
     res.status(500).json({
       success: false,
       error: 'Chyba pri vytváraní poistky'

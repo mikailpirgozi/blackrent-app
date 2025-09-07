@@ -541,13 +541,16 @@ export interface ApiResponse<T = unknown> {
 // Protokoly
 export interface ProtocolImage {
   id: string;
-  url: string;
+  url: string; // Primárne URL (pre PDF - komprimované)
   type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
   timestamp: Date;
   compressed?: boolean;
   originalSize?: number;
   compressedSize?: number;
+  // 🌟 NOVÉ: URL pre rôzne kvality
+  originalUrl?: string; // Vysoká kvalita pre galériu
+  compressedUrl?: string; // Nízka kvalita pre PDF
 }
 
 export interface ProtocolVideo {

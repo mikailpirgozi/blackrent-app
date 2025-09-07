@@ -1,9 +1,8 @@
-import PDFDocument from 'pdfkit';
-import type { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ProtocolImage, ReturnProtocol } from '../types';
 import { EnhancedPDFGeneratorBackend } from './enhanced-pdf-generator-backend';
-import { PuppeteerPDFGeneratorV2 } from './puppeteer-pdf-generator-v2';
-import { PDFLibGenerator } from './pdf-lib-generator';
 import { PDFLibCustomFontGenerator } from './pdf-lib-custom-font-generator';
+import { PDFLibGenerator } from './pdf-lib-generator';
+import { PuppeteerPDFGeneratorV2 } from './puppeteer-pdf-generator-v2';
 
 // 🔄 PREPÍNAČ PDF GENERÁTORA:
 // 'custom-font' = PDF-lib s vlastným fontom (najlepšie pre vlastný font)
@@ -62,6 +61,38 @@ const getEnhancedGenerator = () => {
 };
 
 /**
+ * 🔄 Helper function to add compressed URLs for PDF generation
+ */
+const addCompressedUrlsToImages = (images: ProtocolImage[]): ProtocolImage[] => {
+  if (!images || !Array.isArray(images)) return [];
+  
+  return images.map(image => {
+    if (!image || !image.url) return image;
+    
+    // 🌟 NOVÉ: Ak už má compressedUrl z databázy, použij ho!
+    if (image.compressedUrl) {
+      console.log('✅ Using existing compressedUrl from database:', image.compressedUrl.substring(0, 100) + '...');
+      return image; // Vráť bez zmien
+    }
+    
+    // 🔄 FALLBACK: Ak nemá compressedUrl, vytvor ho dynamicky (pre staré protokoly)
+    let compressedUrl = image.url;
+    
+    // If it's a WebP file, create a compressed JPEG URL
+    if (image.url.includes('.webp') || image.url.includes('Vehicle_') || image.url.includes('Document_') || image.url.includes('Damage_')) {
+      // Replace extension with _compressed.jpg for better PDF compression
+      compressedUrl = image.url.replace(/\.(webp|jpg|jpeg|png)$/i, '_compressed.jpg');
+      console.log('🔄 Generated fallback compressedUrl:', compressedUrl.substring(0, 100) + '...');
+    }
+    
+    return {
+      ...image,
+      compressedUrl
+    };
+  });
+};
+
+/**
  * 🎯 HLAVNÁ FUNKCIA - Generovanie handover PDF
  * Automaticky vyberie najlepší dostupný generátor s fallback stratégiou
  */
@@ -74,13 +105,27 @@ export const generateHandoverPDF = async (protocolData: HandoverProtocol): Promi
     damages: protocolData.damages?.length || 0
   });
 
+  // 🔄 Add compressed URLs for better PDF compression
+  const protocolDataWithCompressedUrls = {
+    ...protocolData,
+    vehicleImages: addCompressedUrlsToImages(protocolData.vehicleImages || []),
+    documentImages: addCompressedUrlsToImages(protocolData.documentImages || []),
+    damageImages: addCompressedUrlsToImages(protocolData.damageImages || [])
+  };
+
+  console.log('🔄 Added compressed URLs for PDF generation:', {
+    vehicleImages: protocolDataWithCompressedUrls.vehicleImages?.length || 0,
+    documentImages: protocolDataWithCompressedUrls.documentImages?.length || 0,
+    damageImages: protocolDataWithCompressedUrls.damageImages?.length || 0
+  });
+
   try {
     if (PDF_GENERATOR_TYPE === 'custom-font') {
       // 🎨 CUSTOM FONT - najlepšie pre vlastný font s plnou diakritiku
       try {
         const fontName = process.env.CUSTOM_FONT_NAME || 'sf-pro';
         const generator = getCustomFontGenerator(fontName);
-        const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
+        const pdfBuffer = await generator.generateHandoverProtocol(protocolDataWithCompressedUrls);
         console.log(`✅ Custom Font PDF vygenerované (${fontName}), veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
         return pdfBuffer;
       } catch (customFontError) {
@@ -88,13 +133,13 @@ export const generateHandoverPDF = async (protocolData: HandoverProtocol): Promi
         // Fallback na PDF-lib
         try {
           const generator = getPDFLibGenerator();
-          const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
+          const pdfBuffer = await generator.generateHandoverProtocol(protocolDataWithCompressedUrls);
           console.log(`✅ Fallback PDF-lib PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
           return pdfBuffer;
         } catch (pdfLibError) {
           console.error('❌ PDF-lib tiež zlyhal, fallback na Enhanced:', pdfLibError);
           const enhancedGenerator = getEnhancedGenerator();
-          const pdfBuffer = await enhancedGenerator.generateHandoverProtocol(protocolData);
+          const pdfBuffer = await enhancedGenerator.generateHandoverProtocol(protocolDataWithCompressedUrls);
           console.log(`✅ Fallback Enhanced PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
           return pdfBuffer;
         }
@@ -103,7 +148,7 @@ export const generateHandoverPDF = async (protocolData: HandoverProtocol): Promi
       // 🎨 PDF-LIB - vysoká kvalita bez dependencies
       try {
         const generator = getPDFLibGenerator();
-        const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
+        const pdfBuffer = await generator.generateHandoverProtocol(protocolDataWithCompressedUrls);
         console.log(`✅ PDF-lib PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
         return pdfBuffer;
       } catch (pdfLibError) {
@@ -118,7 +163,7 @@ export const generateHandoverPDF = async (protocolData: HandoverProtocol): Promi
       // 🎭 PUPPETEER - najlepšia kvalita ale Railway problémy
       try {
         const generator = getPuppeteerGenerator();
-        const pdfBuffer = await generator.generateHandoverProtocol(protocolData);
+        const pdfBuffer = await generator.generateHandoverProtocol(protocolDataWithCompressedUrls);
         console.log(`✅ Puppeteer PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
         return pdfBuffer;
       } catch (puppeteerError) {
@@ -153,13 +198,27 @@ export const generateReturnPDF = async (protocolData: ReturnProtocol): Promise<B
     finalRefund: protocolData.finalRefund
   });
 
+  // 🔄 Add compressed URLs for better PDF compression
+  const protocolDataWithCompressedUrls = {
+    ...protocolData,
+    vehicleImages: addCompressedUrlsToImages(protocolData.vehicleImages || []),
+    documentImages: addCompressedUrlsToImages(protocolData.documentImages || []),
+    damageImages: addCompressedUrlsToImages(protocolData.damageImages || [])
+  };
+
+  console.log('🔄 Added compressed URLs for return PDF generation:', {
+    vehicleImages: protocolDataWithCompressedUrls.vehicleImages?.length || 0,
+    documentImages: protocolDataWithCompressedUrls.documentImages?.length || 0,
+    damageImages: protocolDataWithCompressedUrls.damageImages?.length || 0
+  });
+
   try {
     if (PDF_GENERATOR_TYPE === 'custom-font') {
       // 🎨 CUSTOM FONT - najlepšie pre vlastný font s plnou diakritiku
       try {
         const fontName = process.env.CUSTOM_FONT_NAME || 'sf-pro';
         const generator = getCustomFontGenerator(fontName);
-        const pdfBuffer = await generator.generateReturnProtocol(protocolData);
+        const pdfBuffer = await generator.generateReturnProtocol(protocolDataWithCompressedUrls);
         console.log(`✅ Custom Font return PDF vygenerované (${fontName}), veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
         return pdfBuffer;
       } catch (customFontError) {
@@ -167,7 +226,7 @@ export const generateReturnPDF = async (protocolData: ReturnProtocol): Promise<B
         // Fallback na PDF-lib
         try {
           const generator = getPDFLibGenerator();
-          const pdfBuffer = await generator.generateReturnProtocol(protocolData);
+          const pdfBuffer = await generator.generateReturnProtocol(protocolDataWithCompressedUrls);
           console.log(`✅ Fallback PDF-lib return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
           return pdfBuffer;
         } catch (pdfLibError) {
@@ -182,7 +241,7 @@ export const generateReturnPDF = async (protocolData: ReturnProtocol): Promise<B
       // 🎨 PDF-LIB - vysoká kvalita bez dependencies
       try {
         const generator = getPDFLibGenerator();
-        const pdfBuffer = await generator.generateReturnProtocol(protocolData);
+        const pdfBuffer = await generator.generateReturnProtocol(protocolDataWithCompressedUrls);
         console.log(`✅ PDF-lib return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
         return pdfBuffer;
       } catch (pdfLibError) {
@@ -197,7 +256,7 @@ export const generateReturnPDF = async (protocolData: ReturnProtocol): Promise<B
       // 🎭 PUPPETEER - najlepšia kvalita ale Railway problémy
       try {
         const generator = getPuppeteerGenerator();
-        const pdfBuffer = await generator.generateReturnProtocol(protocolData);
+        const pdfBuffer = await generator.generateReturnProtocol(protocolDataWithCompressedUrls);
         console.log(`✅ Puppeteer return PDF vygenerované, veľkosť: ${(pdfBuffer.length / 1024).toFixed(1)}KB`);
         return pdfBuffer;
       } catch (puppeteerError) {

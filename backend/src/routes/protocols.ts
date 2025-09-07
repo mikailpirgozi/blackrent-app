@@ -726,4 +726,54 @@ router.post('/debug/send-test-protocol', async (req: Request, res: Response) => 
   }
 });
 
+/**
+ * 📸 Uloženie metadata uploadnutej fotky do protokolu
+ * POST /api/protocols/:protocolId/save-uploaded-photo
+ */
+router.post('/:protocolId/save-uploaded-photo', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { protocolId } = req.params;
+    const { fileUrl, compressedUrl, type, protocolType, filename, size } = req.body;
+
+    console.log('📸 Saving photo metadata:', {
+      protocolId,
+      fileUrl: fileUrl?.substring(0, 80) + '...',
+      compressedUrl: compressedUrl?.substring(0, 80) + '...',
+      type,
+      protocolType,
+      filename,
+      size
+    });
+
+    // Validate required fields
+    if (!fileUrl || !type || !protocolType) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: fileUrl, type, protocolType'
+      });
+    }
+
+    // Note: Metadata sa ukladajú len dočasne - skutočné uloženie je pri save protokolu
+    // Tento endpoint slúži len pre potvrdenie úspešného uploadu
+    
+    res.json({
+      success: true,
+      message: 'Photo metadata received (will be saved with protocol)',
+      data: {
+        protocolId,
+        filename,
+        type,
+        size: typeof size === 'number' ? `${(size / 1024).toFixed(1)}KB` : size
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error saving photo metadata:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

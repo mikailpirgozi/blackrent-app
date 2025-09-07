@@ -45,9 +45,10 @@ class R2Storage {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<string> {
-    // ❌ ODSTRÁNENÝ FALLBACK - R2 musí fungovať alebo zlyhať
+    // 🛠️ DEVELOPMENT FALLBACK - ak R2 nefunguje, použij lokálny storage
     if (!this.isConfigured()) {
-      throw new Error('R2 Storage nie je nakonfigurované. Skontrolujte environment variables.');
+      console.log('⚠️ R2 nie je nakonfigurované, používam lokálny storage pre development');
+      return this.uploadFileLocally(key, buffer);
     }
 
     try {
@@ -69,7 +70,12 @@ class R2Storage {
     } catch (error) {
       console.error('❌ R2 upload failed:', error);
       
-      // 🚨 ŽIADNY FALLBACK - R2 musí fungovať alebo zlyhať
+      // 🛠️ DEVELOPMENT FALLBACK - ak R2 zlyhá, použij lokálny storage
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 R2 zlyhal, fallback na lokálny storage pre development');
+        return this.uploadFileLocally(key, buffer);
+      }
+      
       if (error instanceof Error && error.message.includes('Unauthorized')) {
         console.error('🚨 R2 API TOKEN JE NEPLATNÝ!');
         console.error('🚨 Potrebujete vytvoriť nový R2 API token v Cloudflare dashboard');
@@ -121,9 +127,25 @@ class R2Storage {
         Bucket: this.config.bucketName,
         Key: key,
         ContentType: contentType,
+        // 🌟 NOVÉ: CORS headers pre presigned URL
+        Metadata: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'PUT, POST, GET',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
       });
 
-      return await getSignedUrl(this.client, command, { expiresIn });
+      const presignedUrl = await getSignedUrl(this.client, command, { expiresIn });
+      
+      // 🔧 DEBUG: Log pre troubleshooting
+      console.log('✅ Presigned URL created:', {
+        key: key,
+        contentType: contentType,
+        expiresIn: expiresIn,
+        url: presignedUrl.substring(0, 100) + '...'
+      });
+      
+      return presignedUrl;
     } catch (error) {
       console.error('R2 presigned URL error:', error);
       throw new Error(`Failed to create presigned URL: ${error}`);

@@ -541,6 +541,8 @@ export interface VehicleCondition {
 export interface ProtocolImage {
   id: string;
   url: string;
+  originalUrl?: string; // High quality version for gallery display
+  compressedUrl?: string; // Compressed version for PDF generation with smaller file sizes
   type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
   timestamp: Date;

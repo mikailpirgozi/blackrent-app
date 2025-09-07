@@ -34,6 +34,7 @@ router.get('/data',
           insurers,
           expenses,
           insurances,
+          settlements,
           vehicleDocuments,
           insuranceClaims
         ] = await Promise.all([
@@ -44,13 +45,10 @@ router.get('/data',
           postgresDatabase.getInsurers(),
           postgresDatabase.getExpenses(),
           postgresDatabase.getInsurances(),
-          // postgresDatabase.getSettlements(), // DOČASNE VYPNUTÉ - problém s tabuľkou
+          postgresDatabase.getSettlements(), // ✅ OPRAVENÉ - načítavame settlements z databázy
           postgresDatabase.getVehicleDocuments(),
           postgresDatabase.getInsuranceClaims()
         ]);
-
-        // DOČASNE: prázdne settlements
-        const settlements: any[] = [];
 
         const rawDataTime = Date.now() - rawDataStart;
         console.log(`✅ BULK: Raw data loaded in ${rawDataTime}ms`);

@@ -179,14 +179,25 @@ const BasicUserManagement: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setInvestors(data.data || []);
-        console.log('📊 Loaded investors:', data.data?.length || 0);
+        const investorsList = data.data || [];
+        setInvestors(investorsList);
+        console.log('📊 Loaded investors:', investorsList.length);
+
+        // Nehlás chybu ak je zoznam prázdny - to je normálne
+        if (investorsList.length === 0) {
+          console.log(
+            'ℹ️ No investors found - this is normal if none are configured'
+          );
+        }
       } else {
-        console.error('Failed to load investors');
+        console.warn(
+          'Failed to load investors - response not ok:',
+          response.status
+        );
         setInvestors([]);
       }
     } catch (error) {
-      console.error('Error loading investors:', error);
+      console.warn('Error loading investors (non-critical):', error);
       setInvestors([]);
     } finally {
       setLoadingInvestors(false);

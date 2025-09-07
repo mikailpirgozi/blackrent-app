@@ -1,25 +1,25 @@
 import {
-  PhotoCamera,
-  Close,
-  FlipCameraIos,
-  FlashOn,
-  FlashOff,
   CheckCircle,
+  Close,
+  FlashOff,
+  FlashOn,
+  FlipCameraIos,
+  PhotoCamera,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  IconButton,
   Alert,
-  LinearProgress,
+  Box,
+  Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  LinearProgress,
+  Typography,
 } from '@mui/material';
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { logger } from '../../utils/logger';
 
@@ -147,14 +147,16 @@ export default function NativeCamera({
                 }
               };
             } else {
-              console.warn(
-                `⚠️ Video ref is null, retry ${retries + 1}/${maxRetries}`
-              );
               retries++;
               if (retries < maxRetries) {
+                logger.debug(
+                  `🔄 Video ref not ready, retry ${retries}/${maxRetries}`
+                );
                 setTimeout(setupVideo, 100);
               } else {
-                console.error('❌ Video ref never became available');
+                logger.error(
+                  '❌ Video ref never became available after retries'
+                );
                 setCameraState(prev => ({
                   ...prev,
                   error:
@@ -166,13 +168,16 @@ export default function NativeCamera({
             }
           };
 
-          setupVideo();
+          // Malé oneskorenie pre lepšiu stabilitu
+          setTimeout(setupVideo, 50);
 
           // Kontrola flash podpory
           const videoTrack = stream.getVideoTracks()[0];
           const capabilities = videoTrack.getCapabilities?.();
           const flashSupported =
-            capabilities && (capabilities as any).torch === true;
+            capabilities &&
+            'torch' in capabilities &&
+            (capabilities as Record<string, unknown>).torch === true;
 
           logger.debug('🔦 Flash supported:', flashSupported);
 
@@ -269,7 +274,9 @@ export default function NativeCamera({
     try {
       const videoTrack = streamRef.current.getVideoTracks()[0];
       await videoTrack.applyConstraints({
-        advanced: [{ torch: !cameraState.flashEnabled } as any],
+        advanced: [
+          { torch: !cameraState.flashEnabled } as Record<string, unknown>,
+        ],
       });
 
       setCameraState(prev => ({
@@ -410,7 +417,7 @@ export default function NativeCamera({
           zIndex: 10,
         }}
       >
-        <Typography variant="h6" sx={{ color: 'white' }}>
+        <Typography component="span" variant="h6" sx={{ color: 'white' }}>
           {title}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -1986,36 +1986,38 @@ function DocumentListItem({
             flex: 1,
             mr: isMobile ? 0 : 2,
           }}
+          secondaryTypographyProps={{ component: 'div' }}
           primary={
-            <Box
-              sx={{
+            <span
+              style={{
                 display: 'flex',
                 alignItems: isMobile ? 'flex-start' : 'center',
-                gap: 1,
+                gap: '8px',
                 flexWrap: 'wrap',
                 flexDirection: isMobile ? 'column' : 'row',
               }}
             >
-              <Box
-                sx={{
+              <span
+                style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 1,
+                  gap: '8px',
                   flexWrap: 'wrap',
                 }}
               >
                 {isMobile && (
-                  <Box
-                    sx={{
+                  <span
+                    style={{
                       color: typeInfo.color,
                       display: 'flex',
                       alignItems: 'center',
                     }}
                   >
                     {typeInfo.icon}
-                  </Box>
+                  </span>
                 )}
                 <Typography
+                  component="span"
                   variant={isMobile ? 'subtitle2' : 'body1'}
                   sx={{
                     fontWeight: 600,
@@ -2028,6 +2030,7 @@ function DocumentListItem({
                   document.documentNumber ||
                   document.kmState) && (
                   <Typography
+                    component="span"
                     variant="body2"
                     color="text.secondary"
                     sx={{
@@ -2044,30 +2047,33 @@ function DocumentListItem({
                         : document.policyNumber || document.documentNumber}
                   </Typography>
                 )}
-              </Box>
-            </Box>
+              </span>
+            </span>
           }
           secondary={
-            <Box sx={{ mt: { xs: 1, sm: 0.5 } }}>
-              <Box
-                sx={{
+            <span
+              style={{ marginTop: isMobile ? '8px' : '4px', display: 'block' }}
+            >
+              <span
+                style={{
                   display: 'flex',
                   alignItems: isMobile ? 'flex-start' : 'center',
-                  gap: { xs: 1, sm: 2 },
+                  gap: isMobile ? '8px' : '16px',
                   flexWrap: 'wrap',
                   flexDirection: isMobile ? 'column' : 'row',
                 }}
               >
                 {/* Date and Status Row */}
-                <Box
-                  sx={{
+                <span
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
+                    gap: '8px',
                     flexWrap: 'wrap',
                   }}
                 >
                   <Typography
+                    component="span"
                     variant="body2"
                     color="text.secondary"
                     sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
@@ -2087,29 +2093,32 @@ function DocumentListItem({
                     })()}
                   </Typography>
 
-                  <Chip
-                    label={expiryStatus.text}
-                    color={expiryStatus.color}
-                    size="small"
-                    variant="filled"
-                    sx={{
-                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
-                      height: { xs: 20, sm: 24 },
-                    }}
-                  />
-                </Box>
+                  <span style={{ display: 'inline-flex' }}>
+                    <Chip
+                      label={expiryStatus.text}
+                      color={expiryStatus.color}
+                      size="small"
+                      variant="filled"
+                      sx={{
+                        fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                        height: { xs: 20, sm: 24 },
+                      }}
+                    />
+                  </span>
+                </span>
 
                 {/* Company and Price Row */}
-                <Box
-                  sx={{
+                <span
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
+                    gap: '8px',
                     flexWrap: 'wrap',
                   }}
                 >
                   {document.company && (
                     <Typography
+                      component="span"
                       variant="body2"
                       color="text.secondary"
                       sx={{
@@ -2123,6 +2132,7 @@ function DocumentListItem({
 
                   {document.price && (
                     <Typography
+                      component="span"
                       variant="body2"
                       color="text.secondary"
                       sx={{
@@ -2134,26 +2144,34 @@ function DocumentListItem({
                       €{document.price.toFixed(2)}
                     </Typography>
                   )}
-                </Box>
-              </Box>
+                </span>
+              </span>
 
               {/* Green Card info for insurance */}
               {document.type === 'insurance' &&
                 document.originalData &&
                 'greenCardValidTo' in document.originalData &&
                 document.originalData.greenCardValidTo && (
-                  <Box
-                    sx={{
-                      mt: 1,
+                  <span
+                    style={{
+                      marginTop: '8px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 1,
+                      gap: '8px',
                     }}
                   >
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      component="span"
+                      variant="caption"
+                      color="text.secondary"
+                    >
                       🟢 Biela karta:
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      component="span"
+                      variant="caption"
+                      color="text.secondary"
+                    >
                       {(() => {
                         try {
                           const date =
@@ -2169,23 +2187,25 @@ function DocumentListItem({
                         }
                       })()}
                     </Typography>
-                    <Chip
-                      label={
-                        getExpiryStatus(
-                          document.originalData.greenCardValidTo,
-                          'greencard'
-                        ).text
-                      }
-                      color={
-                        getExpiryStatus(
-                          document.originalData.greenCardValidTo,
-                          'greencard'
-                        ).color
-                      }
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
+                    <span style={{ display: 'inline-flex' }}>
+                      <Chip
+                        label={
+                          getExpiryStatus(
+                            document.originalData.greenCardValidTo,
+                            'greencard'
+                          ).text
+                        }
+                        color={
+                          getExpiryStatus(
+                            document.originalData.greenCardValidTo,
+                            'greencard'
+                          ).color
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    </span>
+                  </span>
                 )}
 
               {/* Files */}
@@ -2196,12 +2216,12 @@ function DocumentListItem({
 
                 if (filePaths.length > 0) {
                   return (
-                    <Box
-                      sx={{
-                        mt: 1,
+                    <span
+                      style={{
+                        marginTop: '8px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
+                        gap: '8px',
                         flexWrap: 'wrap',
                       }}
                     >
@@ -2218,23 +2238,25 @@ function DocumentListItem({
                           Zobraziť súbor
                         </Button>
                       ) : (
-                        <Chip
-                          label={`${filePaths.length} súborov`}
-                          size="small"
-                          variant="outlined"
-                          onClick={() => {
-                            // ZIP download logic here
-                            console.log('Download ZIP for files:', filePaths);
-                          }}
-                          sx={{ cursor: 'pointer' }}
-                        />
+                        <span style={{ display: 'inline-flex' }}>
+                          <Chip
+                            label={`${filePaths.length} súborov`}
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              // ZIP download logic here
+                              console.log('Download ZIP for files:', filePaths);
+                            }}
+                            sx={{ cursor: 'pointer' }}
+                          />
+                        </span>
                       )}
-                    </Box>
+                    </span>
                   );
                 }
                 return null;
               })()}
-            </Box>
+            </span>
           }
         />
 
