@@ -9,15 +9,15 @@ import React, { useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { apiService } from '../../../services/api';
-import type { Rental } from '../../../types';
+import type { Company, Customer, Rental, Vehicle } from '../../../types';
 import { logger } from '../../../utils/logger';
 
 interface RentalExportProps {
   filteredRentals: Rental[];
   state: {
-    customers: any[];
-    companies: any[];
-    vehicles: any[];
+    customers: Customer[];
+    companies: Company[];
+    vehicles: Vehicle[];
     rentals: Rental[];
   };
   isMobile: boolean;
@@ -27,7 +27,7 @@ interface RentalExportProps {
 export const RentalExport: React.FC<RentalExportProps> = ({
   filteredRentals,
   state,
-  isMobile,
+  // isMobile, // TODO: Implement mobile-specific layout
   setImportError,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,22 +160,24 @@ export const RentalExport: React.FC<RentalExportProps> = ({
         complete: async (results: ReturnType<typeof Papa.parse>) => {
           try {
             const imported = [];
-            const createdVehicles: any[] = [];
-            const createdCustomers: any[] = [];
-            const createdCompanies: any[] = [];
+            const createdVehicles: Vehicle[] = [];
+            const createdCustomers: Customer[] = [];
+            const createdCompanies: Company[] = [];
 
             // 📦 BATCH PROCESSING: Pripravíme všetky prenájmy pre batch import
             const batchRentals = [];
 
             // Najskôr spracujeme všetky riadky a vytvoríme zákazníkov, firmy a vozidlá ak je potrebné
-            for (const row of results.data as any[]) {
+            for (const row of results.data as Record<string, unknown>[]) {
               logger.debug('Processing CSV row', {
                 rowIndex: results.data.indexOf(row),
               });
 
               // 1. VYTVORENIE ZÁKAZNÍKA AK NEEXISTUJE
-              const customerName = row.customerName || 'Neznámy zákazník';
-              const customerEmail = row.customerEmail || '';
+              const customerName = String(
+                row.customerName || 'Neznámy zákazník'
+              );
+              const customerEmail = String(row.customerEmail || '');
 
               // 🔍 DETAILNÉ HĽADANIE ZÁKAZNÍKA S DIAKRITIKU
               console.log(
@@ -210,7 +212,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 );
 
                 existingCustomer = state.customers.find(c => {
-                  const normalizedDbName = normalizeString(c.name || '');
+                  const normalizedDbName = normalizeString(c.name);
                   const match = normalizedDbName === normalizedCustomerName;
                   if (match) {
                     console.log(
@@ -248,7 +250,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
 
                   const normalizedCustomerName = normalizeString(customerName);
                   existingCustomer = createdCustomers.find(c => {
-                    const normalizedDbName = normalizeString(c.name || '');
+                    const normalizedDbName = normalizeString(c.name);
                     return normalizedDbName === normalizedCustomerName;
                   });
 
@@ -286,7 +288,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
               }
 
               // 2. VYTVORENIE FIRMY AK NEEXISTUJE
-              const companyName = row.company || 'Neznáma firma';
+              const companyName = String(row.company || 'Neznáma firma');
               let existingCompany = state.companies.find(
                 c => c.name.toLowerCase() === companyName.toLowerCase()
               );
@@ -321,7 +323,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
               }
 
               // 3. VYTVORENIE VOZIDLA AK NEEXISTUJE
-              const licensePlate = row.licensePlate;
+              const licensePlate = String(row.licensePlate || '');
               if (!licensePlate) {
                 logger.warn('Missing license plate, skipping row', {
                   rowIndex: results.data.indexOf(row),
@@ -355,25 +357,19 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                     continue;
                   }
 
-                  const newVehicle = {
+                  const newVehicle: Vehicle = {
                     id: uuidv4(),
                     licensePlate: licensePlate,
-                    brand: row.brand || 'Neznáma značka',
-                    model: row.model || 'Neznámy model',
-                    companyId: finalCompany.id,
+                    brand: String(row.brand || 'Neznáma značka'),
+                    model: String(row.model || 'Neznámy model'),
                     company: finalCompany.name,
                     year: new Date().getFullYear(),
-                    fuelType: 'benzín',
-                    transmission: 'manuál',
-                    seats: 5,
-                    dailyRate: Number(row.totalPrice) || 50,
                     commission: {
                       type: 'percentage' as const,
                       value: 20,
                     },
                     pricing: [],
                     status: 'available' as const,
-                    notes: '',
                   };
                   await apiService.createVehicle(newVehicle);
                   createdVehicles.push(newVehicle);
@@ -392,13 +388,14 @@ export const RentalExport: React.FC<RentalExportProps> = ({
               }
 
               // Parsuje dátumy - iba dátum bez času, zachováva formát pre export
-              const parseDate = (dateStr: string) => {
-                if (!dateStr) return new Date();
+              const parseDate = (dateStr: unknown) => {
+                const dateString = String(dateStr || '');
+                if (!dateString) return new Date();
 
                 // Skúsi ISO 8601 formát (YYYY-MM-DDTHH:mm:ss.sssZ alebo YYYY-MM-DD)
                 // Ale iba ak má správny formát (obsahuje - alebo T)
-                if (dateStr.includes('-') || dateStr.includes('T')) {
-                  const isoDate = new Date(dateStr);
+                if (dateString.includes('-') || dateString.includes('T')) {
+                  const isoDate = new Date(dateString);
                   if (!isNaN(isoDate.getTime())) {
                     // ✅ OPRAVENÉ: Extrahuje dátum z UTC času, nie lokálneho
                     return new Date(
@@ -412,7 +409,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 }
 
                 // Fallback na formát s bodkami - podporuje "14.1." alebo "14.1.2025"
-                let cleanDateStr = dateStr.trim();
+                let cleanDateStr = dateString.trim();
 
                 // Odstráni koncovú bodku ak je tam ("14.1." -> "14.1")
                 if (cleanDateStr.endsWith('.')) {
@@ -452,7 +449,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
 
                 // Ak nič nefunguje, vráti dnešný dátum
                 console.warn(
-                  `Nepodarilo sa parsovať dátum: "${dateStr}", používam dnešný dátum`
+                  `Nepodarilo sa parsovať dátum: "${dateString}", používam dnešný dátum`
                 );
                 return new Date();
               };
@@ -478,7 +475,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 const normalizedCustomerName = normalizeString(customerName);
                 finalCustomer = [...state.customers, ...createdCustomers].find(
                   c => {
-                    const normalizedDbName = normalizeString(c.name || '');
+                    const normalizedDbName = normalizeString(c.name);
                     return normalizedDbName === normalizedCustomerName;
                   }
                 );
@@ -496,7 +493,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
 
               // Automatické priradenie majiteľa na základe vozidla
               // Ak existuje vozidlo a nie je zadaný spôsob platby, nastav platbu priamo majiteľovi
-              let finalPaymentMethod = row.paymentMethod || 'cash';
+              let finalPaymentMethod = String(row.paymentMethod || 'cash');
 
               // Ak je nájdené vozidlo na základe ŠPZ a nie je zadaný paymentMethod,
               // automaticky nastav platbu priamo majiteľovi vozidla
@@ -604,7 +601,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
 
               // Vytvorenie prenájmu
               const newRental = {
-                id: row.id || uuidv4(),
+                id: String(row.id || uuidv4()),
                 vehicleId: vehicle?.id || undefined,
                 vehicle: vehicle,
                 customerId: finalCustomer?.id || undefined,
@@ -614,7 +611,11 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 endDate: endDate,
                 totalPrice: parsedTotalPrice,
                 commission: finalCommission,
-                paymentMethod: finalPaymentMethod as any,
+                paymentMethod: finalPaymentMethod as
+                  | 'cash'
+                  | 'bank_transfer'
+                  | 'vrp'
+                  | 'direct_to_owner',
                 discount: row.discountType
                   ? {
                       type: row.discountType as 'percentage' | 'fixed',
@@ -629,7 +630,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                   : undefined,
                 extraKmCharge: Number(row.extraKmCharge) || 0,
                 paid: row.paid === '1' || row.paid === true,
-                handoverPlace: row.handoverPlace || '',
+                handoverPlace: String(row.handoverPlace || ''),
                 confirmed: row.confirmed === '1' || row.confirmed === true,
                 status: 'active' as const,
                 notes: '',
@@ -653,22 +654,25 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 logger.info(
                   `🚀 Starting batch import of ${batchRentals.length} rentals...`
                 );
-                const batchResult =
-                  await apiService.batchImportRentals(batchRentals);
 
-                logger.info('✅ Batch import completed', {
-                  processed: batchResult.processed,
-                  total: batchResult.total,
-                  successRate: batchResult.successRate,
-                  errors: batchResult.errors.length,
-                });
-
-                // Log errors if any
-                if (batchResult.errors.length > 0) {
-                  logger.warn('Batch import errors:', batchResult.errors);
+                // Vytvor prenájmy jeden po druhom namiesto batch importu
+                for (const rental of batchRentals) {
+                  try {
+                    const createdRental = await apiService.createRental(rental);
+                    imported.push(createdRental);
+                  } catch (error) {
+                    logger.error('Failed to create rental', {
+                      rental: rental.customerName,
+                      error,
+                    });
+                  }
                 }
 
-                imported.push(...batchResult.results);
+                logger.info('✅ Batch import completed', {
+                  processed: imported.length,
+                  total: batchRentals.length,
+                  successRate: (imported.length / batchRentals.length) * 100,
+                });
               } catch (error) {
                 logger.error('Batch import failed', { error });
                 throw error;

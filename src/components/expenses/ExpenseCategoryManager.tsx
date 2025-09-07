@@ -1,40 +1,38 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Category as CategoryIcon,
-  Save as SaveIcon,
   Cancel as CancelIcon,
+  Category as CategoryIcon,
+  Delete as DeleteIcon,
   DragIndicator as DragIcon,
-  Palette as PaletteIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Card,
-  CardContent,
+  Chip,
+  CircularProgress,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
+  DialogContent,
+  DialogTitle,
+  Divider,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
+  Grid,
   IconButton,
+  InputLabel,
   List,
   ListItem,
-  ListItemText,
   ListItemSecondaryAction,
-  Chip,
-  Alert,
-  CircularProgress,
-  Grid,
-  Divider,
+  ListItemText,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
 import type { ExpenseCategory } from '../../types';
@@ -114,7 +112,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       const result = await apiService.getExpenseCategories();
       setCategories(result);
     } catch (error: unknown) {
-      setError('Chyba pri načítavaní kategórií: ' + error.message);
+      setError('Chyba pri načítavaní kategórií: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -183,7 +181,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
         await loadCategories();
         onCategoriesChanged?.();
       } catch (error: unknown) {
-        setError('Chyba pri mazaní kategórie: ' + error.message);
+        setError('Chyba pri mazaní kategórie: ' + (error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -230,7 +228,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
       await loadCategories();
       onCategoriesChanged?.();
     } catch (error: unknown) {
-      setError('Chyba pri ukladaní kategórie: ' + error.message);
+      setError('Chyba pri ukladaní kategórie: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -307,7 +305,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
         <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <List>
             {categories.map((category, index) => (
-              <React.Fragment key={category.id}>
+              <Fragment key={category.id}>
                 <ListItem
                   sx={{
                     py: 2,
@@ -408,7 +406,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                   </ListItemSecondaryAction>
                 </ListItem>
                 {index < categories.length - 1 && <Divider />}
-              </React.Fragment>
+              </Fragment>
             ))}
 
             {categories.length === 0 && !loading && (
@@ -535,7 +533,13 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                   onChange={e =>
                     setFormData(prev => ({
                       ...prev,
-                      color: e.target.value as any,
+                      color: e.target.value as
+                        | 'primary'
+                        | 'secondary'
+                        | 'success'
+                        | 'error'
+                        | 'warning'
+                        | 'info',
                     }))
                   }
                   label="Farba"

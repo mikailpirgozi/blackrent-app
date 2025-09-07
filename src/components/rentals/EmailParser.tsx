@@ -2,20 +2,20 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import {
+  Alert,
   Box,
   Button,
-  TextField,
-  Typography,
   Card,
   CardContent,
-  Alert,
   Collapse,
   IconButton,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Rental, Customer, Vehicle } from '../../types';
+import type { Customer, Rental, Vehicle } from '../../types';
 
 interface EmailParserProps {
   onParseSuccess: (
@@ -413,13 +413,13 @@ export default function EmailParser({
     };
 
     // Kontrola, či sa našlo vozidlo - s normalizáciou
-    let vehicleFound = false;
-    if (parsedData.vehicleCode) {
-      const normalizedCode = normalizeSpz(parsedData.vehicleCode);
-      vehicleFound = vehicles.some(
-        v => normalizeSpz(v.licensePlate || '') === normalizedCode
-      );
-    }
+    // let vehicleFound = false; // TODO: Implement vehicle validation logic
+    // if (parsedData.vehicleCode) {
+    //   const normalizedCode = normalizeSpz(parsedData.vehicleCode);
+    //   vehicleFound = vehicles.some(
+    //     v => normalizeSpz(v.licensePlate || '') === normalizedCode
+    //   );
+    // }
 
     // Nájdenie vozidla - primárne podľa ŠPZ, potom podľa názvu
     let selectedVehicle: Vehicle | undefined;

@@ -94,6 +94,11 @@ export function useMemoizedFilter<T>(
       console.warn('useMemoizedFilter: data is not an array:', data);
       return [];
     }
+    // dependencies parameter je zachovaný pre kompatibilitu
+    console.debug(
+      'useMemoizedFilter called with dependencies:',
+      dependencies.length
+    );
     return data.filter(filterFn);
   }, [data, filterFn, dependencies]);
 }

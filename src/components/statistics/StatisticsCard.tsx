@@ -5,19 +5,18 @@
  */
 
 import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Remove as StableIcon,
+  TrendingDown as TrendingDownIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
+  Avatar,
+  Box,
   Card,
   CardContent,
-  Typography,
-  Box,
-  Avatar,
   Chip,
+  Typography,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import React, { memo } from 'react';
 
@@ -47,7 +46,7 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
   onClick,
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Nepoužívané
 
   // Get color based on theme
   const getColor = (colorName: string) => {

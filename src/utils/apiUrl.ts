@@ -61,6 +61,12 @@ export const getApiBaseUrl = (): string => {
  */
 export const getBaseUrl = (): string => {
   const apiUrl = getApiBaseUrl();
+
+  // FIXED: Pre development mode, ak je API URL relatívna /api, vráť localhost:3001
+  if (apiUrl === '/api') {
+    return 'http://localhost:3001';
+  }
+
   return apiUrl.replace('/api', '');
 };
 

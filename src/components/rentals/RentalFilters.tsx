@@ -1,28 +1,28 @@
 import {
-  FilterList as FilterListIcon,
-  ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Typography,
-  Chip,
-  IconButton,
-  Collapse,
-  Grid,
   Card,
   CardContent,
+  Checkbox,
+  Chip,
+  Collapse,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { memo } from 'react';
+import { memo } from 'react';
 
-import type { Vehicle, PaymentMethod } from '../../types';
+import type { PaymentMethod, Vehicle } from '../../types';
 
 interface RentalFiltersProps {
   // Basic filters
@@ -82,7 +82,7 @@ const RentalFilters = memo<RentalFiltersProps>(
     filterCustomer,
     setFilterCustomer,
     filterStatus,
-    setFilterStatus,
+    // setFilterStatus, // TODO: Implement status filter functionality
     filterPaid,
     setFilterPaid,
     filterDateFrom,

@@ -26,8 +26,6 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import React, { memo } from 'react';
 import { formatDateTime } from '../../utils/formatters';
@@ -68,8 +66,8 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
   protocols,
   loadingProtocols,
 }) => {
-  const theme = useTheme();
-  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // const theme = useTheme();
+  // const _isMobile = useMediaQuery(theme.breakpoints.down('md')); // TODO: Implement mobile-specific layout
 
   const getStatusColor = (status: string | undefined) => {
     switch (status?.toLowerCase()) {
@@ -115,9 +113,9 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
     const isActive =
       rental.status?.toLowerCase() === 'aktívny' ||
       rental.status?.toLowerCase() === 'active';
-    const _isFinished =
-      rental.status?.toLowerCase() === 'dokončený' ||
-      rental.status?.toLowerCase() === 'completed';
+    // const _isFinished =
+    //   rental.status?.toLowerCase() === 'dokončený' ||
+    //   rental.status?.toLowerCase() === 'completed'; // TODO: Implement finished status logic
 
     return (
       <Card

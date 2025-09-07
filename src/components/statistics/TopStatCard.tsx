@@ -1,18 +1,18 @@
 import { EmojiEvents as TrophyIcon } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
-  Typography,
   Card,
   CardContent,
-  Avatar,
   LinearProgress,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
 interface TopStatCardProps {
   title: string;
   icon: React.ReactNode;
-  data: any;
+  data: Record<string, unknown>;
   primaryValue: string;
   secondaryValue: string;
   gradient: string;

@@ -6,7 +6,7 @@ import {
   TextField,
   Button,
   Typography,
-  Divider,
+  // Divider, // Nepoužívané
   Alert,
   Paper,
 } from '@mui/material';
@@ -106,19 +106,20 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     }
   };
 
-  const handleSignatureSave = async (signatureData: any) => {
+  const handleSignatureSave = async (
+    signatureData: Record<string, unknown>
+  ) => {
     setLoading(true);
     setMessage(null);
 
     try {
+      const signature = signatureData.signature as string;
       console.log('🖊️ Sending signature data:', {
-        signatureLength: signatureData.signature?.length || 0,
+        signatureLength: signature?.length || 0,
       });
       console.log('🖊️ Current user state:', state.user);
 
-      const response = await apiService.updateSignatureTemplate(
-        signatureData.signature
-      );
+      const response = await apiService.updateSignatureTemplate(signature);
       console.log('🖊️ Signature update response:', response);
 
       // Aktualizuj user state s dátami z backendu
@@ -132,7 +133,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         // Fallback ak response nemá user objekt ale má success
         console.log('⚠️ Backend returned success but no user data');
         updateUser({
-          signatureTemplate: signatureData.signature,
+          signatureTemplate: signature,
         });
         console.log(
           '⚠️ Using frontend signature data as fallback (success response)'
@@ -141,7 +142,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         // Fallback na frontend data
         console.log('⚠️ Backend returned no data');
         updateUser({
-          signatureTemplate: signatureData.signature,
+          signatureTemplate: signature,
         });
         console.log(
           '⚠️ Using frontend signature data as fallback (no response data)'
@@ -161,8 +162,9 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
       });
 
       // Fallback na frontend data aj pri chybe
+      const signature = signatureData.signature as string;
       updateUser({
-        signatureTemplate: signatureData.signature,
+        signatureTemplate: signature,
       });
       console.log(
         '⚠️ Using frontend signature data as fallback (error occurred)'

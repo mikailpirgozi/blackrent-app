@@ -1,7 +1,14 @@
 // ⚡ Enhanced Web Vitals Monitoring
 // Comprehensive performance tracking with real-time metrics
 
-import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
+import {
+  getCLS,
+  getFCP,
+  getFID,
+  getLCP,
+  getTTFB,
+  type Metric,
+} from 'web-vitals';
 
 interface VitalsMetric {
   name: string;
@@ -15,7 +22,7 @@ interface PerformanceData {
   timestamp: number;
   url: string;
   userAgent: string;
-  connection?: any;
+  connection?: Record<string, unknown>;
 }
 
 class WebVitalsMonitor {
@@ -41,12 +48,12 @@ class WebVitalsMonitor {
     this.observeLayoutShifts();
   }
 
-  private handleMetric(metric: any) {
+  private handleMetric(metric: Metric) {
     const vitalsMetric: VitalsMetric = {
       name: metric.name,
       value: metric.value,
-      rating: metric.rating || this.calculateRating(metric.name, metric.value),
-      navigationType: metric.navigationType || 'navigate',
+      rating: this.calculateRating(metric.name, metric.value),
+      navigationType: 'navigate',
     };
 
     this.metrics.push(vitalsMetric);
@@ -58,7 +65,8 @@ class WebVitalsMonitor {
         timestamp: Date.now(),
         url: window.location.href,
         userAgent: navigator.userAgent,
-        connection: (navigator as any).connection,
+        connection: (navigator as unknown as Record<string, unknown>)
+          .connection as Record<string, unknown>,
       };
 
       this.onMetricCallback(performanceData);
@@ -141,7 +149,7 @@ class WebVitalsMonitor {
           entries.forEach(entry => {
             if (
               entry.entryType === 'layout-shift' &&
-              !(entry as any).hadRecentInput
+              !(entry as unknown as Record<string, unknown>).hadRecentInput
             ) {
               this.trackLayoutShift(entry);
             }
@@ -172,14 +180,14 @@ class WebVitalsMonitor {
   }
 
   private trackLayoutShift(entry: PerformanceEntry) {
-    const layoutShiftEntry = entry as any;
+    const layoutShiftEntry = entry as unknown as Record<string, unknown>;
 
     if (
       process.env.NODE_ENV === 'development' &&
-      layoutShiftEntry.value > 0.1
+      (layoutShiftEntry.value as number) > 0.1
     ) {
       console.warn(
-        `📐 Significant layout shift: ${layoutShiftEntry.value.toFixed(4)}`
+        `📐 Significant layout shift: ${(layoutShiftEntry.value as number).toFixed(4)}`
       );
     }
   }
@@ -229,7 +237,8 @@ class WebVitalsMonitor {
       timestamp: Date.now(),
       url: window.location.href,
       userAgent: navigator.userAgent,
-      connection: (navigator as any).connection,
+      connection: (navigator as unknown as Record<string, unknown>)
+        .connection as Record<string, unknown>,
     };
 
     if (endpoint) {
@@ -290,18 +299,20 @@ export const debugPerformance = () => {
 
   // Memory usage (if available)
   if ('memory' in performance) {
-    const memory = (performance as any).memory;
+    const memory = (performance as unknown as Record<string, unknown>)
+      .memory as Record<string, unknown>;
     console.log(
-      `Memory Used: ${(memory.usedJSHeapSize / 1048576).toFixed(2)} MB`
+      `Memory Used: ${((memory.usedJSHeapSize as number) / 1048576).toFixed(2)} MB`
     );
     console.log(
-      `Memory Limit: ${(memory.jsHeapSizeLimit / 1048576).toFixed(2)} MB`
+      `Memory Limit: ${((memory.jsHeapSizeLimit as number) / 1048576).toFixed(2)} MB`
     );
   }
 
   // Network connection info
   if ('connection' in navigator) {
-    const connection = (navigator as any).connection;
+    const connection = (navigator as unknown as Record<string, unknown>)
+      .connection as Record<string, unknown>;
     console.log(
       `Connection: ${connection.effectiveType} (${connection.downlink} Mbps)`
     );

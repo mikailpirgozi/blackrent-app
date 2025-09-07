@@ -1,6 +1,15 @@
 // 📧 EMAIL PARSING UTILITY - Zdieľaná parsing logika pre frontend aj backend
 // Extrahované z src/components/rentals/EmailParser.tsx
 
+// Simple logger for debugging
+const logger = {
+  debug: (message: string, ...args: unknown[]) => {
+    if (import.meta.env.DEV) {
+      console.log(`[EMAIL-PARSER] ${message}`, ...args);
+    }
+  },
+};
+
 export interface ParsedEmailData {
   orderNumber?: string;
   orderDate?: string;
@@ -317,7 +326,9 @@ export function parseEmailText(text: string): ParsedEmailData {
 /**
  * 🔄 HELPER: Konvertuje ParsedEmailData na backend formát
  */
-export function convertToRentalData(parsed: ParsedEmailData): any {
+export function convertToRentalData(
+  parsed: ParsedEmailData
+): Record<string, unknown> {
   return {
     orderNumber: parsed.orderNumber,
     customerName: parsed.customerName,

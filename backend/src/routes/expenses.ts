@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
+import { invalidateCache } from '../middleware/cache-middleware';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Expense } from '../types';
@@ -90,7 +91,8 @@ router.get('/',
 router.post('/', 
   authenticateToken,
   checkPermission('expenses', 'create'),
-  async (req: Request, res: Response<ApiResponse>) => {
+  invalidateCache('expense'),
+async (req: Request, res: Response<ApiResponse>) => {
   try {
     console.log('💰 EXPENSE CREATE START:', { body: req.body, user: req.user?.username });
     const { description, amount, date, vehicleId, company, category, note } = req.body;
@@ -137,9 +139,9 @@ router.post('/',
       data: createdExpense
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ EXPENSE CREATE ERROR:', error);
-    console.error('❌ EXPENSE ERROR STACK:', error.stack);
+    console.error('❌ EXPENSE ERROR STACK:', error instanceof Error ? error.stack : 'No stack trace');
     res.status(500).json({
       success: false,
       error: 'Chyba pri vytváraní nákladu'
@@ -151,6 +153,7 @@ router.post('/',
 router.put('/:id', 
   authenticateToken,
   checkPermission('expenses', 'update', { getContext: getExpenseContext }),
+  invalidateCache('expense'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
@@ -204,6 +207,7 @@ router.put('/:id',
 router.delete('/:id', 
   authenticateToken,
   checkPermission('expenses', 'delete', { getContext: getExpenseContext }),
+  invalidateCache('expense'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
@@ -353,7 +357,7 @@ router.post('/import/csv',
           console.log(`Riadok ${i + 2}: ${fields.length} polí:`, fields);
 
           // Mapovanie polí podľa vášho formátu: id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note
-          const [id, description, amount, date, category, company, vehicleId, vehicleLicensePlate, note] = fields;
+          const [, description, amount, date, category, company, vehicleId, , note] = fields;
 
           // Kontrola povinných polí - len description je povinný
           if (!description || description.trim() === '') {
@@ -429,10 +433,10 @@ router.post('/import/csv',
           const createdExpense = await postgresDatabase.createExpense(expenseData);
           results.push({ row: i + 2, expense: createdExpense });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             row: i + 2, 
-            error: error.message || 'Chyba pri vytváraní nákladu' 
+            error: error instanceof Error ? error.message : 'Chyba pri vytváraní nákladu' 
           });
         }
       }
@@ -557,11 +561,11 @@ router.post('/batch-import',
             results.push(createdExpense);
             created++;
 
-          } catch (error: any) {
-            console.error(`❌ Error creating expense:`, error.message);
+          } catch (error: unknown) {
+            console.error(`❌ Error creating expense:`, error instanceof Error ? error.message : String(error));
             errors.push({
               expense: expenseData,
-              error: error.message || 'Chyba pri vytváraní nákladu'
+              error: error instanceof Error ? error.message : 'Chyba pri vytváraní nákladu'
             });
           }
         }

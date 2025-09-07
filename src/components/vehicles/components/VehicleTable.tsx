@@ -1,18 +1,18 @@
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   History as HistoryIcon,
   Speed as KmIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Typography,
-  IconButton,
-  Chip,
   Card,
   CardContent,
   Checkbox,
+  Chip,
+  IconButton,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -20,10 +20,10 @@ import React from 'react';
 
 import type { Vehicle } from '../../../types';
 import {
-  getStatusColor,
+  // getStatusColor, // Nepoužívané
   getStatusBgColor,
-  getStatusText,
   getStatusIcon,
+  getStatusText,
 } from '../../../utils/vehicles/vehicleHelpers';
 import { Can } from '../../common/PermissionGuard';
 

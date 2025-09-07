@@ -1,30 +1,30 @@
 import {
   BugReport as BugIcon,
-  Download as DownloadIcon,
   Clear as ClearIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   Close as CloseIcon,
+  Download as DownloadIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
   Memory as MemoryIcon,
+  Refresh as RefreshIcon,
   Speed as SpeedIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Typography,
   Chip,
+  Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   IconButton,
-  Collapse,
-  Alert,
   Stack,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger, LogEntry } from '../../utils/mobileLogger';
 
@@ -33,16 +33,16 @@ interface LogEntry {
   timestamp: number; // Changed from Date to number
   level: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   category?: string; // Added missing property
   stackTrace?: string; // Added missing property
 }
 
 const MobileDebugPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs] = useState<LogEntry[]>([]);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats] = useState<Record<string, unknown> | null>(null);
   // 🔄 MOBILE CLEANUP: mobileLogger disabled
   const mobileLogger = null; // getMobileLogger();
 
@@ -239,7 +239,11 @@ const MobileDebugPanel: React.FC = () => {
             >
               <MemoryIcon /> Pamäť
             </Typography>
-            {(performance as any).memory ? (
+            {(
+              performance as Performance & {
+                memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+              }
+            ).memory ? (
               <Alert
                 severity="info"
                 sx={{ backgroundColor: '#1e3a5f', color: 'white' }}
@@ -247,11 +251,29 @@ const MobileDebugPanel: React.FC = () => {
                 <Typography variant="body2">
                   Použitá:{' '}
                   {Math.round(
-                    (performance as any).memory.usedJSHeapSize / 1024 / 1024
+                    (
+                      performance as Performance & {
+                        memory: {
+                          usedJSHeapSize: number;
+                          jsHeapSizeLimit: number;
+                        };
+                      }
+                    ).memory.usedJSHeapSize /
+                      1024 /
+                      1024
                   )}{' '}
                   MB / Limit:{' '}
                   {Math.round(
-                    (performance as any).memory.jsHeapSizeLimit / 1024 / 1024
+                    (
+                      performance as Performance & {
+                        memory: {
+                          usedJSHeapSize: number;
+                          jsHeapSizeLimit: number;
+                        };
+                      }
+                    ).memory.jsHeapSizeLimit /
+                      1024 /
+                      1024
                   )}{' '}
                   MB
                 </Typography>

@@ -15,7 +15,9 @@ export const useApiService = () => {
 
   // Setup error handler when error context is available
   useEffect(() => {
-    apiService.setErrorHandler(showError);
+    apiService.setErrorHandler((error: Error) => {
+      showError(error.message, error.name);
+    });
   }, [showError]);
 
   return useMemo(() => apiService, []);
@@ -35,7 +37,7 @@ export const useApiCall = () => {
       showError,
 
       // Convenience method for handling API errors in try-catch blocks
-      handleError: (error: any) => {
+      handleError: (error: Error) => {
         const errorMessage = error?.message || 'Neznáma chyba API';
         return showError({
           message: errorMessage,

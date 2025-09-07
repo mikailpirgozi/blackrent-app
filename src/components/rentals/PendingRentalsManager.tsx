@@ -1,47 +1,47 @@
 import {
   CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Email as EmailIcon,
-  Schedule as PendingIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
-  Euro as EuroIcon,
   CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
+  DirectionsCar as CarIcon,
   CheckCircle,
   Edit as EditIcon,
+  Email as EmailIcon,
+  Euro as EuroIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  LocationOn as LocationIcon,
+  Schedule as PendingIcon,
+  Person as PersonIcon,
+  Cancel as RejectIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
+  Badge,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Alert,
   Chip,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  TextField,
-  Grid,
-  Paper,
-  IconButton,
-  Collapse,
   Divider,
-  Badge,
+  Grid,
+  IconButton,
+  Paper,
+  TextField,
   Tooltip,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
 import type { Rental } from '../../types';
-import { Vehicle, Customer } from '../../types';
+// import { Vehicle, Customer } from '../../types'; // TODO: Implement type usage
 
 import EditRentalDialog from './EditRentalDialog';
 

@@ -63,7 +63,8 @@ class CriticalResourceManager {
 
       // Modern browsers support fetchpriority
       if (options.priority && 'fetchPriority' in link) {
-        (link as any).fetchPriority = options.priority;
+        (link as HTMLLinkElement & { fetchPriority?: string }).fetchPriority =
+          options.priority;
       }
 
       link.onload = () => {

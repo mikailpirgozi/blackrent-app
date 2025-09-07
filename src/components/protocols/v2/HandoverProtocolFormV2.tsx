@@ -659,7 +659,7 @@ export const HandoverProtocolFormV2: React.FC<Props> = ({
                 <TextField
                   label="Cena za extra km (€)"
                   type="number"
-                  step="0.1"
+                  inputProps={{ step: '0.1' }}
                   value={protocolData.rental.extraKilometerRate || 0.5}
                   onChange={e =>
                     setProtocolData(prev => ({

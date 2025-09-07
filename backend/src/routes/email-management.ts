@@ -111,7 +111,7 @@ router.get('/',
           CAST(eph.parsed_data->>'totalAmount' AS DECIMAL) as total_price,
           u.username as processed_by_username
         FROM email_processing_history eph
-        LEFT JOIN rentals r ON eph.rental_id = r.id
+        LEFT JOIN rentals r ON eph.rental_id::text = r.id::text
         LEFT JOIN users u ON eph.processed_by = u.id
         WHERE ${whereClause}
         ORDER BY eph.received_at DESC
@@ -170,7 +170,7 @@ router.get('/:id',
           r.total_price,
           u.username as processed_by_username
         FROM email_processing_history eph
-        LEFT JOIN rentals r ON eph.rental_id = r.id
+        LEFT JOIN rentals r ON eph.rental_id::text = r.id::text
         LEFT JOIN users u ON eph.processed_by = u.id
         WHERE eph.id = $1
       `, [id]);
@@ -789,7 +789,7 @@ router.get('/archive/list',
           CAST(eph.parsed_data->>'totalAmount' AS DECIMAL) as total_price,
           u.username as processed_by_username
         FROM email_processing_history eph
-        LEFT JOIN rentals r ON eph.rental_id = r.id
+        LEFT JOIN rentals r ON eph.rental_id::text = r.id::text
         LEFT JOIN users u ON eph.processed_by = u.id
         WHERE ${whereClause}
         ORDER BY eph.archived_at DESC

@@ -5,18 +5,17 @@
  */
 
 import {
-  FilterList as FilterIcon,
   Clear as ClearIcon,
-  Star as PopularIcon,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Chip,
-  Typography,
   Stack,
-  useTheme,
-  useMediaQuery,
   Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import React, { memo } from 'react';
 

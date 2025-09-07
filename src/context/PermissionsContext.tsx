@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
 import { apiService } from '../services/api';
 import type { UserCompanyAccess } from '../types';
-import { CompanyPermissions, ResourcePermission } from '../types';
+// import { CompanyPermissions, ResourcePermission } from '../types'; // Nepoužívané
 
 import { useAuth } from './AuthContext';
 
@@ -43,7 +49,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
   const [permissionsLoading, setPermissionsLoading] = useState(false);
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
 
-  const fetchUserPermissions = async () => {
+  const fetchUserPermissions = useCallback(async () => {
     if (!user || user.role === 'admin') {
       setUserCompanyAccess([]);
       return;
@@ -53,7 +59,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
       setPermissionsLoading(true);
       setPermissionsError(null);
       const accessData = await apiService.getUserCompanyAccess(user.id);
-      setUserCompanyAccess(accessData);
+      setUserCompanyAccess(accessData as unknown as UserCompanyAccess[]);
     } catch (error) {
       console.error('Error fetching user permissions:', error);
       setPermissionsError('Chyba pri načítavaní oprávnení');
@@ -61,7 +67,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
     } finally {
       setPermissionsLoading(false);
     }
-  };
+  }, [user]);
 
   const refreshPermissions = async () => {
     await fetchUserPermissions();
@@ -70,7 +76,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
   // Načítaj permissions len raz pri zmene používateľa
   useEffect(() => {
     fetchUserPermissions();
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, fetchUserPermissions]);
 
   const value: PermissionsContextType = {
     userCompanyAccess,

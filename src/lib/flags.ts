@@ -18,7 +18,7 @@
  */
 export function flag(name: string, fallback = false): boolean {
   const key = `VITE_FLAG_${name}`;
-  const v = (import.meta.env as any)[key];
+  const v = (import.meta.env as Record<string, unknown>)[key];
 
   if (v === '1' || v === 'true') return true;
   if (v === '0' || v === 'false') return false;

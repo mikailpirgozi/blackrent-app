@@ -2,15 +2,13 @@ import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Typography,
-  IconButton,
-  Tooltip,
-  Chip,
   Card,
-  CardContent,
+  Chip,
   Collapse,
-  TextField,
   Grid,
+  IconButton,
+  TextField,
+  Typography,
 } from '@mui/material';
 import React, { useState } from 'react';
 
@@ -68,7 +66,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
   };
 
   const totalOwnership = shares.reduce(
-    (sum, share) => sum + share.ownershipPercentage,
+    (sum, share) => sum + (share.ownershipPercentage as number),
     0
   );
 
@@ -96,7 +94,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
               variant="h6"
               sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
             >
-              👤 {investor.firstName} {investor.lastName}
+              👤 {investor.firstName as string} {investor.lastName as string}
               <Chip
                 label={`${shares.length} firiem • ${totalOwnership.toFixed(1)}% celkom`}
                 size="small"
@@ -106,14 +104,14 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
             </Typography>
 
             <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {investor.email && (
+              {(investor.email as string) && (
                 <Typography variant="body2" color="text.secondary">
-                  📧 {investor.email}
+                  📧 {investor.email as string}
                 </Typography>
               )}
-              {investor.phone && (
+              {(investor.phone as string) && (
                 <Typography variant="body2" color="text.secondary">
-                  📞 {investor.phone}
+                  📞 {investor.phone as string}
                 </Typography>
               )}
               {shares.length > 0 && (
@@ -122,7 +120,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                   {shares
                     .map(s => {
                       const company = companies.find(c => c.id === s.companyId);
-                      return `${company?.name} (${s.ownershipPercentage}%)`;
+                      return `${(company?.name as string) || 'Neznáma firma'} (${s.ownershipPercentage as number}%)`;
                     })
                     .join(', ')}
                 </Typography>
@@ -262,7 +260,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
               const company = companies.find(c => c.id === share.companyId);
               return (
                 <Box
-                  key={share.id}
+                  key={share.id as string}
                   sx={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -280,22 +278,27 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 >
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="subtitle2">
-                      🏢 {company?.name || 'Neznáma firma'}
+                      🏢 {(company?.name as string) || 'Neznáma firma'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      💰 Podiel: {share.ownershipPercentage}%
-                      {share.investmentAmount &&
-                        ` • Investícia: ${share.investmentAmount}€`}
-                      {share.isPrimaryContact && ' • Primárny kontakt'}
+                      💰 Podiel: {share.ownershipPercentage as number}%
+                      {(share.investmentAmount as number) &&
+                        ` • Investícia: ${share.investmentAmount as number}€`}
+                      {(share.isPrimaryContact as boolean) &&
+                        ' • Primárny kontakt'}
                     </Typography>
                   </Box>
 
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip
-                      label={`${share.ownershipPercentage}%`}
+                      label={`${share.ownershipPercentage as number}%`}
                       color="primary"
                       size="small"
-                      variant={share.isPrimaryContact ? 'filled' : 'outlined'}
+                      variant={
+                        (share.isPrimaryContact as boolean)
+                          ? 'filled'
+                          : 'outlined'
+                      }
                     />
                   </Box>
                 </Box>

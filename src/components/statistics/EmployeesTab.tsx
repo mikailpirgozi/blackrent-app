@@ -1,14 +1,14 @@
 import {
+  Assessment as AssessmentIcon,
+  Euro as EuroIcon,
   Person as PersonIcon,
   EmojiEvents as TrophyIcon,
-  Euro as EuroIcon,
-  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
   Card,
   CardContent,
+  Chip,
   Grid,
   Table,
   TableBody,
@@ -16,12 +16,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
 interface EmployeesTabProps {
-  stats: any;
+  stats: Record<string, unknown>;
   formatPeriod: () => string;
 }
 
@@ -147,7 +147,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                 <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
                   {stats.employeeStats.topEmployeesByProtocols
                     .slice(0, 10)
-                    .map((employee: any, index: number) => (
+                    .map((employee: Record<string, unknown>, index: number) => (
                       <Box
                         key={index}
                         sx={{
@@ -243,7 +243,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                 <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
                   {stats.employeeStats.topEmployeesByRevenue
                     .slice(0, 10)
-                    .map((employee: any, index: number) => (
+                    .map((employee: Record<string, unknown>, index: number) => (
                       <Box
                         key={index}
                         sx={{
@@ -360,71 +360,79 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                     <TableBody>
                       {stats.employeeStats.allEmployees
                         .sort(
-                          (a: any, b: any) =>
-                            b.totalProtocols - a.totalProtocols
+                          (
+                            a: Record<string, unknown>,
+                            b: Record<string, unknown>
+                          ) => b.totalProtocols - a.totalProtocols
                         )
-                        .map((employee: any, index: number) => (
-                          <TableRow
-                            key={index}
-                            sx={{
-                              '&:nth-of-type(odd)': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              },
-                            }}
-                          >
-                            <TableCell>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                }}
-                              >
-                                <PersonIcon color="primary" />
+                        .map(
+                          (
+                            employee: Record<string, unknown>,
+                            index: number
+                          ) => (
+                            <TableRow
+                              key={index}
+                              sx={{
+                                '&:nth-of-type(odd)': {
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                },
+                              }}
+                            >
+                              <TableCell>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                  }}
+                                >
+                                  <PersonIcon color="primary" />
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600 }}
+                                  >
+                                    {employee.employeeName}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label={employee.totalProtocols}
+                                  color="primary"
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label={employee.handoverCount}
+                                  color="secondary"
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label={employee.returnCount}
+                                  color="info"
+                                  size="small"
+                                />
+                              </TableCell>
+                              <TableCell align="right">
                                 <Typography
                                   variant="body2"
-                                  sx={{ fontWeight: 600 }}
+                                  sx={{ fontWeight: 600, color: '#4CAF50' }}
                                 >
-                                  {employee.employeeName}
+                                  €
+                                  {employee.totalRevenue?.toLocaleString() || 0}
                                 </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={employee.totalProtocols}
-                                color="primary"
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={employee.handoverCount}
-                                color="secondary"
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={employee.returnCount}
-                                color="info"
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, color: '#4CAF50' }}
-                              >
-                                €{employee.totalRevenue?.toLocaleString() || 0}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">
-                                {employee.uniqueRentals || 0}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography variant="body2">
+                                  {employee.uniqueRentals || 0}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        )}
                     </TableBody>
                   </Table>
                 </TableContainer>

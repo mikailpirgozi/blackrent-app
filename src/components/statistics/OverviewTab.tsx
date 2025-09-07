@@ -1,9 +1,11 @@
 import { Person as PersonIcon } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
-  Typography,
   Card,
   CardContent,
+  Chip,
+  Divider,
   Grid,
   Table,
   TableBody,
@@ -11,25 +13,43 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  Avatar,
-  Divider,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts';
 
 import CustomTooltip from './CustomTooltip';
 
+interface CompanyData {
+  count: number;
+  revenue: number;
+  commission: number;
+}
+
+interface MonthlyData {
+  month: string;
+  revenue: number;
+}
+
+interface StatsData {
+  monthlyData: MonthlyData[];
+  companyStats: Record<string, CompanyData>;
+  avgRentalPrice: number;
+  avgRentalDuration: number;
+  totalCommission: number;
+  tomorrowReturns: Array<{ id: string; customerName: string }>;
+}
+
 interface OverviewTabProps {
-  stats: any;
+  stats: StatsData;
 }
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
@@ -218,9 +238,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
                 </TableHead>
                 <TableBody>
                   {Object.entries(stats.companyStats)
-                    .sort(
-                      ([, a], [, b]) => (b as any).revenue - (a as any).revenue
-                    )
+                    .sort(([, a], [, b]) => b.revenue - a.revenue)
                     .slice(0, 5)
                     .map(([company, data]) => (
                       <TableRow
@@ -252,7 +270,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
                         </TableCell>
                         <TableCell align="right">
                           <Chip
-                            label={(data as any).count}
+                            label={data.count}
                             size="small"
                             sx={{
                               backgroundColor: '#667eea',
@@ -267,7 +285,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
                             fontWeight="bold"
                             sx={{ color: '#11998e' }}
                           >
-                            {(data as any).revenue.toLocaleString()} €
+                            {data.revenue.toLocaleString()} €
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -276,7 +294,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
                             color="warning.main"
                             fontWeight="bold"
                           >
-                            {(data as any).commission.toLocaleString()} €
+                            {data.commission.toLocaleString()} €
                           </Typography>
                         </TableCell>
                       </TableRow>

@@ -58,6 +58,10 @@ interface FilterState {
   showOnlyActive: boolean;
   showOnlyOverdue: boolean;
   showOnlyCompleted: boolean;
+
+  // Zoradenie
+  sortBy: 'created_at' | 'start_date' | 'end_date';
+  sortOrder: 'asc' | 'desc';
 }
 
 interface RentalFiltersProps {
@@ -111,7 +115,7 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
   uniquePaymentMethods,
   uniqueCompanies,
   uniqueStatuses,
-  uniqueVehicleBrands,
+  // uniqueVehicleBrands, // TODO: Implement vehicle brand filtering
   filteredRentalsCount,
   totalRentalsCount,
 }) => {

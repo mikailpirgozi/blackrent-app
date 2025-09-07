@@ -98,7 +98,7 @@ interface CanProps {
   create?: Permission['resource'];
   update?: Permission['resource'];
   delete?: Permission['resource'];
-  context?: any;
+  context?: Record<string, unknown>;
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }

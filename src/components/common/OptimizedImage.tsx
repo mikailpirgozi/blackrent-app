@@ -10,7 +10,7 @@
  */
 
 import { Box, Skeleton } from '@mui/material';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface OptimizedImageProps {
   src: string;
@@ -38,9 +38,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   thumbnail = false,
   quality = 75,
   priority = false,
-  aspectRatio, // Backward compatibility - ignored for now
-  placeholder, // Backward compatibility - ignored for now
-  lazy, // Backward compatibility - handled by priority
+  // aspectRatio, // Backward compatibility - ignored for now
+  // placeholder, // Backward compatibility - ignored for now
+  // lazy, // Backward compatibility - handled by priority
   onLoad,
   onError,
   className,

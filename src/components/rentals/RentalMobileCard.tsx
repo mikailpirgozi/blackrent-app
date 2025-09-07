@@ -41,7 +41,7 @@ const RentalMobileCard = memo<RentalMobileCardProps>(
     onDelete,
     onShowDetail,
     onProtocol,
-    formatPrice,
+    // formatPrice, // TODO: Implement price formatting
     formatDate,
     getRentalPriority,
     getRentalBackgroundColor,

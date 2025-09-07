@@ -1,5 +1,5 @@
 import { Add as AddIcon } from '@mui/icons-material';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import React from 'react';
 
 import { Can } from '../../common/PermissionGuard';

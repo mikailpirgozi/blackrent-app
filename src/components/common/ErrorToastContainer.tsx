@@ -3,23 +3,22 @@
 
 import {
   Close as CloseIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Wifi as WifiIcon,
+  ExpandMore as ExpandMoreIcon,
+  Refresh as RefreshIcon,
   WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import {
-  Snackbar,
   Alert,
   AlertTitle,
-  IconButton,
   Box,
-  Typography,
-  Chip,
-  Stack,
-  Collapse,
   Button,
+  Chip,
+  Collapse,
+  IconButton,
+  Snackbar,
+  Stack,
+  Typography,
 } from '@mui/material';
 import React, { useMemo } from 'react';
 
@@ -229,7 +228,7 @@ export const ErrorToastContainer: React.FC = () => {
   }, [errors]);
 
   // Get the most recent error for Snackbar positioning
-  const latestError = sortedErrors[0];
+  // const latestError = sortedErrors[0]; // Currently not used
 
   return (
     <>

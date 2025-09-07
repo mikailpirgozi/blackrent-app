@@ -2,8 +2,8 @@ import {
   Security as SecurityIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import { Box, Tabs, Tab, useMediaQuery, useTheme, Paper } from '@mui/material';
-import React, { useState } from 'react';
+import { Box, Paper, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
+import { useState } from 'react';
 
 import InsuranceClaimList from './InsuranceClaimList';
 import VehicleCentricInsuranceList from './VehicleCentricInsuranceList';
@@ -12,7 +12,7 @@ export default function InsuranceList() {
   const [activeTab, setActiveTab] = useState(0);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  // const isTablet = useMediaQuery(theme.breakpoints.down('lg')); // TODO: Implement tablet-specific layout
 
   return (
     <Box

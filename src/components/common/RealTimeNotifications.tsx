@@ -2,38 +2,38 @@
 // Komponent pre zobrazenie WebSocket notifikácií
 
 import {
-  Notifications as NotificationsIcon,
-  NotificationsActive as NotificationsActiveIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   DirectionsCar as CarIcon,
-  Person as PersonIcon,
+  CheckCircle as CheckIcon,
+  Clear as ClearIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
   Info as InfoIcon,
-  Warning as WarningIcon,
-  Error as ErrorIcon,
+  NotificationsActive as NotificationsActiveIcon,
+  Notifications as NotificationsIcon,
+  Person as PersonIcon,
+  // Warning as WarningIcon, // TODO: Implement warning notifications
+  // Error as ErrorIcon, // TODO: Implement error notifications
   Wifi as WiFiIcon,
   WifiOff as WiFiOffIcon,
-  Clear as ClearIcon,
-  CheckCircle as CheckIcon,
 } from '@mui/icons-material';
 import {
-  Box,
+  Alert,
   Badge,
-  IconButton,
-  Menu,
-  MenuItem,
-  Typography,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
+  Box,
   Button,
   Chip,
+  Divider,
+  IconButton,
+  // Paper, // TODO: Implement paper container
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Menu,
   Tooltip,
-  Alert,
+  // MenuItem, // TODO: Implement menu functionality
+  Typography,
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { sk } from 'date-fns/locale';
@@ -88,22 +88,23 @@ const RealTimeNotifications: React.FC = () => {
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'rental_created':
-      case 'customer_created':
-        return 'success';
-      case 'rental_updated':
-      case 'vehicle_updated':
-        return 'info';
-      case 'rental_deleted':
-        return 'error';
-      case 'system':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
+  // TODO: Implement notification color logic
+  // const getNotificationColor = (type: string) => {
+  //   switch (type) {
+  //     case 'rental_created':
+  //     case 'customer_created':
+  //       return 'success';
+  //     case 'rental_updated':
+  //     case 'vehicle_updated':
+  //       return 'info';
+  //     case 'rental_deleted':
+  //       return 'error';
+  //     case 'system':
+  //       return 'warning';
+  //     default:
+  //       return 'default';
+  //   }
+  // };
 
   return (
     <Box>

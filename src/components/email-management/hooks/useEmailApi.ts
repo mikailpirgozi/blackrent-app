@@ -3,19 +3,19 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 import { getAPI_BASE_URL } from '../../../services/api';
 import type {
+  ArchivePagination,
+  EmailDetail,
   EmailEntry,
   EmailStats,
-  EmailDetail,
-  ArchivePagination,
 } from '../types/email-types';
 import {
-  PAGE_SIZE,
   AUTO_ARCHIVE_DAYS,
   AUTO_ARCHIVE_STATUSES,
+  PAGE_SIZE,
 } from '../utils/email-constants';
 
 export const useEmailApi = () => {
@@ -100,14 +100,14 @@ export const useEmailApi = () => {
           throw new Error('Chyba pri načítaní emailov');
         }
       } catch (error: unknown) {
-        console.error('❌ EMAIL DASHBOARD - Fetch emails error:', err);
+        console.error('❌ EMAIL DASHBOARD - Fetch emails error:', error);
         console.error('❌ ERROR Details:', {
-          message: err.message,
-          status: err.status,
-          stack: err.stack,
+          message: (error as Error).message,
+          status: (error as Error & { status?: number }).status,
+          stack: (error as Error).stack,
         });
-        setError(`Chyba pri načítaní emailov: ${err.message}`);
-        throw err;
+        setError(`Chyba pri načítaní emailov: ${(error as Error).message}`);
+        throw error;
       } finally {
         setLoading(false);
       }
@@ -137,7 +137,7 @@ export const useEmailApi = () => {
       }
       return null;
     } catch (error: unknown) {
-      console.error('Fetch stats error:', err);
+      console.error('Fetch stats error:', error);
       return null;
     }
   }, [directFetch]);
@@ -161,7 +161,7 @@ export const useEmailApi = () => {
           return null;
         }
       } catch (error: unknown) {
-        console.error('❌ View email error:', err);
+        console.error('❌ View email error:', error);
         setError('Chyba pri načítaní detailu emailu');
         return null;
       }
@@ -192,7 +192,7 @@ export const useEmailApi = () => {
           return false;
         }
       } catch (error: unknown) {
-        console.error('Approve email error:', err);
+        console.error('Approve email error:', error);
         setError('Chyba pri schvaľovaní emailu');
         return false;
       } finally {
@@ -225,7 +225,7 @@ export const useEmailApi = () => {
           return false;
         }
       } catch (error: unknown) {
-        console.error('Reject email error:', err);
+        console.error('Reject email error:', error);
         setError('Chyba pri zamietaní emailu');
         return false;
       } finally {
@@ -257,7 +257,7 @@ export const useEmailApi = () => {
           return false;
         }
       } catch (error: unknown) {
-        console.error('Archive email error:', err);
+        console.error('Archive email error:', error);
         setError('Chyba pri archivovaní emailu');
         return false;
       } finally {
@@ -297,7 +297,7 @@ export const useEmailApi = () => {
           return false;
         }
       } catch (error: unknown) {
-        console.error('Delete email error:', err);
+        console.error('Delete email error:', error);
         setError('Chyba pri mazaní emailu');
         return false;
       } finally {
@@ -336,7 +336,7 @@ export const useEmailApi = () => {
         return false;
       }
     } catch (error: unknown) {
-      console.error('Clear historical emails error:', err);
+      console.error('Clear historical emails error:', error);
       setError('Chyba pri mazaní historických emailov');
       return false;
     } finally {

@@ -15,9 +15,15 @@ import type { Rental } from '../../../types';
 
 interface RentalStatsProps {
   rentals: Rental[];
-  protocols?: Record<string, { handover?: any; return?: any }>;
+  protocols?: Record<
+    string,
+    { handover?: Record<string, unknown>; return?: Record<string, unknown> }
+  >;
   isLoading?: boolean;
-  onQuickFilter?: (filterType: string, value?: any) => void;
+  onQuickFilter?: (
+    filterType: string,
+    value?: string | number | boolean
+  ) => void;
 }
 
 interface DashboardStats {
@@ -44,6 +50,19 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Helper funkcia pre získanie farby z theme
+  const getColorFromTheme = (colorName: string): string => {
+    const colorMap: Record<string, string> = {
+      error: theme.palette.error.main,
+      warning: theme.palette.warning.main,
+      info: theme.palette.info.main,
+      success: theme.palette.success.main,
+      primary: theme.palette.primary.main,
+      secondary: theme.palette.secondary.main,
+    };
+    return colorMap[colorName] || theme.palette.primary.main;
+  };
 
   // 📊 Vypočítaj kľúčové metriky
   const stats: DashboardStats = useMemo(() => {
@@ -299,9 +318,9 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
                 }
                 sx={{
                   background: metric.urgent
-                    ? `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}15 0%, ${(theme.palette as any)[metric.color].main}25 100%)`
-                    : `linear-gradient(135deg, ${(theme.palette as any)[metric.color].main}10 0%, ${(theme.palette as any)[metric.color].main}20 100%)`,
-                  border: `1px solid ${(theme.palette as any)[metric.color].main}30`,
+                    ? `linear-gradient(135deg, ${getColorFromTheme(metric.color)}15 0%, ${getColorFromTheme(metric.color)}25 100%)`
+                    : `linear-gradient(135deg, ${getColorFromTheme(metric.color)}10 0%, ${getColorFromTheme(metric.color)}20 100%)`,
+                  border: `1px solid ${getColorFromTheme(metric.color)}30`,
                   borderRadius: 1,
                   transition: 'all 0.2s ease',
                   cursor: metric.clickable ? 'pointer' : 'default',
@@ -309,7 +328,7 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
                   '&:hover': metric.clickable
                     ? {
                         transform: 'translateY(-1px)',
-                        boxShadow: `0 4px 15px ${(theme.palette as any)[metric.color].main}30`,
+                        boxShadow: `0 4px 15px ${getColorFromTheme(metric.color)}30`,
                       }
                     : {},
                 }}

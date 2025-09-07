@@ -27,9 +27,9 @@ export interface CacheStats {
   memoryUsage: string;
   entryCount: number;
   systems: {
-    apiCache: any;
-    middleware: any;
-    database: any;
+    apiCache: Record<string, unknown>;
+    middleware: Record<string, unknown>;
+    database: Record<string, unknown>;
   };
 }
 
@@ -38,7 +38,7 @@ export interface CacheStats {
  * Kompletný cache systém nahrádzajúci všetky predchádzajúce
  */
 class UnifiedCacheSystem {
-  private cache = new Map<string, any>();
+  private cache = new Map<string, Record<string, unknown>>();
   private stats = { hits: 0, misses: 0 };
   private defaultTTL = 10 * 60 * 1000; // 10 minutes
 
@@ -113,7 +113,7 @@ class UnifiedCacheSystem {
   /**
    * 🔄 PHASE 1: Wrapper okolo cacheKeys (BEZPEČNÉ)
    */
-  generateKey(type: string, params?: any): string {
+  generateKey(type: string, params?: Record<string, unknown>): string {
     // 🔄 PHASE 4: Direct key generation
     const baseKey = type;
     if (!params) return baseKey;

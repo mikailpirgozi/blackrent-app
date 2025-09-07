@@ -150,9 +150,10 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
           endDate: editingUnavailability.endDate,
           type: editingUnavailability.type as
             | 'rented'
+            | 'service'
             | 'maintenance'
-            | 'damage'
-            | 'other',
+            | 'repair'
+            | 'blocked',
           reason: editingUnavailability.reason,
           notes: editingUnavailability.notes || '',
           priority: (editingUnavailability.priority || 2) as 1 | 2 | 3,
@@ -262,15 +263,22 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
       onSuccess();
       handleClose();
     } catch (error: unknown) {
-      console.error('Error creating unavailability:', err);
+      console.error('Error creating unavailability:', error);
 
       // Handle specific error codes
-      if (err.response?.data?.code === 'DUPLICATE_UNAVAILABILITY') {
-        setError(err.response.data.error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const err = error as {
+          response?: { data?: { code?: string; error?: string } };
+        };
+        if (err.response?.data?.code === 'DUPLICATE_UNAVAILABILITY') {
+          setError(err.response.data.error || 'Duplicitná nedostupnosť');
+        } else {
+          setError(
+            err.response?.data?.error || 'Chyba pri vytváraní nedostupnosti'
+          );
+        }
       } else {
-        setError(
-          err.response?.data?.error || 'Chyba pri vytváraní nedostupnosti'
-        );
+        setError('Chyba pri vytváraní nedostupnosti');
       }
     } finally {
       setLoading(false);
@@ -307,8 +315,13 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
       onSuccess();
       handleClose();
     } catch (error: unknown) {
-      console.error('Error deleting unavailability:', err);
-      setError(err.response?.data?.error || 'Chyba pri rušení nedostupnosti');
+      console.error('Error deleting unavailability:', error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const err = error as { response?: { data?: { error?: string } } };
+        setError(err.response?.data?.error || 'Chyba pri rušení nedostupnosti');
+      } else {
+        setError('Chyba pri rušení nedostupnosti');
+      }
     } finally {
       setLoading(false);
     }
@@ -417,9 +430,10 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                       ...prev,
                       type: e.target.value as
                         | 'rented'
+                        | 'service'
                         | 'maintenance'
-                        | 'damage'
-                        | 'other',
+                        | 'repair'
+                        | 'blocked',
                     }))
                   }
                   label="Typ nedostupnosti *"
@@ -578,25 +592,38 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                   >
                     {existingUnavailabilities
                       .slice(0, 3)
-                      .map((unavail, index) => (
-                        <Box
-                          key={index}
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          <Chip
-                            label={unavail.type}
-                            size="small"
-                            color="warning"
-                          />
-                          <Typography variant="body2">
-                            {format(new Date(unavail.start_date), 'dd.MM.yyyy')}{' '}
-                            - {format(new Date(unavail.end_date), 'dd.MM.yyyy')}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {unavail.reason}
-                          </Typography>
-                        </Box>
-                      ))}
+                      .map(
+                        (unavail: Record<string, unknown>, index: number) => (
+                          <Box
+                            key={index}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <Chip
+                              label={String(unavail.type || 'N/A')}
+                              size="small"
+                              color="warning"
+                            />
+                            <Typography variant="body2">
+                              {format(
+                                new Date(String(unavail.start_date)),
+                                'dd.MM.yyyy'
+                              )}{' '}
+                              -{' '}
+                              {format(
+                                new Date(String(unavail.end_date)),
+                                'dd.MM.yyyy'
+                              )}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {String(unavail.reason || 'N/A')}
+                            </Typography>
+                          </Box>
+                        )
+                      )}
                     {existingUnavailabilities.length > 3 && (
                       <Typography variant="body2" color="text.secondary">
                         ... a ďalších {existingUnavailabilities.length - 3}{' '}

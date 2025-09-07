@@ -9,16 +9,9 @@ import {
   Delete as DeleteIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
-  Business as BusinessIcon,
+  // Business as BusinessIcon, // TODO: Implement business icon
 } from '@mui/icons-material';
-import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  useTheme,
-} from '@mui/material';
+import { Box, Typography, Chip, IconButton, Tooltip } from '@mui/material';
 import React, { memo, useCallback } from 'react';
 
 import type { Customer } from '../../types';
@@ -41,9 +34,9 @@ const CustomerCard = memo<CustomerCardProps>(
     onEdit,
     onDelete,
     getCustomerRentalCount,
-    isMobile = false,
+    // isMobile = false, // TODO: Implement mobile-specific layout
   }) => {
-    const theme = useTheme();
+    // const theme = useTheme(); // TODO: Implement theme-based styling
 
     // Memoized handlers
     const handleEdit = useCallback(() => onEdit(customer), [onEdit, customer]);

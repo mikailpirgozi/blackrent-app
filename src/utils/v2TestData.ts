@@ -28,32 +28,32 @@ export const testRentalData: Rental = {
   notes: '',
   createdAt: new Date('2025-08-31T23:33:29.039Z'),
   commission: 20.0,
-  discount: null,
-  customCommission: null,
-  extraKmCharge: null,
+  discount: undefined,
+  customCommission: undefined,
+  extraKmCharge: undefined,
   payments: [],
   history: [],
   confirmed: false,
-  dailyKilometers: null,
-  returnConditions: null,
-  fuelLevel: null,
-  odometer: null,
-  returnFuelLevel: null,
-  returnOdometer: null,
-  actualKilometers: null,
-  fuelRefillCost: null,
-  handoverProtocolId: null,
-  returnProtocolId: null,
+  dailyKilometers: undefined,
+  returnConditions: undefined,
+  fuelLevel: undefined,
+  odometer: undefined,
+  returnFuelLevel: undefined,
+  returnOdometer: undefined,
+  actualKilometers: undefined,
+  fuelRefillCost: undefined,
+  handoverProtocolId: undefined,
+  returnProtocolId: undefined,
   company: 'Miki',
   isFlexible: false,
-  flexibleEndDate: null,
+  flexibleEndDate: undefined,
   customerEmail: 'pirgozi1@gmail.com',
   customerPhone: '421907751872',
   vehicleName: 'Bmw X5 - založena',
   vehicleCode: 'C95246',
   approvalStatus: 'approved',
-  autoProcessedAt: null,
-  emailContent: null,
+  autoProcessedAt: undefined,
+  emailContent: undefined,
   rentalType: 'standard',
   canBeOverridden: false,
   overridePriority: 5,
@@ -64,7 +64,7 @@ export const testRentalData: Rental = {
 
 export const testVehicleData: Vehicle = {
   id: '209',
-  companyId: '3',
+  company: '3',
   brand: 'Bmw',
   model: 'X5 - založena',
   year: 2024,
@@ -92,8 +92,7 @@ export const testVehicleData: Vehicle = {
 
 export const testCustomerData: Customer = {
   id: '395',
-  firstName: 'Mikail',
-  lastName: 'Pirgozi',
+  name: 'Mikail Pirgozi',
   email: 'pirgozi1@gmail.com',
   phone: '421907751872',
   createdAt: new Date('2025-08-31T23:33:29.039Z'),
@@ -144,12 +143,11 @@ export function generateV2ProtocolData(
 
     // Customer info - mapované z rental.customer
     customer: {
-      firstName: rental.customer.firstName,
-      lastName: rental.customer.lastName,
-      name: `${rental.customer.firstName} ${rental.customer.lastName}`, // V1 kompatibilita
+      name: rental.customer.name,
       email: rental.customer.email,
       phone: rental.customer.phone,
-      address: (rental as any).customerAddress || '', // Ak existuje
+      address:
+        ((rental as Record<string, unknown>).customerAddress as string) || '', // Ak existuje
     },
 
     // Rental details - všetky V1 kompatibilné polia
@@ -172,7 +170,7 @@ export function generateV2ProtocolData(
     fuelLevel: rental.fuelLevel || 100,
     odometer: rental.odometer || undefined,
     condition: 'good' as const,
-    depositPaymentMethod: (rental.paymentMethod as any) || 'cash',
+    depositPaymentMethod: (rental.paymentMethod as string) || 'cash',
     damages: [],
     notes: rental.notes || '',
 

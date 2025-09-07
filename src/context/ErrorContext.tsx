@@ -3,19 +3,19 @@
 
 import React, {
   createContext,
-  useContext,
-  useReducer,
   useCallback,
+  useContext,
   useEffect,
+  useReducer,
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import type {
   AppError,
-  ErrorContext as IErrorContext,
   ErrorAction,
+  ErrorContext as IErrorContext,
 } from '../types/errors';
-import { createError, ErrorSeverity, ErrorCategory } from '../types/errors';
+import { createError } from '../types/errors';
 
 // Error state interface
 interface ErrorState {
@@ -32,7 +32,7 @@ const initialState: ErrorState = {
 // Error reducer
 const errorReducer = (state: ErrorState, action: ErrorAction): ErrorState => {
   switch (action.type) {
-    case 'ADD_ERROR':
+    case 'ADD_ERROR': {
       const newError: AppError = {
         ...action.payload,
         id: uuidv4(),
@@ -42,6 +42,7 @@ const errorReducer = (state: ErrorState, action: ErrorAction): ErrorState => {
         ...state,
         errors: [...state.errors, newError],
       };
+    }
 
     case 'DISMISS_ERROR':
       return {
@@ -123,7 +124,7 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({
 
       return errorId;
     },
-    [state.errors.length, maxErrors, autoDismissTime]
+    [state.errors, maxErrors, autoDismissTime]
   );
 
   // Dismiss error function
@@ -256,7 +257,10 @@ export const useServerError = () => {
 };
 
 // Error logging utility
-export const logError = (error: AppError, context?: Record<string, any>) => {
+export const logError = (
+  error: AppError,
+  context?: Record<string, unknown>
+) => {
   const logData = {
     ...error,
     context: { ...error.context, ...context },
@@ -268,9 +272,9 @@ export const logError = (error: AppError, context?: Record<string, any>) => {
     `🚨 ${error.severity.toUpperCase()} - ${error.category.toUpperCase()}`
   );
   console.error('Message:', error.message);
-  if (error.details) logger.debug('Details:', error.details);
-  if (error.stack) logger.debug('Stack:', error.stack);
-  if (logData.context) logger.debug('Context:', logData.context);
+  if (error.details) console.debug('Details:', error.details);
+  if (error.stack) console.debug('Stack:', error.stack);
+  if (logData.context) console.debug('Context:', logData.context);
   console.groupEnd();
 
   // In production, you could send this to an error reporting service

@@ -7,43 +7,43 @@
 
 // 🎨 Button komponenty
 export {
-  UnifiedButton,
+  ErrorButton,
   PrimaryButton,
   SecondaryButton,
   SuccessButton,
-  WarningButton,
-  ErrorButton,
   TextButton,
+  UnifiedButton,
+  WarningButton,
   type UnifiedButtonProps,
 } from './UnifiedButton';
 
 // 🎨 Card komponenty
 export {
-  UnifiedCard,
+  CompactCard,
   DefaultCard,
   ElevatedCard,
-  OutlinedCard,
   InteractiveCard,
+  OutlinedCard,
   StatisticsCard,
-  CompactCard,
-  type UnifiedCardProps,
+  UnifiedCard,
   type CardVariant,
+  type UnifiedCardProps,
 } from './UnifiedCard';
 
 // 🎨 Chip komponenty
 export {
-  UnifiedChip,
-  StatusChip,
-  PriorityChip,
-  TrendChip,
-  RoleChip,
-  CompactChip,
-  PendingChip,
   ActiveChip,
-  CompletedChip,
   CancelledChip,
-  type UnifiedChipProps,
+  CompactChip,
+  CompletedChip,
+  PendingChip,
+  PriorityChip,
+  RoleChip,
+  StatusChip,
+  TrendChip,
+  UnifiedChip,
   type ChipVariant,
+  type UnifiedChipProps,
 } from './UnifiedChip';
 
 // 🎨 Design system constants
@@ -84,19 +84,23 @@ export const BLACKRENT_DESIGN_TOKENS = {
 } as const;
 
 // 🎨 Design system helper functions
-export const getDesignToken = (path: string) => {
+export const getDesignToken = (path: string): unknown => {
   const keys = path.split('.');
-  let value: any = BLACKRENT_DESIGN_TOKENS;
+  let value: unknown = BLACKRENT_DESIGN_TOKENS;
 
   for (const key of keys) {
-    value = value?.[key];
+    if (value && typeof value === 'object' && key in value) {
+      value = (value as Record<string, unknown>)[key];
+    } else {
+      return undefined;
+    }
   }
 
   return value;
 };
 
 // 🎨 Utility pre konzistentné štýlovanie
-export const createUnifiedStyles = (theme: any) => ({
+export const createUnifiedStyles = () => ({
   // Konzistentné button štýly
   button: {
     borderRadius: BLACKRENT_DESIGN_TOKENS.borderRadius.md,

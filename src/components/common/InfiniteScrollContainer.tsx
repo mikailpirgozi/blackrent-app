@@ -10,17 +10,16 @@
 
 import {
   Box,
+  CircularProgress,
   LinearProgress,
   Typography,
-  Skeleton,
-  CircularProgress,
 } from '@mui/material';
 import React from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
-interface InfiniteScrollContainerProps {
+interface InfiniteScrollContainerProps<T = unknown> {
   // Data
-  items: any[];
+  items: T[];
   hasMore: boolean;
   isLoading: boolean;
 
@@ -28,7 +27,7 @@ interface InfiniteScrollContainerProps {
   loadMore: () => void;
 
   // Render
-  renderItem: (item: any, index: number) => React.ReactNode;
+  renderItem: (item: T, index: number) => React.ReactNode;
 
   // Config
   height?: number | string;
@@ -43,9 +42,7 @@ interface InfiniteScrollContainerProps {
   progress?: number;
 }
 
-export const InfiniteScrollContainer: React.FC<
-  InfiniteScrollContainerProps
-> = ({
+export const InfiniteScrollContainer = <T,>({
   items,
   hasMore,
   isLoading,
@@ -59,7 +56,7 @@ export const InfiniteScrollContainer: React.FC<
   endMessage = '✅ Všetko načítané',
   totalItems,
   progress = 0,
-}) => {
+}: InfiniteScrollContainerProps<T>) => {
   // 🔄 Loading component
   const LoadingComponent = () => (
     <Box
@@ -193,7 +190,7 @@ export const InfiniteScrollContainer: React.FC<
       >
         {items.map((item, index) => (
           <Box
-            key={item.id || index}
+            key={(item as { id?: string | number }).id || index}
             sx={{
               minHeight: itemHeight,
               marginBottom: 1,

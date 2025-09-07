@@ -4,7 +4,7 @@
  * Hook pre progressive image loading s Intersection Observer API
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseLazyImageOptions {
   threshold?: number;
@@ -109,8 +109,8 @@ export const useLazyImage = (
         // Create synthetic event for consistency
         const syntheticError = {
           nativeEvent: error as Event,
-          currentTarget: null as any,
-          target: null as any,
+          currentTarget: null as HTMLImageElement,
+          target: null as HTMLImageElement,
           bubbles: false,
           cancelable: false,
           defaultPrevented: false,

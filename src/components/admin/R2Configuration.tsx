@@ -1,29 +1,29 @@
 import {
-  Cloud as CloudIcon,
   CheckCircle as CheckCircleIcon,
+  Cloud as CloudIcon,
+  Download as DownloadIcon,
   Error as ErrorIcon,
-  Warning as WarningIcon,
+  Settings as SettingsIcon,
   Storage as StorageIcon,
   Upload as UploadIcon,
-  Download as DownloadIcon,
-  Settings as SettingsIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
   Chip,
+  CircularProgress,
   // Divider,
   List,
   ListItem,
-  ListItemText,
   ListItemIcon,
+  ListItemText,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getAPI_BASE_URL } from '../../services/api';
 
@@ -92,8 +92,8 @@ export default function R2Configuration() {
       const data = await response.json();
       setSuccess(data.message);
     } catch (error: unknown) {
-      setError(err.message || 'Chyba pri spúšťaní migrácie');
-      console.error('Migration error:', err);
+      setError((error as Error).message || 'Chyba pri spúšťaní migrácie');
+      console.error('Migration error:', error);
     } finally {
       setMigrating(false);
     }

@@ -1,35 +1,50 @@
 import {
-  ExpandMore as ExpandMoreIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
+  // Close as CloseIcon, // Nepoužívané
   AdminPanelSettings as AdminIcon,
-  Person as UserIcon,
+  Check as CheckIcon,
+  Business as CompanyIcon,
   Work as EmployeeIcon,
-  Build as TempWorkerIcon,
+  ExpandMore as ExpandMoreIcon,
   Engineering as MechanicIcon,
   BusinessCenter as SalesIcon,
-  Business as CompanyIcon,
+  Build as TempWorkerIcon,
+  Person as UserIcon,
 } from '@mui/icons-material';
 import {
+  // Divider, // Nepoužívané
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
-  Typography,
-  Card,
-  CardContent,
+  // Card, // Nepoužívané
+  // CardContent, // Nepoužívané
   Chip,
-  Grid,
+  // Grid, // Nepoužívané
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Typography,
 } from '@mui/material';
-import React from 'react';
+
+// Definícia typov pre oprávnenia
+interface Permission {
+  resource: string;
+  actions: string[];
+  conditions?: {
+    ownOnly?: boolean;
+    companyOnly?: boolean;
+    maxAmount?: number;
+    approvalRequired?: boolean;
+  };
+}
+
+interface RolePermissions {
+  [key: string]: Permission[];
+}
 
 // Definícia práv rolí (kópia z backend/src/middleware/permissions.ts)
-const ROLE_PERMISSIONS = {
+const ROLE_PERMISSIONS: RolePermissions = {
   admin: [
     {
       resource: '*',
@@ -133,7 +148,7 @@ const ROLE_INFO = {
   user: {
     name: 'Používateľ',
     icon: UserIcon,
-    color: 'default',
+    color: 'inherit',
     description: 'Základný používateľ s READ-ONLY právami',
   },
   employee: {
@@ -184,12 +199,12 @@ const RESOURCE_LABELS = {
   finances: 'Financie',
 };
 
-const ACTION_LABELS = {
-  read: 'Čítanie',
-  create: 'Vytváranie',
-  update: 'Úprava',
-  delete: 'Mazanie',
-};
+// const ACTION_LABELS = {
+//   read: 'Čítanie',
+//   create: 'Vytváranie',
+//   update: 'Úprava',
+//   delete: 'Mazanie',
+// }; // Nepoužívané
 
 interface RolePermissionsDisplayProps {
   selectedRole?: string;
@@ -204,7 +219,7 @@ export default function RolePermissionsDisplay({
     ? [selectedRole]
     : Object.keys(ROLE_PERMISSIONS);
 
-  const renderPermissionItem = (permission: any) => {
+  const renderPermissionItem = (permission: Permission) => {
     const resourceLabel =
       RESOURCE_LABELS[permission.resource as keyof typeof RESOURCE_LABELS] ||
       permission.resource;
@@ -258,7 +273,18 @@ export default function RolePermissionsDisplay({
               width: '100%',
             }}
           >
-            <IconComponent color={roleInfo.color as any} />
+            <IconComponent
+              color={
+                roleInfo.color as
+                  | 'primary'
+                  | 'secondary'
+                  | 'error'
+                  | 'info'
+                  | 'success'
+                  | 'warning'
+                  | 'inherit'
+              }
+            />
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" component="div">
                 {roleInfo.name}
@@ -269,7 +295,18 @@ export default function RolePermissionsDisplay({
             </Box>
             <Chip
               label={roleKey.toUpperCase()}
-              color={roleInfo.color as any}
+              color={
+                roleInfo.color === 'inherit'
+                  ? 'default'
+                  : (roleInfo.color as
+                      | 'primary'
+                      | 'secondary'
+                      | 'error'
+                      | 'info'
+                      | 'success'
+                      | 'warning'
+                      | 'default')
+              }
               size="small"
               variant="outlined"
             />
@@ -300,7 +337,7 @@ export default function RolePermissionsDisplay({
               </Box>
             ) : (
               <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                {permissions.map((permission, index) =>
+                {permissions.map(permission =>
                   renderPermissionItem(permission)
                 )}
               </List>

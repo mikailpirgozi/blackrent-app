@@ -1,36 +1,43 @@
 // 🚀 Vite Performance Optimizations
 // Advanced preloading, code splitting, and performance utilities
 
-import { ComponentType } from 'react';
+// import { ComponentType } from 'react';
 
 // Vite-specific module preloading
 interface ViteModulePreloader {
   preloadModule: (id: string) => Promise<void>;
-  preloadComponent: (importFunc: () => Promise<any>) => Promise<any>;
+  preloadComponent: (
+    importFunc: () => Promise<Record<string, unknown>>
+  ) => Promise<Record<string, unknown>>;
 }
 
 class ViteOptimizer implements ViteModulePreloader {
-  private preloadCache = new Map<string, Promise<any>>();
-  private preloadQueue: Array<() => Promise<any>> = [];
+  private preloadCache = new Map<string, Promise<Record<string, unknown>>>();
+  private preloadQueue: Array<() => Promise<Record<string, unknown>>> = [];
   private isProcessingQueue = false;
 
   // Preload Vite module by ID
   async preloadModule(id: string): Promise<void> {
     if (this.preloadCache.has(id)) {
-      return this.preloadCache.get(id);
+      return;
     }
 
     const preloadPromise = import(/* @vite-ignore */ id);
     this.preloadCache.set(id, preloadPromise);
-    return preloadPromise;
+    await preloadPromise;
   }
 
   // Preload component with intelligent batching
-  async preloadComponent(importFunc: () => Promise<any>): Promise<any> {
+  async preloadComponent(
+    importFunc: () => Promise<Record<string, unknown>>
+  ): Promise<Record<string, unknown>> {
     const funcString = importFunc.toString();
 
     if (this.preloadCache.has(funcString)) {
-      return this.preloadCache.get(funcString);
+      const cached = this.preloadCache.get(funcString);
+      if (cached) {
+        return cached;
+      }
     }
 
     const preloadPromise = importFunc();
@@ -39,7 +46,7 @@ class ViteOptimizer implements ViteModulePreloader {
   }
 
   // Batch preload multiple components during idle time
-  queuePreload(importFunc: () => Promise<any>): void {
+  queuePreload(importFunc: () => Promise<Record<string, unknown>>): void {
     this.preloadQueue.push(importFunc);
     this.processQueueWhenIdle();
   }
@@ -97,7 +104,10 @@ export const preloadCriticalComponents = () => {
 
 // Route-based preloading
 export const preloadRouteComponents = (currentRoute: string) => {
-  const routePreloadMap: Record<string, Array<() => Promise<any>>> = {
+  const routePreloadMap: Record<
+    string,
+    Array<() => Promise<Record<string, unknown>>>
+  > = {
     '/vehicles': [
       () => import('../components/vehicles/VehicleListNew'),
       () => import('../components/common/LazyDetailView'),
@@ -148,7 +158,10 @@ export const setupPredictivePreloading = () => {
 
 // Vite environment-specific optimizations
 export const initializeViteOptimizations = () => {
-  if (import.meta.env.DEV) {
+  // Check if we're in development mode
+  const isDev = process.env.NODE_ENV === 'development';
+
+  if (isDev) {
     console.log('🚀 Vite optimizations initialized (development mode)');
 
     // In development, preload less aggressively

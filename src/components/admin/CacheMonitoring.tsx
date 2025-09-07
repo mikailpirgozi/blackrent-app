@@ -5,37 +5,36 @@
  */
 
 import {
-  Refresh as RefreshIcon,
   Clear as ClearIcon,
   Memory as MemoryIcon,
+  Refresh as RefreshIcon,
   Speed as SpeedIcon,
-  TrendingUp as TrendingUpIcon,
   Storage as StorageIcon,
   Timeline as TimelineIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
+  Chip,
   Grid,
+  IconButton,
+  LinearProgress,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Button,
-  Chip,
-  LinearProgress,
-  IconButton,
   Tooltip,
-  Alert,
-  Stack,
-  useTheme,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect, memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 
 // 🔄 PHASE 4: Migrated to unified cache system
 import { unifiedCache } from '../../utils/unifiedCacheSystem';
@@ -53,7 +52,6 @@ interface CacheStatsDisplay {
 }
 
 const CacheMonitoring: React.FC = () => {
-  const theme = useTheme();
   const [stats, setStats] = useState<CacheStatsDisplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -67,12 +65,11 @@ const CacheMonitoring: React.FC = () => {
       const frontendStats = unifiedCache.getStats();
 
       // Backend cache stats (if available)
-      let backendStats = null;
       try {
         const response = await fetch('/api/cache/stats');
         if (response.ok) {
-          const data = await response.json();
-          backendStats = data.data;
+          // const data = await response.json();
+          // backendStats = data.data; // Currently not used in display
         }
       } catch (error) {
         console.warn('Backend cache stats not available:', error);

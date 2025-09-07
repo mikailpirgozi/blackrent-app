@@ -1,42 +1,42 @@
 import {
   Add as AddIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Download as DownloadIcon,
-  ExpandMore as ExpandMoreIcon,
-  Description as DocumentIcon,
-  Receipt as InvoiceIcon,
   Assignment as ContractIcon,
+  Delete as DeleteIcon,
+  // Download as DownloadIcon, // TODO: Implement download functionality
+  ExpandMore as ExpandMoreIcon,
+  // Description as DocumentIcon, // TODO: Implement document icons
+  Receipt as InvoiceIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Grid,
-  Chip,
-  IconButton,
   Accordion,
-  AccordionSummary,
   AccordionDetails,
+  AccordionSummary,
+  // Divider, // TODO: Implement dividers
+  Alert,
+  Box,
+  Button,
+  Chip,
+  // Card, // TODO: Implement card layout
+  // CardContent, // TODO: Implement card content
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
   List,
   ListItem,
-  ListItemText,
   ListItemSecondaryAction,
-  Divider,
-  Alert,
+  ListItemText,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { CompanyDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
@@ -75,7 +75,7 @@ export default function CompanyDocumentManager({
   >([]);
 
   // Načítanie dokumentov
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     try {
       setLoading(true);
       const token =
@@ -113,11 +113,11 @@ export default function CompanyDocumentManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
 
   useEffect(() => {
     loadDocuments();
-  }, [companyId]);
+  }, [companyId, loadDocuments]);
 
   // Upload súborov
   const handleFileUploadSuccess = (

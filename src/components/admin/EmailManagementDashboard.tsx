@@ -328,7 +328,7 @@ const EmailManagementDashboard: React.FC = () => {
         setError('Chyba pri načítaní detailu emailu');
       }
     } catch (error: unknown) {
-      console.error('❌ View email error:', err);
+      console.error('❌ View email error:', error);
       setError('Chyba pri načítaní detailu emailu');
     }
   };
@@ -362,7 +362,7 @@ const EmailManagementDashboard: React.FC = () => {
         setError(response.error || 'Chyba pri schvaľovaní emailu');
       }
     } catch (error: unknown) {
-      console.error('Approve email error:', err);
+      console.error('Approve email error:', error);
       setError('Chyba pri schvaľovaní emailu');
     } finally {
       setActionLoading(null);
@@ -409,7 +409,7 @@ const EmailManagementDashboard: React.FC = () => {
           setError(response.error || 'Chyba pri zamietaní emailu');
         }
       } catch (error: unknown) {
-        console.error('Reject email error:', err);
+        console.error('Reject email error:', error);
         setError('Chyba pri zamietaní emailu');
       } finally {
         setActionLoading(null);
@@ -445,7 +445,7 @@ const EmailManagementDashboard: React.FC = () => {
         setError(response.error || 'Chyba pri archivovaní emailu');
       }
     } catch (error: unknown) {
-      console.error('Archive email error:', err);
+      console.error('Archive email error:', error);
       setError('Chyba pri archivovaní emailu');
     } finally {
       setActionLoading(null);
@@ -488,7 +488,7 @@ const EmailManagementDashboard: React.FC = () => {
         setError(response.error || 'Chyba pri mazaní emailu');
       }
     } catch (error: unknown) {
-      console.error('Delete email error:', err);
+      console.error('Delete email error:', error);
       setError('Chyba pri mazaní emailu');
     } finally {
       setActionLoading(null);
@@ -532,7 +532,7 @@ const EmailManagementDashboard: React.FC = () => {
         setError(response.error || 'Chyba pri mazaní historických emailov');
       }
     } catch (error: unknown) {
-      console.error('Clear historical emails error:', err);
+      console.error('Clear historical emails error:', error);
       setError('Chyba pri mazaní historických emailov');
     } finally {
       setActionLoading(null);
@@ -561,8 +561,8 @@ const EmailManagementDashboard: React.FC = () => {
       if (response.success && response.data) {
         setImapStatus(response.data);
       }
-    } catch (err) {
-      console.error('❌ IMAP Status error:', err);
+    } catch (error: unknown) {
+      console.error('❌ IMAP Status error:', error);
     }
   }, []);
 
@@ -591,8 +591,8 @@ const EmailManagementDashboard: React.FC = () => {
       } else {
         setError('❌ IMAP pripojenie zlyhalo');
       }
-    } catch (err) {
-      console.error('❌ IMAP Test error:', err);
+    } catch (error: unknown) {
+      console.error('❌ IMAP Test error:', error);
       setError('❌ Chyba pri teste IMAP pripojenia');
     } finally {
       setImapLoading(false);
@@ -621,8 +621,8 @@ const EmailManagementDashboard: React.FC = () => {
 
       setSuccess('▶️ IMAP monitoring spustený!');
       await fetchImapStatus(); // Refresh status
-    } catch (err) {
-      console.error('❌ IMAP Start error:', err);
+    } catch (error: unknown) {
+      console.error('❌ IMAP Start error:', error);
       setError('❌ Chyba pri spúšťaní IMAP monitoringu');
     } finally {
       setImapLoading(false);
@@ -651,8 +651,8 @@ const EmailManagementDashboard: React.FC = () => {
 
       setSuccess('⏹️ IMAP monitoring zastavený!');
       await fetchImapStatus(); // Refresh status
-    } catch (err) {
-      console.error('❌ IMAP Stop error:', err);
+    } catch (error: unknown) {
+      console.error('❌ IMAP Stop error:', error);
       setError('❌ Chyba pri zastavovaní IMAP monitoringu');
     } finally {
       setImapLoading(false);
@@ -687,7 +687,7 @@ const EmailManagementDashboard: React.FC = () => {
       setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
       setSuccess('Prenájom bol úspešne schválený');
     } catch (error: unknown) {
-      console.error('Error approving rental:', err);
+      console.error('Error approving rental:', error);
       setError('Nepodarilo sa schváliť prenájom');
     } finally {
       setActionLoading(null);
@@ -702,7 +702,7 @@ const EmailManagementDashboard: React.FC = () => {
       setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
       setSuccess('Prenájom bol zamietnutý');
     } catch (error: unknown) {
-      console.error('Error rejecting rental:', err);
+      console.error('Error rejecting rental:', error);
       setError('Nepodarilo sa zamietnuť prenájom');
     } finally {
       setActionLoading(null);

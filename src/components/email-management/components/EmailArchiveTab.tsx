@@ -32,7 +32,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useEmailApi } from '../hooks/useEmailApi';
 import type {

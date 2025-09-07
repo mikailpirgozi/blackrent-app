@@ -1,13 +1,24 @@
 import {
+  endOfDay,
   format,
   parseISO,
-  isWithinInterval,
+  // isWithinInterval, // TODO: Implement interval checking
   startOfDay,
-  endOfDay,
 } from 'date-fns';
 import { sk } from 'date-fns/locale';
 
 import type { Rental, Vehicle } from '../../../types';
+
+// Filter types
+interface RentalFilters {
+  status?: string[];
+  paymentMethod?: string[];
+  company?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  priceMin?: string;
+  priceMax?: string;
+}
 
 // CSV Export utility
 export const exportRentalsToCSV = (rentals: Rental[], vehicles: Vehicle[]) => {
@@ -69,7 +80,7 @@ export const exportRentalsToCSV = (rentals: Rental[], vehicles: Vehicle[]) => {
 export const applyRentalFilters = (
   rentals: Rental[],
   searchQuery: string,
-  filters: any,
+  filters: RentalFilters,
   vehicles: Vehicle[]
 ) => {
   const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
@@ -98,13 +109,20 @@ export const applyRentalFilters = (
     }
 
     // Status filter
-    if (filters.status?.length > 0 && !filters.status.includes(rental.status)) {
+    if (
+      filters.status &&
+      filters.status.length > 0 &&
+      rental.status &&
+      !filters.status.includes(rental.status)
+    ) {
       return false;
     }
 
     // Payment method filter
     if (
-      filters.paymentMethod?.length > 0 &&
+      filters.paymentMethod &&
+      filters.paymentMethod.length > 0 &&
+      rental.paymentMethod &&
       !filters.paymentMethod.includes(rental.paymentMethod)
     ) {
       return false;
@@ -112,8 +130,10 @@ export const applyRentalFilters = (
 
     // Company filter
     if (
-      filters.company?.length > 0 &&
+      filters.company &&
+      filters.company.length > 0 &&
       vehicle &&
+      vehicle.company &&
       !filters.company.includes(vehicle.company)
     ) {
       return false;
@@ -187,7 +207,7 @@ export const getUniqueFilterValues = (
 // Protocol status utilities
 export const getProtocolStatusText = (
   rental: Rental,
-  protocols: Record<string, any>
+  protocols: Record<string, Record<string, unknown>>
 ) => {
   const hasHandover = !!protocols[rental.id]?.handover;
   const hasReturn = !!protocols[rental.id]?.return;

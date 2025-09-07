@@ -5,17 +5,16 @@
  */
 
 import {
-  PhotoCamera as PhotoIcon,
   DirectionsCar as CarIcon,
+  PhotoCamera as PhotoIcon,
   LocalShipping as TruckIcon,
-  Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import React, { memo, useCallback, useState } from 'react';
 
 import {
-  VehicleImageUtils,
   ImagePerformanceMonitor,
+  VehicleImageUtils,
 } from '../../utils/imageOptimization';
 import LazyImage from '../common/LazyImage';
 import { CompactChip } from '../ui';
@@ -58,10 +57,10 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
     ? VehicleImageUtils.getVehicleImageUrl(vehicleId, size)
     : null;
 
-  const placeholderUrl = VehicleImageUtils.getVehiclePlaceholder(
-    vehicleType,
-    fallbackColor
-  );
+  // const placeholderUrl = VehicleImageUtils.getVehiclePlaceholder(
+  //   vehicleType,
+  //   fallbackColor
+  // ); // Nepoužívané
   const lowQualityUrl = vehicleId
     ? VehicleImageUtils.getVehicleImageUrl(vehicleId, 'thumbnail')
     : null;

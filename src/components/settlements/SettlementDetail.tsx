@@ -1,24 +1,27 @@
 import {
-  PictureAsPdf as PdfIcon,
   AccountBalance as BankIcon,
-  TrendingUp as ProfitIcon,
-  TrendingDown as LossIcon,
-  Euro as EuroIcon,
-  Business as CompanyIcon,
-  Assessment as ReportIcon,
   CalendarToday as CalendarIcon,
-  Receipt as ReceiptIcon,
-  DirectionsCar as VehicleIcon,
-  Person as PersonIcon,
-  Payment as PaymentIcon,
   Close as CloseIcon,
+  Business as CompanyIcon,
+  Euro as EuroIcon,
+  TrendingDown as LossIcon,
+  Payment as PaymentIcon,
+  PictureAsPdf as PdfIcon,
+  Person as PersonIcon,
+  TrendingUp as ProfitIcon,
+  Receipt as ReceiptIcon,
+  Assessment as ReportIcon,
+  DirectionsCar as VehicleIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
   Card,
   CardContent,
-  Paper,
+  Chip,
+  CircularProgress,
+  Grid,
+  // Paper, // TODO: Implement Paper layout
   Table,
   TableBody,
   TableCell,
@@ -26,16 +29,10 @@ import {
   TableHead,
   TableRow,
   Typography,
-  CircularProgress,
-  Grid,
-  Divider,
-  Chip,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 import { getAPI_BASE_URL } from '../../services/api';
@@ -52,8 +49,6 @@ export default function SettlementDetail({
 }: SettlementDetailProps) {
   const { state } = useAuth();
   const [pdfLoading, setPdfLoading] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Počítame podľa spôsobov platby
   const rentalsByPaymentMethod = {

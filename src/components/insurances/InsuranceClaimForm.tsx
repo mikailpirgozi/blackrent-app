@@ -1,37 +1,37 @@
 import {
-  Close as CloseIcon,
   DirectionsCar as CarIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
-  LocationOn as LocationIcon,
-  Assignment as DocumentIcon,
-  Security as InsuranceIcon,
   ReportProblem as ClaimIcon,
+  Close as CloseIcon,
+  Assignment as DocumentIcon,
+  Euro as EuroIcon,
+  Event as EventIcon,
+  Security as InsuranceIcon,
+  LocationOn as LocationIcon,
 } from '@mui/icons-material';
 import {
+  Autocomplete,
   Box,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Typography,
   Card,
   CardContent,
   Chip,
-  DialogTitle,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
   IconButton,
-  Autocomplete,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
@@ -44,20 +44,21 @@ interface InsuranceClaimFormProps {
   onCancel: () => void;
 }
 
-const getIncidentTypeInfo = (type: string) => {
-  switch (type) {
-    case 'accident':
-      return { label: 'Nehoda', color: '#d32f2f', icon: '🚗' };
-    case 'theft':
-      return { label: 'Krádež', color: '#7b1fa2', icon: '🔒' };
-    case 'vandalism':
-      return { label: 'Vandalizmus', color: '#f57c00', icon: '🔨' };
-    case 'weather':
-      return { label: 'Počasie', color: '#1976d2', icon: '⛈️' };
-    default:
-      return { label: 'Iné', color: '#616161', icon: '❓' };
-  }
-};
+// TODO: Implement incident type info
+// const getIncidentTypeInfo = (type: string) => {
+//   switch (type) {
+//     case 'accident':
+//       return { label: 'Nehoda', color: '#d32f2f', icon: '🚗' };
+//     case 'theft':
+//       return { label: 'Krádež', color: '#7b1fa2', icon: '🔒' };
+//     case 'vandalism':
+//       return { label: 'Vandalizmus', color: '#f57c00', icon: '🔨' };
+//     case 'weather':
+//       return { label: 'Počasie', color: '#1976d2', icon: '⛈️' };
+//     default:
+//       return { label: 'Iné', color: '#616161', icon: '❓' };
+//   }
+// };
 
 const getStatusInfo = (status: string) => {
   switch (status) {
@@ -167,11 +168,21 @@ export default function InsuranceClaimForm({
       reportedDate: claim?.reportedDate || new Date(),
       description: formData.description!,
       location: formData.location,
-      incidentType: formData.incidentType! as any,
+      incidentType: formData.incidentType! as
+        | 'accident'
+        | 'theft'
+        | 'vandalism'
+        | 'weather'
+        | 'other',
       estimatedDamage: formData.estimatedDamage,
       deductible: formData.deductible,
       payoutAmount: formData.payoutAmount,
-      status: formData.status! as any,
+      status: formData.status! as
+        | 'reported'
+        | 'investigating'
+        | 'approved'
+        | 'rejected'
+        | 'closed',
       claimNumber: formData.claimNumber,
       filePaths: uploadedFiles,
       policeReportNumber: formData.policeReportNumber,
@@ -387,7 +398,12 @@ export default function InsuranceClaimForm({
                       onChange={e =>
                         setFormData(prev => ({
                           ...prev,
-                          incidentType: e.target.value as any,
+                          incidentType: e.target.value as
+                            | 'accident'
+                            | 'theft'
+                            | 'vandalism'
+                            | 'weather'
+                            | 'other',
                         }))
                       }
                       label="Typ udalosti *"
@@ -571,7 +587,12 @@ export default function InsuranceClaimForm({
                       onChange={e =>
                         setFormData(prev => ({
                           ...prev,
-                          status: e.target.value as any,
+                          status: e.target.value as
+                            | 'reported'
+                            | 'investigating'
+                            | 'approved'
+                            | 'rejected'
+                            | 'closed',
                         }))
                       }
                       label="Stav"

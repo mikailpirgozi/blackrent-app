@@ -18,7 +18,7 @@ interface NotificationPayload {
   badge?: string;
   image?: string;
   tag?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   actions?: NotificationAction[];
   requireInteraction?: boolean;
   silent?: boolean;
@@ -386,7 +386,7 @@ class PushNotificationService {
   async getNotificationAnalytics(
     startDate?: Date,
     endDate?: Date
-  ): Promise<any> {
+  ): Promise<Record<string, unknown> | null> {
     try {
       const token = this.getAuthToken();
       const params = new URLSearchParams();
@@ -459,10 +459,10 @@ export const pushNotificationService = new PushNotificationService();
 
 // Export types
 export type {
-  PushSubscriptionData,
-  NotificationPayload,
   NotificationAction,
+  NotificationPayload,
   PushNotificationPreferences,
+  PushSubscriptionData,
 };
 
 export default PushNotificationService;

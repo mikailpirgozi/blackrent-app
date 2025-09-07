@@ -9,7 +9,7 @@
  * - Mobile-optimized UX
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { debounce } from '../utils/debounce';
 
@@ -46,11 +46,11 @@ export interface UseEnhancedSearchOptions extends SearchOptions {
   searchFunction: (
     query: string,
     quickFilter?: string
-  ) => Promise<any[]> | any[];
+  ) => Promise<Record<string, unknown>[]> | Record<string, unknown>[];
   suggestionFunction?: (
     query: string
   ) => Promise<SearchSuggestion[]> | SearchSuggestion[];
-  onSearch?: (query: string, results: any[]) => void;
+  onSearch?: (query: string, results: Record<string, unknown>[]) => void;
   onClear?: () => void;
 }
 
@@ -62,7 +62,7 @@ export interface UseEnhancedSearchReturn {
   activeQuickFilter: string | null;
 
   // Results
-  results: any[];
+  results: Record<string, unknown>[];
   suggestions: SearchSuggestion[];
 
   // History
@@ -99,13 +99,13 @@ export const useEnhancedSearch = ({
   storageKey = 'search_history',
   enableHistory = true,
   enableSuggestions = true,
-  placeholder = 'Hľadať...',
-  quickFilters = [],
+  // placeholder = 'Hľadať...', // Nepoužívané
+  // quickFilters = [], // Nepoužívané
 }: UseEnhancedSearchOptions): UseEnhancedSearchReturn => {
   // Search state
   const [query, setQueryState] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -164,7 +164,8 @@ export const useEnhancedSearch = ({
   // Debounced search function
   const debouncedSearch = useMemo(
     () =>
-      debounce(async (searchQuery: string, quickFilter?: string) => {
+      debounce(async (...args: unknown[]) => {
+        const [searchQuery, quickFilter] = args as [string, string?];
         if (searchQuery.length < minQueryLength && !quickFilter) {
           setResults([]);
           setIsSearching(false);
@@ -202,7 +203,7 @@ export const useEnhancedSearch = ({
             `🔍 Search completed: "${searchQuery}" → ${searchResults.length} results (${duration.toFixed(2)}ms)`
           );
         } catch (error: unknown) {
-          if (error.name !== 'AbortError') {
+          if ((error as Error).name !== 'AbortError') {
             console.error('Search error:', error);
             setResults([]);
           }
@@ -216,7 +217,8 @@ export const useEnhancedSearch = ({
   // Debounced suggestions
   const debouncedSuggestions = useMemo(
     () =>
-      debounce(async (searchQuery: string) => {
+      debounce(async (...args: unknown[]) => {
+        const [searchQuery] = args as [string];
         if (
           !enableSuggestions ||
           !suggestionFunction ||
@@ -260,7 +262,7 @@ export const useEnhancedSearch = ({
 
           setSuggestions(allSuggestions);
         } catch (error: unknown) {
-          if (error.name !== 'AbortError') {
+          if ((error as Error).name !== 'AbortError') {
             console.error('Suggestions error:', error);
             setSuggestions([]);
           }

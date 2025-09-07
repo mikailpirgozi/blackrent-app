@@ -2,30 +2,30 @@
 // Shows offline status with elegant animations and retry options
 
 import {
+  CloudOff as CloudOffIcon,
+  ExpandLess as CollapseIcon,
+  ExpandMore as ExpandIcon,
   WifiOff as OfflineIcon,
   Wifi as OnlineIcon,
   Refresh as RefreshIcon,
-  ExpandMore as ExpandIcon,
-  ExpandLess as CollapseIcon,
-  CloudOff as CloudOffIcon,
   Schedule as ScheduleIcon,
   Sync as SyncIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  IconButton,
-  Collapse,
   Alert,
+  Box,
+  Button,
+  Collapse,
+  IconButton,
   LinearProgress,
-  Fade,
+  Paper,
+  // Fade,
   Slide,
-  useTheme,
+  Typography,
   alpha,
+  useTheme,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { usePWA } from '../../hooks/usePWA';
@@ -108,7 +108,11 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
           const registration = await navigator.serviceWorker.ready;
           // Background sync (if supported)
           if ('sync' in registration) {
-            (registration as any).sync.register('blackrent-sync');
+            (
+              registration as ServiceWorkerRegistration & {
+                sync?: { register: (tag: string) => Promise<void> };
+              }
+            ).sync?.register('blackrent-sync');
           }
         }
       }
@@ -349,9 +353,13 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                             await navigator.serviceWorker.ready;
                           // Background sync (if supported)
                           if ('sync' in registration) {
-                            (registration as any).sync.register(
-                              'blackrent-sync'
-                            );
+                            (
+                              registration as ServiceWorkerRegistration & {
+                                sync?: {
+                                  register: (tag: string) => Promise<void>;
+                                };
+                              }
+                            ).sync?.register('blackrent-sync');
                           }
                         }
                       }}

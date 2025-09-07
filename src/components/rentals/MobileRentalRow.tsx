@@ -34,19 +34,22 @@ import { formatDateTime } from '../../utils/formatters';
 import PriceDisplay from './components/PriceDisplay';
 
 interface MobileRentalRowProps {
-  rental: any;
-  vehicle: any;
+  rental: Record<string, unknown>;
+  vehicle: Record<string, unknown>;
   index: number;
   totalRentals: number;
   hasHandover: boolean;
   hasReturn: boolean;
   isLoadingProtocolStatus: boolean;
   protocolStatusLoaded: boolean;
-  onEdit: (rental: any) => void;
-  onOpenProtocolMenu: (rental: any, type: 'handover' | 'return') => void;
-  onCheckProtocols: (rental: any) => void;
+  onEdit: (rental: Record<string, unknown>) => void;
+  onOpenProtocolMenu: (
+    rental: Record<string, unknown>,
+    type: 'handover' | 'return'
+  ) => void;
+  onCheckProtocols: (rental: Record<string, unknown>) => void;
   onDelete?: (id: string) => void;
-  onClone?: (rental: any) => void; // 🔄 NOVÉ: Clone funkcionalita
+  onClone?: (rental: Record<string, unknown>) => void; // 🔄 NOVÉ: Clone funkcionalita
 }
 
 export const MobileRentalRow = memo<MobileRentalRowProps>(
@@ -54,7 +57,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
     rental,
     vehicle,
     index,
-    totalRentals,
+    // totalRentals, // TODO: Implement total rentals display
     hasHandover,
     hasReturn,
     isLoadingProtocolStatus,

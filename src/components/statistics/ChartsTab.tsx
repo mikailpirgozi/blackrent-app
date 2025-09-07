@@ -1,25 +1,42 @@
-import { Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent, Grid, Typography } from '@mui/material';
 import React from 'react';
 import {
-  BarChart,
   Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
 
 import CustomTooltip from './CustomTooltip';
 
+interface PaymentMethodData {
+  count: number;
+  revenue: number;
+}
+
+interface MonthlyData {
+  month: string;
+  rentals: number;
+  revenue: number;
+  commission: number;
+}
+
+interface StatsData {
+  monthlyData: MonthlyData[];
+  paymentMethodStats: Record<string, PaymentMethodData>;
+}
+
 interface ChartsTabProps {
-  stats: any;
+  stats: StatsData;
   COLORS: string[];
 }
 
@@ -86,7 +103,7 @@ const ChartsTab: React.FC<ChartsTabProps> = ({ stats, COLORS }) => {
                   data={Object.entries(stats.paymentMethodStats).map(
                     ([method, data]) => ({
                       name: method,
-                      value: (data as any).count,
+                      value: data.count,
                     })
                   )}
                   cx="50%"

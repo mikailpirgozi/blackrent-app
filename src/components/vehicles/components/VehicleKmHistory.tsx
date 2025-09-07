@@ -1,41 +1,41 @@
 import {
   DirectionsCar as CarIcon,
-  Security as InsuranceIcon,
-  Build as STKIcon,
+  TrendingDown as DecreaseIcon,
   Assignment as EKIcon,
   TrendingUp as IncreaseIcon,
-  TrendingDown as DecreaseIcon,
+  Security as InsuranceIcon,
+  Build as STKIcon,
   Remove as SameIcon,
 } from '@mui/icons-material';
 import {
   Timeline,
-  TimelineItem,
-  TimelineSeparator,
   TimelineConnector,
   TimelineContent,
   TimelineDot,
+  TimelineItem,
   TimelineOppositeContent,
+  TimelineSeparator,
 } from '@mui/lab';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
-  Divider,
-  useTheme,
-  useMediaQuery,
-  Alert,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useApp } from '../../../context/AppContext';
 import type { Vehicle } from '../../../types';
@@ -125,31 +125,24 @@ export default function VehicleKmHistory({
   const [kmHistory, setKmHistory] = useState<KmHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (open && vehicle) {
-      loadKmHistory();
-    }
-  }, [open, vehicle]);
-
-  const loadKmHistory = async () => {
+  const loadKmHistory = useCallback(async () => {
     if (!vehicle) return;
 
     setLoading(true);
     try {
-      const history: KmHistoryEntry[] = [];
-
       // Načítaj Kasko poistky s kmState
       const kaskoInsurances = (state.insurances || [])
         .filter(
           insurance =>
             insurance.vehicleId === vehicle.id &&
             insurance.type?.toLowerCase().includes('kasko') &&
-            (insurance as any).kmState
+            (insurance as unknown as Record<string, unknown>).kmState
         )
         .map(insurance => ({
           id: insurance.id,
           date: insurance.validFrom || insurance.validTo,
-          kmState: (insurance as any).kmState,
+          kmState: (insurance as unknown as Record<string, unknown>)
+            .kmState as number,
           documentType: 'insurance_kasko' as const,
           documentId: insurance.id,
           policyNumber: insurance.policyNumber,
@@ -163,12 +156,13 @@ export default function VehicleKmHistory({
           doc =>
             doc.vehicleId === vehicle.id &&
             doc.documentType === 'stk' &&
-            (doc as any).kmState
+            (doc as unknown as Record<string, unknown>).kmState
         )
         .map(doc => ({
           id: doc.id,
           date: doc.validTo,
-          kmState: (doc as any).kmState,
+          kmState: (doc as unknown as Record<string, unknown>)
+            .kmState as number,
           documentType: 'stk' as const,
           documentId: doc.id,
           documentNumber: doc.documentNumber,
@@ -181,12 +175,13 @@ export default function VehicleKmHistory({
           doc =>
             doc.vehicleId === vehicle.id &&
             doc.documentType === 'ek' &&
-            (doc as any).kmState
+            (doc as unknown as Record<string, unknown>).kmState
         )
         .map(doc => ({
           id: doc.id,
           date: doc.validTo,
-          kmState: (doc as any).kmState,
+          kmState: (doc as unknown as Record<string, unknown>)
+            .kmState as number,
           documentType: 'ek' as const,
           documentId: doc.id,
           documentNumber: doc.documentNumber,
@@ -207,7 +202,13 @@ export default function VehicleKmHistory({
     } finally {
       setLoading(false);
     }
-  };
+  }, [vehicle, state.insurances, state.vehicleDocuments]);
+
+  useEffect(() => {
+    if (open && vehicle) {
+      loadKmHistory();
+    }
+  }, [open, vehicle, loadKmHistory]);
 
   if (!vehicle) return null;
 

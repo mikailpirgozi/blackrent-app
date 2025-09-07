@@ -39,8 +39,8 @@ export interface VehicleLookup {
 
 export interface ProtocolLookup {
   [rentalId: string]: {
-    handover?: any;
-    return?: any;
+    handover?: Record<string, unknown>;
+    return?: Record<string, unknown>;
   };
 }
 

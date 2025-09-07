@@ -15,7 +15,7 @@ interface RentalStatusChipProps {
 }
 
 const RentalStatusChip = React.memo<RentalStatusChipProps>(
-  ({ status, confirmed, paid, size = 'small' }) => {
+  ({ status, /* confirmed, paid, */ size = 'small' }) => {
     const getStatusProps = () => {
       switch (status) {
         case 'active':

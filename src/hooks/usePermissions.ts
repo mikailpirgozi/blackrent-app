@@ -110,10 +110,10 @@ export function hasCompanyPermission(
 
 // 🛡️ LEGACY PERMISSION CHECK FUNCTION (pre spätnú kompatibilitu)
 export function hasLegacyPermission(
-  _userRole: UserRole,
-  _resource: Permission['resource'],
-  _action: Permission['actions'][0],
-  _context?: {
+  userRole: UserRole,
+  resource: Permission['resource'],
+  action: Permission['actions'][0],
+  context?: {
     userId?: string;
     companyId?: string;
     resourceOwnerId?: string;
@@ -122,11 +122,18 @@ export function hasLegacyPermission(
   }
 ): PermissionResult {
   // Admin má vždy práva
-  if (_userRole === 'admin') {
+  if (userRole === 'admin') {
     return { hasAccess: true, requiresApproval: false };
   }
 
   // Pre ostatné roly vráti false - používajú sa company permissions
+  // Parametre sú zachované pre kompatibilitu
+  console.debug('hasLegacyPermission called:', {
+    userRole,
+    resource,
+    action,
+    context,
+  });
   return {
     hasAccess: false,
     requiresApproval: false,

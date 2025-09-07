@@ -1,22 +1,22 @@
 import {
   Close as CloseIcon,
   Download as DownloadIcon,
-  PictureAsPdf as PDFIcon,
   OpenInNew as OpenInNewIcon,
+  PictureAsPdf as PDFIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Typography,
-  CircularProgress,
-  Alert,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { getApiBaseUrl } from '../../utils/apiUrl';
 
@@ -38,10 +38,19 @@ export default function PDFViewer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [protocolData, setProtocolData] = useState<any>(null);
+  const [protocolData, setProtocolData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+
+  // Generovanie PDF URL (fallback)
+  const generatePDFUrl = useCallback(() => {
+    const baseUrl = getApiBaseUrl();
+    return `${baseUrl}/protocols/${protocolType}/${protocolId}/pdf`;
+  }, [protocolType, protocolId]);
 
   // Načítanie protokolu a jeho PDF URL
-  const loadProtocolData = async () => {
+  const loadProtocolData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -92,18 +101,12 @@ export default function PDFViewer({
     } finally {
       setLoading(false);
     }
-  };
-
-  // Generovanie PDF URL (fallback)
-  const generatePDFUrl = () => {
-    const baseUrl = getApiBaseUrl();
-    return `${baseUrl}/protocols/${protocolType}/${protocolId}/pdf`;
-  };
+  }, [protocolType, protocolId, generatePDFUrl]);
 
   // Download URL - použij existujúce PDF URL ak existuje
-  const getDownloadUrl = () => {
+  const getDownloadUrl = (): string => {
     // Ak máme pdfUrl z protokolu, použij ho
-    if (protocolData?.pdfUrl) {
+    if (protocolData?.pdfUrl && typeof protocolData.pdfUrl === 'string') {
       return protocolData.pdfUrl;
     }
 
@@ -113,14 +116,14 @@ export default function PDFViewer({
   };
 
   // Načítanie PDF
-  const handleLoadPDF = async () => {
+  const handleLoadPDF = useCallback(async () => {
     await loadProtocolData();
-  };
+  }, [loadProtocolData]);
 
   // Stiahnutie PDF
   const handleDownload = () => {
-    const downloadUrl = getDownloadUrl();
-    const link = document.createElement('a');
+    const downloadUrl: string = getDownloadUrl();
+    const link = document.createElement('a') as HTMLAnchorElement;
     link.href = downloadUrl;
     link.download = `${protocolType}_protocol_${protocolId.slice(-8)}.pdf`;
     document.body.appendChild(link);
@@ -139,7 +142,7 @@ export default function PDFViewer({
     if (open && !pdfUrl) {
       handleLoadPDF();
     }
-  }, [open]);
+  }, [open, pdfUrl, handleLoadPDF]);
 
   return (
     <Dialog

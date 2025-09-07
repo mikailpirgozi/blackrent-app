@@ -12,7 +12,7 @@ export const generateImageSizes = (
   sizes: { width: number; height: number; quality?: number }[]
 ) => {
   const urlParts = baseUrl.split('.');
-  const extension = urlParts.pop();
+  const extension = urlParts.pop() || 'jpg';
   const basePath = urlParts.join('.');
 
   return sizes.map(({ width, height, quality = 80 }) => ({
@@ -71,7 +71,7 @@ export const optimizeImageUrl = async (
   }
 
   const urlParts = url.split('.');
-  const extension = urlParts.pop();
+  // const extension = urlParts.pop();
   const basePath = urlParts.join('.');
 
   let optimizedUrl = basePath;
@@ -141,7 +141,7 @@ export class ImageLazyLoader {
       concurrent?: number;
     } = {}
   ) {
-    const { threshold = 0.1, rootMargin = '50px', concurrent = 4 } = options;
+    const { threshold = 0.1, rootMargin = '50px' } = options;
 
     if (typeof IntersectionObserver !== 'undefined') {
       this.observer = new IntersectionObserver(
@@ -266,7 +266,7 @@ export const ImagePerformanceMonitor = {
     console.log(`🖼️ Image loaded: ${url} (${loadTime.toFixed(2)}ms)`);
   },
 
-  onImageError: (url: string, error: any) => {
+  onImageError: (url: string, error: unknown) => {
     ImagePerformanceMonitor.failedImages++;
     console.error(`❌ Image failed: ${url}`, error);
   },

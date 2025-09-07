@@ -2,31 +2,31 @@
 // Demonstrates all performance optimization techniques
 
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Card,
   CardContent,
-  Typography,
+  Chip,
   Grid,
-  useTheme,
-  useMediaQuery,
   IconButton,
   Tooltip,
-  Chip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 // Import our performance optimization tools
 import {
-  usePerformanceMonitor,
-  useVirtualScrolling,
   useImagePreloader,
-  useThrottledCallback,
+  usePerformanceMonitor,
   useShallowMemo,
+  useThrottledCallback,
+  useVirtualScrolling,
 } from '../../hooks/usePerformanceOptimization';
 import { createLazyComponentWithLoader } from '../../utils/lazyComponents';
 
@@ -53,7 +53,7 @@ interface ListItemProps {
     image?: string;
     status: 'active' | 'inactive' | 'pending';
     category: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -64,7 +64,7 @@ interface ListItemProps {
 const OptimizedListItem = memo<ListItemProps>(
   ({ item, onEdit, onDelete, onView, index }) => {
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    // const _isMobile = useMediaQuery(theme.breakpoints.down('md')); // TODO: Implement mobile-specific optimizations
     const { getStats } = usePerformanceMonitor(`ListItem-${item.id}`);
 
     // Memoize style calculations
@@ -206,7 +206,7 @@ interface PerformanceOptimizedListProps {
     image?: string;
     status: 'active' | 'inactive' | 'pending';
     category: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;

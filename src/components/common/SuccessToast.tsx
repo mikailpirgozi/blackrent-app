@@ -9,23 +9,23 @@
  */
 
 import {
-  Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
-  Speed as SpeedIcon,
+  Close as CloseIcon,
   CloudDone as CloudDoneIcon,
   Refresh as RefreshIcon,
+  Speed as SpeedIcon,
 } from '@mui/icons-material';
 import {
   Alert,
-  Snackbar,
   Box,
-  Typography,
-  IconButton,
   Chip,
   Fade,
+  IconButton,
   Slide,
+  Snackbar,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface SuccessToastProps {
   message: string | null;
@@ -89,7 +89,6 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
       onClose={handleClose}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       TransitionComponent={Slide}
-      TransitionProps={{ direction: 'left' } as any}
     >
       <Alert
         severity="success"

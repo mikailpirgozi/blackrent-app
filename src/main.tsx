@@ -1,8 +1,8 @@
-import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-import './index.css';
 import App from './App';
+import './index.css';
+import { logger } from './utils/logger';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -25,7 +25,7 @@ window.addEventListener('error', event => {
 
 // Initialize performance monitoring
 if (import.meta.env.MODE === 'development') {
-  import('./utils/webVitals').then(({ debugPerformance, reportWebVitals }) => {
+  import('./utils/webVitals').then(({ reportWebVitals }) => {
     reportWebVitals(); // Silent monitoring
   });
 }

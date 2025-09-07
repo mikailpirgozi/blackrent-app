@@ -29,6 +29,20 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 import type { ProtocolImage, ProtocolVideo, Rental } from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
+
+// Local protocol data interface to match useRentalProtocols
+interface ProtocolData {
+  id: string;
+  rentalId: string;
+  createdAt: string;
+  completedAt?: string;
+  status: string;
+  images?: ProtocolImage[];
+  videos?: ProtocolVideo[];
+  signatures?: Record<string, unknown>;
+  notes?: string;
+  [key: string]: unknown;
+}
 // 🔄 CLONE FUNCTIONALITY
 import {
   calculateNextRentalPeriod,
@@ -52,9 +66,21 @@ import { RentalTable } from './components/RentalTable';
 // Constants (removed unused constants)
 
 export default function RentalList() {
-  // ⚡ PERFORMANCE: Only log renders in development
+  // ⚡ PERFORMANCE: Only log renders in development with throttling
+  const renderCountRef = useRef(0);
+  const lastRenderTimeRef = useRef(0);
+
   if (process.env.NODE_ENV === 'development') {
-    logger.debug('RentalList render', { timestamp: Date.now() });
+    renderCountRef.current++;
+    const now = Date.now();
+    // Only log every 500ms to prevent spam
+    if (now - lastRenderTimeRef.current > 500) {
+      logger.debug('RentalList render', {
+        timestamp: now,
+        renderCount: renderCountRef.current,
+      });
+      lastRenderTimeRef.current = now;
+    }
   }
 
   const { state, createRental, updateRental } = useApp();
@@ -84,12 +110,17 @@ export default function RentalList() {
     updateFilters,
   } = useInfiniteRentals();
 
-  // 🔍 DEBUG: Základné informácie o komponente
-  logger.debug('🚀 RentalList LOADED:', {
-    isMobile,
-    screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'unknown',
-    breakpoint: theme.breakpoints.values.md,
-  });
+  // 🔍 DEBUG: Základné informácie o komponente - OPTIMIZED: Only log once
+  const debugLoggedRef = useRef(false);
+  if (process.env.NODE_ENV === 'development' && !debugLoggedRef.current) {
+    logger.debug('🚀 RentalList LOADED:', {
+      isMobile,
+      screenWidth:
+        typeof window !== 'undefined' ? window.innerWidth : 'unknown',
+      breakpoint: theme.breakpoints.values.md,
+    });
+    debugLoggedRef.current = true;
+  }
 
   // 🚀 EXTRACTED: Use protocol hook first
   const protocolsHook = useRentalProtocols({
@@ -161,7 +192,7 @@ export default function RentalList() {
     resetFilters,
   } = useRentalFilters({
     rentals: paginatedRentals,
-    vehicles: state.vehicles || [],
+    vehicles: (state.vehicles || []) as unknown as Record<string, unknown>[],
     protocols: protocolsHook.protocols,
   });
 
@@ -173,7 +204,8 @@ export default function RentalList() {
     }
   }, [debouncedSearchQuery, searchTerm, setSearchTerm]);
 
-  // 🚀 SERVER-SIDE FILTERING: Sync filters between useRentalFilters and useInfiniteRentals
+  // 🚀 SERVER-SIDE FILTERING: Sync filters between useRentalFilters and useInfiniteRentals - OPTIMIZED
+  const previousFiltersRef = useRef<string>('');
   React.useEffect(() => {
     const serverFilters = {
       // Map FilterState to RentalFilters format
@@ -202,8 +234,15 @@ export default function RentalList() {
       sortOrder: advancedFilters.sortOrder,
     };
 
-    logger.debug('🔧 FILTERS: Syncing filters to server:', serverFilters);
-    updateFilters(serverFilters);
+    // OPTIMIZED: Only sync if filters actually changed
+    const filtersString = JSON.stringify(serverFilters);
+    if (filtersString !== previousFiltersRef.current) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('🔧 FILTERS: Syncing filters to server:', serverFilters);
+      }
+      updateFilters(serverFilters);
+      previousFiltersRef.current = filtersString;
+    }
   }, [advancedFilters, updateFilters]);
 
   // 🚀 ENHANCED RESET: Reset both local and server-side filters
@@ -749,7 +788,21 @@ export default function RentalList() {
       {/* 🚀 EXTRACTED: Export/Import moved to RentalExport component */}
       <RentalExport
         filteredRentals={filteredRentals}
-        state={state}
+        state={{
+          customers: (state.customers || []) as unknown as Record<
+            string,
+            unknown
+          >[],
+          companies: (state.companies || []) as unknown as Record<
+            string,
+            unknown
+          >[],
+          vehicles: (state.vehicles || []) as unknown as Record<
+            string,
+            unknown
+          >[],
+          rentals: state.rentals || [],
+        }}
         isMobile={isMobile}
         setImportError={setImportError}
       />
@@ -933,11 +986,11 @@ export default function RentalList() {
           try {
             if (rental.id && editingRental?.id) {
               // Existujúci prenájom s ID - update
-              await updateRental(rental);
+              await updateRental(rental as unknown as Rental);
               logger.info('✅ Rental updated successfully:', rental.id);
             } else {
               // Nový prenájom bez ID alebo klonovaný prenájom - create
-              await createRental(rental);
+              await createRental(rental as unknown as Rental);
               logger.info('✅ Rental created successfully');
             }
             setOpenDialog(false);
@@ -965,9 +1018,9 @@ export default function RentalList() {
 
             // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
             await protocolsHook.onProtocolUpdate?.(
-              protocolData.rentalId,
+              protocolData.rentalId as string,
               'handover',
-              protocolData
+              protocolData as unknown as ProtocolData
             );
 
             protocolsHook.setOpenHandoverDialog(false);
@@ -988,9 +1041,9 @@ export default function RentalList() {
 
             // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
             await protocolsHook.onProtocolUpdate?.(
-              protocolData.rentalId,
+              protocolData.rentalId as string,
               'return',
-              protocolData
+              protocolData as unknown as ProtocolData
             );
 
             protocolsHook.setOpenReturnDialog(false);

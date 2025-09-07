@@ -4,21 +4,8 @@
  * Pokročilé vyhľadávanie pre prenájmy s kompletnou filter funkcionalitou
  */
 
-import {
-  FilterList as FilterIcon,
-  Tune as TuneIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Stack,
-  IconButton,
-  Tooltip,
-  useTheme,
-  useMediaQuery,
-  Typography,
-  Button,
-} from '@mui/material';
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import { Box, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import type {
@@ -26,7 +13,7 @@ import type {
   SearchSuggestion,
 } from '../../hooks/useEnhancedSearch';
 import type { Rental } from '../../types';
-import { textContains, searchInTexts } from '../../utils/textNormalization';
+import { searchInTexts } from '../../utils/textNormalization';
 import EnhancedSearchBar from '../common/EnhancedSearchBar';
 import QuickFilters, { RENTAL_QUICK_FILTERS } from '../common/QuickFilters';
 // 🔄 MOBILE CLEANUP: MobileFilterDrawer removed
@@ -35,7 +22,7 @@ import QuickFilters, { RENTAL_QUICK_FILTERS } from '../common/QuickFilters';
 interface EnhancedRentalSearchProps {
   onResults: (results: Rental[]) => void;
   onQueryChange?: (query: string) => void;
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, unknown>) => void;
   placeholder?: string;
   showQuickFilters?: boolean;
   compact?: boolean;
@@ -44,7 +31,7 @@ interface EnhancedRentalSearchProps {
 const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
   onResults,
   onQueryChange,
-  onFiltersChange,
+  // onFiltersChange, // commented out - not used
   placeholder = 'Hľadať prenájmy...',
   showQuickFilters = true,
   compact = false,
@@ -54,10 +41,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
   const { state } = useApp();
 
   // State
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<Record<string, any>>(
-    {}
-  );
+  const [advancedFilters] = useState<Record<string, unknown>>({});
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(
     null
   );
@@ -84,7 +68,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
               return endDate < new Date() && r.status === 'active';
             }).length || 0;
           break;
-        case 'this_month':
+        case 'this_month': {
           const thisMonth = new Date();
           count =
             state.rentals?.filter(r => {
@@ -95,6 +79,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
               );
             }).length || 0;
           break;
+        }
         case 'high_value':
           count =
             state.rentals?.filter(r => r.totalPrice && r.totalPrice > 1000)
@@ -106,7 +91,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
     });
   }, [state.rentals]);
 
-  // Search function
+  // Search function for rentals
   const searchRentals = useCallback(
     async (query: string, quickFilter?: string): Promise<Rental[]> => {
       if (!state.rentals) return [];
@@ -188,7 +173,9 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
           case 'company':
             filteredRentals = filteredRentals.filter(r => {
               // Company filter - check rental.company property directly
-              return r.company?.toLowerCase().includes(value.toLowerCase());
+              return r.company
+                ?.toLowerCase()
+                .includes(String(value).toLowerCase());
             });
             break;
           case 'vehicle_type':
@@ -199,22 +186,22 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
             break;
           case 'date_from':
             filteredRentals = filteredRentals.filter(
-              r => new Date(r.startDate) >= new Date(value)
+              r => new Date(r.startDate) >= new Date(String(value))
             );
             break;
           case 'date_to':
             filteredRentals = filteredRentals.filter(
-              r => new Date(r.endDate) <= new Date(value)
+              r => new Date(r.endDate) <= new Date(String(value))
             );
             break;
           case 'price_min':
             filteredRentals = filteredRentals.filter(
-              r => r.totalPrice && r.totalPrice >= parseFloat(value)
+              r => r.totalPrice && r.totalPrice >= parseFloat(String(value))
             );
             break;
           case 'price_max':
             filteredRentals = filteredRentals.filter(
-              r => r.totalPrice && r.totalPrice <= parseFloat(value)
+              r => r.totalPrice && r.totalPrice <= parseFloat(String(value))
             );
             break;
         }
@@ -223,6 +210,26 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
       return filteredRentals;
     },
     [state.rentals, state.customers, state.vehicles, advancedFilters]
+  );
+
+  // Search function for EnhancedSearchBar (returns SearchSuggestion[])
+  const searchForSuggestions = useCallback(
+    async (
+      query: string,
+      quickFilter?: string
+    ): Promise<SearchSuggestion[]> => {
+      const results = await searchRentals(query, quickFilter);
+
+      // Convert Rental[] to SearchSuggestion[]
+      return results.map(rental => ({
+        id: rental.id,
+        text: `${rental.customerName} - ${rental.id}`,
+        type: 'suggestion' as const,
+        category: 'Prenájom',
+        count: 1,
+      }));
+    },
+    [searchRentals]
   );
 
   // Suggestions function
@@ -302,65 +309,57 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
     [searchRentals, onResults]
   );
 
-  const handleAdvancedFiltersChange = useCallback(
-    (filters: Record<string, any>) => {
-      setAdvancedFilters(filters);
-      onFiltersChange?.(filters);
-    },
-    [onFiltersChange]
-  );
-
-  // Mobile filter sections
-  const mobileFilterSections = useMemo(
-    () => [
-      {
-        id: 'company',
-        title: 'Firma',
-        type: 'text' as const,
-        placeholder: 'Názov firmy...',
-        icon: '🏢',
-      },
-      {
-        id: 'vehicle_type',
-        title: 'Typ vozidla',
-        type: 'select' as const,
-        options: [
-          { label: 'Osobné', value: 'car' },
-          { label: 'Nákladné', value: 'truck' },
-          { label: 'Dodávka', value: 'van' },
-          { label: 'Motorka', value: 'motorcycle' },
-        ],
-        icon: '🚗',
-      },
-      {
-        id: 'date_from',
-        title: 'Od dátumu',
-        type: 'date' as const,
-        icon: '📅',
-      },
-      {
-        id: 'date_to',
-        title: 'Do dátumu',
-        type: 'date' as const,
-        icon: '📅',
-      },
-      {
-        id: 'price_min',
-        title: 'Min. cena',
-        type: 'text' as const,
-        placeholder: '0',
-        icon: '💰',
-      },
-      {
-        id: 'price_max',
-        title: 'Max. cena',
-        type: 'text' as const,
-        placeholder: '999999',
-        icon: '💰',
-      },
-    ],
-    []
-  );
+  // Mobile filter sections (commented out - not used)
+  // const mobileFilterSections = useMemo(
+  //   () => [
+  //     {
+  //       id: 'company',
+  //       title: 'Firma',
+  //       type: 'text' as const,
+  //       placeholder: 'Názov firmy...',
+  //       icon: '🏢',
+  //     },
+  //     {
+  //       id: 'vehicle_type',
+  //       title: 'Typ vozidla',
+  //       type: 'select' as const,
+  //       options: [
+  //         { label: 'Osobné', value: 'car' },
+  //         { label: 'Nákladné', value: 'truck' },
+  //         { label: 'Dodávka', value: 'van' },
+  //         { label: 'Motorka', value: 'motorcycle' },
+  //       ],
+  //       icon: '🚗',
+  //     },
+  //     {
+  //       id: 'date_from',
+  //       title: 'Od dátumu',
+  //       type: 'date' as const,
+  //       icon: '📅',
+  //     },
+  //     {
+  //       id: 'date_to',
+  //       title: 'Do dátumu',
+  //       type: 'date' as const,
+  //       icon: '📅',
+  //     },
+  //     {
+  //       id: 'price_min',
+  //       title: 'Min. cena',
+  //       type: 'text' as const,
+  //       placeholder: '0',
+  //       icon: '💰',
+  //     },
+  //     {
+  //       id: 'price_max',
+  //       title: 'Max. cena',
+  //       type: 'text' as const,
+  //       placeholder: '999999',
+  //       icon: '💰',
+  //     },
+  //   ],
+  //   []
+  // );
 
   const hasActiveFilters =
     activeQuickFilter ||
@@ -372,12 +371,11 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
       <Stack direction="row" spacing={1} alignItems="flex-start">
         <Box sx={{ flex: 1 }}>
           <EnhancedSearchBar
-            onSearch={searchRentals}
+            onSearch={searchForSuggestions}
             suggestionFunction={getSuggestions}
             placeholder={placeholder}
             quickFilters={showQuickFilters ? enhancedQuickFilters : []}
             onQuickFilterChange={handleQuickFilterChange}
-            onResultsChange={onResults}
             onQueryChange={onQueryChange}
             showResultCount
             showPerformanceStats={!compact}
@@ -388,8 +386,8 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
           />
         </Box>
 
-        {/* Mobile Filter Button */}
-        {isMobile && (
+        {/* Mobile Filter Button - commented out (not used) */}
+        {/* {isMobile && (
           <Tooltip title="Pokročilé filtre">
             <IconButton
               onClick={() => setShowMobileFilters(true)}
@@ -408,7 +406,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
               <TuneIcon />
             </IconButton>
           </Tooltip>
-        )}
+        )} */}
       </Stack>
 
       {/* Quick Filters - Desktop */}

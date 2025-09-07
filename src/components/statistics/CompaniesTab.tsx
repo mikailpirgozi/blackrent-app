@@ -1,23 +1,33 @@
 import { Person as PersonIcon } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
-  Typography,
   Card,
   CardContent,
   Grid,
-  Avatar,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
+interface CompanyData {
+  count: number;
+  revenue: number;
+  commission: number;
+}
+
+interface StatsData {
+  companyStats: Record<string, CompanyData>;
+}
+
 interface CompaniesTabProps {
-  stats: any;
+  stats: StatsData;
 }
 
 const CompaniesTab: React.FC<CompaniesTabProps> = ({ stats }) => {
   return (
     <Grid container spacing={3}>
       {Object.entries(stats.companyStats)
-        .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
+        .sort(([, a], [, b]) => b.revenue - a.revenue)
         .map(([company, data]) => (
           <Grid item xs={12} md={6} lg={4} key={company}>
             <Card
@@ -42,7 +52,7 @@ const CompaniesTab: React.FC<CompaniesTabProps> = ({ stats }) => {
                       {company}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {(data as any).count} prenájmov
+                      {data.count} prenájmov
                     </Typography>
                   </Box>
                 </Box>
@@ -65,7 +75,7 @@ const CompaniesTab: React.FC<CompaniesTabProps> = ({ stats }) => {
                     fontWeight="bold"
                     sx={{ color: '#11998e' }}
                   >
-                    {(data as any).revenue.toLocaleString()} €
+                    {data.revenue.toLocaleString()} €
                   </Typography>
                 </Box>
 
@@ -86,7 +96,7 @@ const CompaniesTab: React.FC<CompaniesTabProps> = ({ stats }) => {
                     color="warning.main"
                     fontWeight="bold"
                   >
-                    {(data as any).commission.toLocaleString()} €
+                    {data.commission.toLocaleString()} €
                   </Typography>
                 </Box>
               </CardContent>

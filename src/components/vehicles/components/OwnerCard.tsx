@@ -1,23 +1,21 @@
 import {
-  Edit as EditIcon,
   Business as BusinessIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
-  Typography,
-  IconButton,
-  Tooltip,
-  Chip,
   Card,
-  CardContent,
+  Chip,
   Collapse,
-  TextField,
   Grid,
+  IconButton,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import { Vehicle, VehicleStatus } from '../../../types';
+// import { Vehicle, VehicleStatus } from '../../../types'; // Nepoužívané
 import type { OwnerCardProps } from '../../../types/vehicle-types';
 import { getApiBaseUrl } from '../../../utils/apiUrl';
 import {
@@ -37,7 +35,20 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [companyInvestors, setCompanyInvestors] = useState<any[]>([]);
+  const [companyInvestors, setCompanyInvestors] = useState<
+    Array<{
+      id: string;
+      investor?: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        phone?: string;
+      };
+      isPrimaryContact?: boolean;
+      investmentAmount?: number;
+      ownershipPercentage?: number;
+    }>
+  >([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
   const [editData, setEditData] = useState({
     name: company.name || '',
@@ -65,7 +76,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
   }, [company]);
 
   // 🤝 Načítanie investorov firmy
-  const loadCompanyInvestors = async () => {
+  const loadCompanyInvestors = useCallback(async () => {
     try {
       setLoadingInvestors(true);
 
@@ -88,14 +99,14 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
     } finally {
       setLoadingInvestors(false);
     }
-  };
+  }, [company.id]);
 
   // Načítaj investorov pri rozbalení karty
   useEffect(() => {
     if (expanded) {
       loadCompanyInvestors();
     }
-  }, [expanded]);
+  }, [expanded, loadCompanyInvestors]);
 
   const handleSaveOwnerData = async () => {
     try {
@@ -120,7 +131,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
         setEditMode(false);
         // Refresh companies data cez callback
         if (onVehicleUpdate) {
-          await onVehicleUpdate('', company.id); // Refresh company data
+          await onVehicleUpdate('', String(company.id)); // Refresh company data
         }
       } else {
         console.error('❌ Failed to save owner data:', result.error);
@@ -157,7 +168,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
             >
               <BusinessIcon color="primary" />
-              {company.name}
+              {String(company.name)}
               <Chip
                 label={`${vehicles.length} vozidiel`}
                 size="small"
@@ -168,30 +179,30 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
 
             {/* Základné info o majiteľovi */}
             <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {company.ownerName && (
+              {(company.ownerName as string) && (
                 <Typography variant="body2" color="text.secondary">
-                  👤 {company.ownerName}
+                  👤 {String(company.ownerName)}
                 </Typography>
               )}
-              {company.contactEmail && (
+              {(company.contactEmail as string) && (
                 <Typography variant="body2" color="text.secondary">
-                  📧 {company.contactEmail}
+                  📧 {String(company.contactEmail)}
                 </Typography>
               )}
-              {company.contactPhone && (
+              {(company.contactPhone as string) && (
                 <Typography variant="body2" color="text.secondary">
-                  📞 {company.contactPhone}
+                  📞 {String(company.contactPhone)}
                 </Typography>
               )}
               <Typography variant="body2" color="text.secondary">
-                💰 Provízia: {company.defaultCommissionRate || 20}%
+                💰 Provízia: {String(company.defaultCommissionRate) || '20'}%
               </Typography>
-              {company.protocolDisplayName && (
+              {(company.protocolDisplayName as string) && (
                 <Typography
                   variant="body2"
                   sx={{ color: 'warning.main', fontWeight: 'medium' }}
                 >
-                  📄 Fakturačná firma: {company.protocolDisplayName}
+                  📄 Fakturačná firma: {String(company.protocolDisplayName)}
                 </Typography>
               )}
             </Box>
@@ -411,11 +422,11 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
                 <Typography variant="caption" color="text.secondary">
                   Provízia:{' '}
                   {vehicle.commission?.value ||
-                    company.defaultCommissionRate ||
+                    Number(company.defaultCommissionRate) ||
                     20}
                   %
                   {vehicle.commission?.value !==
-                    company.defaultCommissionRate && (
+                    Number(company.defaultCommissionRate) && (
                     <Chip
                       label="Vlastná"
                       size="small"
@@ -488,7 +499,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
             ) : companyInvestors.length > 0 ? (
               companyInvestors.map(share => (
                 <Box
-                  key={share.id}
+                  key={String(share.id)}
                   sx={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -506,7 +517,8 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
                 >
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="subtitle2">
-                      👤 {share.investor?.firstName} {share.investor?.lastName}
+                      👤 {share.investor?.firstName || ''}{' '}
+                      {share.investor?.lastName || ''}
                       {share.isPrimaryContact && (
                         <Chip
                           label="Primárny kontakt"
@@ -529,7 +541,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
 
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip
-                      label={`${share.ownershipPercentage}%`}
+                      label={`${share.ownershipPercentage || 0}%`}
                       color="primary"
                       size="small"
                       variant={share.isPrimaryContact ? 'filled' : 'outlined'}
@@ -550,8 +562,8 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
 
           {/* 📄 NOVÉ: Dokumenty majiteľa */}
           <CompanyDocumentManager
-            companyId={company.id}
-            companyName={company.name}
+            companyId={String(company.id)}
+            companyName={String(company.name)}
           />
         </Box>
       </Collapse>

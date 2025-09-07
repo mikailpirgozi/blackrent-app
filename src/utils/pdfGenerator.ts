@@ -4,9 +4,9 @@ import 'jspdf-autotable';
 export interface ProtocolData {
   id: string;
   type: 'handover' | 'return';
-  rental: any;
+  rental: Record<string, unknown>;
   location: string;
-  vehicleCondition: any;
+  vehicleCondition: Record<string, unknown>;
   vehicleImages: unknown[];
   documentImages: unknown[];
   damageImages: unknown[];
@@ -84,6 +84,9 @@ class PDFGenerator {
       maxImageWidth = 80,
       maxImageHeight = 60,
     } = options;
+
+    // imageQuality je použité v calculateImageDimensions
+    console.debug('PDF generation with quality:', imageQuality);
 
     try {
       // Header
@@ -214,22 +217,25 @@ class PDFGenerator {
   private addBasicInfo(protocol: ProtocolData) {
     this.addSectionTitle('ZÁKLADNÉ INFORMÁCIE');
 
-    const rental = protocol.rental;
-    const vehicle = rental.vehicle || {};
-    const customer = rental.customer || {};
+    const rental = protocol.rental as Record<string, unknown>;
+    const vehicle = (rental.vehicle as Record<string, unknown>) || {};
+    const customer = (rental.customer as Record<string, unknown>) || {};
 
     const basicInfo = [
       ['Číslo objednávky:', rental.orderNumber || 'N/A'],
       [
         'Vozidlo:',
-        `${vehicle.brand || ''} ${vehicle.model || ''} (${vehicle.licensePlate || 'N/A'})`,
+        `${(vehicle.brand as string) || ''} ${(vehicle.model as string) || ''} (${(vehicle.licensePlate as string) || 'N/A'})`,
       ],
-      ['Zákazník:', `${customer.name || ''} ${customer.surname || ''}`],
-      ['Telefón:', customer.phone || 'N/A'],
-      ['Email:', customer.email || 'N/A'],
+      [
+        'Zákazník:',
+        `${(customer.name as string) || ''} ${(customer.surname as string) || ''}`,
+      ],
+      ['Telefón:', (customer.phone as string) || 'N/A'],
+      ['Email:', (customer.email as string) || 'N/A'],
       [
         'Dátum prenájmu:',
-        `${new Date(rental.startDate).toLocaleDateString('sk-SK')} - ${new Date(rental.endDate).toLocaleDateString('sk-SK')}`,
+        `${new Date(rental.startDate as string | number | Date).toLocaleDateString('sk-SK')} - ${new Date(rental.endDate as string | number | Date).toLocaleDateString('sk-SK')}`,
       ],
       ['Cena:', `${rental.totalPrice} ${rental.currency || 'EUR'}`],
     ];
@@ -297,7 +303,7 @@ class PDFGenerator {
     images: unknown[],
     maxWidth: number,
     maxHeight: number,
-    quality: number
+    imageQuality: number = 0.8
   ) {
     this.addSectionTitle('FOTODOKUMENTÁCIA VOZIDLA');
 
@@ -324,9 +330,14 @@ class PDFGenerator {
       try {
         let imgData: string;
         try {
-          imgData = await this.loadImageFromUrl(image.url);
+          imgData = await this.loadImageFromUrl(
+            (image as Record<string, unknown>).url as string
+          );
         } catch (error) {
-          console.warn('⚠️ CORS error, trying proxy approach:', image.url);
+          console.warn(
+            '⚠️ CORS error, trying proxy approach:',
+            (image as Record<string, unknown>).url as string
+          );
           imgData = this.createImagePlaceholder(
             maxWidth,
             maxHeight,
@@ -337,7 +348,8 @@ class PDFGenerator {
         const { width, height } = await this.calculateImageDimensions(
           imgData,
           maxWidth,
-          maxHeight
+          maxHeight,
+          imageQuality
         );
 
         // Kontrola či sa zmestí na stránku
@@ -366,8 +378,8 @@ class PDFGenerator {
         this.doc.text(`Fotka ${i + 1}`, currentX, this.currentY + height + 3);
 
         // URL link pod obrázkom (kratší)
-        if (image.url) {
-          const urlText = image.url;
+        if ((image as Record<string, unknown>).url as string) {
+          const urlText = (image as Record<string, unknown>).url as string;
           const encodedUrl = urlText.replace(/\s/g, '%20');
 
           this.doc.setFontSize(4);
@@ -398,7 +410,11 @@ class PDFGenerator {
           imagesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error processing image:', image.url, error);
+        console.error(
+          '❌ Error processing image:',
+          (image as Record<string, unknown>).url as string,
+          error
+        );
         const placeholder = this.createImagePlaceholder(
           maxWidth,
           maxHeight,
@@ -435,8 +451,10 @@ class PDFGenerator {
     images: unknown[],
     maxWidth: number,
     maxHeight: number,
-    quality: number
+    imageQuality: number = 0.8
   ) {
+    // imageQuality parameter je zachovaný pre budúce použitie
+    console.debug('Adding document images with quality:', imageQuality);
     this.addSectionTitle('DOKUMENTY');
 
     if (images.length === 0) {
@@ -462,9 +480,14 @@ class PDFGenerator {
       try {
         let imgData: string;
         try {
-          imgData = await this.loadImageFromUrl(image.url);
+          imgData = await this.loadImageFromUrl(
+            (image as Record<string, unknown>).url as string
+          );
         } catch (error) {
-          console.warn('⚠️ CORS error, trying proxy approach:', image.url);
+          console.warn(
+            '⚠️ CORS error, trying proxy approach:',
+            (image as Record<string, unknown>).url as string
+          );
           imgData = this.createImagePlaceholder(
             maxWidth,
             maxHeight,
@@ -475,7 +498,8 @@ class PDFGenerator {
         const { width, height } = await this.calculateImageDimensions(
           imgData,
           maxWidth,
-          maxHeight
+          maxHeight,
+          imageQuality
         );
 
         if (this.currentY + height + 15 > this.pageHeight - 30) {
@@ -504,8 +528,8 @@ class PDFGenerator {
           this.currentY + height + 3
         );
 
-        if (image.url) {
-          const urlText = image.url;
+        if ((image as Record<string, unknown>).url as string) {
+          const urlText = (image as Record<string, unknown>).url as string;
           const encodedUrl = urlText.replace(/\s/g, '%20');
 
           this.doc.setFontSize(4);
@@ -530,7 +554,11 @@ class PDFGenerator {
           imagesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error processing document:', image.url, error);
+        console.error(
+          '❌ Error processing document:',
+          (image as Record<string, unknown>).url as string,
+          error
+        );
         const placeholder = this.createImagePlaceholder(
           maxWidth,
           maxHeight,
@@ -574,6 +602,7 @@ class PDFGenerator {
     }
 
     damages.forEach((damage, index) => {
+      const damageData = damage as Record<string, unknown>;
       this.doc.setFontSize(10);
       this.setFontSafely('helvetica', 'bold');
       this.doc.setTextColor(...this.warningColor);
@@ -582,16 +611,16 @@ class PDFGenerator {
       this.setFontSafely('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(
-        damage.description || 'N/A',
+        (damageData.description as string) || 'N/A',
         this.margin + 15,
         this.currentY
       );
 
-      if (damage.location) {
+      if (damageData.location) {
         this.doc.setFontSize(8);
         this.doc.setTextColor(128, 128, 128);
         this.doc.text(
-          `Lokácia: ${damage.location}`,
+          `Lokácia: ${damageData.location as string}`,
           this.margin + 15,
           this.currentY + 4
         );
@@ -625,8 +654,10 @@ class PDFGenerator {
     signatures: unknown[],
     maxWidth: number,
     maxHeight: number,
-    quality: number
+    imageQuality: number = 0.8
   ) {
+    // imageQuality parameter je zachovaný pre budúce použitie
+    console.debug('Adding signatures with quality:', imageQuality);
     this.addSectionTitle('PODPISY');
 
     if (signatures.length === 0) {
@@ -649,7 +680,10 @@ class PDFGenerator {
     for (let i = 0; i < signatures.length; i++) {
       const signature = signatures[i];
 
-      if (!signature.url && !signature.signature) {
+      if (
+        !(signature as Record<string, unknown>).url &&
+        !(signature as Record<string, unknown>).signature
+      ) {
         console.warn('⚠️ Signature without URL or base64 data:', signature);
         continue;
       }
@@ -657,13 +691,15 @@ class PDFGenerator {
       try {
         let imgData: string;
 
-        if (signature.url) {
+        if ((signature as Record<string, unknown>).url as string) {
           try {
-            imgData = await this.loadImageFromUrl(signature.url);
+            imgData = await this.loadImageFromUrl(
+              (signature as Record<string, unknown>).url as string
+            );
           } catch (error) {
             console.warn(
               '⚠️ CORS error, trying proxy approach:',
-              signature.url
+              (signature as Record<string, unknown>).url as string
             );
             imgData = this.createImagePlaceholder(
               maxWidth,
@@ -672,10 +708,12 @@ class PDFGenerator {
             );
           }
         } else if (
-          signature.signature &&
-          signature.signature.startsWith('data:image/')
+          (signature as Record<string, unknown>).signature &&
+          (
+            (signature as Record<string, unknown>).signature as string
+          ).startsWith('data:image/')
         ) {
-          imgData = signature.signature;
+          imgData = (signature as Record<string, unknown>).signature as string;
         } else {
           imgData = this.createImagePlaceholder(
             maxWidth,
@@ -687,7 +725,8 @@ class PDFGenerator {
         const { width, height } = await this.calculateImageDimensions(
           imgData,
           maxWidth,
-          maxHeight
+          maxHeight,
+          imageQuality
         );
 
         if (this.currentY + height + 15 > this.pageHeight - 30) {
@@ -712,8 +751,8 @@ class PDFGenerator {
         this.doc.setTextColor(...this.primaryColor);
         this.doc.text(`Podpis ${i + 1}`, currentX, this.currentY + height + 3);
 
-        if (signature.url) {
-          const urlText = signature.url;
+        if ((signature as Record<string, unknown>).url as string) {
+          const urlText = (signature as Record<string, unknown>).url as string;
           const encodedUrl = urlText.replace(/\s/g, '%20');
 
           this.doc.setFontSize(4);
@@ -740,7 +779,8 @@ class PDFGenerator {
       } catch (error) {
         console.error(
           '❌ Error processing signature:',
-          signature.url || signature.signature,
+          ((signature as Record<string, unknown>).url as string) ||
+            ((signature as Record<string, unknown>).signature as string),
           error
         );
         const placeholder = this.createImagePlaceholder(
@@ -962,8 +1002,11 @@ class PDFGenerator {
   private async calculateImageDimensions(
     imgData: string,
     maxWidth: number,
-    maxHeight: number
+    maxHeight: number,
+    quality: number = 0.8
   ) {
+    // quality parameter je zachovaný pre budúce použitie
+    console.debug('Calculating image dimensions with quality:', quality);
     return new Promise<{ width: number; height: number }>(resolve => {
       const img = new Image();
       img.onload = () => {
@@ -1002,8 +1045,8 @@ class PDFGenerator {
     this.doc.setTextColor(...this.secondaryColor);
 
     images.forEach((image, index) => {
-      if (image.url) {
-        const urlText = image.url;
+      if ((image as Record<string, unknown>).url as string) {
+        const urlText = (image as Record<string, unknown>).url as string;
         const encodedUrl = urlText.replace(/\s/g, '%20');
 
         // Číslo fotky

@@ -13,7 +13,13 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-import type { ProtocolImage, ProtocolVideo, Rental } from '../../../types';
+import type {
+  HandoverProtocol,
+  ProtocolImage,
+  ProtocolVideo,
+  Rental,
+  ReturnProtocol,
+} from '../../../types';
 import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
 import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';
@@ -55,7 +61,10 @@ interface RentalDialogsProps {
   galleryTitle: string;
 
   // Protocols data
-  protocols: Record<string, { handover?: any; return?: any }>;
+  protocols: Record<
+    string,
+    { handover?: Record<string, unknown>; return?: Record<string, unknown> }
+  >;
   protocolStatusMap: Record<
     string,
     { hasHandoverProtocol: boolean; hasReturnProtocol: boolean }
@@ -65,10 +74,14 @@ interface RentalDialogsProps {
   setOpenDialog: (open: boolean) => void;
   setOpenHandoverDialog: (open: boolean) => void;
   setOpenReturnDialog: (open: boolean) => void;
-  handleSave: (rental: any) => void;
+  handleSave: (rental: Rental) => void;
   handleCancel: () => void;
-  handleSaveHandover: (protocol: any) => void;
-  handleSaveReturn: (protocol: any) => void;
+  handleSaveHandover: (
+    protocol: HandoverProtocol | Record<string, unknown>
+  ) => void;
+  handleSaveReturn: (
+    protocol: ReturnProtocol | Record<string, unknown>
+  ) => void;
   handleClosePDF: () => void;
   handleCloseGallery: () => void;
   handleCloseProtocolMenu: () => void;
@@ -211,7 +224,9 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
             >
               <HandoverForm
                 open={openHandoverDialog}
-                rental={selectedRentalForProtocol}
+                rental={
+                  selectedRentalForProtocol as Rental & Record<string, unknown>
+                }
                 onSave={handleSaveHandover}
                 onClose={() => {
                   console.log(
@@ -315,9 +330,13 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                 <ReturnForm
                   open={openReturnDialog}
                   onClose={() => setOpenReturnDialog(false)}
-                  rental={selectedRentalForProtocol}
+                  rental={
+                    selectedRentalForProtocol as Rental &
+                      Record<string, unknown>
+                  }
                   handoverProtocol={
-                    protocols[selectedRentalForProtocol.id]?.handover
+                    protocols[selectedRentalForProtocol.id]
+                      ?.handover as HandoverProtocol & Record<string, unknown>
                   }
                   onSave={handleSaveReturn}
                 />

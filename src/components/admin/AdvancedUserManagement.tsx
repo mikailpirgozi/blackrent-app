@@ -67,6 +67,72 @@ import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
+import type { Company, User } from '../../types';
+
+// Extended User type for advanced user management
+interface ExtendedUser extends User {
+  phone?: string;
+  jobTitle?: string;
+  roleId?: string;
+  roleName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  teamId?: string;
+  lastLoginAt?: Date;
+}
+
+// Role type for advanced user management
+interface Role {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  level: number;
+  permissions: Record<string, unknown>;
+  isSystem?: boolean;
+  isActive?: boolean;
+}
+
+// Department type for advanced user management
+interface Department {
+  id: string;
+  name: string;
+  description?: string;
+  parentDepartmentId?: string;
+  managerId?: string;
+  monthlyBudget?: string;
+  vehicleLimit?: string;
+}
+
+// Team type for advanced user management
+interface Team {
+  id: string;
+  name: string;
+  description?: string;
+  teamLeadId?: string;
+  isActive?: boolean;
+}
+
+// Activity Log type for advanced user management
+interface ActivityLog {
+  id: string;
+  userId: string;
+  action: string;
+  resourceType?: string;
+  ipAddress?: string;
+  success?: boolean;
+  createdAt: Date | string;
+}
+
+// User Permission type for advanced user management
+interface UserPermissionEntry {
+  companyId: string;
+  companyName?: string;
+  permissions: Record<
+    string,
+    { read?: boolean; write?: boolean; delete?: boolean }
+  >;
+}
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -97,11 +163,16 @@ const AdvancedUserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editingUser, setEditingUser] = useState<ExtendedUser | null>(null);
+  const [editForm, setEditForm] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    jobTitle: string;
+    roleId: string;
+    departmentId: string;
+  }>({
     firstName: '',
     lastName: '',
     email: '',
@@ -110,10 +181,10 @@ const AdvancedUserManagement: React.FC = () => {
     roleId: '',
     departmentId: '',
   });
-  const [userPermissions, setUserPermissions] = useState<
-    Record<string, unknown>[]
-  >([]);
-  const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
+  const [userPermissions, setUserPermissions] = useState<UserPermissionEntry[]>(
+    []
+  );
+  const [companies, setCompanies] = useState<Company[]>([]);
 
   // API Base URL helper
   const getApiBaseUrl = () => {
@@ -133,11 +204,11 @@ const AdvancedUserManagement: React.FC = () => {
     string,
     unknown
   > | null>(null);
-  const [users, setUsers] = useState<Record<string, unknown>[]>([]);
-  const [roles, setRoles] = useState<Record<string, unknown>[]>([]);
-  const [departments, setDepartments] = useState<Record<string, unknown>[]>([]);
-  const [teams, setTeams] = useState<Record<string, unknown>[]>([]);
-  const [activityLog, setActivityLog] = useState<Record<string, unknown>[]>([]);
+  const [users, setUsers] = useState<ExtendedUser[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [stats, setStats] = useState<Record<string, unknown> | null>(null);
 
   // Dialog states
@@ -157,7 +228,20 @@ const AdvancedUserManagement: React.FC = () => {
   }, [state.token]);
 
   // Form states
-  const [userForm, setUserForm] = useState({
+  const [userForm, setUserForm] = useState<{
+    username: string;
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    jobTitle: string;
+    employeeNumber: string;
+    departmentId: string;
+    roleId: string;
+    managerId: string;
+    salary: string;
+  }>({
     username: '',
     email: '',
     password: '',
@@ -172,7 +256,13 @@ const AdvancedUserManagement: React.FC = () => {
     salary: '',
   });
 
-  const [roleForm, setRoleForm] = useState({
+  const [roleForm, setRoleForm] = useState<{
+    name: string;
+    displayName: string;
+    description: string;
+    level: number;
+    permissions: Record<string, unknown>;
+  }>({
     name: '',
     displayName: '',
     description: '',
@@ -180,7 +270,14 @@ const AdvancedUserManagement: React.FC = () => {
     permissions: {},
   });
 
-  const [departmentForm, setDepartmentForm] = useState({
+  const [departmentForm, setDepartmentForm] = useState<{
+    name: string;
+    description: string;
+    parentDepartmentId: string;
+    managerId: string;
+    monthlyBudget: string;
+    vehicleLimit: string;
+  }>({
     name: '',
     description: '',
     parentDepartmentId: '',
@@ -189,75 +286,15 @@ const AdvancedUserManagement: React.FC = () => {
     vehicleLimit: '',
   });
 
-  const [teamForm, setTeamForm] = useState({
+  const [teamForm, setTeamForm] = useState<{
+    name: string;
+    description: string;
+    teamLeadId: string;
+  }>({
     name: '',
     description: '',
     teamLeadId: '',
   });
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Load organization info
-      const orgResponse = await fetch(
-        `${getApiBaseUrl()}/advanced-users/organization`,
-        {
-          headers: {
-            Authorization: `Bearer ${getAuthToken()}`,
-          },
-        }
-      );
-
-      if (orgResponse.ok) {
-        const orgData = await orgResponse.json();
-        setOrganization(orgData.organization);
-      }
-
-      // Load data based on current tab
-      switch (currentTab) {
-        case 0: // Organization Overview
-          await loadOrganizationStats();
-          break;
-        case 1: // Users
-          await loadUsers();
-          await loadCompanies();
-          break;
-        case 2: // Roles
-          await loadRoles();
-          break;
-        case 3: // Departments
-          await loadDepartments();
-          break;
-        case 4: // Teams
-          await loadTeams();
-          break;
-        case 5: // Activity Log
-          await loadActivityLog();
-          break;
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setError('Chyba pri načítavaní dát');
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    currentTab,
-    getAuthToken,
-    loadOrganizationStats,
-    loadUsers,
-    loadCompanies,
-    loadRoles,
-    loadDepartments,
-    loadTeams,
-    loadActivityLog,
-  ]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const loadOrganizationStats = useCallback(async () => {
     const response = await fetch(
@@ -388,6 +425,70 @@ const AdvancedUserManagement: React.FC = () => {
       setActivityLog(data.activityLog);
     }
   }, [getAuthToken]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Load organization info
+      const orgResponse = await fetch(
+        `${getApiBaseUrl()}/advanced-users/organization`,
+        {
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+        }
+      );
+
+      if (orgResponse.ok) {
+        const orgData = await orgResponse.json();
+        setOrganization(orgData.organization);
+      }
+
+      // Load data based on current tab
+      switch (currentTab) {
+        case 0: // Organization Overview
+          await loadOrganizationStats();
+          break;
+        case 1: // Users
+          await loadUsers();
+          await loadCompanies();
+          break;
+        case 2: // Roles
+          await loadRoles();
+          break;
+        case 3: // Departments
+          await loadDepartments();
+          break;
+        case 4: // Teams
+          await loadTeams();
+          break;
+        case 5: // Activity Log
+          await loadActivityLog();
+          break;
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Chyba pri načítavaní dát');
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    currentTab,
+    getAuthToken,
+    loadOrganizationStats,
+    loadUsers,
+    loadCompanies,
+    loadRoles,
+    loadDepartments,
+    loadTeams,
+    loadActivityLog,
+  ]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
@@ -756,18 +857,20 @@ const AdvancedUserManagement: React.FC = () => {
                 {organization && (
                   <Box>
                     <Typography variant="h5" sx={{ mb: 1 }}>
-                      {organization.name}
+                      {String(organization.name || 'Unknown')}
                     </Typography>
                     <Typography
                       variant="body2"
                       color="text.secondary"
                       sx={{ mb: 2 }}
                     >
-                      {organization.slug}
+                      {String(organization.slug || 'Unknown')}
                     </Typography>
 
                     <Chip
-                      label={organization.subscriptionPlan.toUpperCase()}
+                      label={String(
+                        organization.subscriptionPlan || 'Unknown'
+                      ).toUpperCase()}
                       color="primary"
                       variant="outlined"
                       sx={{ mb: 2 }}
@@ -776,19 +879,19 @@ const AdvancedUserManagement: React.FC = () => {
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2">
                         <strong>Email:</strong>{' '}
-                        {organization.email || 'Nie je nastavený'}
+                        {String(organization.email || 'Nie je nastavený')}
                       </Typography>
                       <Typography variant="body2">
                         <strong>Telefón:</strong>{' '}
-                        {organization.phone || 'Nie je nastavený'}
+                        {String(organization.phone || 'Nie je nastavený')}
                       </Typography>
                       <Typography variant="body2">
                         <strong>Max. používateľov:</strong>{' '}
-                        {organization.maxUsers}
+                        {String(organization.maxUsers || 'Unknown')}
                       </Typography>
                       <Typography variant="body2">
                         <strong>Max. vozidiel:</strong>{' '}
-                        {organization.maxVehicles}
+                        {String(organization.maxVehicles || 'Unknown')}
                       </Typography>
                     </Box>
                   </Box>
@@ -814,7 +917,7 @@ const AdvancedUserManagement: React.FC = () => {
                     <Grid item xs={6}>
                       <Box sx={{ textAlign: 'center', p: 1 }}>
                         <Typography variant="h4" color="primary">
-                          {stats.totalUsers || 0}
+                          {String(stats.totalUsers || 0)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Celkom používateľov
@@ -824,7 +927,7 @@ const AdvancedUserManagement: React.FC = () => {
                     <Grid item xs={6}>
                       <Box sx={{ textAlign: 'center', p: 1 }}>
                         <Typography variant="h4" color="success.main">
-                          {stats.activeUsers || 0}
+                          {String(stats.activeUsers || 0)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Aktívnych
@@ -834,7 +937,7 @@ const AdvancedUserManagement: React.FC = () => {
                     <Grid item xs={6}>
                       <Box sx={{ textAlign: 'center', p: 1 }}>
                         <Typography variant="h4" color="info.main">
-                          {stats.totalDepartments || 0}
+                          {String(stats.totalDepartments || 0)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Oddelení
@@ -844,7 +947,7 @@ const AdvancedUserManagement: React.FC = () => {
                     <Grid item xs={6}>
                       <Box sx={{ textAlign: 'center', p: 1 }}>
                         <Typography variant="h4" color="warning.main">
-                          {stats.totalTeams || 0}
+                          {String(stats.totalTeams || 0)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Tímov
@@ -1752,13 +1855,17 @@ const AdvancedUserManagement: React.FC = () => {
                                         );
 
                                       if (existingIndex >= 0) {
-                                        (
+                                        const permissions =
                                           newPermissions[existingIndex]
-                                            .permissions as Record<
-                                            string,
-                                            unknown
-                                          >
-                                        )[resource].read = e.target.checked;
+                                            .permissions;
+                                        if (!permissions[resource]) {
+                                          permissions[resource] = {};
+                                        }
+                                        (
+                                          permissions[resource] as {
+                                            read?: boolean;
+                                          }
+                                        ).read = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
@@ -1811,12 +1918,20 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (
+                                        const permissionsObj =
                                           newPerm.permissions as Record<
                                             string,
-                                            unknown
-                                          >
-                                        )[resource].read = e.target.checked;
+                                            {
+                                              read?: boolean;
+                                              write?: boolean;
+                                              delete?: boolean;
+                                            }
+                                          >;
+                                        if (!permissionsObj[resource]) {
+                                          permissionsObj[resource] = {};
+                                        }
+                                        permissionsObj[resource].read =
+                                          e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
 
@@ -1843,13 +1958,17 @@ const AdvancedUserManagement: React.FC = () => {
                                         );
 
                                       if (existingIndex >= 0) {
-                                        (
+                                        const permissions =
                                           newPermissions[existingIndex]
-                                            .permissions as Record<
-                                            string,
-                                            unknown
-                                          >
-                                        )[resource].write = e.target.checked;
+                                            .permissions;
+                                        if (!permissions[resource]) {
+                                          permissions[resource] = {};
+                                        }
+                                        (
+                                          permissions[resource] as {
+                                            write?: boolean;
+                                          }
+                                        ).write = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
@@ -1902,12 +2021,20 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (
+                                        const permissionsObj =
                                           newPerm.permissions as Record<
                                             string,
-                                            unknown
-                                          >
-                                        )[resource].write = e.target.checked;
+                                            {
+                                              read?: boolean;
+                                              write?: boolean;
+                                              delete?: boolean;
+                                            }
+                                          >;
+                                        if (!permissionsObj[resource]) {
+                                          permissionsObj[resource] = {};
+                                        }
+                                        permissionsObj[resource].write =
+                                          e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
 
@@ -1934,13 +2061,17 @@ const AdvancedUserManagement: React.FC = () => {
                                         );
 
                                       if (existingIndex >= 0) {
-                                        (
+                                        const permissions =
                                           newPermissions[existingIndex]
-                                            .permissions as Record<
-                                            string,
-                                            unknown
-                                          >
-                                        )[resource].delete = e.target.checked;
+                                            .permissions;
+                                        if (!permissions[resource]) {
+                                          permissions[resource] = {};
+                                        }
+                                        (
+                                          permissions[resource] as {
+                                            delete?: boolean;
+                                          }
+                                        ).delete = e.target.checked;
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
@@ -1993,12 +2124,20 @@ const AdvancedUserManagement: React.FC = () => {
                                             },
                                           },
                                         };
-                                        (
+                                        const permissionsObj =
                                           newPerm.permissions as Record<
                                             string,
-                                            unknown
-                                          >
-                                        )[resource].delete = e.target.checked;
+                                            {
+                                              read?: boolean;
+                                              write?: boolean;
+                                              delete?: boolean;
+                                            }
+                                          >;
+                                        if (!permissionsObj[resource]) {
+                                          permissionsObj[resource] = {};
+                                        }
+                                        permissionsObj[resource].delete =
+                                          e.target.checked;
                                         newPermissions.push(newPerm);
                                       }
 

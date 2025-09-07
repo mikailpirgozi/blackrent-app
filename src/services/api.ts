@@ -314,6 +314,51 @@ class ApiService {
     });
   }
 
+  async exportExpensesCSV(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/expenses/export/csv`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`CSV export failed: ${response.statusText}`);
+    }
+
+    return response.blob();
+  }
+
+  async batchImportExpenses(expenses: Partial<Expense>[]): Promise<{
+    created: number;
+    updated: number;
+    errorsCount: number;
+    successRate: string;
+    processed: number;
+    total: number;
+  }> {
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        processed: number;
+        total: number;
+        created: number;
+        updated: number;
+        errorsCount: number;
+        successRate: string;
+      };
+    }>('/expenses/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ expenses }),
+    });
+
+    if (!response.success) {
+      throw new Error('Batch import failed');
+    }
+
+    return response.data;
+  }
+
   // Expense Categories
   async getExpenseCategories(): Promise<ExpenseCategory[]> {
     return this.request<ExpenseCategory[]>('/expense-categories');
@@ -824,6 +869,251 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(unavailability),
     });
+  }
+
+  // IMAP Email methods
+  async getImapStatus(): Promise<{
+    running: boolean;
+    enabled: boolean;
+    timestamp: string;
+    config: {
+      host: string;
+      user: string;
+      enabled: boolean;
+    };
+  }> {
+    return this.request<{
+      running: boolean;
+      enabled: boolean;
+      timestamp: string;
+      config: {
+        host: string;
+        user: string;
+        enabled: boolean;
+      };
+    }>('/email-imap/status');
+  }
+
+  async testImapConnection(): Promise<{
+    connected: boolean;
+    timestamp: string;
+    config: {
+      host: string;
+      port: string;
+      user: string;
+    };
+  }> {
+    return this.request<{
+      connected: boolean;
+      timestamp: string;
+      config: {
+        host: string;
+        port: string;
+        user: string;
+      };
+    }>('/email-imap/test');
+  }
+
+  async startImapMonitoring(): Promise<void> {
+    return this.request<void>('/email-imap/start', {
+      method: 'POST',
+    });
+  }
+
+  async stopImapMonitoring(): Promise<void> {
+    return this.request<void>('/email-imap/stop', {
+      method: 'POST',
+    });
+  }
+
+  async checkImapNow(): Promise<void> {
+    return this.request<void>('/email-imap/check-now', {
+      method: 'POST',
+    });
+  }
+
+  // User Company Access method
+  async getUserCompanyAccess(
+    userId: string
+  ): Promise<Record<string, unknown>[]> {
+    return this.request<Record<string, unknown>[]>(
+      `/users/${userId}/company-access`
+    );
+  }
+
+  // Export methods
+  async exportVehiclesCSV(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/vehicles/export/csv`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  async exportCustomersCSV(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/customers/export/csv`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  // Import methods
+  async batchImportVehicles(
+    vehicles: Vehicle[]
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('/vehicles/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ vehicles }),
+    });
+  }
+
+  async importCustomersCSV(
+    csvString: string
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('/customers/import/csv', {
+      method: 'POST',
+      body: JSON.stringify({ csvData: csvString }),
+    });
+  }
+
+  // Paginated methods
+  async getCompaniesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{
+    data: Company[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return this.request<{
+      data: Company[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/companies/paginated?${queryParams.toString()}`);
+  }
+
+  async getCustomersPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{
+    data: Customer[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return this.request<{
+      data: Customer[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/customers/paginated?${queryParams.toString()}`);
+  }
+
+  async getVehiclesPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{
+    data: Vehicle[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return this.request<{
+      data: Vehicle[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/vehicles/paginated?${queryParams.toString()}`);
+  }
+
+  // Bulk Vehicle Ownership History method
+  async getBulkVehicleOwnershipHistory(): Promise<{
+    totalVehicles: number;
+    loadTimeMs: number;
+    vehicleHistories: Record<string, unknown>[];
+  }> {
+    return this.request<{
+      totalVehicles: number;
+      loadTimeMs: number;
+      vehicleHistories: Record<string, unknown>[];
+    }>('/vehicles/bulk-ownership-history');
+  }
+
+  // User Profile method
+  async updateUserProfile(
+    firstName: string,
+    lastName: string
+  ): Promise<{
+    success: boolean;
+    user: Record<string, unknown>;
+    message?: string;
+  }> {
+    return this.request<{
+      success: boolean;
+      user: Record<string, unknown>;
+      message?: string;
+    }>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ firstName, lastName }),
+    });
+  }
+
+  // Signature Template method
+  async updateSignatureTemplate(dataUrl: string): Promise<{
+    success: boolean;
+    user: Record<string, unknown>;
+    message?: string;
+  }> {
+    return this.request<{
+      success: boolean;
+      user: Record<string, unknown>;
+      message?: string;
+    }>('/auth/signature-template', {
+      method: 'PUT',
+      body: JSON.stringify({ signatureTemplate: dataUrl }),
+    });
+  }
+
+  // Error Handler method
+  setErrorHandler(handler: (error: Error) => void): void {
+    // Store error handler for future use
+    // This is a placeholder implementation
+    console.log('Error handler set:', handler);
   }
 }
 

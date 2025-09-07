@@ -3,33 +3,31 @@
 
 import {
   Close as CloseIcon,
-  GetApp as InstallIcon,
-  PhoneIphone as PhoneIcon,
   Computer as DesktopIcon,
-  Star as StarIcon,
-  Wifi as WifiIcon,
-  Speed as SpeedIcon,
+  GetApp as InstallIcon,
   NotificationsActive as NotificationIcon,
+  PhoneIphone as PhoneIcon,
+  Speed as SpeedIcon,
+  // Star as StarIcon,
+  Wifi as WifiIcon,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
   Box,
-  IconButton,
-  Slide,
-  Paper,
-  useTheme,
-  useMediaQuery,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Fab,
-  Snackbar,
-  Alert,
+  IconButton,
+  Paper,
+  Slide,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { usePWA } from '../../hooks/usePWA';
 

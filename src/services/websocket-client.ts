@@ -4,7 +4,7 @@
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
-import type { Rental, Vehicle, Customer } from '../types';
+import type { Customer, Rental, Vehicle } from '../types';
 import { getBaseUrl } from '../utils/apiUrl';
 
 // Event typy pre TypeScript
@@ -74,7 +74,7 @@ export interface WebSocketEvents {
   'system:notification': (data: {
     type: 'info' | 'warning' | 'error';
     message: string;
-    details?: any;
+    details?: Record<string, unknown>;
     timestamp: string;
   }) => void;
 
@@ -104,7 +104,7 @@ export class WebSocketClient {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private eventListeners = new Map<string, Function[]>();
+  private eventListeners = new Map<string, ((...args: unknown[]) => void)[]>();
 
   constructor() {
     this.connect();
@@ -114,7 +114,7 @@ export class WebSocketClient {
     // WebSocket server beží na root, nie na /api ako REST API
     const baseUrl = getBaseUrl();
 
-    // Optimalized logging - reduced verbosity
+    // OPTIMIZED: Only log in development
     if (process.env.NODE_ENV === 'development') {
       console.log('🔴 Connecting to WebSocket:', baseUrl);
     }
@@ -135,8 +135,10 @@ export class WebSocketClient {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      // Optimalized: Single consolidated log for connection
-      console.log('✅ WebSocket connected:', this.socket?.id);
+      // OPTIMIZED: Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ WebSocket connected:', this.socket?.id);
+      }
       this.reconnectAttempts = 0;
 
       // Registruj užívateľa ak je prihlásený
@@ -147,22 +149,30 @@ export class WebSocketClient {
     });
 
     this.socket.on('disconnect', reason => {
-      console.log('❌ WebSocket disconnected:', reason);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ WebSocket disconnected:', reason);
+      }
     });
 
     this.socket.on('connect_error', error => {
-      console.error('🚫 WebSocket connection error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚫 WebSocket connection error:', error);
+      }
       this.reconnectAttempts++;
 
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error(
-          '💀 Max reconnection attempts reached. WebSocket disabled.'
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.error(
+            '💀 Max reconnection attempts reached. WebSocket disabled.'
+          );
+        }
       }
     });
 
     this.socket.on('reconnect', attemptNumber => {
-      console.log(`🔄 WebSocket reconnected after ${attemptNumber} attempts`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 WebSocket reconnected after ${attemptNumber} attempts`);
+      }
       this.reconnectAttempts = 0;
     });
   }
@@ -190,12 +200,16 @@ export class WebSocketClient {
    */
   register(userId: string, userName: string) {
     if (!this.socket?.connected) {
-      console.warn('🚫 Cannot register - WebSocket not connected');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🚫 Cannot register - WebSocket not connected');
+      }
       return;
     }
 
     this.socket.emit('register', { userId, userName });
-    console.log(`👤 Registered user: ${userName} (${userId})`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`👤 Registered user: ${userName} (${userId})`);
+    }
   }
 
   /**
@@ -203,7 +217,9 @@ export class WebSocketClient {
    */
   ping() {
     if (!this.socket?.connected) {
-      console.warn('🚫 Cannot ping - WebSocket not connected');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🚫 Cannot ping - WebSocket not connected');
+      }
       return;
     }
 
@@ -215,19 +231,24 @@ export class WebSocketClient {
    */
   on<K extends keyof WebSocketEvents>(event: K, callback: WebSocketEvents[K]) {
     if (!this.socket) {
-      console.warn(
-        `🚫 Cannot add listener for ${event} - WebSocket not initialized`
-      );
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `🚫 Cannot add listener for ${event} - WebSocket not initialized`
+        );
+      }
       return;
     }
 
-    this.socket.on(event, callback as any);
+    // @ts-expect-error - Socket.IO type compatibility issue
+    this.socket.on(event, callback);
 
     // Uchováme callback pre cleanup
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
     }
-    this.eventListeners.get(event)!.push(callback as Function);
+    this.eventListeners
+      .get(event)!
+      .push(callback as (...args: unknown[]) => void);
   }
 
   /**
@@ -240,12 +261,15 @@ export class WebSocketClient {
     if (!this.socket) return;
 
     if (callback) {
-      this.socket.off(event, callback as any);
+      // @ts-expect-error - Socket.IO type compatibility issue
+      this.socket.off(event, callback);
 
       // Odstráň z našej mapy
       const listeners = this.eventListeners.get(event);
       if (listeners) {
-        const index = listeners.indexOf(callback as Function);
+        const index = listeners.indexOf(
+          callback as (...args: unknown[]) => void
+        );
         if (index > -1) {
           listeners.splice(index, 1);
         }
@@ -262,7 +286,9 @@ export class WebSocketClient {
    */
   disconnect() {
     if (this.socket) {
-      console.log('🔌 Disconnecting WebSocket...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔌 Disconnecting WebSocket...');
+      }
 
       // Vyčisti všetky event listeners
       this.eventListeners.forEach((listeners, event) => {

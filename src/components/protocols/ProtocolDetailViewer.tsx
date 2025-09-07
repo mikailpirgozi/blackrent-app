@@ -1,24 +1,23 @@
 import {
-  Visibility as VisibilityIcon,
+  Description as DescriptionIcon,
   Download as DownloadIcon,
   Image as ImageIcon,
-  Description as DescriptionIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
-  Typography,
-  Paper,
-  Grid,
   Card,
-  CardMedia,
   CardContent,
-  IconButton,
+  CardMedia,
   Chip,
   CircularProgress,
-  Alert,
-  Divider,
+  Grid,
+  IconButton,
+  Paper,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { ProtocolImage } from '../../types';
 
@@ -30,14 +29,36 @@ interface ProtocolDetailViewerProps {
 interface ProtocolData {
   id: string;
   type: 'handover' | 'return';
-  rental: any;
+  rental: {
+    vehicle?: {
+      brand?: string;
+      model?: string;
+      licensePlate?: string;
+    };
+    customer?: {
+      name?: string;
+    };
+  };
   location: string;
-  vehicleCondition: any;
+  vehicleCondition: {
+    odometer?: number;
+    fuelLevel?: number;
+    fuelType?: string;
+    condition?: string;
+  };
   vehicleImages: ProtocolImage[];
   documentImages: ProtocolImage[];
   damageImages: ProtocolImage[];
-  damages: any[];
-  signatures: any[];
+  damages: Array<{
+    description?: string;
+    location?: string;
+  }>;
+  signatures: Array<{
+    signature?: string;
+    url?: string;
+    signerName?: string;
+    signerRole?: string;
+  }>;
   notes: string;
   createdAt: Date;
   completedAt: Date;
@@ -51,15 +72,11 @@ export function ProtocolDetailViewer({
   const [protocol, setProtocol] = useState<ProtocolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<ProtocolImage | null>(
-    null
-  );
+  // const [selectedImage, setSelectedImage] = useState<ProtocolImage | null>(
+  //   null
+  // ); // TODO: Implement image selection functionality
 
-  useEffect(() => {
-    loadProtocol();
-  }, [protocolId]);
-
-  const loadProtocol = async () => {
+  const loadProtocol = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -77,7 +94,11 @@ export function ProtocolDetailViewer({
     } finally {
       setLoading(false);
     }
-  };
+  }, [protocolId]);
+
+  useEffect(() => {
+    loadProtocol();
+  }, [loadProtocol]);
 
   const handleDownloadPDF = async () => {
     if (!protocol?.pdfUrl) {
@@ -203,14 +224,17 @@ export function ProtocolDetailViewer({
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography variant="body2" color="text.secondary">
-              <strong>Vozidlo:</strong> {protocol.rental?.vehicle?.brand}{' '}
-              {protocol.rental?.vehicle?.model}
+              <strong>Vozidlo:</strong>{' '}
+              {protocol.rental?.vehicle?.brand || 'N/A'}{' '}
+              {protocol.rental?.vehicle?.model || 'N/A'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              <strong>ŠPZ:</strong> {protocol.rental?.vehicle?.licensePlate}
+              <strong>ŠPZ:</strong>{' '}
+              {protocol.rental?.vehicle?.licensePlate || 'N/A'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              <strong>Zákazník:</strong> {protocol.rental?.customer?.name}
+              <strong>Zákazník:</strong>{' '}
+              {protocol.rental?.customer?.name || 'N/A'}
             </Typography>
           </Grid>
         </Grid>
@@ -385,7 +409,7 @@ export function ProtocolDetailViewer({
                   <CardMedia
                     component="img"
                     height="100"
-                    image={signature.signature || signature.url}
+                    image={(signature.signature || signature.url) as string}
                     alt={`Podpis ${signature.signerName || index + 1}`}
                   />
                   <CardContent sx={{ py: 1 }}>

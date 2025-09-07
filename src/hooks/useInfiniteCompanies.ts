@@ -68,7 +68,7 @@ export function useInfiniteCompanies(
           ...filtersRef.current,
         });
 
-        const newCompanies = result.companies;
+        const newCompanies = result.data;
 
         // Validate response
         if (!result || !Array.isArray(newCompanies)) {
@@ -91,9 +91,9 @@ export function useInfiniteCompanies(
           return uniqueCompanies;
         });
 
-        setTotalCount(result.pagination.totalItems);
-        setHasMore(result.pagination.hasMore);
-        setCurrentPage(result.pagination.currentPage);
+        setTotalCount(result.total);
+        setHasMore(result.page * result.limit < result.total);
+        setCurrentPage(result.page);
 
         logger.info(
           `✅ Loaded ${newCompanies.length} companies (${result.pagination.totalItems} total)`

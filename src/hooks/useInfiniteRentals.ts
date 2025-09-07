@@ -56,6 +56,7 @@ export function useInfiniteRentals(
   // Prevent duplicate requests
   const loadingRef = useRef(false);
   const filtersRef = useRef(filters);
+  const loadRentalsRef = useRef<typeof loadRentals>();
   filtersRef.current = filters;
 
   const loadRentals = useCallback(
@@ -69,9 +70,12 @@ export function useInfiniteRentals(
       setError(null);
 
       try {
-        console.log(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, {
-          filters: filtersRef.current,
-        });
+        // FIXED: Reduced logging to prevent console spam
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, {
+            filters: filtersRef.current,
+          });
+        }
         logger.info(`🔄 Loading rentals - Page ${page}`, {
           filters: filtersRef.current,
         });
@@ -131,8 +135,11 @@ export function useInfiniteRentals(
         }
       }
     },
-    [initialLoad, searchTerm]
-  ); // 🚀 GMAIL APPROACH: Include searchTerm in dependencies
+    [searchTerm, initialLoad] // FIXED: Added initialLoad back but with proper handling
+  );
+
+  // Update ref
+  loadRentalsRef.current = loadRentals;
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -217,39 +224,39 @@ export function useInfiniteRentals(
     setTotalCount(prev => Math.max(0, prev - 1));
   }, []);
 
-  // Initial load
+  // Initial load - FIXED: Prevent duplicate loading
   useEffect(() => {
-    if (initialLoad) {
+    if (initialLoad && loadRentalsRef.current) {
       setInitialLoad(false);
-      loadRentals(1, true);
+      loadRentalsRef.current(1, true);
     }
-  }, [initialLoad, loadRentals]);
+  }, [initialLoad]); // FIXED: Use ref to avoid dependency
 
-  // Filter changes
+  // Filter changes - FIXED: Prevent duplicate loading
   useEffect(() => {
-    if (!initialLoad) {
+    if (!initialLoad && loadRentalsRef.current) {
       // Debounce filter changes to avoid rapid re-fetching
       const timer = setTimeout(() => {
-        loadRentals(1, true);
+        loadRentalsRef.current?.(1, true);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [filters, initialLoad, loadRentals]); // Only depend on filters, not loadRentals to avoid infinite loop
+  }, [filters, initialLoad]); // FIXED: Use ref to avoid dependency
 
-  // Search term changes - trigger new search
+  // Search term changes - trigger new search - FIXED: Prevent duplicate loading
   useEffect(() => {
-    if (!initialLoad) {
+    if (!initialLoad && loadRentalsRef.current) {
       // Reset pagination and load new results
       setCurrentPage(1);
       setRentals([]);
       setHasMore(true);
       // Debounce search to avoid rapid API calls
       const timer = setTimeout(() => {
-        loadRentals(1, true);
+        loadRentalsRef.current?.(1, true);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [searchTerm, initialLoad, loadRentals]); // New search when search term changes
+  }, [searchTerm, initialLoad]); // FIXED: Use ref to avoid dependency
 
   // 🔴 ENHANCED: Listen for WebSocket refresh events s smart updates
   useEffect(() => {

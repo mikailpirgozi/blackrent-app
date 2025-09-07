@@ -2,39 +2,36 @@
 // Shows PWA state, offline status, and management options
 
 import {
-  Wifi as OnlineIcon,
-  WifiOff as OfflineIcon,
-  CloudDone as InstalledIcon,
-  GetApp as InstallIcon,
-  Update as UpdateIcon,
-  Settings as SettingsIcon,
-  Info as InfoIcon,
   ClearAll as ClearCacheIcon,
+  Info as InfoIcon,
+  GetApp as InstallIcon,
+  CloudDone as InstalledIcon,
+  WifiOff as OfflineIcon,
+  Wifi as OnlineIcon,
   Refresh as RefreshIcon,
-  PhoneIphone as MobileIcon,
-  Computer as DesktopIcon,
-  Star as StarIcon,
+  Settings as SettingsIcon,
+  Update as UpdateIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
+  Badge,
   Box,
+  Button,
   Chip,
+  // Switch,
+  // FormControlLabel,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
   IconButton,
-  Menu,
-  MenuItem,
   ListItemIcon,
   ListItemText,
-  Typography,
-  Divider,
-  Switch,
-  FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Alert,
+  Menu,
+  MenuItem,
   Tooltip,
-  Badge,
+  Typography,
 } from '@mui/material';
 import React, { useState } from 'react';
 
@@ -68,7 +65,7 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [version, setVersion] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

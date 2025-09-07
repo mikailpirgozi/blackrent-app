@@ -1,9 +1,9 @@
 import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
-import { Typography, Box, CircularProgress, Alert } from '@mui/material';
-import React, { useState, useRef } from 'react';
+import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import React, { useRef, useState } from 'react';
 
 import { getApiBaseUrl } from '../../utils/apiUrl';
-import { SecondaryButton, TextButton, ErrorButton } from '../ui';
+import { ErrorButton, SecondaryButton, TextButton } from '../ui';
 
 // Railway backend URL
 
@@ -22,7 +22,6 @@ interface R2FileUploadProps {
   multiple?: boolean;
   label?: string;
   disabled?: boolean;
-  showUploadedFiles?: boolean; // zobrazovať zoznam nahraných súborov
 }
 
 interface FileData {
@@ -44,7 +43,6 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
   multiple = false,
   label = 'Nahrať súbor',
   disabled = false,
-  showUploadedFiles = true,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
@@ -313,7 +311,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           <Typography variant="subtitle2" sx={{ mb: 1, color: 'white' }}>
             Nahrané súbory:
           </Typography>
-          {uploadedFiles.map((file, index) => (
+          {uploadedFiles.map(file => (
             <Box
               key={file.key}
               sx={{

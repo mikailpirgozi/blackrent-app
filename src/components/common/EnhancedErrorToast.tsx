@@ -9,27 +9,27 @@
  */
 
 import {
-  Close as CloseIcon,
-  Refresh as RefreshIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   BugReport as BugReportIcon,
+  Close as CloseIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
   Alert,
-  Snackbar,
   Box,
-  Typography,
-  IconButton,
   Button,
   Chip,
-  Stack,
   Collapse,
+  IconButton,
+  Snackbar,
+  Stack,
+  Typography,
   alpha,
-  useTheme,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import type { ErrorContext } from '../../utils/enhancedErrorMessages';
@@ -62,7 +62,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   const [isRetrying, setIsRetrying] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
-  const { isOnline, networkQuality } = useNetworkStatus();
+  const { isOnline } = useNetworkStatus();
 
   // Show toast when error appears
   useEffect(() => {
@@ -108,7 +108,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   if (!error) return null;
 
   const enhancedMessage = getEnhancedErrorMessage(error, context);
-  const suggestions = getRecoverySuggestions(error, context);
+  const suggestions = getRecoverySuggestions(error);
 
   // Determine toast positioning
   const anchorOrigin =
@@ -367,9 +367,10 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                   <Typography variant="caption" component="div">
                     Error: {error.technicalMessage}
                   </Typography>
-                  {error.originalError?.status && (
+                  {(error.originalError as { status?: number })?.status && (
                     <Typography variant="caption" component="div">
-                      Status: {error.originalError.status}
+                      Status:{' '}
+                      {(error.originalError as { status: number }).status}
                     </Typography>
                   )}
                   <Typography variant="caption" component="div">

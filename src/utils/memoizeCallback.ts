@@ -12,10 +12,15 @@ import { useCallback, useRef } from 'react';
  */
 export const memoizeCallback = <T extends (...args: unknown[]) => unknown>(
   callback: T,
-  _dependencies: unknown[]
+  dependencies: unknown[]
 ): T => {
   // Táto funkcia je len wrapper - v skutočnosti vráti originálny callback
   // useCallback sa musí volať priamo v React komponente
+  // dependencies parameter je zachovaný pre kompatibilitu
+  console.debug(
+    'memoizeCallback called with dependencies:',
+    dependencies.length
+  );
   return callback;
 };
 
@@ -39,9 +44,14 @@ export const useStableCallback = <T extends (...args: unknown[]) => unknown>(
  */
 export const createMemoizedHandlers = <T>(
   handlers: Record<string, (item: T) => void>,
-  _dependencies: unknown[] = []
+  dependencies: unknown[] = []
 ) => {
   // POZNÁMKA: Táto funkcia je deprecated - useCallback sa musí volať priamo v React komponente
+  // dependencies parameter je zachovaný pre kompatibilitu
+  console.debug(
+    'createMemoizedHandlers called with dependencies:',
+    dependencies.length
+  );
   return Object.keys(handlers).reduce(
     (memo, key) => {
       memo[key] = handlers[key]; // Vráti originálne handlery bez memoization

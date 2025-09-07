@@ -10,51 +10,47 @@
  */
 
 import {
-  Search as SearchIcon,
   Clear as ClearIcon,
-  History as HistoryIcon,
-  TrendingUp as SuggestionIcon,
   FilterList as FilterIcon,
-  Close as CloseIcon,
+  History as HistoryIcon,
+  Search as SearchIcon,
+  TrendingUp as SuggestionIcon,
 } from '@mui/icons-material';
 import {
+  Badge,
   Box,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   Chip,
-  Typography,
+  CircularProgress,
   Divider,
   Fade,
-  CircularProgress,
-  Tooltip,
-  useTheme,
-  useMediaQuery,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Paper,
   Stack,
-  Badge,
+  TextField,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 
-import type {
-  SearchSuggestion,
-  QuickFilter,
-} from '../../hooks/useEnhancedSearch';
-import {
-  useEnhancedSearch,
-  UseEnhancedSearchOptions,
-} from '../../hooks/useEnhancedSearch';
+import type { QuickFilter } from '../../hooks/useEnhancedSearch';
+import { useEnhancedSearch } from '../../hooks/useEnhancedSearch';
 
 interface EnhancedSearchBarProps {
   // Search function
-  onSearch: (query: string, quickFilter?: string) => Promise<any[]> | any[];
+  onSearch: (
+    query: string,
+    quickFilter?: string
+  ) => Promise<Record<string, unknown>[]> | Record<string, unknown>[];
   suggestionFunction?: (
     query: string
-  ) => Promise<SearchSuggestion[]> | SearchSuggestion[];
+  ) => Promise<Record<string, unknown>[]> | Record<string, unknown>[];
 
   // Search options
   debounceDelay?: number;
@@ -81,7 +77,7 @@ interface EnhancedSearchBarProps {
 
   // Event handlers
   onQueryChange?: (query: string) => void;
-  onResultsChange?: (results: any[]) => void;
+  onResultsChange?: (results: Record<string, unknown>[]) => void;
   onQuickFilterChange?: (filterId: string | null) => void;
 }
 
@@ -140,7 +136,6 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   });
 
   // Local state
-  const [inputFocused, setInputFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -169,7 +164,6 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
 
   // Handle input focus
   const handleInputFocus = () => {
-    setInputFocused(true);
     if (query.length > 0 || searchHistory.length > 0) {
       setShowSuggestions(true);
     }
@@ -178,13 +172,12 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   // Handle input blur (with delay for suggestion clicks)
   const handleInputBlur = () => {
     setTimeout(() => {
-      setInputFocused(false);
       setShowSuggestions(false);
     }, 200);
   };
 
   // Handle suggestion selection
-  const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
+  const handleSuggestionSelect = (suggestion: Record<string, unknown>) => {
     selectSuggestion(suggestion);
     inputRef.current?.focus();
   };
@@ -434,7 +427,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
             )}
 
             {/* Suggestions */}
-            {suggestions.map((suggestion, index) => (
+            {suggestions.map(suggestion => (
               <ListItem
                 key={suggestion.id}
                 button

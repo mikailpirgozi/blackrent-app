@@ -212,22 +212,6 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
   // Listen for permission changes
   useEffect(() => {
-    const handlePermissionChange = () => {
-      const newPermission = Notification.permission;
-      setPermission(newPermission);
-
-      // If permission was granted, try to refresh status
-      if (newPermission === 'granted' && !isSubscribed) {
-        refreshStatus();
-      }
-
-      // If permission was denied, update subscription status
-      if (newPermission === 'denied' && isSubscribed) {
-        setIsSubscribed(false);
-        setPreferences(null);
-      }
-    };
-
     // Listen for visibility change to refresh status
     const handleVisibilityChange = () => {
       if (!document.hidden && isSupported) {

@@ -1,18 +1,18 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
   DirectionsCar as CarIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
-  Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Schedule as ScheduleIcon,
   ReportProblem as ClaimIcon,
   Close as CloseIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Error as ErrorIcon,
+  Euro as EuroIcon,
+  Event as EventIcon,
+  FilterList as FilterListIcon,
+  Schedule as ScheduleIcon,
+  Search as SearchIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -20,39 +20,32 @@ import {
   Card,
   CardContent,
   Chip,
-  Dialog,
-  IconButton,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Tooltip,
   CircularProgress,
+  Dialog,
   Fab,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Paper,
   TablePagination,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
   useMediaQuery,
   useTheme,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Collapse,
-  Stack,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import type { InsuranceClaim } from '../../types';
@@ -148,6 +141,7 @@ export default function InsuranceClaimList() {
 
   // Filter claims
   const filteredClaims = useMemo(() => {
+    const claims = state.insuranceClaims || [];
     return claims.filter(claim => {
       const matchesSearch =
         !searchQuery ||
@@ -166,7 +160,13 @@ export default function InsuranceClaimList() {
 
       return matchesSearch && matchesVehicle && matchesStatus && matchesType;
     });
-  }, [claims, searchQuery, filterVehicle, filterStatus, filterType]);
+  }, [
+    state.insuranceClaims,
+    searchQuery,
+    filterVehicle,
+    filterStatus,
+    filterType,
+  ]);
 
   // Paginated claims
   const paginatedClaims = useMemo(() => {

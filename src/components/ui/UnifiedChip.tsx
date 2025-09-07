@@ -176,19 +176,17 @@ export const UnifiedChip: React.FC<UnifiedChipProps> = ({
           '50%': { transform: 'scale(1.05)' },
         },
       }
-    : {};
-
-  const { variant: _, chipColor: __, ...chipProps } = props as any;
+    : undefined;
 
   return (
     <StyledChip
-      variant={variant}
+      variant={variant as never}
       chipColor={chipColor}
       sx={{
-        ...animatedStyles,
-        ...sx,
+        ...(animatedStyles || {}),
+        ...(sx || {}),
       }}
-      {...chipProps}
+      {...props}
     />
   );
 };

@@ -1,23 +1,23 @@
 import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Refresh as RefreshIcon,
-  Home as HomeIcon,
   BugReport as BugReportIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  Home as HomeIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Typography,
-  Button,
-  Paper,
   Alert,
   AlertTitle,
+  Box,
+  Button,
   Collapse,
   IconButton,
+  Paper,
   Stack,
+  Typography,
 } from '@mui/material';
 import type { ErrorInfo, ReactNode } from 'react';
-import React, { Component } from 'react';
+import { Component } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger } from '../../utils/mobileLogger';
 
@@ -152,7 +152,10 @@ class ErrorBoundary extends Component<Props, State> {
       console.log('Has Auto Reloaded:', hasAutoReloaded);
       console.log('Current URL:', window.location.href);
       console.log('User Agent:', navigator.userAgent);
-      console.log('Connection:', (navigator as any).connection);
+      console.log(
+        'Connection:',
+        (navigator as Navigator & { connection?: unknown }).connection
+      );
       console.groupEnd();
 
       // 🔍 CHANGE: Pridáme delay a user confirmation na mobile
@@ -201,7 +204,7 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       const { level = 'component', maxRetries = 2 } = this.props;
-      const { error, errorInfo, retryCount, showDetails } = this.state;
+      const { error, retryCount, showDetails } = this.state;
       const canRetry = retryCount < maxRetries;
 
       // Different layouts based on error level

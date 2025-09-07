@@ -2,36 +2,80 @@
 // This represents a complex detail view component that should be lazy loaded
 
 import {
-  ExpandMore as ExpandMoreIcon,
-  Timeline as TimelineIcon,
-  Info as InfoIcon,
   Assessment as AssessmentIcon,
+  ExpandMore as ExpandMoreIcon,
+  Info as InfoIcon,
+  Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Avatar,
+  Box,
   Button,
   Card,
   CardContent,
-  Typography,
-  Box,
-  Grid,
   Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
+  Grid,
   List,
   ListItem,
   ListItemText,
-  CircularProgress,
-  Avatar,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { OptimizedImage } from './OptimizedImage';
+
+interface DetailData {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  status: string;
+  priority: string;
+  assignee: string;
+  created: string;
+  updated: string;
+  tags: string[];
+  image?: string;
+  category?: string;
+  metadata?: {
+    createdAt: string;
+    updatedAt: string;
+    views: number;
+    rating: number;
+  };
+  timeline: Array<{
+    id: string;
+    action: string;
+    timestamp: string;
+    user: string;
+    details: string;
+    date?: string;
+    event?: string;
+    type?: string;
+  }>;
+  analytics?: {
+    totalViews: number;
+    uniqueVisitors: number;
+    averageTime: string;
+    bounceRate: string;
+  };
+  relatedItems: Array<{
+    id: string;
+    title: string;
+    type: string;
+    status: string;
+    image?: string;
+  }>;
+}
 
 interface LazyDetailViewProps {
   itemId: string;
@@ -45,7 +89,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
   onClose,
 }) => {
   const [loading, setLoading] = useState(true);
-  const [detailData, setDetailData] = useState<any>(null);
+  const [detailData, setDetailData] = useState<DetailData | null>(null);
 
   // Simulate loading heavy detail data
   useEffect(() => {
@@ -57,11 +101,16 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
           id: itemId,
           title: `Detail View for Item ${itemId}`,
           subtitle: 'Comprehensive item details',
-          image: '/placeholder-image.jpg',
-          status: 'active',
-          category: 'Sample Category',
           description:
             'This is a detailed description of the item with lots of information.',
+          status: 'active',
+          priority: 'high',
+          assignee: 'John Doe',
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          tags: ['important', 'urgent'],
+          image: '/placeholder-image.jpg',
+          category: 'Sample Category',
           metadata: {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -69,9 +118,36 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
             rating: 4.5,
           },
           timeline: [
-            { date: '2025-01-15', event: 'Item created', type: 'info' },
-            { date: '2025-01-14', event: 'Status updated', type: 'success' },
-            { date: '2025-01-13', event: 'Category changed', type: 'warning' },
+            {
+              id: '1',
+              action: 'Item created',
+              timestamp: '2025-01-15T10:00:00Z',
+              user: 'System',
+              details: 'Item was created',
+              date: '2025-01-15',
+              event: 'Item created',
+              type: 'info',
+            },
+            {
+              id: '2',
+              action: 'Status updated',
+              timestamp: '2025-01-14T15:30:00Z',
+              user: 'Admin',
+              details: 'Status changed to active',
+              date: '2025-01-14',
+              event: 'Status updated',
+              type: 'success',
+            },
+            {
+              id: '3',
+              action: 'Category changed',
+              timestamp: '2025-01-13T09:15:00Z',
+              user: 'Manager',
+              details: 'Category updated',
+              date: '2025-01-13',
+              event: 'Category changed',
+              type: 'warning',
+            },
           ],
           analytics: {
             totalViews: 1234,
@@ -80,9 +156,27 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
             bounceRate: '12%',
           },
           relatedItems: [
-            { id: '1', title: 'Related Item 1', image: '/placeholder-1.jpg' },
-            { id: '2', title: 'Related Item 2', image: '/placeholder-2.jpg' },
-            { id: '3', title: 'Related Item 3', image: '/placeholder-3.jpg' },
+            {
+              id: '1',
+              title: 'Related Item 1',
+              type: 'document',
+              status: 'active',
+              image: '/placeholder-1.jpg',
+            },
+            {
+              id: '2',
+              title: 'Related Item 2',
+              type: 'task',
+              status: 'pending',
+              image: '/placeholder-2.jpg',
+            },
+            {
+              id: '3',
+              title: 'Related Item 3',
+              type: 'note',
+              status: 'completed',
+              image: '/placeholder-3.jpg',
+            },
           ],
         });
         setLoading(false);
@@ -176,18 +270,18 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                   História zmien
                 </Typography>
                 <List>
-                  {detailData.timeline.map((item: any, index: number) => (
+                  {detailData.timeline.map((item, index: number) => (
                     <React.Fragment key={index}>
                       <ListItem>
                         <ListItemText
-                          primary={item.event}
-                          secondary={new Date(item.date).toLocaleDateString(
-                            'sk'
-                          )}
+                          primary={item.event || item.action}
+                          secondary={new Date(
+                            item.date || item.timestamp
+                          ).toLocaleDateString('sk')}
                         />
                         <Chip
                           size="small"
-                          label={item.type}
+                          label={item.type || 'info'}
                           color={
                             item.type === 'success'
                               ? 'success'
@@ -215,19 +309,23 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                 </Typography>
                 <Box sx={{ '& > *': { mb: 1 } }}>
                   <Typography variant="body2">
-                    <strong>Kategória:</strong> {detailData.category}
+                    <strong>Kategória:</strong> {detailData.category || 'N/A'}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Zobrazenia:</strong> {detailData.metadata.views}
+                    <strong>Zobrazenia:</strong>{' '}
+                    {detailData.metadata?.views || 0}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Hodnotenie:</strong> {detailData.metadata.rating}/5
+                    <strong>Hodnotenie:</strong>{' '}
+                    {detailData.metadata?.rating || 0}/5
                   </Typography>
                   <Typography variant="body2">
                     <strong>Vytvorené:</strong>{' '}
-                    {new Date(detailData.metadata.createdAt).toLocaleDateString(
-                      'sk'
-                    )}
+                    {detailData.metadata?.createdAt
+                      ? new Date(
+                          detailData.metadata.createdAt
+                        ).toLocaleDateString('sk')
+                      : new Date(detailData.created).toLocaleDateString('sk')}
                   </Typography>
                 </Box>
               </CardContent>
@@ -244,7 +342,8 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                   <Grid item xs={6}>
                     <Box textAlign="center">
                       <Typography variant="h4" color="primary.main">
-                        {detailData.analytics.totalViews.toLocaleString()}
+                        {detailData.analytics?.totalViews?.toLocaleString() ||
+                          0}
                       </Typography>
                       <Typography variant="caption">
                         Celkové zobrazenia
@@ -254,7 +353,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                   <Grid item xs={6}>
                     <Box textAlign="center">
                       <Typography variant="h4" color="secondary.main">
-                        {detailData.analytics.uniqueVisitors}
+                        {detailData.analytics?.uniqueVisitors || 0}
                       </Typography>
                       <Typography variant="caption">
                         Unikátni návštevníci
@@ -264,7 +363,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                   <Grid item xs={6}>
                     <Box textAlign="center">
                       <Typography variant="body1">
-                        {detailData.analytics.averageTime}
+                        {detailData.analytics?.averageTime || 'N/A'}
                       </Typography>
                       <Typography variant="caption">Priemerný čas</Typography>
                     </Box>
@@ -272,7 +371,7 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                   <Grid item xs={6}>
                     <Box textAlign="center">
                       <Typography variant="body1">
-                        {detailData.analytics.bounceRate}
+                        {detailData.analytics?.bounceRate || 'N/A'}
                       </Typography>
                       <Typography variant="caption">Bounce rate</Typography>
                     </Box>
@@ -287,23 +386,25 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
                 <Typography variant="h6" gutterBottom>
                   Súvisiace položky
                 </Typography>
-                {detailData.relatedItems.map((item: any) => (
+                {detailData.relatedItems.map(item => (
                   <Box key={item.id} sx={{ display: 'flex', gap: 2, mb: 1 }}>
-                    <OptimizedImage
-                      src={item.image}
-                      alt={item.title}
-                      width={60}
-                      height={60}
-                      aspectRatio={1}
-                      placeholder="icon"
-                      lazy={true}
-                    />
+                    {item.image && (
+                      <OptimizedImage
+                        src={item.image}
+                        alt={item.title}
+                        width={60}
+                        height={60}
+                        aspectRatio={1}
+                        placeholder="icon"
+                        lazy={true}
+                      />
+                    )}
                     <Box>
                       <Typography variant="body2" fontWeight="medium">
                         {item.title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        ID: {item.id}
+                        ID: {item.id} | {item.type} | {item.status}
                       </Typography>
                     </Box>
                   </Box>

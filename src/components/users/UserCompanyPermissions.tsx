@@ -1,42 +1,42 @@
 import {
-  ExpandMore as ExpandMoreIcon,
-  Business as BusinessIcon,
-  Visibility as ReadIcon,
-  Edit as WriteIcon,
-  Delete as DeleteIcon,
-  Check as CheckIcon,
   Add as AddIcon,
+  Business as BusinessIcon,
+  Check as CheckIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  Visibility as ReadIcon,
   Remove as RemoveIcon,
+  Edit as WriteIcon,
 } from '@mui/icons-material';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  // Chip, // Nepoužívané
+  Alert,
   Box,
-  Typography,
+  Button,
   Card,
   CardContent,
   CardHeader,
-  Grid,
-  FormControlLabel,
-  Switch,
-  Chip,
-  Alert,
   CircularProgress,
-  Divider,
-  Tooltip,
+  FormControlLabel,
+  Grid,
+  // Divider, // Nepoužívané
+  // Tooltip, // Nepoužívané
   IconButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Stack,
-  Button,
+  Switch,
+  Typography,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
 import type {
   Company,
-  UserCompanyAccess,
   CompanyPermissions,
   ResourcePermission,
+  UserCompanyAccess,
 } from '../../types';
 
 interface UserCompanyPermissionsProps {

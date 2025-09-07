@@ -1,9 +1,9 @@
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import {
   Box,
-  Typography,
   Card,
   CardContent,
+  Chip,
   Grid,
   Table,
   TableBody,
@@ -11,12 +11,33 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
+interface PaymentMethodData {
+  count: number;
+  revenue: number;
+}
+
+interface UnpaidRental {
+  id: string;
+  customerName: string;
+  vehicle?: {
+    brand: string;
+    model: string;
+  };
+  totalPrice?: number;
+}
+
+interface StatsData {
+  paymentMethodStats: Record<string, PaymentMethodData>;
+  totalRevenue: number;
+  unpaidRentals: UnpaidRental[];
+}
+
 interface PaymentsTabProps {
-  stats: any;
+  stats: StatsData;
 }
 
 const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
@@ -59,12 +80,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
                 </TableHead>
                 <TableBody>
                   {Object.entries(stats.paymentMethodStats)
-                    .sort(
-                      ([, a], [, b]) => (b as any).revenue - (a as any).revenue
-                    )
+                    .sort(([, a], [, b]) => b.revenue - a.revenue)
                     .map(([method, data]) => {
                       const percentage =
-                        ((data as any).revenue / stats.totalRevenue) * 100;
+                        (data.revenue / stats.totalRevenue) * 100;
                       return (
                         <TableRow
                           key={method}
@@ -96,7 +115,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" fontWeight="bold">
-                              {(data as any).count}
+                              {data.count}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
@@ -105,7 +124,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
                               fontWeight="bold"
                               sx={{ color: '#11998e' }}
                             >
-                              {(data as any).revenue.toLocaleString()} €
+                              {data.revenue.toLocaleString()} €
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
@@ -160,7 +179,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {stats.unpaidRentals.slice(0, 5).map((rental: any) => (
+                {stats.unpaidRentals.slice(0, 5).map((rental: UnpaidRental) => (
                   <Box
                     key={rental.id}
                     sx={{

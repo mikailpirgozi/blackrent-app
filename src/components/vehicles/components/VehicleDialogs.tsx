@@ -1,17 +1,17 @@
 import { Add as AddIcon } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
   Typography,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -32,7 +32,7 @@ interface VehicleDialogsProps {
   // Ownership History Dialog
   ownershipHistoryDialog: boolean;
   selectedVehicleHistory: Vehicle | null;
-  ownershipHistory: any[];
+  ownershipHistory: Record<string, unknown>[];
   onCloseOwnershipHistory: () => void;
 
   // Create Company Dialog
@@ -65,17 +65,17 @@ interface VehicleDialogsProps {
 
   // Assign Share Dialog
   assignShareDialogOpen: boolean;
-  selectedInvestorForShare: any;
+  selectedInvestorForShare: Record<string, unknown>;
   newShareData: {
     companyId: string;
     ownershipPercentage: number;
     investmentAmount: number;
     isPrimaryContact: boolean;
   };
-  companies: any[];
+  companies: Record<string, unknown>[];
   onCloseAssignShare: () => void;
   onAssignShare: () => Promise<void>;
-  onShareDataChange: (field: string, value: any) => void;
+  onShareDataChange: (field: string, value: string | number | boolean) => void;
 }
 
 const VehicleDialogs: React.FC<VehicleDialogsProps> = ({

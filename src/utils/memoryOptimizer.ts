@@ -21,7 +21,7 @@ class MemoryOptimizer {
   private memoryCheckInterval: NodeJS.Timeout | null = null;
   private memoryHistory: MemoryStats[] = [];
   private activeListeners = new Map<string, Set<EventListener>>();
-  private weakRefs = new Set<WeakRef<any>>();
+  private weakRefs = new Set<WeakRef<Record<string, unknown>>>();
   private cleanupCallbacks = new Set<() => void>();
 
   // Memory monitoring
@@ -62,7 +62,10 @@ class MemoryOptimizer {
   getMemoryStats(): MemoryStats | null {
     if (!('memory' in performance)) return null;
 
-    const memory = (performance as any).memory;
+    const memory = (performance as Record<string, unknown>).memory as Record<
+      string,
+      unknown
+    >;
 
     return {
       usedJSHeapSize: memory.usedJSHeapSize,
@@ -102,9 +105,12 @@ class MemoryOptimizer {
       });
 
       // Suggest garbage collection if available
-      if ('gc' in window && typeof (window as any).gc === 'function') {
+      if (
+        'gc' in window &&
+        typeof (window as Record<string, unknown>).gc === 'function'
+      ) {
         console.log('🗑️ Running garbage collection...');
-        (window as any).gc();
+        ((window as Record<string, unknown>).gc as () => void)();
       }
     }
 
@@ -152,8 +158,11 @@ class MemoryOptimizer {
     }
 
     // Force garbage collection if available
-    if ('gc' in window && typeof (window as any).gc === 'function') {
-      (window as any).gc();
+    if (
+      'gc' in window &&
+      typeof (window as Record<string, unknown>).gc === 'function'
+    ) {
+      ((window as Record<string, unknown>).gc as () => void)();
     }
   }
 
@@ -273,7 +282,9 @@ class MemoryOptimizer {
   // Measure render time
   private measureRenderTime(): number {
     if ('navigation' in performance) {
-      const navigation = performance.getEntriesByType('navigation')[0] as any;
+      const navigation = performance.getEntriesByType(
+        'navigation'
+      )[0] as Record<string, unknown>;
       if (navigation) {
         return navigation.loadEventEnd - navigation.loadEventStart;
       }
@@ -289,7 +300,7 @@ class MemoryOptimizer {
   }
 
   // Generate memory report
-  generateMemoryReport(): any {
+  generateMemoryReport(): Record<string, unknown> {
     const currentStats = this.getMemoryStats();
     const metrics = this.getPerformanceMetrics();
 
@@ -347,10 +358,13 @@ class MemoryOptimizer {
 
 // React component memory optimizer
 export class ReactMemoryOptimizer {
-  private componentRefs = new Map<string, WeakRef<any>>();
+  private componentRefs = new Map<string, WeakRef<Record<string, unknown>>>();
 
   // Track component mount/unmount
-  trackComponent(componentName: string, component: any): void {
+  trackComponent(
+    componentName: string,
+    component: Record<string, unknown>
+  ): void {
     this.componentRefs.set(componentName, new WeakRef(component));
   }
 
@@ -362,7 +376,10 @@ export class ReactMemoryOptimizer {
       const component = weakRef.deref();
       if (component) {
         // Component still exists - check if it should have been cleaned up
-        if (component._unmounted || component._reactInternalFiber === null) {
+        if (
+          (component as Record<string, unknown>)._unmounted ||
+          (component as Record<string, unknown>)._reactInternalFiber === null
+        ) {
           leaked.push(componentName);
         }
       } else {

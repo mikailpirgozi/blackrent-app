@@ -1,13 +1,12 @@
 import {
-  Edit as EditIcon,
   DirectionsCar as CarIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
-import { Box, Typography, Chip, IconButton, Paper, Grid } from '@mui/material';
-import React from 'react';
+import { Box, Chip, Grid, IconButton, Paper, Typography } from '@mui/material';
 
 import { useApp } from '../../../context/AppContext';
 import type { Rental } from '../../../types';
-import { formatDate, formatCurrency } from '../../../utils/formatters';
+import { formatCurrency, formatDate } from '../../../utils/formatters';
 
 interface RentalRowProps {
   rental: Rental;
@@ -15,14 +14,16 @@ interface RentalRowProps {
   index: number;
 }
 
-export function RentalRow({ rental, onEdit, index }: RentalRowProps) {
+export function RentalRow({ rental, onEdit }: RentalRowProps) {
   const { state } = useApp();
 
   // Nájdi vehicle pre tento rental
   const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
 
   // Status color mapping
-  const getStatusColor = (status: string | undefined) => {
+  const getStatusColor = (
+    status: string | undefined
+  ): 'success' | 'default' | 'warning' | 'error' => {
     switch (status) {
       case 'active':
         return 'success';
@@ -107,7 +108,7 @@ export function RentalRow({ rental, onEdit, index }: RentalRowProps) {
             <Chip
               label={rental.status}
               size="small"
-              color={getStatusColor(rental.status) as any}
+              color={getStatusColor(rental.status)}
               variant="outlined"
             />
             {rental.isFlexible && (

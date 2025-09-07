@@ -2,15 +2,15 @@
 // Beautiful loading indicators with smooth animations and modern design
 
 import {
+  Backdrop,
   Box,
   CircularProgress,
+  Fade,
   LinearProgress,
   Typography,
-  useTheme,
-  styled,
   keyframes,
-  Fade,
-  Backdrop,
+  styled,
+  useTheme,
 } from '@mui/material';
 import React from 'react';
 
@@ -133,7 +133,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   submessage,
   fullScreen = false,
   transparent = false,
-  color = 'primary',
+  // color = 'primary', // Currently not used
   icon = '🚗',
 }) => {
   const theme = useTheme();
@@ -227,7 +227,22 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
       <Box mb={2}>{renderLoader()}</Box>
 
       <Typography
-        variant={sizeValues.text as any}
+        variant={
+          sizeValues.text as
+            | 'h1'
+            | 'h2'
+            | 'h3'
+            | 'h4'
+            | 'h5'
+            | 'h6'
+            | 'subtitle1'
+            | 'subtitle2'
+            | 'body1'
+            | 'body2'
+            | 'caption'
+            | 'button'
+            | 'overline'
+        }
         color="textPrimary"
         fontWeight={600}
         textAlign="center"

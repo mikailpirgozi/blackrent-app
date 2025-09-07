@@ -181,7 +181,7 @@ export default function ResponsiveTable({
                           variant="body2"
                           sx={{ fontWeight: 500, textAlign: 'right' }}
                         >
-                          {displayValue}
+                          {String(displayValue ?? '')}
                         </Typography>
                       </Box>
                     );
@@ -272,7 +272,11 @@ export default function ResponsiveTable({
                         ? col.format(value)
                         : value;
 
-                    return <TableCell key={col.id}>{displayValue}</TableCell>;
+                    return (
+                      <TableCell key={col.id}>
+                        {String(displayValue ?? '')}
+                      </TableCell>
+                    );
                   })}
                 </TableRow>
               );

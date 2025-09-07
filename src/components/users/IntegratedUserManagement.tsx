@@ -1,16 +1,16 @@
 import {
-  Person as PersonIcon,
-  SupervisorAccount as AdvancedIcon,
+  // SupervisorAccount as AdvancedIcon, // Nepoužívané
   Notifications as NotificationIcon,
+  Person as PersonIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  Tabs,
   Tab,
-  useTheme,
+  // Typography, // Nepoužívané
+  Tabs,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import React, { useState } from 'react';
 

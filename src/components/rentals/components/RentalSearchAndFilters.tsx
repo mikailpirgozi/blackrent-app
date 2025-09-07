@@ -1,21 +1,20 @@
 import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
   Clear as ClearIcon,
-  ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  FilterList as FilterListIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  TextField,
   Button,
-  Collapse,
   Card,
   CardContent,
-  Typography,
-  InputAdornment,
   Chip,
-  Stack,
+  Collapse,
+  InputAdornment,
+  TextField,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 

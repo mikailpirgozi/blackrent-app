@@ -1,20 +1,20 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
+  Business as CompanyIcon,
+  DateRange as DateIcon,
   Delete as DeleteIcon,
-  Search as SearchIcon,
+  Edit as EditIcon,
+  Euro as EuroIcon,
   FilterList as FilterListIcon,
-  Receipt as ReceiptIcon,
   LocalGasStation as FuelIcon,
-  Build as ServiceIcon,
   Security as InsuranceIcon,
   Category as OtherIcon,
-  DateRange as DateIcon,
-  Euro as EuroIcon,
-  Business as CompanyIcon,
-  DirectionsCar as VehicleIcon,
-  Settings as SettingsIcon,
+  Receipt as ReceiptIcon,
   Repeat as RepeatIcon,
+  Search as SearchIcon,
+  Build as ServiceIcon,
+  Settings as SettingsIcon,
+  DirectionsCar as VehicleIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -22,32 +22,29 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Dialog,
-  IconButton,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Stack,
   Divider,
+  FormControl,
   Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
   useMediaQuery,
   useTheme,
-  Tooltip,
-  Alert,
-  CircularProgress,
 } from '@mui/material';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import { saveAs } from 'file-saver';
-import Papa from 'papaparse';
-import React, { useState, useMemo, useEffect } from 'react';
+import * as Papa from 'papaparse';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import type { Vehicle, Expense, ExpenseCategory } from '../../types';
+import type { Expense, ExpenseCategory, Vehicle } from '../../types';
 
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ExpenseForm from './ExpenseForm';
@@ -257,7 +254,11 @@ const ExpenseListNew: React.FC = () => {
     if (!file) return;
 
     Papa.parse(file, {
-      complete: async (results: any) => {
+      complete: async (results: {
+        data: unknown[][];
+        errors: unknown[];
+        meta: unknown;
+      }) => {
         try {
           console.log('📥 Parsing CSV file for batch expense import...');
 
@@ -267,8 +268,8 @@ const ExpenseListNew: React.FC = () => {
           }
 
           // Získaj hlavičku pre inteligentné mapovanie
-          const headers = results.data[0];
-          const dataRows = results.data.slice(1);
+          const headers = results.data[0] as string[];
+          const dataRows = results.data.slice(1) as unknown[][];
           const batchExpenses = [];
 
           console.log('📋 CSV Headers:', headers);
@@ -333,13 +334,12 @@ const ExpenseListNew: React.FC = () => {
             if (
               !row ||
               row.length === 0 ||
-              !row.some((cell: any) => cell && cell.toString().trim())
+              !row.some((cell: unknown) => cell && cell.toString().trim())
             ) {
               continue;
             }
 
             // Mapovanie polí pomocou inteligentného mapovania
-            const id = columnMap.id >= 0 ? row[columnMap.id] : undefined;
             const description =
               columnMap.description >= 0
                 ? row[columnMap.description]
@@ -353,10 +353,6 @@ const ExpenseListNew: React.FC = () => {
               columnMap.company >= 0 ? row[columnMap.company] : undefined;
             const vehicleId =
               columnMap.vehicleId >= 0 ? row[columnMap.vehicleId] : undefined;
-            const vehicleLicensePlate =
-              columnMap.vehicleLicensePlate >= 0
-                ? row[columnMap.vehicleLicensePlate]
-                : undefined;
             const note = columnMap.note >= 0 ? row[columnMap.note] : undefined;
 
             // Kontrola povinných polí
@@ -419,7 +415,6 @@ const ExpenseListNew: React.FC = () => {
 
             // Vytvor expense objekt
             const expenseData = {
-              id: '', // Bude vygenerované na backend
               description: description.toString().trim(),
               amount: parsedAmount,
               date: parsedDate,

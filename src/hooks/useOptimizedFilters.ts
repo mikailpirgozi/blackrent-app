@@ -4,14 +4,14 @@
  * Hook pre optimalizované filtrovanie s memoization a debouncing
  */
 
-import { useMemo, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { Rental } from '../types';
 import { debounce } from '../utils/debounce';
 import type {
   FilterCriteria,
-  VehicleLookup,
   ProtocolLookup,
+  VehicleLookup,
 } from '../utils/rentalFilters';
 import {
   applyAllFilters,
@@ -21,7 +21,7 @@ import {
 
 interface UseOptimizedFiltersProps {
   rentals: Rental[];
-  vehicles: any[];
+  vehicles: Record<string, unknown>[];
   protocols: ProtocolLookup;
   filterCriteria: FilterCriteria;
 }
@@ -60,9 +60,13 @@ export const useOptimizedFilters = ({
 
   // Debounced search function
   const debouncedSearch = useCallback(
-    debounce((searchQuery: string, callback: (query: string) => void) => {
-      callback(searchQuery);
-    }, 300),
+    (searchQuery: string, callback: (query: string) => void) => {
+      const debouncedCallback = debounce((...args: unknown[]) => {
+        const query = args[0] as string;
+        callback(query);
+      }, 300);
+      debouncedCallback(searchQuery);
+    },
     []
   );
 

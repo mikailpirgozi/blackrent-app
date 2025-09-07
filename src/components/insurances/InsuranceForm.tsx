@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Box,
   Button,
   FormControl,
@@ -6,9 +7,8 @@ import {
   MenuItem,
   Select,
   TextField,
-  Autocomplete,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
@@ -25,8 +25,7 @@ export default function InsuranceForm({
   onSave,
   onCancel,
 }: InsuranceFormProps) {
-  const { state, dispatch, createInsurer, getEnhancedFilteredVehicles } =
-    useApp();
+  const { state, createInsurer, getEnhancedFilteredVehicles } = useApp();
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
   const [formData, setFormData] = useState<Partial<Insurance>>({
@@ -46,7 +45,10 @@ export default function InsuranceForm({
     }
   }, [insurance]);
 
-  const handleInputChange = (field: keyof Insurance, value: any) => {
+  const handleInputChange = (
+    field: keyof Insurance,
+    value: string | number | boolean | Date
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

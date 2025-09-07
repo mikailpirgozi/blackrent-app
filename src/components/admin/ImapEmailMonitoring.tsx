@@ -144,7 +144,7 @@ const ImapEmailMonitoring: React.FC = () => {
       );
     } catch (error: unknown) {
       setError('Nepodarilo sa otestovať IMAP pripojenie');
-      console.error('IMAP test error:', err);
+      console.error('IMAP test error:', error);
     } finally {
       setLoading(false);
     }
@@ -161,7 +161,7 @@ const ImapEmailMonitoring: React.FC = () => {
       await fetchStatus();
     } catch (error: unknown) {
       setError('Nepodarilo sa spustiť IMAP monitoring');
-      console.error('IMAP start error:', err);
+      console.error('IMAP start error:', error);
     } finally {
       setLoading(false);
     }
@@ -178,7 +178,7 @@ const ImapEmailMonitoring: React.FC = () => {
       await fetchStatus();
     } catch (error: unknown) {
       setError('Nepodarilo sa zastaviť IMAP monitoring');
-      console.error('IMAP stop error:', err);
+      console.error('IMAP stop error:', error);
     } finally {
       setLoading(false);
     }
@@ -194,7 +194,7 @@ const ImapEmailMonitoring: React.FC = () => {
       setSuccess('Kontrola emailov dokončená!');
     } catch (error: unknown) {
       setError('Nepodarilo sa skontrolovať emaily');
-      console.error('IMAP check error:', err);
+      console.error('IMAP check error:', error);
     } finally {
       setLoading(false);
     }

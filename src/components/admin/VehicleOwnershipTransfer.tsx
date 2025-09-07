@@ -1,48 +1,47 @@
 import {
-  SwapHoriz as TransferIcon,
-  SwapHoriz,
-  History as HistoryIcon,
-  ExpandMore as ExpandMoreIcon,
+  Cancel as CancelIcon,
   DirectionsCar as CarIcon,
   Business as CompanyIcon,
   CalendarToday as DateIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
+  Edit as EditIcon,
+  ExpandMore as ExpandMoreIcon,
+  History as HistoryIcon,
   Refresh as RefreshIcon,
+  Save as SaveIcon,
+  SwapHoriz,
+  SwapHoriz as TransferIcon,
 } from '@mui/icons-material';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Typography,
-  Alert,
+  Chip,
   CircularProgress,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  Chip,
-  Stack,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  IconButton,
-  Tooltip,
+  DialogContent,
+  DialogTitle,
+  FormControl,
   Grid,
-  Divider,
+  IconButton,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService, getAPI_BASE_URL } from '../../services/api';
@@ -68,7 +67,7 @@ interface VehicleWithHistory {
 
 const VehicleOwnershipTransfer: React.FC = () => {
   const { state } = useApp();
-  const vehicles = state.vehicles || [];
+  const vehicles = useMemo(() => state.vehicles || [], [state.vehicles]);
   const companies = state.companies || [];
 
   // Transfer form states
@@ -117,71 +116,8 @@ const VehicleOwnershipTransfer: React.FC = () => {
     { value: 'manual_transfer', label: 'Manuálny transfer' },
   ];
 
-  // ⚡⚡ ULTRA OPTIMALIZOVANÉ: Jediné bulk API volanie namiesto 111 requestov
-  const loadAllVehicleHistories = async () => {
-    setHistoryLoading(true);
-    console.log(
-      `🚀 BULK: Loading ownership history for all vehicles in single request...`
-    );
-    const startTime = Date.now();
-
-    try {
-      // ⚡⚡ SINGLE BULK REQUEST: Namiesto 111 requestov -> 1 request
-      const bulkData = await apiService.getBulkVehicleOwnershipHistory();
-
-      console.log(
-        `📊 BULK Response: ${bulkData.totalVehicles} vehicles processed in ${bulkData.loadTimeMs}ms (backend) + ${Date.now() - startTime}ms (frontend)`
-      );
-
-      // FILTER LOGIC: Zobrazuj len vozidlá s reálnymi transfermi
-      const vehiclesWithHistoryData: VehicleWithHistory[] = [];
-
-      for (const vehicleHistory of bulkData.vehicleHistories) {
-        const history = vehicleHistory.history;
-
-        // 1. Vozidlá s viac ako 1 záznamom = mali aspoň 1 transfer
-        // 2. Vozidlá s 1 záznamom, ale nie je to initial_setup
-        // 3. Vylúč vozidlá len s initial_setup (žiadny skutočný transfer)
-        const hasRealTransfers =
-          history.length > 1 ||
-          (history.length === 1 &&
-            history[0].transferReason !== 'initial_setup');
-
-        if (hasRealTransfers) {
-          vehiclesWithHistoryData.push({
-            id: vehicleHistory.vehicle.id,
-            brand: vehicleHistory.vehicle.brand,
-            model: vehicleHistory.vehicle.model,
-            licensePlate: vehicleHistory.vehicle.licensePlate,
-            ownerCompanyId: vehicleHistory.vehicle.ownerCompanyId || '',
-            history: history,
-          });
-        }
-      }
-
-      // SORTING: Zoraď podľa počtu transferov (viac transferov = vyššie v zozname)
-      vehiclesWithHistoryData.sort(
-        (a, b) => b.history.length - a.history.length
-      );
-
-      const totalTime = Date.now() - startTime;
-      console.log(
-        `✅ BULK: Processed ${vehiclesWithHistoryData.length} vehicles with transfers in ${totalTime}ms total`
-      );
-
-      setVehiclesWithHistory(vehiclesWithHistoryData);
-    } catch (error) {
-      console.error('Failed to load bulk vehicle histories:', error);
-      // Fallback na starý spôsob ak bulk zlyhá
-      console.log('🔄 Falling back to individual requests...');
-      await loadVehicleHistoriesIndividually();
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
   // Fallback metóda pre prípad zlyhania bulk requestu
-  const loadVehicleHistoriesIndividually = async () => {
+  const loadVehicleHistoriesIndividually = useCallback(async () => {
     console.log(
       `🚀 FALLBACK: Loading histories for ${vehicles.length} vehicles individually...`
     );
@@ -234,14 +170,87 @@ const VehicleOwnershipTransfer: React.FC = () => {
     vehiclesWithHistoryData.sort((a, b) => b.history.length - a.history.length);
 
     setVehiclesWithHistory(vehiclesWithHistoryData);
-  };
+  }, [vehicles]);
+
+  // ⚡⚡ ULTRA OPTIMALIZOVANÉ: Jediné bulk API volanie namiesto 111 requestov
+  const loadAllVehicleHistories = useCallback(async () => {
+    setHistoryLoading(true);
+    console.log(
+      `🚀 BULK: Loading ownership history for all vehicles in single request...`
+    );
+    const startTime = Date.now();
+
+    try {
+      // ⚡⚡ SINGLE BULK REQUEST: Namiesto 111 requestov -> 1 request
+      const bulkData = await apiService.getBulkVehicleOwnershipHistory();
+
+      console.log(
+        `📊 BULK Response: ${bulkData.totalVehicles} vehicles processed in ${bulkData.loadTimeMs}ms (backend) + ${Date.now() - startTime}ms (frontend)`
+      );
+
+      // FILTER LOGIC: Zobrazuj len vozidlá s reálnymi transfermi
+      const vehiclesWithHistoryData: VehicleWithHistory[] = [];
+
+      for (const vehicleHistory of bulkData.vehicleHistories) {
+        const vehicleHistoryTyped = vehicleHistory as {
+          vehicle: {
+            id: string;
+            brand: string;
+            model: string;
+            licensePlate: string;
+            ownerCompanyId?: string;
+          };
+          history: OwnershipHistory[];
+        };
+        const history = vehicleHistoryTyped.history;
+
+        // 1. Vozidlá s viac ako 1 záznamom = mali aspoň 1 transfer
+        // 2. Vozidlá s 1 záznamom, ale nie je to initial_setup
+        // 3. Vylúč vozidlá len s initial_setup (žiadny skutočný transfer)
+        const hasRealTransfers =
+          history.length > 1 ||
+          (history.length === 1 &&
+            history[0].transferReason !== 'initial_setup');
+
+        if (hasRealTransfers) {
+          vehiclesWithHistoryData.push({
+            id: vehicleHistoryTyped.vehicle.id,
+            brand: vehicleHistoryTyped.vehicle.brand,
+            model: vehicleHistoryTyped.vehicle.model,
+            licensePlate: vehicleHistoryTyped.vehicle.licensePlate,
+            ownerCompanyId: vehicleHistoryTyped.vehicle.ownerCompanyId || '',
+            history: history,
+          });
+        }
+      }
+
+      // SORTING: Zoraď podľa počtu transferov (viac transferov = vyššie v zozname)
+      vehiclesWithHistoryData.sort(
+        (a, b) => b.history.length - a.history.length
+      );
+
+      const totalTime = Date.now() - startTime;
+      console.log(
+        `✅ BULK: Processed ${vehiclesWithHistoryData.length} vehicles with transfers in ${totalTime}ms total`
+      );
+
+      setVehiclesWithHistory(vehiclesWithHistoryData);
+    } catch (error) {
+      console.error('Failed to load bulk vehicle histories:', error);
+      // Fallback na starý spôsob ak bulk zlyhá
+      console.log('🔄 Falling back to individual requests...');
+      await loadVehicleHistoriesIndividually();
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [loadVehicleHistoriesIndividually]);
 
   // Načítanie histórie pri mount
   useEffect(() => {
     if (vehicles.length > 0) {
       loadAllVehicleHistories();
     }
-  }, [vehicles]);
+  }, [vehicles, loadAllVehicleHistories]);
 
   const handleTransferSubmit = async () => {
     if (!selectedVehicleId || !newOwnerCompanyId) {

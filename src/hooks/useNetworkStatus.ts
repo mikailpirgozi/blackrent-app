@@ -1,7 +1,7 @@
 // 📶 Network Status Hook
 // Monitors network connectivity and provides connection status
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useError } from '../context/ErrorContext';
 
@@ -21,7 +21,7 @@ interface UseNetworkStatusReturn extends NetworkStatus {
 
 // Network quality assessment based on connection info
 const assessNetworkQuality = (
-  connection: any
+  connection: Record<string, unknown>
 ): 'slow' | 'medium' | 'fast' | 'unknown' => {
   if (!connection) return 'unknown';
 
@@ -60,17 +60,18 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
     // Get initial network connection info
     const updateConnectionInfo = () => {
       const connection =
-        (navigator as any).connection ||
-        (navigator as any).mozConnection ||
-        (navigator as any).webkitConnection;
+        (navigator as Record<string, unknown>).connection ||
+        (navigator as Record<string, unknown>).mozConnection ||
+        (navigator as Record<string, unknown>).webkitConnection;
 
-      if (connection) {
+      if (connection && typeof connection === 'object') {
+        const conn = connection as Record<string, unknown>;
         setNetworkStatus(prev => ({
           ...prev,
-          effectiveType: connection.effectiveType,
-          downlink: connection.downlink,
-          rtt: connection.rtt,
-          saveData: connection.saveData,
+          effectiveType: conn.effectiveType as string,
+          downlink: conn.downlink as number,
+          rtt: conn.rtt as number,
+          saveData: conn.saveData as boolean,
         }));
       }
     };
@@ -120,12 +121,15 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
     window.addEventListener('offline', handleOffline);
 
     const connection =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+      (navigator as Record<string, unknown>).connection ||
+      (navigator as Record<string, unknown>).mozConnection ||
+      (navigator as Record<string, unknown>).webkitConnection;
 
-    if (connection) {
-      connection.addEventListener('change', handleConnectionChange);
+    if (connection && typeof connection === 'object') {
+      const conn = connection as Record<string, unknown>;
+      if (typeof conn.addEventListener === 'function') {
+        conn.addEventListener('change', handleConnectionChange);
+      }
     }
 
     // Initial connection info
@@ -136,13 +140,18 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
 
-      if (connection) {
-        connection.removeEventListener('change', handleConnectionChange);
+      if (connection && typeof connection === 'object') {
+        const conn = connection as Record<string, unknown>;
+        if (typeof conn.removeEventListener === 'function') {
+          conn.removeEventListener('change', handleConnectionChange);
+        }
       }
     };
   }, [wasOffline, showError]);
 
-  const networkQuality = assessNetworkQuality((navigator as any).connection);
+  const networkQuality = assessNetworkQuality(
+    (navigator as Record<string, unknown>).connection as Record<string, unknown>
+  );
 
   return {
     ...networkStatus,

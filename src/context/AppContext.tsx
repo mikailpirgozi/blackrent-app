@@ -1245,6 +1245,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.createExpense(expense);
       dispatch({ type: 'ADD_EXPENSE', payload: expense });
+
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('expense');
     } catch (error) {
       console.error('Chyba pri vytváraní nákladu:', error);
       throw error;
@@ -1255,6 +1259,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.updateExpense(expense);
       dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
+
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('expense');
     } catch (error) {
       console.error('Chyba pri aktualizácii nákladu:', error);
       throw error;
@@ -1265,6 +1273,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.deleteExpense(id);
       dispatch({ type: 'DELETE_EXPENSE', payload: id });
+
+      // 🗄️ UNIFIED CACHE: Smart invalidation
+      // 🔄 PHASE 3: Smart invalidation handled by unified system
+      unifiedCache.invalidateEntity('expense');
     } catch (error) {
       console.error('Chyba pri mazaní nákladu:', error);
       throw error;

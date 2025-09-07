@@ -1,14 +1,14 @@
 import {
-  EmojiEvents as TrophyIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
+  EmojiEvents as TrophyIcon,
 } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
-  Typography,
+  Button,
   Card,
   CardContent,
-  Avatar,
-  Button,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
@@ -16,10 +16,10 @@ interface TopListCardProps {
   title: string;
   icon: React.ReactNode;
   gradient: string;
-  data: any[];
+  data: Record<string, unknown>[];
   showCount: number;
   onLoadMore: () => void;
-  renderItem: (item: any, index: number) => React.ReactNode;
+  renderItem: (item: Record<string, unknown>, index: number) => React.ReactNode;
   emptyMessage?: string;
 }
 

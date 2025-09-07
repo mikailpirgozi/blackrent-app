@@ -39,7 +39,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
     setLoading(true);
 
     Papa.parse(file, {
-      complete: async (results: any) => {
+      complete: async (results: { data: unknown[] }) => {
         try {
           // Zobraz počet riadkov na spracovanie
           const totalRows = results.data.length - 1; // -1 pre header
@@ -164,7 +164,11 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
                 year && year.trim() && !isNaN(parseInt(year))
                   ? parseInt(year)
                   : 2024,
-              status: (status?.trim() || 'available') as any,
+              status: (status?.trim() || 'available') as
+                | 'available'
+                | 'rented'
+                | 'maintenance'
+                | 'unavailable',
               stk: stk && stk.trim() ? new Date(stk.trim()) : undefined,
               pricing: pricing,
               commission: {
@@ -223,7 +227,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
       },
       header: false,
       skipEmptyLines: true,
-      error: (error: any) => {
+      error: (error: Error) => {
         console.error('❌ Papa Parse error:', error);
         alert(`❌ Chyba pri čítaní CSV súboru: ${error.message}`);
         setLoading(false);

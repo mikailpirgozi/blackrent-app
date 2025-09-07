@@ -1,1 +1,1 @@
-localStorage.clear(); sessionStorage.clear(); location.reload();
+localStorage.clear(); sessionStorage.clear();

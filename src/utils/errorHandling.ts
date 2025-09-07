@@ -13,7 +13,7 @@ export interface RetryOptions {
   baseDelay: number;
   maxDelay: number;
   exponentialBase: number;
-  retryCondition?: (error: any) => boolean;
+  retryCondition?: (error: unknown) => boolean;
 }
 
 export interface NetworkError {
@@ -29,7 +29,7 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   baseDelay: 1000, // 1s
   maxDelay: 10000, // 10s
   exponentialBase: 2, // 2^n backoff
-  retryCondition: error => isRetryableError(error),
+  retryCondition: (error: unknown) => isRetryableError(error as Error),
 };
 
 /**
@@ -40,7 +40,7 @@ export const withRetry = async <T>(
   options: Partial<RetryOptions> = {}
 ): Promise<T> => {
   const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  let lastError: any;
+  let lastError: Error | undefined;
 
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {
@@ -50,7 +50,7 @@ export const withRetry = async <T>(
 
       return await operation();
     } catch (error) {
-      lastError = error;
+      lastError = error as Error;
 
       // Posledný pokus - nevykonávame delay
       if (attempt === config.maxRetries) {
@@ -59,7 +59,7 @@ export const withRetry = async <T>(
       }
 
       // Skontroluj či je error retryable
-      if (!config.retryCondition!(error)) {
+      if (!config.retryCondition!(error as Error)) {
         console.log('⚠️ Error is not retryable, giving up');
         break;
       }
@@ -75,14 +75,14 @@ export const withRetry = async <T>(
     }
   }
 
-  throw lastError;
+  throw lastError || new Error('Unknown error occurred');
 };
 
 /**
  * 🌐 Network error detection
  */
-export const analyzeError = (error: any): NetworkError => {
-  const errorMessage = error?.message?.toLowerCase() || '';
+export const analyzeError = (error: unknown): NetworkError => {
+  const errorMessage = (error as Error)?.message?.toLowerCase() || '';
   const isOnline = navigator.onLine;
 
   // Network connection errors
@@ -99,7 +99,7 @@ export const analyzeError = (error: any): NetworkError => {
       userMessage: isOnline
         ? '🌐 Problém s pripojením na server. Skúšam znova...'
         : '📡 Nie ste pripojený na internet. Skontrolujte pripojenie.',
-      technicalMessage: error.message,
+      technicalMessage: (error as Error).message,
     };
   }
 
@@ -110,23 +110,31 @@ export const analyzeError = (error: any): NetworkError => {
       isOffline: false,
       errorType: 'timeout',
       userMessage: '⏰ Server neodpovedá. Skúšam znova...',
-      technicalMessage: error.message,
+      technicalMessage: (error as Error).message,
     };
   }
 
   // Server errors (5xx)
-  if (error?.status >= 500 && error?.status < 600) {
+  if (
+    (error as { status?: number })?.status &&
+    (error as { status: number }).status >= 500 &&
+    (error as { status: number }).status < 600
+  ) {
     return {
       isNetworkError: false,
       isOffline: false,
       errorType: 'server',
       userMessage: '🔧 Server má problémy. Skúšam znova...',
-      technicalMessage: `Server error: ${error.status}`,
+      technicalMessage: `Server error: ${(error as { status: number }).status}`,
     };
   }
 
   // Client errors (4xx) - usually not retryable
-  if (error?.status >= 400 && error?.status < 500) {
+  if (
+    (error as { status?: number })?.status &&
+    (error as { status: number }).status >= 400 &&
+    (error as { status: number }).status < 500
+  ) {
     const userMessages = {
       401: '🔐 Relácia vypršala. Prihláste sa znova.',
       403: '⛔ Nemáte oprávnenie na túto akciu.',
@@ -139,9 +147,10 @@ export const analyzeError = (error: any): NetworkError => {
       isOffline: false,
       errorType: 'server',
       userMessage:
-        userMessages[error.status as keyof typeof userMessages] ||
-        `❌ Chyba: ${error.status}`,
-      technicalMessage: `Client error: ${error.status}`,
+        userMessages[
+          (error as { status: number }).status as keyof typeof userMessages
+        ] || `❌ Chyba: ${(error as { status: number }).status}`,
+      technicalMessage: `Client error: ${(error as { status: number }).status}`,
     };
   }
 
@@ -151,27 +160,37 @@ export const analyzeError = (error: any): NetworkError => {
     isOffline: !isOnline,
     errorType: 'unknown',
     userMessage: '❌ Neočakávaná chyba. Skúšam znova...',
-    technicalMessage: error.message || 'Unknown error',
+    technicalMessage: (error as Error).message || 'Unknown error',
   };
 };
 
 /**
  * ❓ Rozhodne či je error retryable
  */
-export const isRetryableError = (error: any): boolean => {
+export const isRetryableError = (error: unknown): boolean => {
   const analysis = analyzeError(error);
 
   // Network errors sú retryable
   if (analysis.isNetworkError) return true;
 
   // Server errors (5xx) sú retryable
-  if (analysis.errorType === 'server' && error?.status >= 500) return true;
+  if (
+    analysis.errorType === 'server' &&
+    (error as { status?: number })?.status &&
+    (error as { status: number }).status >= 500
+  )
+    return true;
 
   // Rate limiting (429) je retryable
-  if (error?.status === 429) return true;
+  if ((error as { status?: number })?.status === 429) return true;
 
   // Client errors (4xx) nie sú retryable (okrem 429)
-  if (error?.status >= 400 && error?.status < 500) return false;
+  if (
+    (error as { status?: number })?.status &&
+    (error as { status: number }).status >= 400 &&
+    (error as { status: number }).status < 500
+  )
+    return false;
 
   // Unknown errors sú retryable (pre istotu)
   if (analysis.errorType === 'unknown') return true;
@@ -194,9 +213,9 @@ export class EnhancedError extends Error {
   public readonly technicalMessage: string;
   public readonly errorType: string;
   public readonly isRetryable: boolean;
-  public readonly originalError: any;
+  public readonly originalError: Error;
 
-  constructor(error: any) {
+  constructor(error: unknown) {
     const analysis = analyzeError(error);
     super(analysis.technicalMessage);
 
@@ -204,7 +223,7 @@ export class EnhancedError extends Error {
     this.technicalMessage = analysis.technicalMessage;
     this.errorType = analysis.errorType;
     this.isRetryable = isRetryableError(error);
-    this.originalError = error;
+    this.originalError = error as Error;
 
     this.name = 'EnhancedError';
   }

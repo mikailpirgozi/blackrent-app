@@ -5,9 +5,9 @@ import type { ProcessedImage } from './imageProcessor';
 export interface ProtocolData {
   id: string;
   type: 'handover' | 'return';
-  rental: any;
+  rental: Record<string, unknown>;
   location: string;
-  vehicleCondition: any;
+  vehicleCondition: Record<string, unknown>;
   vehicleImages: ProcessedImage[];
   documentImages: ProcessedImage[];
   damageImages: ProcessedImage[];

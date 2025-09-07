@@ -1,22 +1,22 @@
 import {
-  EmojiEvents as TrophyIcon,
-  Star as StarIcon,
   DirectionsCar as CarIcon,
-  Person as PersonIcon,
   Euro as EuroIcon,
-  Speed as SpeedIcon,
   AttachMoney as MoneyIcon,
+  Person as PersonIcon,
+  Speed as SpeedIcon,
+  Star as StarIcon,
   AccessTime as TimeIcon,
+  EmojiEvents as TrophyIcon,
 } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
-  Typography,
   Card,
   CardContent,
-  Grid,
   Divider,
-  Avatar,
+  Grid,
   LinearProgress,
+  Typography,
 } from '@mui/material';
 import React from 'react';
 
@@ -24,7 +24,7 @@ import TopListCard from './TopListCard';
 import TopStatCard from './TopStatCard';
 
 interface TopStatsTabProps {
-  stats: any;
+  stats: Record<string, unknown>;
   formatPeriod: () => string;
   showVehiclesByUtilization: number;
   showVehiclesByRevenue: number;

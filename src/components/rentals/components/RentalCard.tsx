@@ -1,25 +1,24 @@
 import {
-  Edit as EditIcon,
-  DirectionsCar as CarIcon,
-  Person as PersonIcon,
   CalendarToday as CalendarIcon,
+  DirectionsCar as CarIcon,
+  Edit as EditIcon,
   Euro as EuroIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 import {
+  // Stack, // TODO: Implement stack layout
+  Avatar,
+  Box,
   Card,
   CardContent,
-  Typography,
-  Box,
   Chip,
   IconButton,
-  Stack,
-  Avatar,
+  Typography,
 } from '@mui/material';
-import React from 'react';
 
 import { useApp } from '../../../context/AppContext';
 import type { Rental } from '../../../types';
-import { formatDate, formatCurrency } from '../../../utils/formatters';
+import { formatCurrency, formatDate } from '../../../utils/formatters';
 
 interface RentalCardProps {
   rental: Rental;
@@ -27,7 +26,7 @@ interface RentalCardProps {
   index: number;
 }
 
-export function RentalCard({ rental, onEdit, index }: RentalCardProps) {
+export function RentalCard({ rental, onEdit }: RentalCardProps) {
   const { state } = useApp();
 
   // Nájdi vehicle pre tento rental
@@ -89,7 +88,16 @@ export function RentalCard({ rental, onEdit, index }: RentalCardProps) {
             <Chip
               label={rental.status}
               size="small"
-              color={getStatusColor(rental.status) as any}
+              color={
+                getStatusColor(rental.status) as
+                  | 'default'
+                  | 'primary'
+                  | 'secondary'
+                  | 'error'
+                  | 'info'
+                  | 'success'
+                  | 'warning'
+              }
               variant="outlined"
             />
             <IconButton

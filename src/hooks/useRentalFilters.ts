@@ -46,8 +46,11 @@ export interface FilterState {
 
 interface UseRentalFiltersProps {
   rentals: Rental[];
-  vehicles?: any[];
-  protocols?: Record<string, { handover?: any; return?: any }>;
+  vehicles?: Record<string, unknown>[];
+  protocols?: Record<
+    string,
+    { handover?: Record<string, unknown>; return?: Record<string, unknown> }
+  >;
 }
 
 interface UseRentalFiltersReturn {
@@ -434,6 +437,8 @@ export const useRentalFilters = ({
       showOnlyActive: false,
       showOnlyOverdue: false,
       showOnlyCompleted: false,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
     };
 
     const quickFilters = { ...baseFilters };
@@ -450,12 +455,13 @@ export const useRentalFilters = ({
         quickFilters.timeFilter = 'todayActivity';
         break;
 
-      case 'tomorrowReturns':
+      case 'tomorrowReturns': {
         // Zajtra vrátenie - prenájmy ktoré sa zajtra končia
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         quickFilters.dateTo = tomorrowStr;
         quickFilters.timeFilter = 'tomorrowReturns';
         break;
+      }
 
       case 'weekActivity':
         // Tento týždeň odovzdanie/vrátenie - prenájmy ktoré sa tento týždeň začínajú ALEBO končia
@@ -525,6 +531,8 @@ export const useRentalFilters = ({
       showOnlyActive: false,
       showOnlyOverdue: false,
       showOnlyCompleted: false,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
     });
     setShowFilters(false);
   }, []);
