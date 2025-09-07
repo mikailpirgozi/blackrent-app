@@ -115,7 +115,9 @@ class ApiService {
       const data: ApiResponse<T> = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'API chyba');
+        throw new Error(
+          data.error || `HTTP ${response.status}: ${response.statusText}`
+        );
       }
 
       return data.data as T;

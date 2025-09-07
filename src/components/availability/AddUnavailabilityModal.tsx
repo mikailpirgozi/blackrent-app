@@ -10,37 +10,34 @@
 
 import {
   Block as BlockIcon,
-  Build as ServiceIcon,
   DirectionsCar as RentedIcon,
+  Build as ServiceIcon,
   Warning as WarningIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Typography,
   Alert,
-  Box,
-  Chip,
   Autocomplete,
-  FormControlLabel,
-  Switch,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { format, addDays, isAfter, isBefore } from 'date-fns';
+import { addDays, format, isAfter } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
@@ -126,7 +123,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingUnavailabilities, setExistingUnavailabilities] = useState<
-    any[]
+    Record<string, unknown>[]
   >([]);
 
   const [formData, setFormData] = useState<UnavailabilityFormData>({
@@ -151,10 +148,14 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
           vehicleId: editingUnavailability.vehicleId.toString(),
           startDate: editingUnavailability.startDate,
           endDate: editingUnavailability.endDate,
-          type: editingUnavailability.type as any,
+          type: editingUnavailability.type as
+            | 'rented'
+            | 'maintenance'
+            | 'damage'
+            | 'other',
           reason: editingUnavailability.reason,
           notes: editingUnavailability.notes || '',
-          priority: (editingUnavailability.priority || 2) as any,
+          priority: (editingUnavailability.priority || 2) as 1 | 2 | 3,
           recurring: editingUnavailability.recurring || false,
         });
       } else {
@@ -187,7 +188,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
         reason: typeConfig.description,
       }));
     }
-  }, [formData.type]);
+  }, [formData.type, formData.reason]);
 
   // Load existing unavailabilities when vehicle changes
   useEffect(() => {
@@ -198,9 +199,9 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
 
   const loadExistingUnavailabilities = async (vehicleId: string) => {
     try {
-      const response = await apiService.get<{ data: any[] }>(
-        `/vehicle-unavailability?vehicleId=${vehicleId}`
-      );
+      const response = await apiService.get<{
+        data: Record<string, unknown>[];
+      }>(`/vehicle-unavailability?vehicleId=${vehicleId}`);
       setExistingUnavailabilities(response.data || []);
     } catch (err) {
       console.error('Error loading existing unavailabilities:', err);
@@ -414,7 +415,11 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                   onChange={e =>
                     setFormData(prev => ({
                       ...prev,
-                      type: e.target.value as any,
+                      type: e.target.value as
+                        | 'rented'
+                        | 'maintenance'
+                        | 'damage'
+                        | 'other',
                     }))
                   }
                   label="Typ nedostupnosti *"
@@ -504,7 +509,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                   onChange={e =>
                     setFormData(prev => ({
                       ...prev,
-                      priority: e.target.value as any,
+                      priority: e.target.value as 1 | 2 | 3,
                     }))
                   }
                   label="Priorita"

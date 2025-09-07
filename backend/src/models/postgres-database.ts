@@ -765,6 +765,84 @@ export class PostgresDatabase {
         logger.migration('⚠️ Migrácia 4 chyba:', errorObj.message);
       }
       
+      // Migrácia 5: Vytvorenie tabuľky recurring_expenses
+      try {
+        logger.migration('📋 Migrácia 5: Vytvorenie tabuľky recurring_expenses...');
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS recurring_expenses (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name VARCHAR(255) NOT NULL,
+            description TEXT NOT NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            company VARCHAR(255) NOT NULL,
+            vehicle_id VARCHAR(50),
+            note TEXT,
+            frequency VARCHAR(20) NOT NULL CHECK (frequency IN ('monthly', 'quarterly', 'yearly')),
+            start_date DATE NOT NULL,
+            end_date DATE,
+            day_of_month INTEGER NOT NULL DEFAULT 1 CHECK (day_of_month >= 1 AND day_of_month <= 28),
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            last_generated_date DATE,
+            next_generation_date DATE,
+            total_generated INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_by UUID
+          )
+        `);
+        
+        // Vytvorenie indexov pre lepší výkon
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_recurring_expenses_company ON recurring_expenses(company);
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_recurring_expenses_vehicle_id ON recurring_expenses(vehicle_id);
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_recurring_expenses_is_active ON recurring_expenses(is_active);
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_recurring_expenses_next_generation ON recurring_expenses(next_generation_date);
+        `);
+        
+        logger.migration('✅ Migrácia 5: Tabuľka recurring_expenses vytvorená');
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 5 chyba:', errorObj.message);
+      }
+      
+      // Migrácia 5b: Vytvorenie tabuľky recurring_expense_generations
+      try {
+        logger.migration('📋 Migrácia 5b: Vytvorenie tabuľky recurring_expense_generations...');
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS recurring_expense_generations (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            recurring_expense_id UUID NOT NULL REFERENCES recurring_expenses(id) ON DELETE CASCADE,
+            generated_expense_id INTEGER NOT NULL,
+            generation_date DATE NOT NULL,
+            generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            generated_by VARCHAR(50) DEFAULT 'system',
+            UNIQUE(recurring_expense_id, generation_date)
+          )
+        `);
+        
+        // Vytvorenie indexov
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_recurring_generations_recurring_id 
+          ON recurring_expense_generations(recurring_expense_id);
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_recurring_generations_date 
+          ON recurring_expense_generations(generation_date);
+        `);
+        
+        logger.migration('✅ Migrácia 5b: Tabuľka recurring_expense_generations vytvorená');
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 5b chyba:', errorObj.message);
+      }
+      
       // Migrácia 5: Pridanie signature_template a user info stĺpcov do users tabuľky
       try {
         logger.migration('📋 Migrácia 5: Pridávanie signature_template a user info stĺpcov do users...');
@@ -5165,6 +5243,49 @@ export class PostgresDatabase {
     }
   }
 
+  async getRecurringExpenseById(id: string): Promise<RecurringExpense | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(`
+        SELECT id, name, description, amount, category, company, vehicle_id, note,
+               frequency, start_date, end_date, day_of_month,
+               is_active, last_generated_date, next_generation_date, total_generated,
+               created_at, updated_at, created_by
+        FROM recurring_expenses 
+        WHERE id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        name: row.name,
+        description: row.description,
+        amount: parseFloat(row.amount) || 0,
+        category: row.category,
+        company: row.company,
+        vehicleId: row.vehicle_id?.toString(),
+        note: row.note || undefined,
+        frequency: row.frequency,
+        startDate: row.start_date,
+        endDate: row.end_date || undefined,
+        dayOfMonth: row.day_of_month,
+        isActive: row.is_active || true,
+        lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
+        nextGenerationDate: row.next_generation_date ? new Date(row.next_generation_date) : undefined,
+        totalGenerated: row.total_generated || 0,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        createdBy: row.created_by?.toString()
+      };
+    } finally {
+      client.release();
+    }
+  }
+
   async createRecurringExpense(recurringData: {
     name: string;
     description: string;
@@ -5183,8 +5304,8 @@ export class PostgresDatabase {
     try {
       const result = await client.query(`
         INSERT INTO recurring_expenses (name, description, amount, category, company, vehicle_id, note,
-                                       frequency, start_date, end_date, day_of_month, created_by) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+                                       frequency, start_date, end_date, day_of_month, created_by, is_active) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
         RETURNING id, name, description, amount, category, company, vehicle_id, note,
                   frequency, start_date, end_date, day_of_month,
                   is_active, last_generated_date, next_generation_date, total_generated,
@@ -5201,7 +5322,8 @@ export class PostgresDatabase {
         recurringData.startDate,
         recurringData.endDate || null,
         recurringData.dayOfMonth,
-        recurringData.createdBy || null
+        recurringData.createdBy || null,
+        true // is_active - default true for new recurring expenses
       ]);
 
       const row = result.rows[0];
@@ -5235,6 +5357,20 @@ export class PostgresDatabase {
   async updateRecurringExpense(recurring: RecurringExpense): Promise<void> {
     const client = await this.pool.connect();
     try {
+      await client.query('BEGIN');
+      
+      // Najprv skontroluj či záznam existuje
+      const checkResult = await client.query(
+        'SELECT id FROM recurring_expenses WHERE id = $1',
+        [recurring.id]
+      );
+      
+      if (checkResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        throw new Error('Recurring expense not found');
+      }
+      
+      // Aktualizuj záznam
       await client.query(`
         UPDATE recurring_expenses 
         SET name = $1, description = $2, amount = $3, category = $4, company = $5, 
@@ -5256,6 +5392,11 @@ export class PostgresDatabase {
         recurring.isActive,
         recurring.id
       ]);
+      
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
     } finally {
       client.release();
     }

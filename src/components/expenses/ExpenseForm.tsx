@@ -7,7 +7,7 @@ import {
   Select,
   TextField,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useApp } from '../../context/AppContext';
@@ -26,7 +26,8 @@ export default function ExpenseForm({
   onCancel,
   categories = [],
 }: ExpenseFormProps) {
-  const { state, dispatch, createCompany } = useApp();
+  const { state, createCompany, getFilteredVehicles } = useApp();
+  const allVehicles = getFilteredVehicles();
   const [addingCompany, setAddingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [formData, setFormData] = useState<Partial<Expense>>({
@@ -39,14 +40,32 @@ export default function ExpenseForm({
     note: '',
   });
 
+  // Filtrovanie vozidiel podľa vybranej firmy
+  const getVehiclesForCompany = (companyName: string) => {
+    if (!companyName) return allVehicles;
+    return allVehicles.filter(vehicle => vehicle.company === companyName);
+  };
+
   useEffect(() => {
     if (expense) {
       setFormData(expense);
     }
   }, [expense]);
 
-  const handleInputChange = (field: keyof Expense, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: keyof Expense,
+    value: string | number | Date | undefined
+  ) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+
+      // Ak sa zmenila firma, vymaž vybrané vozidlo
+      if (field === 'company' && prev.company !== value) {
+        newData.vehicleId = '';
+      }
+
+      return newData;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -224,9 +243,12 @@ export default function ExpenseForm({
               handleInputChange('vehicleId', e.target.value || undefined)
             }
             label="Vozidlo (voliteľné)"
+            disabled={!formData.company}
           >
-            <MenuItem value="">Všetky vozidlá</MenuItem>
-            {state.vehicles.map(vehicle => (
+            <MenuItem value="">
+              {formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'}
+            </MenuItem>
+            {getVehiclesForCompany(formData.company || '').map(vehicle => (
               <MenuItem key={vehicle.id} value={vehicle.id}>
                 {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
               </MenuItem>

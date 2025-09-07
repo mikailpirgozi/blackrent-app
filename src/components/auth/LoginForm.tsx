@@ -1,18 +1,17 @@
 import {
-  LockOutlined as LockIcon,
   AccountCircle as AccountIcon,
+  LockOutlined as LockIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  TextField,
-  Typography,
-  Alert,
-  Container,
-  Paper,
   Avatar,
+  Box,
+  Checkbox,
+  Container,
   Divider,
   FormControlLabel,
-  Checkbox,
+  Paper,
+  TextField,
+  Typography,
 } from '@mui/material';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAuthError } from '../../hooks/useEnhancedError';
 import type { LoginCredentials } from '../../types';
 import { EnhancedErrorToast } from '../common/EnhancedErrorToast';
-import { PrimaryButton, SecondaryButton, DefaultCard, StatusChip } from '../ui';
+import { DefaultCard, PrimaryButton, SecondaryButton, StatusChip } from '../ui';
 
 interface LoginFormProps {
   onLoginSuccess?: () => void;

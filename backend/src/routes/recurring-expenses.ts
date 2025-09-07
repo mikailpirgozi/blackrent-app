@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { postgresDatabase } from '../models/postgres-database';
-import type { RecurringExpense, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
+import { postgresDatabase } from '../models/postgres-database';
+import type { ApiResponse, RecurringExpense } from '../types';
 
 const router = Router();
 
@@ -123,7 +123,7 @@ router.post('/',
         data: createdRecurring
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Create recurring expense error:', error);
       res.status(500).json({
         success: false,
@@ -144,9 +144,8 @@ router.put('/:id',
         frequency, startDate, endDate, dayOfMonth, isActive 
       } = req.body;
 
-      // Získaj existujúci recurring expense
-      const existing = await postgresDatabase.getRecurringExpenses();
-      const recurringExpense = existing.find(r => r.id === id);
+      // Získaj existujúci recurring expense priamo z databázy
+      const recurringExpense = await postgresDatabase.getRecurringExpenseById(id);
       
       if (!recurringExpense) {
         return res.status(404).json({
@@ -196,15 +195,18 @@ router.put('/:id',
 
       await postgresDatabase.updateRecurringExpense(updatedRecurring);
 
-      console.log('🔄 Updated recurring expense:', { id, name });
+      // Načítaj fresh data z databázy pre potvrdenie
+      const freshData = await postgresDatabase.getRecurringExpenseById(id);
+      
+      console.log('🔄 Updated recurring expense:', { id, name, freshData: freshData?.category });
 
       res.json({
         success: true,
         message: 'Pravidelný náklad úspešne aktualizovaný',
-        data: updatedRecurring
+        data: freshData || updatedRecurring
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Update recurring expense error:', error);
       res.status(500).json({
         success: false,
@@ -230,7 +232,7 @@ router.delete('/:id',
         message: 'Pravidelný náklad úspešne zmazaný'
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete recurring expense error:', error);
       res.status(500).json({
         success: false,
@@ -258,7 +260,7 @@ router.post('/generate',
         data: results
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Generate recurring expenses error:', error);
       res.status(500).json({
         success: false,
@@ -287,11 +289,11 @@ router.post('/:id/generate',
         data: { generatedExpenseId }
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Generate single recurring expense error:', error);
       res.status(400).json({
         success: false,
-        error: error.message || 'Chyba pri generovaní nákladu'
+        error: error instanceof Error ? error.message : 'Chyba pri generovaní nákladu'
       });
     }
   });

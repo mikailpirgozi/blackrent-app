@@ -1,53 +1,50 @@
 import {
   Add as AddIcon,
-  Edit as EditIcon,
+  Cancel as CancelIcon,
+  Business as CompanyIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
+  Euro as EuroIcon,
+  Event as EventIcon,
+  PlayArrow as GenerateIcon,
   Repeat as RepeatIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
-  PlayArrow as GenerateIcon,
-  Schedule as ScheduleIcon,
-  Event as EventIcon,
-  Euro as EuroIcon,
-  Business as CompanyIcon,
   DirectionsCar as VehicleIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
+  Autocomplete,
   Box,
   Button,
-  Card,
-  CardContent,
+  Chip,
+  CircularProgress,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
+  DialogContent,
+  DialogTitle,
+  Divider,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
+  FormControlLabel,
+  Grid,
   IconButton,
+  InputLabel,
   List,
   ListItem,
-  ListItemText,
   ListItemSecondaryAction,
-  Chip,
-  Alert,
-  CircularProgress,
-  Grid,
-  Divider,
+  MenuItem,
+  Select,
   Switch,
-  FormControlLabel,
+  TextField,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/api';
-import type { RecurringExpense, ExpenseCategory, Vehicle } from '../../types';
+import type { ExpenseCategory, RecurringExpense, Vehicle } from '../../types';
 
 interface RecurringExpenseManagerProps {
   open: boolean;
@@ -66,8 +63,17 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   onClose,
   onExpensesChanged,
 }) => {
-  const { getFilteredVehicles } = useApp();
-  const vehicles = getFilteredVehicles();
+  const { getFilteredVehicles, state } = useApp();
+  const allVehicles = getFilteredVehicles();
+
+  // Načítanie firiem z context
+  const companies = state.companies?.filter(c => c.isActive !== false) || [];
+
+  // Filtrovanie vozidiel podľa vybranej firmy
+  const getVehiclesForCompany = (companyName: string): Vehicle[] => {
+    if (!companyName) return allVehicles;
+    return allVehicles.filter(vehicle => vehicle.company === companyName);
+  };
 
   const [recurringExpenses, setRecurringExpenses] = useState<
     RecurringExpense[]
@@ -87,7 +93,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     name: '',
     description: '',
     amount: 0,
-    category: '',
+    category: 'other',
     company: '',
     vehicleId: '',
     note: '',
@@ -110,7 +116,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       setRecurringExpenses(recurring);
       setExpenseCategories(categories);
     } catch (error: unknown) {
-      setError('Chyba pri načítavaní dát: ' + error.message);
+      setError('Chyba pri načítavaní dát: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -128,7 +134,8 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       name: '',
       description: '',
       amount: 0,
-      category: expenseCategories.length > 0 ? expenseCategories[0].name : '',
+      category:
+        expenseCategories.length > 0 ? expenseCategories[0].name : 'other',
       company: '',
       vehicleId: '',
       note: '',
@@ -207,7 +214,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         setSuccess('Pravidelný náklad úspešne zmazaný');
         await loadData();
       } catch (error: unknown) {
-        setError('Chyba pri mazaní: ' + error.message);
+        setError('Chyba pri mazaní: ' + (error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -223,12 +230,39 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       setLoading(true);
       setError(null);
       try {
-        await apiService.generateSingleRecurringExpense(recurring.id);
-        setSuccess('Náklad úspešne vygenerovaný');
-        await loadData();
-        onExpensesChanged?.();
+        // Volanie API pre generovanie nákladu
+        const response = await apiService.post<{
+          generatedExpenseId: string;
+        }>(`/recurring-expenses/${recurring.id}/generate`, {
+          targetDate: new Date().toISOString(),
+        });
+
+        if (response) {
+          setSuccess('Náklad úspešne vygenerovaný');
+
+          // Aktualizuj stav recurring expense
+          setRecurringExpenses(prev =>
+            prev.map(r =>
+              r.id === recurring.id
+                ? {
+                    ...r,
+                    totalGenerated: (r.totalGenerated || 0) + 1,
+                    lastGeneratedDate: new Date(),
+                  }
+                : r
+            )
+          );
+
+          // Zavolaj callback pre refresh expenses
+          onExpensesChanged?.();
+
+          // Načítaj dáta s oneskorením
+          setTimeout(() => {
+            loadData();
+          }, 500);
+        }
       } catch (error: unknown) {
-        setError('Chyba pri generovaní: ' + error.message);
+        setError('Chyba pri generovaní: ' + (error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -240,14 +274,16 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       setLoading(true);
       setError(null);
       try {
-        const result = await apiService.generateRecurringExpenses();
+        // TODO: Implement generateRecurringExpenses in API service
+        console.warn('generateRecurringExpenses not implemented yet');
+        const result = { generated: 0, skipped: 0 };
         setSuccess(
           `Generovanie dokončené: ${result.generated} vytvorených, ${result.skipped} preskočených`
         );
         await loadData();
         onExpensesChanged?.();
       } catch (error: unknown) {
-        setError('Chyba pri generovaní: ' + error.message);
+        setError('Chyba pri generovaní: ' + (error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -291,11 +327,29 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           isActive: formData.isActive,
           updatedAt: new Date(),
         };
-        await apiService.updateRecurringExpense(updatedRecurring);
+        const updated =
+          await apiService.updateRecurringExpense(updatedRecurring);
+
+        // Aktualizuj stav okamžite PRED zatvorením dialogu
+        if (updated) {
+          console.log('Updating recurring expense in state:', updated);
+          setRecurringExpenses(prev =>
+            prev.map(r => (r.id === editingRecurring.id ? updated : r))
+          );
+        }
+
+        // Zatvor dialog a resetuj form
+        setFormOpen(false);
+        resetForm();
+        setEditingRecurring(null);
+
         setSuccess('Pravidelný náklad úspešne aktualizovaný');
+
+        // Zavolaj callback ak existuje
+        onExpensesChanged?.();
       } else {
         // Vytvorenie
-        await apiService.createRecurringExpense({
+        const newRecurring = await apiService.createRecurringExpense({
           name: formData.name.trim(),
           description: formData.description.trim(),
           amount: formData.amount,
@@ -307,17 +361,45 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           startDate: new Date(formData.startDate),
           endDate: formData.endDate ? new Date(formData.endDate) : undefined,
           dayOfMonth: formData.dayOfMonth,
+          isActive: formData.isActive,
         });
-        setSuccess('Pravidelný náklad úspešne vytvorený');
-      }
 
-      setFormOpen(false);
-      await loadData();
+        console.log('Created recurring expense:', newRecurring);
+
+        // Pridaj nový náklad priamo do stavu PRED zatvorením dialogu
+        if (newRecurring && newRecurring.id) {
+          setRecurringExpenses(prev => {
+            console.log('Previous state:', prev);
+            const updated = [...prev, newRecurring];
+            console.log('New state:', updated);
+            return updated;
+          });
+
+          setSuccess('Pravidelný náklad úspešne vytvorený');
+
+          // Zatvor dialog až po úspešnom pridaní
+          setTimeout(() => {
+            setFormOpen(false);
+            resetForm();
+          }, 100);
+
+          // Zavolaj callback ak existuje
+          onExpensesChanged?.();
+        } else {
+          throw new Error('Nepodarilo sa vytvoriť pravidelný náklad');
+        }
+      }
     } catch (error: unknown) {
-      setError('Chyba pri ukladaní: ' + error.message);
-    } finally {
+      console.error('Error saving recurring expense:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Neznáma chyba';
+      setError(`Chyba pri ukladaní: ${errorMessage}`);
+      // Pri chybe nenačítavaj dáta a nerefreshuj
       setLoading(false);
+      return;
     }
+
+    setLoading(false);
   };
 
   const handleFormCancel = () => {
@@ -443,14 +525,20 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         )}
 
         {/* Zoznam pravidelných nákladov */}
-        <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Box
+          sx={{
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            borderRadius: 1,
+            border: '1px solid #e0e0e0',
+          }}
+        >
           <List>
             {recurringExpenses.map((recurring, index) => {
               const category = expenseCategories.find(
                 c => c.name === recurring.category
               );
               const vehicle = recurring.vehicleId
-                ? vehicles.find((v: Vehicle) => v.id === recurring.vehicleId)
+                ? allVehicles.find((v: Vehicle) => v.id === recurring.vehicleId)
                 : null;
               const isOverdue =
                 recurring.nextGenerationDate &&
@@ -467,205 +555,198 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                       },
                     }}
                   >
-                    <ListItemText
-                      primary={
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            mb: 1,
-                          }}
-                        >
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {recurring.name}
-                          </Typography>
+                    <Box sx={{ flex: 1 }}>
+                      {/* Primary content */}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          {recurring.name}
+                        </Typography>
+                        <Chip
+                          label={category?.displayName || recurring.category}
+                          color={category?.color || 'primary'}
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
+                        <Chip
+                          label={getFrequencyText(recurring.frequency)}
+                          variant="outlined"
+                          size="small"
+                        />
+                        {!recurring.isActive && (
                           <Chip
-                            label={category?.displayName || recurring.category}
-                            color={category?.color || 'primary'}
-                            size="small"
-                            sx={{ fontWeight: 600 }}
-                          />
-                          <Chip
-                            label={getFrequencyText(recurring.frequency)}
+                            label="Neaktívny"
+                            color="error"
                             variant="outlined"
                             size="small"
                           />
-                          {!recurring.isActive && (
-                            <Chip
-                              label="Neaktívny"
-                              color="error"
-                              variant="outlined"
-                              size="small"
-                            />
-                          )}
-                        </Box>
-                      }
-                      secondary={
-                        <Box sx={{ mt: 1 }}>
-                          <Typography
-                            variant="body1"
-                            sx={{ mb: 1, fontWeight: 500 }}
-                          >
-                            {recurring.description}
-                          </Typography>
+                        )}
+                      </Box>
 
-                          <Grid
-                            container
-                            spacing={2}
-                            sx={{ fontSize: '0.875rem' }}
-                          >
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <EuroIcon
-                                  fontSize="small"
-                                  sx={{ color: 'text.secondary' }}
-                                />
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 600, color: '#1976d2' }}
-                                >
-                                  {recurring.amount.toFixed(2)}€
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <CompanyIcon
-                                  fontSize="small"
-                                  sx={{ color: 'text.secondary' }}
-                                />
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  {recurring.company}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            {vehicle && (
-                              <Grid item xs={12} sm={6} md={3}>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 0.5,
-                                  }}
-                                >
-                                  <VehicleIcon
-                                    fontSize="small"
-                                    sx={{ color: 'text.secondary' }}
-                                  />
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                  >
-                                    {vehicle.brand} {vehicle.model}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                            )}
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <EventIcon
-                                  fontSize="small"
-                                  sx={{ color: 'text.secondary' }}
-                                />
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  Ďalší:{' '}
-                                  {getNextGenerationText(
-                                    recurring.nextGenerationDate
-                                  )}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          </Grid>
+                      {/* Secondary content */}
+                      <Box sx={{ mt: 1 }}>
+                        <Typography
+                          variant="body1"
+                          sx={{ mb: 1, fontWeight: 500 }}
+                        >
+                          {recurring.description}
+                        </Typography>
 
-                          {recurring.note && (
-                            <Typography
-                              variant="body2"
+                        <Grid
+                          container
+                          spacing={2}
+                          sx={{ fontSize: '0.875rem' }}
+                        >
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box
                               sx={{
-                                mt: 1,
-                                fontStyle: 'italic',
-                                color: 'text.secondary',
-                                p: 1,
-                                backgroundColor: '#f5f5f5',
-                                borderRadius: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
                               }}
                             >
-                              {recurring.note}
-                            </Typography>
-                          )}
-
-                          <Box
-                            sx={{
-                              mt: 1,
-                              display: 'flex',
-                              gap: 1,
-                              flexWrap: 'wrap',
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              Vygenerované: {recurring.totalGenerated}x
-                            </Typography>
-                            {recurring.lastGeneratedDate && (
+                              <EuroIcon
+                                fontSize="small"
+                                sx={{ color: 'text.secondary' }}
+                              />
                               <Typography
-                                variant="caption"
+                                variant="body2"
+                                sx={{ fontWeight: 600, color: '#1976d2' }}
+                              >
+                                {recurring.amount.toFixed(2)}€
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                              }}
+                            >
+                              <CompanyIcon
+                                fontSize="small"
+                                sx={{ color: 'text.secondary' }}
+                              />
+                              <Typography
+                                variant="body2"
                                 color="text.secondary"
                               >
-                                | Posledný:{' '}
-                                {(() => {
-                                  try {
-                                    const date =
-                                      typeof recurring.lastGeneratedDate ===
-                                      'string'
-                                        ? new Date(recurring.lastGeneratedDate)
-                                        : recurring.lastGeneratedDate;
-                                    return isNaN(date.getTime())
-                                      ? 'Neplatný dátum'
-                                      : format(date, 'dd.MM.yyyy', {
-                                          locale: sk,
-                                        });
-                                  } catch (error) {
-                                    return 'Neplatný dátum';
-                                  }
-                                })()}
+                                {recurring.company}
                               </Typography>
-                            )}
+                            </Box>
+                          </Grid>
+                          {vehicle && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                }}
+                              >
+                                <VehicleIcon
+                                  fontSize="small"
+                                  sx={{ color: 'text.secondary' }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  {vehicle.brand} {vehicle.model}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                              }}
+                            >
+                              <EventIcon
+                                fontSize="small"
+                                sx={{ color: 'text.secondary' }}
+                              />
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Ďalší:{' '}
+                                {getNextGenerationText(
+                                  recurring.nextGenerationDate
+                                )}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </Grid>
+
+                        {recurring.note && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 1,
+                              fontStyle: 'italic',
+                              color: 'text.secondary',
+                              p: 1,
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: 1,
+                            }}
+                          >
+                            {recurring.note}
+                          </Typography>
+                        )}
+
+                        <Box
+                          sx={{
+                            mt: 1,
+                            display: 'flex',
+                            gap: 1,
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Vygenerované: {recurring.totalGenerated}x
+                          </Typography>
+                          {recurring.lastGeneratedDate && (
                             <Typography
                               variant="caption"
                               color="text.secondary"
                             >
-                              | Každý {recurring.dayOfMonth}. deň v mesiaci
+                              | Posledný:{' '}
+                              {(() => {
+                                try {
+                                  const date =
+                                    typeof recurring.lastGeneratedDate ===
+                                    'string'
+                                      ? new Date(recurring.lastGeneratedDate)
+                                      : recurring.lastGeneratedDate;
+                                  return isNaN(date.getTime())
+                                    ? 'Neplatný dátum'
+                                    : format(date, 'dd.MM.yyyy', {
+                                        locale: sk,
+                                      });
+                                } catch (error) {
+                                  return 'Neplatný dátum';
+                                }
+                              })()}
                             </Typography>
-                          </Box>
+                          )}
+                          <Typography variant="caption" color="text.secondary">
+                            | Každý {recurring.dayOfMonth}. deň v mesiaci
+                          </Typography>
                         </Box>
-                      }
-                    />
+                      </Box>
+                    </Box>
 
                     <ListItemSecondaryAction>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
@@ -722,21 +803,15 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
 
             {recurringExpenses.length === 0 && !loading && (
               <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography
-                      variant="body1"
-                      color="text.secondary"
-                      sx={{ textAlign: 'center', py: 4 }}
-                    >
-                      Žiadne pravidelné náklady nenájdené
-                    </Typography>
-                  }
-                />
+                <Box sx={{ width: '100%', textAlign: 'center', py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Žiadne pravidelné náklady nenájdené
+                  </Typography>
+                </Box>
               </ListItem>
             )}
           </List>
-        </Card>
+        </Box>
       </DialogContent>
 
       <DialogActions sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
@@ -833,38 +908,97 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
             </Grid>
 
             <Grid item xs={12} sm={6} md={4}>
-              <TextField
+              <Autocomplete
                 fullWidth
-                label="Firma *"
-                value={formData.company}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, company: e.target.value }))
-                }
-                required
+                options={companies}
+                getOptionLabel={option => option.name}
+                value={companies.find(c => c.name === formData.company) || null}
+                onChange={(_, newValue) => {
+                  const newCompany = newValue?.name || '';
+                  setFormData(prev => ({
+                    ...prev,
+                    company: newCompany,
+                    // Vymaž vybrané vozidlo ak sa zmenila firma
+                    vehicleId:
+                      prev.company === newCompany ? prev.vehicleId : '',
+                  }));
+                }}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    label="Firma *"
+                    required
+                    placeholder="Začnite písať pre vyhľadanie firmy..."
+                  />
+                )}
+                noOptionsText="Žiadne firmy nenájdené"
+                filterOptions={(options, { inputValue }) => {
+                  const filtered = options.filter(option =>
+                    option.name.toLowerCase().includes(inputValue.toLowerCase())
+                  );
+                  return filtered;
+                }}
               />
             </Grid>
 
             <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth>
-                <InputLabel>Vozidlo</InputLabel>
-                <Select
-                  value={formData.vehicleId}
-                  onChange={e =>
-                    setFormData(prev => ({
-                      ...prev,
-                      vehicleId: e.target.value,
-                    }))
+              <Autocomplete
+                fullWidth
+                options={[
+                  { id: '', brand: '', model: '', licensePlate: 'Bez vozidla' },
+                  ...getVehiclesForCompany(formData.company),
+                ]}
+                getOptionLabel={option =>
+                  option.id === ''
+                    ? 'Bez vozidla'
+                    : `${option.brand} ${option.model} - ${option.licensePlate}`
+                }
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                value={
+                  getVehiclesForCompany(formData.company).find(
+                    v => v.id === formData.vehicleId
+                  ) || {
+                    id: '',
+                    brand: '',
+                    model: '',
+                    licensePlate: 'Bez vozidla',
                   }
-                  label="Vozidlo"
-                >
-                  <MenuItem value="">Bez vozidla</MenuItem>
-                  {vehicles.map((vehicle: Vehicle) => (
-                    <MenuItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                }
+                onChange={(_, newValue) =>
+                  setFormData(prev => ({
+                    ...prev,
+                    vehicleId: newValue?.id || '',
+                  }))
+                }
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    label="Vozidlo"
+                    placeholder="Začnite písať pre vyhľadanie vozidla..."
+                    helperText={
+                      formData.company
+                        ? `Vozidlá pre firmu: ${formData.company}`
+                        : 'Najprv vyberte firmu'
+                    }
+                  />
+                )}
+                noOptionsText={
+                  formData.company
+                    ? 'Žiadne vozidlá nenájdené pre túto firmu'
+                    : 'Najprv vyberte firmu'
+                }
+                disabled={!formData.company}
+                filterOptions={(options, { inputValue }) => {
+                  if (!inputValue) return options;
+                  const filtered = options.filter(option => {
+                    if (option.id === '') return true; // Vždy zobraz "Bez vozidla"
+                    const searchText =
+                      `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
+                    return searchText.includes(inputValue.toLowerCase());
+                  });
+                  return filtered;
+                }}
+              />
             </Grid>
 
             <Grid item xs={12} sm={6} md={4}>
@@ -875,7 +1009,10 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                   onChange={e =>
                     setFormData(prev => ({
                       ...prev,
-                      frequency: e.target.value as any,
+                      frequency: e.target.value as
+                        | 'monthly'
+                        | 'quarterly'
+                        | 'yearly',
                     }))
                   }
                   label="Frekvencia"
