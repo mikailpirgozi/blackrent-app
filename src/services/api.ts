@@ -143,12 +143,13 @@ class ApiService {
 
         const protocolData = data as ApiResponse<T> & ProtocolApiResponse;
 
-        // Backend vracia štruktúru: { success, protocol, email, pdfProxyUrl }
+        // Backend vracia štruktúru: { success, protocol: { pdfProxyUrl }, email }
         if (protocolData.success && protocolData.protocol) {
+          const protocol = protocolData.protocol as { pdfProxyUrl?: string };
           console.log('🔍 Protocol created with full response:', {
             hasProtocol: !!protocolData.protocol,
             hasEmail: !!protocolData.email,
-            hasPdfUrl: !!protocolData.pdfProxyUrl,
+            hasPdfUrl: !!protocol.pdfProxyUrl,
           });
           // Vrátime celý response objekt, nie len protocol
           return data as T;
