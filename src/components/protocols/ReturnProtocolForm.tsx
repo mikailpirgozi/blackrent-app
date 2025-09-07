@@ -18,7 +18,7 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
+  // CircularProgress, // REMOVED - not needed with React Query
   Grid,
   IconButton,
   LinearProgress,
@@ -29,7 +29,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useAuth } from '../../context/AuthContext';
+import { useCreateReturnProtocol } from '../../lib/react-query/hooks/useProtocols';
 import type {
+  Customer,
   HandoverProtocol,
   ProtocolImage,
   ProtocolSignature,
@@ -38,7 +40,7 @@ import type {
   ReturnProtocol,
   Vehicle,
 } from '../../types';
-import { getApiBaseUrl } from '../../utils/apiUrl';
+// import { getApiBaseUrl } from '../../utils/apiUrl'; // REMOVED - React Query handles API calls
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 
@@ -58,7 +60,10 @@ export default function ReturnProtocolForm({
   onSave,
 }: ReturnProtocolFormProps) {
   const { state } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const createReturnProtocol = useCreateReturnProtocol();
+
+  // Loading state z React Query
+  const isLoading = createReturnProtocol.isPending;
   const [emailStatus, setEmailStatus] = useState<{
     status: 'pending' | 'success' | 'error' | 'warning';
     message?: string;
@@ -72,10 +77,7 @@ export default function ReturnProtocolForm({
     role: 'customer' | 'employee';
   } | null>(null);
 
-  // Retry mechanism state
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const MAX_RETRIES = 3;
+  // Retry mechanism state - REMOVED (React Query handles retries automatically)
 
   // 🔧 NOVÉ: Editácia ceny za km
   const [isEditingKmRate, setIsEditingKmRate] = useState(false);
@@ -308,38 +310,27 @@ export default function ReturnProtocolForm({
     }));
   };
 
-  const performSave = async (): Promise<{
-    protocol: ReturnProtocol | null;
-    email?: { sent: boolean; recipient?: string; error?: string };
-  }> => {
+  // performSave funkcia bola nahradená React Query mutation v handleSave
+
+  // Retry mechanism for failed requests
+
+  const handleSave = async () => {
+    // Validácia
     if (!formData.location) {
-      console.warn('❌ Validation: Miesto vrátenia nie je vyplnené');
-      throw new Error('Miesto vrátenia nie je vyplnené');
+      setEmailStatus({
+        status: 'error',
+        message: '❌ Miesto vrátenia nie je vyplnené',
+      });
+      return;
     }
 
     try {
-      setLoading(true);
+      setEmailStatus({
+        status: 'pending',
+        message: 'Odosielam protokol a email...',
+      });
 
-      // Kontrola handoverProtocol
-      if (!handoverProtocol) {
-        console.error(
-          '❌ handoverProtocol is undefined - cannot create return protocol'
-        );
-        throw new Error(
-          'handoverProtocol is undefined - cannot create return protocol'
-        );
-      }
-
-      const isDevelopment = process.env.NODE_ENV === 'development';
-
-      if (isDevelopment) {
-        console.log(
-          'Creating return protocol for handover:',
-          handoverProtocol.id
-        );
-      }
-
-      // Vytvorenie protokolu s pôvodnou štruktúrou
+      // Vytvorenie protokolu podľa správnej ReturnProtocol štruktúry
       const protocol: ReturnProtocol = {
         id: uuidv4(),
         rentalId: rental.id,
@@ -357,323 +348,101 @@ export default function ReturnProtocolForm({
           fuelType: formData.fuelType,
           exteriorCondition: formData.exteriorCondition,
           interiorCondition: formData.interiorCondition,
-          notes: formData.notes || '',
+          notes: formData.notes,
         },
-        vehicleImages: formData.vehicleImages || [],
-        vehicleVideos: formData.vehicleVideos || [],
-        documentImages: formData.documentImages || [],
-        documentVideos: formData.documentVideos || [],
-        damageImages: formData.damageImages || [],
-        damageVideos: formData.damageVideos || [],
+        vehicleImages: formData.vehicleImages,
+        documentImages: formData.documentImages,
+        damageImages: formData.damageImages,
+        vehicleVideos: formData.vehicleVideos,
+        documentVideos: formData.documentVideos,
+        damageVideos: formData.damageVideos,
+        signatures: formData.signatures,
         damages: [],
         newDamages: [],
-        signatures: [],
-        kilometersUsed: fees.kilometersUsed,
-        kilometerOverage: fees.kilometerOverage,
-        kilometerFee: fees.kilometerFee,
-        // 🔧 NOVÉ: Informácia o cene za km sa pridá do poznámok nižšie
-        fuelUsed: fees.fuelUsed,
-        fuelFee: fees.fuelFee,
-        totalExtraFees: fees.totalExtraFees,
-        depositRefund: fees.depositRefund,
-        additionalCharges: fees.additionalCharges,
-        finalRefund: fees.finalRefund,
+        // Kilometer calculations
+        kilometersUsed: Math.max(
+          0,
+          (formData.odometer || 0) -
+            (handoverProtocol?.vehicleCondition?.odometer || 0)
+        ),
+        kilometerOverage: Math.max(
+          0,
+          (formData.odometer || 0) -
+            (handoverProtocol?.vehicleCondition?.odometer || 0) -
+            (rental.allowedKilometers || 0)
+        ),
+        kilometerFee:
+          (customKmRate || originalKmRate) *
+          Math.max(
+            0,
+            (formData.odometer || 0) -
+              (handoverProtocol?.vehicleCondition?.odometer || 0) -
+              (rental.allowedKilometers || 0)
+          ),
+        // Fuel calculations
+        fuelUsed: Math.max(
+          0,
+          (handoverProtocol?.vehicleCondition?.fuelLevel || 100) -
+            formData.fuelLevel
+        ),
+        fuelFee: 0, // Bude vypočítané neskôr
+        totalExtraFees:
+          (customKmRate || originalKmRate) *
+          Math.max(
+            0,
+            (formData.odometer || 0) -
+              (handoverProtocol?.vehicleCondition?.odometer || 0) -
+              (rental.allowedKilometers || 0)
+          ),
+        // Refund calculations
+        depositRefund: rental.deposit || 0,
+        additionalCharges: 0,
+        finalRefund: rental.deposit || 0,
+        // Rental data snapshot
         rentalData: {
           orderNumber: rental.orderNumber || '',
-          vehicle:
-            rental.vehicle ||
-            ({
-              id: '',
-              brand: '',
-              model: '',
-              licensePlate: '',
-              pricing: [],
-              commission: { type: 'percentage', value: 0 },
-              status: 'available',
-            } as Vehicle),
-          customer: {
-            id: rental.customerId || '',
-            name: rental.customerName || '',
-            email:
-              rental.customer?.email ||
-              ((rental as unknown as Record<string, unknown>)
-                .customerEmail as string) ||
-              '',
-            phone:
-              rental.customer?.phone ||
-              ((rental as unknown as Record<string, unknown>)
-                .customerPhone as string) ||
-              '',
-            createdAt: rental.customer?.createdAt || new Date(),
-          },
-          startDate:
-            typeof rental.startDate === 'string'
-              ? new Date(rental.startDate)
-              : rental.startDate,
-          endDate:
-            typeof rental.endDate === 'string'
-              ? new Date(rental.endDate)
-              : rental.endDate,
+          vehicle: rental.vehicle || ({} as Vehicle),
+          vehicleVin: rental.vehicleVin,
+          customer: rental.customer || ({} as Customer),
+          startDate: rental.startDate as Date,
+          endDate: rental.endDate as Date,
           totalPrice: rental.totalPrice,
           deposit: rental.deposit || 0,
           currency: 'EUR',
           allowedKilometers: rental.allowedKilometers || 0,
-          extraKilometerRate: rental.extraKilometerRate || 0.5,
-          pickupLocation: rental.pickupLocation || rental.handoverPlace,
-          returnLocation: rental.returnLocation,
+          extraKilometerRate: rental.extraKilometerRate || 0,
           returnConditions: rental.returnConditions,
         },
-        pdfUrl: '',
-        emailSent: false,
-        notes:
-          `${formData.notes || ''}\n\nCena za km: ${customKmRate !== null ? customKmRate : rental.extraKilometerRate || 0.5}€/km${customKmRate !== null ? ' (upravené)' : ' (cenník)'}`.trim(),
+        // Creator info
         createdBy: state.user
           ? `${state.user.firstName || ''} ${state.user.lastName || ''}`.trim() ||
             state.user.username
           : 'admin',
       };
 
-      if (isDevelopment) {
-        console.log('Protocol object created:', protocol.id);
-      }
+      // Použitie React Query mutation
+      await createReturnProtocol.mutateAsync(protocol);
 
-      // Vyčisti media objekty pred odoslaním - odstráni problematické properties
-      const cleanedProtocol = {
-        ...protocol,
-        // Vyčisti nested rental objekt - odstráni problematické properties
-        rental: protocol.rental
-          ? {
-              ...protocol.rental,
-              // Ak rental obsahuje media properties, vyčisti ich
-              vehicleImages: undefined,
-              vehicleVideos: undefined,
-              documentImages: undefined,
-              damageImages: undefined,
-            }
-          : undefined,
-        // Vyčisti nested handoverProtocol objekt
-        handoverProtocol: protocol.handoverProtocol
-          ? {
-              id: protocol.handoverProtocol.id,
-              rentalId: protocol.handoverProtocol.rentalId,
-              type: protocol.handoverProtocol.type,
-              status: protocol.handoverProtocol.status,
-              location: protocol.handoverProtocol.location,
-              createdAt: protocol.handoverProtocol.createdAt,
-              completedAt: protocol.handoverProtocol.completedAt,
-              vehicleCondition: protocol.handoverProtocol.vehicleCondition,
-              // Vyčisti media arrays z handoverProtocol
-              vehicleImages: undefined,
-              vehicleVideos: undefined,
-              documentImages: undefined,
-              damageImages: undefined,
-              damages: protocol.handoverProtocol.damages || [],
-              signatures: formData.signatures,
-              rentalData: protocol.handoverProtocol.rentalData,
-              pdfUrl: protocol.handoverProtocol.pdfUrl,
-              emailSent: protocol.handoverProtocol.emailSent,
-              notes: protocol.handoverProtocol.notes,
-              createdBy: protocol.handoverProtocol.createdBy,
-            }
-          : undefined,
-        // Vyčisti main protocol media arrays
-        vehicleImages: (protocol.vehicleImages || []).map(
-          (img: ProtocolImage) => ({
-            id: img.id,
-            url: img.url,
-            type: img.type,
-            description: img.description || '',
-            timestamp: img.timestamp,
-          })
-        ),
-        vehicleVideos: (protocol.vehicleVideos || []).map(
-          (vid: ProtocolVideo) => ({
-            id: vid.id,
-            url: vid.url,
-            type: vid.type,
-            description: vid.description || '',
-            timestamp: vid.timestamp,
-          })
-        ),
-        documentImages: (protocol.documentImages || []).map(
-          (img: ProtocolImage) => ({
-            id: img.id,
-            url: img.url,
-            type: img.type,
-            description: img.description || '',
-            timestamp: img.timestamp,
-          })
-        ),
-        damageImages: (protocol.damageImages || []).map(
-          (img: ProtocolImage) => ({
-            id: img.id,
-            url: img.url,
-            type: img.type,
-            description: img.description || '',
-            timestamp: img.timestamp,
-          })
-        ),
-      };
+      // Automatický refresh - NETREBA! React Query to spraví automaticky
 
-      if (isDevelopment) {
-        console.log('Sending return protocol to API...');
-      }
+      // Success callback
+      onSave(protocol);
 
-      // API call
-      const apiBaseUrl = getApiBaseUrl();
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-
-      const response = await fetch(`${apiBaseUrl}/protocols/return`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify(cleanedProtocol),
+      setEmailStatus({
+        status: 'success',
+        message: '✅ Protokol bol úspešne uložený',
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Response Error:', response.status, errorText);
-        throw new Error(`API error: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      if (isDevelopment) {
-        console.log(
-          'Return protocol saved successfully:',
-          result.id || 'success'
-        );
-      }
-
-      // Update email status based on response
-      if (result && result.email) {
-        if (result.email.sent) {
-          setEmailStatus({
-            status: 'success',
-            message: `✅ Protokol bol úspešne odoslaný na email ${result.email.recipient}`,
-          });
-        } else if (result.email.error) {
-          setEmailStatus({
-            status: 'error',
-            message: `❌ Protokol bol uložený, ale email sa nepodarilo odoslať: ${result.email.error}`,
-          });
-        } else {
-          // Email sa neodoslal ale nie je error - pravdepodobne R2 problém
-          setEmailStatus({
-            status: 'warning',
-            message: `⚠️ Protokol bol uložený, ale email sa nepodarilo odoslať (problém s PDF úložiskom)`,
-          });
-        }
-      } else {
-        setEmailStatus({
-          status: 'success',
-          message: `✅ Protokol bol úspešne uložený`,
-        });
-      }
-
-      // Okamžite uložíme protokol
-      if (result && result.protocol) {
-        onSave(result.protocol);
-      }
-
-      // Return result for retry mechanism
-      return result;
+      // Počkáme 2 sekundy pred zatvorením
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (error) {
       console.error('❌ Error saving return protocol:', error);
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Retry mechanism for failed requests
-  const performSaveWithRetry = async (): Promise<{
-    protocol: ReturnProtocol | null;
-    email?: { sent: boolean; recipient?: string; error?: string };
-  }> => {
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        setRetryCount(attempt - 1);
-        return await performSave();
-      } catch (error) {
-        if (attempt === MAX_RETRIES) {
-          setRetryCount(0);
-          throw error;
-        }
-
-        setIsRetrying(true);
-        setEmailStatus({
-          status: 'warning',
-          message: `Pokus ${attempt}/${MAX_RETRIES} zlyhal, opakujem za 2 sekundy...`,
-        });
-
-        // Wait with exponential backoff
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-      }
-    }
-
-    return {
-      protocol: null,
-      email: { sent: false, error: 'Max retries exceeded' },
-    };
-  };
-
-  const handleSave = async () => {
-    try {
-      setEmailStatus({
-        status: 'pending',
-        message: 'Odosielam protokol a email...',
-      });
-
-      const result = await performSaveWithRetry();
-
-      // Update email status based on response
-      if (result && result.email) {
-        if (result.email.sent) {
-          setEmailStatus({
-            status: 'success',
-            message: `✅ Protokol bol úspešne odoslaný na email ${result.email.recipient}`,
-          });
-        } else if (result.email.error) {
-          setEmailStatus({
-            status: 'error',
-            message: `❌ Protokol bol uložený, ale email sa nepodarilo odoslať: ${result.email.error}`,
-          });
-        } else {
-          setEmailStatus({
-            status: 'warning',
-            message: `⚠️ Protokol bol uložený, ale email sa nepodarilo odoslať (problém s PDF úložiskom)`,
-          });
-        }
-      } else {
-        setEmailStatus({
-          status: 'success',
-          message: `✅ Protokol bol úspešne uložený`,
-        });
-      }
-
-      // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
-      setTimeout(() => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Email status displayed, closing modal');
-        }
-        onClose();
-      }, 4000);
-    } catch (error) {
       setEmailStatus({
         status: 'error',
-        message: `❌ Nastala chyba po ${MAX_RETRIES} pokusoch: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `❌ Chyba pri ukladaní protokolu: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
-      console.error('❌ Protocol save failed in handleSave:', error);
-    } finally {
-      setIsRetrying(false);
-      setRetryCount(0);
     }
   };
 
@@ -685,11 +454,11 @@ export default function ReturnProtocolForm({
       }}
     >
       {/* Email Status */}
-      {(loading || emailStatus?.status === 'pending') && (
+      {(isLoading || emailStatus?.status === 'pending') && (
         <Box sx={{ mb: 2 }}>
           <LinearProgress />
           <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-            {loading ? '⚡ Ukladám protokol...' : emailStatus?.message}
+            {isLoading ? '⚡ Ukladám protokol...' : emailStatus?.message}
           </Typography>
         </Box>
       )}
@@ -715,27 +484,7 @@ export default function ReturnProtocolForm({
         </Alert>
       )}
 
-      {/* Retry Status */}
-      {retryCount > 0 && (
-        <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Pokus {retryCount + 1}/{MAX_RETRIES}
-          </Typography>
-          {isRetrying && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1,
-              }}
-            >
-              <CircularProgress size={16} />
-              <Typography variant="body2">Opakujem...</Typography>
-            </Box>
-          )}
-        </Box>
-      )}
+      {/* React Query handles retries automatically */}
 
       {/* Header */}
       <Box
@@ -768,7 +517,7 @@ export default function ReturnProtocolForm({
         </IconButton>
       </Box>
 
-      {loading && (
+      {isLoading && (
         <Box sx={{ mb: 2 }}>
           <LinearProgress />
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -1507,16 +1256,16 @@ export default function ReturnProtocolForm({
 
       {/* Tlačidlá */}
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-        <Button variant="outlined" onClick={onClose} disabled={loading}>
+        <Button variant="outlined" onClick={onClose} disabled={isLoading}>
           Zrušiť
         </Button>
         <Button
           variant="contained"
           startIcon={<Save />}
           onClick={handleSave}
-          disabled={loading}
+          disabled={isLoading}
         >
-          {loading ? 'Ukladám...' : 'Uložiť protokol'}
+          {isLoading ? 'Ukladám...' : 'Uložiť protokol'}
         </Button>
       </Box>
 

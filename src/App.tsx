@@ -2,8 +2,12 @@ import { Box, CssBaseline } from '@mui/material';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { sk } from 'date-fns/locale';
 import React, { Suspense, lazy } from 'react';
+import { queryClient } from './lib/react-query/queryClient';
+import { useWebSocketInvalidation } from './lib/react-query/websocket-integration';
 import './styles/custom-font.css'; // Aeonik font
 
 // Performance optimization imports
@@ -77,6 +81,12 @@ const PageLoader = () => (
   />
 );
 
+// WebSocket Integration Wrapper - musí byť vnútri QueryClientProvider
+const WebSocketIntegrationWrapper: React.FC = () => {
+  useWebSocketInvalidation();
+  return null;
+};
+
 const AppContent: React.FC = () => {
   const { theme } = useThemeMode();
 
@@ -101,176 +111,178 @@ const AppContent: React.FC = () => {
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
       <ErrorProvider>
-        <ErrorToastContainer />
-        {/* PWA Install moved to sidebar - no auto-popup */}
-        <OfflineIndicator position="top" showDetails={true} />
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
-          <AuthProvider>
-            <PermissionsProvider>
-              <AppProvider>
-                <Router
-                  future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      minHeight: '100vh',
+        <QueryClientProvider client={queryClient}>
+          <WebSocketIntegrationWrapper />
+          <ErrorToastContainer />
+          {/* PWA Install moved to sidebar - no auto-popup */}
+          <OfflineIndicator position="top" showDetails={true} />
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
+            <AuthProvider>
+              <PermissionsProvider>
+                <AppProvider>
+                  <Router
+                    future={{
+                      v7_startTransition: true,
+                      v7_relativeSplatPath: true,
                     }}
                   >
-                    <Routes>
-                      <Route path="/login" element={<LoginForm />} />
-                      <Route
-                        path="/"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <Navigate to="/rentals" replace />
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: '100vh',
+                      }}
+                    >
+                      <Routes>
+                        <Route path="/login" element={<LoginForm />} />
+                        <Route
+                          path="/"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <Navigate to="/rentals" replace />
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Hlavné stránky s ErrorBoundary */}
-                      <Route
-                        path="/vehicles"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary level="page" maxRetries={3}>
-                                <Suspense fallback={<PageLoader />}>
-                                  <VehicleList />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        {/* Hlavné stránky s ErrorBoundary */}
+                        <Route
+                          path="/vehicles"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary level="page" maxRetries={3}>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <VehicleList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/rentals"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary level="page" maxRetries={3}>
-                                <Suspense fallback={<PageLoader />}>
-                                  <RentalList />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/rentals"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary level="page" maxRetries={3}>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <RentalList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/email-monitoring"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <EmailManagementDashboard />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/email-monitoring"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <EmailManagementDashboard />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/customers"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <CustomerList />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/customers"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <CustomerList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/expenses"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <ExpenseList />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/expenses"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <ExpenseList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/insurances"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <InsuranceList />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/insurances"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <InsuranceList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/settlements"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <SettlementList />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/settlements"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <SettlementList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/statistics"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <Statistics />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/statistics"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <Statistics />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/users"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <UserManagement />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/users"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <UserManagement />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* OLD AVAILABILITY - REMOVED (was memory monster with 28,997 DOM elements)
+                        {/* OLD AVAILABILITY - REMOVED (was memory monster with 28,997 DOM elements)
                     <Route path="/availability" element={
                       <ProtectedRoute>
                         <Layout>
@@ -283,39 +295,39 @@ const AppContent: React.FC = () => {
                       </ProtectedRoute>
                     } /> */}
 
-                      {/* NEW SMART AVAILABILITY - Optimized replacement */}
-                      <Route
-                        path="/availability"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <SmartAvailabilityPage />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        {/* NEW SMART AVAILABILITY - Optimized replacement */}
+                        <Route
+                          path="/availability"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <SmartAvailabilityPage />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/availability-smart"
-                        element={
-                          <ProtectedRoute>
-                            <Layout>
-                              <ErrorBoundary>
-                                <Suspense fallback={<PageLoader />}>
-                                  <SmartAvailabilityPage />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/availability-smart"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <SmartAvailabilityPage />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
-                      {/* <Route path="/admin/vehicle-ownership" element={
+                        {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
+                        {/* <Route path="/admin/vehicle-ownership" element={
                       <ProtectedRoute allowedRoles={['admin']}>
                         <Layout>
                           <ErrorBoundary>
@@ -326,13 +338,19 @@ const AppContent: React.FC = () => {
                         </Layout>
                       </ProtectedRoute>
                     } /> */}
-                    </Routes>
-                  </Box>
-                </Router>
-              </AppProvider>
-            </PermissionsProvider>
-          </AuthProvider>
-        </LocalizationProvider>
+                      </Routes>
+                    </Box>
+                  </Router>
+                </AppProvider>
+              </PermissionsProvider>
+            </AuthProvider>
+          </LocalizationProvider>
+
+          {/* React Query DevTools - len v development */}
+          {import.meta.env.DEV && (
+            <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+          )}
+        </QueryClientProvider>
       </ErrorProvider>
     </MuiThemeProvider>
   );

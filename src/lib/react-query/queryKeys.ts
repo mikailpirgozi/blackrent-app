@@ -1,0 +1,82 @@
+// Query Keys štruktúra pre BlackRent aplikáciu
+export const queryKeys = {
+  // Vehicles
+  vehicles: {
+    all: ['vehicles'] as const,
+    lists: () => [...queryKeys.vehicles.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.vehicles.lists(), filters] as const,
+    details: () => [...queryKeys.vehicles.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.vehicles.details(), id] as const,
+    availability: (id: string, dateRange?: Record<string, unknown>) =>
+      ['vehicles', 'availability', id, dateRange] as const,
+  },
+
+  // Rentals
+  rentals: {
+    all: ['rentals'] as const,
+    lists: () => [...queryKeys.rentals.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.rentals.lists(), filters] as const,
+    details: () => [...queryKeys.rentals.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.rentals.details(), id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['rentals', 'byVehicle', vehicleId] as const,
+    byCustomer: (customerId: string) =>
+      ['rentals', 'byCustomer', customerId] as const,
+  },
+
+  // Protocols
+  protocols: {
+    all: ['protocols'] as const,
+    handover: (rentalId: string) =>
+      ['protocols', 'handover', rentalId] as const,
+    return: (rentalId: string) => ['protocols', 'return', rentalId] as const,
+    byRental: (rentalId: string) =>
+      ['protocols', 'byRental', rentalId] as const,
+  },
+
+  // Customers
+  customers: {
+    all: ['customers'] as const,
+    lists: () => [...queryKeys.customers.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.customers.lists(), filters] as const,
+    detail: (id: string) => ['customers', 'detail', id] as const,
+  },
+
+  // Expenses
+  expenses: {
+    all: ['expenses'] as const,
+    byVehicle: (vehicleId: string) =>
+      ['expenses', 'byVehicle', vehicleId] as const,
+    byCategory: (category: string) =>
+      ['expenses', 'byCategory', category] as const,
+    recurring: () => ['expenses', 'recurring'] as const,
+  },
+
+  // Statistics
+  statistics: {
+    all: ['statistics'] as const,
+    dashboard: () => ['statistics', 'dashboard'] as const,
+    revenue: (period: string) => ['statistics', 'revenue', period] as const,
+    expenses: (period: string) => ['statistics', 'expenses', period] as const,
+  },
+
+  // Companies & Settings
+  companies: {
+    all: ['companies'] as const,
+    list: () => [...queryKeys.companies.all, 'list'] as const,
+  },
+
+  insurers: {
+    all: ['insurers'] as const,
+    list: () => [...queryKeys.insurers.all, 'list'] as const,
+  },
+
+  settlements: {
+    all: ['settlements'] as const,
+    list: () => [...queryKeys.settlements.all, 'list'] as const,
+    detail: (id: string) => ['settlements', 'detail', id] as const,
+  },
+} as const;

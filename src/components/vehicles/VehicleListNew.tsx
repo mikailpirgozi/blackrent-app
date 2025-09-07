@@ -14,6 +14,13 @@ import {
 } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import {
+  useCreateVehicle,
+  useDeleteVehicle,
+  useUpdateVehicle,
+  useVehicles,
+  type VehicleFilters,
+} from '@/lib/react-query/hooks/useVehicles';
 import { useApp } from '../../context/AppContext';
 import type { Vehicle, VehicleCategory, VehicleStatus } from '../../types';
 
@@ -59,19 +66,12 @@ import InvestorCard from './components/InvestorCard';
 import OwnerCard from './components/OwnerCard';
 import VehicleActions from './components/VehicleActions';
 import VehicleDialogs from './components/VehicleDialogs';
-import VehicleFilters from './components/VehicleFilters';
 import VehicleImportExport from './components/VehicleImportExport';
 import VehicleKmHistory from './components/VehicleKmHistory';
 import VehicleTable from './components/VehicleTable';
 
 export default function VehicleListNew() {
-  const {
-    state,
-    createVehicle,
-    updateVehicle,
-    deleteVehicle,
-    getFullyFilteredVehicles,
-  } = useApp();
+  const { state } = useApp(); // Zatiaľ ponechávame pre companies a iné dáta
 
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
   const mobileScrollRef = React.useRef<HTMLDivElement>(null);
@@ -102,6 +102,9 @@ export default function VehicleListNew() {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Kombinovaný loading state
+  const isLoading = vehiclesLoading || loading;
+
   // 🚀 INFINITE SCROLL STATES
   const [displayedVehicles, setDisplayedVehicles] = useState(20); // Start with 20 items
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -128,6 +131,29 @@ export default function VehicleListNew() {
   const [showPrivate, setShowPrivate] = useState(false); // 🏠 Súkromné vozidlá defaultne skryté
   const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
   const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
+
+  // React Query hooks pre vehicles
+  const createVehicleMutation = useCreateVehicle();
+  const updateVehicleMutation = useUpdateVehicle();
+  const deleteVehicleMutation = useDeleteVehicle();
+
+  // Pripravíme filters pre React Query
+  const vehicleFilters: VehicleFilters = useMemo(
+    () => ({
+      status: filterStatus || undefined,
+      company: filterCompany || undefined,
+      category: filterCategory !== 'all' ? filterCategory : undefined,
+      search:
+        filterBrand || filterModel
+          ? `${filterBrand} ${filterModel}`.trim()
+          : undefined,
+    }),
+    [filterStatus, filterCompany, filterCategory, filterBrand, filterModel]
+  );
+
+  // Používame React Query pre načítanie vozidiel
+  const { data: vehicles = [], isLoading: vehiclesLoading } =
+    useVehicles(vehicleFilters);
   // const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false); // Unused - ownership history disabled
   // const [selectedVehicleHistory, setSelectedVehicleHistory] =
   //   useState<Vehicle | null>(null); // Unused - ownership history disabled
@@ -455,7 +481,7 @@ export default function VehicleListNew() {
     if (window.confirm('Naozaj chcete vymazať toto vozidlo?')) {
       try {
         setLoading(true);
-        await deleteVehicle(vehicleId);
+        await deleteVehicleMutation.mutateAsync(vehicleId);
       } catch (error) {
         console.error('Error deleting vehicle:', error);
       } finally {
@@ -482,9 +508,9 @@ export default function VehicleListNew() {
     try {
       setLoading(true);
       if (editingVehicle) {
-        await updateVehicle(vehicleData);
+        await updateVehicleMutation.mutateAsync(vehicleData);
       } else {
-        await createVehicle(vehicleData);
+        await createVehicleMutation.mutateAsync(vehicleData);
       }
       handleCloseDialog();
     } catch (error) {
@@ -508,50 +534,54 @@ export default function VehicleListNew() {
       if (!vehicle) return;
 
       const updatedVehicle = { ...vehicle, ownerCompanyId: companyId };
-      await updateVehicle(updatedVehicle);
+      await updateVehicleMutation.mutateAsync(updatedVehicle);
       console.log('✅ Company saved:', companyId, 'for vehicle:', vehicleId);
     } catch (error) {
       console.error('❌ Error saving company:', error);
     }
   };
 
-  // 🚀 ENHANCED: Filtered vehicles using new unified filter system
+  // 🚀 ENHANCED: Filtered vehicles - teraz používame React Query data
   const filteredVehicles = useMemo(() => {
-    return getFullyFilteredVehicles({
-      search: searchQuery,
-      brand: filterBrand,
-      model: filterModel,
-      company: filterCompany,
-      status:
-        filterStatus === 'all' ? undefined : (filterStatus as VehicleStatus),
-      category: filterCategory,
-      // Status group filters (backwards compatibility)
-      showAvailable,
-      showRented,
-      showMaintenance,
-      showOther,
-      // 🏠 Súkromné vozidlá
-      includePrivate: showPrivate,
-      // 🗑️ Vyradené vozidlá
-      includeRemoved: showRemoved || showTempRemoved, // Ak je zapnutý ktorýkoľvek, načítaj vyradené
-      showRemoved,
-      showTempRemoved,
-    });
+    let filtered = [...vehicles];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        v =>
+          v.brand?.toLowerCase().includes(query) ||
+          v.model?.toLowerCase().includes(query) ||
+          v.licensePlate?.toLowerCase().includes(query) ||
+          v.company?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filters
+    const statusFilters: VehicleStatus[] = [];
+    if (showAvailable) statusFilters.push('available');
+    if (showRented) statusFilters.push('rented');
+    if (showMaintenance) statusFilters.push('maintenance');
+    if (showOther) statusFilters.push('other');
+    if (showPrivate) statusFilters.push('private');
+    if (showRemoved) statusFilters.push('removed');
+    if (showTempRemoved) statusFilters.push('temp_removed');
+
+    if (statusFilters.length > 0) {
+      filtered = filtered.filter(v => statusFilters.includes(v.status));
+    }
+
+    return filtered;
   }, [
+    vehicles,
     searchQuery,
-    filterBrand,
-    filterModel,
-    filterCompany,
-    filterStatus,
-    filterCategory,
     showAvailable,
     showRented,
     showMaintenance,
     showOther,
-    showPrivate, // 🏠 Súkromné vozidlá
-    showRemoved, // 🗑️ Vyradené vozidlá
-    showTempRemoved, // ⏸️ Dočasne vyradené vozidlá
-    getFullyFilteredVehicles, // 🎯 Enhanced filter function
+    showPrivate,
+    showRemoved,
+    showTempRemoved,
   ]);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície
@@ -627,13 +657,13 @@ export default function VehicleListNew() {
 
   // Get unique values for filters
   const uniqueBrands = [
-    ...new Set(state.vehicles.map(v => v.brand).filter(Boolean)),
+    ...new Set(vehicles.map(v => v.brand).filter(Boolean)),
   ].sort() as string[];
   const uniqueModels = [
-    ...new Set(state.vehicles.map(v => v.model).filter(Boolean)),
+    ...new Set(vehicles.map(v => v.model).filter(Boolean)),
   ].sort() as string[];
   const uniqueCompanies = [
-    ...new Set(state.vehicles.map(v => v.company).filter(Boolean)),
+    ...new Set(vehicles.map(v => v.company).filter(Boolean)),
   ].sort() as string[];
   // const uniqueCategories = [
   //   ...new Set(state.vehicles.map(v => v.category).filter(Boolean)),
@@ -709,7 +739,7 @@ export default function VehicleListNew() {
       // Mazanie po jednom - pre lepšiu kontrolu
       for (const vehicleId of selectedVehicles) {
         try {
-          await deleteVehicle(vehicleId);
+          await deleteVehicleMutation.mutateAsync(vehicleId);
           deletedCount++;
           console.log(`✅ Deleted vehicle: ${vehicleId}`);
         } catch (error) {
@@ -786,7 +816,7 @@ export default function VehicleListNew() {
               size="small"
               startIcon={<DeleteIcon />}
               onClick={handleBulkDelete}
-              disabled={loading}
+              disabled={isLoading}
               sx={{ minWidth: 120 }}
             >
               {loading ? 'Mažem...' : 'Zmazať vybrané'}
@@ -836,7 +866,7 @@ export default function VehicleListNew() {
           )}
 
           <VehicleActions
-            loading={loading}
+            loading={isLoading}
             isMobile={isMobile}
             onAddVehicle={() => setOpenDialog(true)}
             onCreateCompany={() => setCreateCompanyDialogOpen(true)}
@@ -845,7 +875,7 @@ export default function VehicleListNew() {
 
           {/* CSV Export/Import komponenty */}
           <VehicleImportExport
-            loading={loading}
+            loading={isLoading}
             setLoading={setLoading}
             isMobile={isMobile}
           />
@@ -919,10 +949,10 @@ export default function VehicleListNew() {
           <Typography variant="body2" color="text.secondary">
             Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length}{' '}
             vozidiel
-            {filteredVehicles.length !== state.vehicles.length &&
-              ` (filtrovaných z ${state.vehicles.length})`}
+            {filteredVehicles.length !== vehicles.length &&
+              ` (filtrovaných z ${vehicles.length})`}
           </Typography>
-          {loading && (
+          {isLoading && (
             <EnhancedLoading
               variant="inline"
               message="Aktualizujem zoznam..."

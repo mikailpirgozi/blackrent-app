@@ -28,6 +28,7 @@ import {
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { useCreateHandoverProtocol } from '@/lib/react-query/hooks/useProtocols';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import type {
@@ -81,6 +82,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
   ({ open, onClose, rental, onSave }) => {
     const { state } = useAuth();
     const { state: appState } = useApp();
+    const createHandoverProtocol = useCreateHandoverProtocol();
     const [loading, setLoading] = useState(false);
     const [emailStatus, setEmailStatus] = useState<{
       status: 'pending' | 'success' | 'error' | 'warning';
@@ -458,54 +460,19 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         logger.debug('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
 
         // 🚀 QUICK SAVE: Uloženie protokolu s flag-om pre background PDF
-        const apiBaseUrl = getApiBaseUrl();
-        const token =
-          localStorage.getItem('blackrent_token') ||
-          sessionStorage.getItem('blackrent_token');
+        const apiBaseUrl = getApiBaseUrl(); // Still needed for PDF download
 
         logger.debug('⚡ QUICK SAVE: Sending protocol data...');
         const quickSaveStart = Date.now();
 
-        // 🔧 MOBILE FIX: Pridáme timeout protection pre mobile zariadenia
-        const isMobile = window.matchMedia('(max-width: 900px)').matches;
-        const timeoutMs = isMobile ? 30000 : 60000; // 30s na mobile, 60s na desktop
-
-        logger.debug(
-          `📱 Using ${timeoutMs / 1000}s timeout for ${isMobile ? 'mobile' : 'desktop'}`
-        );
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          controller.abort();
-          console.error(
-            '🚨 API request timeout after',
-            timeoutMs / 1000,
-            'seconds'
-          );
-        }, timeoutMs);
-
-        const response = await fetch(`${apiBaseUrl}/protocols/handover`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: JSON.stringify(cleanedProtocol),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const result = await response.json();
+        // 🚀 Use React Query mutation instead of direct fetch
+        const result =
+          await createHandoverProtocol.mutateAsync(cleanedProtocol);
         const quickSaveTime = Date.now() - quickSaveStart;
 
         logger.info(`✅ Protocol saved in ${quickSaveTime}ms`);
 
-        // 🔴 REMOVED: Redundant refresh - WebSocket už triggeruje refresh
+        // React Query automaticky invaliduje cache a refreshuje dáta
 
         // 🔄 SMART CACHING: Uloženie často používaných hodnôt pre budúce použitie
         const cacheData = {
@@ -526,12 +493,12 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         logger.debug('🔄 Form defaults cached for future use');
 
         // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
-        if (result.protocol?.pdfProxyUrl) {
+        if (result?.pdfProxyUrl) {
           setTimeout(async () => {
             try {
               logger.debug('📄 Background PDF download starting...');
               const pdfResponse = await fetch(
-                `${apiBaseUrl}${result.protocol.pdfProxyUrl}`,
+                `${apiBaseUrl}${result.pdfProxyUrl}`,
                 {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`,
@@ -557,10 +524,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         }
 
         // ⚡ OKAMŽITÉ ULOŽENIE - bez zatvorenia modalu (nech sa zobrazí email status)
-        onSave(result.protocol);
+        onSave(result);
 
-        // Return result for email status handling
-        return result;
+        // Return result for email status handling - React Query returns protocol directly
+        return { protocol: result, email: result.email };
       } catch (error) {
         console.error('Error saving protocol:', error);
 
@@ -592,7 +559,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       } finally {
         setLoading(false);
       }
-    }, [formData, rental, currentVehicle, onSave, state.user]);
+    }, [
+      formData,
+      rental,
+      currentVehicle,
+      onSave,
+      state.user,
+      createHandoverProtocol,
+    ]);
 
     // Retry mechanism for failed requests
     const performSaveWithRetry = useCallback(async (): Promise<{
