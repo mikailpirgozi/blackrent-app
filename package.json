@@ -2,6 +2,7 @@
   "name": "blackrent-app",
   "version": "1.1.2",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.879.0",
     "@aws-sdk/s3-request-presigner": "^3.879.0",
@@ -80,7 +81,9 @@
     "format:check": "prettier -c .",
     "prepare": "husky",
     "commit": "npm run format && npm run lint:fix && git add -A && git commit",
-    "push-safe": "npm run format && npm run lint:fix && git add -A && git commit -m 'Auto-formatted code' && git push origin main"
+    "push-safe": "npm run format && npm run lint:fix && git add -A && git commit -m 'Auto-formatted code' && git push origin main",
+    "restore-protocols": "node restore-organized-protocols.js",
+    "restore-protocols:dry": "node restore-organized-protocols.js --dry-run"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

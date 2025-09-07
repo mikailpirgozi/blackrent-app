@@ -18,7 +18,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Divider,
   Grid,
   IconButton,
   LinearProgress,
@@ -197,6 +196,46 @@ export default function ReturnProtocolForm({
       setCustomKmRate(numValue);
     }
   };
+
+  // 🔧 NOVÉ: Parsovanie spôsobu úhrady depozitu z handoverProtocol notes
+  const getDepositPaymentMethod = useCallback(() => {
+    if (!handoverProtocol?.notes) return null;
+
+    const notes = handoverProtocol.notes;
+    const depositMatch = notes.match(/Spôsob úhrady depozitu:\s*(.+)/);
+
+    if (depositMatch) {
+      const method = depositMatch[1].trim();
+      switch (method) {
+        case 'Hotovosť':
+          return 'cash';
+        case 'Bankový prevod':
+          return 'bank_transfer';
+        case 'Kartová zábezpeka':
+          return 'card';
+        default:
+          return null;
+      }
+    }
+
+    return null;
+  }, [handoverProtocol?.notes]);
+
+  // 🔧 NOVÉ: Formátovanie spôsobu úhrady depozitu pre zobrazenie
+  const formatDepositPaymentMethod = useCallback((method: string | null) => {
+    if (!method) return 'Neuvedené';
+
+    switch (method) {
+      case 'cash':
+        return 'Hotovosť';
+      case 'bank_transfer':
+        return 'Bankový prevod';
+      case 'card':
+        return 'Kartová zábezpeka';
+      default:
+        return 'Neuvedené';
+    }
+  }, []);
 
   if (!open) return null;
 
@@ -794,76 +833,263 @@ export default function ReturnProtocolForm({
         </CardContent>
       </Card>
 
-      {/* Prepočet poplatkov */}
+      {/* 🔧 NOVÉ: Moderný prepočet poplatkov s informáciami o depozite */}
       <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+          <Typography variant="h6" color="text.primary" sx={{ mb: 3 }}>
             <Calculate sx={{ mr: 1, verticalAlign: 'middle' }} />
-            Prepočet poplatkov (automaticky)
+            Finančné vyúčtovanie
           </Typography>
 
+          {/* Informácie o depozite */}
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 2,
+              p: 2,
+              mb: 3,
+              bgcolor: 'primary.light',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'primary.main',
             }}
           >
-            <TextField
-              label="Povolený nájazd km"
-              value={`${rental.allowedKilometers || 0} km`}
-              InputProps={{ readOnly: true }}
-              color="info"
-              fullWidth
-            />
-            <TextField
-              label="Najazdené km"
-              value={fees.kilometersUsed}
-              InputProps={{ readOnly: true }}
-              fullWidth
-            />
-            <TextField
-              label="Prekročenie km"
-              value={fees.kilometerOverage}
-              InputProps={{ readOnly: true }}
-              color={fees.kilometerOverage > 0 ? 'warning' : 'primary'}
-              fullWidth
-            />
-            {/* 🔧 NOVÉ: Editovateľné pole pre cenu za km */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <TextField
-                label="Poplatok za km"
-                value={`${(fees.kilometerFee || 0).toFixed(2)} EUR`}
-                InputProps={{ readOnly: true }}
-                color={fees.kilometerFee > 0 ? 'warning' : 'primary'}
-                fullWidth
-              />
-              <IconButton
-                onClick={handleStartEditKmRate}
-                size="small"
-                color="primary"
-                title="Upraviť cenu za km"
-                sx={{
-                  minWidth: 40,
-                  bgcolor:
-                    customKmRate !== null ? 'warning.light' : 'transparent',
-                  '&:hover': { bgcolor: 'primary.light' },
-                }}
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-            </Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
+            >
+              💰 Informácie o depozite
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.primary">
+                    Výška depozitu:
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {rental.deposit
+                      ? `${rental.deposit.toFixed(2)} €`
+                      : '0,00 €'}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.primary">
+                    Spôsob úhrady:
+                  </Typography>
+                  <Chip
+                    label={formatDepositPaymentMethod(
+                      getDepositPaymentMethod()
+                    )}
+                    color={
+                      getDepositPaymentMethod() === 'cash'
+                        ? 'success'
+                        : getDepositPaymentMethod() === 'bank_transfer'
+                          ? 'primary'
+                          : 'secondary'
+                    }
+                    size="small"
+                    sx={{
+                      fontWeight: 'bold',
+                      color: 'text.primary',
+                      '& .MuiChip-label': {
+                        color: 'text.primary',
+                      },
+                    }}
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
 
-            {/* 🔧 NOVÉ: Editačné pole pre cenu za km */}
+          {/* Kilometre a palivo */}
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
+            >
+              🚗 Kilometre a palivo
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={3}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 1,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Povolené km
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="info.main"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {rental.allowedKilometers || 0}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 1,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Najazdené km
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.kilometersUsed}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 1,
+                    bgcolor:
+                      fees.kilometerOverage > 0
+                        ? 'warning.light'
+                        : 'success.light',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Prekročenie km
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.kilometerOverage}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 1,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Spotrebované palivo
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.fuelUsed}%
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* Poplatky */}
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
+            >
+              💸 Poplatky
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Poplatok za km
+                    </Typography>
+                    <IconButton
+                      onClick={handleStartEditKmRate}
+                      size="small"
+                      color="primary"
+                      title="Upraviť cenu za km"
+                      sx={{
+                        minWidth: 24,
+                        height: 24,
+                        bgcolor:
+                          customKmRate !== null
+                            ? 'warning.light'
+                            : 'transparent',
+                        '&:hover': { bgcolor: 'primary.light' },
+                      }}
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.kilometerFee.toFixed(2)} €
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    Poplatok za palivo
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.fuelFee.toFixed(2)} €
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* Editačné pole pre cenu za km */}
             {isEditingKmRate && (
               <Box
                 sx={{
                   p: 2,
+                  mt: 2,
                   border: '2px solid',
                   borderColor: 'warning.main',
-                  borderRadius: 1,
+                  borderRadius: 2,
                   bgcolor: 'warning.light',
-                  mt: 1,
                 }}
               >
                 <Typography
@@ -877,9 +1103,8 @@ export default function ReturnProtocolForm({
                   sx={{ mb: 2, color: 'text.secondary' }}
                 >
                   Cenníková sadzba:{' '}
-                  <strong>{originalKmRate.toFixed(2)} €/km</strong>
-                  <br />
-                  Prekročené km: <strong>{fees.kilometerOverage} km</strong>
+                  <strong>{originalKmRate.toFixed(2)} €/km</strong> • Prekročené
+                  km: <strong>{fees.kilometerOverage} km</strong>
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <TextField
@@ -899,84 +1124,115 @@ export default function ReturnProtocolForm({
                     onClick={handleSaveKmRate}
                     size="small"
                     color="success"
-                    title="Potvrdiť zmenu"
+                    title="Uložiť"
                   >
-                    <Check />
+                    <Check fontSize="small" />
                   </IconButton>
                   <IconButton
                     onClick={handleCancelEditKmRate}
                     size="small"
                     color="error"
-                    title="Zrušiť úpravu"
+                    title="Zrušiť"
                   >
-                    <Cancel />
+                    <Cancel fontSize="small" />
                   </IconButton>
                 </Box>
-                <Typography
-                  variant="caption"
-                  sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}
-                >
-                  💡 Nový poplatok: {fees.kilometerOverage} km ×{' '}
-                  {(customKmRate || 0).toFixed(2)} €/km ={' '}
-                  {(fees.kilometerOverage * (customKmRate || 0) || 0).toFixed(
-                    2
-                  )}{' '}
-                  €
-                </Typography>
               </Box>
             )}
-            <TextField
-              label="Spotrebované palivo (%)"
-              value={fees.fuelUsed}
-              InputProps={{ readOnly: true }}
-              fullWidth
-            />
-            <TextField
-              label="Poplatok za palivo"
-              value={`${(fees.fuelFee || 0).toFixed(2)} EUR`}
-              InputProps={{ readOnly: true }}
-              color={fees.fuelFee > 0 ? 'warning' : 'primary'}
-              fullWidth
-            />
-            <TextField
-              label="Celkové poplatky"
-              value={`${(fees.totalExtraFees || 0).toFixed(2)} EUR`}
-              InputProps={{ readOnly: true }}
-              color={fees.totalExtraFees > 0 ? 'warning' : 'primary'}
-              fullWidth
-            />
           </Box>
 
-          <Divider sx={{ my: 2 }} />
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 2,
-            }}
-          >
-            <TextField
-              label="Vratenie z depozitu"
-              value={`${(fees.depositRefund || 0).toFixed(2)} EUR`}
-              InputProps={{ readOnly: true }}
-              color="success"
-              fullWidth
-            />
-            <TextField
-              label="Doplatok"
-              value={`${(fees.additionalCharges || 0).toFixed(2)} EUR`}
-              InputProps={{ readOnly: true }}
-              color={fees.additionalCharges > 0 ? 'error' : 'primary'}
-              fullWidth
-            />
-            <TextField
-              label="Finálny refund"
-              value={`${(fees.finalRefund || 0).toFixed(2)} EUR`}
-              InputProps={{ readOnly: true }}
-              color="success"
-              fullWidth
-            />
+          {/* Finálne vyúčtovanie */}
+          <Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
+            >
+              🏁 Finálne vyúčtovanie
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 2,
+                    bgcolor: 'error.light',
+                    borderRadius: 2,
+                    border: '2px solid',
+                    borderColor: 'error.main',
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Celkové poplatky
+                  </Typography>
+                  <Typography
+                    variant="h5"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.totalExtraFees.toFixed(2)} €
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 2,
+                    bgcolor: 'success.light',
+                    borderRadius: 2,
+                    border: '2px solid',
+                    borderColor: 'success.main',
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Vratenie z depozitu
+                  </Typography>
+                  <Typography
+                    variant="h5"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.depositRefund.toFixed(2)} €
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    p: 2,
+                    bgcolor:
+                      fees.finalRefund > 0
+                        ? 'success.light'
+                        : fees.additionalCharges > 0
+                          ? 'error.light'
+                          : 'grey.100',
+                    borderRadius: 2,
+                    border: '2px solid',
+                    borderColor:
+                      fees.finalRefund > 0
+                        ? 'success.main'
+                        : fees.additionalCharges > 0
+                          ? 'error.main'
+                          : 'grey.300',
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    {fees.finalRefund > 0 ? 'Finálny refund' : 'Doplatok'}
+                  </Typography>
+                  <Typography
+                    variant="h5"
+                    color="text.primary"
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {fees.finalRefund > 0
+                      ? fees.finalRefund.toFixed(2)
+                      : fees.additionalCharges.toFixed(2)}{' '}
+                    €
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
           </Box>
         </CardContent>
       </Card>

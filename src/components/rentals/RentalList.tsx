@@ -26,7 +26,7 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import type { Rental } from '../../types';
+import type { ProtocolImage, ProtocolVideo, Rental } from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
 // 🔄 CLONE FUNCTIONALITY
@@ -327,7 +327,7 @@ export default function RentalList() {
           handleEdit({
             ...rental,
             ...clonedRental,
-            id: undefined,
+            id: '', // Use empty string instead of undefined
           } as Rental);
 
           logger.info('✅ Local clone fallback completed');
@@ -399,7 +399,7 @@ export default function RentalList() {
         let scrollPercentage = 0;
 
         // Calculate scroll percentage based on event type
-        if (event.scrollOffset !== undefined) {
+        if ('scrollOffset' in event && typeof event.scrollOffset === 'number') {
           // Virtual scroll from React Window (mobile)
           const totalHeight = paginatedRentals.length * 160; // itemSize * count
           const viewportHeight = 600;
@@ -414,14 +414,25 @@ export default function RentalList() {
         } else if (event.target || event.currentTarget) {
           // Native scroll from container (desktop)
           const target = event.target || event.currentTarget;
-          const { scrollTop, scrollHeight, clientHeight } = target;
-          const maxScroll = Math.max(1, scrollHeight - clientHeight);
-          scrollPercentage = scrollTop / maxScroll;
+          if (
+            target &&
+            'scrollTop' in target &&
+            'scrollHeight' in target &&
+            'clientHeight' in target
+          ) {
+            const { scrollTop, scrollHeight, clientHeight } = target as {
+              scrollTop: number;
+              scrollHeight: number;
+              clientHeight: number;
+            };
+            const maxScroll = Math.max(1, scrollHeight - clientHeight);
+            scrollPercentage = scrollTop / maxScroll;
 
-          if (process.env.NODE_ENV === 'development') {
-            logger.debug(
-              `💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`
-            );
+            if (process.env.NODE_ENV === 'development') {
+              logger.debug(
+                `💻 Desktop scroll: ${Math.round(scrollPercentage * 100)}%`
+              );
+            }
           }
         }
 
@@ -435,54 +446,6 @@ export default function RentalList() {
       }, DEBOUNCE_DELAY);
     };
   }, [paginatedLoading, hasMore, paginatedRentals.length, handleLoadMore]);
-
-  // 🎨 FAREBNÉ INDIKÁTORY - elegantné bodky namiesto pozadia
-  const getStatusIndicator = useCallback(
-    (rental: Rental) => {
-      const today = new Date();
-      const endDate = new Date(rental.endDate);
-      const startDate = new Date(rental.startDate);
-
-      // 🔴 Červená: Preterminované (skončili a nemajú return protokol)
-      if (endDate < today && !protocolsHook.protocols[rental.id]?.return) {
-        return { color: '#f44336', label: 'Preterminované', priority: 1 };
-      }
-
-      // 🟠 Oranžová: Dnes/zajtra vrátenie
-      const isToday = endDate.toDateString() === today.toDateString();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      const isTomorrow = endDate.toDateString() === tomorrow.toDateString();
-
-      if (isToday) {
-        return { color: '#ff9800', label: 'Dnes vrátenie', priority: 2 };
-      }
-      if (isTomorrow) {
-        return { color: '#ff9800', label: 'Zajtra vrátenie', priority: 3 };
-      }
-
-      // 🟡 Žltá: Nezaplatené
-      if (!rental.paid) {
-        return { color: '#ffc107', label: 'Nezaplatené', priority: 4 };
-      }
-
-      // 🔵 Modrá: Nové/začínajúce dnes
-      const isStartingToday = startDate.toDateString() === today.toDateString();
-      const isNewToday =
-        new Date(rental.createdAt).toDateString() === today.toDateString();
-
-      if (isStartingToday) {
-        return { color: '#2196f3', label: 'Začína dnes', priority: 5 };
-      }
-      if (isNewToday) {
-        return { color: '#2196f3', label: 'Nový dnes', priority: 6 };
-      }
-
-      // 🟢 Zelená: Všetko v poriadku (default)
-      return { color: '#4caf50', label: 'V poriadku', priority: 7 };
-    },
-    [protocolsHook.protocols]
-  );
 
   // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance
   const vehicleLookupMap = useMemo(() => {
@@ -609,13 +572,13 @@ export default function RentalList() {
           let pdfUrl: string;
 
           if (protocol.pdfUrl) {
-            pdfUrl = protocol.pdfUrl;
+            pdfUrl = protocol.pdfUrl as string;
           } else {
             // Generate PDF URL - používaj relatívne /api v dev (Vite proxy)
             const baseUrl =
               import.meta.env.VITE_API_URL ||
               (import.meta.env.DEV ? '' : 'http://localhost:3001');
-            pdfUrl = `${baseUrl}/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token}`;
+            pdfUrl = `${baseUrl}/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token || ''}`;
           }
 
           // Open PDF in new tab
@@ -667,13 +630,13 @@ export default function RentalList() {
       }
 
       // Parsovanie obrázkov z protokolu
-      const parseImages = (imageData: unknown): unknown[] => {
+      const parseImages = (imageData: unknown): ProtocolImage[] => {
         if (!imageData) return [];
 
         if (typeof imageData === 'string') {
           try {
             const parsed = JSON.parse(imageData);
-            return Array.isArray(parsed) ? parsed : [];
+            return Array.isArray(parsed) ? (parsed as ProtocolImage[]) : [];
           } catch (error) {
             console.warn('⚠️ Failed to parse image data as JSON:', imageData);
             return [];
@@ -681,7 +644,27 @@ export default function RentalList() {
         }
 
         if (Array.isArray(imageData)) {
-          return imageData;
+          return imageData as ProtocolImage[];
+        }
+
+        return [];
+      };
+
+      const parseVideos = (videoData: unknown): ProtocolVideo[] => {
+        if (!videoData) return [];
+
+        if (typeof videoData === 'string') {
+          try {
+            const parsed = JSON.parse(videoData);
+            return Array.isArray(parsed) ? (parsed as ProtocolVideo[]) : [];
+          } catch (error) {
+            console.warn('⚠️ Failed to parse video data as JSON:', videoData);
+            return [];
+          }
+        }
+
+        if (Array.isArray(videoData)) {
+          return videoData as ProtocolVideo[];
         }
 
         return [];
@@ -694,9 +677,9 @@ export default function RentalList() {
       ];
 
       const videos = [
-        ...parseImages(protocol.vehicleVideos),
-        ...parseImages(protocol.documentVideos),
-        ...parseImages(protocol.damageVideos),
+        ...parseVideos(protocol.vehicleVideos),
+        ...parseVideos(protocol.documentVideos),
+        ...parseVideos(protocol.damageVideos),
       ];
 
       logger.debug('🖼️ Gallery data prepared:', {
@@ -778,7 +761,10 @@ export default function RentalList() {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         advancedFilters={advancedFilters}
-        handleAdvancedFiltersChange={setAdvancedFilters}
+        handleAdvancedFiltersChange={filters => {
+          // Type assertion to handle FilterState compatibility
+          setAdvancedFilters(filters as typeof advancedFilters);
+        }}
         toggleFilterValue={toggleFilterValue}
         isFilterValueSelected={isFilterValueSelected}
         resetAllFilters={handleResetAllFilters}
@@ -839,7 +825,6 @@ export default function RentalList() {
         getVehicleByRental={getVehicleByRental}
         protocolStatusMap={protocolsHook.protocolStatusMap}
         protocols={protocolsHook.protocols}
-        getStatusIndicator={getStatusIndicator}
         filteredRentals={filteredRentals}
         desktopScrollRef={desktopScrollRef}
         mobileScrollRef={mobileScrollRef}
@@ -849,16 +834,40 @@ export default function RentalList() {
           protocolsHook.loadProtocolsForRental(rental.id);
         }}
         loadingProtocols={protocolsHook.loadingProtocols}
-        VirtualizedRentalRow={null}
+        VirtualizedRentalRow={React.Fragment as React.ComponentType<unknown>}
         onScroll={({ scrollOffset }) => {
           // 🎯 UNIFIED: Use the new unified scroll handler
           const windowWithHandler = window as Window & {
             __unifiedRentalScrollHandler?: (event: Event) => void;
           };
           if (windowWithHandler.__unifiedRentalScrollHandler) {
-            windowWithHandler.__unifiedRentalScrollHandler({
+            // Create a proper Event-like object
+            const scrollEvent = {
               scrollOffset,
-            } as Event);
+              target: null,
+              currentTarget: null,
+              bubbles: false,
+              cancelable: false,
+              composed: false,
+              defaultPrevented: false,
+              eventPhase: 0,
+              isTrusted: false,
+              preventDefault: () => {},
+              stopImmediatePropagation: () => {},
+              stopPropagation: () => {},
+              timeStamp: Date.now(),
+              type: 'scroll',
+              cancelBubble: false,
+              composedPath: () => [],
+              initEvent: () => {},
+              NONE: 0,
+              CAPTURING_PHASE: 1,
+              AT_TARGET: 2,
+              BUBBLING_PHASE: 3,
+              returnValue: true,
+              srcElement: null,
+            } as unknown as Event;
+            windowWithHandler.__unifiedRentalScrollHandler(scrollEvent);
           }
         }}
       />

@@ -85,6 +85,43 @@ import { useApp } from '../context/AppContext';
 import { logger } from '../utils/smartLogger';
 import StatisticsMobile from './statistics/StatisticsMobile';
 
+// Type definitions
+interface VehicleStatistic extends Record<string, unknown> {
+  vehicle: {
+    id: string;
+    brand: string;
+    model: string;
+    licensePlate: string;
+    company?: string;
+  };
+  totalRevenue: number;
+  rentalCount: number;
+  totalDaysRented: number;
+  utilizationPercentage: number;
+  avgRevenuePerRental: number;
+}
+
+interface CustomerStatistic extends Record<string, unknown> {
+  customerName: string;
+  customer?: Record<string, unknown>;
+  totalRevenue: number;
+  rentalCount: number;
+  totalDaysRented: number;
+  lastRentalDate: Date;
+  avgRentalDuration: number;
+}
+
+interface EmployeeStatistic extends Record<string, unknown> {
+  employeeName: string;
+  handoverCount: number;
+  returnCount: number;
+  totalProtocols: number;
+  handoverRevenue: number;
+  returnRevenue: number;
+  totalRevenue: number;
+  uniqueRentals: number;
+}
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -281,7 +318,7 @@ const Statistics: React.FC = () => {
         if (!acc[customerId]) {
           acc[customerId] = {
             customerName: rental.customerName,
-            customer: rental.customer,
+            customer: rental.customer as Record<string, unknown> | undefined,
             totalRevenue: 0,
             rentalCount: 0,
             totalDaysRented: 0,
@@ -307,18 +344,7 @@ const Statistics: React.FC = () => {
 
         return acc;
       },
-      {} as Record<
-        string,
-        {
-          customerName: string;
-          customer?: Record<string, unknown>;
-          totalRevenue: number;
-          rentalCount: number;
-          totalDaysRented: number;
-          lastRentalDate: Date;
-          avgRentalDuration: number;
-        }
-      >
+      {} as Record<string, CustomerStatistic>
     );
 
     // Výpočet priemernej dĺžky prenájmu pre každého zákazníka
@@ -924,10 +950,16 @@ const Statistics: React.FC = () => {
               {title}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {data
-                ? data.vehicle
-                  ? `${data.vehicle.brand} ${data.vehicle.model}`
-                  : data.customerName
+              {data && typeof data === 'object'
+                ? 'vehicle' in data &&
+                  data.vehicle &&
+                  typeof data.vehicle === 'object'
+                  ? `${(data.vehicle as Record<string, unknown>).brand || ''} ${(data.vehicle as Record<string, unknown>).model || ''}`.trim() ||
+                    'N/A'
+                  : 'customerName' in data &&
+                      typeof data.customerName === 'string'
+                    ? data.customerName
+                    : 'N/A'
                 : 'N/A'}
             </Typography>
           </Box>
@@ -2205,7 +2237,10 @@ const Statistics: React.FC = () => {
               <TopStatCard
                 title="Najvyťaženejšie auto"
                 icon={<SpeedIcon />}
-                data={stats.topVehicleByUtilization}
+                data={
+                  (stats.topVehicleByUtilization as Record<string, unknown>) ||
+                  {}
+                }
                 primaryValue={
                   stats.topVehicleByUtilization
                     ? `${stats.topVehicleByUtilization.utilizationPercentage.toFixed(1)}%`
@@ -2227,7 +2262,9 @@ const Statistics: React.FC = () => {
               <TopStatCard
                 title="Najvýnosnejšie auto"
                 icon={<EuroIcon />}
-                data={stats.topVehicleByRevenue}
+                data={
+                  (stats.topVehicleByRevenue as Record<string, unknown>) || {}
+                }
                 primaryValue={
                   stats.topVehicleByRevenue
                     ? `${stats.topVehicleByRevenue.totalRevenue.toLocaleString()} €`
@@ -2246,7 +2283,9 @@ const Statistics: React.FC = () => {
               <TopStatCard
                 title="Najaktívnejší zákazník"
                 icon={<PersonIcon />}
-                data={stats.topCustomerByRentals}
+                data={
+                  (stats.topCustomerByRentals as Record<string, unknown>) || {}
+                }
                 primaryValue={
                   stats.topCustomerByRentals
                     ? `${stats.topCustomerByRentals.rentalCount}x`
@@ -2289,101 +2328,112 @@ const Statistics: React.FC = () => {
                 title="Najvyťaženejšie autá"
                 icon={<SpeedIcon />}
                 gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                data={stats.vehiclesByUtilization}
+                data={stats.vehiclesByUtilization as Record<string, unknown>[]}
                 showCount={showVehiclesByUtilization}
                 onLoadMore={() =>
                   setShowVehiclesByUtilization(prev => prev + 10)
                 }
-                renderItem={(vehicle, index) => (
-                  <Box
-                    key={vehicle.vehicle.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      backgroundColor:
-                        index < 3 ? 'rgba(102, 126, 234, 0.04)' : '#f8f9fa',
-                      border:
-                        index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateX(4px)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                    }}
-                  >
+                renderItem={(vehicleData, index) => {
+                  const vehicle = vehicleData as VehicleStatistic;
+                  return (
                     <Box
+                      key={vehicle.vehicle?.id || index}
                       sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background:
-                          index < 3
-                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                            : '#bdbdbd',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor:
+                          index < 3 ? 'rgba(102, 126, 234, 0.04)' : '#f8f9fa',
+                        border:
+                          index === 0
+                            ? '2px solid #ffd700'
+                            : '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        },
                       }}
                     >
-                      {index + 1}
-                    </Box>
-
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#667eea' }}>
-                      <CarIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {vehicle.vehicle.brand} {vehicle.vehicle.model}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {vehicle.vehicle.licensePlate} •{' '}
-                        {vehicle.totalDaysRented} dní
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ textAlign: 'right', minWidth: 80 }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
+                      <Box
                         sx={{
-                          color:
-                            vehicle.utilizationPercentage > 70
-                              ? '#4caf50'
-                              : vehicle.utilizationPercentage > 40
-                                ? '#ff9800'
-                                : '#f44336',
+                          minWidth: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background:
+                            index < 3
+                              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                              : '#bdbdbd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
                         }}
                       >
-                        {vehicle.utilizationPercentage.toFixed(1)}%
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min(vehicle.utilizationPercentage, 100)}
-                        sx={{
-                          height: 6,
-                          borderRadius: 3,
-                          backgroundColor: '#e0e0e0',
-                          '& .MuiLinearProgress-bar': {
-                            background:
-                              vehicle.utilizationPercentage > 70
+                        {index + 1}
+                      </Box>
+
+                      <Avatar
+                        sx={{ width: 40, height: 40, bgcolor: '#667eea' }}
+                      >
+                        <CarIcon fontSize="small" />
+                      </Avatar>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {vehicle.vehicle?.brand || 'N/A'}{' '}
+                          {vehicle.vehicle?.model || ''}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
+                          {vehicle.totalDaysRented || 0} dní
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{
+                            color:
+                              (vehicle.utilizationPercentage || 0) > 70
                                 ? '#4caf50'
-                                : vehicle.utilizationPercentage > 40
+                                : (vehicle.utilizationPercentage || 0) > 40
                                   ? '#ff9800'
                                   : '#f44336',
+                          }}
+                        >
+                          {(vehicle.utilizationPercentage || 0).toFixed(1)}%
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(
+                            vehicle.utilizationPercentage || 0,
+                            100
+                          )}
+                          sx={{
+                            height: 6,
                             borderRadius: 3,
-                          },
-                        }}
-                      />
+                            backgroundColor: '#e0e0e0',
+                            '& .MuiLinearProgress-bar': {
+                              background:
+                                (vehicle.utilizationPercentage || 0) > 70
+                                  ? '#4caf50'
+                                  : (vehicle.utilizationPercentage || 0) > 40
+                                    ? '#ff9800'
+                                    : '#f44336',
+                              borderRadius: 3,
+                            },
+                          }}
+                        />
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
                 emptyMessage="Žiadne autá v tomto období"
               />
             </Grid>
@@ -2393,77 +2443,86 @@ const Statistics: React.FC = () => {
                 title="Najvýnosnejšie autá"
                 icon={<EuroIcon />}
                 gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
-                data={stats.vehiclesByRevenue}
+                data={stats.vehiclesByRevenue as Record<string, unknown>[]}
                 showCount={showVehiclesByRevenue}
                 onLoadMore={() => setShowVehiclesByRevenue(prev => prev + 10)}
-                renderItem={(vehicle, index) => (
-                  <Box
-                    key={vehicle.vehicle.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      backgroundColor:
-                        index < 3 ? 'rgba(17, 153, 142, 0.04)' : '#f8f9fa',
-                      border:
-                        index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateX(4px)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                    }}
-                  >
+                renderItem={(vehicleData, index) => {
+                  const vehicle = vehicleData as VehicleStatistic;
+                  return (
                     <Box
+                      key={vehicle.vehicle?.id || index}
                       sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background:
-                          index < 3
-                            ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
-                            : '#bdbdbd',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor:
+                          index < 3 ? 'rgba(17, 153, 142, 0.04)' : '#f8f9fa',
+                        border:
+                          index === 0
+                            ? '2px solid #ffd700'
+                            : '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        },
                       }}
                     >
-                      {index + 1}
-                    </Box>
-
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#11998e' }}>
-                      <CarIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {vehicle.vehicle.brand} {vehicle.vehicle.model}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {vehicle.vehicle.licensePlate} • {vehicle.rentalCount}{' '}
-                        prenájmov
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#11998e' }}
+                      <Box
+                        sx={{
+                          minWidth: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background:
+                            index < 3
+                              ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
+                              : '#bdbdbd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                        }}
                       >
-                        {vehicle.totalRevenue.toLocaleString()} €
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {vehicle.avgRevenuePerRental.toFixed(0)} €/prenájom
-                      </Typography>
+                        {index + 1}
+                      </Box>
+
+                      <Avatar
+                        sx={{ width: 40, height: 40, bgcolor: '#11998e' }}
+                      >
+                        <CarIcon fontSize="small" />
+                      </Avatar>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {vehicle.vehicle?.brand || 'N/A'}{' '}
+                          {vehicle.vehicle?.model || ''}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
+                          {vehicle.rentalCount || 0} prenájmov
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{ color: '#11998e' }}
+                        >
+                          {(vehicle.totalRevenue || 0).toLocaleString()} €
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {(vehicle.avgRevenuePerRental || 0).toFixed(0)}{' '}
+                          €/prenájom
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
                 emptyMessage="Žiadne autá v tomto období"
               />
             </Grid>
@@ -2473,77 +2532,86 @@ const Statistics: React.FC = () => {
                 title="Najčastejšie prenajímané"
                 icon={<CarIcon />}
                 gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-                data={stats.vehiclesByRentals}
+                data={stats.vehiclesByRentals as Record<string, unknown>[]}
                 showCount={showVehiclesByRentals}
                 onLoadMore={() => setShowVehiclesByRentals(prev => prev + 10)}
-                renderItem={(vehicle, index) => (
-                  <Box
-                    key={vehicle.vehicle.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      backgroundColor:
-                        index < 3 ? 'rgba(240, 147, 251, 0.04)' : '#f8f9fa',
-                      border:
-                        index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateX(4px)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                    }}
-                  >
+                renderItem={(vehicleData, index) => {
+                  const vehicle = vehicleData as VehicleStatistic;
+                  return (
                     <Box
+                      key={vehicle.vehicle?.id || index}
                       sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background:
-                          index < 3
-                            ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                            : '#bdbdbd',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor:
+                          index < 3 ? 'rgba(240, 147, 251, 0.04)' : '#f8f9fa',
+                        border:
+                          index === 0
+                            ? '2px solid #ffd700'
+                            : '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        },
                       }}
                     >
-                      {index + 1}
-                    </Box>
-
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#f093fb' }}>
-                      <CarIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {vehicle.vehicle.brand} {vehicle.vehicle.model}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {vehicle.vehicle.licensePlate} •{' '}
-                        {vehicle.totalDaysRented} dní celkom
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#f093fb' }}
+                      <Box
+                        sx={{
+                          minWidth: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background:
+                            index < 3
+                              ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                              : '#bdbdbd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                        }}
                       >
-                        {vehicle.rentalCount}x
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {vehicle.totalRevenue.toLocaleString()} € celkom
-                      </Typography>
+                        {index + 1}
+                      </Box>
+
+                      <Avatar
+                        sx={{ width: 40, height: 40, bgcolor: '#f093fb' }}
+                      >
+                        <CarIcon fontSize="small" />
+                      </Avatar>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {vehicle.vehicle?.brand || 'N/A'}{' '}
+                          {vehicle.vehicle?.model || ''}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
+                          {vehicle.totalDaysRented || 0} dní celkom
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{ color: '#f093fb' }}
+                        >
+                          {vehicle.rentalCount || 0}x
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {(vehicle.totalRevenue || 0).toLocaleString()} €
+                          celkom
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
                 emptyMessage="Žiadne autá v tomto období"
               />
             </Grid>
@@ -2576,77 +2644,85 @@ const Statistics: React.FC = () => {
                 title="Najaktívnejší zákazníci"
                 icon={<StarIcon />}
                 gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
-                data={stats.customersByRentals}
+                data={stats.customersByRentals as Record<string, unknown>[]}
                 showCount={showCustomersByRentals}
                 onLoadMore={() => setShowCustomersByRentals(prev => prev + 10)}
-                renderItem={(customer, index) => (
-                  <Box
-                    key={customer.customerName}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      backgroundColor:
-                        index < 3 ? 'rgba(255, 154, 158, 0.04)' : '#f8f9fa',
-                      border:
-                        index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateX(4px)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                    }}
-                  >
+                renderItem={(customerData, index) => {
+                  const customer = customerData as CustomerStatistic;
+                  return (
                     <Box
+                      key={customer.customerName || index}
                       sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background:
-                          index < 3
-                            ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
-                            : '#bdbdbd',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor:
+                          index < 3 ? 'rgba(255, 154, 158, 0.04)' : '#f8f9fa',
+                        border:
+                          index === 0
+                            ? '2px solid #ffd700'
+                            : '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        },
                       }}
                     >
-                      {index + 1}
-                    </Box>
-
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff9a9e' }}>
-                      <PersonIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {customer.customerName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {customer.totalDaysRented} dní celkom • Priemer:{' '}
-                        {customer.avgRentalDuration.toFixed(1)} dní
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#ff9a9e' }}
+                      <Box
+                        sx={{
+                          minWidth: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background:
+                            index < 3
+                              ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
+                              : '#bdbdbd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                        }}
                       >
-                        {customer.rentalCount}x
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {customer.totalRevenue.toLocaleString()} € celkom
-                      </Typography>
+                        {index + 1}
+                      </Box>
+
+                      <Avatar
+                        sx={{ width: 40, height: 40, bgcolor: '#ff9a9e' }}
+                      >
+                        <PersonIcon fontSize="small" />
+                      </Avatar>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {customer.customerName || 'N/A'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {customer.totalDaysRented || 0} dní celkom • Priemer:{' '}
+                          {(customer.avgRentalDuration || 0).toFixed(1)} dní
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{ color: '#ff9a9e' }}
+                        >
+                          {customer.rentalCount || 0}x
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {(customer.totalRevenue || 0).toLocaleString()} €
+                          celkom
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
@@ -2656,80 +2732,88 @@ const Statistics: React.FC = () => {
                 title="Najziskovejší zákazníci"
                 icon={<MoneyIcon />}
                 gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
-                data={stats.customersByRevenue}
+                data={stats.customersByRevenue as Record<string, unknown>[]}
                 showCount={showCustomersByRevenue}
                 onLoadMore={() => setShowCustomersByRevenue(prev => prev + 10)}
-                renderItem={(customer, index) => (
-                  <Box
-                    key={customer.customerName}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      backgroundColor:
-                        index < 3 ? 'rgba(255, 107, 107, 0.04)' : '#f8f9fa',
-                      border:
-                        index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateX(4px)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                    }}
-                  >
+                renderItem={(customerData, index) => {
+                  const customer = customerData as CustomerStatistic;
+                  return (
                     <Box
+                      key={customer.customerName || index}
                       sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background:
-                          index < 3
-                            ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)'
-                            : '#bdbdbd',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor:
+                          index < 3 ? 'rgba(255, 107, 107, 0.04)' : '#f8f9fa',
+                        border:
+                          index === 0
+                            ? '2px solid #ffd700'
+                            : '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        },
                       }}
                     >
-                      {index + 1}
-                    </Box>
-
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff6b6b' }}>
-                      <PersonIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {customer.customerName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {customer.rentalCount} prenájmov •{' '}
-                        {customer.totalDaysRented} dní
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#ff6b6b' }}
+                      <Box
+                        sx={{
+                          minWidth: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background:
+                            index < 3
+                              ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)'
+                              : '#bdbdbd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                        }}
                       >
-                        {customer.totalRevenue.toLocaleString()} €
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {(customer.totalRevenue / customer.rentalCount).toFixed(
-                          0
-                        )}{' '}
-                        €/prenájom
-                      </Typography>
+                        {index + 1}
+                      </Box>
+
+                      <Avatar
+                        sx={{ width: 40, height: 40, bgcolor: '#ff6b6b' }}
+                      >
+                        <PersonIcon fontSize="small" />
+                      </Avatar>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {customer.customerName || 'N/A'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {customer.rentalCount || 0} prenájmov •{' '}
+                          {customer.totalDaysRented || 0} dní
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{ color: '#ff6b6b' }}
+                        >
+                          {(customer.totalRevenue || 0).toLocaleString()} €
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {(
+                            (customer.totalRevenue || 0) /
+                            (customer.rentalCount || 1)
+                          ).toFixed(0)}{' '}
+                          €/prenájom
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
@@ -2739,78 +2823,86 @@ const Statistics: React.FC = () => {
                 title="Najdlhodobejší zákazníci"
                 icon={<TimeIcon />}
                 gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-                data={stats.customersByDays}
+                data={stats.customersByDays as Record<string, unknown>[]}
                 showCount={showCustomersByDays}
                 onLoadMore={() => setShowCustomersByDays(prev => prev + 10)}
-                renderItem={(customer, index) => (
-                  <Box
-                    key={customer.customerName}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      backgroundColor:
-                        index < 3 ? 'rgba(79, 172, 254, 0.04)' : '#f8f9fa',
-                      border:
-                        index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateX(4px)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                    }}
-                  >
+                renderItem={(customerData, index) => {
+                  const customer = customerData as CustomerStatistic;
+                  return (
                     <Box
+                      key={customer.customerName || index}
                       sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background:
-                          index < 3
-                            ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                            : '#bdbdbd',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
+                        gap: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor:
+                          index < 3 ? 'rgba(79, 172, 254, 0.04)' : '#f8f9fa',
+                        border:
+                          index === 0
+                            ? '2px solid #ffd700'
+                            : '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        },
                       }}
                     >
-                      {index + 1}
-                    </Box>
-
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#4facfe' }}>
-                      <PersonIcon fontSize="small" />
-                    </Avatar>
-
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {customer.customerName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {customer.rentalCount} prenájmov •{' '}
-                        {customer.totalRevenue.toLocaleString()} €
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#4facfe' }}
+                      <Box
+                        sx={{
+                          minWidth: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background:
+                            index < 3
+                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                              : '#bdbdbd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                        }}
                       >
-                        {customer.totalDaysRented} dní
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Priemer: {customer.avgRentalDuration.toFixed(1)}{' '}
-                        dní/prenájom
-                      </Typography>
+                        {index + 1}
+                      </Box>
+
+                      <Avatar
+                        sx={{ width: 40, height: 40, bgcolor: '#4facfe' }}
+                      >
+                        <PersonIcon fontSize="small" />
+                      </Avatar>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {customer.customerName || 'N/A'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {customer.rentalCount || 0} prenájmov •{' '}
+                          {(customer.totalRevenue || 0).toLocaleString()} €
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          sx={{ color: '#4facfe' }}
+                        >
+                          {customer.totalDaysRented || 0} dní
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Priemer:{' '}
+                          {(customer.avgRentalDuration || 0).toFixed(1)}{' '}
+                          dní/prenájom
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
             </Grid>
@@ -2958,81 +3050,85 @@ const Statistics: React.FC = () => {
                           .slice(0, 10)
                           .map(
                             (
-                              employee: Record<string, unknown>,
+                              employeeData: Record<string, unknown>,
                               index: number
-                            ) => (
-                              <Box
-                                key={index}
-                                sx={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  p: 2,
-                                  mb: 1,
-                                  bgcolor:
-                                    index < 3
-                                      ? 'rgba(102, 126, 234, 0.1)'
-                                      : 'background.paper',
-                                  borderRadius: 2,
-                                  border:
-                                    index < 3
-                                      ? '1px solid rgba(102, 126, 234, 0.2)'
-                                      : '1px solid rgba(0,0,0,0.1)',
-                                }}
-                              >
+                            ) => {
+                              const employee =
+                                employeeData as EmployeeStatistic;
+                              return (
                                 <Box
+                                  key={employee.employeeName || index}
                                   sx={{
                                     display: 'flex',
+                                    justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    gap: 2,
+                                    p: 2,
+                                    mb: 1,
+                                    bgcolor:
+                                      index < 3
+                                        ? 'rgba(102, 126, 234, 0.1)'
+                                        : 'background.paper',
+                                    borderRadius: 2,
+                                    border:
+                                      index < 3
+                                        ? '1px solid rgba(102, 126, 234, 0.2)'
+                                        : '1px solid rgba(0,0,0,0.1)',
                                   }}
                                 >
                                   <Box
                                     sx={{
-                                      width: 32,
-                                      height: 32,
-                                      borderRadius: '50%',
-                                      bgcolor:
-                                        index === 0
-                                          ? '#FFD700'
-                                          : index === 1
-                                            ? '#C0C0C0'
-                                            : index === 2
-                                              ? '#CD7F32'
-                                              : '#667eea',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: 'white',
-                                      fontWeight: 700,
+                                      gap: 2,
                                     }}
                                   >
-                                    {index + 1}
-                                  </Box>
-                                  <Box>
-                                    <Typography
-                                      variant="body1"
-                                      sx={{ fontWeight: 600 }}
+                                    <Box
+                                      sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        bgcolor:
+                                          index === 0
+                                            ? '#FFD700'
+                                            : index === 1
+                                              ? '#C0C0C0'
+                                              : index === 2
+                                                ? '#CD7F32'
+                                                : '#667eea',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontWeight: 700,
+                                      }}
                                     >
-                                      {employee.employeeName}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      {employee.handoverCount} odovzdaní •{' '}
-                                      {employee.returnCount} prebraní
-                                    </Typography>
+                                      {index + 1}
+                                    </Box>
+                                    <Box>
+                                      <Typography
+                                        variant="body1"
+                                        sx={{ fontWeight: 600 }}
+                                      >
+                                        {employee.employeeName || 'N/A'}
+                                      </Typography>
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                      >
+                                        {employee.handoverCount || 0} odovzdaní
+                                        • {employee.returnCount || 0} prebraní
+                                      </Typography>
+                                    </Box>
                                   </Box>
+                                  <Typography
+                                    variant="h6"
+                                    sx={{ fontWeight: 700, color: '#667eea' }}
+                                  >
+                                    {employee.totalProtocols || 0}
+                                  </Typography>
                                 </Box>
-                                <Typography
-                                  variant="h6"
-                                  sx={{ fontWeight: 700, color: '#667eea' }}
-                                >
-                                  {employee.totalProtocols}
-                                </Typography>
-                              </Box>
-                            )
+                              );
+                            }
                           )}
                       </Box>
                     </CardContent>
@@ -3066,81 +3162,88 @@ const Statistics: React.FC = () => {
                           .slice(0, 10)
                           .map(
                             (
-                              employee: Record<string, unknown>,
+                              employeeData: Record<string, unknown>,
                               index: number
-                            ) => (
-                              <Box
-                                key={index}
-                                sx={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  p: 2,
-                                  mb: 1,
-                                  bgcolor:
-                                    index < 3
-                                      ? 'rgba(76, 175, 80, 0.1)'
-                                      : 'background.paper',
-                                  borderRadius: 2,
-                                  border:
-                                    index < 3
-                                      ? '1px solid rgba(76, 175, 80, 0.2)'
-                                      : '1px solid rgba(0,0,0,0.1)',
-                                }}
-                              >
+                            ) => {
+                              const employee =
+                                employeeData as EmployeeStatistic;
+                              return (
                                 <Box
+                                  key={employee.employeeName || index}
                                   sx={{
                                     display: 'flex',
+                                    justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    gap: 2,
+                                    p: 2,
+                                    mb: 1,
+                                    bgcolor:
+                                      index < 3
+                                        ? 'rgba(76, 175, 80, 0.1)'
+                                        : 'background.paper',
+                                    borderRadius: 2,
+                                    border:
+                                      index < 3
+                                        ? '1px solid rgba(76, 175, 80, 0.2)'
+                                        : '1px solid rgba(0,0,0,0.1)',
                                   }}
                                 >
                                   <Box
                                     sx={{
-                                      width: 32,
-                                      height: 32,
-                                      borderRadius: '50%',
-                                      bgcolor:
-                                        index === 0
-                                          ? '#FFD700'
-                                          : index === 1
-                                            ? '#C0C0C0'
-                                            : index === 2
-                                              ? '#CD7F32'
-                                              : '#4CAF50',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: 'white',
-                                      fontWeight: 700,
+                                      gap: 2,
                                     }}
                                   >
-                                    {index + 1}
-                                  </Box>
-                                  <Box>
-                                    <Typography
-                                      variant="body1"
-                                      sx={{ fontWeight: 600 }}
+                                    <Box
+                                      sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        bgcolor:
+                                          index === 0
+                                            ? '#FFD700'
+                                            : index === 1
+                                              ? '#C0C0C0'
+                                              : index === 2
+                                                ? '#CD7F32'
+                                                : '#4CAF50',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontWeight: 700,
+                                      }}
                                     >
-                                      {employee.employeeName}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      {employee.totalProtocols} protokolov
-                                    </Typography>
+                                      {index + 1}
+                                    </Box>
+                                    <Box>
+                                      <Typography
+                                        variant="body1"
+                                        sx={{ fontWeight: 600 }}
+                                      >
+                                        {employee.employeeName || 'N/A'}
+                                      </Typography>
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                      >
+                                        {employee.totalProtocols || 0}{' '}
+                                        protokolov
+                                      </Typography>
+                                    </Box>
                                   </Box>
+                                  <Typography
+                                    variant="h6"
+                                    sx={{ fontWeight: 700, color: '#4CAF50' }}
+                                  >
+                                    €
+                                    {(
+                                      employee.totalRevenue || 0
+                                    ).toLocaleString()}
+                                  </Typography>
                                 </Box>
-                                <Typography
-                                  variant="h6"
-                                  sx={{ fontWeight: 700, color: '#4CAF50' }}
-                                >
-                                  €
-                                  {employee.totalRevenue?.toLocaleString() || 0}
-                                </Typography>
-                              </Box>
-                            )
+                              );
+                            }
                           )}
                       </Box>
                     </CardContent>
@@ -3203,79 +3306,87 @@ const Statistics: React.FC = () => {
                           <TableBody>
                             {stats.employeeStats.allEmployees
                               .sort(
-                                (a, b) => b.totalProtocols - a.totalProtocols
+                                (a, b) =>
+                                  (b.totalProtocols || 0) -
+                                  (a.totalProtocols || 0)
                               )
                               .map(
                                 (
-                                  employee: Record<string, unknown>,
+                                  employeeData: Record<string, unknown>,
                                   index: number
-                                ) => (
-                                  <TableRow
-                                    key={index}
-                                    sx={{
-                                      '&:nth-of-type(odd)': {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                      },
-                                    }}
-                                  >
-                                    <TableCell>
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 1,
-                                        }}
-                                      >
-                                        <PersonIcon color="primary" />
+                                ) => {
+                                  const employee =
+                                    employeeData as EmployeeStatistic;
+                                  return (
+                                    <TableRow
+                                      key={employee.employeeName || index}
+                                      sx={{
+                                        '&:nth-of-type(odd)': {
+                                          backgroundColor:
+                                            'rgba(0, 0, 0, 0.04)',
+                                        },
+                                      }}
+                                    >
+                                      <TableCell>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <PersonIcon color="primary" />
+                                          <Typography
+                                            variant="body2"
+                                            sx={{ fontWeight: 600 }}
+                                          >
+                                            {employee.employeeName || 'N/A'}
+                                          </Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <Chip
+                                          label={employee.totalProtocols || 0}
+                                          color="primary"
+                                          size="small"
+                                        />
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <Chip
+                                          label={employee.handoverCount || 0}
+                                          color="secondary"
+                                          size="small"
+                                        />
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <Chip
+                                          label={employee.returnCount || 0}
+                                          color="info"
+                                          size="small"
+                                        />
+                                      </TableCell>
+                                      <TableCell align="right">
                                         <Typography
                                           variant="body2"
-                                          sx={{ fontWeight: 600 }}
+                                          sx={{
+                                            fontWeight: 600,
+                                            color: '#4CAF50',
+                                          }}
                                         >
-                                          {employee.employeeName}
+                                          €
+                                          {(
+                                            employee.totalRevenue || 0
+                                          ).toLocaleString()}
                                         </Typography>
-                                      </Box>
-                                    </TableCell>
-                                    <TableCell align="center">
-                                      <Chip
-                                        label={employee.totalProtocols}
-                                        color="primary"
-                                        size="small"
-                                      />
-                                    </TableCell>
-                                    <TableCell align="center">
-                                      <Chip
-                                        label={employee.handoverCount}
-                                        color="secondary"
-                                        size="small"
-                                      />
-                                    </TableCell>
-                                    <TableCell align="center">
-                                      <Chip
-                                        label={employee.returnCount}
-                                        color="info"
-                                        size="small"
-                                      />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                      <Typography
-                                        variant="body2"
-                                        sx={{
-                                          fontWeight: 600,
-                                          color: '#4CAF50',
-                                        }}
-                                      >
-                                        €
-                                        {employee.totalRevenue?.toLocaleString() ||
-                                          0}
-                                      </Typography>
-                                    </TableCell>
-                                    <TableCell align="center">
-                                      <Typography variant="body2">
-                                        {employee.uniqueRentals || 0}
-                                      </Typography>
-                                    </TableCell>
-                                  </TableRow>
-                                )
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <Typography variant="body2">
+                                          {employee.uniqueRentals || 0}
+                                        </Typography>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                }
                               )}
                           </TableBody>
                         </Table>

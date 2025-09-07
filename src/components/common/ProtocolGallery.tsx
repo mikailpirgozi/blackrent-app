@@ -159,9 +159,11 @@ export default function ProtocolGallery({
     }
 
     try {
-      // Použi proxy URL pre download
+      // Použi proxy URL pre download - originalUrl len pre obrázky
       const downloadUrl = getProxyUrl(
-        currentMedia.originalUrl || currentMedia.url
+        'originalUrl' in currentMedia && currentMedia.originalUrl
+          ? currentMedia.originalUrl
+          : currentMedia.url
       );
       if (!downloadUrl) {
         alert('Nepodarilo sa stiahnuť súbor - neplatné URL');
@@ -266,14 +268,10 @@ export default function ProtocolGallery({
                 console.log(`🖼️ Rendering image ${index}:`, {
                   id: image.id,
                   url: image.url?.substring(0, 100) + '...',
-                  originalUrl:
-                    (image as Record<string, unknown>).originalUrl
-                      ?.toString()
-                      .substring(0, 100) + '...',
+                  originalUrl: image.originalUrl?.substring(0, 100) + '...',
                   type: image.type,
                   hasUrl: !!image.url,
-                  hasOriginalUrl: !!(image as Record<string, unknown>)
-                    .originalUrl,
+                  hasOriginalUrl: !!image.originalUrl,
                   urlType: typeof image.url,
                 });
 
@@ -604,7 +602,10 @@ export default function ProtocolGallery({
                   currentMedia.url ? (
                     <img
                       src={getProxyUrl(
-                        currentMedia.originalUrl || currentMedia.url
+                        'originalUrl' in currentMedia &&
+                          currentMedia.originalUrl
+                          ? currentMedia.originalUrl
+                          : currentMedia.url
                       )}
                       alt={currentMedia.description || 'Obrázok'}
                       style={{
@@ -634,9 +635,7 @@ export default function ProtocolGallery({
                 ) : // Video
                 currentMedia.url ? (
                   <video
-                    src={getProxyUrl(
-                      currentMedia.originalUrl || currentMedia.url
-                    )}
+                    src={getProxyUrl(currentMedia.url)}
                     controls
                     style={{
                       maxWidth: `${100 * zoom}%`,
