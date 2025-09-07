@@ -801,9 +801,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const protocolsData = await apiService.getAllProtocolsForStats();
         const protocolsTime = Date.now() - protocolsStartTime;
 
-        // Convert protocols data to the expected format
+        // Convert protocols data to the expected format with safety checks
         const protocols = [
-          ...protocolsData.handoverProtocols.map(p => ({
+          ...(protocolsData.handoverProtocols || []).map(p => ({
             id: p.id,
             type: 'handover' as const,
             rentalId: p.rentalId,
@@ -811,7 +811,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             createdAt: new Date(p.createdAt),
             rentalData: p.rental,
           })),
-          ...protocolsData.returnProtocols.map(p => ({
+          ...(protocolsData.returnProtocols || []).map(p => ({
             id: p.id,
             type: 'return' as const,
             rentalId: p.rentalId,
