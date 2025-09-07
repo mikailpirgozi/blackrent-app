@@ -150,7 +150,10 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
   }, [wasOffline, showError]);
 
   const networkQuality = assessNetworkQuality(
-    (navigator as Record<string, unknown>).connection as Record<string, unknown>
+    (navigator as unknown as Record<string, unknown>).connection as Record<
+      string,
+      unknown
+    >
   );
 
   return {

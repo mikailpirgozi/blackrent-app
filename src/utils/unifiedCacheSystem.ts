@@ -56,10 +56,10 @@ class UnifiedCacheSystem {
     const cached = this.cache.get(key);
 
     // Check if cached and not expired
-    if (cached && Date.now() - cached.timestamp < ttl) {
+    if (cached && Date.now() - (cached.timestamp as number) < ttl) {
       this.stats.hits++;
       logger.debug(`🗄️ UNIFIED: Cache HIT for ${key}`);
-      return cached.data;
+      return cached.data as T;
     }
 
     // Fetch fresh data
@@ -94,7 +94,11 @@ class UnifiedCacheSystem {
       const keysToDelete: string[] = [];
 
       this.cache.forEach((value, key) => {
-        if (value.tags && value.tags.includes(entity)) {
+        if (
+          value.tags &&
+          Array.isArray(value.tags) &&
+          value.tags.includes(entity)
+        ) {
           keysToDelete.push(key);
         }
         // Also clear by key pattern

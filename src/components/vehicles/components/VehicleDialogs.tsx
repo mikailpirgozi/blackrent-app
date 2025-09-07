@@ -173,24 +173,32 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                   Transfer #{index + 1}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Z:</strong> {transfer.fromCompany || 'N/A'}
+                  <>
+                    <strong>Z:</strong> {transfer.fromCompany || 'N/A'}
+                  </>
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Na:</strong> {transfer.toCompany || 'N/A'}
+                  <>
+                    <strong>Na:</strong> {transfer.toCompany || 'N/A'}
+                  </>
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Dátum:</strong>{' '}
-                  {transfer.transferDate
-                    ? format(
-                        new Date(transfer.transferDate),
-                        'dd.MM.yyyy HH:mm',
-                        { locale: sk }
-                      )
-                    : 'N/A'}
+                  <>
+                    <strong>Dátum:</strong>{' '}
+                    {transfer.transferDate
+                      ? format(
+                          new Date(transfer.transferDate as string),
+                          'dd.MM.yyyy HH:mm',
+                          { locale: sk }
+                        )
+                      : 'N/A'}
+                  </>
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Poznámka:</strong>{' '}
-                  {transfer.notes || 'Žiadna poznámka'}
+                  <>
+                    <strong>Poznámka:</strong>{' '}
+                    {transfer.notes || 'Žiadna poznámka'}
+                  </>
                 </Typography>
               </div>
             ))
@@ -369,8 +377,10 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
           🏢 Priradiť podiel k firme
           {selectedInvestorForShare && (
             <Typography variant="subtitle2" color="text.secondary">
-              {selectedInvestorForShare.firstName}{' '}
-              {selectedInvestorForShare.lastName}
+              <>
+                {selectedInvestorForShare.firstName}{' '}
+                {selectedInvestorForShare.lastName}
+              </>
             </Typography>
           )}
         </DialogTitle>
@@ -387,8 +397,11 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                   {companies
                     ?.filter(c => c.isActive !== false)
                     .map(company => (
-                      <MenuItem key={company.id} value={company.id}>
-                        {company.name}
+                      <MenuItem
+                        key={String(company.id)}
+                        value={String(company.id)}
+                      >
+                        {String(company.name)}
                       </MenuItem>
                     ))}
                 </Select>

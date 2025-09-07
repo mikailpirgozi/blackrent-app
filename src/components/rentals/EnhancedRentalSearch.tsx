@@ -212,15 +212,15 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
     [state.rentals, state.customers, state.vehicles, advancedFilters]
   );
 
-  // Search function for EnhancedSearchBar (returns SearchSuggestion[])
+  // Search function for EnhancedSearchBar (returns Record<string, unknown>[])
   const searchForSuggestions = useCallback(
     async (
       query: string,
       quickFilter?: string
-    ): Promise<SearchSuggestion[]> => {
+    ): Promise<Record<string, unknown>[]> => {
       const results = await searchRentals(query, quickFilter);
 
-      // Convert Rental[] to SearchSuggestion[]
+      // Convert Rental[] to Record<string, unknown>[]
       return results.map(rental => ({
         id: rental.id,
         text: `${rental.customerName} - ${rental.id}`,

@@ -15,7 +15,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../../context/AppContext';
-import type { Vehicle, VehicleCategory } from '../../types';
+import type { Vehicle, VehicleCategory, VehicleStatus } from '../../types';
 
 // 📝 INTERFACES: Proper TypeScript types
 // interface OwnershipHistoryItem {
@@ -399,7 +399,7 @@ export default function VehicleListNew() {
           },
           body: JSON.stringify({
             ...newShareData,
-            investorId: selectedInvestorForShare.id,
+            investorId: selectedInvestorForShare?.id,
           }),
         }
       );
@@ -522,7 +522,8 @@ export default function VehicleListNew() {
       brand: filterBrand,
       model: filterModel,
       company: filterCompany,
-      status: filterStatus as VehicleCategory, // Type casting for backwards compatibility
+      status:
+        filterStatus === 'all' ? undefined : (filterStatus as VehicleStatus),
       category: filterCategory,
       // Status group filters (backwards compatibility)
       showAvailable,
@@ -986,7 +987,7 @@ export default function VehicleListNew() {
                 return (
                   <OwnerCard
                     key={company.id}
-                    company={company}
+                    company={company as unknown as Record<string, unknown>}
                     vehicles={companyVehicles}
                     onVehicleUpdate={handleSaveCompany}
                     onVehicleEdit={handleEdit}
@@ -1045,12 +1046,24 @@ export default function VehicleListNew() {
                 return (
                   <InvestorCard
                     key={investor.id}
-                    investor={investor}
-                    shares={investorShares_filtered}
-                    companies={state.companies || []}
+                    investor={investor as unknown as Record<string, unknown>}
+                    shares={
+                      investorShares_filtered as unknown as Record<
+                        string,
+                        unknown
+                      >[]
+                    }
+                    companies={
+                      (state.companies || []) as unknown as Record<
+                        string,
+                        unknown
+                      >[]
+                    }
                     onShareUpdate={loadInvestors}
                     onAssignShare={investor => {
-                      setSelectedInvestorForShare(investor);
+                      setSelectedInvestorForShare(
+                        investor as unknown as InvestorData
+                      );
                       setAssignShareDialogOpen(true);
                     }}
                   />
@@ -1099,9 +1112,13 @@ export default function VehicleListNew() {
         }
         // Assign Share Dialog
         assignShareDialogOpen={assignShareDialogOpen}
-        selectedInvestorForShare={selectedInvestorForShare}
+        selectedInvestorForShare={
+          selectedInvestorForShare as unknown as Record<string, unknown>
+        }
         newShareData={newShareData}
-        companies={state.companies || []}
+        companies={
+          (state.companies || []) as unknown as Record<string, unknown>[]
+        }
         onCloseAssignShare={() => setAssignShareDialogOpen(false)}
         onAssignShare={handleAssignShare}
         onShareDataChange={(field, value) =>

@@ -16,7 +16,15 @@ export const useApiService = () => {
   // Setup error handler when error context is available
   useEffect(() => {
     apiService.setErrorHandler((error: Error) => {
-      showError(error.message);
+      showError({
+        message: error.message,
+        category: 'server',
+        severity: 'error',
+        context: {
+          originalError: error,
+          timestamp: new Date().toISOString(),
+        },
+      });
     });
   }, [showError]);
 

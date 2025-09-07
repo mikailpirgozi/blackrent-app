@@ -364,7 +364,7 @@ class PushNotificationService {
         event.preventDefault();
 
         const data = payload.data || {};
-        const url = data.url || '/';
+        const url = (data.url as string) || '/';
 
         // Focus or open window
         window.focus();

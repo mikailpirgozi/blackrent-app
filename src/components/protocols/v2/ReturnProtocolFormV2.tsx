@@ -944,13 +944,16 @@ export const ReturnProtocolFormV2: React.FC<Props> = ({
         <section className="bg-gray-50 p-6 rounded-lg">
           <h3 className="text-lg font-semibold mb-4">Podpis zákazníka</h3>
           <SignaturePad
-            onSignatureChange={(signature: string) =>
+            onSave={signature =>
               setProtocolData(prev => ({
                 ...prev,
-                signature,
+                signature: signature.signature,
               }))
             }
-            disabled={disabled}
+            onCancel={() => {}}
+            signerName="Customer"
+            signerRole="customer"
+            location="Office"
           />
         </section>
 

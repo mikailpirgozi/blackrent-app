@@ -62,10 +62,14 @@ class MemoryOptimizer {
   getMemoryStats(): MemoryStats | null {
     if (!('memory' in performance)) return null;
 
-    const memory = (performance as Record<string, unknown>).memory as Record<
-      string,
-      unknown
-    >;
+    interface PerformanceMemory {
+      usedJSHeapSize: number;
+      totalJSHeapSize: number;
+      jsHeapSizeLimit: number;
+    }
+
+    const memory = (performance as unknown as { memory: PerformanceMemory })
+      .memory;
 
     return {
       usedJSHeapSize: memory.usedJSHeapSize,
@@ -107,10 +111,10 @@ class MemoryOptimizer {
       // Suggest garbage collection if available
       if (
         'gc' in window &&
-        typeof (window as Record<string, unknown>).gc === 'function'
+        typeof (window as unknown as Record<string, unknown>).gc === 'function'
       ) {
         console.log('🗑️ Running garbage collection...');
-        ((window as Record<string, unknown>).gc as () => void)();
+        ((window as unknown as Record<string, unknown>).gc as () => void)();
       }
     }
 
@@ -160,9 +164,9 @@ class MemoryOptimizer {
     // Force garbage collection if available
     if (
       'gc' in window &&
-      typeof (window as Record<string, unknown>).gc === 'function'
+      typeof (window as unknown as Record<string, unknown>).gc === 'function'
     ) {
-      ((window as Record<string, unknown>).gc as () => void)();
+      ((window as unknown as Record<string, unknown>).gc as () => void)();
     }
   }
 
@@ -264,7 +268,7 @@ class MemoryOptimizer {
   // Create weak reference for automatic cleanup
   createWeakRef<T extends object>(obj: T): WeakRef<T> {
     const weakRef = new WeakRef(obj);
-    this.weakRefs.add(weakRef);
+    this.weakRefs.add(weakRef as WeakRef<Record<string, unknown>>);
     return weakRef;
   }
 
@@ -284,9 +288,12 @@ class MemoryOptimizer {
     if ('navigation' in performance) {
       const navigation = performance.getEntriesByType(
         'navigation'
-      )[0] as Record<string, unknown>;
+      )[0] as unknown as Record<string, unknown>;
       if (navigation) {
-        return navigation.loadEventEnd - navigation.loadEventStart;
+        return (
+          (navigation.loadEventEnd as number) -
+          (navigation.loadEventStart as number)
+        );
       }
     }
     return 0;

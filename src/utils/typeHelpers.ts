@@ -35,19 +35,22 @@ export const filterDefined = <T>(items: (T | undefined)[]): T[] => {
  * Type-safe unique brands extractor
  */
 export const extractUniqueBrands = (vehicles: unknown[]): string[] => {
-  return createUniqueStringArray(vehicles, v => v.brand);
+  return createUniqueStringArray(vehicles, v => (v as { brand: string }).brand);
 };
 
 /**
  * Type-safe unique models extractor
  */
 export const extractUniqueModels = (vehicles: unknown[]): string[] => {
-  return createUniqueStringArray(vehicles, v => v.model);
+  return createUniqueStringArray(vehicles, v => (v as { model: string }).model);
 };
 
 /**
  * Type-safe unique companies extractor
  */
 export const extractUniqueCompanies = (vehicles: unknown[]): string[] => {
-  return createUniqueStringArray(vehicles, v => v.company);
+  return createUniqueStringArray(
+    vehicles,
+    v => (v as { company: string }).company
+  );
 };

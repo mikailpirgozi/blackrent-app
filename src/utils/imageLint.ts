@@ -88,7 +88,7 @@ async function loadImage(
   try {
     // Use createImageBitmap which automatically handles EXIF orientation
     const imageBitmap = await createImageBitmap(file, {
-      imageOrientation: 'from-image', // This applies EXIF orientation
+      imageOrientation: 'from-image' as ImageOrientation, // This applies EXIF orientation
     });
 
     return {

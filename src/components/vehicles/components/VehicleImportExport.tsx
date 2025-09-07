@@ -66,9 +66,12 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
 
           for (const row of dataRows) {
             const fieldMap: { [key: string]: string } = {};
-            header.forEach((headerName: string, index: number) => {
-              fieldMap[headerName] = row[index] || '';
-            });
+            (header as string[]).forEach(
+              (headerName: string, index: number) => {
+                const value = (row as string[])[index];
+                fieldMap[headerName] = typeof value === 'string' ? value : '';
+              }
+            );
 
             // Mapovanie základných polí
             const brand = fieldMap['brand'] || fieldMap['Značka'];
@@ -168,7 +171,8 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
                 | 'available'
                 | 'rented'
                 | 'maintenance'
-                | 'unavailable',
+                | 'temporarily_removed'
+                | 'removed',
               stk: stk && stk.trim() ? new Date(stk.trim()) : undefined,
               pricing: pricing,
               commission: {
@@ -197,14 +201,14 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
             successRate,
             processed,
             total,
-          } = result;
+          } = result as { success: number; failed: number; total: number };
 
-          if (created > 0 || updated > 0) {
+          if ((created as number) > 0 || (updated as number) > 0) {
             alert(
               `🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`
             );
             setTimeout(() => window.location.reload(), 3000);
-          } else if (errorsCount > 0) {
+          } else if ((errorsCount as number) > 0) {
             alert(
               `⚠️ Import dokončený, ale žiadne vozidlá neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`
             );

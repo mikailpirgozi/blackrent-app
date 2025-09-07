@@ -148,8 +148,8 @@ export const RentalTable: React.FC<RentalTableProps> = ({
             return (
               <MobileRentalRow
                 key={rental.id}
-                rental={rental as Record<string, unknown>}
-                vehicle={getVehicleByRental(rental) as Record<string, unknown>}
+                rental={rental as Rental}
+                vehicle={getVehicleByRental(rental) as Vehicle | undefined}
                 index={index}
                 totalRentals={filteredRentals.length}
                 hasHandover={hasHandover}

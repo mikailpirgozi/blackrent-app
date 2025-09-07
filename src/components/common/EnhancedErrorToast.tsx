@@ -367,7 +367,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
                   <Typography variant="caption" component="div">
                     Error: {error.technicalMessage}
                   </Typography>
-                  {(error.originalError as { status?: number })?.status && (
+                  {error.originalError && 'status' in error.originalError && (
                     <Typography variant="caption" component="div">
                       Status:{' '}
                       {(error.originalError as { status: number }).status}

@@ -113,13 +113,13 @@ export class EnhancedPDFGenerator {
     );
     this.currentY += 6;
     this.doc.text(
-      `Vozidlo: ${vehicle?.brand} ${vehicle?.model} (${vehicle?.licensePlate})`,
+      `Vozidlo: ${(vehicle as { brand?: string })?.brand} ${(vehicle as { model?: string })?.model} (${(vehicle as { licensePlate?: string })?.licensePlate})`,
       this.margin,
       this.currentY
     );
     this.currentY += 6;
     this.doc.text(
-      `Zákazník: ${customer?.name || 'N/A'}`,
+      `Zákazník: ${(customer as { name?: string })?.name || 'N/A'}`,
       this.margin,
       this.currentY
     );
@@ -306,7 +306,9 @@ export class EnhancedPDFGenerator {
 
       try {
         // Načítanie podpisu (base64 alebo URL)
-        const signatureData = signature.signature || signature.url;
+        const signatureData =
+          (signature as { signature?: string }).signature ||
+          (signature as { url?: string }).url;
         const imageData = await this.loadImageData(signatureData);
 
         const { width, height } = await this.calculateImageDimensions(
@@ -347,7 +349,8 @@ export class EnhancedPDFGenerator {
         this.doc.setFontSize(8);
         this.doc.setTextColor(...this.secondaryColor);
         this.doc.text(
-          signature.signerName || `Podpis ${i + 1}`,
+          (signature as { signerName?: string }).signerName ||
+            `Podpis ${i + 1}`,
           currentX,
           this.currentY + height + 8
         );
@@ -363,13 +366,13 @@ export class EnhancedPDFGenerator {
       } catch (error) {
         console.error(
           '❌ Error loading signature:',
-          signature.signerName,
+          (signature as { signerName?: string }).signerName,
           error
         );
         this.doc.setFontSize(10);
         this.doc.setTextColor(255, 0, 0);
         this.doc.text(
-          `Chyba načítania podpisu: ${signature.signerName || 'Podpis'}`,
+          `Chyba načítania podpisu: ${(signature as { signerName?: string }).signerName || 'Podpis'}`,
           currentX,
           this.currentY
         );
@@ -423,14 +426,14 @@ export class EnhancedPDFGenerator {
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
       this.doc.text(
-        `Popis: ${damage.description || 'N/A'}`,
+        `Popis: ${(damage as { description?: string }).description || 'N/A'}`,
         this.margin + 5,
         this.currentY + 15
       );
 
-      if (damage.location) {
+      if ((damage as { location?: string }).location) {
         this.doc.text(
-          `Lokalizácia: ${damage.location}`,
+          `Lokalizácia: ${(damage as { location?: string }).location}`,
           this.margin + 5,
           this.currentY + 22
         );

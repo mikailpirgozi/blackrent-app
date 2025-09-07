@@ -191,7 +191,7 @@ describe('HTTP Helper', () => {
           }),
       };
 
-      mockFetch.mockResolvedValueOnce(mockResponse as Response);
+      mockFetch.mockResolvedValueOnce(mockResponse as unknown as Response);
 
       await expect(http.post('/vehicles', {})).rejects.toThrow(ApiError);
     });

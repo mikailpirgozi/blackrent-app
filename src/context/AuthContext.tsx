@@ -173,7 +173,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // OPTIMISTIC RESTORE - obnoviť session OKAMŽITE bez čakania na validáciu
         logger.auth('🚀 Optimistic session restore - obnovujem okamžite');
-        dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
+        dispatch({
+          type: 'RESTORE_SESSION',
+          payload: {
+            user: user as unknown as User,
+            token: String(token),
+          },
+        });
 
         // SKIPPED ASYNC VALIDÁCIA - môže spôsobovať auto-logout
         logger.warn(
@@ -220,7 +226,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { token, user } = getAuthData();
         if (token && user) {
           logger.debug('🔄 Emergency restore successful');
-          dispatch({ type: 'RESTORE_SESSION', payload: { user, token } });
+          dispatch({
+            type: 'RESTORE_SESSION',
+            payload: {
+              user: user as unknown as User,
+              token: String(token),
+            },
+          });
         } else {
           logger.debug('❌ Emergency restore failed - no data');
           dispatch({ type: 'SET_LOADING', payload: false });
@@ -257,18 +269,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             );
             dispatch({
               type: 'RESTORE_SESSION',
-              payload: { user: storedUser, token: storedToken },
+              payload: {
+                user: storedUser as unknown as User,
+                token: String(storedToken),
+              },
             });
           } else {
             logger.debug('✅ Session unchanged, refreshing storage...');
-            StorageManager.setAuthData(state.token, state.user, true);
+            StorageManager.setAuthData(
+              state.token,
+              state.user as unknown as Record<string, unknown>,
+              true
+            );
           }
         } else {
           logger.debug(
             '⚠️ No session data found on visibility change, but keeping active session'
           );
           // Neprerušuj session, len obnov storage
-          StorageManager.setAuthData(state.token, state.user, true);
+          StorageManager.setAuthData(
+            state.token,
+            state.user as unknown as Record<string, unknown>,
+            true
+          );
         }
       }
     };
@@ -278,7 +301,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (state.isAuthenticated && state.token && state.user) {
         logger.debug('🔄 Periodic session refresh...');
         // VŽDY nastav remember me na true pre perzistentné prihlásenie
-        StorageManager.setAuthData(state.token, state.user, true);
+        StorageManager.setAuthData(
+          state.token,
+          state.user as unknown as Record<string, unknown>,
+          true
+        );
       }
     }, 30000); // 30 sekúnd
 
@@ -317,7 +344,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const access = await apiService.getUserCompanyAccess(state.user.id);
-      setUserCompanyAccess(access);
+      setUserCompanyAccess(access as unknown as UserCompanyAccess[]);
       logger.debug('🔐 Loaded user company access:', access);
     } catch (error) {
       console.error('❌ Error loading user company access:', error);
@@ -362,7 +389,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const persistentRememberMe = true;
       StorageManager.setAuthData(
         result.token,
-        result.user,
+        result.user as unknown as Record<string, unknown>,
         persistentRememberMe
       );
 
@@ -399,8 +426,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: unknown) {
       console.error('❌ Login error:', error);
       console.error('❌ Error type:', error?.constructor?.name || 'Unknown');
-      console.error('❌ Error message:', error?.message || 'No message');
-      console.error('❌ Error stack:', error?.stack || 'No stack');
+      console.error(
+        '❌ Error message:',
+        (error as Error)?.message || 'No message'
+      );
+      console.error('❌ Error stack:', (error as Error)?.stack || 'No stack');
       console.error('🌐 Network debug:', {
         online: navigator.onLine,
         userAgent: navigator.userAgent,
@@ -436,8 +466,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Pre ostatných používateľov skontroluj permissions v aspoň jednej firme
     return userCompanyAccess.some(access => {
       const resourcePermissions = (
-        access.permissions as Record<string, unknown>
-      )[resource];
+        access.permissions as unknown as Record<string, unknown>
+      )[resource] as Record<string, unknown> | undefined;
       if (!resourcePermissions) return false;
 
       // Convert action to permission key (read -> read, create/update/delete -> write)

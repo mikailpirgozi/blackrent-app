@@ -347,7 +347,7 @@ export const useMemoryMonitor = () => {
 
     const updateMemoryInfo = () => {
       const memory = (
-        performance as {
+        performance as unknown as {
           memory: {
             usedJSHeapSize: number;
             totalJSHeapSize: number;

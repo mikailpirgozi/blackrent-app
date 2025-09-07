@@ -24,13 +24,13 @@ interface ProtocolsData {
   return?: ProtocolData;
 }
 
-interface BulkProtocolStatusItem {
-  rentalId: string;
-  hasHandoverProtocol: boolean;
-  hasReturnProtocol: boolean;
-  handoverProtocolId?: string;
-  returnProtocolId?: string;
-}
+// interface BulkProtocolStatusItem {
+//   rentalId: string;
+//   hasHandoverProtocol: boolean;
+//   hasReturnProtocol: boolean;
+//   handoverProtocolId?: string;
+//   returnProtocolId?: string;
+// }
 
 interface ImageParsingCacheItem {
   images: ProtocolImage[];
@@ -219,8 +219,39 @@ export const useRentalProtocols = ({
           hasData: !!data,
         });
 
-        // Type assertion pre API response
-        const apiData = data as ApiProtocolsResponse;
+        // Type assertion pre API response - API vracia HandoverProtocol[] a ReturnProtocol[]
+        const apiData = {
+          handoverProtocols: data.handoverProtocols.map(protocol => ({
+            ...protocol,
+            createdAt:
+              protocol.createdAt instanceof Date
+                ? protocol.createdAt.toISOString()
+                : protocol.createdAt,
+            completedAt:
+              protocol.completedAt instanceof Date
+                ? protocol.completedAt.toISOString()
+                : protocol.completedAt,
+            signatures: protocol.signatures as unknown as Record<
+              string,
+              unknown
+            >,
+          })) as unknown as ProtocolData[],
+          returnProtocols: data.returnProtocols.map(protocol => ({
+            ...protocol,
+            createdAt:
+              protocol.createdAt instanceof Date
+                ? protocol.createdAt.toISOString()
+                : protocol.createdAt,
+            completedAt:
+              protocol.completedAt instanceof Date
+                ? protocol.completedAt.toISOString()
+                : protocol.completedAt,
+            signatures: protocol.signatures as unknown as Record<
+              string,
+              unknown
+            >,
+          })) as unknown as ProtocolData[],
+        } as ApiProtocolsResponse;
 
         // ✅ NAJNOVŠÍ PROTOKOL: Zoradiť podľa createdAt a vziať najnovší
         const latestHandover =
@@ -328,11 +359,12 @@ export const useRentalProtocols = ({
       const loadTime = Date.now() - startTime;
 
       // Optimalized: Consolidated protocol status loading log
+      const rentalCount = Object.keys(bulkProtocolStatus).length;
       console.log(
-        `✅ Protocol status loaded: ${bulkProtocolStatus.length} rentals (${loadTime}ms)`
+        `✅ Protocol status loaded: ${rentalCount} rentals (${loadTime}ms)`
       );
 
-      // Konvertuj array na map pre rýchly lookup
+      // bulkProtocolStatus je už objekt, nie array - použijeme ho priamo
       const statusMap: Record<
         string,
         {
@@ -341,16 +373,7 @@ export const useRentalProtocols = ({
           handoverProtocolId?: string;
           returnProtocolId?: string;
         }
-      > = {};
-
-      bulkProtocolStatus.forEach((item: BulkProtocolStatusItem) => {
-        statusMap[item.rentalId] = {
-          hasHandoverProtocol: item.hasHandoverProtocol,
-          hasReturnProtocol: item.hasReturnProtocol,
-          handoverProtocolId: item.handoverProtocolId,
-          returnProtocolId: item.returnProtocolId,
-        };
-      });
+      > = bulkProtocolStatus;
 
       setProtocolStatusMap(statusMap);
       setProtocolStatusLoaded(true);

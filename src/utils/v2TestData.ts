@@ -14,7 +14,6 @@ export const testRentalData: Rental = {
   endDate: new Date('2025-08-31T23:33:04.583Z'),
   totalPrice: 100.0,
   deposit: 110.0,
-  currency: 'EUR',
   allowedKilometers: 125,
   extraKilometerRate: 0.3,
   customerName: 'Mikail Pirgozi',
@@ -54,12 +53,6 @@ export const testRentalData: Rental = {
   approvalStatus: 'approved',
   autoProcessedAt: undefined,
   emailContent: undefined,
-  rentalType: 'standard',
-  canBeOverridden: false,
-  overridePriority: 5,
-  notificationThreshold: 3,
-  autoExtend: false,
-  overrideHistory: [],
 };
 
 export const testVehicleData: Vehicle = {
@@ -70,14 +63,8 @@ export const testVehicleData: Vehicle = {
   year: 2024,
   licensePlate: 'C95246',
   vin: '', // Prázdne v databáze
-  color: '',
-  fuelType: '',
-  transmission: '',
   category: 'suv',
-  dailyRate: null,
   status: 'temporarily_removed',
-  createdAt: new Date('2025-08-23T17:25:38.597Z'),
-  company: 'Miki',
   pricing: [
     { id: '1', maxDays: 1, minDays: 0, pricePerDay: 100 },
     { id: '2', maxDays: 3, minDays: 2, pricePerDay: 90 },
@@ -147,7 +134,8 @@ export function generateV2ProtocolData(
       email: rental.customer.email,
       phone: rental.customer.phone,
       address:
-        ((rental as Record<string, unknown>).customerAddress as string) || '', // Ak existuje
+        ((rental as unknown as Record<string, unknown>)
+          .customerAddress as string) || '', // Ak existuje
     },
 
     // Rental details - všetky V1 kompatibilné polia

@@ -286,13 +286,21 @@ export const createVehicleLookup = (vehicles: unknown[]): VehicleLookup => {
   const lookup: VehicleLookup = {};
 
   vehicles.forEach(vehicle => {
-    if (vehicle.id) {
-      lookup[vehicle.id] = {
-        brand: vehicle.brand,
-        model: vehicle.model,
-        licensePlate: vehicle.licensePlate,
-        company: vehicle.company,
-        category: vehicle.category,
+    const vehicleData = vehicle as {
+      id?: string;
+      brand?: string;
+      model?: string;
+      licensePlate?: string;
+      company?: string;
+      category?: string;
+    };
+    if (vehicleData?.id) {
+      lookup[vehicleData.id] = {
+        brand: vehicleData.brand,
+        model: vehicleData.model,
+        licensePlate: vehicleData.licensePlate,
+        company: vehicleData.company,
+        category: vehicleData.category,
       };
     }
   });

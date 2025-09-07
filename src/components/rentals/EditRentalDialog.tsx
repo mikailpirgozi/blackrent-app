@@ -255,7 +255,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
         flexibleEndDate: formData.flexibleEndDate,
       };
 
-      await apiService.updatePendingRental(rental.id, updatedData);
+      await apiService.updateRental({ ...rental, ...updatedData });
 
       onSave(updatedData);
       onClose();

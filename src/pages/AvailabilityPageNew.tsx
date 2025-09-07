@@ -26,6 +26,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import React, { useState } from 'react';
 
 import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
@@ -79,11 +80,15 @@ const AvailabilityPageNew: React.FC = () => {
   ];
 
   // Handle category selection
-  const handleCategoryChange = (event: {
-    target: { value: VehicleCategory[] };
-  }) => {
+  const handleCategoryChange = (
+    event: SelectChangeEvent<VehicleCategory[]>
+  ) => {
     const value = event.target.value;
-    setSelectedCategories(value);
+    setSelectedCategories(
+      Array.isArray(value)
+        ? (value as VehicleCategory[])
+        : [value as VehicleCategory]
+    );
   };
 
   // Clear all category filters

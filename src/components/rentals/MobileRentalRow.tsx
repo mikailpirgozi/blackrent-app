@@ -33,33 +33,11 @@ import React, { memo } from 'react';
 import { formatDateTime } from '../../utils/formatters';
 import PriceDisplay from './components/PriceDisplay';
 
-interface Rental {
-  id: string;
-  customerName: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  customer?: {
-    phone?: string;
-    email?: string;
-  };
-  startDate: string | Date;
-  endDate: string | Date;
-  status: string;
-  paid: boolean;
-  notes?: string;
-  isFlexible?: boolean;
-}
-
-interface Vehicle {
-  licensePlate?: string;
-  brand?: string;
-  model?: string;
-  company?: string;
-}
+import type { Rental, Vehicle } from '../../types';
 
 interface MobileRentalRowProps {
   rental: Rental;
-  vehicle: Vehicle;
+  vehicle: Vehicle | undefined;
   index: number;
   totalRentals: number;
   hasHandover: boolean;
@@ -240,7 +218,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
                     }}
                   >
                     <BusinessIcon fontSize="small" />
-                    {vehicle.company}
+                    {vehicle?.company}
                   </Typography>
                 )}
               </Box>
