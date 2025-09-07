@@ -327,16 +327,11 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           isActive: formData.isActive,
           updatedAt: new Date(),
         };
-        const updated =
-          await apiService.updateRecurringExpense(updatedRecurring);
-
-        // Aktualizuj stav okamžite PRED zatvorením dialogu
-        if (updated) {
-          console.log('Updating recurring expense in state:', updated);
-          setRecurringExpenses(prev =>
-            prev.map(r => (r.id === editingRecurring.id ? updated : r))
-          );
-        }
+        // 🚀 OPTIMISTIC UPDATE: Aktualizuj stav okamžite
+        console.log('Updating recurring expense in state:', updatedRecurring);
+        setRecurringExpenses(prev =>
+          prev.map(r => (r.id === editingRecurring.id ? updatedRecurring : r))
+        );
 
         // Zatvor dialog a resetuj form
         setFormOpen(false);
@@ -347,6 +342,15 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
 
         // Zavolaj callback ak existuje
         onExpensesChanged?.();
+
+        // 🔄 API call na pozadí (bez čakania)
+        apiService.updateRecurringExpense(updatedRecurring).catch(error => {
+          console.error('Error updating recurring expense:', error);
+          // V prípade chyby môžeme zobraziť notifikáciu
+          setError(
+            'Chyba pri ukladaní na serveri - zmeny sú dočasne len lokálne'
+          );
+        });
       } else {
         // Vytvorenie
         const newRecurring = await apiService.createRecurringExpense({

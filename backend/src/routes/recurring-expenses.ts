@@ -20,6 +20,13 @@ router.get('/',
         count: recurringExpenses.length 
       });
       
+      // Pridaj cache busting headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
       res.json({
         success: true,
         data: recurringExpenses
@@ -199,6 +206,13 @@ router.put('/:id',
       const freshData = await postgresDatabase.getRecurringExpenseById(id);
       
       console.log('🔄 Updated recurring expense:', { id, name, freshData: freshData?.category });
+
+      // Pridaj cache busting headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
 
       res.json({
         success: true,

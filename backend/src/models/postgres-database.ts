@@ -5246,6 +5246,9 @@ export class PostgresDatabase {
   async getRecurringExpenseById(id: string): Promise<RecurringExpense | null> {
     const client = await this.pool.connect();
     try {
+      // Nastav READ COMMITTED isolation level pre fresh data
+      await client.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+      
       const result = await client.query(`
         SELECT id, name, description, amount, category, company, vehicle_id, note,
                frequency, start_date, end_date, day_of_month,
