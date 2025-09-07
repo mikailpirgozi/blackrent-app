@@ -309,6 +309,10 @@ export class EnhancedPDFGenerator {
         const signatureData =
           (signature as { signature?: string }).signature ||
           (signature as { url?: string }).url;
+
+        if (!signatureData) {
+          throw new Error('Signature data is missing');
+        }
         const imageData = await this.loadImageData(signatureData);
 
         const { width, height } = await this.calculateImageDimensions(
