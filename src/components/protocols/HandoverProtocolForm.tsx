@@ -466,8 +466,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         const quickSaveStart = Date.now();
 
         // 🚀 Use React Query mutation instead of direct fetch
-        const result =
-          await createHandoverProtocol.mutateAsync(cleanedProtocol);
+        const result = await createHandoverProtocol.mutateAsync({
+          ...cleanedProtocol,
+          rental: cleanedProtocol.rental || rental,
+        });
         const quickSaveTime = Date.now() - quickSaveStart;
 
         logger.info(`✅ Protocol saved in ${quickSaveTime}ms`);
@@ -493,7 +495,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         logger.debug('🔄 Form defaults cached for future use');
 
         // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
-        if (result?.pdfProxyUrl) {
+        if (result && 'pdfProxyUrl' in result && result.pdfProxyUrl) {
           setTimeout(async () => {
             try {
               logger.debug('📄 Background PDF download starting...');
@@ -527,7 +529,17 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         onSave(result);
 
         // Return result for email status handling - React Query returns protocol directly
-        return { protocol: result, email: result.email };
+        return {
+          protocol: result,
+          email:
+            result && 'email' in result
+              ? (result.email as {
+                  sent: boolean;
+                  recipient?: string;
+                  error?: string;
+                })
+              : undefined,
+        };
       } catch (error) {
         console.error('Error saving protocol:', error);
 

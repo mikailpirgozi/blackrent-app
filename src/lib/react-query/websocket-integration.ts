@@ -1,6 +1,7 @@
 import { getWebSocketClient } from '@/services/websocket-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import type { Customer, Rental, Vehicle } from '../../types';
 import { queryKeys } from './queryKeys';
 
 /**
@@ -16,7 +17,12 @@ export function useWebSocketInvalidation() {
     console.log('🔌 Setting up WebSocket invalidation for React Query');
 
     // Rental events
-    const handleRentalCreated = (data: { rentalId?: string; id?: string }) => {
+    const handleRentalCreated = (data: {
+      rental: Rental;
+      createdBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
       console.log('🔄 WebSocket: Rental created, invalidating queries', data);
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.all,
@@ -29,12 +35,17 @@ export function useWebSocketInvalidation() {
       });
     };
 
-    const handleRentalUpdated = (data: { rentalId?: string; id?: string }) => {
+    const handleRentalUpdated = (data: {
+      rental: Rental;
+      updatedBy: string;
+      changes?: string[];
+      timestamp: string;
+      message: string;
+    }) => {
       console.log('🔄 WebSocket: Rental updated, invalidating queries', data);
-      const rentalId = data.rentalId || data.id;
-      if (rentalId) {
+      if (data.rental.id) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.rentals.detail(rentalId),
+          queryKey: queryKeys.rentals.detail(data.rental.id),
         });
       }
       queryClient.invalidateQueries({
@@ -45,7 +56,13 @@ export function useWebSocketInvalidation() {
       });
     };
 
-    const handleRentalDeleted = (data: { rentalId?: string; id?: string }) => {
+    const handleRentalDeleted = (data: {
+      rentalId: string;
+      customerName: string;
+      deletedBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
       console.log('🔄 WebSocket: Rental deleted, invalidating queries', data);
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.all,
@@ -59,28 +76,20 @@ export function useWebSocketInvalidation() {
     };
 
     // Vehicle events
-    const handleVehicleCreated = (data: {
-      vehicleId?: string;
-      id?: string;
-    }) => {
-      console.log('🔄 WebSocket: Vehicle created, invalidating queries', data);
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.vehicles.all,
-      });
-    };
-
     const handleVehicleUpdated = (data: {
-      vehicleId?: string;
-      id?: string;
+      vehicle: Vehicle;
+      updatedBy: string;
+      changes?: string[];
+      timestamp: string;
+      message: string;
     }) => {
       console.log('🔄 WebSocket: Vehicle updated, invalidating queries', data);
-      const vehicleId = data.vehicleId || data.id;
-      if (vehicleId) {
+      if (data.vehicle.id) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.vehicles.detail(vehicleId),
+          queryKey: queryKeys.vehicles.detail(data.vehicle.id),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.vehicles.availability(vehicleId),
+          queryKey: queryKeys.vehicles.availability(data.vehicle.id),
         });
       }
       queryClient.invalidateQueries({
@@ -88,29 +97,22 @@ export function useWebSocketInvalidation() {
       });
     };
 
-    const handleVehicleDeleted = (data: {
-      vehicleId?: string;
-      id?: string;
-    }) => {
-      console.log('🔄 WebSocket: Vehicle deleted, invalidating queries', data);
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.vehicles.all,
-      });
-    };
-
     // Protocol events
     const handleProtocolCreated = (data: {
-      rentalId?: string;
-      rental_id?: string;
+      rentalId: string;
+      protocolType: 'handover' | 'return';
+      protocolId: string;
+      createdBy: string;
+      timestamp: string;
+      message: string;
     }) => {
       console.log('🔄 WebSocket: Protocol created, invalidating queries', data);
-      const rentalId = data.rentalId || data.rental_id;
-      if (rentalId) {
+      if (data.rentalId) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.protocols.byRental(rentalId),
+          queryKey: queryKeys.protocols.byRental(data.rentalId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.rentals.detail(rentalId),
+          queryKey: queryKeys.rentals.detail(data.rentalId),
         });
       }
       queryClient.invalidateQueries({
@@ -122,17 +124,21 @@ export function useWebSocketInvalidation() {
     };
 
     const handleProtocolUpdated = (data: {
-      rentalId?: string;
-      rental_id?: string;
+      rentalId: string;
+      protocolType: 'handover' | 'return';
+      protocolId: string;
+      updatedBy: string;
+      changes?: string[];
+      timestamp: string;
+      message: string;
     }) => {
       console.log('🔄 WebSocket: Protocol updated, invalidating queries', data);
-      const rentalId = data.rentalId || data.rental_id;
-      if (rentalId) {
+      if (data.rentalId) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.protocols.byRental(rentalId),
+          queryKey: queryKeys.protocols.byRental(data.rentalId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.rentals.detail(rentalId),
+          queryKey: queryKeys.rentals.detail(data.rentalId),
         });
       }
       queryClient.invalidateQueries({
@@ -142,72 +148,14 @@ export function useWebSocketInvalidation() {
 
     // Customer events
     const handleCustomerCreated = (data: {
-      customerId?: string;
-      id?: string;
+      customer: Customer;
+      createdBy: string;
+      timestamp: string;
+      message: string;
     }) => {
       console.log('🔄 WebSocket: Customer created, invalidating queries', data);
       queryClient.invalidateQueries({
         queryKey: queryKeys.customers.all,
-      });
-    };
-
-    const handleCustomerUpdated = (data: {
-      customerId?: string;
-      id?: string;
-    }) => {
-      console.log('🔄 WebSocket: Customer updated, invalidating queries', data);
-      const customerId = data.customerId || data.id;
-      if (customerId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.customers.detail(customerId),
-        });
-      }
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.customers.lists(),
-      });
-    };
-
-    // Expense events
-    const handleExpenseCreated = (data: {
-      expenseId?: string;
-      id?: string;
-    }) => {
-      console.log('🔄 WebSocket: Expense created, invalidating queries', data);
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.expenses.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.statistics.all,
-      });
-    };
-
-    const handleExpenseUpdated = (data: {
-      expenseId?: string;
-      id?: string;
-    }) => {
-      console.log('🔄 WebSocket: Expense updated, invalidating queries', data);
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.expenses.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.statistics.all,
-      });
-    };
-
-    // Settlement events
-    const handleSettlementCreated = (data: {
-      settlementId?: string;
-      id?: string;
-    }) => {
-      console.log(
-        '🔄 WebSocket: Settlement created, invalidating queries',
-        data
-      );
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.settlements.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.statistics.all,
       });
     };
 
@@ -216,26 +164,12 @@ export function useWebSocketInvalidation() {
     client.on('rental:updated', handleRentalUpdated);
     client.on('rental:deleted', handleRentalDeleted);
 
-    client.on('vehicle:created', handleVehicleCreated);
     client.on('vehicle:updated', handleVehicleUpdated);
-    client.on('vehicle:deleted', handleVehicleDeleted);
 
     client.on('protocol:created', handleProtocolCreated);
     client.on('protocol:updated', handleProtocolUpdated);
 
     client.on('customer:created', handleCustomerCreated);
-    client.on('customer:updated', handleCustomerUpdated);
-
-    client.on('expense:created', handleExpenseCreated);
-    client.on('expense:updated', handleExpenseUpdated);
-
-    client.on('settlement:created', handleSettlementCreated);
-
-    // Global refresh event
-    client.on('data:refresh', () => {
-      console.log('🔄 WebSocket: Global refresh requested');
-      queryClient.invalidateQueries();
-    });
 
     return () => {
       console.log('🔌 Cleaning up WebSocket invalidation listeners');
@@ -245,20 +179,12 @@ export function useWebSocketInvalidation() {
       client.off('rental:updated', handleRentalUpdated);
       client.off('rental:deleted', handleRentalDeleted);
 
-      client.off('vehicle:created', handleVehicleCreated);
       client.off('vehicle:updated', handleVehicleUpdated);
-      client.off('vehicle:deleted', handleVehicleDeleted);
 
       client.off('protocol:created', handleProtocolCreated);
       client.off('protocol:updated', handleProtocolUpdated);
 
       client.off('customer:created', handleCustomerCreated);
-      client.off('customer:updated', handleCustomerUpdated);
-
-      client.off('expense:created', handleExpenseCreated);
-      client.off('expense:updated', handleExpenseUpdated);
-
-      client.off('settlement:created', handleSettlementCreated);
     };
   }, [queryClient]);
 }

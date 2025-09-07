@@ -21,6 +21,7 @@ import {
   useVehicles,
   type VehicleFilters,
 } from '@/lib/react-query/hooks/useVehicles';
+import VehicleFiltersComponent from './components/VehicleFilters';
 import { useApp } from '../../context/AppContext';
 import type { Vehicle, VehicleCategory, VehicleStatus } from '../../types';
 
@@ -102,9 +103,6 @@ export default function VehicleListNew() {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Kombinovaný loading state
-  const isLoading = vehiclesLoading || loading;
-
   // 🚀 INFINITE SCROLL STATES
   const [displayedVehicles, setDisplayedVehicles] = useState(20); // Start with 20 items
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -154,6 +152,9 @@ export default function VehicleListNew() {
   // Používame React Query pre načítanie vozidiel
   const { data: vehicles = [], isLoading: vehiclesLoading } =
     useVehicles(vehicleFilters);
+
+  // Kombinovaný loading state
+  const isLoading = vehiclesLoading || loading;
   // const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false); // Unused - ownership history disabled
   // const [selectedVehicleHistory, setSelectedVehicleHistory] =
   //   useState<Vehicle | null>(null); // Unused - ownership history disabled
@@ -562,10 +563,10 @@ export default function VehicleListNew() {
     if (showAvailable) statusFilters.push('available');
     if (showRented) statusFilters.push('rented');
     if (showMaintenance) statusFilters.push('maintenance');
-    if (showOther) statusFilters.push('other');
+    if (showOther) statusFilters.push('other' as VehicleStatus);
     if (showPrivate) statusFilters.push('private');
     if (showRemoved) statusFilters.push('removed');
-    if (showTempRemoved) statusFilters.push('temp_removed');
+    if (showTempRemoved) statusFilters.push('temp_removed' as VehicleStatus);
 
     if (statusFilters.length > 0) {
       filtered = filtered.filter(v => statusFilters.includes(v.status));
@@ -883,7 +884,7 @@ export default function VehicleListNew() {
       </Box>
 
       {/* Search and Filters */}
-      <VehicleFilters
+      <VehicleFiltersComponent
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         filtersOpen={filtersOpen}
