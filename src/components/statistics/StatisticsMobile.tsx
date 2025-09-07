@@ -29,7 +29,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo } from 'react';
 
 import CollapsibleSection from './CollapsibleSection';
 import ResponsiveChart from './ResponsiveChart';
@@ -69,19 +69,10 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
   const theme = useTheme();
 
   // State pre expanded sections
-  const [expandedSections] = useState<Set<string>>(
-    new Set(['overview']) // Overview je default expanded
+  const expandedSections = useMemo(
+    () => new Set(['overview']), // Overview je default expanded
+    []
   );
-
-  // const toggleSection = (sectionId: string) => {
-  //   const newExpanded = new Set(expandedSections);
-  //   if (newExpanded.has(sectionId)) {
-  //     newExpanded.delete(sectionId);
-  //   } else {
-  //     newExpanded.add(sectionId);
-  //   }
-  //   setExpandedSections(newExpanded);
-  // };
 
   // Prepare chart data
   const chartData = useMemo((): {
@@ -227,429 +218,438 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Header with filters */}
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 600, mb: 2, textAlign: 'center' }}
-        >
-          📊 Štatistiky
-        </Typography>
+      <>
+        {/* Header with filters */}
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 600, mb: 2, textAlign: 'center' }}
+          >
+            📊 Štatistiky
+          </Typography>
 
-        {/* Time Range and Filters */}
-        <Stack direction="column" spacing={2}>
-          {/* Time Range Selector */}
-          <FormControl size="small" fullWidth>
-            <InputLabel>Časové obdobie</InputLabel>
-            <Select
-              value={timeRange}
-              label="Časové obdobie"
-              onChange={e =>
-                onTimeRangeChange(e.target.value as 'month' | 'year' | 'all')
-              }
-            >
-              <MenuItem value="month">Mesiac</MenuItem>
-              <MenuItem value="year">Rok</MenuItem>
-              <MenuItem value="all">Celkovo</MenuItem>
-            </Select>
-          </FormControl>
+          {/* Time Range and Filters */}
+          <Stack direction="column" spacing={2}>
+            {/* Time Range Selector */}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Časové obdobie</InputLabel>
+              <Select
+                value={timeRange}
+                label="Časové obdobie"
+                onChange={e =>
+                  onTimeRangeChange(e.target.value as 'month' | 'year' | 'all')
+                }
+              >
+                <MenuItem value="month">Mesiac</MenuItem>
+                <MenuItem value="year">Rok</MenuItem>
+                <MenuItem value="all">Celkovo</MenuItem>
+              </Select>
+            </FormControl>
 
-          {/* Year/Month filters */}
-          {timeRange !== 'all' && (
-            <Stack direction="row" spacing={1}>
-              <FormControl size="small" sx={{ flex: 1 }}>
-                <InputLabel>Rok</InputLabel>
-                <Select
-                  value={filterYear}
-                  label="Rok"
-                  onChange={e => onFilterYearChange(Number(e.target.value))}
-                >
-                  {availableYears.map(year => (
-                    <MenuItem key={year} value={year}>
-                      {year}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {timeRange === 'month' && (
+            {/* Year/Month filters */}
+            {timeRange !== 'all' && (
+              <Stack direction="row" spacing={1}>
                 <FormControl size="small" sx={{ flex: 1 }}>
-                  <InputLabel>Mesiac</InputLabel>
+                  <InputLabel>Rok</InputLabel>
                   <Select
-                    value={filterMonth}
-                    label="Mesiac"
-                    onChange={e => onFilterMonthChange(Number(e.target.value))}
+                    value={filterYear}
+                    label="Rok"
+                    onChange={e => onFilterYearChange(Number(e.target.value))}
                   >
-                    {months.map((month, index) => (
-                      <MenuItem key={index} value={index}>
-                        {month}
+                    {availableYears.map(year => (
+                      <MenuItem key={year} value={year}>
+                        {year}
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-              )}
-            </Stack>
-          )}
 
-          {/* Refresh button */}
-          {onRefresh && (
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={onRefresh}
-              disabled={isLoading}
-              size="small"
-              fullWidth
-            >
-              {isLoading ? 'Načítavam...' : 'Obnoviť'}
-            </Button>
-          )}
-        </Stack>
-      </Box>
+                {timeRange === 'month' && (
+                  <FormControl size="small" sx={{ flex: 1 }}>
+                    <InputLabel>Mesiac</InputLabel>
+                    <Select
+                      value={filterMonth}
+                      label="Mesiac"
+                      onChange={e =>
+                        onFilterMonthChange(Number(e.target.value))
+                      }
+                    >
+                      {months.map((month, index) => (
+                        <MenuItem key={index} value={index}>
+                          {month}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              </Stack>
+            )}
 
-      {/* Overview Cards */}
-      <CollapsibleSection
-        title="Prehľad"
-        icon={<StatsIcon />}
-        color="primary"
-        defaultExpanded={expandedSections.has('overview')}
-        badge={6}
-        compact
-      >
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <StatisticsCard
-              title="Celkový príjem"
-              value={`€${stats.totalRevenuePeriod?.toLocaleString() || 0}`}
-              icon={<EuroIcon />}
-              color="success"
-              trend={
-                stats.revenueTrend && typeof stats.revenueTrend === 'number'
-                  ? {
-                      value: stats.revenueTrend as number,
-                      period: 'vs minulý mesiac',
-                      isPositive: (stats.revenueTrend as number) > 0,
-                    }
-                  : undefined
-              }
-              compact
-            />
-          </Grid>
+            {/* Refresh button */}
+            {onRefresh && (
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={onRefresh}
+                disabled={isLoading}
+                size="small"
+                fullWidth
+              >
+                {isLoading ? 'Načítavam...' : 'Obnoviť'}
+              </Button>
+            )}
+          </Stack>
+        </Box>
 
-          <Grid item xs={6}>
-            <StatisticsCard
-              title="Provízie"
-              value={`€${stats.totalCommissionPeriod?.toLocaleString() || 0}`}
-              icon={<PercentIcon />}
-              color="secondary"
-              compact
-            />
-          </Grid>
-
-          <Grid item xs={6}>
-            <StatisticsCard
-              title="Prenájmy"
-              value={(derivedTotals.totalRentals || 0).toLocaleString()}
-              icon={<ReceiptIcon />}
-              color="primary"
-              trend={
-                stats.rentalsTrend && typeof stats.rentalsTrend === 'number'
-                  ? {
-                      value: stats.rentalsTrend as number,
-                      period: 'vs minulý mesiac',
-                      isPositive: (stats.rentalsTrend as number) > 0,
-                    }
-                  : undefined
-              }
-              compact
-            />
-          </Grid>
-
-          <Grid item xs={6}>
-            <StatisticsCard
-              title="Náklady BH"
-              value={`€${stats.blackHoldingExpenses?.toLocaleString() || 0}`}
-              icon={<BusinessIcon />}
-              color="error"
-              compact
-            />
-          </Grid>
-
-          <Grid item xs={6}>
-            <StatisticsCard
-              title="Aktívne vozidlá"
-              value={(derivedTotals.activeVehicles || 0).toLocaleString()}
-              icon={<CarIcon />}
-              color="info"
-              compact
-            />
-          </Grid>
-
-          <Grid item xs={6}>
-            <StatisticsCard
-              title="Zákazníci"
-              value={(derivedTotals.totalCustomers || 0).toLocaleString()}
-              icon={<PersonIcon />}
-              color="warning"
-              compact
-            />
-          </Grid>
-        </Grid>
-      </CollapsibleSection>
-
-      {/* Revenue Chart */}
-      <Box sx={{ mt: 2 }}>
+        {/* Overview Cards */}
         <CollapsibleSection
-          title="Mesačné príjmy"
-          icon={<TrendIcon />}
-          color="success"
-          defaultExpanded={expandedSections.has('revenue')}
-          compact
-        >
-          <ResponsiveChart
-            type="area"
-            data={chartData.monthly}
-            height={250}
-            xAxisKey="name"
-            series={[
-              {
-                key: 'revenue',
-                color: theme.palette.success.main,
-                name: 'Príjem',
-              },
-              {
-                key: 'commission',
-                color: theme.palette.warning.main,
-                name: 'Provízia',
-              },
-            ]}
-            showGrid={false}
-          />
-        </CollapsibleSection>
-      </Box>
-
-      {/* Vehicle Performance */}
-      <Box sx={{ mt: 2 }}>
-        <CollapsibleSection
-          title="Najlepšie vozidlá"
-          icon={<CarIcon />}
+          title="Prehľad"
+          icon={<StatsIcon />}
           color="primary"
-          defaultExpanded={false}
-          badge={chartData.vehicleStats.length}
+          defaultExpanded={expandedSections.has('overview')}
+          badge={6}
           compact
         >
-          {chartData.vehicleStats.length > 0 ? (
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <StatisticsCard
+                title="Celkový príjem"
+                value={`€${stats.totalRevenuePeriod?.toLocaleString() || 0}`}
+                icon={<EuroIcon />}
+                color="success"
+                trend={
+                  stats.revenueTrend && typeof stats.revenueTrend === 'number'
+                    ? {
+                        value: stats.revenueTrend as number,
+                        period: 'vs minulý mesiac',
+                        isPositive: (stats.revenueTrend as number) > 0,
+                      }
+                    : undefined
+                }
+                compact
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <StatisticsCard
+                title="Provízie"
+                value={`€${stats.totalCommissionPeriod?.toLocaleString() || 0}`}
+                icon={<PercentIcon />}
+                color="secondary"
+                compact
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <StatisticsCard
+                title="Prenájmy"
+                value={(derivedTotals.totalRentals || 0).toLocaleString()}
+                icon={<ReceiptIcon />}
+                color="primary"
+                trend={
+                  stats.rentalsTrend && typeof stats.rentalsTrend === 'number'
+                    ? {
+                        value: stats.rentalsTrend as number,
+                        period: 'vs minulý mesiac',
+                        isPositive: (stats.rentalsTrend as number) > 0,
+                      }
+                    : undefined
+                }
+                compact
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <StatisticsCard
+                title="Náklady BH"
+                value={`€${stats.blackHoldingExpenses?.toLocaleString() || 0}`}
+                icon={<BusinessIcon />}
+                color="error"
+                compact
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <StatisticsCard
+                title="Aktívne vozidlá"
+                value={(derivedTotals.activeVehicles || 0).toLocaleString()}
+                icon={<CarIcon />}
+                color="info"
+                compact
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <StatisticsCard
+                title="Zákazníci"
+                value={(derivedTotals.totalCustomers || 0).toLocaleString()}
+                icon={<PersonIcon />}
+                color="warning"
+                compact
+              />
+            </Grid>
+          </Grid>
+        </CollapsibleSection>
+
+        {/* Revenue Chart */}
+        <Box sx={{ mt: 2 }}>
+          <CollapsibleSection
+            title="Mesačné príjmy"
+            icon={<TrendIcon />}
+            color="success"
+            defaultExpanded={expandedSections.has('revenue')}
+            compact
+          >
+            <ResponsiveChart
+              type="area"
+              data={chartData.monthly}
+              height={250}
+              xAxisKey="name"
+              series={[
+                {
+                  key: 'revenue',
+                  color: theme.palette.success.main,
+                  name: 'Príjem',
+                },
+                {
+                  key: 'commission',
+                  color: theme.palette.warning.main,
+                  name: 'Provízia',
+                },
+              ]}
+              showGrid={false}
+            />
+          </CollapsibleSection>
+        </Box>
+
+        {/* Vehicle Performance */}
+        {chartData.vehicleStats.length > 0 ? (
+          <Box sx={{ mt: 2 }}>
+            <CollapsibleSection
+              title="Najlepšie vozidlá"
+              icon={<CarIcon />}
+              color="primary"
+              defaultExpanded={false}
+              badge={chartData.vehicleStats.length}
+              compact={true}
+            >
+              <ResponsiveChart
+                type="bar"
+                data={chartData.vehicleStats}
+                height={200}
+                xAxisKey="name"
+                dataKey="revenue"
+                showGrid={false}
+                colors={[String(theme.palette.primary.main || '#1976d2')]}
+              />
+            </CollapsibleSection>
+          </Box>
+        ) : null}
+
+        {/* Top Customers */}
+        <Box sx={{ mt: 2 }}>
+          <CollapsibleSection
+            title="Top zákazníci"
+            icon={<PersonIcon />}
+            color="warning"
+            defaultExpanded={expandedSections.has('customers')}
+            badge={
+              chartData.topCustomers.length > 0
+                ? chartData.topCustomers.length
+                : undefined
+            }
+            compact
+          >
             <ResponsiveChart
               type="bar"
-              data={chartData.vehicleStats}
+              data={chartData.topCustomers}
               height={200}
               xAxisKey="name"
               dataKey="revenue"
               showGrid={false}
-              colors={[theme.palette.primary.main]}
+              colors={[theme.palette.warning.main || '#ed6c02']}
             />
-          ) : (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ p: 2, textAlign: 'center' }}
-            >
-              Žiadne dáta o vozidlách
-            </Typography>
-          )}
-        </CollapsibleSection>
-      </Box>
+          </CollapsibleSection>
+        </Box>
 
-      {/* Top Customers */}
-      <Box sx={{ mt: 2 }}>
-        <CollapsibleSection
-          title="Top zákazníci"
-          icon={<PersonIcon />}
-          color="warning"
-          defaultExpanded={expandedSections.has('customers')}
-          badge={chartData.topCustomers.length}
-          compact
-        >
-          <ResponsiveChart
-            type="bar"
-            data={chartData.topCustomers}
-            height={200}
-            xAxisKey="name"
-            dataKey="revenue"
-            showGrid={false}
-            colors={[theme.palette.warning.main]}
-          />
-        </CollapsibleSection>
-      </Box>
-
-      {/* Companies Performance */}
-      {(() => {
-        const companiesArray = Array.isArray(stats?.companiesStats)
-          ? stats.companiesStats
-          : stats?.companyStats && typeof stats.companyStats === 'object'
-            ? Object.entries(stats.companyStats).map(
-                ([companyName, data]: [string, Record<string, unknown>]) => ({
-                  companyName,
-                  totalRevenue: data.revenue || 0,
-                  totalRentals: data.count || 0,
+        {/* Companies Performance */}
+        {(() => {
+          const companiesArray: Array<{
+            companyName: string;
+            totalRevenue: number;
+            totalRentals: number;
+          }> = Array.isArray(stats?.companiesStats)
+            ? (stats.companiesStats as Record<string, unknown>[]).map(
+                (c: Record<string, unknown>) => ({
+                  companyName: String(c.companyName || 'Nezadaná firma'),
+                  totalRevenue: Number(c.totalRevenue || 0),
+                  totalRentals: Number(c.totalRentals || 0),
                 })
               )
-            : [];
-        return companiesArray && companiesArray.length > 0 ? (
-          <Box sx={{ mt: 2 }}>
-            <CollapsibleSection
-              title="Výkon firiem"
-              icon={<BusinessIcon />}
-              color="info"
-              defaultExpanded={expandedSections.has('companies')}
-              badge={companiesArray.length}
-              compact
-            >
-              <Grid container spacing={2}>
-                {companiesArray
-                  .slice(0, 3)
-                  .map((company: Record<string, unknown>, index: number) => (
+            : stats?.companyStats && typeof stats.companyStats === 'object'
+              ? Object.entries(
+                  stats.companyStats as Record<string, Record<string, unknown>>
+                ).map(([companyName, data]) => ({
+                  companyName: String(companyName),
+                  totalRevenue: Number(data.revenue || 0),
+                  totalRentals: Number(data.count || 0),
+                }))
+              : [];
+
+          if (companiesArray.length === 0) return null;
+
+          return (
+            <Box sx={{ mt: 2 }}>
+              <CollapsibleSection
+                title="Výkon firiem"
+                icon={<BusinessIcon />}
+                color="info"
+                defaultExpanded={expandedSections.has('companies')}
+                badge={companiesArray.length}
+                compact={true}
+              >
+                <Grid container spacing={2}>
+                  {companiesArray.slice(0, 3).map((company, index) => (
                     <Grid item xs={12} key={index}>
                       <StatisticsCard
-                        title={
-                          (company.companyName as string) || 'Nezadaná firma'
-                        }
-                        value={`€${(company.totalRevenue || 0).toLocaleString()}`}
-                        subtitle={`${company.totalRentals || 0} prenájmov`}
+                        title={company.companyName}
+                        value={`€${company.totalRevenue.toLocaleString()}`}
+                        subtitle={`${company.totalRentals} prenájmov`}
                         icon={<BusinessIcon />}
                         color="info"
                         compact
                       />
                     </Grid>
                   ))}
-              </Grid>
-            </CollapsibleSection>
-          </Box>
-        ) : null;
-      })()}
-
-      {/* Monthly Calendar View */}
-      {timeRange === 'month' && (
-        <Box sx={{ mt: 2 }}>
-          <CollapsibleSection
-            title="Mesačný kalendár"
-            icon={<CalendarIcon />}
-            color="secondary"
-            defaultExpanded={false}
-            compact
-          >
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                🗓️ Kalendárne zobrazenie bude implementované v ďalšej verzii
-              </Typography>
+                </Grid>
+              </CollapsibleSection>
             </Box>
-          </CollapsibleSection>
-        </Box>
-      )}
+          );
+        })()}
 
-      {/* Employee Performance */}
-      {stats.employeeStats &&
-        (stats.employeeStats as Record<string, unknown>).activeEmployees &&
-        typeof (stats.employeeStats as Record<string, unknown>)
-          .activeEmployees === 'number' &&
-        ((stats.employeeStats as Record<string, unknown>)
-          .activeEmployees as number) > 0 && (
+        {/* Monthly Calendar View */}
+        {timeRange === 'month' && (
           <Box sx={{ mt: 2 }}>
             <CollapsibleSection
-              title="Výkon zamestnancov"
-              icon={<PersonIcon />}
-              color="success"
+              title="Mesačný kalendár"
+              icon={<CalendarIcon />}
+              color="secondary"
               defaultExpanded={false}
-              badge={
-                (stats.employeeStats as Record<string, unknown>)
-                  .activeEmployees as number
-              }
               compact
             >
-              <Grid container spacing={2}>
-                {(
-                  (stats.employeeStats as Record<string, unknown>)
-                    .topEmployeesByProtocols as Record<string, unknown>[]
-                )
-                  .slice(0, 3)
-                  .map((employee: Record<string, unknown>, index: number) => (
-                    <Grid item xs={12} key={index}>
-                      <StatisticsCard
-                        title={
-                          (employee.employeeName as string) ||
-                          'Neznámy zamestnanec'
-                        }
-                        value={`${employee.totalProtocols} protokolov`}
-                        subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
-                        icon={<PersonIcon />}
-                        color={
-                          index === 0
-                            ? 'success'
-                            : index === 1
-                              ? 'warning'
-                              : 'info'
-                        }
-                        compact
-                      />
-                    </Grid>
-                  ))}
-              </Grid>
-
-              {/* Summary stats */}
-              <Box
-                sx={{
-                  mt: 2,
-                  p: 2,
-                  bgcolor: 'background.paper',
-                  borderRadius: 2,
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                  📊 Celkové štatistiky protokolov
-                </Typography>
-                <Typography variant="caption" sx={{ display: 'block' }}>
-                  {String(
-                    (stats.employeeStats as Record<string, unknown>)
-                      .totalProtocols || 0
-                  )}{' '}
-                  protokolov •{' '}
-                  {String(
-                    (stats.employeeStats as Record<string, unknown>)
-                      .totalHandovers || 0
-                  )}{' '}
-                  odovzdaní •{' '}
-                  {String(
-                    (stats.employeeStats as Record<string, unknown>)
-                      .totalReturns || 0
-                  )}{' '}
-                  prebraní
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  🗓️ Kalendárne zobrazenie bude implementované v ďalšej verzii
                 </Typography>
               </Box>
             </CollapsibleSection>
           </Box>
         )}
 
-      {/* Performance Summary */}
-      <Box sx={{ mt: 2, mb: 3 }}>
-        <Alert severity="info" sx={{ borderRadius: 3 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            📈 Súhrn výkonu
-          </Typography>
-          <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-            {timeRange === 'month'
-              ? `${months[filterMonth]} ${filterYear}`
-              : timeRange === 'year'
-                ? `Rok ${filterYear}`
-                : 'Celkové obdobie'}
-            : {String(derivedTotals.totalRentals || 0)} prenájmov • €
-            {String(stats.totalRevenuePeriod?.toLocaleString() || 0)} príjem • €
-            {String(stats.totalCommissionPeriod?.toLocaleString() || 0)}{' '}
-            provízie • €
-            {String(stats.blackHoldingExpenses?.toLocaleString() || 0)} náklady
-            BH
-          </Typography>
-        </Alert>
-      </Box>
+        {/* Employee Performance */}
+        {stats.employeeStats &&
+          (stats.employeeStats as Record<string, unknown>).activeEmployees &&
+          typeof (stats.employeeStats as Record<string, unknown>)
+            .activeEmployees === 'number' &&
+          ((stats.employeeStats as Record<string, unknown>)
+            .activeEmployees as number) > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <CollapsibleSection
+                title="Výkon zamestnancov"
+                icon={<PersonIcon />}
+                color="success"
+                defaultExpanded={false}
+                badge={
+                  (stats.employeeStats as Record<string, unknown>)
+                    .activeEmployees as number
+                }
+                compact
+              >
+                <Grid container spacing={2}>
+                  {(
+                    (stats.employeeStats as Record<string, unknown>)
+                      .topEmployeesByProtocols as Record<string, unknown>[]
+                  )
+                    .slice(0, 3)
+                    .map((employee: Record<string, unknown>, index: number) => (
+                      <Grid item xs={12} key={index}>
+                        <StatisticsCard
+                          title={
+                            (employee.employeeName as string) ||
+                            'Neznámy zamestnanec'
+                          }
+                          value={`${employee.totalProtocols} protokolov`}
+                          subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
+                          icon={<PersonIcon />}
+                          color={
+                            index === 0
+                              ? 'success'
+                              : index === 1
+                                ? 'warning'
+                                : 'info'
+                          }
+                          compact
+                        />
+                      </Grid>
+                    ))}
+                </Grid>
+
+                {/* Summary stats */}
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    bgcolor: 'background.paper',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    📊 Celkové štatistiky protokolov
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block' }}>
+                    {String(
+                      (stats.employeeStats as Record<string, unknown>)
+                        .totalProtocols || 0
+                    )}{' '}
+                    protokolov •{' '}
+                    {String(
+                      (stats.employeeStats as Record<string, unknown>)
+                        .totalHandovers || 0
+                    )}{' '}
+                    odovzdaní •{' '}
+                    {String(
+                      (stats.employeeStats as Record<string, unknown>)
+                        .totalReturns || 0
+                    )}{' '}
+                    prebraní
+                  </Typography>
+                </Box>
+              </CollapsibleSection>
+            </Box>
+          )}
+
+        {/* Performance Summary */}
+        <Box sx={{ mt: 2, mb: 3 }}>
+          <Alert severity="info" sx={{ borderRadius: 3 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              📈 Súhrn výkonu
+            </Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+              {timeRange === 'month'
+                ? `${months[filterMonth]} ${filterYear}`
+                : timeRange === 'year'
+                  ? `Rok ${filterYear}`
+                  : 'Celkové obdobie'}
+              : {String(derivedTotals.totalRentals || 0)} prenájmov • €
+              {String(stats.totalRevenuePeriod?.toLocaleString() || 0)} príjem •
+              €{String(stats.totalCommissionPeriod?.toLocaleString() || 0)}{' '}
+              provízie • €
+              {String(stats.blackHoldingExpenses?.toLocaleString() || 0)}{' '}
+              náklady BH
+            </Typography>
+          </Alert>
+        </Box>
+      </>
     </Box>
   );
 };
