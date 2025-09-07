@@ -85,6 +85,13 @@ class EmailService {
     pdfBuffer: Buffer, 
     protocolData: HandoverProtocol
   ): Promise<boolean> {
+    console.log('📧 EMAIL: sendHandoverProtocolEmail called', {
+      isEnabled: this.isEnabled,
+      hasTransporter: !!this.transporter,
+      customerEmail: customer.email,
+      pdfBufferSize: pdfBuffer.length
+    });
+
     if (!this.isEnabled || !this.transporter) {
       console.log('📧 EMAIL: Služba je vypnutá, email sa neodošle');
       return false;
@@ -356,7 +363,7 @@ info@blackrent.sk | +421 xxx xxx xxx
     const { customer, vehicleInfo, rentalInfo, protocol } = data;
     const vehicleName = `${vehicleInfo.brand || 'Vozidlo'} ${vehicleInfo.model || ''}`.trim();
     const formattedDate = rentalInfo.endDate ? new Date(rentalInfo.endDate).toLocaleDateString('sk-SK') : 'neuvedený';
-    const formattedPrice = rentalInfo.totalPrice ? `${rentalInfo.totalPrice.toFixed(2)} €` : 'neuvedená';
+    // const formattedPrice = rentalInfo.totalPrice ? `${rentalInfo.totalPrice.toFixed(2)} €` : 'neuvedená';
     
     // Pre return protokol môžeme zobraziť aj finančné zúčtovanie
     const returnProtocol = protocol as ReturnProtocol;

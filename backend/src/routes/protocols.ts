@@ -291,23 +291,36 @@ router.post('/handover', authenticateToken, async (req, res) => {
           await postgresDatabase.updateHandoverProtocol(protocol.id, { pdfUrl: backgroundPdfUrl });
           
           // Send email
+          console.log('📧 QUICK MODE: Checking email sending...', {
+            hasCustomerEmail: !!protocolData.rentalData?.customer?.email,
+            customerEmail: protocolData.rentalData?.customer?.email,
+            pdfBufferSize: pdfBuffer.length
+          });
+          
           if (protocolData.rentalData?.customer?.email) {
             try {
+              console.log('📧 QUICK MODE: Starting email send to', protocolData.rentalData.customer.email);
               const emailSent = await emailService.sendHandoverProtocolEmail(
                 protocolData.rentalData.customer,
                 pdfBuffer,
                 protocolData
               );
               
+              console.log('📧 QUICK MODE: Email send result:', emailSent);
+              
               if (emailSent) {
                 await postgresDatabase.updateHandoverProtocol(protocol.id, { 
                   emailSent: true 
                 });
-                console.log('✅ Background email sent to', protocolData.rentalData.customer.email);
+                console.log('✅ QUICK MODE: Background email sent successfully to', protocolData.rentalData.customer.email);
+              } else {
+                console.log('❌ QUICK MODE: Email sending returned false');
               }
             } catch (emailError) {
-              console.error('❌ Background email failed:', emailError);
+              console.error('❌ QUICK MODE: Background email failed:', emailError);
             }
+          } else {
+            console.log('⚠️ QUICK MODE: No customer email found, skipping email send');
           }
         } catch (error) {
           console.error('❌ Background processing failed:', error);
