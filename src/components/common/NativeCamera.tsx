@@ -315,7 +315,7 @@ export default function NativeCamera({
       // Vykreslenie aktuálneho frame z videa na canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 🌟 NOVÉ: Pokus o WebP, fallback na JPEG
+      // 🌟 NOVÉ: Pokus o WebP, fallback na JPEG - PLNÁ KVALITA pre galériu
       const tryWebP = () => {
         canvas.toBlob(
           blob => {
@@ -333,7 +333,7 @@ export default function NativeCamera({
             }
           },
           'image/webp',
-          0.85 // WebP má lepšiu kompresiu, môžeme znížiť kvalitu
+          1.0 // 🔧 OPRAVA: Plná kvalita pre galériu (100%)
         );
       };
 
@@ -354,7 +354,7 @@ export default function NativeCamera({
             }
           },
           'image/jpeg',
-          0.95
+          1.0 // 🔧 OPRAVA: Plná kvalita pre galériu (100%)
         );
       };
 
