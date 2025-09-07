@@ -473,6 +473,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         const quickSaveTime = Date.now() - quickSaveStart;
 
         logger.info(`✅ Protocol saved in ${quickSaveTime}ms`);
+        logger.debug('🔍 Protocol result from React Query:', result);
 
         // React Query automaticky invaliduje cache a refreshuje dáta
 
@@ -494,19 +495,40 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         logger.debug('🔄 Form defaults cached for future use');
 
+        // Extrahuj dáta z response
+        const responseData = result as
+          | {
+              success?: boolean;
+              protocol?: HandoverProtocol;
+              email?: { sent: boolean; recipient?: string; error?: string };
+              pdfProxyUrl?: string;
+            }
+          | HandoverProtocol;
+        const protocolData =
+          'protocol' in responseData
+            ? responseData.protocol
+            : (responseData as HandoverProtocol);
+        const emailInfo =
+          'email' in responseData ? responseData.email : undefined;
+        const pdfProxyUrl =
+          'pdfProxyUrl' in responseData
+            ? responseData.pdfProxyUrl
+            : 'protocol' in responseData &&
+                responseData.protocol &&
+                'pdfProxyUrl' in responseData.protocol
+              ? (responseData.protocol as { pdfProxyUrl?: string }).pdfProxyUrl
+              : undefined;
+
         // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
-        if (result && 'pdfProxyUrl' in result && result.pdfProxyUrl) {
+        if (pdfProxyUrl) {
           setTimeout(async () => {
             try {
               logger.debug('📄 Background PDF download starting...');
-              const pdfResponse = await fetch(
-                `${apiBaseUrl}${result.pdfProxyUrl}`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`,
-                  },
-                }
-              );
+              const pdfResponse = await fetch(`${apiBaseUrl}${pdfProxyUrl}`, {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('blackrent_token') || sessionStorage.getItem('blackrent_token')}`,
+                },
+              });
               if (pdfResponse.ok) {
                 const pdfBlob = await pdfResponse.blob();
                 const url = URL.createObjectURL(pdfBlob);
@@ -526,13 +548,16 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         }
 
         // ⚡ OKAMŽITÉ ULOŽENIE - bez zatvorenia modalu (nech sa zobrazí email status)
-        onSave(result);
+        // React Query vracia priamo protocol objekt, callback to očakáva
+        if (protocolData && typeof onSave === 'function') {
+          onSave(protocolData);
+        }
 
         // Return result for email status handling - React Query returns protocol directly
         return {
-          protocol: result,
+          protocol: protocolData,
           email:
-            result && 'email' in result
+            emailInfo || (result && 'email' in result)
               ? (result.email as {
                   sent: boolean;
                   recipient?: string;

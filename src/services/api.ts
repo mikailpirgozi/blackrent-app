@@ -114,10 +114,59 @@ class ApiService {
 
       const data: ApiResponse<T> = await response.json();
 
+      // Debug log pre protokoly
+      if (endpoint.includes('/protocols/')) {
+        console.log('🔍 API Response for protocol:', {
+          endpoint,
+          fullData: data,
+          extractedData: data.data,
+          status: response.status,
+        });
+      }
+
       if (!response.ok) {
         throw new Error(
           data.error || `HTTP ${response.status}: ${response.statusText}`
         );
+      }
+
+      // Pre protokoly, backend môže vracať priamo objekt bez wrapper
+      // Backend vracia objekt s protocol, email a pdfProxyUrl
+      if (endpoint.includes('/protocols/') && response.status === 201) {
+        type ProtocolApiResponse = {
+          success?: boolean;
+          protocol?: unknown;
+          email?: unknown;
+          pdfProxyUrl?: string;
+          id?: string;
+        };
+
+        const protocolData = data as ApiResponse<T> & ProtocolApiResponse;
+
+        // Backend vracia štruktúru: { success, protocol, email, pdfProxyUrl }
+        if (protocolData.success && protocolData.protocol) {
+          console.log('🔍 Protocol created with full response:', {
+            hasProtocol: !!protocolData.protocol,
+            hasEmail: !!protocolData.email,
+            hasPdfUrl: !!protocolData.pdfProxyUrl,
+          });
+          // Vrátime celý response objekt, nie len protocol
+          return data as T;
+        }
+        // Fallback pre prípad prázdneho objektu
+        if (!data.data && Object.keys(data).length === 0) {
+          console.log(
+            '🔍 Protocol created successfully but backend returned empty response'
+          );
+          return { success: true } as T;
+        }
+        // Ak má data.id, je to priamo protokol objekt (starý formát)
+        if (!data.data && protocolData.id) {
+          console.log(
+            '🔍 Protocol response without data wrapper, returning directly'
+          );
+          return data as T;
+        }
       }
 
       return data.data as T;

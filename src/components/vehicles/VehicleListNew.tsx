@@ -21,9 +21,9 @@ import {
   useVehicles,
   type VehicleFilters,
 } from '@/lib/react-query/hooks/useVehicles';
-import VehicleFiltersComponent from './components/VehicleFilters';
 import { useApp } from '../../context/AppContext';
 import type { Vehicle, VehicleCategory, VehicleStatus } from '../../types';
+import VehicleFiltersComponent from './components/VehicleFilters';
 
 // 📝 INTERFACES: Proper TypeScript types
 // interface OwnershipHistoryItem {

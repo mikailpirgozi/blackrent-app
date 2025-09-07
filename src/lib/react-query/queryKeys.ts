@@ -34,6 +34,8 @@ export const queryKeys = {
     return: (rentalId: string) => ['protocols', 'return', rentalId] as const,
     byRental: (rentalId: string) =>
       ['protocols', 'byRental', rentalId] as const,
+    bulkStatus: ['protocols', 'bulk-status'] as const,
+    allForStats: ['protocols', 'all-for-stats'] as const,
   },
 
   // Customers

@@ -19,6 +19,7 @@ import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 // import { usePermissions } from '../../hooks/usePermissions'; // Unused
 
 // 🚀 EXTRACTED: Import all our refactored components and hooks
+import { useBulkProtocolStatus } from '@/lib/react-query/hooks/useProtocols';
 import { useRentalActions } from '../../hooks/useRentalActions';
 import { useRentalFilters } from '../../hooks/useRentalFilters';
 import { useRentalProtocols } from '../../hooks/useRentalProtocols';
@@ -515,36 +516,46 @@ export default function RentalList() {
 
   // 📱 MOBILE CARD RENDERER - removed (unused)
 
-  // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals - FIXED INFINITE LOOP
-  const loadProtocolStatusRef = React.useRef(
-    protocolsHook.loadProtocolStatusInBackground
-  );
-  const protocolStatusLoadedRef = React.useRef(
-    protocolsHook.protocolStatusLoaded
-  );
-  const isLoadingProtocolStatusRef = React.useRef(
-    protocolsHook.isLoadingProtocolStatus
-  );
+  // ⚡ REACT QUERY: Načítaj bulk protocol status
+  const { data: bulkProtocolStatus, isLoading: isLoadingBulkStatus } =
+    useBulkProtocolStatus();
 
-  // Update refs
-  loadProtocolStatusRef.current = protocolsHook.loadProtocolStatusInBackground;
-  protocolStatusLoadedRef.current = protocolsHook.protocolStatusLoaded;
-  isLoadingProtocolStatusRef.current = protocolsHook.isLoadingProtocolStatus;
+  // Použiť ref pre tracking či už boli dáta nastavené
+  const protocolStatusSetRef = React.useRef(false);
 
+  // Aktualizuj protocol status map keď sa načítajú dáta - jednorazovo
   React.useEffect(() => {
+    // Kontrola: načítané dáta + ešte neboli nastavené + nie je loading
     if (
-      paginatedRentals.length > 0 &&
-      !protocolStatusLoadedRef.current &&
-      !isLoadingProtocolStatusRef.current
+      bulkProtocolStatus &&
+      !protocolStatusSetRef.current &&
+      !isLoadingBulkStatus
     ) {
-      // Spusti na pozadí za 100ms aby sa nestratila rýchlosť UI
-      const timer = setTimeout(() => {
-        loadProtocolStatusRef.current();
-      }, 100);
+      const statusCount = Object.keys(bulkProtocolStatus).length;
 
-      return () => clearTimeout(timer);
+      // Kontrola či máme nejaké dáta
+      if (statusCount > 0) {
+        console.log('🔍 Setting protocol status from React Query:', {
+          totalCount: statusCount,
+          sample: Object.entries(bulkProtocolStatus).slice(0, 3),
+        });
+
+        // Nastav dáta
+        protocolsHook.setProtocolStatusMap(bulkProtocolStatus);
+        protocolsHook.setProtocolStatusLoaded(true);
+
+        // Označ že dáta boli nastavené
+        protocolStatusSetRef.current = true;
+
+        console.log(
+          `✅ React Query: Protocol status set for ${statusCount} rentals`
+        );
+      }
     }
-  }, [paginatedRentals.length]); // Only depend on rentals length
+  }, [bulkProtocolStatus, isLoadingBulkStatus, protocolsHook]); // Stabilné dependencies
+
+  // ⚡ TRIGGER BACKGROUND LOADING po načítaní rentals - už nepotrebujeme
+  // React Query sa postará o načítanie automaticky
 
   // 🎯 INFINITE SCROLL: Setup scroll event listeners
   React.useEffect(() => {
@@ -853,6 +864,8 @@ export default function RentalList() {
             type,
             hasProtocol,
             protocolStatus,
+            mapSize: Object.keys(protocolsHook.protocolStatusMap).length,
+            isLoaded: protocolsHook.protocolStatusLoaded,
           });
 
           if (hasProtocol) {
@@ -1014,12 +1027,19 @@ export default function RentalList() {
               protocolData
             );
 
-            // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
-            await protocolsHook.onProtocolUpdate?.(
-              protocolData.rentalId as string,
-              'handover',
-              protocolData as unknown as ProtocolData
-            );
+            // React Query vracia priamo protocol objekt
+            const rentalId =
+              protocolData?.rentalId ||
+              (protocolData?.rental as { id?: string })?.id;
+
+            if (rentalId) {
+              // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
+              await protocolsHook.onProtocolUpdate?.(
+                rentalId as string,
+                'handover',
+                protocolData as unknown as ProtocolData
+              );
+            }
 
             protocolsHook.setOpenHandoverDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);
@@ -1037,12 +1057,19 @@ export default function RentalList() {
               protocolData
             );
 
-            // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
-            await protocolsHook.onProtocolUpdate?.(
-              protocolData.rentalId as string,
-              'return',
-              protocolData as unknown as ProtocolData
-            );
+            // React Query vracia priamo protocol objekt
+            const rentalId =
+              protocolData?.rentalId ||
+              (protocolData?.rental as { id?: string })?.id;
+
+            if (rentalId) {
+              // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
+              await protocolsHook.onProtocolUpdate?.(
+                rentalId as string,
+                'return',
+                protocolData as unknown as ProtocolData
+              );
+            }
 
             protocolsHook.setOpenReturnDialog(false);
             protocolsHook.setSelectedRentalForProtocol(null);

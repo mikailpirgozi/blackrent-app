@@ -37,13 +37,79 @@ export function useReturnProtocol(rentalId: string) {
   });
 }
 
+// GET bulk protocol status for all rentals
+export function useBulkProtocolStatus() {
+  return useQuery({
+    queryKey: queryKeys.protocols.bulkStatus,
+    queryFn: () => apiService.getBulkProtocolStatus(),
+    staleTime: 60000, // 1 minúta
+    cacheTime: 5 * 60000, // 5 minút
+  });
+}
+
+// GET all protocols for statistics
+export function useAllProtocolsForStats() {
+  return useQuery({
+    queryKey: queryKeys.protocols.allForStats,
+    queryFn: () => apiService.getAllProtocolsForStats(),
+    staleTime: 60000, // 1 minúta
+    cacheTime: 5 * 60000, // 5 minút
+  });
+}
+
 // CREATE handover protocol
 export function useCreateHandoverProtocol() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (protocol: HandoverProtocol) =>
-      apiService.createHandoverProtocol(protocol),
+    mutationFn: async (protocol: HandoverProtocol) => {
+      const result = await apiService.createHandoverProtocol(protocol);
+      console.log('🔍 useCreateHandoverProtocol result:', result);
+
+      // Backend vracia { success, protocol, email, pdfProxyUrl }
+      type ProtocolResponse = {
+        success: boolean;
+        protocol: HandoverProtocol;
+        email?: { sent: boolean; recipient?: string; error?: string };
+        pdfProxyUrl?: string;
+      };
+
+      const response = result as
+        | ProtocolResponse
+        | HandoverProtocol
+        | { success: boolean };
+
+      if (
+        response &&
+        'success' in response &&
+        response.success &&
+        'protocol' in response
+      ) {
+        console.log('🔍 Full protocol response received:', {
+          hasEmail: !!('email' in response && response.email),
+          hasPdfUrl: !!('pdfProxyUrl' in response && response.pdfProxyUrl),
+        });
+        // Vrátime celý response objekt
+        return response as ProtocolResponse;
+      }
+
+      // Fallback pre starý formát alebo prázdnu response
+      if (
+        result &&
+        (result as { success?: boolean; id?: string }).success === true &&
+        !result.id
+      ) {
+        console.log('🔍 Backend returned success only, using optimistic data');
+        return { success: true, protocol }; // Vrátime objekt s protokolom
+      }
+
+      // Ak dostaneme priamo protokol, zabalíme ho
+      if (result && 'id' in result) {
+        return { success: true, protocol: result as HandoverProtocol };
+      }
+
+      return { success: true, protocol }; // Fallback na pôvodný protokol
+    },
     onMutate: async newProtocol => {
       // Optimistická aktualizácia
       await queryClient.cancelQueries({
@@ -58,7 +124,10 @@ export function useCreateHandoverProtocol() {
         queryKeys.protocols.byRental(newProtocol.rentalId),
         (old: Record<string, unknown> = {}) => ({
           ...old,
-          handoverProtocols: [...(old.handoverProtocols || []), newProtocol],
+          handoverProtocols: [
+            ...((old.handoverProtocols as unknown[]) || []),
+            newProtocol,
+          ],
         })
       );
 
@@ -73,6 +142,12 @@ export function useCreateHandoverProtocol() {
       }
     },
     onSuccess: (data, variables) => {
+      console.log('🔍 onSuccess data:', data);
+
+      // Extrahuj protokol z response
+      const protocol =
+        (data as { protocol?: HandoverProtocol }).protocol || data;
+
       // Update rental status
       queryClient.setQueryData(
         queryKeys.rentals.detail(variables.rentalId),
@@ -83,7 +158,7 @@ export function useCreateHandoverProtocol() {
       // Trigger WebSocket
       window.dispatchEvent(
         new CustomEvent('protocol-created', {
-          detail: { type: 'handover', data },
+          detail: { type: 'handover', data: protocol },
         })
       );
     },
@@ -122,7 +197,10 @@ export function useCreateReturnProtocol() {
         queryKeys.protocols.byRental(newProtocol.rentalId),
         (old: Record<string, unknown> = {}) => ({
           ...old,
-          returnProtocols: [...(old.returnProtocols || []), newProtocol],
+          returnProtocols: [
+            ...((old.returnProtocols as unknown[]) || []),
+            newProtocol,
+          ],
         })
       );
 
