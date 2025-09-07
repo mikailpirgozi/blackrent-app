@@ -21,8 +21,8 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
           {label}
         </Typography>
         {payload.map((entry: Record<string, unknown>, index: number) => (
-          <Typography key={index} variant="body2" color={entry.color}>
-            {entry.name}: {entry.value.toLocaleString()} €
+          <Typography key={index} variant="body2" color={entry.color as string}>
+            {entry.name as string}: {(entry.value as number).toLocaleString()} €
           </Typography>
         ))}
       </ElevatedCard>

@@ -100,13 +100,28 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
 
       // V2 specific data
       vehicleState: {
-        // @ts-expect-error - V2 protocol data structure
-        km: (data as any).vehicleState?.mileage || 0,
+        km:
+          ((
+            (data as unknown as Record<string, unknown>).vehicleState as Record<
+              string,
+              unknown
+            >
+          )?.mileage as number) || 0,
         fuelLevel: data.fuelLevel,
-        // @ts-expect-error - V2 protocol data structure
-        damages: (data as any).vehicleState?.damages || [],
-        // @ts-expect-error - V2 protocol data structure
-        cleanliness: (data as any).vehicleState?.cleanliness || 'good',
+        damages:
+          ((
+            (data as unknown as Record<string, unknown>).vehicleState as Record<
+              string,
+              unknown
+            >
+          )?.damages as string[]) || [],
+        cleanliness:
+          ((
+            (data as unknown as Record<string, unknown>).vehicleState as Record<
+              string,
+              unknown
+            >
+          )?.cleanliness as string) || 'good',
       },
 
       // Photos - now with R2 URLs
@@ -116,15 +131,16 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
       signatures: data.signatures,
 
       // Documents
-      // @ts-expect-error - V2 protocol data structure
-      documents: (data as any).documents || [],
+      documents:
+        ((data as unknown as Record<string, unknown>).documents as string[]) ||
+        [],
 
       // Notes
       notes: data.notes,
 
       // Location
-      // @ts-expect-error - V2 protocol data structure
-      location: (data as any).location || '',
+      location:
+        ((data as unknown as Record<string, unknown>).location as string) || '',
 
       // V2 metadata
       metadata: {
@@ -146,42 +162,53 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
     customerId: rental?.customerId?.toString(),
 
     vehicle: {
-      // @ts-expect-error - V1 to V2 mapping
-      licensePlate: (rental?.vehicle as any)?.licensePlate || '',
-      // @ts-expect-error - V1 to V2 mapping
-      brand: (rental?.vehicle as any)?.brand || '',
-      // @ts-expect-error - V1 to V2 mapping
-      model: (rental?.vehicle as any)?.model || '',
-      // @ts-expect-error - V1 to V2 mapping
-      year: (rental?.vehicle as any)?.year || new Date().getFullYear(),
-      // @ts-expect-error - V1 to V2 mapping
-      vin: (rental?.vehicle as any)?.vin,
+      licensePlate:
+        ((rental?.vehicle as Record<string, unknown>)
+          ?.licensePlate as string) || '',
+      brand:
+        ((rental?.vehicle as Record<string, unknown>)?.brand as string) || '',
+      model:
+        ((rental?.vehicle as Record<string, unknown>)?.model as string) || '',
+      year:
+        ((rental?.vehicle as Record<string, unknown>)?.year as number) ||
+        new Date().getFullYear(),
+      vin: (rental?.vehicle as Record<string, unknown>)?.vin as string,
     },
 
     customer: {
-      // @ts-expect-error - V1 to V2 mapping
-      firstName: (rental?.customer as any)?.name?.split(' ')[0] || '',
-      // @ts-expect-error - V1 to V2 mapping
-      lastName: (rental?.customer as any)?.name?.split(' ')[1] || '',
-      // @ts-expect-error - V1 to V2 mapping
-      name: (rental?.customer as any)?.name || '',
-      // @ts-expect-error - V1 to V2 mapping
-      email: (rental?.customer as any)?.email || '',
-      // @ts-expect-error - V1 to V2 mapping
-      phone: (rental?.customer as any)?.phone,
+      firstName:
+        (rental?.customer as Record<string, unknown>)?.name
+          ?.toString()
+          .split(' ')[0] || '',
+      lastName:
+        (rental?.customer as Record<string, unknown>)?.name
+          ?.toString()
+          .split(' ')[1] || '',
+      name:
+        ((rental?.customer as Record<string, unknown>)?.name as string) || '',
+      email:
+        ((rental?.customer as Record<string, unknown>)?.email as string) || '',
+      phone: (rental?.customer as Record<string, unknown>)?.phone as string,
     },
 
     rental: {
-      startDate: rental?.startDate ? new Date(rental.startDate) : new Date(),
-      endDate: rental?.endDate ? new Date(rental.endDate) : new Date(),
-      startKm: (rental as any)?.startKm || 0,
-      location: rental?.pickupLocation || '',
-      pricePerDay: (rental as any)?.pricePerDay || 0,
-      totalPrice: rental?.totalPrice || 0,
+      startDate: rental?.startDate
+        ? new Date(rental.startDate as string | Date)
+        : new Date(),
+      endDate: rental?.endDate
+        ? new Date(rental.endDate as string | Date)
+        : new Date(),
+      startKm:
+        ((rental as unknown as Record<string, unknown>)?.startKm as number) ||
+        0,
+      location: (rental?.pickupLocation as string) || '',
+      pricePerDay:
+        ((rental as unknown as Record<string, unknown>)
+          ?.pricePerDay as number) || 0,
+      totalPrice: (rental?.totalPrice as number) || 0,
     },
 
     fuelLevel: 100,
-    location: rental?.pickupLocation || 'Košice',
   };
 
   return (
@@ -205,8 +232,7 @@ const HandoverProtocolFormV2Wrapper: React.FC<V1Props> = ({
           initialData={initialData}
           onSubmit={handleSubmit}
           onCancel={onClose}
-          // @ts-expect-error - V1 to V2 mapping
-          userId={(rental as any)?.userId}
+          userId={(rental as Record<string, unknown>)?.userId as string}
         />
       </DialogContent>
     </Dialog>

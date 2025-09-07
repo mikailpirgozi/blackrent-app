@@ -16,7 +16,7 @@ export const useApiService = () => {
   // Setup error handler when error context is available
   useEffect(() => {
     apiService.setErrorHandler((error: Error) => {
-      showError(error.message, error.name);
+      showError(error.message);
     });
   }, [showError]);
 

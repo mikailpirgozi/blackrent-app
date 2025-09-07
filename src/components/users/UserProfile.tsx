@@ -1,16 +1,16 @@
-import { Save, Person, Edit } from '@mui/icons-material';
+import { Edit, Person, Save } from '@mui/icons-material';
 import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
   // Divider, // Nepoužívané
   Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
   Paper,
+  TextField,
+  Typography,
 } from '@mui/material';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
@@ -60,8 +60,8 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
       if (response && response.user) {
         console.log('✅ Backend returned user data:', response.user);
         updateUser({
-          firstName: response.user.firstName,
-          lastName: response.user.lastName,
+          firstName: response.user.firstName as string,
+          lastName: response.user.lastName as string,
         });
         console.log('✅ User state updated with backend data');
       } else if (response && response.success) {
@@ -126,7 +126,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
       if (response && response.user) {
         console.log('✅ Backend returned user data:', response.user);
         updateUser({
-          signatureTemplate: response.user.signatureTemplate,
+          signatureTemplate: response.user.signatureTemplate as string,
         });
         console.log('✅ User state updated with backend signature data');
       } else if (response && response.success) {

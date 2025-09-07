@@ -60,9 +60,9 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
     // Get initial network connection info
     const updateConnectionInfo = () => {
       const connection =
-        (navigator as Record<string, unknown>).connection ||
-        (navigator as Record<string, unknown>).mozConnection ||
-        (navigator as Record<string, unknown>).webkitConnection;
+        (navigator as unknown as Record<string, unknown>).connection ||
+        (navigator as unknown as Record<string, unknown>).mozConnection ||
+        (navigator as unknown as Record<string, unknown>).webkitConnection;
 
       if (connection && typeof connection === 'object') {
         const conn = connection as Record<string, unknown>;
@@ -121,9 +121,9 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
     window.addEventListener('offline', handleOffline);
 
     const connection =
-      (navigator as Record<string, unknown>).connection ||
-      (navigator as Record<string, unknown>).mozConnection ||
-      (navigator as Record<string, unknown>).webkitConnection;
+      (navigator as unknown as Record<string, unknown>).connection ||
+      (navigator as unknown as Record<string, unknown>).mozConnection ||
+      (navigator as unknown as Record<string, unknown>).webkitConnection;
 
     if (connection && typeof connection === 'object') {
       const conn = connection as Record<string, unknown>;

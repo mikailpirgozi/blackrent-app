@@ -102,7 +102,7 @@ export default function UserCompanyPermissions({
       try {
         setLoading(true);
         const accessData = await apiService.getUserCompanyAccess(userId);
-        setUserAccess(accessData);
+        setUserAccess(accessData as UserCompanyAccess[]);
       } catch (error) {
         console.error('Error fetching user permissions:', error);
         setError('Chyba pri načítavaní oprávnení');

@@ -73,7 +73,7 @@ export function useInfiniteVehicles(
           ...filtersRef.current,
         });
 
-        const newVehicles = result.vehicles;
+        const newVehicles = result.data;
 
         // Validate response
         if (!result || !Array.isArray(newVehicles)) {
@@ -96,12 +96,12 @@ export function useInfiniteVehicles(
           return uniqueVehicles;
         });
 
-        setTotalCount(result.pagination.totalItems);
-        setHasMore(result.pagination.hasMore);
-        setCurrentPage(result.pagination.currentPage);
+        setTotalCount(result.total);
+        setHasMore(result.page * result.limit < result.total);
+        setCurrentPage(result.page);
 
         logger.info(
-          `✅ Loaded ${newVehicles.length} vehicles (${result.pagination.totalItems} total)`
+          `✅ Loaded ${newVehicles.length} vehicles (${result.total} total)`
         );
       } catch (error: unknown) {
         const errorMessage =

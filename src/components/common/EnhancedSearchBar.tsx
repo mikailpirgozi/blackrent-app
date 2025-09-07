@@ -39,7 +39,10 @@ import {
 } from '@mui/material';
 import React, { memo, useEffect, useRef } from 'react';
 
-import type { QuickFilter } from '../../hooks/useEnhancedSearch';
+import type {
+  QuickFilter,
+  SearchSuggestion,
+} from '../../hooks/useEnhancedSearch';
 import { useEnhancedSearch } from '../../hooks/useEnhancedSearch';
 
 interface EnhancedSearchBarProps {
@@ -50,7 +53,7 @@ interface EnhancedSearchBarProps {
   ) => Promise<Record<string, unknown>[]> | Record<string, unknown>[];
   suggestionFunction?: (
     query: string
-  ) => Promise<Record<string, unknown>[]> | Record<string, unknown>[];
+  ) => Promise<SearchSuggestion[]> | SearchSuggestion[];
 
   // Search options
   debounceDelay?: number;
@@ -177,7 +180,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   };
 
   // Handle suggestion selection
-  const handleSuggestionSelect = (suggestion: Record<string, unknown>) => {
+  const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
     selectSuggestion(suggestion);
     inputRef.current?.focus();
   };

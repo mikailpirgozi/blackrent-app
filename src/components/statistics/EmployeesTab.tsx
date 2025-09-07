@@ -20,8 +20,35 @@ import {
 } from '@mui/material';
 import React from 'react';
 
+interface EmployeeStats {
+  activeEmployees: number;
+  totalProtocols: number;
+  totalHandovers: number;
+  totalReturns: number;
+  topEmployeesByProtocols: Array<{
+    employeeName: string;
+    totalProtocols: number;
+    handoverCount: number;
+    returnCount: number;
+    uniqueRentals?: number;
+  }>;
+  topEmployeesByRevenue: Array<{
+    employeeName: string;
+    totalRevenue: number;
+  }>;
+  allEmployees: Array<{
+    employeeName: string;
+    totalProtocols: number;
+    handoverCount: number;
+    returnCount: number;
+    uniqueRentals?: number;
+  }>;
+}
+
 interface EmployeesTabProps {
-  stats: Record<string, unknown>;
+  stats: {
+    employeeStats?: EmployeeStats;
+  };
   formatPeriod: () => string;
 }
 
@@ -147,7 +174,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                 <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
                   {stats.employeeStats.topEmployeesByProtocols
                     .slice(0, 10)
-                    .map((employee: Record<string, unknown>, index: number) => (
+                    .map((employee, index: number) => (
                       <Box
                         key={index}
                         sx={{
@@ -243,7 +270,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                 <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
                   {stats.employeeStats.topEmployeesByRevenue
                     .slice(0, 10)
-                    .map((employee: Record<string, unknown>, index: number) => (
+                    .map((employee, index: number) => (
                       <Box
                         key={index}
                         sx={{
@@ -299,7 +326,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                               variant="caption"
                               color="text.secondary"
                             >
-                              {employee.totalProtocols} protokolov
+                              Tržby: €{employee.totalRevenue.toLocaleString()}
                             </Typography>
                           </Box>
                         </Box>
@@ -359,80 +386,69 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
                     </TableHead>
                     <TableBody>
                       {stats.employeeStats.allEmployees
-                        .sort(
-                          (
-                            a: Record<string, unknown>,
-                            b: Record<string, unknown>
-                          ) => b.totalProtocols - a.totalProtocols
-                        )
-                        .map(
-                          (
-                            employee: Record<string, unknown>,
-                            index: number
-                          ) => (
-                            <TableRow
-                              key={index}
-                              sx={{
-                                '&:nth-of-type(odd)': {
-                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                },
-                              }}
-                            >
-                              <TableCell>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1,
-                                  }}
-                                >
-                                  <PersonIcon color="primary" />
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ fontWeight: 600 }}
-                                  >
-                                    {employee.employeeName}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="center">
-                                <Chip
-                                  label={employee.totalProtocols}
-                                  color="primary"
-                                  size="small"
-                                />
-                              </TableCell>
-                              <TableCell align="center">
-                                <Chip
-                                  label={employee.handoverCount}
-                                  color="secondary"
-                                  size="small"
-                                />
-                              </TableCell>
-                              <TableCell align="center">
-                                <Chip
-                                  label={employee.returnCount}
-                                  color="info"
-                                  size="small"
-                                />
-                              </TableCell>
-                              <TableCell align="right">
+                        .sort((a, b) => b.totalProtocols - a.totalProtocols)
+                        .map((employee, index: number) => (
+                          <TableRow
+                            key={index}
+                            sx={{
+                              '&:nth-of-type(odd)': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                              },
+                            }}
+                          >
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
+                                <PersonIcon color="primary" />
                                 <Typography
                                   variant="body2"
-                                  sx={{ fontWeight: 600, color: '#4CAF50' }}
+                                  sx={{ fontWeight: 600 }}
                                 >
-                                  €
-                                  {employee.totalRevenue?.toLocaleString() || 0}
+                                  {employee.employeeName}
                                 </Typography>
-                              </TableCell>
-                              <TableCell align="center">
-                                <Typography variant="body2">
-                                  {employee.uniqueRentals || 0}
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        )}
+                              </Box>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={employee.totalProtocols}
+                                color="primary"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={employee.handoverCount}
+                                color="secondary"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={employee.returnCount}
+                                color="info"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, color: '#4CAF50' }}
+                              >
+                                N/A
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">
+                                {employee.uniqueRentals || 0}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </TableContainer>

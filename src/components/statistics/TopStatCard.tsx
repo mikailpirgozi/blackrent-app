@@ -57,9 +57,9 @@ const TopStatCard: React.FC<TopStatCardProps> = ({
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {data
-              ? data.vehicle
-                ? `${data.vehicle.brand} ${data.vehicle.model}`
-                : data.customerName
+              ? (data as Record<string, unknown>).vehicle
+                ? `${((data as Record<string, unknown>).vehicle as Record<string, unknown>).brand as string} ${((data as Record<string, unknown>).vehicle as Record<string, unknown>).model as string}`
+                : ((data as Record<string, unknown>).customerName as string)
               : 'N/A'}
           </Typography>
         </Box>

@@ -33,23 +33,44 @@ import React, { memo } from 'react';
 import { formatDateTime } from '../../utils/formatters';
 import PriceDisplay from './components/PriceDisplay';
 
+interface Rental {
+  id: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customer?: {
+    phone?: string;
+    email?: string;
+  };
+  startDate: string | Date;
+  endDate: string | Date;
+  status: string;
+  paid: boolean;
+  notes?: string;
+  isFlexible?: boolean;
+}
+
+interface Vehicle {
+  licensePlate?: string;
+  brand?: string;
+  model?: string;
+  company?: string;
+}
+
 interface MobileRentalRowProps {
-  rental: Record<string, unknown>;
-  vehicle: Record<string, unknown>;
+  rental: Rental;
+  vehicle: Vehicle;
   index: number;
   totalRentals: number;
   hasHandover: boolean;
   hasReturn: boolean;
   isLoadingProtocolStatus: boolean;
   protocolStatusLoaded: boolean;
-  onEdit: (rental: Record<string, unknown>) => void;
-  onOpenProtocolMenu: (
-    rental: Record<string, unknown>,
-    type: 'handover' | 'return'
-  ) => void;
-  onCheckProtocols: (rental: Record<string, unknown>) => void;
+  onEdit: (rental: Rental) => void;
+  onOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
+  onCheckProtocols: (rental: Rental) => void;
   onDelete?: (id: string) => void;
-  onClone?: (rental: Record<string, unknown>) => void; // 🔄 NOVÉ: Clone funkcionalita
+  onClone?: (rental: Rental) => void; // 🔄 NOVÉ: Clone funkcionalita
 }
 
 export const MobileRentalRow = memo<MobileRentalRowProps>(

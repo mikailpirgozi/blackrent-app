@@ -27,11 +27,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { format } from 'date-fns';
+import { sk } from 'date-fns/locale';
 import React, { memo } from 'react';
 import { formatDateTime } from '../../utils/formatters';
 import PriceDisplay from './components/PriceDisplay';
 
-import type { Rental } from '../../types';
+import type { HandoverProtocol, Rental, ReturnProtocol } from '../../types';
 
 export type CardViewMode = 'grid' | 'list' | 'compact' | 'detailed';
 
@@ -49,7 +51,10 @@ interface RentalCardViewProps {
   ) => void;
   onOpenGallery: (rental: Rental, protocolType: 'handover' | 'return') => void;
   onViewProtocols: (rental: Rental) => void;
-  protocols: Record<string, { handover?: unknown; return?: unknown }>;
+  protocols: Record<
+    string,
+    { handover?: HandoverProtocol; return?: ReturnProtocol }
+  >;
   loadingProtocols: string[];
 }
 
@@ -642,8 +647,8 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
                   PDF
                 </Button>
               )}
-              {(hasHandover?.images?.length > 0 ||
-                hasReturn?.images?.length > 0) && (
+              {((hasHandover?.vehicleImages?.length ?? 0) > 0 ||
+                (hasReturn?.vehicleImages?.length ?? 0) > 0) && (
                 <Button
                   size="small"
                   variant="outlined"

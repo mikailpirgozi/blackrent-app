@@ -68,7 +68,7 @@ export function useInfiniteCustomers(
           ...filtersRef.current,
         });
 
-        const newCustomers = result.customers;
+        const newCustomers = result.data;
 
         // Validate response
         if (!result || !Array.isArray(newCustomers)) {
@@ -91,12 +91,12 @@ export function useInfiniteCustomers(
           return uniqueCustomers;
         });
 
-        setTotalCount(result.pagination.totalItems);
-        setHasMore(result.pagination.hasMore);
-        setCurrentPage(result.pagination.currentPage);
+        setTotalCount(result.total);
+        setHasMore(result.page * result.limit < result.total);
+        setCurrentPage(result.page);
 
         logger.info(
-          `✅ Loaded ${newCustomers.length} customers (${result.pagination.totalItems} total)`
+          `✅ Loaded ${newCustomers.length} customers (${result.total} total)`
         );
       } catch (error: unknown) {
         const errorMessage =

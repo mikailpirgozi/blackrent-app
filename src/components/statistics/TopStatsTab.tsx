@@ -107,19 +107,22 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
         <TopStatCard
           title="Najvyťaženejšie auto"
           icon={<SpeedIcon />}
-          data={stats.topVehicleByUtilization}
+          data={stats.topVehicleByUtilization as Record<string, unknown>}
           primaryValue={
             stats.topVehicleByUtilization
-              ? `${stats.topVehicleByUtilization.utilizationPercentage.toFixed(1)}%`
+              ? `${((stats.topVehicleByUtilization as Record<string, unknown>).utilizationPercentage as number).toFixed(1)}%`
               : 'N/A'
           }
           secondaryValue={
             stats.topVehicleByUtilization
-              ? `${stats.topVehicleByUtilization.totalDaysRented} dní prenájmu`
+              ? `${(stats.topVehicleByUtilization as Record<string, unknown>).totalDaysRented as number} dní prenájmu`
               : ''
           }
           gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-          percentage={stats.topVehicleByUtilization?.utilizationPercentage}
+          percentage={
+            (stats.topVehicleByUtilization as Record<string, unknown>)
+              ?.utilizationPercentage as number
+          }
         />
       </Grid>
 
@@ -127,15 +130,15 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
         <TopStatCard
           title="Najvýnosnejšie auto"
           icon={<EuroIcon />}
-          data={stats.topVehicleByRevenue}
+          data={stats.topVehicleByRevenue as Record<string, unknown>}
           primaryValue={
             stats.topVehicleByRevenue
-              ? `${stats.topVehicleByRevenue.totalRevenue.toLocaleString()} €`
+              ? `${(stats.topVehicleByRevenue as Record<string, unknown>).totalRevenue as number} €`
               : 'N/A'
           }
           secondaryValue={
             stats.topVehicleByRevenue
-              ? `${stats.topVehicleByRevenue.rentalCount} prenájmov`
+              ? `${(stats.topVehicleByRevenue as Record<string, unknown>).rentalCount as number} prenájmov`
               : ''
           }
           gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
@@ -146,15 +149,15 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
         <TopStatCard
           title="Najaktívnejší zákazník"
           icon={<PersonIcon />}
-          data={stats.topCustomerByRentals}
+          data={stats.topCustomerByRentals as Record<string, unknown>}
           primaryValue={
             stats.topCustomerByRentals
-              ? `${stats.topCustomerByRentals.rentalCount}x`
+              ? `${(stats.topCustomerByRentals as Record<string, unknown>).rentalCount as number}x`
               : 'N/A'
           }
           secondaryValue={
             stats.topCustomerByRentals
-              ? `${stats.topCustomerByRentals.totalRevenue.toLocaleString()} € celkom`
+              ? `${(stats.topCustomerByRentals as Record<string, unknown>).totalRevenue as number} € celkom`
               : ''
           }
           gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
@@ -190,12 +193,19 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           title="Najvyťaženejšie autá"
           icon={<SpeedIcon />}
           gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-          data={stats.vehiclesByUtilization}
+          data={stats.vehiclesByUtilization as Record<string, unknown>[]}
           showCount={showVehiclesByUtilization}
           onLoadMore={() => setShowVehiclesByUtilization(prev => prev + 10)}
           renderItem={(vehicle, index) => (
             <Box
-              key={vehicle.vehicle.id}
+              key={
+                (
+                  (vehicle as Record<string, unknown>).vehicle as Record<
+                    string,
+                    unknown
+                  >
+                ).id as string
+              }
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -238,10 +248,38 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
 
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                  {vehicle.vehicle.brand} {vehicle.vehicle.model}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).brand as string
+                  }{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).model as string
+                  }
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {vehicle.vehicle.licensePlate} • {vehicle.totalDaysRented} dní
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).licensePlate as string
+                  }{' '}
+                  •{' '}
+                  {
+                    (vehicle as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní
                 </Typography>
               </Box>
 
@@ -251,27 +289,39 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   fontWeight="bold"
                   sx={{
                     color:
-                      vehicle.utilizationPercentage > 70
+                      ((vehicle as Record<string, unknown>)
+                        .utilizationPercentage as number) > 70
                         ? '#4caf50'
-                        : vehicle.utilizationPercentage > 40
+                        : ((vehicle as Record<string, unknown>)
+                              .utilizationPercentage as number) > 40
                           ? '#ff9800'
                           : '#f44336',
                   }}
                 >
-                  {vehicle.utilizationPercentage.toFixed(1)}%
+                  {(
+                    (vehicle as Record<string, unknown>)
+                      .utilizationPercentage as number
+                  ).toFixed(1)}
+                  %
                 </Typography>
                 <LinearProgress
                   variant="determinate"
-                  value={Math.min(vehicle.utilizationPercentage, 100)}
+                  value={Math.min(
+                    (vehicle as Record<string, unknown>)
+                      .utilizationPercentage as number,
+                    100
+                  )}
                   sx={{
                     height: 6,
                     borderRadius: 3,
                     backgroundColor: '#e0e0e0',
                     '& .MuiLinearProgress-bar': {
                       background:
-                        vehicle.utilizationPercentage > 70
+                        ((vehicle as Record<string, unknown>)
+                          .utilizationPercentage as number) > 70
                           ? '#4caf50'
-                          : vehicle.utilizationPercentage > 40
+                          : ((vehicle as Record<string, unknown>)
+                                .utilizationPercentage as number) > 40
                             ? '#ff9800'
                             : '#f44336',
                       borderRadius: 3,
@@ -291,12 +341,19 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           title="Najvýnosnejšie autá"
           icon={<EuroIcon />}
           gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
-          data={stats.vehiclesByRevenue}
+          data={stats.vehiclesByRevenue as Record<string, unknown>[]}
           showCount={showVehiclesByRevenue}
           onLoadMore={() => setShowVehiclesByRevenue(prev => prev + 10)}
           renderItem={(vehicle, index) => (
             <Box
-              key={vehicle.vehicle.id}
+              key={
+                (
+                  (vehicle as Record<string, unknown>).vehicle as Record<
+                    string,
+                    unknown
+                  >
+                ).id as string
+              }
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -339,10 +396,33 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
 
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                  {vehicle.vehicle.brand} {vehicle.vehicle.model}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).brand as string
+                  }{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).model as string
+                  }
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {vehicle.vehicle.licensePlate} • {vehicle.rentalCount}{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).licensePlate as string
+                  }{' '}
+                  • {(vehicle as Record<string, unknown>).rentalCount as number}{' '}
                   prenájmov
                 </Typography>
               </Box>
@@ -353,10 +433,17 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   fontWeight="bold"
                   sx={{ color: '#11998e' }}
                 >
-                  {vehicle.totalRevenue.toLocaleString()} €
+                  {(
+                    (vehicle as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  €
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {vehicle.avgRevenuePerRental.toFixed(0)} €/prenájom
+                  {(
+                    (vehicle as Record<string, unknown>)
+                      .avgRevenuePerRental as number
+                  ).toFixed(0)}{' '}
+                  €/prenájom
                 </Typography>
               </Box>
             </Box>
@@ -371,12 +458,19 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           title="Najčastejšie prenajímané"
           icon={<CarIcon />}
           gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-          data={stats.vehiclesByRentals}
+          data={stats.vehiclesByRentals as Record<string, unknown>[]}
           showCount={showVehiclesByRentals}
           onLoadMore={() => setShowVehiclesByRentals(prev => prev + 10)}
           renderItem={(vehicle, index) => (
             <Box
-              key={vehicle.vehicle.id}
+              key={
+                (
+                  (vehicle as Record<string, unknown>).vehicle as Record<
+                    string,
+                    unknown
+                  >
+                ).id as string
+              }
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -419,11 +513,38 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
 
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                  {vehicle.vehicle.brand} {vehicle.vehicle.model}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).brand as string
+                  }{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).model as string
+                  }
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {vehicle.vehicle.licensePlate} • {vehicle.totalDaysRented} dní
-                  celkom
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).licensePlate as string
+                  }{' '}
+                  •{' '}
+                  {
+                    (vehicle as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní celkom
                 </Typography>
               </Box>
 
@@ -433,10 +554,13 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   fontWeight="bold"
                   sx={{ color: '#f093fb' }}
                 >
-                  {vehicle.rentalCount}x
+                  {(vehicle as Record<string, unknown>).rentalCount as number}x
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {vehicle.totalRevenue.toLocaleString()} € celkom
+                  {(
+                    (vehicle as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  € celkom
                 </Typography>
               </Box>
             </Box>
@@ -474,12 +598,12 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           title="Najaktívnejší zákazníci"
           icon={<StarIcon />}
           gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
-          data={stats.customersByRentals}
+          data={stats.customersByRentals as Record<string, unknown>[]}
           showCount={showCustomersByRentals}
           onLoadMore={() => setShowCustomersByRentals(prev => prev + 10)}
           renderItem={(customer, index) => (
             <Box
-              key={customer.customerName}
+              key={(customer as Record<string, unknown>).customerName as string}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -522,11 +646,19 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
 
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                  {customer.customerName}
+                  {(customer as Record<string, unknown>).customerName as string}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {customer.totalDaysRented} dní celkom • Priemer:{' '}
-                  {customer.avgRentalDuration.toFixed(1)} dní
+                  {
+                    (customer as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní celkom • Priemer:{' '}
+                  {(
+                    (customer as Record<string, unknown>)
+                      .avgRentalDuration as number
+                  ).toFixed(1)}{' '}
+                  dní
                 </Typography>
               </Box>
 
@@ -536,10 +668,13 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   fontWeight="bold"
                   sx={{ color: '#ff9a9e' }}
                 >
-                  {customer.rentalCount}x
+                  {(customer as Record<string, unknown>).rentalCount as number}x
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {customer.totalRevenue.toLocaleString()} € celkom
+                  {(
+                    (customer as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  € celkom
                 </Typography>
               </Box>
             </Box>
@@ -554,12 +689,12 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           title="Najziskovejší zákazníci"
           icon={<MoneyIcon />}
           gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
-          data={stats.customersByRevenue}
+          data={stats.customersByRevenue as Record<string, unknown>[]}
           showCount={showCustomersByRevenue}
           onLoadMore={() => setShowCustomersByRevenue(prev => prev + 10)}
           renderItem={(customer, index) => (
             <Box
-              key={customer.customerName}
+              key={(customer as Record<string, unknown>).customerName as string}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -602,10 +737,15 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
 
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                  {customer.customerName}
+                  {(customer as Record<string, unknown>).customerName as string}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {customer.rentalCount} prenájmov • {customer.totalDaysRented}{' '}
+                  {(customer as Record<string, unknown>).rentalCount as number}{' '}
+                  prenájmov •{' '}
+                  {
+                    (customer as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
                   dní
                 </Typography>
               </Box>
@@ -616,10 +756,18 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   fontWeight="bold"
                   sx={{ color: '#ff6b6b' }}
                 >
-                  {customer.totalRevenue.toLocaleString()} €
+                  {(
+                    (customer as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  €
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {(customer.totalRevenue / customer.rentalCount).toFixed(0)}{' '}
+                  {(
+                    ((customer as Record<string, unknown>)
+                      .totalRevenue as number) /
+                    ((customer as Record<string, unknown>)
+                      .rentalCount as number)
+                  ).toFixed(0)}{' '}
                   €/prenájom
                 </Typography>
               </Box>
@@ -635,12 +783,12 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           title="Najdlhodobejší zákazníci"
           icon={<TimeIcon />}
           gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-          data={stats.customersByDays}
+          data={stats.customersByDays as Record<string, unknown>[]}
           showCount={showCustomersByDays}
           onLoadMore={() => setShowCustomersByDays(prev => prev + 10)}
           renderItem={(customer, index) => (
             <Box
-              key={customer.customerName}
+              key={(customer as Record<string, unknown>).customerName as string}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -683,11 +831,15 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
 
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                  {customer.customerName}
+                  {(customer as Record<string, unknown>).customerName as string}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {customer.rentalCount} prenájmov •{' '}
-                  {customer.totalRevenue.toLocaleString()} €
+                  {(customer as Record<string, unknown>).rentalCount as number}{' '}
+                  prenájmov •{' '}
+                  {(
+                    (customer as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  €
                 </Typography>
               </Box>
 
@@ -697,10 +849,19 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   fontWeight="bold"
                   sx={{ color: '#4facfe' }}
                 >
-                  {customer.totalDaysRented} dní
+                  {
+                    (customer as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Priemer: {customer.avgRentalDuration.toFixed(1)} dní/prenájom
+                  Priemer:{' '}
+                  {(
+                    (customer as Record<string, unknown>)
+                      .avgRentalDuration as number
+                  ).toFixed(1)}{' '}
+                  dní/prenájom
                 </Typography>
               </Box>
             </Box>

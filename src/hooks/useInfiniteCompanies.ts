@@ -96,7 +96,7 @@ export function useInfiniteCompanies(
         setCurrentPage(result.page);
 
         logger.info(
-          `✅ Loaded ${newCompanies.length} companies (${result.pagination.totalItems} total)`
+          `✅ Loaded ${newCompanies.length} companies (${result.total} total)`
         );
       } catch (error: unknown) {
         const errorMessage =

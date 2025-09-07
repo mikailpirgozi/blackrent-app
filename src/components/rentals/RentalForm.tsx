@@ -743,8 +743,14 @@ export default function RentalForm({
       try {
         await apiService.createVehicleUnavailability({
           vehicleId: formData.vehicleId || '',
-          startDate: formData.startDate || new Date(),
-          endDate: formData.endDate || new Date(),
+          startDate:
+            formData.startDate instanceof Date
+              ? formData.startDate
+              : new Date(formData.startDate || new Date()),
+          endDate:
+            formData.endDate instanceof Date
+              ? formData.endDate
+              : new Date(formData.endDate || new Date()),
           reason: `Súkromný prenájom: ${formData.customerName}`,
           type: 'private_rental',
           notes: `Prenájom mimo BlackRent platformy. Zákazník: ${formData.customerName}. ${handoverPlace ? `Miesto: ${handoverPlace}` : ''}`,

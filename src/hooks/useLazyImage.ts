@@ -109,8 +109,8 @@ export const useLazyImage = (
         // Create synthetic event for consistency
         const syntheticError = {
           nativeEvent: error as Event,
-          currentTarget: null as HTMLImageElement,
-          target: null as HTMLImageElement,
+          currentTarget: null as unknown as HTMLImageElement,
+          target: null as unknown as HTMLImageElement,
           bubbles: false,
           cancelable: false,
           defaultPrevented: false,

@@ -26,7 +26,14 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import type { ProtocolImage, ProtocolVideo, Rental } from '../../types';
+import type {
+  Company,
+  Customer,
+  ProtocolImage,
+  ProtocolVideo,
+  Rental,
+  Vehicle,
+} from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
 
@@ -789,18 +796,9 @@ export default function RentalList() {
       <RentalExport
         filteredRentals={filteredRentals}
         state={{
-          customers: (state.customers || []) as unknown as Record<
-            string,
-            unknown
-          >[],
-          companies: (state.companies || []) as unknown as Record<
-            string,
-            unknown
-          >[],
-          vehicles: (state.vehicles || []) as unknown as Record<
-            string,
-            unknown
-          >[],
+          customers: (state.customers || []) as Customer[],
+          companies: (state.companies || []) as Company[],
+          vehicles: (state.vehicles || []) as Vehicle[],
           rentals: state.rentals || [],
         }}
         isMobile={isMobile}
