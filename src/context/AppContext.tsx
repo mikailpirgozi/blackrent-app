@@ -981,6 +981,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // 🗄️ UNIFIED CACHE: Smart data loading with unified cache system
   useEffect(() => {
     const loadDataSafely = async () => {
+      // Nepokúšaj sa načítať dáta ak sme na login stránke
+      if (window.location.pathname === '/login') {
+        return;
+      }
+
       if (
         authState.isAuthenticated &&
         !authState.isLoading &&
@@ -1287,8 +1292,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createSettlement = async (settlement: Settlement): Promise<void> => {
     try {
-      await apiService.createSettlement(settlement);
-      dispatch({ type: 'ADD_SETTLEMENT', payload: settlement });
+      const createdSettlement = await apiService.createSettlement(settlement);
+      // Backend vždy vracia vytvorené settlement
+      dispatch({ type: 'ADD_SETTLEMENT', payload: createdSettlement });
     } catch (error) {
       console.error('Chyba pri vytváraní vyúčtovania:', error);
       throw error;

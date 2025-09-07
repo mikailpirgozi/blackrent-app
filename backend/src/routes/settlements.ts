@@ -1,10 +1,9 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { postgresDatabase } from '../models/postgres-database';
-import type { Settlement, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
-import { v4 as uuidv4 } from 'uuid';
+import { postgresDatabase } from '../models/postgres-database';
+import type { ApiResponse, Settlement } from '../types';
 
 const router = Router();
 
@@ -93,11 +92,8 @@ router.post('/',
   try {
     const {
       company,
-      period,
-      totalIncome,
-      totalExpenses,
-      totalCommission,
-      profit
+      period
+      // totalIncome, totalExpenses, commission, profit - calculated from DB data
     } = req.body;
 
     // Frontend posiela period: { from, to }, takže musíme to správne extrahovať

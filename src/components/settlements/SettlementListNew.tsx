@@ -44,30 +44,11 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Settlement, Vehicle } from '../../types';
 
-// Type for creating new settlement (matches backend API)
-interface CreateSettlementRequest {
-  company?: string;
-  period: {
-    from: Date;
-    to: Date;
-  };
-  totalIncome: number;
-  totalExpenses: number;
-  totalCommission: number;
-  profit: number;
-  vehicleId?: string;
-}
-
 import SettlementDetail from './SettlementDetail';
 
 const SettlementListNew: React.FC = () => {
-  const {
-    state,
-    getFilteredVehicles,
-    createSettlement,
-    deleteSettlement,
-    loadData,
-  } = useApp();
+  const { state, getFilteredVehicles, createSettlement, deleteSettlement } =
+    useApp();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
@@ -249,20 +230,23 @@ const SettlementListNew: React.FC = () => {
       // Ak sú vybrané firmy, vytvor settlement pre každú firmu
       if (selectedCompanies.length > 0) {
         for (const company of selectedCompanies) {
-          const settlementData: CreateSettlementRequest = {
+          const settlementData: Settlement = {
+            id: '', // Backend vygeneruje ID
             period: {
               from: fromDate,
               to: toDate,
             },
             company: company,
             vehicleId: undefined, // Pri výbere firiem nevyberáme konkrétne vozidlo
-            totalIncome: 0,
-            totalExpenses: 0,
-            totalCommission: 0,
-            profit: 0,
+            totalIncome: 0, // Backend vypočíta
+            totalExpenses: 0, // Backend vypočíta
+            totalCommission: 0, // Backend vypočíta
+            profit: 0, // Backend vypočíta
+            rentals: [], // Backend načíta
+            expenses: [], // Backend načíta
           };
 
-          await createSettlement(settlementData as unknown as Settlement);
+          await createSettlement(settlementData);
         }
       }
 
@@ -270,25 +254,28 @@ const SettlementListNew: React.FC = () => {
       if (selectedVehicleIds.length > 0) {
         for (const vehicleId of selectedVehicleIds) {
           const vehicle = vehicles.find((v: Vehicle) => v.id === vehicleId);
-          const settlementData: CreateSettlementRequest = {
+          const settlementData: Settlement = {
+            id: '', // Backend vygeneruje ID
             period: {
               from: fromDate,
               to: toDate,
             },
             company: vehicle?.company || '',
             vehicleId: vehicleId,
-            totalIncome: 0,
-            totalExpenses: 0,
-            totalCommission: 0,
-            profit: 0,
+            totalIncome: 0, // Backend vypočíta
+            totalExpenses: 0, // Backend vypočíta
+            totalCommission: 0, // Backend vypočíta
+            profit: 0, // Backend vypočíta
+            rentals: [], // Backend načíta
+            expenses: [], // Backend načíta
           };
 
-          await createSettlement(settlementData as unknown as Settlement);
+          await createSettlement(settlementData);
         }
       }
 
-      // Refresh data to show new settlements
-      await loadData();
+      // Settlements sú už pridané cez createSettlement v AppContext
+      // Nepotrebujeme volať loadData() ktoré by prepisalo state
 
       setCreateDialogOpen(false);
       // Clear form
@@ -612,7 +599,7 @@ const SettlementListNew: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            filteredSettlements.map((settlement: Settlement) => {
+            filteredSettlements.map((settlement: Settlement, index: number) => {
               const vehicle = settlement.vehicleId
                 ? vehicles.find((v: Vehicle) => v.id === settlement.vehicleId)
                 : null;
@@ -620,7 +607,7 @@ const SettlementListNew: React.FC = () => {
 
               return (
                 <Card
-                  key={settlement.id}
+                  key={settlement.id || `settlement-mobile-${index}`}
                   sx={{
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     borderRadius: 2,
@@ -924,7 +911,7 @@ const SettlementListNew: React.FC = () => {
 
                   return (
                     <Box
-                      key={settlement.id}
+                      key={settlement.id || `settlement-${index}`}
                       sx={{
                         display: 'grid',
                         gridTemplateColumns:

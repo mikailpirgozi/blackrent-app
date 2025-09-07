@@ -6146,11 +6146,11 @@ export class PostgresDatabase {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100) DEFAULT 'Default Company',
           period VARCHAR(50) DEFAULT 'Current Period',
-          from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          period_from TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          period_to TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           total_income DECIMAL(10,2) DEFAULT 0,
           total_expenses DECIMAL(10,2) DEFAULT 0,
-          commission DECIMAL(10,2) DEFAULT 0,
+          total_commission DECIMAL(10,2) DEFAULT 0,
           profit DECIMAL(10,2) DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -6165,11 +6165,11 @@ export class PostgresDatabase {
           id,
           company,
           period,
-          from_date,
-          to_date,
+          period_from,
+          period_to,
           total_income,
           total_expenses, 
-          commission,
+          total_commission,
           profit,
           created_at
         FROM settlements
@@ -6183,9 +6183,9 @@ export class PostgresDatabase {
       const allExpenses = await this.getExpenses();
 
       // Map to Settlement interface format
-      return result.rows.map((row: { id: string; from_date: string; to_date: string; company: string; total_revenue: string; total_commission: string; total_rentals: string; created_at: string; status: string; total_income?: string; total_expenses?: string; commission?: string; profit?: string }) => {
-        const fromDate = new Date(row.from_date || new Date());
-        const toDate = new Date(row.to_date || new Date());
+      return result.rows.map((row: { id: string; period_from: string; period_to: string; company: string; total_revenue: string; total_commission: string; total_rentals: string; created_at: string; status: string; total_income?: string; total_expenses?: string; profit?: string }) => {
+        const fromDate = new Date(row.period_from || new Date());
+        const toDate = new Date(row.period_to || new Date());
         const company = row.company || 'Default Company';
         
                  // Filter rentals for this settlement (FIXED: only include rentals that START in the period)
@@ -6213,7 +6213,7 @@ export class PostgresDatabase {
         });
 
         return {
-          id: row.id?.toString() || '',
+          id: row.id?.toString() || `settlement-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           period: {
             from: fromDate,
             to: toDate
@@ -6222,7 +6222,7 @@ export class PostgresDatabase {
           expenses: filteredExpenses,
           totalIncome: parseFloat(row.total_income || '0') || 0,
           totalExpenses: parseFloat(row.total_expenses || '0') || 0,
-          totalCommission: parseFloat(row.commission || '0') || 0,
+          totalCommission: parseFloat(row.total_commission || '0') || 0,
           profit: parseFloat(row.profit || '0') || 0,
           company: company,
           vehicleId: undefined
@@ -6319,11 +6319,11 @@ export class PostgresDatabase {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           company VARCHAR(100) DEFAULT 'Default Company',
           period VARCHAR(50) DEFAULT 'Current Period',
-          from_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          to_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          period_from TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          period_to TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           total_income DECIMAL(10,2) DEFAULT 0,
           total_expenses DECIMAL(10,2) DEFAULT 0,
-          commission DECIMAL(10,2) DEFAULT 0,
+          total_commission DECIMAL(10,2) DEFAULT 0,
           profit DECIMAL(10,2) DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -6332,11 +6332,11 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         INSERT INTO settlements (
-          company, period, from_date, to_date, total_income, total_expenses, 
-          commission, profit
+          company, period, period_from, period_to, total_income, total_expenses, 
+          total_commission, profit
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, company, period, from_date, to_date, total_income, total_expenses, 
-                  commission, profit, created_at
+        RETURNING id, company, period, period_from, period_to, total_income, total_expenses, 
+                  total_commission, profit, created_at
       `, [
         settlementData.company || 'Default Company',
         settlementData.period || 'Current Period', 
@@ -6354,14 +6354,14 @@ export class PostgresDatabase {
       return {
         id: row.id?.toString() || '',
         period: {
-          from: new Date(row.from_date),
-          to: new Date(row.to_date)
+          from: new Date(row.period_from),
+          to: new Date(row.period_to)
         },
         rentals: settlementData.rentals || [],
         expenses: settlementData.expenses || [],
         totalIncome: parseFloat(row.total_income) || 0,
         totalExpenses: parseFloat(row.total_expenses) || 0,
-        totalCommission: parseFloat(row.commission) || 0,
+        totalCommission: parseFloat(row.total_commission) || 0,
         profit: parseFloat(row.profit) || 0,
         company: row.company || 'Default Company',
         vehicleId: undefined

@@ -104,7 +104,11 @@ class ApiService {
         localStorage.removeItem('blackrent_remember_me');
         sessionStorage.removeItem('blackrent_token');
         sessionStorage.removeItem('blackrent_user');
-        window.location.href = '/login';
+
+        // Presmeruj len ak nie sme už na login stránke
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         throw new Error('Neplatný token - presmerovanie na prihlásenie');
       }
 
@@ -490,10 +494,16 @@ class ApiService {
     return this.request<Settlement>(`/settlements/${id}`);
   }
 
-  async createSettlement(settlement: Settlement): Promise<void> {
-    return this.request<void>('/settlements', {
+  async createSettlement(settlement: Settlement): Promise<Settlement> {
+    // Backend očakáva len company a period, nie celý Settlement objekt
+    const requestData = {
+      company: settlement.company,
+      period: settlement.period,
+    };
+
+    return this.request<Settlement>('/settlements', {
       method: 'POST',
-      body: JSON.stringify(settlement),
+      body: JSON.stringify(requestData),
     });
   }
 

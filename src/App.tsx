@@ -1,10 +1,10 @@
-import './styles/custom-font.css'; // Aeonik font
-import { CssBaseline, Box } from '@mui/material';
+import { Box, CssBaseline } from '@mui/material';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { sk } from 'date-fns/locale';
 import React, { Suspense, lazy } from 'react';
+import './styles/custom-font.css'; // Aeonik font
 
 // Performance optimization imports
 // import { initializeWebVitalsOptimizations } from './utils/webVitalsOptimizations';
@@ -20,17 +20,17 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
 // import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 // import PWAStatus from './components/common/PWAStatus';
-import OfflineIndicator from './components/common/OfflineIndicator';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { EnhancedLoading } from './components/common/EnhancedLoading';
+import OfflineIndicator from './components/common/OfflineIndicator';
 
 // Lazy imports pre code splitting a lepšie performance
 import {
+  Navigate,
+  Route,
   BrowserRouter as Router,
   Routes,
-  Route,
-  Navigate,
 } from 'react-router-dom';
 
 import { AppProvider } from './context/AppContext';
@@ -288,11 +288,13 @@ const AppContent: React.FC = () => {
                         path="/availability"
                         element={
                           <ProtectedRoute>
-                            <ErrorBoundary>
-                              <Suspense fallback={<PageLoader />}>
-                                <SmartAvailabilityPage />
-                              </Suspense>
-                            </ErrorBoundary>
+                            <Layout>
+                              <ErrorBoundary>
+                                <Suspense fallback={<PageLoader />}>
+                                  <SmartAvailabilityPage />
+                                </Suspense>
+                              </ErrorBoundary>
+                            </Layout>
                           </ProtectedRoute>
                         }
                       />
@@ -301,11 +303,13 @@ const AppContent: React.FC = () => {
                         path="/availability-smart"
                         element={
                           <ProtectedRoute>
-                            <ErrorBoundary>
-                              <Suspense fallback={<PageLoader />}>
-                                <SmartAvailabilityPage />
-                              </Suspense>
-                            </ErrorBoundary>
+                            <Layout>
+                              <ErrorBoundary>
+                                <Suspense fallback={<PageLoader />}>
+                                  <SmartAvailabilityPage />
+                                </Suspense>
+                              </ErrorBoundary>
+                            </Layout>
                           </ProtectedRoute>
                         }
                       />
