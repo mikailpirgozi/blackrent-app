@@ -531,17 +531,58 @@ export default function RentalList() {
       !protocolStatusSetRef.current &&
       !isLoadingBulkStatus
     ) {
-      const statusCount = Object.keys(bulkProtocolStatus).length;
+      // Backend vracia array, musíme transformovať na objekt s rentalId kľúčmi
+      const isArray = Array.isArray(bulkProtocolStatus);
+      const statusCount = isArray
+        ? bulkProtocolStatus.length
+        : Object.keys(bulkProtocolStatus).length;
 
       // Kontrola či máme nejaké dáta
       if (statusCount > 0) {
         console.log('🔍 Setting protocol status from React Query:', {
           totalCount: statusCount,
-          sample: Object.entries(bulkProtocolStatus).slice(0, 3),
+          isArray,
+          sample: isArray
+            ? bulkProtocolStatus.slice(0, 3)
+            : Object.entries(bulkProtocolStatus).slice(0, 3),
         });
 
+        // Transformuj array na objekt ak je potrebné
+        type ProtocolStatus = {
+          hasHandoverProtocol: boolean;
+          hasReturnProtocol: boolean;
+          handoverProtocolId?: string;
+          returnProtocolId?: string;
+          handoverCreatedAt?: Date;
+          returnCreatedAt?: Date;
+        };
+
+        type ProtocolStatusItem = ProtocolStatus & {
+          rentalId: string;
+        };
+
+        const protocolStatusMap = isArray
+          ? (bulkProtocolStatus as ProtocolStatusItem[]).reduce(
+              (
+                acc: Record<string, ProtocolStatus>,
+                status: ProtocolStatusItem
+              ) => {
+                acc[status.rentalId] = {
+                  hasHandoverProtocol: status.hasHandoverProtocol,
+                  hasReturnProtocol: status.hasReturnProtocol,
+                  handoverProtocolId: status.handoverProtocolId,
+                  returnProtocolId: status.returnProtocolId,
+                  handoverCreatedAt: status.handoverCreatedAt,
+                  returnCreatedAt: status.returnCreatedAt,
+                };
+                return acc;
+              },
+              {}
+            )
+          : bulkProtocolStatus;
+
         // Nastav dáta
-        protocolsHook.setProtocolStatusMap(bulkProtocolStatus);
+        protocolsHook.setProtocolStatusMap(protocolStatusMap);
         protocolsHook.setProtocolStatusLoaded(true);
 
         // Označ že dáta boli nastavené
