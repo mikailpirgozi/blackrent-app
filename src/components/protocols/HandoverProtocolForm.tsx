@@ -14,6 +14,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Divider,
   FormControl,
   Grid,
@@ -46,10 +47,6 @@ import {
 } from '../../utils/protocolFormCache';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
-// import { initializeMobileStabilizer, getMobileStabilizer } from '../../utils/mobileStabilizer';
-// import { useMobileRecovery } from '../../hooks/useMobileRecovery';
-// import { getMobilePerformanceOptimizer } from '../../utils/mobilePerformance';
-// import { getMobileLogger, logMobile } from '../../utils/mobileLogger';
 
 interface HandoverProtocolFormProps {
   open: boolean;
@@ -98,69 +95,34 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       role: 'customer' | 'employee';
     } | null>(null);
 
-    // 🚨 EMERGENCY: Disable mobile logger to reduce memory usage
-    // const mobileLogger = getMobileLogger();
+    // Retry mechanism state
+    const [retryCount, setRetryCount] = useState(0);
+    const [isRetrying, setIsRetrying] = useState(false);
+    const MAX_RETRIES = 3;
 
-    // Log component mount
+    // Component mount logging (development only)
     React.useEffect(() => {
-      logger.debug('🟢 MOBILE DEBUG: HandoverProtocolForm MOUNTED');
-      logger.debug('🟢 MOBILE DEBUG: rental:', rental?.id);
+      const isDevelopment = process.env.NODE_ENV === 'development';
 
-      // logMobile('INFO', 'HandoverProtocol', 'Component mounted', {
-      //   open,
-      //   rentalId: rental?.id,
-      //   timestamp: Date.now()
-      // });
-
-      // 🚨 EMERGENCY: Remove all heavy monitoring to prevent browser crash
-      // All debug listeners removed to reduce memory pressure
+      if (isDevelopment) {
+        logger.debug('HandoverProtocolForm mounted for rental:', rental?.id);
+      }
 
       return () => {
-        // Minimal cleanup to prevent memory leaks
-        logger.debug('🔴 MOBILE DEBUG: HandoverProtocolForm UNMOUNTING');
+        if (isDevelopment) {
+          logger.debug('HandoverProtocolForm unmounted');
+        }
       };
     }, [rental?.id]);
 
-    // Log open state changes only in development
+    // Modal state logging (development only)
     React.useEffect(() => {
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug(
-          '🔍 MOBILE DEBUG: HandoverProtocolForm open state changed:',
-          open
-        );
-        logger.debug('🔍 MOBILE DEBUG: rental ID:', rental?.id);
-        logger.debug('🔍 MOBILE DEBUG: timestamp:', new Date().toISOString());
+      const isDevelopment = process.env.NODE_ENV === 'development';
 
-        if (open) {
-          logger.debug('✅ MOBILE DEBUG: HandoverProtocolForm is OPENING');
-        } else {
-          logger.debug('❌ MOBILE DEBUG: HandoverProtocolForm is CLOSING');
-        }
+      if (isDevelopment && open) {
+        logger.debug('HandoverProtocolForm opened');
       }
-
-      // logMobile('INFO', 'HandoverProtocol', `Modal ${open ? 'opened' : 'closed'}`, {
-      //   open,
-      //   rentalId: rental?.id,
-      //   timestamp: Date.now(),
-      //   url: window.location.href
-      // });
-
-      // if (open && mobileLogger) {
-      //   mobileLogger.logModalEvent('HandoverProtocol', 'opened', {
-      //     rentalId: rental?.id,
-      //     viewport: {
-      //       width: window.innerWidth,
-      //       height: window.innerHeight
-      //     }
-      //   });
-      // }
-    }, [open, rental?.id]);
-
-    // 🚨 EMERGENCY: Disable mobile recovery to reduce memory usage
-    // const { recoveryState, clearRecoveryData, restoreFormData, hasRecoveredData } = useMobileRecovery({
-    //   enableAutoRecovery: true,
-    //   debugMode: false
-    // });
+    }, [open]);
 
     // 🚀 OPTIMALIZÁCIA: Vehicle indexing pre rýchle vyhľadávanie
     const vehicleIndex = useMemo(() => {
@@ -220,32 +182,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
     // Zjednodušený state - iba základné polia
     const [formData, setFormData] = useState(initialFormData);
-
-    // 🚨 EMERGENCY: Disable recovery functionality to prevent TypeScript errors
-    // React.useEffect(() => {
-    //   if (hasRecoveredData && recoveryState.recoveredData) {
-    //     console.log('🚑 Attempting to restore form data from recovery');
-    //     restoreFormData(recoveryState.recoveredData);
-    //
-    //     // Show notification about recovered data
-    //     const confirmRestore = window.confirm(
-    //       '🚑 Našli sme neuložené dáta z predchádzajúcej session. Chcete ich obnoviť?'
-    //     );
-    //
-    //     if (confirmRestore) {
-    //       // Merge recovered data with current form data
-    //       if (recoveryState.recoveredData.formData) {
-    //         setFormData(prev => ({
-    //           ...prev,
-    //           ...recoveryState.recoveredData.formData
-    //         }));
-    //       }
-    //     }
-    //
-    //     // Clear recovery data after handling
-    //     clearRecoveryData();
-    //   }
-    // }, [hasRecoveredData, recoveryState.recoveredData, restoreFormData, clearRecoveryData]);
 
     // 🚀 OPTIMALIZÁCIA: Memoized input change handler
     const handleInputChange = useCallback((field: string, value: unknown) => {
@@ -324,13 +260,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       protocol: HandoverProtocol | null;
       email?: { sent: boolean; recipient?: string; error?: string };
     }> => {
-      // logMobile('INFO', 'HandoverProtocol', 'Save operation started', {
-      //   rentalId: rental?.id,
-      //   timestamp: Date.now(),
-      //   formDataKeys: Object.keys(formData)
-      // });
-
-      // const stabilizer = getMobileStabilizer();
       // Validácia povinných polí
       const errors: string[] = [];
 
@@ -376,11 +305,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       }
 
       if (errors.length > 0) {
-        // logMobile('ERROR', 'HandoverProtocol', 'Validation errors', {
-        //   errors,
-        //   rentalId: rental?.id,
-        //   timestamp: Date.now()
-        // });
         console.warn('❌ Validation failed:', errors);
         throw new Error(`Validation failed: ${errors.join(', ')}`);
       }
@@ -635,13 +559,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // ⚡ OKAMŽITÉ ULOŽENIE - bez zatvorenia modalu (nech sa zobrazí email status)
         onSave(result.protocol);
 
-        // 📱 MOBILE PROTECTION: Clear any saved state as operation completed successfully (disabled)
-        // if (stabilizer) {
-        //   console.log('✅ Protocol saved successfully - clearing mobile protection state');
-        //   // Clear any auto-saved form data as we successfully saved
-        //   sessionStorage.removeItem('mobileStabilizer_state');
-        // }
-
         // Return result for email status handling
         return result;
       } catch (error) {
@@ -665,26 +582,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           }
         }
 
-        // logMobile('CRITICAL', 'HandoverProtocol', 'Save operation failed', {
-        //   error: error instanceof Error ? error.message : String(error),
-        //   errorType: error instanceof Error ? error.name : 'Unknown',
-        //   stack: error instanceof Error ? error.stack : undefined,
-        //   rentalId: rental?.id,
-        //   timestamp: Date.now(),
-        //   formData: formData
-        // });
-
         console.error('❌ Protocol save failed:', errorMessage);
 
         // 🚫 PREVENT REFRESH: Zabránime automatickému refreshu
         logger.warn('🛑 Error handled gracefully, preventing page refresh');
-
-        // 📱 MOBILE PROTECTION: Mark that an error occurred but don't refresh
-        // if (stabilizer) {
-        //   console.log('🚨 Save error occurred - maintaining mobile protection');
-        //   // Keep the stabilizer active and save current state for recovery
-        //   // stabilizer.markUnexpectedRefresh();
-        // }
 
         // Return empty result in case of error
         return { protocol: null, email: { sent: false, error: errorMessage } };
@@ -693,6 +594,38 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       }
     }, [formData, rental, currentVehicle, onSave, state.user]);
 
+    // Retry mechanism for failed requests
+    const performSaveWithRetry = useCallback(async (): Promise<{
+      protocol: HandoverProtocol | null;
+      email?: { sent: boolean; recipient?: string; error?: string };
+    }> => {
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          setRetryCount(attempt - 1);
+          return await performSave();
+        } catch (error) {
+          if (attempt === MAX_RETRIES) {
+            setRetryCount(0);
+            throw error;
+          }
+
+          setIsRetrying(true);
+          setEmailStatus({
+            status: 'warning',
+            message: `Pokus ${attempt}/${MAX_RETRIES} zlyhal, opakujem za 2 sekundy...`,
+          });
+
+          // Wait with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+        }
+      }
+
+      return {
+        protocol: null,
+        email: { sent: false, error: 'Max retries exceeded' },
+      };
+    }, [performSave, MAX_RETRIES]);
+
     const handleSave = useCallback(async () => {
       try {
         setEmailStatus({
@@ -700,7 +633,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           message: 'Odosielam protokol a email...',
         });
 
-        const result = await performSave();
+        const result = await performSaveWithRetry();
 
         // Update email status based on response
         if (result && result.email) {
@@ -736,11 +669,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       } catch (error) {
         setEmailStatus({
           status: 'error',
-          message: `❌ Nastala chyba: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `❌ Nastala chyba po ${MAX_RETRIES} pokusoch: ${error instanceof Error ? error.message : 'Unknown error'}`,
         });
         console.error('❌ Protocol save failed in handleSave:', error);
+      } finally {
+        setIsRetrying(false);
+        setRetryCount(0);
       }
-    }, [performSave, onClose]);
+    }, [performSaveWithRetry, onClose, MAX_RETRIES]);
 
     // 🔧 MOBILE PROTECTION: Immediate rendering - no lazy loading delays
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
@@ -760,17 +696,6 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           damageImages: formData.damageImages?.length || 0,
           signatures: formData.signatures?.length || 0,
         });
-
-        // Initialize mobile stabilizer for this critical form (DISABLED)
-        // initializeMobileStabilizer({
-        //   enablePreventUnload: true,
-        //   enableMemoryMonitoring: false, // Disable heavy monitoring
-        //   enableVisibilityHandling: true,
-        //   enableFormDataPersistence: true,
-        //   debugMode: false // Disable verbose logging
-        // });
-
-        // console.log('🛡️ Mobile stabilizer activated for protocol form');
 
         // Kontrola memory
         if ('memory' in performance) {
@@ -869,6 +794,28 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           >
             {emailStatus.message}
           </Alert>
+        )}
+
+        {/* Retry Status */}
+        {retryCount > 0 && (
+          <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Pokus {retryCount + 1}/{MAX_RETRIES}
+            </Typography>
+            {isRetrying && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                }}
+              >
+                <CircularProgress size={16} />
+                <Typography variant="body2">Opakujem...</Typography>
+              </Box>
+            )}
+          </Box>
         )}
 
         {/* Vehicle Info Header */}

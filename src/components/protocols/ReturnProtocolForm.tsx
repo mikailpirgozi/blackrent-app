@@ -18,6 +18,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Grid,
   IconButton,
   LinearProgress,
@@ -70,6 +71,11 @@ export default function ReturnProtocolForm({
     name: string;
     role: 'customer' | 'employee';
   } | null>(null);
+
+  // Retry mechanism state
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const MAX_RETRIES = 3;
 
   // 🔧 NOVÉ: Editácia ceny za km
   const [isEditingKmRate, setIsEditingKmRate] = useState(false);
@@ -276,12 +282,12 @@ export default function ReturnProtocolForm({
     signerName: string,
     signerRole: 'customer' | 'employee'
   ) => {
-    console.log('🖊️ Adding signature:', {
-      signerName,
-      signerRole,
-      rentalCustomer: rental.customer?.name,
-      rentalCustomerName: rental.customerName,
-    });
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (isDevelopment) {
+      console.log('Adding signature:', { signerName, signerRole });
+    }
+
     setCurrentSigner({ name: signerName, role: signerRole });
     setShowSignaturePad(true);
   };
@@ -302,32 +308,36 @@ export default function ReturnProtocolForm({
     }));
   };
 
-  const handleSave = async () => {
+  const performSave = async (): Promise<{
+    protocol: ReturnProtocol | null;
+    email?: { sent: boolean; recipient?: string; error?: string };
+  }> => {
     if (!formData.location) {
       console.warn('❌ Validation: Miesto vrátenia nie je vyplnené');
-      return;
+      throw new Error('Miesto vrátenia nie je vyplnené');
     }
 
     try {
       setLoading(true);
-      setEmailStatus({
-        status: 'pending',
-        message: 'Odosielam protokol a email...',
-      });
 
       // Kontrola handoverProtocol
       if (!handoverProtocol) {
         console.error(
           '❌ handoverProtocol is undefined - cannot create return protocol'
         );
-        return;
+        throw new Error(
+          'handoverProtocol is undefined - cannot create return protocol'
+        );
       }
 
-      console.log(
-        '📝 Creating return protocol with handoverProtocol:',
-        handoverProtocol.id
-      );
-      console.log('📝 Current formData:', JSON.stringify(formData, null, 2));
+      const isDevelopment = process.env.NODE_ENV === 'development';
+
+      if (isDevelopment) {
+        console.log(
+          'Creating return protocol for handover:',
+          handoverProtocol.id
+        );
+      }
 
       // Vytvorenie protokolu s pôvodnou štruktúrou
       const protocol: ReturnProtocol = {
@@ -423,7 +433,9 @@ export default function ReturnProtocolForm({
           : 'admin',
       };
 
-      console.log('📝 Protocol object created:', protocol);
+      if (isDevelopment) {
+        console.log('Protocol object created:', protocol.id);
+      }
 
       // Vyčisti media objekty pred odoslaním - odstráni problematické properties
       const cleanedProtocol = {
@@ -503,15 +515,15 @@ export default function ReturnProtocolForm({
         ),
       };
 
-      console.log('🧹 Cleaned protocol for DB:', cleanedProtocol);
+      if (isDevelopment) {
+        console.log('Sending return protocol to API...');
+      }
 
       // API call
       const apiBaseUrl = getApiBaseUrl();
       const token =
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
-
-      console.log('🚀 Sending return protocol to API...');
 
       const response = await fetch(`${apiBaseUrl}/protocols/return`, {
         method: 'POST',
@@ -529,7 +541,13 @@ export default function ReturnProtocolForm({
       }
 
       const result = await response.json();
-      console.log('✅ Return protocol saved successfully:', result);
+
+      if (isDevelopment) {
+        console.log(
+          'Return protocol saved successfully:',
+          result.id || 'success'
+        );
+      }
 
       // Update email status based on response
       if (result && result.email) {
@@ -562,19 +580,100 @@ export default function ReturnProtocolForm({
         onSave(result.protocol);
       }
 
+      // Return result for retry mechanism
+      return result;
+    } catch (error) {
+      console.error('❌ Error saving return protocol:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Retry mechanism for failed requests
+  const performSaveWithRetry = async (): Promise<{
+    protocol: ReturnProtocol | null;
+    email?: { sent: boolean; recipient?: string; error?: string };
+  }> => {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        setRetryCount(attempt - 1);
+        return await performSave();
+      } catch (error) {
+        if (attempt === MAX_RETRIES) {
+          setRetryCount(0);
+          throw error;
+        }
+
+        setIsRetrying(true);
+        setEmailStatus({
+          status: 'warning',
+          message: `Pokus ${attempt}/${MAX_RETRIES} zlyhal, opakujem za 2 sekundy...`,
+        });
+
+        // Wait with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+      }
+    }
+
+    return {
+      protocol: null,
+      email: { sent: false, error: 'Max retries exceeded' },
+    };
+  };
+
+  const handleSave = async () => {
+    try {
+      setEmailStatus({
+        status: 'pending',
+        message: 'Odosielam protokol a email...',
+      });
+
+      const result = await performSaveWithRetry();
+
+      // Update email status based on response
+      if (result && result.email) {
+        if (result.email.sent) {
+          setEmailStatus({
+            status: 'success',
+            message: `✅ Protokol bol úspešne odoslaný na email ${result.email.recipient}`,
+          });
+        } else if (result.email.error) {
+          setEmailStatus({
+            status: 'error',
+            message: `❌ Protokol bol uložený, ale email sa nepodarilo odoslať: ${result.email.error}`,
+          });
+        } else {
+          setEmailStatus({
+            status: 'warning',
+            message: `⚠️ Protokol bol uložený, ale email sa nepodarilo odoslať (problém s PDF úložiskom)`,
+          });
+        }
+      } else {
+        setEmailStatus({
+          status: 'success',
+          message: `✅ Protokol bol úspešne uložený`,
+        });
+      }
+
       // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
       setTimeout(() => {
-        console.log('✅ Email status zobrazený, zatváram modal');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Email status displayed, closing modal');
+        }
         onClose();
       }, 4000);
     } catch (error) {
-      console.error('❌ Error saving return protocol:', error);
       setEmailStatus({
         status: 'error',
-        message: `❌ Nastala chyba: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `❌ Nastala chyba po ${MAX_RETRIES} pokusoch: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
+      console.error('❌ Protocol save failed in handleSave:', error);
     } finally {
-      setLoading(false);
+      setIsRetrying(false);
+      setRetryCount(0);
     }
   };
 
@@ -614,6 +713,28 @@ export default function ReturnProtocolForm({
         >
           {emailStatus.message}
         </Alert>
+      )}
+
+      {/* Retry Status */}
+      {retryCount > 0 && (
+        <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Pokus {retryCount + 1}/{MAX_RETRIES}
+          </Typography>
+          {isRetrying && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+              }}
+            >
+              <CircularProgress size={16} />
+              <Typography variant="body2">Opakujem...</Typography>
+            </Box>
+          )}
+        </Box>
       )}
 
       {/* Header */}
