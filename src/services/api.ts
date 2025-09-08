@@ -1421,7 +1421,7 @@ class ApiService {
     if (uploadData.metadata)
       formData.append('metadata', JSON.stringify(uploadData.metadata));
 
-    const response = await fetch(`${API_BASE_URL}/files/presigned-upload`, {
+    const response = await fetch(`${API_BASE_URL}/presigned-upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.getAuthToken()}`,
