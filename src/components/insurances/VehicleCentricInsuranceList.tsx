@@ -57,12 +57,17 @@ import { sk } from 'date-fns/locale';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { UnifiedDocumentData } from '../common/UnifiedDocumentForm';
 
-import { useApp } from '../../context/AppContext';
 import {
   useCreateInsurance,
+  useCreateVehicleDocument,
   useDeleteInsurance,
+  useDeleteVehicleDocument,
   useInsurancesPaginated,
+  useInsurers,
   useUpdateInsurance,
+  useUpdateVehicleDocument,
+  useVehicleDocuments,
+  useVehicles,
 } from '../../lib/react-query/hooks';
 import type {
   DocumentType,
@@ -254,12 +259,15 @@ const getDocumentTypeInfo = (type: string) => {
 };
 
 export default function VehicleCentricInsuranceList() {
-  const {
-    state,
-    createVehicleDocument,
-    updateVehicleDocument,
-    deleteVehicleDocument,
-  } = useApp();
+  // React Query hooks for data
+  const { data: vehicles = [] } = useVehicles();
+  const { data: insurers = [] } = useInsurers();
+  const { data: vehicleDocuments = [] } = useVehicleDocuments();
+
+  // React Query mutations for vehicle documents
+  const createVehicleDocumentMutation = useCreateVehicleDocument();
+  const updateVehicleDocumentMutation = useUpdateVehicleDocument();
+  const deleteVehicleDocumentMutation = useDeleteVehicleDocument();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
@@ -400,8 +408,8 @@ export default function VehicleCentricInsuranceList() {
     });
 
     // Add vehicle documents (exclude technical certificates from main list)
-    if (state.vehicleDocuments) {
-      state.vehicleDocuments.forEach(doc => {
+    if (vehicleDocuments) {
+      vehicleDocuments.forEach(doc => {
         docs.push({
           id: doc.id,
           vehicleId: doc.vehicleId,
@@ -420,15 +428,15 @@ export default function VehicleCentricInsuranceList() {
     }
 
     return docs;
-  }, [insurances, state.vehicleDocuments]);
+  }, [insurances, vehicleDocuments]);
 
   // Group documents by vehicle
   const vehiclesWithDocuments = useMemo(() => {
-    if (!state.vehicles) return [];
+    if (!vehicles) return [];
 
     const vehicleGroups: VehicleWithDocuments[] = [];
 
-    state.vehicles.forEach(vehicle => {
+    vehicles.forEach(vehicle => {
       const vehicleDocs = unifiedDocuments.filter(
         doc => doc.vehicleId === vehicle.id
       );
@@ -508,7 +516,7 @@ export default function VehicleCentricInsuranceList() {
 
     return vehicleGroups;
   }, [
-    state.vehicles,
+    vehicles,
     unifiedDocuments,
     searchQuery,
     filterVehicle,
@@ -671,7 +679,7 @@ export default function VehicleCentricInsuranceList() {
         ) {
           await deleteInsuranceMutation.mutateAsync(doc.id);
         } else {
-          await deleteVehicleDocument(doc.id);
+          await deleteVehicleDocumentMutation.mutateAsync(doc.id);
         }
       } catch (error) {
         console.error('Chyba pri mazaní dokumentu:', error);
@@ -688,7 +696,7 @@ export default function VehicleCentricInsuranceList() {
           editingDocument.type === 'insurance_kasko' ||
           editingDocument.type === 'insurance_pzp_kasko'
         ) {
-          const selectedInsurer = state.insurers.find(
+          const selectedInsurer = insurers.find(
             insurer => insurer.name === data.company
           );
           const insuranceData = {
@@ -737,7 +745,7 @@ export default function VehicleCentricInsuranceList() {
               filePath: data.filePath,
               kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
             };
-            await updateVehicleDocument(vehicleDocData);
+            await updateVehicleDocumentMutation.mutateAsync(vehicleDocData);
           }
         }
       } else {
@@ -783,7 +791,7 @@ export default function VehicleCentricInsuranceList() {
             filePath: data.filePath,
             kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
           };
-          await createVehicleDocument(vehicleDocData);
+          await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
         }
       }
       setOpenDialog(false);
@@ -1339,7 +1347,7 @@ export default function VehicleCentricInsuranceList() {
                         }}
                       >
                         <MenuItem value="">Všetky vozidlá</MenuItem>
-                        {state.vehicles?.map(vehicle => (
+                        {vehicles?.map(vehicle => (
                           <MenuItem key={vehicle.id} value={vehicle.id}>
                             <Box
                               sx={{
