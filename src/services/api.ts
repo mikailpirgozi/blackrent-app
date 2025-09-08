@@ -1413,26 +1413,23 @@ class ApiService {
     mediaType: string;
     metadata?: Record<string, unknown>;
   }): Promise<Record<string, unknown>> {
-    const formData = new FormData();
-    formData.append('file', uploadData.file);
-    formData.append('protocolId', uploadData.protocolId);
-    formData.append('category', uploadData.category);
-    formData.append('mediaType', uploadData.mediaType);
-    formData.append('filename', uploadData.file.name);
-    formData.append('contentType', uploadData.file.type);
-    formData.append(
-      'protocolType',
-      (uploadData.metadata?.protocolType as string) || 'handover'
-    );
-    if (uploadData.metadata)
-      formData.append('metadata', JSON.stringify(uploadData.metadata));
+    const requestBody = {
+      protocolId: uploadData.protocolId,
+      category: uploadData.category,
+      mediaType: uploadData.mediaType,
+      filename: uploadData.file.name,
+      contentType: uploadData.file.type,
+      protocolType: (uploadData.metadata?.protocolType as string) || 'handover',
+      metadata: uploadData.metadata,
+    };
 
     const response = await fetch(`${API_BASE_URL}/files/presigned-upload`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getAuthToken()}`,
       },
-      body: formData,
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
