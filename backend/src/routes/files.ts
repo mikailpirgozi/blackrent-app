@@ -611,7 +611,10 @@ router.post('/protocol-photo',
       protocolId: req.body.protocolId,
       protocolType: req.body.protocolType, // 'handover' alebo 'return'
       mediaType: req.body.mediaType, // 'vehicle', 'document', 'damage'
-      label: req.body.label // voliteľný label pre fotku
+      label: req.body.label, // voliteľný label pre fotku
+      category: req.body.category,
+      metadata: req.body.metadata,
+      allBodyKeys: Object.keys(req.body)
     });
 
     if (!req.file) {
@@ -623,10 +626,46 @@ router.post('/protocol-photo',
 
     const { protocolId, protocolType, mediaType, label } = req.body;
     
-    if (!protocolId || !protocolType || !mediaType) {
+    // Detailná validácia parametrov
+    if (!protocolId) {
+      logger.error('❌ Missing protocolId');
       return res.status(400).json({ 
         success: false, 
-        error: 'Chýba protocolId, protocolType alebo mediaType' 
+        error: 'Chýba protocolId' 
+      });
+    }
+    
+    if (!protocolType) {
+      logger.error('❌ Missing protocolType');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba protocolType' 
+      });
+    }
+    
+    if (!mediaType) {
+      logger.error('❌ Missing mediaType');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Chýba mediaType' 
+      });
+    }
+    
+    // Validácia hodnôt protocolType
+    if (!['handover', 'return'].includes(protocolType)) {
+      logger.error('❌ Invalid protocolType:', protocolType);
+      return res.status(400).json({ 
+        success: false, 
+        error: `Neplatný protocolType: ${protocolType}. Povolené: handover, return` 
+      });
+    }
+    
+    // Validácia hodnôt mediaType
+    if (!['vehicle', 'document', 'damage', 'fuel', 'odometer'].includes(mediaType)) {
+      logger.error('❌ Invalid mediaType:', mediaType);
+      return res.status(400).json({ 
+        success: false, 
+        error: `Neplatný mediaType: ${mediaType}. Povolené: vehicle, document, damage, fuel, odometer` 
       });
     }
 

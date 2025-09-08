@@ -1377,6 +1377,7 @@ class ApiService {
   async uploadFile(uploadData: {
     file: File;
     protocolId?: string;
+    protocolType?: string; // ✅ PRIDANÉ: Backend vyžaduje protocolType
     category?: string;
     mediaType?: string;
     metadata?: Record<string, unknown>;
@@ -1385,6 +1386,9 @@ class ApiService {
     formData.append('file', uploadData.file);
     if (uploadData.protocolId)
       formData.append('protocolId', uploadData.protocolId);
+    if (uploadData.protocolType)
+      // ✅ PRIDANÉ: Backend vyžaduje protocolType
+      formData.append('protocolType', uploadData.protocolType);
     if (uploadData.category) formData.append('category', uploadData.category);
     if (uploadData.mediaType)
       formData.append('mediaType', uploadData.mediaType);
