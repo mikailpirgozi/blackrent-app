@@ -9,6 +9,7 @@ export interface InsuranceClaimFilters {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  [key: string]: unknown;
 }
 
 // GET insurance claims
@@ -37,7 +38,7 @@ export function useInsuranceClaims(filters?: InsuranceClaimFilters) {
         if (filters.search) {
           const search = filters.search.toLowerCase();
           return (
-            claim.claimNumber.toLowerCase().includes(search) ||
+            claim.claimNumber?.toLowerCase().includes(search) ||
             claim.description?.toLowerCase().includes(search) ||
             claim.status.toLowerCase().includes(search)
           );

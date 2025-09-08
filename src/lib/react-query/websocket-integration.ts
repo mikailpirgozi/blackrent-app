@@ -2,6 +2,7 @@ import { getWebSocketClient } from '@/services/websocket-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import type { Customer, Rental, Vehicle } from '../../types';
+import { useBulkCacheInvalidation } from './hooks/useBulkCache';
 import { queryKeys } from './queryKeys';
 
 /**
@@ -10,6 +11,7 @@ import { queryKeys } from './queryKeys';
  */
 export function useWebSocketInvalidation() {
   const queryClient = useQueryClient();
+  const { invalidateBulkCache } = useBulkCacheInvalidation();
 
   useEffect(() => {
     const client = getWebSocketClient();
@@ -33,6 +35,8 @@ export function useWebSocketInvalidation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.statistics.all,
       });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
     };
 
     const handleRentalUpdated = (data: {
@@ -54,6 +58,8 @@ export function useWebSocketInvalidation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.statistics.all,
       });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
     };
 
     const handleRentalDeleted = (data: {
@@ -73,6 +79,8 @@ export function useWebSocketInvalidation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.statistics.all,
       });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
     };
 
     // Vehicle events
@@ -186,5 +194,5 @@ export function useWebSocketInvalidation() {
 
       client.off('customer:created', handleCustomerCreated);
     };
-  }, [queryClient]);
+  }, [queryClient, invalidateBulkCache]);
 }

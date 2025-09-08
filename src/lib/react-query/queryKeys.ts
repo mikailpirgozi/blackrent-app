@@ -118,4 +118,10 @@ export const queryKeys = {
     byVehicle: (vehicleId: string) =>
       ['insuranceClaims', 'byVehicle', vehicleId] as const,
   },
+
+  // BULK API - AppContext cache
+  bulk: {
+    all: ['bulk'] as const,
+    data: () => [...queryKeys.bulk.all, 'data'] as const,
+  },
 } as const;

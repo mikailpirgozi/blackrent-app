@@ -160,7 +160,8 @@ type AppAction =
       type: 'SET_DATA_LOADED';
       payload: { type: keyof AppState['dataLoaded']; loaded: boolean };
     }
-  | { type: 'SET_LAST_LOAD_TIME'; payload: number };
+  | { type: 'SET_LAST_LOAD_TIME'; payload: number }
+  | { type: 'REFRESH_BULK_DATA' };
 
 const initialState: AppState = {
   vehicles: [],
@@ -373,6 +374,24 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         lastLoadTime: action.payload,
       };
+    case 'REFRESH_BULK_DATA':
+      // Reset data loaded flags to trigger reload
+      return {
+        ...state,
+        dataLoaded: {
+          vehicles: false,
+          rentals: false,
+          customers: false,
+          companies: false,
+          insurers: false,
+          expenses: false,
+          insurances: false,
+          settlements: false,
+          vehicleDocuments: false,
+          insuranceClaims: false,
+          protocols: false,
+        },
+      };
     default:
       return state;
   }
@@ -409,6 +428,7 @@ interface AppContextType {
   createInsurance: (insurance: Insurance) => Promise<void>;
   updateInsurance: (insurance: Insurance) => Promise<void>;
   deleteInsurance: (id: string) => Promise<void>;
+  refreshBulkData: () => void;
   createSettlement: (settlement: Settlement) => Promise<void>;
   deleteSettlement: (id: string) => Promise<void>;
   createCustomer: (customer: Customer) => Promise<void>;
@@ -427,7 +447,7 @@ interface AppContextType {
   loadData: () => Promise<void>;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -1320,6 +1340,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshBulkData = (): void => {
+    console.log('🔄 AppContext: Refreshing BULK data...');
+    dispatch({ type: 'REFRESH_BULK_DATA' });
+  };
+
   const createSettlement = async (settlement: Settlement): Promise<void> => {
     try {
       const createdSettlement = await apiService.createSettlement(settlement);
@@ -1519,6 +1544,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createInsuranceClaim,
         updateInsuranceClaim,
         deleteInsuranceClaim,
+        refreshBulkData,
         loadData,
       }}
     >

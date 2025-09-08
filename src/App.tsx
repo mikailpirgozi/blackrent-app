@@ -112,7 +112,6 @@ const AppContent: React.FC = () => {
       <CssBaseline />
       <ErrorProvider>
         <QueryClientProvider client={queryClient}>
-          <WebSocketIntegrationWrapper />
           <ErrorToastContainer />
           {/* PWA Install moved to sidebar - no auto-popup */}
           <OfflineIndicator position="top" showDetails={true} />
@@ -120,6 +119,7 @@ const AppContent: React.FC = () => {
             <AuthProvider>
               <PermissionsProvider>
                 <AppProvider>
+                  <WebSocketIntegrationWrapper />
                   <Router
                     future={{
                       v7_startTransition: true,

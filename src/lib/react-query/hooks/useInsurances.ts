@@ -2,6 +2,7 @@ import { apiService } from '@/services/api';
 import type { Insurance } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
+import { useBulkCacheInvalidation } from './useBulkCache';
 
 export interface InsuranceFilters extends Record<string, unknown> {
   search?: string;
@@ -86,6 +87,7 @@ export function useInsurancesByVehicle(vehicleId: string) {
 // CREATE insurance
 export function useCreateInsurance() {
   const queryClient = useQueryClient();
+  const { invalidateBulkCache } = useBulkCacheInvalidation();
 
   return useMutation({
     mutationFn: (insurance: Insurance) => apiService.createInsurance(insurance),
@@ -165,6 +167,8 @@ export function useCreateInsurance() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,
       });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
     },
   });
 }
@@ -172,6 +176,7 @@ export function useCreateInsurance() {
 // UPDATE insurance
 export function useUpdateInsurance() {
   const queryClient = useQueryClient();
+  const { invalidateBulkCache } = useBulkCacheInvalidation();
 
   return useMutation({
     mutationFn: (insurance: Insurance) =>
@@ -247,6 +252,8 @@ export function useUpdateInsurance() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,
       });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
     },
   });
 }
@@ -254,6 +261,7 @@ export function useUpdateInsurance() {
 // DELETE insurance
 export function useDeleteInsurance() {
   const queryClient = useQueryClient();
+  const { invalidateBulkCache } = useBulkCacheInvalidation();
 
   return useMutation({
     mutationFn: (id: string) => apiService.deleteInsurance(id),
@@ -342,6 +350,8 @@ export function useDeleteInsurance() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,
       });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
     },
   });
 }
