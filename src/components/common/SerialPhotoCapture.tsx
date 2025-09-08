@@ -28,8 +28,11 @@ import Alert from '@mui/material/Alert';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import {
+  usePresignedUpload,
+  useUploadFile,
+} from '../../lib/react-query/hooks/useFileUpload';
 import type { ProtocolImage, ProtocolVideo } from '../../types';
-import { getApiBaseUrl } from '../../utils/apiUrl';
 import { compressImage, isWebPSupported } from '../../utils/imageCompression';
 import { lintImage } from '../../utils/imageLint';
 
@@ -105,12 +108,19 @@ export default function SerialPhotoCapture({
   qualityPreset = 'protocol',
   preferWebP = true,
 }: SerialPhotoCaptureProps) {
+  // React Query hooks
+  const uploadFileMutation = useUploadFile();
+  const presignedUploadMutation = usePresignedUpload();
+
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [previewMedia, setPreviewMedia] = useState<CapturedMedia | null>(null);
-  const [uploadingToR2, setUploadingToR2] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // React Query loading stavy
+  const uploadingToR2 =
+    uploadFileMutation.isPending || presignedUploadMutation.isPending;
   const [nativeCameraOpen, setNativeCameraOpen] = useState(false);
   const [selectedQuality, setSelectedQuality] = useState<
     'mobile' | 'protocol' | 'highQuality' | 'archive'
@@ -192,34 +202,31 @@ export default function SerialPhotoCapture({
   // ✅ NOVÁ FUNKCIA: Direct upload (fallback)
   const directUpload = useCallback(
     async (file: File): Promise<string> => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('protocolId', entityId!);
-      formData.append('protocolType', protocolType);
-      formData.append('mediaType', mediaType);
-      formData.append('label', file.name);
-
-      const apiBaseUrl = getApiBaseUrl();
-
-      const response = await fetch(`${apiBaseUrl}/files/protocol-photo`, {
-        method: 'POST',
-        headers: {
-          ...(localStorage.getItem('blackrent_token') && {
-            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-          }),
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      if (!entityId) {
+        throw new Error('Entity ID is required for upload');
       }
 
-      const result = await response.json();
-      return result.url;
+      const uploadData = {
+        file,
+        protocolId: entityId,
+        category: category || 'vehicle_photos',
+        mediaType: mediaType,
+        metadata: {
+          protocolType,
+          label: file.name,
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      try {
+        const result = await uploadFileMutation.mutateAsync(uploadData);
+        return result.url || result.fileUrl || '';
+      } catch (error) {
+        console.error('Direct upload failed:', error);
+        throw error;
+      }
     },
-    [entityId, protocolType, mediaType]
+    [entityId, protocolType, mediaType, category, uploadFileMutation]
   );
 
   const uploadToR2 = useCallback(
@@ -238,11 +245,8 @@ export default function SerialPhotoCapture({
         throw new Error('EntityId is required for R2 upload');
       }
 
-      // ✅ NOVÝ SYSTÉM: Signed URL upload
       try {
-        const apiBaseUrl = getApiBaseUrl();
-
-        // 🚀 NOVÝ SYSTÉM: Signed URL upload
+        // 🚀 NOVÝ SYSTÉM: Presigned URL upload pomocou React Query
         const finalFilename = suffix
           ? file.name.replace(/(\.[^.]+)$/, `${suffix}$1`)
           : file.name;
@@ -255,91 +259,27 @@ export default function SerialPhotoCapture({
           suffix: suffix,
         });
 
-        // 1. Získanie presigned URL
-        const presignedResponse = await fetch(
-          `${apiBaseUrl}/files/presigned-upload`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(localStorage.getItem('blackrent_token') && {
-                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-              }),
-            },
-            body: JSON.stringify({
-              protocolId: entityId,
-              rentalId: entityId,
-              protocolType: protocolType,
-              mediaType: mediaType,
-              filename: finalFilename,
-              contentType: file.type,
-              category: category,
-            }),
-          }
-        );
-
-        if (!presignedResponse.ok) {
-          throw new Error(
-            `Failed to get presigned URL: ${presignedResponse.status}`
-          );
-        }
-
-        const presignedData = await presignedResponse.json();
-        logger.debug('✅ Presigned URL received:', presignedData);
-
-        // 2. Upload priamo do R2 cez presigned URL s timeout a error handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-        const uploadResponse = await fetch(presignedData.presignedUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type,
+        const presignedUploadData = {
+          file,
+          protocolId: entityId,
+          category: category || 'vehicle_photos',
+          mediaType: mediaType,
+          metadata: {
+            protocolType,
+            filename: finalFilename,
+            contentType: file.type,
+            suffix,
+            timestamp: new Date().toISOString(),
           },
-          body: file,
-          signal: controller.signal,
-          mode: 'cors', // Explicitne nastavenie CORS
-        });
+        };
 
-        clearTimeout(timeoutId);
+        const result =
+          await presignedUploadMutation.mutateAsync(presignedUploadData);
+        logger.debug('✅ File uploaded via presigned URL:', result);
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload to R2: ${uploadResponse.status}`);
-        }
-
-        logger.debug('✅ File uploaded directly to R2');
-
-        // 3. Uloženie metadát do databázy
-        const metadataResponse = await fetch(
-          `${apiBaseUrl}/protocols/${entityId}/save-uploaded-photo`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(localStorage.getItem('blackrent_token') && {
-                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-              }),
-            },
-            body: JSON.stringify({
-              fileUrl: presignedData.publicUrl,
-              label: file.name,
-              type: mediaType,
-              protocolType: protocolType,
-              filename: file.name,
-              size: file.size,
-            }),
-          }
-        );
-
-        if (metadataResponse.ok) {
-          logger.debug('✅ Photo metadata saved to database');
-        } else {
-          console.warn('⚠️ Photo uploaded to R2 but failed to save metadata');
-        }
-
-        return presignedData.publicUrl;
+        return result.url || result.publicUrl || '';
       } catch (error) {
-        console.error('❌ Signed URL upload failed:', error);
+        console.error('❌ Presigned URL upload failed:', error);
 
         // Detailnejšie error handling
         if (error instanceof Error) {
@@ -354,12 +294,20 @@ export default function SerialPhotoCapture({
           }
         }
 
-        // Fallback na direct upload ak signed URL zlyhá
+        // Fallback na direct upload ak presigned URL zlyhá
         logger.debug('🔄 Falling back to direct upload...');
         return await directUpload(file);
       }
     },
-    [autoUploadToR2, category, directUpload, entityId, mediaType, protocolType]
+    [
+      autoUploadToR2,
+      category,
+      directUpload,
+      entityId,
+      mediaType,
+      protocolType,
+      presignedUploadMutation,
+    ]
   );
 
   // Cloudflare Worker upload (nepoužíva sa)
@@ -469,7 +417,7 @@ export default function SerialPhotoCapture({
 
           if (autoUploadToR2 && entityId) {
             logger.debug('✅ STARTING DUAL R2 UPLOAD:', processedFile.name);
-            setUploadingToR2(true);
+            // setUploadingToR2(true); // React Query handles this
             setUploadProgress((processedCount / files.length) * 100);
             try {
               // 1. Upload originál (už optimalizovaný cez imageLint)
@@ -495,7 +443,7 @@ export default function SerialPhotoCapture({
                 reader.readAsDataURL(processedFile);
               });
             }
-            setUploadingToR2(false);
+            // setUploadingToR2(false); // React Query handles this
           } else {
             logger.debug('⚠️ USING BASE64 FALLBACK - R2 conditions not met');
             // Fallback na base64
@@ -544,7 +492,7 @@ export default function SerialPhotoCapture({
       } finally {
         setProcessing(false);
         setProgress(0);
-        setUploadingToR2(false);
+        // setUploadingToR2(false); // React Query handles this
         setUploadProgress(0);
         // Reset file input
         if (event.target) {
@@ -595,7 +543,7 @@ export default function SerialPhotoCapture({
           '🚀 NATIVE CAMERA: Starting dual R2 upload for:',
           file.name
         );
-        setUploadingToR2(true);
+        // setUploadingToR2(true); // React Query handles this
 
         try {
           // 1. ORIGINÁL - vysoká kvalita pre galériu
@@ -624,7 +572,7 @@ export default function SerialPhotoCapture({
           // Ponechaj blob URL ako fallback
         }
 
-        setUploadingToR2(false);
+        // setUploadingToR2(false); // React Query handles this
       } else {
         logger.debug(
           '⚠️ NATIVE CAMERA: Using blob URL (R2 conditions not met)'

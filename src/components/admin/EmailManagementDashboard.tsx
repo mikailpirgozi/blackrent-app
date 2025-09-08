@@ -58,10 +58,19 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import {
+  useArchiveEmail,
+  useArchivedEmails,
+  useEmailManagement,
+  useEmailStats,
+  useImapStatus,
+  usePendingAutomaticRentals,
+  useRejectEmail,
+  type EmailFilters,
+} from '../../lib/react-query/hooks/useEmailManagement';
 import { apiService, getAPI_BASE_URL } from '../../services/api';
-import type { Rental } from '../../types';
 
 interface EmailEntry {
   id: string;
@@ -81,25 +90,25 @@ interface EmailEntry {
   processed_by_username?: string;
 }
 
-interface EmailStats {
-  today: {
-    total: number;
-    processed: number;
-    rejected: number;
-    pending: number;
-  };
-  weeklyTrend: Array<{
-    date: string;
-    total: number;
-    processed: number;
-    rejected: number;
-  }>;
-  topSenders: Array<{
-    sender: string;
-    count: number;
-    processed_count: number;
-  }>;
-}
+// interface EmailStats {
+//   today: {
+//     total: number;
+//     processed: number;
+//     rejected: number;
+//     pending: number;
+//   };
+//   weeklyTrend: Array<{
+//     date: string;
+//     total: number;
+//     processed: number;
+//     rejected: number;
+//   }>;
+//   topSenders: Array<{
+//     sender: string;
+//     count: number;
+//     processed_count: number;
+//   }>;
+// }
 
 interface EmailDetail {
   email: EmailEntry & {
@@ -116,17 +125,6 @@ interface EmailDetail {
   }>;
 }
 
-interface ImapStatus {
-  running: boolean;
-  enabled: boolean;
-  timestamp: string;
-  config: {
-    host: string;
-    user: string;
-    enabled: boolean;
-  };
-}
-
 const EmailManagementDashboard: React.FC = () => {
   // Theme and responsive hooks
   const theme = useTheme();
@@ -138,42 +136,88 @@ const EmailManagementDashboard: React.FC = () => {
   // Tabs state
   const [activeTab, setActiveTab] = useState(0);
 
-  const [emails, setEmails] = useState<EmailEntry[]>([]);
-  const [stats, setStats] = useState<EmailStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  // React Query hooks - emailFilters will be defined after state variables
+
+  const {
+    data: stats,
+    // isLoading: statsLoading,
+    error: statsError,
+  } = useEmailStats();
+
+  // React Query mutations
+  const archiveEmailMutation = useArchiveEmail();
+  const rejectEmailMutation = useRejectEmail();
+  // const processEmailMutation = useProcessEmail();
+  // const bulkArchiveMutation = useBulkArchiveEmails();
+  // const bulkRejectMutation = useBulkRejectEmails();
+  // const bulkProcessMutation = useBulkProcessEmails();
+
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // IMAP State
-  const [imapStatus, setImapStatus] = useState<ImapStatus | null>(null);
-  const [imapLoading, setImapLoading] = useState(false);
+  // IMAP State - React Query
+  const {
+    data: imapStatus,
+    isLoading: imapLoading,
+    refetch: refetchImapStatus,
+  } = useImapStatus();
 
   // Filters and pagination
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [senderFilter, setSenderFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalEmails, setTotalEmails] = useState(0);
+  const [totalPages] = useState(1);
+  const [totalEmails] = useState(0);
   const pageSize = 20;
 
-  // Pending Rentals State
-  const [pendingRentals, setPendingRentals] = useState<Rental[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
+  // Pending Rentals State - React Query
+  const {
+    data: pendingRentals = [],
+    isLoading: pendingLoading,
+    refetch: refetchPendingRentals,
+  } = usePendingAutomaticRentals();
   const [expandedRentals, setExpandedRentals] = useState<Set<string>>(
     new Set()
   );
 
-  // Archive State
-  const [archivedEmails, setArchivedEmails] = useState<EmailEntry[]>([]);
-  const [archiveLoading, setArchiveLoading] = useState(false);
+  // Archive State - React Query
   const [archivePagination, setArchivePagination] = useState({
     total: 0,
     limit: 20,
     offset: 0,
     hasMore: false,
   });
+
+  const {
+    data: archivedEmailsData,
+    isLoading: archiveLoading,
+    refetch: refetchArchivedEmails,
+  } = useArchivedEmails({
+    limit: archivePagination.limit,
+    offset: archivePagination.offset,
+  });
+
+  const archivedEmails = (archivedEmailsData?.emails as EmailEntry[]) || [];
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+
+  // Email filters for React Query
+  const emailFilters: EmailFilters = {
+    status: statusFilter || undefined,
+    sender: senderFilter || undefined,
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
+  };
+
+  // Main emails query
+  const {
+    data: emails = [],
+    isLoading: loading,
+    error: emailsError,
+    refetch: refetchEmails,
+  } = useEmailManagement(emailFilters);
+
+  const typedEmails = emails as unknown as EmailEntry[];
 
   // Dialogs
   const [viewDialog, setViewDialog] = useState<{
@@ -194,111 +238,23 @@ const EmailManagementDashboard: React.FC = () => {
   });
   const [rejectReason, setRejectReason] = useState('');
 
-  // Fetch emails with filters
-  const fetchEmails = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      // DEBUG: Check authentication
-      console.log('🔍 EMAIL DASHBOARD DEBUG:');
-      console.log(
-        '- Token:',
-        localStorage.getItem('blackrent_token') ? 'EXISTS' : 'MISSING'
-      );
-      console.log(
-        '- Session token:',
-        sessionStorage.getItem('blackrent_token') ? 'EXISTS' : 'MISSING'
-      );
-      console.log('- API Base URL:', getAPI_BASE_URL());
-
-      const params = new URLSearchParams({
-        limit: pageSize.toString(),
-        offset: ((currentPage - 1) * pageSize).toString(),
-      });
-
-      if (statusFilter) params.append('status', statusFilter);
-      if (senderFilter) params.append('sender', senderFilter);
-
-      console.log('🌐 About to call API:', `/email-management?${params}`);
-
-      // TEMPORARY: Direct fetch bypass apiService
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch(
-        `${getAPI_BASE_URL()}/email-management?${params}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      console.log(
-        '🚀 Direct fetch response:',
-        directResponse.status,
-        directResponse.statusText
-      );
-      const response = await directResponse.json();
-      console.log('📦 Direct fetch data:', response);
-
-      if (response.success) {
-        setEmails(response.data.emails);
-        setTotalEmails(response.data.pagination.total);
-        setTotalPages(Math.ceil(response.data.pagination.total / pageSize));
-      } else {
-        setError('Chyba pri načítaní emailov');
-      }
-    } catch (error: unknown) {
-      console.error('❌ EMAIL DASHBOARD - Fetch emails error:', error);
-      console.error('❌ ERROR Details:', {
-        message: (error as Error).message,
-        status: (error as { status?: number }).status,
-        stack: (error as Error).stack,
-      });
-      setError(`Chyba pri načítaní emailov: ${(error as Error).message}`);
-    } finally {
-      setLoading(false);
+  // Handle React Query errors
+  useEffect(() => {
+    if (emailsError) {
+      setError(`Chyba pri načítaní emailov: ${emailsError.message}`);
     }
-  }, [currentPage, pageSize, statusFilter, senderFilter]);
+  }, [emailsError]);
 
-  // Fetch statistics
-  const fetchStats = useCallback(async () => {
-    try {
-      console.log('📊 Fetching stats with direct fetch...');
-
-      // TEMPORARY: Direct fetch bypass apiService
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch(
-        `${getAPI_BASE_URL()}/email-management/stats/dashboard`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      console.log(
-        '📊 Stats fetch response:',
-        directResponse.status,
-        directResponse.statusText
-      );
-      const response = await directResponse.json();
-      console.log('📊 Stats data:', response);
-
-      if (response.success) {
-        setStats(response.data);
-      }
-    } catch (error: unknown) {
-      console.error('Fetch stats error:', error);
+  useEffect(() => {
+    if (statsError) {
+      console.error('Stats error:', statsError);
     }
-  }, []);
+  }, [statsError]);
+
+  // Refresh function for manual refresh
+  // const refreshData = useCallback(() => {
+  //   refetchEmails();
+  // }, [refetchEmails]);
 
   // View email detail
   const viewEmailDetail = async (emailId: string) => {
@@ -356,8 +312,7 @@ const EmailManagementDashboard: React.FC = () => {
 
       if (response.success) {
         setSuccess('Email schválený!');
-        await fetchEmails();
-        await fetchStats();
+        refetchEmails();
       } else {
         setError(response.error || 'Chyba pri schvaľovaní emailu');
       }
@@ -381,33 +336,10 @@ const EmailManagementDashboard: React.FC = () => {
       // Handle email rejection
       try {
         setActionLoading(rejectDialog.emailId);
-        const token =
-          localStorage.getItem('blackrent_token') ||
-          sessionStorage.getItem('blackrent_token');
-
-        const directResponse = await fetch(
-          `${getAPI_BASE_URL()}/email-management/${rejectDialog.emailId}/reject`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ reason: rejectReason }),
-          }
-        );
-
-        const response = await directResponse.json();
-
-        if (response.success) {
-          setSuccess('Email zamietnutý!');
-          await fetchEmails();
-          await fetchStats();
-          setRejectDialog({ open: false, emailId: null, isRental: false });
-          setRejectReason('');
-        } else {
-          setError(response.error || 'Chyba pri zamietaní emailu');
-        }
+        await rejectEmailMutation.mutateAsync(rejectDialog.emailId);
+        setSuccess('Email zamietnutý!');
+        setRejectDialog({ open: false, emailId: null, isRental: false });
+        setRejectReason('');
       } catch (error: unknown) {
         console.error('Reject email error:', error);
         setError('Chyba pri zamietaní emailu');
@@ -420,30 +352,9 @@ const EmailManagementDashboard: React.FC = () => {
   const archiveEmail = async (emailId: string) => {
     try {
       setActionLoading(emailId);
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-
-      const directResponse = await fetch(
-        `${getAPI_BASE_URL()}/email-management/${emailId}/archive`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const response = await directResponse.json();
-
-      if (response.success) {
-        setSuccess('Email archivovaný!');
-        await fetchEmails();
-        await fetchStats();
-      } else {
-        setError(response.error || 'Chyba pri archivovaní emailu');
-      }
+      await archiveEmailMutation.mutateAsync(emailId);
+      setSuccess('Email archivovaný!');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (error: unknown) {
       console.error('Archive email error:', error);
       setError('Chyba pri archivovaní emailu');
@@ -482,8 +393,7 @@ const EmailManagementDashboard: React.FC = () => {
 
       if (response.success) {
         setSuccess('Email zmazaný!');
-        await fetchEmails();
-        await fetchStats();
+        refetchEmails();
       } else {
         setError(response.error || 'Chyba pri mazaní emailu');
       }
@@ -525,50 +435,23 @@ const EmailManagementDashboard: React.FC = () => {
 
       if (response.success) {
         setSuccess(`✅ ${response.data.message}`);
-        await fetchEmails();
-        await fetchStats();
-        await fetchArchivedEmails(0);
+        refetchEmails();
+        refetchArchivedEmails();
       } else {
         setError(response.error || 'Chyba pri mazaní historických emailov');
       }
     } catch (error: unknown) {
-      console.error('Clear historical emails error:', error);
+      console.error('Clear historical typedEmails error:', error);
       setError('Chyba pri mazaní historických emailov');
     } finally {
       setActionLoading(null);
     }
   };
 
-  // IMAP API Functions
-  const fetchImapStatus = useCallback(async () => {
-    try {
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch(
-        `${getAPI_BASE_URL()}/email-imap/status`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const response = await directResponse.json();
-      console.log('📧 IMAP Status:', response);
-      if (response.success && response.data) {
-        setImapStatus(response.data);
-      }
-    } catch (error: unknown) {
-      console.error('❌ IMAP Status error:', error);
-    }
-  }, []);
+  // IMAP API Functions - React Query handles this now
 
   const testImapConnection = async () => {
     try {
-      setImapLoading(true);
       const token =
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
@@ -595,13 +478,13 @@ const EmailManagementDashboard: React.FC = () => {
       console.error('❌ IMAP Test error:', error);
       setError('❌ Chyba pri teste IMAP pripojenia');
     } finally {
-      setImapLoading(false);
+      // IMAP loading is handled by React Query
     }
   };
 
   const startImapMonitoring = async () => {
     try {
-      setImapLoading(true);
+      // IMAP loading is handled by React Query
       const token =
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
@@ -620,18 +503,18 @@ const EmailManagementDashboard: React.FC = () => {
       console.log('▶️ IMAP Start result:', response);
 
       setSuccess('▶️ IMAP monitoring spustený!');
-      await fetchImapStatus(); // Refresh status
+      refetchImapStatus(); // Refresh status
     } catch (error: unknown) {
       console.error('❌ IMAP Start error:', error);
       setError('❌ Chyba pri spúšťaní IMAP monitoringu');
     } finally {
-      setImapLoading(false);
+      // IMAP loading is handled by React Query
     }
   };
 
   const stopImapMonitoring = async () => {
     try {
-      setImapLoading(true);
+      // IMAP loading is handled by React Query
       const token =
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
@@ -650,12 +533,12 @@ const EmailManagementDashboard: React.FC = () => {
       console.log('⏹️ IMAP Stop result:', response);
 
       setSuccess('⏹️ IMAP monitoring zastavený!');
-      await fetchImapStatus(); // Refresh status
+      refetchImapStatus(); // Refresh status
     } catch (error: unknown) {
       console.error('❌ IMAP Stop error:', error);
       setError('❌ Chyba pri zastavovaní IMAP monitoringu');
     } finally {
-      setImapLoading(false);
+      // IMAP loading is handled by React Query
     }
   };
 
@@ -663,28 +546,14 @@ const EmailManagementDashboard: React.FC = () => {
   // PENDING RENTALS FUNCTIONS
   // ============================================
 
-  const fetchPendingRentals = useCallback(async () => {
-    try {
-      setPendingLoading(true);
-      setError(null);
-      const rentals = await apiService.getPendingAutomaticRentals();
-      console.log('✅ Loaded pending rentals:', rentals?.length || 0);
-      setPendingRentals(rentals || []);
-    } catch (error: unknown) {
-      console.error('❌ Error fetching pending rentals:', error);
-      setError('Nepodarilo sa načítať čakajúce prenájmy');
-      setPendingRentals([]);
-    } finally {
-      setPendingLoading(false);
-    }
-  }, []);
+  // fetchPendingRentals - React Query handles this now
 
   const handleApproveRental = async (rentalId: string) => {
     try {
       setActionLoading(rentalId);
       await apiService.approveAutomaticRental(rentalId);
-      // Remove from pending list
-      setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
+      // Refresh pending rentals list
+      refetchPendingRentals();
       setSuccess('Prenájom bol úspešne schválený');
     } catch (error: unknown) {
       console.error('Error approving rental:', error);
@@ -698,8 +567,8 @@ const EmailManagementDashboard: React.FC = () => {
     try {
       setActionLoading(rentalId);
       await apiService.rejectAutomaticRental(rentalId, reason);
-      // Remove from pending list
-      setPendingRentals(prev => prev.filter(r => r.id !== rentalId));
+      // Refresh pending rentals list
+      refetchPendingRentals();
       setSuccess('Prenájom bol zamietnutý');
     } catch (error: unknown) {
       console.error('Error rejecting rental:', error);
@@ -713,59 +582,14 @@ const EmailManagementDashboard: React.FC = () => {
   // ARCHIVE FUNCTIONS
   // ============================================
 
-  // Fetch archived emails
+  // Fetch archived typedEmails
+  // Fetch archived typedEmails - React Query handles this now
   const fetchArchivedEmails = async (offset = 0) => {
-    try {
-      setArchiveLoading(true);
-
-      const params = new URLSearchParams({
-        limit: archivePagination.limit.toString(),
-        offset: offset.toString(),
-      });
-
-      if (senderFilter) params.append('sender', senderFilter);
-
-      // Direct fetch like other functions in this component
-      const token =
-        localStorage.getItem('blackrent_token') ||
-        sessionStorage.getItem('blackrent_token');
-      const directResponse = await fetch(
-        `${getAPI_BASE_URL()}/email-management/archive/list?${params}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!directResponse.ok) {
-        throw new Error(`HTTP error! status: ${directResponse.status}`);
-      }
-
-      const response = await directResponse.json();
-
-      if (response.success) {
-        setArchivedEmails(response.data.emails || []);
-        setArchivePagination({
-          total: response.data.pagination.total,
-          limit: response.data.pagination.limit,
-          offset: response.data.pagination.offset,
-          hasMore: response.data.pagination.hasMore,
-        });
-      } else {
-        setError('Chyba pri načítaní archívu emailov');
-      }
-    } catch (error) {
-      console.error('❌ ARCHIVE: Chyba pri načítaní archívu:', error);
-      setError('Chyba pri načítaní archívu emailov');
-    } finally {
-      setArchiveLoading(false);
-    }
+    setArchivePagination(prev => ({ ...prev, offset }));
+    refetchArchivedEmails();
   };
 
-  // Bulk archive selected emails
+  // Bulk archive selected typedEmails
   const bulkArchiveEmails = async () => {
     if (selectedEmails.size === 0) {
       setError('Nie sú vybrané žiadne emaily na archiváciu');
@@ -804,8 +628,8 @@ const EmailManagementDashboard: React.FC = () => {
           `${response.data.archivedCount} emailov úspešne archivovaných`
         );
         setSelectedEmails(new Set());
-        fetchEmails(); // Refresh main list
-        fetchArchivedEmails(); // Refresh archive
+        refetchEmails(); // Refresh main list
+        refetchArchivedEmails(); // Refresh archive
       } else {
         setError(response.error || 'Chyba pri bulk archivovaní');
       }
@@ -817,7 +641,7 @@ const EmailManagementDashboard: React.FC = () => {
     }
   };
 
-  // Auto-archive old emails
+  // Auto-archive old typedEmails
   const autoArchiveOldEmails = async () => {
     try {
       setActionLoading('auto-archive');
@@ -850,8 +674,8 @@ const EmailManagementDashboard: React.FC = () => {
         setSuccess(
           `${response.data.archivedCount} starých emailov automaticky archivovaných`
         );
-        fetchEmails(); // Refresh main list
-        fetchArchivedEmails(); // Refresh archive
+        refetchEmails(); // Refresh main list
+        refetchArchivedEmails(); // Refresh archive
       } else {
         setError(response.error || 'Chyba pri automatickom archivovaní');
       }
@@ -890,8 +714,8 @@ const EmailManagementDashboard: React.FC = () => {
 
       if (response.success) {
         setSuccess('Email úspešne obnovený z archívu');
-        fetchEmails(); // Refresh main list
-        fetchArchivedEmails(); // Refresh archive
+        refetchEmails(); // Refresh main list
+        refetchArchivedEmails(); // Refresh archive
       } else {
         setError(response.error || 'Chyba pri obnove z archívu');
       }
@@ -941,18 +765,16 @@ const EmailManagementDashboard: React.FC = () => {
       senderFilter,
     });
 
-    fetchEmails();
-    fetchStats();
-    fetchImapStatus(); // Load IMAP status
-    fetchPendingRentals(); // Load pending rentals
+    refetchEmails();
+    refetchImapStatus(); // Load IMAP status
+    refetchPendingRentals(); // Load pending rentals
   }, [
     currentPage,
     statusFilter,
     senderFilter,
-    fetchEmails,
-    fetchStats,
-    fetchImapStatus,
-    fetchPendingRentals,
+    refetchEmails,
+    refetchImapStatus,
+    refetchPendingRentals,
   ]);
 
   // Status chip styling
@@ -1110,10 +932,9 @@ const EmailManagementDashboard: React.FC = () => {
             variant="outlined"
             startIcon={!isExtraSmall && <RefreshIcon />}
             onClick={() => {
-              fetchEmails();
-              fetchStats();
-              fetchImapStatus();
-              fetchPendingRentals();
+              refetchEmails();
+              refetchImapStatus();
+              refetchPendingRentals();
             }}
             disabled={loading}
             size={isSmallMobile ? 'small' : 'medium'}
@@ -1192,7 +1013,7 @@ const EmailManagementDashboard: React.FC = () => {
                     lineHeight: 1,
                   }}
                 >
-                  {stats.today.total}
+                  {(stats as { today?: { total?: number } })?.today?.total || 0}
                 </Typography>
               </CardContent>
             </Card>
@@ -1243,7 +1064,8 @@ const EmailManagementDashboard: React.FC = () => {
                     lineHeight: 1,
                   }}
                 >
-                  {stats.today.processed}
+                  {(stats as { today?: { processed?: number } })?.today
+                    ?.processed || 0}
                 </Typography>
               </CardContent>
             </Card>
@@ -1294,7 +1116,8 @@ const EmailManagementDashboard: React.FC = () => {
                     lineHeight: 1,
                   }}
                 >
-                  {stats.today.rejected}
+                  {(stats as { today?: { rejected?: number } })?.today
+                    ?.rejected || 0}
                 </Typography>
               </CardContent>
             </Card>
@@ -1345,7 +1168,8 @@ const EmailManagementDashboard: React.FC = () => {
                     lineHeight: 1,
                   }}
                 >
-                  {stats.today.pending}
+                  {(stats as { today?: { pending?: number } })?.today
+                    ?.pending || 0}
                 </Typography>
               </CardContent>
             </Card>
@@ -1732,7 +1556,7 @@ const EmailManagementDashboard: React.FC = () => {
                 {/* Mobile View - Card List */}
                 {isMobile ? (
                   <Stack spacing={2}>
-                    {emails.map(email => (
+                    {typedEmails.map(email => (
                       <Card
                         key={email.id}
                         variant="outlined"
@@ -1914,7 +1738,7 @@ const EmailManagementDashboard: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {emails.map(email => (
+                        {typedEmails.map(email => (
                           <TableRow key={email.id} hover>
                             <TableCell>
                               <Typography
@@ -2086,7 +1910,7 @@ const EmailManagementDashboard: React.FC = () => {
               </Typography>
               <Button
                 variant="outlined"
-                onClick={fetchPendingRentals}
+                onClick={() => refetchPendingRentals()}
                 disabled={pendingLoading}
                 startIcon={<RefreshIcon />}
               >

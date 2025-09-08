@@ -124,4 +124,65 @@ export const queryKeys = {
     all: ['bulk'] as const,
     data: () => [...queryKeys.bulk.all, 'data'] as const,
   },
+
+  // Email Management
+  emailManagement: {
+    all: ['emailManagement'] as const,
+    lists: () => [...queryKeys.emailManagement.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.emailManagement.lists(), filters] as const,
+    details: () => [...queryKeys.emailManagement.all, 'detail'] as const,
+    detail: (id: string) =>
+      [...queryKeys.emailManagement.details(), id] as const,
+    stats: () => ['emailManagement', 'stats'] as const,
+    archived: (filters?: Record<string, unknown>) =>
+      ['emailManagement', 'archived', filters] as const,
+    imapStatus: () => ['emailManagement', 'imapStatus'] as const,
+    pendingRentals: () => ['emailManagement', 'pendingRentals'] as const,
+  },
+
+  // Users
+  users: {
+    all: ['users'] as const,
+    lists: () => [...queryKeys.users.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.users.lists(), filters] as const,
+    details: () => [...queryKeys.users.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.users.details(), id] as const,
+    byCompany: (companyId: string) =>
+      ['users', 'byCompany', companyId] as const,
+    stats: () => ['users', 'stats'] as const,
+  },
+
+  // File Upload
+  fileUpload: {
+    all: ['fileUpload'] as const,
+    lists: () => [...queryKeys.fileUpload.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.fileUpload.lists(), filters] as const,
+    details: () => [...queryKeys.fileUpload.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.fileUpload.details(), id] as const,
+    byProtocol: (protocolId: string) =>
+      ['fileUpload', 'byProtocol', protocolId] as const,
+    byCategory: (category: string) =>
+      ['fileUpload', 'byCategory', category] as const,
+    progress: (uploadId: string) =>
+      ['fileUpload', 'progress', uploadId] as const,
+  },
+
+  // Protocol PDF
+  protocolPdf: {
+    all: ['protocolPdf'] as const,
+    details: () => [...queryKeys.protocolPdf.all, 'detail'] as const,
+    detail: (protocolId: string, type: string) =>
+      [...queryKeys.protocolPdf.details(), protocolId, type] as const,
+    urls: () => [...queryKeys.protocolPdf.all, 'url'] as const,
+    url: (protocolId: string, type: string) =>
+      [...queryKeys.protocolPdf.urls(), protocolId, type] as const,
+    statuses: () => [...queryKeys.protocolPdf.all, 'status'] as const,
+    status: (protocolId: string, type: string) =>
+      [...queryKeys.protocolPdf.statuses(), protocolId, type] as const,
+    byProtocol: (protocolId: string) =>
+      ['protocolPdf', 'byProtocol', protocolId] as const,
+  },
 } as const;

@@ -1178,6 +1178,459 @@ class ApiService {
     // This is a placeholder implementation
     console.log('Error handler set:', handler);
   }
+
+  // ===== EMAIL MANAGEMENT API METHODS =====
+
+  async getEmailManagement(filters?: {
+    status?: string;
+    sender?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<Record<string, unknown>[]> {
+    const queryParams = new URLSearchParams();
+    if (filters?.status) queryParams.append('status', filters.status);
+    if (filters?.sender) queryParams.append('sender', filters.sender);
+    if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
+    if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+    if (filters?.offset)
+      queryParams.append('offset', filters.offset.toString());
+
+    return this.request<Record<string, unknown>[]>(
+      `/email-management?${queryParams.toString()}`
+    );
+  }
+
+  async getEmailStats(): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('/email-management/stats');
+  }
+
+  async getEmail(id: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(`/email-management/${id}`);
+  }
+
+  async archiveEmail(id: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/email-management/${id}/archive`,
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  async rejectEmail(id: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/email-management/${id}/reject`,
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  async processEmail(id: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/email-management/${id}/process`,
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  async bulkArchiveEmails(ids: string[]): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      '/email-management/bulk-archive',
+      {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }
+    );
+  }
+
+  async bulkRejectEmails(ids: string[]): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      '/email-management/bulk-reject',
+      {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }
+    );
+  }
+
+  async bulkProcessEmails(ids: string[]): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      '/email-management/bulk-process',
+      {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }
+    );
+  }
+
+  async getArchivedEmails(filters?: {
+    limit?: number;
+    offset?: number;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<Record<string, unknown>> {
+    const params = new URLSearchParams();
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.offset) params.append('offset', filters.offset.toString());
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+
+    return this.request<Record<string, unknown>>(
+      `/email-management/archived?${params.toString()}`
+    );
+  }
+
+  // ===== USERS API METHODS =====
+
+  async getUsers(filters?: {
+    role?: string;
+    companyId?: string;
+    status?: string;
+    search?: string;
+  }): Promise<User[]> {
+    const queryParams = new URLSearchParams();
+    if (filters?.role) queryParams.append('role', filters.role);
+    if (filters?.companyId) queryParams.append('companyId', filters.companyId);
+    if (filters?.status) queryParams.append('status', filters.status);
+    if (filters?.search) queryParams.append('search', filters.search);
+
+    return this.request<User[]>(`/auth/users?${queryParams.toString()}`);
+  }
+
+  async getUser(id: string): Promise<User> {
+    return this.request<User>(`/auth/users/${id}`);
+  }
+
+  async getUserStats(): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('/auth/users/stats');
+  }
+
+  async createUser(userData: {
+    username: string;
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    companyId?: string;
+    permissions?: string[];
+  }): Promise<User> {
+    return this.request<User>('/auth/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUser(userData: {
+    id: string;
+    username?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+    companyId?: string;
+    permissions?: string[];
+    isActive?: boolean;
+  }): Promise<User> {
+    return this.request<User>(`/auth/users/${userData.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(id: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(`/auth/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async changeUserPassword(passwordData: {
+    id: string;
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/auth/users/${passwordData.id}/change-password`,
+      {
+        method: 'POST',
+        body: JSON.stringify(passwordData),
+      }
+    );
+  }
+
+  async deactivateUser(id: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/auth/users/${id}/deactivate`,
+      {
+        method: 'POST',
+      }
+    );
+  }
+
+  // ===== FILE UPLOAD API METHODS =====
+
+  async uploadFile(uploadData: {
+    file: File;
+    protocolId?: string;
+    category?: string;
+    mediaType?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<Record<string, unknown>> {
+    const formData = new FormData();
+    formData.append('file', uploadData.file);
+    if (uploadData.protocolId)
+      formData.append('protocolId', uploadData.protocolId);
+    if (uploadData.category) formData.append('category', uploadData.category);
+    if (uploadData.mediaType)
+      formData.append('mediaType', uploadData.mediaType);
+    if (uploadData.metadata)
+      formData.append('metadata', JSON.stringify(uploadData.metadata));
+
+    const response = await fetch(`${API_BASE_URL}/files/protocol-photo`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async presignedUpload(uploadData: {
+    file: File;
+    protocolId: string;
+    category: string;
+    mediaType: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<Record<string, unknown>> {
+    const formData = new FormData();
+    formData.append('file', uploadData.file);
+    formData.append('protocolId', uploadData.protocolId);
+    formData.append('category', uploadData.category);
+    formData.append('mediaType', uploadData.mediaType);
+    if (uploadData.metadata)
+      formData.append('metadata', JSON.stringify(uploadData.metadata));
+
+    const response = await fetch(`${API_BASE_URL}/files/presigned-upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Presigned upload failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async getUploadProgress(uploadId: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/files/upload-progress/${uploadId}`
+    );
+  }
+
+  async deleteFile(fileId: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(`/files/${fileId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getFilesByProtocol(
+    protocolId: string
+  ): Promise<Record<string, unknown>[]> {
+    return this.request<Record<string, unknown>[]>(
+      `/files/protocol/${protocolId}`
+    );
+  }
+
+  async getFilesByCategory(
+    category: string
+  ): Promise<Record<string, unknown>[]> {
+    return this.request<Record<string, unknown>[]>(
+      `/files/category/${category}`
+    );
+  }
+
+  async bulkUploadFiles(
+    files: Array<{
+      file: File;
+      protocolId?: string;
+      category?: string;
+      mediaType?: string;
+      metadata?: Record<string, unknown>;
+    }>
+  ): Promise<Record<string, unknown>[]> {
+    const formData = new FormData();
+    files.forEach((fileData, index) => {
+      formData.append(`files[${index}]`, fileData.file);
+      if (fileData.protocolId)
+        formData.append(`protocolIds[${index}]`, fileData.protocolId);
+      if (fileData.category)
+        formData.append(`categories[${index}]`, fileData.category);
+      if (fileData.mediaType)
+        formData.append(`mediaTypes[${index}]`, fileData.mediaType);
+      if (fileData.metadata)
+        formData.append(
+          `metadata[${index}]`,
+          JSON.stringify(fileData.metadata)
+        );
+    });
+
+    const response = await fetch(`${API_BASE_URL}/files/bulk-upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Bulk upload failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async bulkDeleteFiles(fileIds: string[]): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('/files/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ fileIds }),
+    });
+  }
+
+  async getFileMetadata(fileId: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(`/files/${fileId}/metadata`);
+  }
+
+  async validateFile(file: File): Promise<Record<string, unknown>> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/files/validate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`File validation failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // ===== PROTOCOL PDF API METHODS =====
+
+  async getProtocolPdf(
+    protocolId: string,
+    type: 'handover' | 'return'
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/protocols/${type}/${protocolId}`
+    );
+  }
+
+  async getProtocolPdfUrl(
+    protocolId: string,
+    type: 'handover' | 'return'
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/protocols/${type}/${protocolId}/url`
+    );
+  }
+
+  async generateProtocolPdf(data: {
+    protocolId: string;
+    type: 'handover' | 'return';
+    options?: {
+      includePhotos?: boolean;
+      includeSignatures?: boolean;
+      watermark?: string;
+      language?: string;
+    };
+  }): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/protocols/${data.type}/${data.protocolId}/generate-pdf`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data.options || {}),
+      }
+    );
+  }
+
+  async getPdfGenerationStatus(
+    protocolId: string,
+    type: 'handover' | 'return'
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/protocols/${type}/${protocolId}/pdf/status`
+    );
+  }
+
+  async downloadProtocolPdf(
+    protocolId: string,
+    type: 'handover' | 'return'
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/protocols/${type}/${protocolId}/download`
+    );
+  }
+
+  async bulkGeneratePdfs(
+    data: Array<{
+      protocolId: string;
+      type: 'handover' | 'return';
+      options?: {
+        includePhotos?: boolean;
+        includeSignatures?: boolean;
+        watermark?: string;
+        language?: string;
+      };
+    }>
+  ): Promise<Record<string, unknown>[]> {
+    return this.request<Record<string, unknown>[]>(
+      '/protocols/bulk-generate-pdf',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async deleteProtocolPdf(
+    protocolId: string,
+    type: 'handover' | 'return'
+  ): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(
+      `/protocols/${type}/${protocolId}/pdf`,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  async getProtocolPdfs(
+    protocolId: string
+  ): Promise<Record<string, unknown>[]> {
+    return this.request<Record<string, unknown>[]>(
+      `/protocols/${protocolId}/pdfs`
+    );
+  }
 }
 
 export const apiService = new ApiService();

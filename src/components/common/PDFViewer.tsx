@@ -16,8 +16,14 @@ import {
   IconButton,
   Typography,
 } from '@mui/material';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import {
+  useDownloadProtocolPdf,
+  useGenerateProtocolPdf,
+  useProtocolPdf,
+  useProtocolPdfUrl,
+} from '../../lib/react-query/hooks/useProtocolPdf';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 
 interface PDFViewerProps {
@@ -35,13 +41,24 @@ export default function PDFViewer({
   protocolType,
   title = 'Zobraziť protokol',
 }: PDFViewerProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // React Query hooks
+  const {
+    isLoading: protocolLoading,
+    error: protocolError,
+    refetch: refetchProtocol,
+  } = useProtocolPdf(protocolId, protocolType);
+
+  const {
+    isLoading: urlLoading,
+    error: urlError,
+    refetch: refetchUrl,
+  } = useProtocolPdfUrl(protocolId, protocolType);
+
+  const generatePdfMutation = useGenerateProtocolPdf();
+  const downloadPdfMutation = useDownloadProtocolPdf();
+
+  // Local state for UI
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [protocolData, setProtocolData] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
 
   // Generovanie PDF URL (fallback)
   const generatePDFUrl = useCallback(() => {
@@ -49,27 +66,18 @@ export default function PDFViewer({
     return `${baseUrl}/protocols/${protocolType}/${protocolId}/pdf`;
   }, [protocolType, protocolId]);
 
-  // Načítanie protokolu a jeho PDF URL
+  // Načítanie protokolu a jeho PDF URL pomocou React Query
   const loadProtocolData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
     try {
-      // Najprv skús načítať protokol aby získal pdfUrl
-      const apiBaseUrl = getApiBaseUrl();
-      const protocolUrl = `${apiBaseUrl}/protocols/${protocolType}/${protocolId}`;
-      console.log('🔍 Loading protocol from:', protocolUrl);
+      // Najprv skús načítať protokol
+      const protocolResult = await refetchProtocol();
 
-      const protocolResponse = await fetch(protocolUrl);
-      console.log('📋 Protocol response status:', protocolResponse.status);
-
-      if (protocolResponse.ok) {
-        const protocol = await protocolResponse.json();
+      if (protocolResult.data) {
+        const protocol = protocolResult.data as Record<string, unknown>;
         console.log('📋 Protocol data:', protocol);
-        setProtocolData(protocol);
 
         // Ak má protokol pdfUrl, použij ho
-        if (protocol.pdfUrl) {
+        if (protocol.pdfUrl && typeof protocol.pdfUrl === 'string') {
           console.log(
             '✅ Using existing PDF URL from protocol:',
             protocol.pdfUrl
@@ -79,17 +87,22 @@ export default function PDFViewer({
         } else {
           console.log('⚠️ Protocol has no pdfUrl field');
         }
-      } else {
-        console.log(
-          '❌ Protocol response not ok:',
-          protocolResponse.status,
-          protocolResponse.statusText
-        );
-        const errorText = await protocolResponse.text();
-        console.log('❌ Error response:', errorText);
       }
 
-      // Ak nemá pdfUrl, vygeneruj nové PDF
+      // Ak nemá pdfUrl, skús načítať PDF URL
+      const urlResult = await refetchUrl();
+      if (
+        urlResult.data &&
+        typeof urlResult.data === 'object' &&
+        'url' in urlResult.data
+      ) {
+        const url = urlResult.data.url as string;
+        console.log('✅ Using PDF URL from API:', url);
+        setPdfUrl(url);
+        return;
+      }
+
+      // Ak nemá PDF URL, vygeneruj nové PDF
       console.log('⚠️ No PDF URL found, generating new PDF');
       const generateUrl = generatePDFUrl();
       setPdfUrl(generateUrl);
@@ -98,38 +111,33 @@ export default function PDFViewer({
       // Fallback na generovanie PDF
       const generateUrl = generatePDFUrl();
       setPdfUrl(generateUrl);
-    } finally {
-      setLoading(false);
     }
-  }, [protocolType, protocolId, generatePDFUrl]);
+  }, [generatePDFUrl, refetchProtocol, refetchUrl]);
 
-  // Download URL - použij existujúce PDF URL ak existuje
-  const getDownloadUrl = (): string => {
-    // Ak máme pdfUrl z protokolu, použij ho
-    if (protocolData?.pdfUrl && typeof protocolData.pdfUrl === 'string') {
-      return protocolData.pdfUrl;
-    }
+  // Download URL - použij existujúce PDF URL ak existuje (používa sa v handleDownload)
+  // const getDownloadUrl = (): string => {
+  //   // Ak máme pdfUrl z protokolu, použij ho
+  //   if (protocolData?.pdfUrl && typeof protocolData.pdfUrl === 'string') {
+  //     return protocolData.pdfUrl;
+  //   }
 
-    // Fallback na generovanie
-    const baseUrl = getApiBaseUrl();
-    return `${baseUrl}/protocols/${protocolType}/${protocolId}/download`;
-  };
+  //   // Fallback na generovanie
+  //   const baseUrl = getApiBaseUrl();
+  //   return `${baseUrl}/protocols/${protocolType}/${protocolId}/download`;
+  // };
 
   // Načítanie PDF
   const handleLoadPDF = useCallback(async () => {
     await loadProtocolData();
   }, [loadProtocolData]);
 
-  // Stiahnutie PDF
-  const handleDownload = () => {
-    const downloadUrl: string = getDownloadUrl();
-    const link = document.createElement('a') as HTMLAnchorElement;
-    link.href = downloadUrl;
-    link.download = `${protocolType}_protocol_${protocolId.slice(-8)}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // Stiahnutie PDF pomocou React Query mutation
+  const handleDownload = useCallback(() => {
+    downloadPdfMutation.mutate({
+      protocolId,
+      type: protocolType,
+    });
+  }, [downloadPdfMutation, protocolId, protocolType]);
 
   // Otvorenie v novom okne
   const handleOpenInNewWindow = () => {
@@ -138,11 +146,23 @@ export default function PDFViewer({
   };
 
   // Automatické načítanie PDF pri otvorení
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && !pdfUrl) {
       handleLoadPDF();
     }
   }, [open, pdfUrl, handleLoadPDF]);
+
+  // Kombinované loading a error stavy
+  const loading =
+    protocolLoading ||
+    urlLoading ||
+    generatePdfMutation.isPending ||
+    downloadPdfMutation.isPending;
+  const error =
+    protocolError ||
+    urlError ||
+    generatePdfMutation.error ||
+    downloadPdfMutation.error;
 
   return (
     <Dialog
@@ -197,7 +217,11 @@ export default function PDFViewer({
 
         {error && (
           <Box sx={{ p: 2 }}>
-            <Alert severity="error">{error}</Alert>
+            <Alert severity="error">
+              {error instanceof Error
+                ? error.message
+                : 'Chyba pri načítaní PDF'}
+            </Alert>
           </Box>
         )}
 
@@ -220,9 +244,9 @@ export default function PDFViewer({
           variant="outlined"
           startIcon={<DownloadIcon />}
           onClick={handleDownload}
-          disabled={loading}
+          disabled={loading || downloadPdfMutation.isPending}
         >
-          Stiahnuť PDF
+          {downloadPdfMutation.isPending ? 'Sťahujem...' : 'Stiahnuť PDF'}
         </Button>
         <Button
           variant="outlined"

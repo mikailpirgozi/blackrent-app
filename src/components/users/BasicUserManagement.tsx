@@ -42,6 +42,14 @@ import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
+import {
+  useCreateUser,
+  useDeleteUser,
+  useUpdateUser,
+  useUsers,
+  type CreateUserData,
+  type UpdateUserData,
+} from '../../lib/react-query/hooks/useUsers';
 
 interface User {
   id: string;
@@ -76,9 +84,21 @@ const BasicUserManagement: React.FC = () => {
       return fallback;
     }
   };
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+
+  // React Query hooks
+  const {
+    data: usersData = [],
+    isLoading: loading,
+    refetch: refetchUsers,
+  } = useUsers();
+
+  const users = usersData as unknown as User[];
+
+  // Mutations
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
 
   // Dialog states
   const [userDialogOpen, setUserDialogOpen] = useState(false);
@@ -90,8 +110,7 @@ const BasicUserManagement: React.FC = () => {
   const [investors, setInvestors] = useState<Record<string, unknown>[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
 
-  // Loading states
-  const [creatingUser, setCreatingUser] = useState(false);
+  // Loading states - handled by React Query mutations
 
   // Form states
   const [userForm, setUserForm] = useState({
@@ -122,48 +141,7 @@ const BasicUserManagement: React.FC = () => {
     );
   }, [state.token]);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`${getApiBaseUrl()}/auth/users`, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('👥 Loaded users:', data);
-
-        // Transform data to match our interface
-        const transformedUsers = (data.data || data.users || []).map(
-          (user: Record<string, unknown>) => ({
-            id: user.id as string,
-            username: user.username as string,
-            email: user.email as string,
-            role: user.role as string,
-            firstName: (user.first_name || user.firstName) as string,
-            lastName: (user.last_name || user.lastName) as string,
-            isActive: user.is_active !== false, // default to true if undefined
-            lastLogin: (user.last_login || user.lastLogin) as string,
-            createdAt: (user.created_at || user.createdAt) as string,
-          })
-        );
-
-        setUsers(transformedUsers);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Chyba pri načítavaní používateľov');
-      }
-    } catch (error) {
-      console.error('Error loading users:', error);
-      setError('Chyba pri načítavaní používateľov');
-    } finally {
-      setLoading(false);
-    }
-  }, [getAuthToken]);
+  // loadUsers - React Query handles this now
 
   const loadInvestors = useCallback(async () => {
     try {
@@ -205,9 +183,9 @@ const BasicUserManagement: React.FC = () => {
   }, [getAuthToken]);
 
   useEffect(() => {
-    loadUsers();
+    refetchUsers();
     loadInvestors();
-  }, [loadUsers, loadInvestors]);
+  }, [refetchUsers, loadInvestors]);
 
   const handleCreateUser = async () => {
     console.log('🚀 Starting user creation process...');
@@ -226,66 +204,31 @@ const BasicUserManagement: React.FC = () => {
       return;
     }
 
-    setCreatingUser(true);
+    // Creating state is handled by React Query mutation
     setError(null);
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/auth/users`;
-      const token = getAuthToken();
+      const createUserData: CreateUserData = {
+        username: userForm.username,
+        email: userForm.email,
+        password: userForm.password,
+        firstName: userForm.firstName,
+        lastName: userForm.lastName,
+        role: userForm.role,
+        companyId: userForm.companyId,
+      };
 
-      console.log('🌐 API URL:', apiUrl);
-      console.log('🔑 Token exists:', !!token);
-      console.log('📤 Request payload:', JSON.stringify(userForm, null, 2));
+      await createUserMutation.mutateAsync(createUserData);
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(userForm),
-      });
-
-      console.log('📡 Response status:', response.status);
-      console.log(
-        '📡 Response headers:',
-        Object.fromEntries(response.headers.entries())
-      );
-
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log('✅ User created successfully:', responseData);
-
-        setUserDialogOpen(false);
-        resetUserForm();
-        await loadUsers();
-        setError(null);
-
-        console.log('🎉 User creation process completed successfully!');
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Server error response:', errorData);
-        console.error('❌ Response status:', response.status);
-        console.error('❌ Response statusText:', response.statusText);
-
-        setError(
-          errorData.error ||
-            errorData.message ||
-            `Chyba pri vytváraní používateľa (${response.status})`
-        );
-      }
+      setUserDialogOpen(false);
+      resetUserForm();
+      setError(null);
+      console.log('🎉 User creation process completed successfully!');
     } catch (error) {
-      console.error('💥 Network/Request error:', error);
-      const errorMessage =
-        error instanceof Error ? error.message : 'Neznáma chyba';
-      console.error('💥 Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: errorMessage,
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-      });
-      setError(`Chyba pri vytváraní používateľa: ${errorMessage}`);
+      console.error('❌ User creation error:', error);
+      setError('Chyba pri vytváraní používateľa');
     } finally {
-      setCreatingUser(false);
+      // Creating state is handled by React Query mutation
     }
   };
 
@@ -307,34 +250,28 @@ const BasicUserManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const updateData: Record<string, unknown> = { ...userForm };
-      // Don't send empty password
-      if (!updateData.password) {
-        delete updateData.password;
+      const updateData: UpdateUserData = {
+        id: selectedUser.id,
+        username: userForm.username,
+        email: userForm.email,
+        firstName: userForm.firstName,
+        lastName: userForm.lastName,
+        role: userForm.role,
+        companyId: userForm.companyId,
+      };
+
+      // Only include password if it's provided
+      if (userForm.password) {
+        (updateData as UpdateUserData & { password?: string }).password =
+          userForm.password;
       }
 
-      const response = await fetch(
-        `${getApiBaseUrl()}/auth/users/${selectedUser.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getAuthToken()}`,
-          },
-          body: JSON.stringify(updateData),
-        }
-      );
+      await updateUserMutation.mutateAsync(updateData);
 
-      if (response.ok) {
-        setEditDialogOpen(false);
-        setSelectedUser(null);
-        resetUserForm();
-        await loadUsers();
-        setError(null);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Chyba pri úprave používateľa');
-      }
+      setEditDialogOpen(false);
+      setSelectedUser(null);
+      resetUserForm();
+      setError(null);
     } catch (error) {
       console.error('Error updating user:', error);
       setError('Chyba pri úprave používateľa');
@@ -345,25 +282,11 @@ const BasicUserManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(
-        `${getApiBaseUrl()}/auth/users/${selectedUser.id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${getAuthToken()}`,
-          },
-        }
-      );
+      await deleteUserMutation.mutateAsync(selectedUser.id);
 
-      if (response.ok) {
-        setDeleteDialogOpen(false);
-        setSelectedUser(null);
-        await loadUsers();
-        setError(null);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Chyba pri mazaní používateľa');
-      }
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+      setError(null);
     } catch (error) {
       console.error('Error deleting user:', error);
       setError('Chyba pri mazaní používateľa');
@@ -998,14 +921,16 @@ const BasicUserManagement: React.FC = () => {
           <Button
             variant="contained"
             onClick={handleCreateUser}
-            disabled={creatingUser}
+            disabled={createUserMutation.isPending}
             fullWidth={isMobile}
             sx={{ minWidth: isMobile ? '100%' : 'auto' }}
             startIcon={
-              creatingUser ? <CircularProgress size={16} /> : undefined
+              createUserMutation.isPending ? (
+                <CircularProgress size={16} />
+              ) : undefined
             }
           >
-            {creatingUser ? 'Vytváram...' : 'Vytvoriť'}
+            {createUserMutation.isPending ? 'Vytváram...' : 'Vytvoriť'}
           </Button>
         </DialogActions>
       </Dialog>
