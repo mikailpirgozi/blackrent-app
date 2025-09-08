@@ -24,7 +24,6 @@ import { useCustomers } from '@/lib/react-query/hooks/useCustomers';
 import { useBulkProtocolStatus } from '@/lib/react-query/hooks/useProtocols';
 import {
   useCreateRental,
-  useRentals,
   useUpdateRental,
 } from '@/lib/react-query/hooks/useRentals';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
@@ -132,18 +131,11 @@ export default function RentalList() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // 🚀 REACT QUERY: Use React Query for rentals with instant updates
+  // 🚀 INFINITE SCROLL: Use only infinite scroll for performance (50 rentals per page)
   const {
-    data: allRentals = [],
-    isLoading: rentalsLoading,
-    error: rentalsError,
-  } = useRentals();
-
-  // 🚀 INFINITE SCROLL: Keep infinite scroll for performance but use React Query data
-  const {
-    rentals: paginatedRentals,
-    loading: paginatedLoading,
-    error: paginatedError,
+    rentals,
+    loading,
+    error,
     hasMore,
     totalCount,
     searchTerm,
@@ -152,11 +144,6 @@ export default function RentalList() {
     refresh,
     updateFilters,
   } = useInfiniteRentals();
-
-  // 🚀 HYBRID: Use React Query data when available, fallback to infinite scroll
-  const rentals = allRentals.length > 0 ? allRentals : paginatedRentals;
-  const loading = rentalsLoading || paginatedLoading;
-  const error = rentalsError || paginatedError;
 
   // 🔍 DEBUG: Základné informácie o komponente - OPTIMIZED: Only log once
   const debugLoggedRef = useRef(false);
@@ -862,7 +849,7 @@ export default function RentalList() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {typeof error === 'string'
             ? error
-            : error?.message || 'Neznáma chyba'}
+            : (error as Error)?.message || 'Neznáma chyba'}
         </Typography>
         <PrimaryButton onClick={() => window.location.reload()}>
           Obnoviť stránku
