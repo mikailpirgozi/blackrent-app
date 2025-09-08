@@ -189,7 +189,7 @@ router.get('/:id',
           u.username
         FROM email_action_logs eal
         LEFT JOIN users u ON eal.user_id = u.id
-        WHERE eal.email_id = $1
+        WHERE eal.message_id = (SELECT message_id FROM email_processing_history WHERE id = $1)
         ORDER BY eal.created_at DESC
       `, [id]);
 
@@ -441,31 +441,39 @@ router.post('/:id/approve',
 
           // Log action
           await postgresDatabase.query(`
-            INSERT INTO email_action_logs (email_id, user_id, action, notes)
-            VALUES ($1, $2, 'approved', 'Rental created and approved')
-          `, [id, userId]);
+            INSERT INTO email_action_logs (email_type, recipient_email, user_id, action, message_id, metadata)
+            VALUES ('order_approval', $1, $2, 'approved', $3, $4)
+          `, [
+            parsedData.customerEmail || 'unknown@example.com',
+            userId,
+            email.message_id || 'unknown',
+            JSON.stringify({ notes: 'Rental created and approved', email_id: id })
+          ]);
 
-          // Auto-archive after successful approval (optional - can be disabled via settings)
-          setTimeout(async () => {
-            try {
-              await postgresDatabase.query(`
-                UPDATE email_processing_history 
-                SET 
-                  status = 'archived',
-                  archived_at = CURRENT_TIMESTAMP
-                WHERE id = $1 AND status = 'processed'
-              `, [id]);
-              
-              await postgresDatabase.query(`
-                INSERT INTO email_action_logs (email_id, user_id, action, notes)
-                VALUES ($1, $2, 'archived', 'Auto-archived after approval')
-              `, [id, userId]);
-              
-              // Email auto-archived debug removed
-            } catch (error) {
-              console.error('❌ Auto-archive error:', error);
-            }
-          }, 5000); // Archive after 5 seconds
+          // Auto-archive immediately after successful approval
+          try {
+            await postgresDatabase.query(`
+              UPDATE email_processing_history 
+              SET 
+                status = 'archived',
+                archived_at = CURRENT_TIMESTAMP
+              WHERE id = $1 AND status = 'processed'
+            `, [id]);
+            
+            await postgresDatabase.query(`
+              INSERT INTO email_action_logs (email_type, recipient_email, user_id, action, message_id, metadata)
+              VALUES ('order_archival', $1, $2, 'archived', $3, $4)
+            `, [
+              parsedData.customerEmail || 'unknown@example.com',
+              userId,
+              email.message_id || 'unknown',
+              JSON.stringify({ notes: 'Auto-archived after approval', email_id: id })
+            ]);
+            
+            console.log('✅ Email auto-archived successfully:', id);
+          } catch (error) {
+            console.error('❌ Auto-archive error:', error);
+          }
 
         } catch (rentalError) {
           console.error('❌ Chyba pri vytváraní rental:', rentalError);
@@ -488,6 +496,73 @@ router.post('/:id/approve',
       res.status(500).json({
         success: false,
         error: 'Chyba pri schvaľovaní emailu'
+      });
+    }
+  }
+);
+
+// POST /api/email-management/:id/archive - Archivovať email
+router.post('/:id/archive',
+  authenticateToken,
+  checkPermission('rentals', 'update'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+
+      // Get email data
+      const emailResult = await postgresDatabase.query(`
+        SELECT * FROM email_processing_history WHERE id = $1
+      `, [id]) as QueryResult;
+
+      if (emailResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Email nenájdený'
+        });
+      }
+
+      const email = emailResult.rows[0];
+
+      if (email.status === 'archived') {
+        return res.status(400).json({
+          success: false,
+          error: 'Email už je archivovaný'
+        });
+      }
+
+      // Archive email
+      await postgresDatabase.query(`
+        UPDATE email_processing_history 
+        SET 
+          status = 'archived',
+          archived_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [id]);
+
+      // Log action
+      await postgresDatabase.query(`
+        INSERT INTO email_action_logs (email_type, recipient_email, user_id, action, message_id, metadata)
+        VALUES ('manual_archival', $1, $2, 'archived', $3, $4)
+      `, [
+        email.sender || 'unknown@example.com',
+        userId,
+        email.message_id || 'unknown',
+        JSON.stringify({ notes: 'Manually archived', email_id: id })
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          message: 'Email úspešne archivovaný'
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ EMAIL MANAGEMENT: Chyba pri archivovaní emailu:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri archivovaní emailu'
       });
     }
   }
@@ -1007,18 +1082,20 @@ router.get('/stats/dashboard',
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
       
-      // Today's stats
+      // Today's stats (rozšírené na posledné 3 dni pre testovanie)
+      const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+      
       const todayStats = await postgresDatabase.query(`
         SELECT 
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE status = 'processed') as processed,
-          COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
-          COUNT(*) FILTER (WHERE status = 'new') as pending
+          COUNT(*) FILTER (WHERE action_taken = 'approved' OR (status = 'processed' AND action_taken = 'approved')) as processed,
+          COUNT(*) FILTER (WHERE action_taken = 'rejected' OR (status = 'rejected' AND action_taken = 'rejected')) as rejected,
+          COUNT(*) FILTER (WHERE status = 'new' AND action_taken IS NULL) as pending
         FROM email_processing_history 
-        WHERE DATE(received_at) = $1
-      `, [todayStr]);
+        WHERE DATE(received_at) >= $1
+      `, [threeDaysAgoStr]);
 
       // This week's stats
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);

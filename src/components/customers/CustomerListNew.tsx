@@ -49,6 +49,7 @@ import {
 } from '@/lib/react-query/hooks/useRentals';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Customer, Rental } from '../../types';
+import { textContains } from '../../utils/textNormalization';
 import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
 
 import CustomerForm from './CustomerForm';
@@ -274,36 +275,27 @@ export default function CustomerListNew() {
     return customers.filter(customer => {
       // Search filter
       if (searchQuery) {
-        const query = searchQuery.toLowerCase();
         if (
-          !(customer.name || '').toLowerCase().includes(query) &&
-          !(customer.email || '').toLowerCase().includes(query) &&
-          !(customer.phone || '').toLowerCase().includes(query)
+          !textContains(customer.name, searchQuery) &&
+          !textContains(customer.email, searchQuery) &&
+          !textContains(customer.phone, searchQuery)
         ) {
           return false;
         }
       }
 
       // Name filter
-      if (
-        filterName &&
-        !(customer.name || '').toLowerCase().includes(filterName.toLowerCase())
-      ) {
+      if (filterName && !textContains(customer.name, filterName)) {
         return false;
       }
 
       // Email filter
-      if (
-        filterEmail &&
-        !(customer.email || '')
-          .toLowerCase()
-          .includes(filterEmail.toLowerCase())
-      ) {
+      if (filterEmail && !textContains(customer.email, filterEmail)) {
         return false;
       }
 
       // Phone filter
-      if (filterPhone && !(customer.phone || '').includes(filterPhone)) {
+      if (filterPhone && !textContains(customer.phone, filterPhone)) {
         return false;
       }
 

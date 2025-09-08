@@ -50,6 +50,7 @@ import {
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { Expense, ExpenseCategory, Vehicle } from '../../types';
+import { textContains } from '../../utils/textNormalization';
 
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ExpenseForm from './ExpenseForm';
@@ -166,9 +167,9 @@ const ExpenseListNew: React.FC = () => {
     return filteredExpenses.filter((expense: Expense) => {
       const matchesSearch =
         !searchQuery ||
-        expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        expense.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        expense.company.toLowerCase().includes(searchQuery.toLowerCase());
+        textContains(expense.description, searchQuery) ||
+        textContains(expense.note, searchQuery) ||
+        textContains(expense.company, searchQuery);
 
       const matchesCategory =
         categoryFilter === 'all' || expense.category === categoryFilter;
@@ -1099,7 +1100,7 @@ const ExpenseListNew: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              filteredExpenses.map((expense: Expense, index: number) => {
+              finalFilteredExpenses.map((expense: Expense, index: number) => {
                 const vehicle = expense.vehicleId
                   ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
                   : null;

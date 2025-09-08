@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { Rental } from '../types';
+import { textContains } from '../utils/textNormalization';
 
 // Filter state interface
 export interface FilterState {
@@ -204,19 +205,19 @@ export const useRentalFilters = ({
 
     // Search filter
     if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.toLowerCase().trim();
+      const query = debouncedSearchQuery.trim();
       filtered = filtered.filter(rental => {
         const vehicle = vehicleLookupMap.get(rental.vehicleId);
 
         return (
-          rental.customerName?.toLowerCase().includes(query) ||
-          rental.customer?.email?.toLowerCase().includes(query) ||
-          rental.customer?.phone?.toLowerCase().includes(query) ||
-          vehicle?.licensePlate?.toLowerCase().includes(query) ||
-          vehicle?.brand?.toLowerCase().includes(query) ||
-          vehicle?.model?.toLowerCase().includes(query) ||
-          vehicle?.company?.toLowerCase().includes(query) ||
-          rental.id?.toLowerCase().includes(query)
+          textContains(rental.customerName, query) ||
+          textContains(rental.customer?.email, query) ||
+          textContains(rental.customer?.phone, query) ||
+          textContains(vehicle?.licensePlate, query) ||
+          textContains(vehicle?.brand, query) ||
+          textContains(vehicle?.model, query) ||
+          textContains(vehicle?.company, query) ||
+          textContains(rental.id, query)
         );
       });
     }
@@ -274,9 +275,9 @@ export const useRentalFilters = ({
 
     // Customer name filter
     if (advancedFilters.customerName.trim()) {
-      const customerQuery = advancedFilters.customerName.toLowerCase().trim();
+      const customerQuery = advancedFilters.customerName.trim();
       filtered = filtered.filter(rental =>
-        rental.customerName?.toLowerCase().includes(customerQuery)
+        textContains(rental.customerName, customerQuery)
       );
     }
 
@@ -293,10 +294,10 @@ export const useRentalFilters = ({
 
     // License plate filter
     if (advancedFilters.licensePlate.trim()) {
-      const plateQuery = advancedFilters.licensePlate.toLowerCase().trim();
+      const plateQuery = advancedFilters.licensePlate.trim();
       filtered = filtered.filter(rental => {
         const vehicle = vehicleLookupMap.get(rental.vehicleId);
-        return vehicle?.licensePlate?.toLowerCase().includes(plateQuery);
+        return textContains(vehicle?.licensePlate, plateQuery);
       });
     }
 

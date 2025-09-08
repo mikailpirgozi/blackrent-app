@@ -234,29 +234,33 @@ class ImapEmailService {
             return;
           }
 
-          console.log('📭 IMAP: Žiadne nové objednávky (UNSEEN), skúšam objednávky z dnešného dňa...');
+          console.log('📭 IMAP: Žiadne nové objednávky (UNSEEN), skúšam objednávky z posledných 3 dní...');
           
-          // Ak nie sú UNSEEN objednávky, skús objednávky z dnešného dňa
-          const today = new Date();
-          const todayStr = today.toLocaleDateString('en-US', { 
+          // Ak nie sú UNSEEN objednávky, skús objednávky z posledných 3 dní
+          const threeDaysAgo = new Date();
+          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+          const threeDaysAgoStr = threeDaysAgo.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric', 
             year: 'numeric' 
-          }); // napr. "Aug 23, 2025"
+          }); // napr. "Sep 5, 2025"
           
-          this.imap!.search([['SINCE', todayStr], ['SUBJECT', 'Objednávka od zákaznika']], (err2: Error | null, dateResults?: ImapSearchResults) => {
+          console.log(`🔍 IMAP DEBUG: Hľadám objednávky od ${threeDaysAgoStr} (posledné 3 dni)`);
+          
+          this.imap!.search([['SINCE', threeDaysAgoStr], ['SUBJECT', 'Objednávka od zákaznika']], (err2: Error | null, dateResults?: ImapSearchResults) => {
             if (err2) {
+              console.error('❌ IMAP: Chyba pri hľadaní objednávok z posledných 3 dní:', err2);
               reject(err2);
               return;
             }
             
             if (dateResults && dateResults.length > 0) {
-              console.log(`📧 IMAP: Našiel som ${dateResults.length} OBJEDNÁVOK z dnešného dňa (${todayStr})`);
+              console.log(`📧 IMAP: Našiel som ${dateResults.length} OBJEDNÁVOK z posledných 3 dní (od ${threeDaysAgoStr})`);
               this.processFetchedEmails(dateResults, resolve, reject);
               return;
             }
             
-            console.log(`📭 IMAP: Žiadne objednávky z dnešného dňa (${todayStr})`);
+            console.log(`📭 IMAP: Žiadne objednávky z posledných 3 dní (od ${threeDaysAgoStr})`);
             resolve();
           });
         });
@@ -896,8 +900,8 @@ class ImapEmailService {
       const result = await postgresDatabase.query(`
         INSERT INTO email_processing_history (
           email_id, message_id, subject, sender, email_content, email_html,
-          received_at, status, confidence_score, parsed_data, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+          received_at, status, confidence_score, parsed_data, step, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
         ON CONFLICT (email_id) DO UPDATE SET
           updated_at = CURRENT_TIMESTAMP
         RETURNING id
@@ -911,7 +915,8 @@ class ImapEmailService {
         emailData.date,
         'new',
         0.0,
-        JSON.stringify(parsedData)
+        JSON.stringify(parsedData),
+        'email_received' // Default step value for IMAP emails
       ]);
       
       const historyId = (result as QueryResult).rows[0].id as string;

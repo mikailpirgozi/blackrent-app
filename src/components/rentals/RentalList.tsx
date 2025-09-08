@@ -927,7 +927,7 @@ export default function RentalList() {
 
       {/* 🚀 EXTRACTED: RentalTable komponent */}
       <RentalTable
-        paginatedRentals={searchTerm ? rentals : filteredRentals}
+        paginatedRentals={searchTerm ? filteredRentals : rentals}
         isMobile={isMobile}
         handleEdit={handleEdit}
         handleDelete={handleDelete}
