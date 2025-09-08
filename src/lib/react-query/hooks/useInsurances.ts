@@ -155,65 +155,16 @@ export function useCreateInsurance() {
       }
     },
     onSuccess: (data, variables) => {
-      // Update cache with server response (replace optimistic data)
-      queryClient.setQueryData(
-        queryKeys.insurances.lists(),
-        (old: Insurance[] = []) => {
-          // Remove optimistic entry and add real one
-          const withoutOptimistic = old.filter(i => !i.id.startsWith('temp-'));
-          return [data, ...withoutOptimistic];
-        }
-      );
-
-      // Update vehicle-specific cache
-      if (variables.vehicleId) {
-        queryClient.setQueryData(
-          queryKeys.insurances.byVehicle(variables.vehicleId),
-          (old: Insurance[] = []) => {
-            const withoutOptimistic = old.filter(
-              i => !i.id.startsWith('temp-')
-            );
-            return [data, ...withoutOptimistic];
-          }
-        );
-      }
-
-      // Update ALL paginated queries with server response
-      queryClient.setQueriesData(
-        { queryKey: queryKeys.insurances.paginated() },
-        (old: unknown) => {
-          const oldData = old as
-            | { insurances?: Insurance[]; pagination?: { totalItems?: number } }
-            | undefined;
-          if (oldData?.insurances) {
-            const withoutOptimistic = oldData.insurances.filter(
-              i => !i.id.startsWith('temp-')
-            );
-            return {
-              ...oldData,
-              insurances: [data, ...withoutOptimistic],
-              pagination: {
-                ...oldData.pagination,
-                totalItems: (oldData.pagination?.totalItems || 0) + 1,
-              },
-            };
-          }
-          return old;
-        }
-      );
-
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-created', { detail: variables })
       );
     },
-    onSettled: (data, error) => {
-      // Only invalidate on error to get fresh data
-      if (error) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.insurances.all,
-        });
-      }
+    onSettled: () => {
+      // Always invalidate to get fresh data from server
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.insurances.all,
+      });
     },
   });
 }
@@ -286,54 +237,16 @@ export function useUpdateInsurance() {
       }
     },
     onSuccess: (data, variables) => {
-      // Update cache with server response
-      queryClient.setQueryData(queryKeys.insurances.detail(variables.id), data);
-
-      // Update list cache with server response
-      queryClient.setQueryData(
-        queryKeys.insurances.lists(),
-        (old: Insurance[] = []) =>
-          old.map(i => (i.id === variables.id ? data : i))
-      );
-
-      // Update vehicle-specific cache
-      if (variables.vehicleId) {
-        queryClient.setQueryData(
-          queryKeys.insurances.byVehicle(variables.vehicleId),
-          (old: Insurance[] = []) =>
-            old.map(i => (i.id === variables.id ? data : i))
-        );
-      }
-
-      // Update ALL paginated queries with server response
-      queryClient.setQueriesData(
-        { queryKey: queryKeys.insurances.paginated() },
-        (old: unknown) => {
-          const oldData = old as { insurances?: Insurance[] } | undefined;
-          if (oldData?.insurances) {
-            return {
-              ...oldData,
-              insurances: oldData.insurances.map((i: Insurance) =>
-                i.id === variables.id ? data : i
-              ),
-            };
-          }
-          return old;
-        }
-      );
-
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-updated', { detail: variables })
       );
     },
-    onSettled: (data, error) => {
-      // Only invalidate on error to get fresh data
-      if (error) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.insurances.all,
-        });
-      }
+    onSettled: () => {
+      // Always invalidate to get fresh data from server
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.insurances.all,
+      });
     },
   });
 }
@@ -419,19 +332,16 @@ export function useDeleteInsurance() {
       }
     },
     onSuccess: (data, variables) => {
-      // Cache is already updated optimistically, no need to update again
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-deleted', { detail: { id: variables } })
       );
     },
-    onSettled: (data, error) => {
-      // Only invalidate on error to get fresh data
-      if (error) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.insurances.all,
-        });
-      }
+    onSettled: () => {
+      // Always invalidate to get fresh data from server
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.insurances.all,
+      });
     },
   });
 }
