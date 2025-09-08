@@ -642,6 +642,12 @@ export default function RentalList() {
       desktopContainer.addEventListener('scroll', handler, { passive: true });
     }
 
+    // Setup mobile scroll listener
+    const mobileContainer = mobileScrollRef.current;
+    if (isMobile && mobileContainer && handler) {
+      mobileContainer.addEventListener('scroll', handler, { passive: true });
+    }
+
     // Setup mobile handler reference (used by React Window)
     if (isMobile && handler) {
       (
@@ -663,6 +669,11 @@ export default function RentalList() {
       // Remove desktop scroll listener
       if (!isMobile && desktopContainer && handler) {
         desktopContainer.removeEventListener('scroll', handler);
+      }
+
+      // Remove mobile scroll listener
+      if (isMobile && mobileContainer && handler) {
+        mobileContainer.removeEventListener('scroll', handler);
       }
 
       // Remove mobile handler reference

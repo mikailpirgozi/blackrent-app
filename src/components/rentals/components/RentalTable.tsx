@@ -72,7 +72,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   protocols,
   filteredRentals,
   desktopScrollRef,
-  // mobileScrollRef,
+  mobileScrollRef,
   isLoadingProtocolStatus,
   protocolStatusLoaded,
   handleCheckProtocols,
@@ -111,6 +111,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
       {isMobile ? (
         /* MOBILNÝ KARTOVÝ DIZAJN PRE PRENÁJMY */
         <Box
+          ref={mobileScrollRef}
           sx={{
             mx: 1, // Rovnaký margin ako ostatné komponenty
             py: 2,
