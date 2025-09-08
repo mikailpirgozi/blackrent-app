@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
-import { useApp } from '../context/AppContext';
+import { useDeleteRental } from '@/lib/react-query/hooks/useRentals';
+// import { useApp } from '../context/AppContext'; // Removed unused import
 import type { Rental } from '../types';
 import { logger } from '../utils/logger';
 
@@ -38,7 +39,8 @@ export const useRentalActions = ({
   onDelete,
   onScrollRestore,
 }: UseRentalActionsProps = {}): UseRentalActionsReturn => {
-  const { deleteRental } = useApp();
+  // const { deleteRental: legacyDeleteRental } = useApp(); // Removed unused variable
+  const deleteRentalMutation = useDeleteRental();
 
   // Dialog state
   const [openDialog, setOpenDialog] = useState(false);
@@ -90,13 +92,16 @@ export const useRentalActions = ({
     [onEdit]
   );
 
-  // Delete handler
+  // Delete handler - now using React Query with optimistic updates
   const handleDelete = useCallback(
     async (id: string) => {
       if (window.confirm('Naozaj chcete vymazať tento prenájom?')) {
         try {
-          await deleteRental(id);
-          logger.info('Rental deleted successfully', { rentalId: id });
+          // 🚀 REACT QUERY: Use mutation with optimistic updates
+          await deleteRentalMutation.mutateAsync(id);
+          logger.info('Rental deleted successfully with React Query', {
+            rentalId: id,
+          });
 
           // Call external delete handler if provided
           if (onDelete) {
@@ -104,10 +109,12 @@ export const useRentalActions = ({
           }
         } catch (error) {
           logger.error('Failed to delete rental', { rentalId: id, error });
+          // Show error to user
+          alert('Chyba pri mazaní prenájmu. Skúste to znovu.');
         }
       }
     },
-    [deleteRental, onDelete]
+    [deleteRentalMutation, onDelete]
   );
 
   // View rental handler (alias for edit)

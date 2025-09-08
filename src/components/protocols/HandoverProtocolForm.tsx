@@ -555,7 +555,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         // Return result for email status handling - React Query returns protocol directly
         return {
-          protocol: protocolData,
+          protocol: protocolData || null,
           email:
             emailInfo || (result && 'email' in result)
               ? (result.email as {
@@ -1189,12 +1189,17 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 label="Stav tachometra (km) *"
                 type="number"
                 value={formData.odometer || ''}
-                onChange={e =>
-                  handleInputChange(
-                    'odometer',
-                    e.target.value ? parseInt(e.target.value) : undefined
-                  )
-                }
+                onChange={e => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleInputChange('odometer', undefined);
+                  } else {
+                    const numValue = parseInt(value, 10);
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleInputChange('odometer', numValue);
+                    }
+                  }
+                }}
                 fullWidth
                 required
                 helperText="Aktuálny stav kilometrov na vozidle"

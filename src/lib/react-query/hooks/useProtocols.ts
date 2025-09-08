@@ -40,10 +40,10 @@ export function useReturnProtocol(rentalId: string) {
 // GET bulk protocol status for all rentals
 export function useBulkProtocolStatus() {
   return useQuery({
-    queryKey: queryKeys.protocols.bulkStatus,
+    queryKey: queryKeys.protocols.bulkStatus(),
     queryFn: () => apiService.getBulkProtocolStatus(),
     staleTime: 60000, // 1 minúta
-    cacheTime: 5 * 60000, // 5 minút
+    gcTime: 5 * 60000, // 5 minút (predtým cacheTime)
   });
 }
 
@@ -53,7 +53,7 @@ export function useAllProtocolsForStats() {
     queryKey: queryKeys.protocols.allForStats,
     queryFn: () => apiService.getAllProtocolsForStats(),
     staleTime: 60000, // 1 minúta
-    cacheTime: 5 * 60000, // 5 minút
+    gcTime: 5 * 60000, // 5 minút (predtým cacheTime)
   });
 }
 

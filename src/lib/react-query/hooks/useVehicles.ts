@@ -14,7 +14,7 @@ export interface VehicleFilters {
 // GET vehicles
 export function useVehicles(filters?: VehicleFilters) {
   return useQuery({
-    queryKey: queryKeys.vehicles.list(filters),
+    queryKey: queryKeys.vehicles.list(filters as Record<string, unknown>),
     queryFn: () => apiService.getVehicles(),
     staleTime: 5 * 60 * 1000, // 5 minút - vehicles sa nemenia často
     select: (data: Vehicle[]) => {

@@ -16,7 +16,7 @@ export interface RentalFilters {
 // GET rentals
 export function useRentals(filters?: RentalFilters) {
   return useQuery({
-    queryKey: queryKeys.rentals.list(filters),
+    queryKey: queryKeys.rentals.list(filters as Record<string, unknown>),
     queryFn: () => apiService.getRentals(),
     staleTime: 1 * 60 * 1000, // 1 minúta - rentals sa menia často
     refetchInterval: 30000, // Auto-refresh každých 30 sekúnd

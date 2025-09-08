@@ -20,6 +20,7 @@ import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 
 // 🚀 EXTRACTED: Import all our refactored components and hooks
 import { useBulkProtocolStatus } from '@/lib/react-query/hooks/useProtocols';
+import { useRentals } from '@/lib/react-query/hooks/useRentals';
 import { useRentalActions } from '../../hooks/useRentalActions';
 import { useRentalFilters } from '../../hooks/useRentalFilters';
 import { useRentalProtocols } from '../../hooks/useRentalProtocols';
@@ -104,7 +105,14 @@ export default function RentalList() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // 🚀 INFINITE SCROLL: Use infinite rentals hook instead of state.rentals
+  // 🚀 REACT QUERY: Use React Query for rentals with instant updates
+  const {
+    data: allRentals = [],
+    isLoading: rentalsLoading,
+    error: rentalsError,
+  } = useRentals();
+
+  // 🚀 INFINITE SCROLL: Keep infinite scroll for performance but use React Query data
   const {
     rentals: paginatedRentals,
     loading: paginatedLoading,
@@ -117,6 +125,11 @@ export default function RentalList() {
     refresh,
     updateFilters,
   } = useInfiniteRentals();
+
+  // 🚀 HYBRID: Use React Query data when available, fallback to infinite scroll
+  const rentals = allRentals.length > 0 ? allRentals : paginatedRentals;
+  const loading = rentalsLoading || paginatedLoading;
+  const error = rentalsError || paginatedError;
 
   // 🔍 DEBUG: Základné informácie o komponente - OPTIMIZED: Only log once
   const debugLoggedRef = useRef(false);
@@ -199,7 +212,7 @@ export default function RentalList() {
     handleQuickFilter,
     resetFilters,
   } = useRentalFilters({
-    rentals: paginatedRentals,
+    rentals: rentals, // Use hybrid rentals data
     vehicles: (state.vehicles || []) as unknown as Record<string, unknown>[],
     protocols: protocolsHook.protocols,
   });
@@ -426,7 +439,7 @@ export default function RentalList() {
   const createScrollHandler = useCallback(() => {
     return (event: Event) => {
       // Skip if already loading or no more data
-      if (paginatedLoading || !hasMore) {
+      if (loading || !hasMore) {
         return;
       }
 
@@ -448,7 +461,7 @@ export default function RentalList() {
         // Calculate scroll percentage based on event type
         if ('scrollOffset' in event && typeof event.scrollOffset === 'number') {
           // Virtual scroll from React Window (mobile)
-          const totalHeight = paginatedRentals.length * 160; // itemSize * count
+          const totalHeight = rentals.length * 160; // itemSize * count
           const viewportHeight = 600;
           const maxScroll = Math.max(1, totalHeight - viewportHeight);
           scrollPercentage = event.scrollOffset / maxScroll;
@@ -492,7 +505,7 @@ export default function RentalList() {
         }
       }, DEBOUNCE_DELAY);
     };
-  }, [paginatedLoading, hasMore, paginatedRentals.length, handleLoadMore]);
+  }, [loading, hasMore, rentals.length, handleLoadMore]);
 
   // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance
   const vehicleLookupMap = useMemo(() => {
@@ -813,14 +826,16 @@ export default function RentalList() {
   ]);
 
   // Error handling
-  if (paginatedError) {
+  if (error) {
     return (
       <DefaultCard sx={{ textAlign: 'center' }}>
         <Typography variant="h6" color="error" gutterBottom>
           Chyba pri načítavaní prenájmov
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {paginatedError}
+          {typeof error === 'string'
+            ? error
+            : error?.message || 'Neznáma chyba'}
         </Typography>
         <PrimaryButton onClick={() => window.location.reload()}>
           Obnoviť stránku
@@ -835,7 +850,7 @@ export default function RentalList() {
       <RentalStats
         rentals={filteredRentals}
         protocols={protocolsHook.protocols}
-        isLoading={paginatedLoading}
+        isLoading={loading}
         onQuickFilter={handleQuickFilter}
       />
 
@@ -885,7 +900,7 @@ export default function RentalList() {
 
       {/* 🚀 EXTRACTED: RentalTable komponent */}
       <RentalTable
-        paginatedRentals={searchTerm ? paginatedRentals : filteredRentals}
+        paginatedRentals={searchTerm ? rentals : filteredRentals}
         isMobile={isMobile}
         handleEdit={handleEdit}
         handleDelete={handleDelete}
@@ -978,7 +993,7 @@ export default function RentalList() {
       />
 
       {/* Load more button for desktop */}
-      {!paginatedLoading && hasMore && (
+      {!loading && hasMore && (
         <Box
           sx={{
             display: { xs: 'none', md: 'flex' },
@@ -998,7 +1013,7 @@ export default function RentalList() {
       )}
 
       {/* End of data indicator */}
-      {!hasMore && paginatedRentals.length > 0 && (
+      {!hasMore && rentals.length > 0 && (
         <Box
           sx={{
             textAlign: 'center',
@@ -1009,7 +1024,7 @@ export default function RentalList() {
           }}
         >
           <Typography variant="body1" color="success.main" fontWeight={500}>
-            ✅ Všetky prenájmy načítané ({paginatedRentals.length} celkom)
+            ✅ Všetky prenájmy načítané ({rentals.length} celkom)
           </Typography>
         </Box>
       )}
