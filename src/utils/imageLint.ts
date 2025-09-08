@@ -6,7 +6,8 @@
 const MAX_SIZE_MB = 10;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const MAX_WIDTH = 1920;
-const WEBP_QUALITY = 0.85;
+const WEBP_QUALITY = 0.95; // ✅ ZVÝŠENÉ: 95% kvalita pre originál
+const PDF_QUALITY = 0.8; // ✅ NOVÉ: 80% kvalita pre PDF
 
 const SUPPORTED_TYPES = [
   'image/jpeg',
@@ -26,10 +27,19 @@ interface ImageDimensions {
 /**
  * Validates and optimizes an uploaded image file
  * @param file - The image file to lint
+ * @param options - Processing options
  * @returns Promise<File> - Optimized WebP file
  * @throws Error if file is invalid (too large, unsupported type)
  */
-export async function lintImage(file: File): Promise<File> {
+export async function lintImage(
+  file: File,
+  options?: {
+    preserveQuality?: boolean;
+    targetFormat?: 'webp' | 'jpeg';
+    quality?: number;
+    maxWidth?: number;
+  }
+): Promise<File> {
   // Validate file size
   if (file.size > MAX_SIZE_BYTES) {
     throw new Error(
@@ -49,7 +59,8 @@ export async function lintImage(file: File): Promise<File> {
     const { imageBitmap, originalDimensions } = await loadImage(file);
 
     // Calculate new dimensions if resizing is needed
-    const newDimensions = calculateNewDimensions(originalDimensions);
+    const maxWidth = options?.maxWidth ?? MAX_WIDTH;
+    const newDimensions = calculateNewDimensions(originalDimensions, maxWidth);
 
     // Create canvas and draw image with proper orientation and size
     const canvas = document.createElement('canvas');
@@ -65,13 +76,22 @@ export async function lintImage(file: File): Promise<File> {
     // Draw the image (browser handles EXIF rotation automatically with createImageBitmap)
     ctx.drawImage(imageBitmap, 0, 0, newDimensions.width, newDimensions.height);
 
-    // Convert to WebP
-    const webpFile = await canvasToWebPFile(canvas, file.name);
+    // Convert to target format with specified quality
+    const targetFormat = options?.targetFormat ?? 'webp';
+    const quality =
+      options?.quality ??
+      (targetFormat === 'webp' ? WEBP_QUALITY : PDF_QUALITY);
+    const processedFile = await canvasToFile(
+      canvas,
+      file.name,
+      targetFormat,
+      quality
+    );
 
     // Clean up
     imageBitmap.close();
 
-    return webpFile;
+    return processedFile;
   } catch (error) {
     throw new Error(
       `Chyba pri spracovaní obrázka: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
@@ -108,46 +128,54 @@ async function loadImage(
 /**
  * Calculates new dimensions if resizing is needed
  */
-function calculateNewDimensions(original: ImageDimensions): ImageDimensions {
-  if (original.width <= MAX_WIDTH) {
+function calculateNewDimensions(
+  original: ImageDimensions,
+  maxWidth: number = MAX_WIDTH
+): ImageDimensions {
+  if (original.width <= maxWidth) {
     return original;
   }
 
-  const ratio = MAX_WIDTH / original.width;
+  const ratio = maxWidth / original.width;
   return {
-    width: MAX_WIDTH,
+    width: maxWidth,
     height: Math.round(original.height * ratio),
   };
 }
 
 /**
- * Converts canvas to WebP File
+ * Converts canvas to File with specified format and quality
  */
-async function canvasToWebPFile(
+async function canvasToFile(
   canvas: HTMLCanvasElement,
-  originalFileName: string
+  originalFileName: string,
+  format: 'webp' | 'jpeg',
+  quality: number
 ): Promise<File> {
   return new Promise((resolve, reject) => {
+    const mimeType = format === 'webp' ? 'image/webp' : 'image/jpeg';
+
     canvas.toBlob(
       blob => {
         if (!blob) {
-          reject(new Error('Nepodarilo sa vytvoriť WebP blob'));
+          reject(new Error(`Nepodarilo sa vytvoriť ${format} blob`));
           return;
         }
 
-        // Create new filename with .webp extension
+        // Create new filename with correct extension
         const nameWithoutExt = originalFileName.replace(/\.[^/.]+$/, '');
-        const webpFileName = `${nameWithoutExt}.webp`;
+        const extension = format === 'webp' ? 'webp' : 'jpg';
+        const newFileName = `${nameWithoutExt}.${extension}`;
 
-        const webpFile = new File([blob], webpFileName, {
-          type: 'image/webp',
+        const file = new File([blob], newFileName, {
+          type: mimeType,
           lastModified: Date.now(),
         });
 
-        resolve(webpFile);
+        resolve(file);
       },
-      'image/webp',
-      WEBP_QUALITY
+      mimeType,
+      quality
     );
   });
 }
@@ -166,3 +194,85 @@ export function formatFileSize(bytes: number): string {
   const mb = bytes / 1024 / 1024;
   return `${mb.toFixed(2)} MB`;
 }
+
+/**
+ * 🌟 NOVÉ: Vytvorenie komprimovanej verzie pre PDF
+ */
+export async function compressForPDF(file: File): Promise<File> {
+  return await lintImage(file, {
+    preserveQuality: false,
+    targetFormat: 'jpeg',
+    quality: PDF_QUALITY,
+    maxWidth: 1200, // Menšie rozlíšenie pre PDF
+  });
+}
+
+/**
+ * 🌟 NOVÉ: Zachovanie plnej kvality pre galériu
+ */
+export async function preserveQualityForGallery(file: File): Promise<File> {
+  return await lintImage(file, {
+    preserveQuality: true,
+    targetFormat: 'webp',
+    quality: WEBP_QUALITY,
+    maxWidth: MAX_WIDTH, // Zachovaj pôvodné rozlíšenie
+  });
+}
+
+/**
+ * 🌟 NOVÉ: Inteligentná kompresia s WebP fallback
+ */
+export async function compressImageSmart(
+  file: File,
+  preferWebP: boolean = true,
+  qualityLevel: 'mobile' | 'protocol' | 'highQuality' | 'archive' = 'protocol'
+): Promise<File> {
+  // Detekcia WebP podpory
+  const webPSupported = await isWebPSupported();
+
+  if (preferWebP && webPSupported) {
+    // WebP profily
+    const webPProfiles = {
+      mobile: { quality: 0.8, maxWidth: 1920 },
+      protocol: { quality: 0.85, maxWidth: 2560 },
+      highQuality: { quality: 0.9, maxWidth: 3840 },
+      archive: { quality: 0.95, maxWidth: 4096 },
+    };
+
+    const profile = webPProfiles[qualityLevel];
+    return await lintImage(file, {
+      targetFormat: 'webp',
+      quality: profile.quality,
+      maxWidth: profile.maxWidth,
+    });
+  } else {
+    // JPEG fallback
+    const jpegProfiles = {
+      mobile: { quality: 0.85, maxWidth: 1920 },
+      protocol: { quality: 0.92, maxWidth: 2560 },
+      highQuality: { quality: 0.95, maxWidth: 3840 },
+      archive: { quality: 0.98, maxWidth: 4096 },
+    };
+
+    const profile = jpegProfiles[qualityLevel];
+    return await lintImage(file, {
+      targetFormat: 'jpeg',
+      quality: profile.quality,
+      maxWidth: profile.maxWidth,
+    });
+  }
+}
+
+/**
+ * 🌟 NOVÉ: WebP podpora detekcia
+ */
+export const isWebPSupported = (): Promise<boolean> => {
+  return new Promise(resolve => {
+    const webP = new Image();
+    webP.onload = webP.onerror = () => {
+      resolve(webP.height === 2);
+    };
+    webP.src =
+      'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+  });
+};

@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isWebPSupported } from '../../utils/imageLint';
 import { logger } from '../../utils/logger';
 
 interface NativeCameraProps {
@@ -65,6 +66,7 @@ export default function NativeCamera({
 
   const [capturing, setCapturing] = useState(false);
   const [photosInSession, setPhotosInSession] = useState(0);
+  const [webPSupported, setWebPSupported] = useState<boolean | null>(null);
 
   // Inicializácia kamery
   const initCamera = useCallback(
@@ -232,6 +234,11 @@ export default function NativeCamera({
     []
   ); // Prázdne dependencies!
 
+  // 🔍 Detekcia WebP podpory pri načítaní
+  useEffect(() => {
+    isWebPSupported().then(setWebPSupported);
+  }, []);
+
   // Spustenie kamery pri otvorení dialógu
   useEffect(() => {
     if (open) {
@@ -315,29 +322,35 @@ export default function NativeCamera({
       // Vykreslenie aktuálneho frame z videa na canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 🌟 NOVÉ: Pokus o WebP, fallback na JPEG - PLNÁ KVALITA pre galériu
-      const tryWebP = () => {
-        canvas.toBlob(
-          blob => {
-            if (blob) {
-              logger.debug(
-                '✅ WebP capture successful, size:',
-                (blob.size / 1024).toFixed(1) + 'KB'
-              );
-              onCapture(blob);
-              setPhotosInSession(prev => prev + 1);
-              setTimeout(() => setCapturing(false), 200);
-            } else {
-              console.warn('⚠️ WebP failed, trying JPEG fallback');
-              tryJPEG();
-            }
-          },
-          'image/webp',
-          1.0 // 🔧 OPRAVA: Plná kvalita pre galériu (100%)
-        );
+      // 🌟 NOVÉ: Inteligentná WebP konverzia s fallback
+      const captureWithFormat = () => {
+        if (webPSupported) {
+          // WebP capture s plnou kvalitou
+          canvas.toBlob(
+            blob => {
+              if (blob) {
+                logger.debug(
+                  '✅ WebP capture successful, size:',
+                  (blob.size / 1024).toFixed(1) + 'KB'
+                );
+                onCapture(blob);
+                setPhotosInSession(prev => prev + 1);
+                setTimeout(() => setCapturing(false), 200);
+              } else {
+                console.warn('⚠️ WebP failed, trying JPEG fallback');
+                captureJPEG();
+              }
+            },
+            'image/webp',
+            0.95 // 95% kvalita pre WebP (lepšia kompresia)
+          );
+        } else {
+          // Priamy JPEG capture
+          captureJPEG();
+        }
       };
 
-      const tryJPEG = () => {
+      const captureJPEG = () => {
         canvas.toBlob(
           blob => {
             if (blob) {
@@ -350,16 +363,16 @@ export default function NativeCamera({
               setTimeout(() => setCapturing(false), 200);
             } else {
               setCapturing(false);
-              console.error('❌ Both WebP and JPEG capture failed');
+              console.error('❌ JPEG capture failed');
             }
           },
           'image/jpeg',
-          1.0 // 🔧 OPRAVA: Plná kvalita pre galériu (100%)
+          0.95 // 95% kvalita pre JPEG
         );
       };
 
-      // Skús WebP najprv, ak zlyhá použije JPEG
-      tryWebP();
+      // Spusti capture s detekovaným formátom
+      captureWithFormat();
     } catch (error) {
       console.error('Chyba pri zachytávaní fotky:', error);
       setCapturing(false);
@@ -368,7 +381,14 @@ export default function NativeCamera({
           (error instanceof Error ? error.message : 'Neznáma chyba')
       );
     }
-  }, [capturing, currentPhotoCount, photosInSession, maxPhotos, onCapture]);
+  }, [
+    capturing,
+    currentPhotoCount,
+    photosInSession,
+    maxPhotos,
+    onCapture,
+    webPSupported,
+  ]);
 
   // Keyboard shortcuts (medzerník = fotka!)
   useEffect(() => {
@@ -421,6 +441,21 @@ export default function NativeCamera({
           {title}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {webPSupported !== null && (
+            <Chip
+              label={webPSupported ? 'WebP ✅' : 'JPEG'}
+              size="small"
+              color={webPSupported ? 'success' : 'default'}
+              sx={{
+                color: 'white',
+                borderColor: 'white',
+                bgcolor: webPSupported
+                  ? 'rgba(76, 175, 80, 0.3)'
+                  : 'rgba(255, 255, 255, 0.1)',
+              }}
+              variant="outlined"
+            />
+          )}
           <Chip
             label={`${currentPhotoCount + photosInSession}/${maxPhotos}`}
             size="small"

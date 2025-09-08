@@ -31,8 +31,11 @@ import { getApiBaseUrl } from '../../utils/apiUrl';
 
 import { useUploadFile } from '../../lib/react-query/hooks/useFileUpload';
 import type { ProtocolImage, ProtocolVideo } from '../../types';
-import { compressImage, isWebPSupported } from '../../utils/imageCompression';
-import { lintImage } from '../../utils/imageLint';
+import { isWebPSupported } from '../../utils/imageCompression';
+import {
+  compressForPDF,
+  preserveQualityForGallery,
+} from '../../utils/imageLint';
 
 // import { Grid } from '@mui/material';
 
@@ -163,26 +166,15 @@ export default function SerialPhotoCapture({
   const createCompressedVersion = useCallback(
     async (file: File): Promise<File> => {
       try {
-        const compressed = await compressImage(file, {
-          maxWidth: 1200, // 🔧 ZLEPŠENÉ: Väčšie rozlíšenie pre lepšiu kvalitu v PDF
-          maxHeight: 900, // 🔧 ZLEPŠENÉ: Väčšie rozlíšenie pre lepšiu kvalitu v PDF
-          quality: 0.8, // 🔧 ZLEPŠENÉ: Vyššia kvalita (80% namiesto 60%)
-          maxSize: 300, // 🔧 ZLEPŠENÉ: Väčší limit (300KB namiesto 100KB)
-          format: 'image/jpeg',
-        });
-
-        const compressedFile = new File(
-          [compressed.compressedBlob],
-          file.name
-            .replace('.jpg', '_compressed.jpg')
-            .replace('.webp', '_compressed.jpg'),
-          { type: 'image/jpeg' }
-        );
+        // ✅ POUŽITIE NOVEJ FUNKCIE: compressForPDF
+        const compressedFile = await compressForPDF(file);
 
         logger.debug('✅ Image compressed for PDF:', {
           original: (file.size / 1024).toFixed(1) + 'KB',
           compressed: (compressedFile.size / 1024).toFixed(1) + 'KB',
-          ratio: compressed.compressionRatio.toFixed(1) + '%',
+          ratio:
+            (((file.size - compressedFile.size) / file.size) * 100).toFixed(1) +
+            '%',
         });
 
         return compressedFile;
@@ -398,12 +390,12 @@ export default function SerialPhotoCapture({
             setProgress((processedCount / files.length) * 50);
 
             try {
-              // 🚀 NOVÉ: Použitie imageLint pre validáciu a optimalizáciu
-              processedFile = await lintImage(file);
+              // ✅ NOVÉ: Použitie preserveQualityForGallery pre zachovanie kvality
+              processedFile = await preserveQualityForGallery(file);
               compressed = true;
               compressedSize = processedFile.size;
 
-              logger.debug('✅ Image linted successfully:', {
+              logger.debug('✅ Image processed with quality preservation:', {
                 originalName: file.name,
                 originalSize: originalSize,
                 originalType: file.type,
@@ -542,10 +534,18 @@ export default function SerialPhotoCapture({
   // Handler pre natívnu kameru
   const handleNativeCapture = useCallback(
     async (imageBlob: Blob) => {
-      // Konvertuj Blob na File
-      const file = new File([imageBlob], `photo_${Date.now()}.jpg`, {
-        type: 'image/jpeg',
-      });
+      // ✅ NOVÉ: Konvertuj Blob na WebP File ak je podporovaný
+      const webPSupported = await isWebPSupported();
+      const fileExtension = webPSupported ? 'webp' : 'jpg';
+      const mimeType = webPSupported ? 'image/webp' : 'image/jpeg';
+
+      const file = new File(
+        [imageBlob],
+        `photo_${Date.now()}.${fileExtension}`,
+        {
+          type: mimeType,
+        }
+      );
 
       // Vytvor dočasný preview URL
       const preview = URL.createObjectURL(imageBlob);

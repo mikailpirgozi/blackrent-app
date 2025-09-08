@@ -187,16 +187,20 @@ class R2Storage {
   }
 
   /**
-   * Generovanie lepšie organizovaných kľúčov pre súbory
+   * 🌟 NOVÉ: Generovanie lepšie organizovaných kľúčov pre súbory s WebP podporou
    */
   generateFileKey(
     type: 'vehicle' | 'protocol' | 'document' | 'company-document', 
     entityId: string, 
     filename: string,
-    mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf' | 'contract' | 'invoice' | 'technical-certificate'
+    mediaType?: 'vehicle-images' | 'document-images' | 'damage-images' | 'vehicle-videos' | 'pdf' | 'contract' | 'invoice' | 'technical-certificate',
+    preserveExtension?: boolean // ✅ NOVÉ: Zachovať pôvodné extension
   ): string {
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // ✅ NOVÉ: Zachovať WebP extension ak je to WebP súbor
+    const sanitizedFilename = preserveExtension 
+      ? filename.replace(/[^a-zA-Z0-9.-]/g, '_')
+      : filename.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.(jpg|jpeg|png)$/i, '.webp');
     
     switch (type) {
       case 'vehicle':
@@ -380,10 +384,12 @@ class R2Storage {
     const allowedTypes = [
       'image/jpeg',
       'image/png',
-      'image/webp',
+      'image/webp', // ✅ WebP už je podporovaný
       'image/gif',
       'application/pdf',
-      'image/svg+xml'
+      'image/svg+xml',
+      'video/mp4', // ✅ Pridané video podporu
+      'video/webm' // ✅ Pridané video podporu
     ];
 
     return allowedTypes.includes(mimetype);
@@ -476,13 +482,17 @@ class R2Storage {
       case 'png':
         return 'image/png';
       case 'webp':
-        return 'image/webp';
+        return 'image/webp'; // ✅ WebP podpora
       case 'gif':
         return 'image/gif';
       case 'pdf':
         return 'application/pdf';
       case 'svg':
         return 'image/svg+xml';
+      case 'mp4':
+        return 'video/mp4'; // ✅ Video podpora
+      case 'webm':
+        return 'video/webm'; // ✅ Video podpora
       default:
         return 'application/octet-stream';
     }
