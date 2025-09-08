@@ -16,7 +16,7 @@ export function useInsurances(filters?: InsuranceFilters) {
   return useQuery({
     queryKey: queryKeys.insurances.list(filters),
     queryFn: () => apiService.getInsurances(),
-    staleTime: 2 * 60 * 1000, // 2 minúty
+    staleTime: 0, // Vždy fresh data po invalidácii
     select: data => {
       if (!filters) return data;
 
@@ -55,7 +55,7 @@ export function useInsurancesPaginated(params: {
   return useQuery({
     queryKey: queryKeys.insurances.paginated(params),
     queryFn: () => apiService.getInsurancesPaginated(params),
-    staleTime: 1 * 60 * 1000, // 1 minúta
+    staleTime: 0, // Vždy fresh data po invalidácii
     placeholderData: previousData => previousData, // Pre smooth pagination
   });
 }
@@ -79,7 +79,7 @@ export function useInsurancesByVehicle(vehicleId: string) {
     queryFn: () => apiService.getInsurances(),
     enabled: !!vehicleId,
     select: data => data.filter(insurance => insurance.vehicleId === vehicleId),
-    staleTime: 2 * 60 * 1000, // 2 minúty
+    staleTime: 0, // Vždy fresh data po invalidácii
   });
 }
 
