@@ -23,3 +23,27 @@ export function useCreateExpense() {
     },
   });
 }
+
+// UPDATE expense
+export function useUpdateExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (expense: Expense) => apiService.updateExpense(expense),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+    },
+  });
+}
+
+// DELETE expense
+export function useDeleteExpense() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiService.deleteExpense(id),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+    },
+  });
+}

@@ -45,7 +45,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
 import {
   useCreateExpense,
+  useDeleteExpense,
   useExpenses,
+  useUpdateExpense,
 } from '@/lib/react-query/hooks/useExpenses';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
@@ -97,6 +99,8 @@ const ExpenseListNew: React.FC = () => {
   const { data: expenses = [] } = useExpenses();
   const { data: vehiclesData = [] } = useVehicles();
   const createExpenseMutation = useCreateExpense();
+  const updateExpenseMutation = useUpdateExpense();
+  const deleteExpenseMutation = useDeleteExpense();
 
   // Helper functions for compatibility
   const getFilteredExpenses = () => expenses; // Simple implementation for now
@@ -105,15 +109,10 @@ const ExpenseListNew: React.FC = () => {
     return createExpenseMutation.mutateAsync(expense);
   };
   const updateExpense = async (expense: Expense) => {
-    // TODO: Implement updateExpense in React Query hooks
-    console.warn(
-      'updateExpense not yet implemented in React Query hooks',
-      expense
-    );
+    return updateExpenseMutation.mutateAsync(expense);
   };
   const deleteExpense = async (id: string) => {
-    // TODO: Implement deleteExpense in React Query hooks
-    console.warn('deleteExpense not yet implemented in React Query hooks', id);
+    return deleteExpenseMutation.mutateAsync(id);
   };
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
