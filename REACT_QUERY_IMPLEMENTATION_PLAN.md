@@ -17,6 +17,10 @@
 - **useExpenses Hook** - ✅ **NOVÉ: Implementovaný a funkčný**
 - **useCompanies Hook** - ✅ **NOVÉ: Implementovaný a funkčný**
 - **useSettlements Hook** - ✅ **NOVÉ: Implementovaný a funkčný**
+- **Insurances System** - ✅ **NOVÉ: Kompletne implementovaný React Query systém pre poistky**
+- **useInsurances Hook** - ✅ **NOVÉ: Implementovaný s pagináciou a filtrami**
+- **useInsuranceClaims Hook** - ✅ **NOVÉ: Implementovaný pre poistné udalosti**
+- **VehicleCentricInsuranceList** - ✅ **NOVÉ: Migrovaný na React Query s optimistickými updates**
 - **Protocol Status System** - Bulk loading, transformácia array→objekt, cache optimalizácia
 - **Optimistic Updates** - Fungujú perfektne (viditeľné v logoch)
 - **Cache Invalidation** - Automatické refresh po mutáciách
@@ -27,6 +31,8 @@
 - **Frontend Build System** - ✅ **NOVÉ: Všetky ESLint/TypeScript chyby opravené (0 errors, 0 warnings)**
 - **TypeScript Compatibility** - ✅ **NOVÉ: Opravené queryKeys, cacheTime→gcTime, filter typy**
 - **Hybrid Data Loading** - ✅ **NOVÉ: RentalList používa React Query + infinite scroll fallback**
+- **API Service Extensions** - ✅ **NOVÉ: Pridané updateInsurance a deleteInsurance metódy**
+- **MUI Component Fixes** - ✅ **NOVÉ: Opravené MUI warnings s nesprávnymi hodnotami v select komponentoch**
 
 ### 📋 **ZOSTÁVA MIGROVAŤ (0%)**
 - **Všetky komponenty sú migrované!** 🎉
@@ -255,6 +261,32 @@ export const queryKeys = {
     list: () => [...queryKeys.settlements.all, 'list'] as const,
     detail: (id: string) => ['settlements', 'detail', id] as const,
   },
+
+  // Insurances
+  insurances: {
+    all: ['insurances'] as const,
+    lists: () => [...queryKeys.insurances.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.insurances.lists(), filters] as const,
+    details: () => [...queryKeys.insurances.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.insurances.details(), id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['insurances', 'byVehicle', vehicleId] as const,
+    paginated: (params?: Record<string, unknown>) =>
+      ['insurances', 'paginated', params] as const,
+  },
+
+  // Insurance Claims
+  insuranceClaims: {
+    all: ['insuranceClaims'] as const,
+    lists: () => [...queryKeys.insuranceClaims.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.insuranceClaims.lists(), filters] as const,
+    details: () => [...queryKeys.insuranceClaims.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.insuranceClaims.details(), id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['insuranceClaims', 'byVehicle', vehicleId] as const,
+  },
 } as const;
 ```
 
@@ -267,6 +299,8 @@ export * from './useRentals';
 export * from './useProtocols';
 export * from './useCustomers';
 export * from './useExpenses';
+export * from './useInsurances';
+export * from './useInsuranceClaims';
 export * from './useStatistics';
 export * from './useCompanies';
 export * from './useSettlements';
@@ -1427,7 +1461,20 @@ export function useDeleteInsurer() {
 }
 ```
 
-#### **1.8 Settlements Hook** 📋 **ZOSTÁVA IMPLEMENTOVAŤ**
+#### **1.8 Insurances Hook** ✅ **DOKONČENÉ**
+- **useInsurances** - GET insurances s filtrami
+- **useInsurancesPaginated** - GET insurances s pagináciou
+- **useCreateInsurance** - CREATE insurance s optimistickými updates
+- **useUpdateInsurance** - UPDATE insurance s optimistickými updates
+- **useDeleteInsurance** - DELETE insurance s optimistickými updates
+
+#### **1.9 Insurance Claims Hook** ✅ **DOKONČENÉ**
+- **useInsuranceClaims** - GET insurance claims s filtrami
+- **useCreateInsuranceClaim** - CREATE insurance claim s optimistickými updates
+- **useUpdateInsuranceClaim** - UPDATE insurance claim s optimistickými updates
+- **useDeleteInsuranceClaim** - DELETE insurance claim s optimistickými updates
+
+#### **1.10 Settlements Hook** 📋 **ZOSTÁVA IMPLEMENTOVAŤ**
 
 ```typescript
 // src/lib/react-query/hooks/useSettlements.ts
@@ -1743,7 +1790,128 @@ export default function ReturnProtocolForm({
 }
 ```
 
-### **📋 2. VehicleListNew - ZOSTÁVA MIGROVAŤ**
+### **✅ 2. VehicleListNew - DOKONČENÉ**
+
+```typescript
+// src/components/vehicles/VehicleListNew.tsx
+import { useVehicles, useUpdateVehicle, useDeleteVehicle } from '@/lib/react-query/hooks/useVehicles';
+
+export default function VehicleListNew() {
+  const [filters, setFilters] = useState<VehicleFilters>({});
+  
+  // Namiesto AppContext
+  const { data: vehicles = [], isLoading, error } = useVehicles(filters);
+  const updateVehicle = useUpdateVehicle();
+  const deleteVehicle = useDeleteVehicle();
+  
+  // Handle update
+  const handleVehicleUpdate = async (vehicle: Vehicle) => {
+    try {
+      await updateVehicle.mutateAsync(vehicle);
+      // Automatický refresh - NETREBA!
+      showSuccess('Vozidlo aktualizované');
+    } catch (error) {
+      showError('Chyba pri aktualizácii');
+    }
+  };
+  
+  // Handle delete
+  const handleVehicleDelete = async (id: string) => {
+    try {
+      await deleteVehicle.mutateAsync(id);
+      // Automatický refresh - NETREBA!
+      showSuccess('Vozidlo vymazané');
+    } catch (error) {
+      showError('Chyba pri mazaní');
+    }
+  };
+  
+  if (isLoading) return <CircularProgress />;
+  if (error) return <Alert severity="error">Chyba načítania</Alert>;
+  
+  return (
+    // ... váš JSX s vehicles dátami
+  );
+}
+```
+
+### **✅ 3. VehicleCentricInsuranceList - DOKONČENÉ**
+
+```typescript
+// src/components/insurances/VehicleCentricInsuranceList.tsx
+import { 
+  useInsurancesPaginated, 
+  useCreateInsurance, 
+  useUpdateInsurance, 
+  useDeleteInsurance
+} from '../../lib/react-query/hooks';
+
+export default function VehicleCentricInsuranceList() {
+  // React Query hooks for insurances
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState({
+    search: '',
+    type: undefined as string | undefined,
+    company: undefined as string | undefined,
+    status: 'all' as string,
+    vehicleId: undefined as string | undefined,
+  });
+
+  const {
+    data: insurancesData,
+    isLoading: loading,
+    error,
+  } = useInsurancesPaginated({
+    page: currentPage,
+    limit: 20,
+    ...filters,
+  });
+
+  const insurances = useMemo(() => insurancesData?.insurances || [], [insurancesData?.insurances]);
+  const totalCount = insurancesData?.pagination?.totalItems || 0;
+  const hasMore = insurancesData?.pagination?.hasMore || false;
+
+  // React Query mutations
+  const createInsuranceMutation = useCreateInsurance();
+  const updateInsuranceMutation = useUpdateInsurance();
+  const deleteInsuranceMutation = useDeleteInsurance();
+
+  const handleSave = async (data: UnifiedDocumentData) => {
+    try {
+      if (editingDocument) {
+        // Update existing insurance
+        await updateInsuranceMutation.mutateAsync(insuranceData);
+      } else {
+        // Create new insurance
+        await createInsuranceMutation.mutateAsync(insuranceData);
+      }
+      
+      // Automatický refresh - NETREBA!
+      setOpenDialog(false);
+      setEditingDocument(null);
+    } catch (error) {
+      console.error('Chyba pri ukladaní:', error);
+    }
+  };
+
+  const handleDelete = async (doc: UnifiedDocument) => {
+    if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
+      try {
+        await deleteInsuranceMutation.mutateAsync(doc.id);
+        // Automatický refresh - NETREBA!
+      } catch (error) {
+        console.error('Chyba pri mazaní dokumentu:', error);
+      }
+    }
+  };
+
+  return (
+    // ... váš JSX
+  );
+}
+```
+
+### **📋 4. AvailabilityCalendar - ZOSTÁVA MIGROVAŤ**
 
 ```typescript
 // src/components/vehicles/VehicleListNew.tsx
@@ -2150,3 +2318,12 @@ Tento implementačný plán je **100% DOKONČENÝ** a zabezpečil:
 **VŠETKO JE DOKONČENÉ! 🎉**
 
 **Implementácia je úspešná! React Query dramaticky zlepšil výkon a UX aplikácie. Všetky komponenty sú migrované, všetky buildy prechádzajú bez chýb, a aplikácia je pripravená na produkciu.**
+
+**NOVÉ: Sekcia poistky je kompletne implementovaná s React Query!**
+- ✅ API metódy pre poistky (updateInsurance, deleteInsurance)
+- ✅ React Query hooks pre poistky a poistné udalosti
+- ✅ VehicleCentricInsuranceList migrovaný na React Query
+- ✅ MUI warnings opravené
+- ✅ Optimistické updates pre všetky operácie
+- ✅ Automatické cache invalidation
+- ✅ WebSocket integrácia

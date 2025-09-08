@@ -516,6 +516,19 @@ class ApiService {
     });
   }
 
+  async updateInsurance(id: string, insurance: Insurance): Promise<Insurance> {
+    return this.request<Insurance>(`/insurances/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(insurance),
+    });
+  }
+
+  async deleteInsurance(id: string): Promise<void> {
+    return this.request<void>(`/insurances/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Insurance Claims
   async getInsuranceClaims(vehicleId?: string): Promise<InsuranceClaim[]> {
     const endpoint = vehicleId

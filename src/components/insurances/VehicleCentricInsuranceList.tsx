@@ -54,11 +54,16 @@ import {
 import type { ChipProps } from '@mui/material/Chip';
 import { addDays, format, isAfter, isValid, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { UnifiedDocumentData } from '../common/UnifiedDocumentForm';
 
 import { useApp } from '../../context/AppContext';
-import { useInfiniteInsurances } from '../../hooks/useInfiniteInsurances';
+import {
+  useCreateInsurance,
+  useDeleteInsurance,
+  useInsurancesPaginated,
+  useUpdateInsurance,
+} from '../../lib/react-query/hooks';
 import type {
   DocumentType,
   Insurance,
@@ -78,7 +83,6 @@ interface UnifiedDocument {
     | 'insurance_pzp'
     | 'insurance_kasko'
     | 'insurance_pzp_kasko'
-    | 'insurance'
     | 'stk'
     | 'ek'
     | 'vignette'
@@ -240,13 +244,6 @@ const getDocumentTypeInfo = (type: string) => {
         icon: <FileIcon sx={{ fontSize: 20 }} />,
         color: '#9c27b0',
       };
-    // Backward compatibility
-    case 'insurance':
-      return {
-        label: 'Poistka - PZP',
-        icon: <SecurityIcon sx={{ fontSize: 20 }} />,
-        color: '#1976d2',
-      };
     default:
       return {
         label: type,
@@ -259,9 +256,6 @@ const getDocumentTypeInfo = (type: string) => {
 export default function VehicleCentricInsuranceList() {
   const {
     state,
-    createInsurance,
-    updateInsurance,
-    deleteInsurance,
     createVehicleDocument,
     updateVehicleDocument,
     deleteVehicleDocument,
@@ -270,17 +264,48 @@ export default function VehicleCentricInsuranceList() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
-  // Infinite scroll for insurances
+  // React Query hooks for insurances
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState({
+    search: '',
+    type: undefined as string | undefined,
+    company: undefined as string | undefined,
+    status: 'all' as string,
+    vehicleId: undefined as string | undefined,
+  });
+
   const {
-    insurances,
-    loading,
+    data: insurancesData,
+    isLoading: loading,
     error,
-    hasMore,
-    loadMore,
-    totalCount,
-    setFilters,
-    setSearchTerm,
-  } = useInfiniteInsurances();
+  } = useInsurancesPaginated({
+    page: currentPage,
+    limit: 20,
+    ...filters,
+  });
+
+  const insurances = useMemo(
+    () => insurancesData?.insurances || [],
+    [insurancesData?.insurances]
+  );
+  const totalCount = insurancesData?.pagination?.totalItems || 0;
+  const hasMore = insurancesData?.pagination?.hasMore || false;
+
+  // React Query mutations
+  const createInsuranceMutation = useCreateInsurance();
+  const updateInsuranceMutation = useUpdateInsurance();
+  const deleteInsuranceMutation = useDeleteInsurance();
+
+  const setSearchTerm = useCallback((term: string) => {
+    setFilters(prev => ({ ...prev, search: term }));
+    setCurrentPage(1);
+  }, []);
+
+  const loadMore = () => {
+    if (hasMore) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   const [activeTab] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
@@ -310,27 +335,20 @@ export default function VehicleCentricInsuranceList() {
       status: (filterStatus as StatusFilter) || 'all',
       vehicleId: filterVehicle || undefined,
     });
-  }, [
-    searchQuery,
-    filterType,
-    filterCompany,
-    filterStatus,
-    filterVehicle,
-    setFilters,
-  ]);
+    setCurrentPage(1); // Reset page when filters change
+  }, [searchQuery, filterType, filterCompany, filterStatus, filterVehicle]);
 
   // Create unified documents
   const unifiedDocuments = useMemo(() => {
     const docs: UnifiedDocument[] = [];
 
     // Add insurances
-    insurances.forEach(insurance => {
+    insurances.forEach((insurance: Insurance) => {
       // Determine insurance type based on existing data
       let insuranceType:
         | 'insurance_pzp'
         | 'insurance_kasko'
-        | 'insurance_pzp_kasko'
-        | 'insurance' = 'insurance_pzp';
+        | 'insurance_pzp_kasko' = 'insurance_pzp';
 
       // Check if it's PZP + Kasko (has both green card and km state)
       if (
@@ -358,9 +376,9 @@ export default function VehicleCentricInsuranceList() {
       ) {
         insuranceType = 'insurance_kasko';
       }
-      // Default to backward compatibility
+      // Default to PZP
       else {
-        insuranceType = 'insurance';
+        insuranceType = 'insurance_pzp';
       }
 
       docs.push({
@@ -649,10 +667,9 @@ export default function VehicleCentricInsuranceList() {
         if (
           doc.type === 'insurance_pzp' ||
           doc.type === 'insurance_kasko' ||
-          doc.type === 'insurance_pzp_kasko' ||
-          doc.type === 'insurance'
+          doc.type === 'insurance_pzp_kasko'
         ) {
-          await deleteInsurance(doc.id);
+          await deleteInsuranceMutation.mutateAsync(doc.id);
         } else {
           await deleteVehicleDocument(doc.id);
         }
@@ -669,8 +686,7 @@ export default function VehicleCentricInsuranceList() {
         if (
           editingDocument.type === 'insurance_pzp' ||
           editingDocument.type === 'insurance_kasko' ||
-          editingDocument.type === 'insurance_pzp_kasko' ||
-          editingDocument.type === 'insurance'
+          editingDocument.type === 'insurance_pzp_kasko'
         ) {
           const selectedInsurer = state.insurers.find(
             insurer => insurer.name === data.company
@@ -699,7 +715,7 @@ export default function VehicleCentricInsuranceList() {
             greenCardValidTo: data.greenCardValidTo,
             kmState: data.kmState, // 🚗 Stav kilometrov
           };
-          await updateInsurance(insuranceData);
+          await updateInsuranceMutation.mutateAsync(insuranceData);
         } else {
           // Type guard pre DocumentType
           const isValidDocumentType = (type: string): type is DocumentType => {
@@ -728,8 +744,7 @@ export default function VehicleCentricInsuranceList() {
         if (
           data.type === 'insurance_pzp' ||
           data.type === 'insurance_kasko' ||
-          data.type === 'insurance_pzp_kasko' ||
-          data.type === 'insurance'
+          data.type === 'insurance_pzp_kasko'
         ) {
           const insuranceData = {
             id: '',
@@ -754,12 +769,12 @@ export default function VehicleCentricInsuranceList() {
             greenCardValidTo: data.greenCardValidTo,
             kmState: data.kmState, // 🚗 Stav kilometrov pre Kasko
           };
-          await createInsurance(insuranceData);
+          await createInsuranceMutation.mutateAsync(insuranceData);
         } else {
           const vehicleDocData = {
             id: '',
             vehicleId: data.vehicleId,
-            documentType: data.type,
+            documentType: data.type as DocumentType,
             validFrom: data.validFrom,
             validTo: data.validTo,
             documentNumber: data.documentNumber,
@@ -1582,7 +1597,7 @@ export default function VehicleCentricInsuranceList() {
           {/* Error handling */}
           {error && (
             <Alert severity="error" sx={{ m: 2 }}>
-              {error}
+              {error instanceof Error ? error.message : String(error)}
             </Alert>
           )}
         </Box>
@@ -2148,7 +2163,9 @@ function DocumentListItem({
               </span>
 
               {/* Green Card info for insurance */}
-              {document.type === 'insurance' &&
+              {(document.type === 'insurance_pzp' ||
+                document.type === 'insurance_kasko' ||
+                document.type === 'insurance_pzp_kasko') &&
                 document.originalData &&
                 'greenCardValidTo' in document.originalData &&
                 document.originalData.greenCardValidTo && (

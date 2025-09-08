@@ -90,4 +90,31 @@ export const queryKeys = {
     list: () => [...queryKeys.settlements.all, 'list'] as const,
     detail: (id: string) => ['settlements', 'detail', id] as const,
   },
+
+  // Insurances
+  insurances: {
+    all: ['insurances'] as const,
+    lists: () => [...queryKeys.insurances.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.insurances.lists(), filters] as const,
+    details: () => [...queryKeys.insurances.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.insurances.details(), id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['insurances', 'byVehicle', vehicleId] as const,
+    paginated: (params?: Record<string, unknown>) =>
+      ['insurances', 'paginated', params] as const,
+  },
+
+  // Insurance Claims
+  insuranceClaims: {
+    all: ['insuranceClaims'] as const,
+    lists: () => [...queryKeys.insuranceClaims.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.insuranceClaims.lists(), filters] as const,
+    details: () => [...queryKeys.insuranceClaims.all, 'detail'] as const,
+    detail: (id: string) =>
+      [...queryKeys.insuranceClaims.details(), id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['insuranceClaims', 'byVehicle', vehicleId] as const,
+  },
 } as const;
