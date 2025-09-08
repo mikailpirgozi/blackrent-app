@@ -522,7 +522,7 @@ export default function SerialPhotoCapture({
       });
 
       // Vytvor dočasný preview URL
-      let preview = URL.createObjectURL(imageBlob);
+      const preview = URL.createObjectURL(imageBlob);
 
       logger.debug('📸 Native camera capture - R2 upload check:', {
         autoUploadToR2,
@@ -561,9 +561,9 @@ export default function SerialPhotoCapture({
             compressedUrl
           );
 
-          // Zruš dočasný blob URL a použij originálnu R2 URL pre galériu
-          URL.revokeObjectURL(preview);
-          preview = originalUrl;
+          // Zachovaj blob URL pre preview, R2 URL sa použije pre galériu
+          // URL.revokeObjectURL(preview); // NERUŠI blob URL - potrebný pre preview
+          // preview zostáva blob URL pre okamžité zobrazenie
         } catch (error) {
           console.error(
             '❌ NATIVE CAMERA: R2 upload failed, using blob URL:',
@@ -1063,16 +1063,28 @@ export default function SerialPhotoCapture({
                 <Box sx={{ position: 'relative', mb: 2 }}>
                   {media.type === 'image' ? (
                     <img
-                      src={media.originalUrl || media.preview}
+                      src={media.preview || media.originalUrl}
                       alt={media.description}
                       style={{ width: '100%', height: 150, objectFit: 'cover' }}
+                      onError={e => {
+                        console.error(
+                          '❌ Preview image failed to load:',
+                          media.preview
+                        );
+                        // Fallback na R2 URL ak blob URL zlyhá
+                        const img = e.target as HTMLImageElement;
+                        if (img.src === media.preview && media.originalUrl) {
+                          console.log('🔄 Falling back to R2 URL for preview');
+                          img.src = media.originalUrl;
+                        }
+                      }}
                     />
                   ) : (
                     <Box
                       sx={{
                         width: '100%',
                         height: 150,
-                        backgroundImage: `url(${media.originalUrl || media.preview})`,
+                        backgroundImage: `url(${media.preview || media.originalUrl})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         display: 'flex',
@@ -1213,9 +1225,26 @@ export default function SerialPhotoCapture({
             <Box sx={{ textAlign: 'center' }}>
               {previewMedia.type === 'image' ? (
                 <img
-                  src={previewMedia.originalUrl || previewMedia.preview}
+                  src={previewMedia.preview || previewMedia.originalUrl}
                   alt={previewMedia.description}
                   style={{ maxWidth: '100%', maxHeight: '70vh' }}
+                  onError={e => {
+                    console.error(
+                      '❌ Preview modal image failed to load:',
+                      previewMedia.preview
+                    );
+                    // Fallback na R2 URL ak blob URL zlyhá
+                    const img = e.target as HTMLImageElement;
+                    if (
+                      img.src === previewMedia.preview &&
+                      previewMedia.originalUrl
+                    ) {
+                      console.log(
+                        '🔄 Falling back to R2 URL for preview modal'
+                      );
+                      img.src = previewMedia.originalUrl;
+                    }
+                  }}
                 />
               ) : (
                 <video
