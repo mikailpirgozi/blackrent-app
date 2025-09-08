@@ -1418,6 +1418,12 @@ class ApiService {
     formData.append('protocolId', uploadData.protocolId);
     formData.append('category', uploadData.category);
     formData.append('mediaType', uploadData.mediaType);
+    formData.append('filename', uploadData.file.name);
+    formData.append('contentType', uploadData.file.type);
+    formData.append(
+      'protocolType',
+      (uploadData.metadata?.protocolType as string) || 'handover'
+    );
     if (uploadData.metadata)
       formData.append('metadata', JSON.stringify(uploadData.metadata));
 
