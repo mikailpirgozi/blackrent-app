@@ -316,9 +316,10 @@ router.get('/proxy/:key', async (req, res) => {
     }
 
     logger.info('🔄 Loading image from R2 via proxy:', key);
+    logger.info('🔍 Decoded key:', decodeURIComponent(key));
 
     // Načítanie súboru z R2
-    const fileBuffer = await r2Storage.getFile(key);
+    const fileBuffer = await r2Storage.getFile(decodeURIComponent(key));
     
     if (!fileBuffer) {
       return res.status(404).json({ 

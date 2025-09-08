@@ -1,5 +1,6 @@
-import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
-import type { HandoverProtocol, ReturnProtocol, Settlement } from '../types';
+import type { PDFFont, PDFPage } from 'pdf-lib';
+import { PDFDocument, PageSizes, StandardFonts, rgb } from 'pdf-lib';
+import type { HandoverProtocol, ProtocolImage, ProtocolSignature, ReturnProtocol, Settlement } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**
@@ -15,9 +16,9 @@ export class PDFLibGenerator {
   private primaryColor = rgb(0.1, 0.46, 0.82); // Blue
   private secondaryColor = rgb(0.26, 0.26, 0.26); // Dark gray
   private lightGray = rgb(0.94, 0.94, 0.94);
-  private currentPage: any;
-  private font: any;
-  private boldFont: any;
+  private currentPage!: PDFPage;
+  private font!: PDFFont;
+  private boldFont!: PDFFont;
 
   constructor() {
     // Inicializácia sa vykoná v generate metódach
@@ -326,7 +327,7 @@ export class PDFLibGenerator {
   /**
    * Sekcia pre poškodenia
    */
-  private addDamagesSection(damages: any[], title: string = 'Zaznamenané poškodenia'): void {
+  private addDamagesSection(damages: Array<{description: string; severity: string}>, title: string = 'Zaznamenané poškodenia'): void {
     this.addInfoSection(title, 
       damages.map((damage, index) => [
         `Poškodenie ${index + 1}:`,
@@ -356,7 +357,7 @@ export class PDFLibGenerator {
   /**
    * Sekcia pre podpisy s obrázkami
    */
-  private async addSignaturesSection(signatures: any[]): Promise<void> {
+  private async addSignaturesSection(signatures: ProtocolSignature[]): Promise<void> {
     if (!signatures || signatures.length === 0) {
       console.log('⚠️ Žiadne podpisy na vloženie do PDF');
       return;
@@ -621,7 +622,7 @@ export class PDFLibGenerator {
       'Ž': 'Z', 'Ź': 'Z', 'Ż': 'Z'
     };
 
-    return text.replace(/[^\u0000-\u007F]/g, (char) => diacriticsMap[char] || char);
+    return text.replace(/[^\u0020-\u007F]/g, (char) => diacriticsMap[char] || char);
   }
 
   /**
@@ -664,7 +665,6 @@ export class PDFLibGenerator {
       this.currentY -= 30;
       
       let processedImages = 0;
-      const maxImagesPerPage = 6; // Maximum 6 obrázkov na stránku
       
       for (const image of allImages) {
         if (!image.url || typeof image.url !== 'string') {
@@ -685,10 +685,11 @@ export class PDFLibGenerator {
             }
             imageData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
           } else if (image.url.startsWith('http')) {
-            // ✅ R2 URL obrázok - stiahni cez HTTP
-            console.log('📥 Downloading image from R2 URL:', image.url);
+            // ✅ R2 URL obrázok - stiahni cez HTTP (použij komprimovanú verziu pre PDF ak existuje)
+            const imageUrl = (image as ProtocolImage & { compressedUrl?: string }).compressedUrl || image.url;
+            console.log('📥 Downloading image from R2 URL (compressed for PDF):', imageUrl);
             try {
-              const response = await fetch(image.url);
+              const response = await fetch(imageUrl);
               if (!response.ok) {
                 console.error('❌ Failed to download image:', response.status, response.statusText);
                 continue;

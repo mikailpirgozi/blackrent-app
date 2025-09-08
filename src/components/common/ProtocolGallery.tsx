@@ -301,7 +301,7 @@ export default function ProtocolGallery({
                     >
                       {image.url ? (
                         <img
-                          src={getProxyUrl(image.originalUrl || image.url)}
+                          src={image.originalUrl || image.url}
                           alt={image.description || `Obrázok ${index + 1}`}
                           style={{
                             width: '100%',
@@ -311,30 +311,31 @@ export default function ProtocolGallery({
                           }}
                           onError={e => {
                             console.error(
-                              '❌ Chyba načítania obrázka cez proxy:',
-                              getProxyUrl(image.originalUrl || image.url)
+                              '❌ Chyba načítania obrázka z R2:',
+                              image.originalUrl || image.url
                             );
-                            console.error('❌ Pôvodné URL:', image.url);
 
-                            // Skús načítať priamo z R2 ako fallback
+                            // Skús proxy URL ako fallback
                             const img = e.target as HTMLImageElement;
-                            if (!img.src.includes('r2.dev')) {
+                            if (!img.src.includes('/api/files/proxy/')) {
                               console.log(
-                                '🔄 Skúšam priamy R2 URL ako fallback...'
+                                '🔄 Skúšam proxy URL ako fallback...'
                               );
-                              img.src = image.originalUrl || image.url;
+                              img.src = getProxyUrl(
+                                image.originalUrl || image.url
+                              );
                             } else {
-                              // Ak ani R2 URL nefunguje, skry obrázok
+                              // Ak ani proxy URL nefunguje, skry obrázok
                               img.style.display = 'none';
                               console.error(
-                                '❌ Ani R2 URL nefunguje, skrývam obrázok'
+                                '❌ Ani proxy URL nefunguje, skrývam obrázok'
                               );
                             }
                           }}
                           onLoad={() => {
                             console.log(
                               '✅ Obrázok úspešne načítaný:',
-                              getProxyUrl(image.originalUrl || image.url)
+                              image.originalUrl || image.url
                             );
                           }}
                         />
@@ -416,7 +417,7 @@ export default function ProtocolGallery({
                   >
                     {video.url ? (
                       <video
-                        src={getProxyUrl(video.url)}
+                        src={video.url}
                         style={{
                           width: '100%',
                           height: '200px',
@@ -615,12 +616,12 @@ export default function ProtocolGallery({
                   // Image
                   currentMedia.url ? (
                     <img
-                      src={getProxyUrl(
+                      src={
                         'originalUrl' in currentMedia &&
-                          currentMedia.originalUrl
+                        currentMedia.originalUrl
                           ? currentMedia.originalUrl
                           : currentMedia.url
-                      )}
+                      }
                       alt={currentMedia.description || 'Obrázok'}
                       style={{
                         maxWidth: `${100 * zoom}%`,
@@ -673,7 +674,7 @@ export default function ProtocolGallery({
                 ) : // Video
                 currentMedia.url ? (
                   <video
-                    src={getProxyUrl(currentMedia.url)}
+                    src={currentMedia.url}
                     controls
                     style={{
                       maxWidth: `${100 * zoom}%`,

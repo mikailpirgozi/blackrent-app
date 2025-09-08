@@ -27,11 +27,9 @@ import {
 import Alert from '@mui/material/Alert';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { getApiBaseUrl } from '../../utils/apiUrl';
 
-import {
-  usePresignedUpload,
-  useUploadFile,
-} from '../../lib/react-query/hooks/useFileUpload';
+import { useUploadFile } from '../../lib/react-query/hooks/useFileUpload';
 import type { ProtocolImage, ProtocolVideo } from '../../types';
 import { compressImage, isWebPSupported } from '../../utils/imageCompression';
 import { lintImage } from '../../utils/imageLint';
@@ -109,8 +107,9 @@ export default function SerialPhotoCapture({
   preferWebP = true,
 }: SerialPhotoCaptureProps) {
   // React Query hooks
+  // DOČASNE: Použiť priamy upload namiesto presigned upload kvôli CORS problémom
+  // const presignedUploadMutation = usePresignedUpload();
   const uploadFileMutation = useUploadFile();
-  const presignedUploadMutation = usePresignedUpload();
 
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -119,8 +118,7 @@ export default function SerialPhotoCapture({
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // React Query loading stavy
-  const uploadingToR2 =
-    uploadFileMutation.isPending || presignedUploadMutation.isPending;
+  const uploadingToR2 = uploadFileMutation.isPending;
   const [nativeCameraOpen, setNativeCameraOpen] = useState(false);
   const [selectedQuality, setSelectedQuality] = useState<
     'mobile' | 'protocol' | 'highQuality' | 'archive'
@@ -129,6 +127,32 @@ export default function SerialPhotoCapture({
   const [webPSupported, setWebPSupported] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to convert R2 URL to proxy URL
+  const getProxyUrl = (r2Url: string | undefined): string => {
+    try {
+      // Kontrola či URL existuje
+      if (!r2Url) {
+        console.warn('⚠️ getProxyUrl: URL is undefined or null');
+        return ''; // Vráť prázdny string pre undefined URL
+      }
+
+      // Ak je to R2 URL, konvertuj na proxy
+      if (r2Url.includes('r2.dev') || r2Url.includes('cloudflare.com')) {
+        const urlParts = r2Url.split('/');
+        // Zober všetky časti po doméne ako key (preskoč https:// a doménu)
+        const key = urlParts.slice(3).join('/');
+        const apiBaseUrl = getApiBaseUrl();
+        const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
+        console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
+        return proxyUrl;
+      }
+      return r2Url; // Ak nie je R2 URL, vráť pôvodné
+    } catch (error) {
+      console.error('❌ Error converting to proxy URL:', error);
+      return r2Url || ''; // Fallback na pôvodné URL alebo prázdny string
+    }
+  };
 
   // 🔍 Detekcia WebP podpory pri načítaní
   useEffect(() => {
@@ -209,8 +233,9 @@ export default function SerialPhotoCapture({
       const uploadData = {
         file,
         protocolId: entityId,
+        protocolType: protocolType || 'return', // ✅ PRIDANÉ: Backend vyžaduje protocolType
         category: category || 'vehicle_photos',
-        mediaType: mediaType,
+        mediaType: mediaType || 'vehicle', // ✅ PRIDANÉ: Fallback pre mediaType
         metadata: {
           protocolType,
           label: file.name,
@@ -259,11 +284,13 @@ export default function SerialPhotoCapture({
           suffix: suffix,
         });
 
-        const presignedUploadData = {
+        // DOČASNE: Použiť priamy upload namiesto presigned upload
+        const directUploadData = {
           file,
           protocolId: entityId,
+          protocolType: protocolType || 'return', // ✅ PRIDANÉ: Backend vyžaduje protocolType
           category: category || 'vehicle_photos',
-          mediaType: mediaType,
+          mediaType: mediaType || 'vehicle', // ✅ PRIDANÉ: Fallback pre mediaType
           metadata: {
             protocolType,
             filename: finalFilename,
@@ -273,13 +300,12 @@ export default function SerialPhotoCapture({
           },
         };
 
-        const result =
-          await presignedUploadMutation.mutateAsync(presignedUploadData);
-        logger.debug('✅ File uploaded via presigned URL:', result);
+        const result = await uploadFileMutation.mutateAsync(directUploadData);
+        logger.debug('✅ File uploaded via direct upload:', result);
 
         return (result.url || result.publicUrl || '') as string;
       } catch (error) {
-        console.error('❌ Presigned URL upload failed:', error);
+        console.error('❌ Direct upload failed:', error);
 
         // Detailnejšie error handling
         if (error instanceof Error) {
@@ -306,7 +332,7 @@ export default function SerialPhotoCapture({
       entityId,
       mediaType,
       protocolType,
-      presignedUploadMutation,
+      uploadFileMutation,
     ]
   );
 
@@ -460,7 +486,7 @@ export default function SerialPhotoCapture({
             type: isVideo ? 'video' : 'image',
             mediaType,
             description: '',
-            preview: originalUrl || url, // Pre galériu používaj originál
+            preview: originalUrl ? getProxyUrl(originalUrl) : url, // Použij proxy URL pre R2 obrázky
             timestamp: new Date(),
             compressed,
             originalSize,
@@ -563,7 +589,10 @@ export default function SerialPhotoCapture({
 
           // Zachovaj blob URL pre preview, R2 URL sa použije pre galériu
           // URL.revokeObjectURL(preview); // NERUŠI blob URL - potrebný pre preview
-          // preview zostáva blob URL pre okamžité zobrazenie
+          // Po úspešnom R2 upload uvoľni blob URL (už máme R2 URL)
+          if (originalUrl) {
+            URL.revokeObjectURL(preview); // Uvoľni blob URL keď máme R2 URL
+          }
         } catch (error) {
           console.error(
             '❌ NATIVE CAMERA: R2 upload failed, using blob URL:',
@@ -586,7 +615,7 @@ export default function SerialPhotoCapture({
         type: 'image',
         mediaType: allowedTypes[0], // Default type
         description: '',
-        preview: preview, // Buď R2 URL alebo blob URL
+        preview: originalUrl ? getProxyUrl(originalUrl) : preview, // Použij proxy URL pre R2 obrázky
         timestamp: new Date(),
         compressed: false,
         originalSize: imageBlob.size,
@@ -1071,11 +1100,13 @@ export default function SerialPhotoCapture({
                           '❌ Preview image failed to load:',
                           media.preview
                         );
-                        // Fallback na R2 URL ak blob URL zlyhá
+                        // Fallback na proxy URL ak preview zlyhá
                         const img = e.target as HTMLImageElement;
                         if (img.src === media.preview && media.originalUrl) {
-                          console.log('🔄 Falling back to R2 URL for preview');
-                          img.src = media.originalUrl;
+                          console.log(
+                            '🔄 Falling back to proxy URL for preview'
+                          );
+                          img.src = getProxyUrl(media.originalUrl);
                         }
                       }}
                     />
