@@ -311,16 +311,30 @@ export default function ProtocolGallery({
                           }}
                           onError={e => {
                             console.error(
-                              '❌ Chyba načítania obrázka:',
-                              image.url
+                              '❌ Chyba načítania obrázka cez proxy:',
+                              getProxyUrl(image.originalUrl || image.url)
                             );
-                            (e.target as HTMLImageElement).style.display =
-                              'none';
+                            console.error('❌ Pôvodné URL:', image.url);
+
+                            // Skús načítať priamo z R2 ako fallback
+                            const img = e.target as HTMLImageElement;
+                            if (!img.src.includes('r2.dev')) {
+                              console.log(
+                                '🔄 Skúšam priamy R2 URL ako fallback...'
+                              );
+                              img.src = image.originalUrl || image.url;
+                            } else {
+                              // Ak ani R2 URL nefunguje, skry obrázok
+                              img.style.display = 'none';
+                              console.error(
+                                '❌ Ani R2 URL nefunguje, skrývam obrázok'
+                              );
+                            }
                           }}
                           onLoad={() => {
                             console.log(
                               '✅ Obrázok úspešne načítaný:',
-                              image.url
+                              getProxyUrl(image.originalUrl || image.url)
                             );
                           }}
                         />
@@ -616,10 +630,34 @@ export default function ProtocolGallery({
                       }}
                       onError={e => {
                         console.error(
-                          'Chyba načítania obrázka:',
-                          currentMedia.url
+                          '❌ Chyba načítania obrázka cez proxy:',
+                          getProxyUrl(
+                            'originalUrl' in currentMedia &&
+                              currentMedia.originalUrl
+                              ? currentMedia.originalUrl
+                              : currentMedia.url
+                          )
                         );
-                        (e.target as HTMLImageElement).style.display = 'none';
+                        console.error('❌ Pôvodné URL:', currentMedia.url);
+
+                        // Skús načítať priamo z R2 ako fallback
+                        const img = e.target as HTMLImageElement;
+                        if (!img.src.includes('r2.dev')) {
+                          console.log(
+                            '🔄 Skúšam priamy R2 URL ako fallback...'
+                          );
+                          img.src =
+                            'originalUrl' in currentMedia &&
+                            currentMedia.originalUrl
+                              ? currentMedia.originalUrl
+                              : currentMedia.url;
+                        } else {
+                          // Ak ani R2 URL nefunguje, skry obrázok
+                          img.style.display = 'none';
+                          console.error(
+                            '❌ Ani R2 URL nefunguje, skrývam obrázok'
+                          );
+                        }
                       }}
                     />
                   ) : (
