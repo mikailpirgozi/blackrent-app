@@ -2,7 +2,7 @@ import { apiService } from '@/services/api';
 import type { Insurance } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
-import { useBulkCacheInvalidation } from './useBulkCache';
+import { useInvalidateEntity } from './useBulkDataLoader';
 
 export interface InsuranceFilters extends Record<string, unknown> {
   search?: string;
@@ -87,11 +87,15 @@ export function useInsurancesByVehicle(vehicleId: string) {
 // CREATE insurance
 export function useCreateInsurance() {
   const queryClient = useQueryClient();
-  const { invalidateBulkCache } = useBulkCacheInvalidation();
+  const { invalidateInsurance } = useInvalidateEntity();
 
   return useMutation({
-    mutationFn: (insurance: Insurance) => apiService.createInsurance(insurance),
+    mutationFn: (insurance: Insurance) => {
+      console.log('🚀 CREATE INSURANCE: Sending to server:', insurance);
+      return apiService.createInsurance(insurance);
+    },
     onMutate: async newInsurance => {
+      console.log('🔄 CREATE INSURANCE: onMutate called with:', newInsurance);
       // Cancel queries
       await queryClient.cancelQueries({
         queryKey: queryKeys.insurances.all,
@@ -148,6 +152,7 @@ export function useCreateInsurance() {
       return { previousInsurances };
     },
     onError: (err, newInsurance, context) => {
+      console.error('❌ CREATE INSURANCE: Error occurred:', err);
       // Rollback pri chybe
       if (context?.previousInsurances) {
         queryClient.setQueryData(
@@ -157,18 +162,21 @@ export function useCreateInsurance() {
       }
     },
     onSuccess: (data, variables) => {
+      console.log('✅ CREATE INSURANCE: Success!', data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-created', { detail: variables })
       );
     },
-    onSettled: () => {
+    onSettled: data => {
       // Always invalidate to get fresh data from server
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,
       });
-      // Invalidate BULK cache for AppContext refresh
-      invalidateBulkCache();
+      // Invalidate specific insurance cache
+      if (data && typeof data === 'object' && 'id' in data) {
+        invalidateInsurance((data as Insurance).id);
+      }
     },
   });
 }
@@ -176,12 +184,18 @@ export function useCreateInsurance() {
 // UPDATE insurance
 export function useUpdateInsurance() {
   const queryClient = useQueryClient();
-  const { invalidateBulkCache } = useBulkCacheInvalidation();
+  const { invalidateInsurance } = useInvalidateEntity();
 
   return useMutation({
-    mutationFn: (insurance: Insurance) =>
-      apiService.updateInsurance(insurance.id, insurance),
+    mutationFn: (insurance: Insurance) => {
+      console.log('🚀 UPDATE INSURANCE: Sending to server:', insurance);
+      return apiService.updateInsurance(insurance.id, insurance);
+    },
     onMutate: async updatedInsurance => {
+      console.log(
+        '🔄 UPDATE INSURANCE: onMutate called with:',
+        updatedInsurance
+      );
       // Cancel queries
       await queryClient.cancelQueries({
         queryKey: queryKeys.insurances.detail(updatedInsurance.id),
@@ -233,6 +247,7 @@ export function useUpdateInsurance() {
       return { previousInsurance };
     },
     onError: (err, updatedInsurance, context) => {
+      console.error('❌ UPDATE INSURANCE: Error occurred:', err);
       // Rollback
       if (context?.previousInsurance) {
         queryClient.setQueryData(
@@ -242,18 +257,21 @@ export function useUpdateInsurance() {
       }
     },
     onSuccess: (data, variables) => {
+      console.log('✅ UPDATE INSURANCE: Success!', data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-updated', { detail: variables })
       );
     },
-    onSettled: () => {
+    onSettled: data => {
       // Always invalidate to get fresh data from server
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,
       });
-      // Invalidate BULK cache for AppContext refresh
-      invalidateBulkCache();
+      // Invalidate specific insurance cache
+      if (data && typeof data === 'object' && 'id' in data) {
+        invalidateInsurance((data as Insurance).id);
+      }
     },
   });
 }
@@ -261,7 +279,7 @@ export function useUpdateInsurance() {
 // DELETE insurance
 export function useDeleteInsurance() {
   const queryClient = useQueryClient();
-  const { invalidateBulkCache } = useBulkCacheInvalidation();
+  const { invalidateInsurance } = useInvalidateEntity();
 
   return useMutation({
     mutationFn: (id: string) => apiService.deleteInsurance(id),
@@ -345,13 +363,13 @@ export function useDeleteInsurance() {
         new CustomEvent('insurance-deleted', { detail: { id: variables } })
       );
     },
-    onSettled: () => {
+    onSettled: (data, error, deletedId) => {
       // Always invalidate to get fresh data from server
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,
       });
-      // Invalidate BULK cache for AppContext refresh
-      invalidateBulkCache();
+      // Invalidate specific insurance cache
+      invalidateInsurance(deletedId);
     },
   });
 }

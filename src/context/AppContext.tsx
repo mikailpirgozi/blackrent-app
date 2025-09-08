@@ -1102,6 +1102,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadData,
   ]);
 
+  // 🔄 BULK DATA REFRESH: Spusti načítanie dát keď sa dataLoaded flags zmenia na false
+  useEffect(() => {
+    const shouldReload = Object.values(state.dataLoaded).some(
+      loaded => !loaded
+    );
+
+    if (
+      shouldReload &&
+      !state.loading && // Pridaná podmienka: nespusti ak už sa načítavajú dáta
+      authState.isAuthenticated &&
+      !authState.isLoading &&
+      authState.token &&
+      window.location.pathname !== '/login'
+    ) {
+      console.log(
+        '🔄 AppContext: Data loaded flags changed, reloading BULK data...'
+      );
+      loadData();
+    }
+  }, [
+    state.dataLoaded,
+    state.loading, // Pridaná dependency
+    authState.isAuthenticated,
+    authState.isLoading,
+    authState.token,
+    loadData,
+  ]);
+
   // API helper methods
   const createVehicle = async (vehicle: Vehicle): Promise<void> => {
     try {
@@ -1343,6 +1371,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshBulkData = (): void => {
     console.log('🔄 AppContext: Refreshing BULK data...');
     dispatch({ type: 'REFRESH_BULK_DATA' });
+    // Spusti načítanie dát
+    loadData();
   };
 
   const createSettlement = async (settlement: Settlement): Promise<void> => {

@@ -292,6 +292,8 @@ export default function VehicleCentricInsuranceList() {
     ...filters,
   });
 
+  // Per-entity cache invalidation is now handled in useInsurances hook
+
   const insurances = useMemo(
     () => insurancesData?.insurances || [],
     [insurancesData?.insurances]
@@ -688,8 +690,13 @@ export default function VehicleCentricInsuranceList() {
     }
   };
 
-  const handleSave = async (data: UnifiedDocumentData) => {
-    try {
+  const handleSave = useCallback(
+    (data: UnifiedDocumentData) => {
+      const closeDialog = () => {
+        setOpenDialog(false);
+        setEditingDocument(null);
+      };
+
       if (editingDocument) {
         if (
           editingDocument.type === 'insurance_pzp' ||
@@ -723,7 +730,18 @@ export default function VehicleCentricInsuranceList() {
             greenCardValidTo: data.greenCardValidTo,
             kmState: data.kmState, // 🚗 Stav kilometrov
           };
-          await updateInsuranceMutation.mutateAsync(insuranceData);
+          updateInsuranceMutation.mutate(insuranceData, {
+            onSuccess: closeDialog,
+            onError: error => {
+              console.error('Chyba pri ukladaní insurance:', error);
+              alert('Chyba pri ukladaní insurance: ' + error.message);
+            },
+            onSettled: () => {
+              // Ensure cache invalidation happens
+              console.log('🔄 onSettled called for updateInsurance');
+              // Per-entity cache invalidation is handled in useInsurances hook
+            },
+          });
         } else {
           // Type guard pre DocumentType
           const isValidDocumentType = (type: string): type is DocumentType => {
@@ -745,7 +763,13 @@ export default function VehicleCentricInsuranceList() {
               filePath: data.filePath,
               kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
             };
-            await updateVehicleDocumentMutation.mutateAsync(vehicleDocData);
+            updateVehicleDocumentMutation.mutate(vehicleDocData, {
+              onSuccess: closeDialog,
+              onError: error => {
+                console.error('Chyba pri ukladaní vehicle document:', error);
+                alert('Chyba pri ukladaní vehicle document: ' + error.message);
+              },
+            });
           }
         }
       } else {
@@ -777,7 +801,18 @@ export default function VehicleCentricInsuranceList() {
             greenCardValidTo: data.greenCardValidTo,
             kmState: data.kmState, // 🚗 Stav kilometrov pre Kasko
           };
-          await createInsuranceMutation.mutateAsync(insuranceData);
+          createInsuranceMutation.mutate(insuranceData, {
+            onSuccess: closeDialog,
+            onError: error => {
+              console.error('Chyba pri ukladaní insurance:', error);
+              alert('Chyba pri ukladaní insurance: ' + error.message);
+            },
+            onSettled: () => {
+              // Ensure cache invalidation happens
+              console.log('🔄 onSettled called for createInsurance');
+              // Per-entity cache invalidation is handled in useInsurances hook
+            },
+          });
         } else {
           const vehicleDocData = {
             id: '',
@@ -791,19 +826,25 @@ export default function VehicleCentricInsuranceList() {
             filePath: data.filePath,
             kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
           };
-          await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
+          createVehicleDocumentMutation.mutate(vehicleDocData, {
+            onSuccess: closeDialog,
+            onError: error => {
+              console.error('Chyba pri ukladaní vehicle document:', error);
+              alert('Chyba pri ukladaní vehicle document: ' + error.message);
+            },
+          });
         }
       }
-      setOpenDialog(false);
-      setEditingDocument(null);
-    } catch (error) {
-      console.error('Chyba pri ukladaní dokumentu:', error);
-      alert(
-        'Chyba pri ukladaní dokumentu: ' +
-          (error instanceof Error ? error.message : 'Neznáma chyba')
-      );
-    }
-  };
+    },
+    [
+      editingDocument,
+      insurers,
+      updateInsuranceMutation,
+      updateVehicleDocumentMutation,
+      createInsuranceMutation,
+      createVehicleDocumentMutation,
+    ]
+  );
 
   const clearFilters = () => {
     setSearchQuery('');

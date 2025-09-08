@@ -264,9 +264,9 @@ const Statistics: React.FC = () => {
       0
     );
 
-    // POKROČILÉ AUTO ŠTATISTIKY - používame filtrované vozidlá (bez private)
+    // POKROČILÉ AUTO ŠTATISTIKY - používame vozidlá s definovanou kategóriou
     const filteredVehicles = vehicles.filter(
-      vehicle => vehicle.category !== 'private'
+      vehicle => vehicle.category !== undefined
     );
     const vehicleStats = filteredVehicles
       .map(vehicle => {
@@ -682,16 +682,53 @@ const Statistics: React.FC = () => {
       // 📊 EMPLOYEE STATISTICS: Štatistiky zamestnancov na základe protokolov
       employeeStats: (() => {
         // Filtrované protokoly pre vybrané obdobie
-        const filteredProtocols = protocols.filter(protocol => {
-          const protocolDate = new Date(protocol.createdAt);
-          return (
-            protocolDate >= filterStartDate && protocolDate <= filterEndDate
-          );
-        });
+        const filteredProtocols = (
+          protocols as Array<{
+            createdAt: string;
+            type: string;
+            rentalId: string;
+            createdBy?: string;
+            rentalData?: { totalPrice?: number };
+          }>
+        ).filter(
+          (protocol: {
+            createdAt: string;
+            type: string;
+            rentalId: string;
+            createdBy?: string;
+            rentalData?: { totalPrice?: number };
+          }) => {
+            const protocolDate = new Date(protocol.createdAt);
+            return (
+              protocolDate >= filterStartDate && protocolDate <= filterEndDate
+            );
+          }
+        );
 
         // Zoskupenie protokolov podľa zamestnanca
         const employeeProtocolStats = filteredProtocols.reduce(
-          (acc, protocol) => {
+          (
+            acc: Record<
+              string,
+              {
+                employeeName: string;
+                handoverCount: number;
+                returnCount: number;
+                totalProtocols: number;
+                handoverRevenue: number;
+                returnRevenue: number;
+                totalRevenue: number;
+                rentals: Set<string>;
+              }
+            >,
+            protocol: {
+              createdAt: string;
+              type: string;
+              rentalId: string;
+              createdBy?: string;
+              rentalData?: { totalPrice?: number };
+            }
+          ) => {
             const employeeName = protocol.createdBy || 'Neznámy';
 
             if (!acc[employeeName]) {
@@ -749,10 +786,24 @@ const Statistics: React.FC = () => {
 
         // Konverzia na array a pridanie počtu unikátnych prenájmov
         const employeeStatsArray = Object.values(employeeProtocolStats).map(
-          emp => ({
-            ...emp,
+          (emp: {
+            employeeName: string;
+            handoverCount: number;
+            returnCount: number;
+            totalProtocols: number;
+            handoverRevenue: number;
+            returnRevenue: number;
+            totalRevenue: number;
+            rentals: Set<string>;
+          }) => ({
+            employeeName: emp.employeeName,
+            handoverCount: emp.handoverCount,
+            returnCount: emp.returnCount,
+            totalProtocols: emp.totalProtocols,
+            handoverRevenue: emp.handoverRevenue,
+            returnRevenue: emp.returnRevenue,
+            totalRevenue: emp.totalRevenue,
             uniqueRentals: emp.rentals.size,
-            rentals: undefined, // Odstránime Set z výsledku
           })
         );
 
@@ -777,10 +828,12 @@ const Statistics: React.FC = () => {
           topEmployeesByHandovers,
           topEmployeesByReturns,
           totalProtocols: filteredProtocols.length,
-          totalHandovers: filteredProtocols.filter(p => p.type === 'handover')
-            .length,
-          totalReturns: filteredProtocols.filter(p => p.type === 'return')
-            .length,
+          totalHandovers: filteredProtocols.filter(
+            (p: { type: string }) => p.type === 'handover'
+          ).length,
+          totalReturns: filteredProtocols.filter(
+            (p: { type: string }) => p.type === 'return'
+          ).length,
           activeEmployees: employeeStatsArray.length,
         };
       })(),
