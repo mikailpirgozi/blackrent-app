@@ -48,7 +48,7 @@ import {
   useUpdateRental,
 } from '@/lib/react-query/hooks/useRentals';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
-import type { Customer } from '../../types';
+import type { Customer, Rental } from '../../types';
 import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
 
 import CustomerForm from './CustomerForm';
@@ -74,7 +74,7 @@ export default function CustomerListNew() {
   const deleteCustomer = async (id: string) => {
     return deleteCustomerMutation.mutateAsync(id);
   };
-  const updateRental = async (rental: Record<string, unknown>) => {
+  const updateRental = async (rental: Rental) => {
     return updateRentalMutation.mutateAsync(rental);
   };
   const theme = useTheme();
