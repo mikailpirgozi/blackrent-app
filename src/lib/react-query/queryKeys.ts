@@ -82,7 +82,8 @@ export const queryKeys = {
 
   insurers: {
     all: ['insurers'] as const,
-    list: () => [...queryKeys.insurers.all, 'list'] as const,
+    lists: () => [...queryKeys.insurers.all, 'list'] as const,
+    list: () => [...queryKeys.insurers.lists()] as const,
   },
 
   settlements: {
