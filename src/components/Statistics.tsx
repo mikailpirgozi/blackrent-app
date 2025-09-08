@@ -1,7 +1,7 @@
 import { useExpenses } from '@/lib/react-query/hooks/useExpenses';
 import { useAllProtocols } from '@/lib/react-query/hooks/useProtocols';
 import { useRentals } from '@/lib/react-query/hooks/useRentals';
-// import { useVehicles } from '@/lib/react-query/hooks/useVehicles'; // Unused for now
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import {
   AccountBalance as AccountBalanceIcon,
   Assessment as AssessmentIcon,
@@ -160,7 +160,7 @@ const Statistics: React.FC = () => {
   const { data: rentals = [] } = useRentals();
   const { data: expenses = [] } = useExpenses();
   const { data: protocols = [] } = useAllProtocols();
-  // const { data: vehicles = [] } = useVehicles(); // Unused for now
+  const { data: vehicles = [] } = useVehicles();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -265,7 +265,9 @@ const Statistics: React.FC = () => {
     );
 
     // POKROČILÉ AUTO ŠTATISTIKY - používame filtrované vozidlá (bez private)
-    const filteredVehicles = getFilteredVehicles();
+    const filteredVehicles = vehicles.filter(
+      vehicle => vehicle.category !== 'private'
+    );
     const vehicleStats = filteredVehicles
       .map(vehicle => {
         const vehicleRentals = filteredRentals.filter(
@@ -787,6 +789,7 @@ const Statistics: React.FC = () => {
     rentals,
     expenses,
     protocols,
+    vehicles,
     selectedYear,
     selectedMonth,
     timeRange,
