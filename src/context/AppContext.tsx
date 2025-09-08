@@ -768,6 +768,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           rentals: bulkData.rentals.length,
           customers: bulkData.customers.length,
           companies: bulkData.companies.length,
+          // Note: insurances and insurance claims now loaded via React Query
         });
       }
 
@@ -782,17 +783,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_COMPANIES', payload: bulkData.companies });
       dispatch({ type: 'SET_INSURERS', payload: bulkData.insurers });
       dispatch({ type: 'SET_EXPENSES', payload: bulkData.expenses });
-      dispatch({ type: 'SET_INSURANCES', payload: bulkData.insurances });
+      // Note: insurances now loaded via React Query hooks, not BULK API
+      // dispatch({ type: 'SET_INSURANCES', payload: bulkData.insurances });
       dispatch({ type: 'SET_SETTLEMENTS', payload: bulkData.settlements });
       // Note: vehicleDocuments not available in bulk data, load separately if needed
       // dispatch({
       //   type: 'SET_VEHICLE_DOCUMENTS',
       //   payload: bulkData.vehicleDocuments,
       // });
-      dispatch({
-        type: 'SET_INSURANCE_CLAIMS',
-        payload: bulkData.insuranceClaims,
-      });
+      // Note: insurance claims now loaded via React Query hooks, not BULK API
+      // dispatch({
+      //   type: 'SET_INSURANCE_CLAIMS',
+      //   payload: bulkData.insuranceClaims,
+      // });
 
       // 📊 Load protocols for employee statistics (separate API call)
       try {
