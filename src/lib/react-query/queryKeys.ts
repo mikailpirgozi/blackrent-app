@@ -29,6 +29,8 @@ export const queryKeys = {
   // Protocols
   protocols: {
     all: ['protocols'] as const,
+    lists: () => [...queryKeys.protocols.all, 'list'] as const,
+    list: () => [...queryKeys.protocols.lists()] as const,
     handover: (rentalId: string) =>
       ['protocols', 'handover', rentalId] as const,
     return: (rentalId: string) => ['protocols', 'return', rentalId] as const,
@@ -63,6 +65,13 @@ export const queryKeys = {
     dashboard: () => ['statistics', 'dashboard'] as const,
     revenue: (period: string) => ['statistics', 'revenue', period] as const,
     expenses: (period: string) => ['statistics', 'expenses', period] as const,
+  },
+
+  // Availability
+  availability: {
+    all: ['availability'] as const,
+    calendar: (startDate: string, endDate: string) =>
+      ['availability', 'calendar', startDate, endDate] as const,
   },
 
   // Companies & Settings

@@ -3,6 +3,16 @@ import type { HandoverProtocol, ReturnProtocol } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 
+// GET all protocols (for statistics)
+export function useAllProtocols() {
+  return useQuery({
+    queryKey: queryKeys.protocols.list(),
+    queryFn: () => apiService.get('/protocols'),
+    staleTime: 1 * 60 * 1000, // 1 minúta
+    refetchInterval: 60000, // Auto-refresh každú minútu
+  });
+}
+
 // GET protocols by rental
 export function useProtocolsByRental(rentalId: string) {
   return useQuery({

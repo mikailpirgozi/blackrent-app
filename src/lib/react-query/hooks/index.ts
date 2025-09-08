@@ -1,4 +1,5 @@
 // React Query hooks export
+export * from './useAvailability';
 export * from './useCompanies';
 export * from './useCustomers';
 export * from './useExpenses';

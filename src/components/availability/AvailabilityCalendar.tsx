@@ -35,40 +35,13 @@ import {
   subMonths,
 } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
-import { apiService } from '../../services/api';
-
-// 🚀 NOVÉ TYPY PRE KALENDÁRNE DÁTA
-interface CalendarVehicle {
-  vehicleId: number;
-  vehicleName: string;
-  licensePlate: string;
-  status: 'available' | 'rented' | 'flexible' | 'maintenance' | 'unavailable';
-  rentalId?: number;
-  customerName?: string;
-  isFlexible?: boolean;
-  unavailabilityType?: string;
-  unavailabilityReason?: string;
-}
-
-interface CalendarDay {
-  date: string;
-  vehicles: CalendarVehicle[];
-}
-
-interface CalendarData {
-  calendar: CalendarDay[];
-  vehicles: Array<{
-    id: number;
-    brand: string;
-    model: string;
-    licensePlate: string;
-    status: string;
-  }>;
-  rentals?: Record<string, unknown>[];
-  unavailabilities?: Record<string, unknown>[];
-}
+import type {
+  CalendarDay,
+  CalendarVehicle,
+} from '@/lib/react-query/hooks/useAvailability';
+import { useAvailabilityCalendar } from '@/lib/react-query/hooks/useAvailability';
 
 interface AvailabilityCalendarProps {
   vehicleId?: number;
@@ -127,52 +100,22 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   searchQuery,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
 
-  // 🚀 NAČÍTANIE KALENDÁRNYCH DÁT Z API
-  const loadCalendarData = async (month: Date) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // React Query hook pre načítanie kalendárnych dát
+  const {
+    data: calendarData,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useAvailabilityCalendar(currentMonth);
 
-      const monthStart = startOfMonth(month);
-      const monthEnd = endOfMonth(month);
-
-      console.log(
-        '📅 Loading calendar data for:',
-        format(monthStart, 'yyyy-MM-dd'),
-        'to',
-        format(monthEnd, 'yyyy-MM-dd')
-      );
-
-      // Volanie API endpointu pre kalendárne dáta
-      const calendarData = await apiService.get<CalendarData>(
-        `/availability/calendar?startDate=${format(monthStart, 'yyyy-MM-dd')}&endDate=${format(monthEnd, 'yyyy-MM-dd')}`
-      );
-
-      if (calendarData) {
-        setCalendarData(calendarData);
-        console.log('✅ Calendar data loaded:', calendarData);
-      } else {
-        throw new Error('Failed to load calendar data');
-      }
-    } catch (err) {
-      console.error('❌ Error loading calendar data:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to load calendar data'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Načítanie dát pri zmene mesiaca
-  useEffect(() => {
-    loadCalendarData(currentMonth);
-  }, [currentMonth]);
+  // Error handling - kombinujeme query error s external error
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Failed to load calendar data'
+    : externalError;
 
   const handlePreviousMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
@@ -189,7 +132,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   };
 
   const handleRefresh = () => {
-    loadCalendarData(currentMonth);
+    refetch();
   };
 
   // 🚀 NOVÁ LOGIKA PRE ZÍSKANIE STATUSU DŇA
@@ -539,10 +482,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     );
   }
 
-  if (error || externalError) {
+  if (error) {
     return (
       <Alert severity="error" sx={{ mb: 2 }}>
-        {error || externalError}
+        {error}
         <Box sx={{ mt: 1 }}>
           <IconButton onClick={handleRefresh} size="small">
             <Refresh />

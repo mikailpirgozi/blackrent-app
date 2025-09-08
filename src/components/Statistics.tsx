@@ -1,3 +1,7 @@
+import { useExpenses } from '@/lib/react-query/hooks/useExpenses';
+import { useAllProtocols } from '@/lib/react-query/hooks/useProtocols';
+import { useRentals } from '@/lib/react-query/hooks/useRentals';
+// import { useVehicles } from '@/lib/react-query/hooks/useVehicles'; // Unused for now
 import {
   AccountBalance as AccountBalanceIcon,
   Assessment as AssessmentIcon,
@@ -81,7 +85,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useApp } from '../context/AppContext';
 import { logger } from '../utils/smartLogger';
 import StatisticsMobile from './statistics/StatisticsMobile';
 
@@ -153,9 +156,18 @@ const COLORS = [
 ];
 
 const Statistics: React.FC = () => {
-  const { state, getFilteredVehicles } = useApp();
+  // React Query hooks
+  const { data: rentals = [] } = useRentals();
+  const { data: expenses = [] } = useExpenses();
+  const { data: protocols = [] } = useAllProtocols();
+  // const { data: vehicles = [] } = useVehicles(); // Unused for now
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Loading state
+  // const isLoading =
+  //   rentalsLoading || expensesLoading || protocolsLoading || vehiclesLoading;
 
   const [selectedYear] = useState(new Date().getFullYear());
   const [selectedMonth] = useState(new Date().getMonth());
@@ -207,13 +219,13 @@ const Statistics: React.FC = () => {
     });
 
     // Filtrované prenájmy pre vybrané obdobie
-    const filteredRentals = state.rentals.filter(rental => {
+    const filteredRentals = rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate >= filterStartDate && rentalDate <= filterEndDate;
     });
 
     // Filtrované náklady pre vybrané obdobie a iba Black Holding
-    const filteredExpenses = state.expenses.filter(expense => {
+    const filteredExpenses = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
       const isInPeriod =
         expenseDate >= filterStartDate && expenseDate <= filterEndDate;
@@ -416,7 +428,7 @@ const Statistics: React.FC = () => {
         : null;
 
     // Existujúce výpočty (pre všetky časy)
-    const currentMonthRentals = state.rentals.filter(rental => {
+    const currentMonthRentals = rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return (
         rentalDate.getMonth() === currentMonth &&
@@ -424,12 +436,12 @@ const Statistics: React.FC = () => {
       );
     });
 
-    const currentYearRentals = state.rentals.filter(rental => {
+    const currentYearRentals = rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate.getFullYear() === currentYear;
     });
 
-    const selectedMonthRentals = state.rentals.filter(rental => {
+    const selectedMonthRentals = rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return (
         rentalDate.getMonth() === selectedMonth &&
@@ -437,13 +449,13 @@ const Statistics: React.FC = () => {
       );
     });
 
-    const selectedYearRentals = state.rentals.filter(rental => {
+    const selectedYearRentals = rentals.filter(rental => {
       const rentalDate = new Date(rental.startDate);
       return rentalDate.getFullYear() === selectedYear;
     });
 
     // Aktívne prenájmy
-    const activeRentals = state.rentals.filter(rental => {
+    const activeRentals = rentals.filter(rental => {
       const now = new Date();
       const startDate = new Date(rental.startDate);
       const endDate = new Date(rental.endDate);
@@ -451,14 +463,14 @@ const Statistics: React.FC = () => {
     });
 
     // Dnešné vrátenia
-    const todayReturns = state.rentals.filter(rental => {
+    const todayReturns = rentals.filter(rental => {
       const today = new Date();
       const endDate = new Date(rental.endDate);
       return format(today, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
     });
 
     // Zajtrajšie vrátenia
-    const tomorrowReturns = state.rentals.filter(rental => {
+    const tomorrowReturns = rentals.filter(rental => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const endDate = new Date(rental.endDate);
@@ -466,35 +478,35 @@ const Statistics: React.FC = () => {
     });
 
     // Nezaplatené prenájmy
-    const unpaidRentals = state.rentals.filter(rental => !rental.paid);
+    const unpaidRentals = rentals.filter(rental => !rental.paid);
 
     // Výpočet celkových príjmov (všetky časy)
-    const totalRevenue = state.rentals.reduce(
+    const totalRevenue = rentals.reduce(
       (sum, rental) => sum + (rental.totalPrice || 0),
       0
     );
-    const totalCommission = state.rentals.reduce(
+    const totalCommission = rentals.reduce(
       (sum, rental) => sum + (rental.commission || 0),
       0
     );
 
     // Výpočet priemerných hodnôt
     const avgRentalPrice =
-      state.rentals.length > 0 ? totalRevenue / state.rentals.length : 0;
+      rentals.length > 0 ? totalRevenue / rentals.length : 0;
     const avgRentalDuration =
-      state.rentals.length > 0
-        ? state.rentals.reduce((sum, rental) => {
+      rentals.length > 0
+        ? rentals.reduce((sum, rental) => {
             const days =
               differenceInDays(
                 new Date(rental.endDate),
                 new Date(rental.startDate)
               ) + 1;
             return sum + days;
-          }, 0) / state.rentals.length
+          }, 0) / rentals.length
         : 0;
 
     // Štatistiky podľa spôsobu platby
-    const paymentMethodStats = state.rentals.reduce(
+    const paymentMethodStats = rentals.reduce(
       (acc, rental) => {
         const method = rental.paymentMethod || 'unknown';
         if (!acc[method]) {
@@ -508,7 +520,7 @@ const Statistics: React.FC = () => {
     );
 
     // Štatistiky podľa firiem
-    const companyStats = state.rentals.reduce(
+    const companyStats = rentals.reduce(
       (acc, rental) => {
         const company = rental.vehicle?.company || 'Bez firmy';
         if (!acc[company]) {
@@ -528,7 +540,7 @@ const Statistics: React.FC = () => {
     // Mesiačné dáta pre graf
     const monthlyData = Array.from({ length: 12 }, (_, i) => {
       const month = subMonths(new Date(), 11 - i);
-      const monthRentals = state.rentals.filter(rental => {
+      const monthRentals = rentals.filter(rental => {
         const rentalDate = new Date(rental.startDate);
         return (
           rentalDate.getMonth() === month.getMonth() &&
@@ -668,7 +680,7 @@ const Statistics: React.FC = () => {
       // 📊 EMPLOYEE STATISTICS: Štatistiky zamestnancov na základe protokolov
       employeeStats: (() => {
         // Filtrované protokoly pre vybrané obdobie
-        const filteredProtocols = state.protocols.filter(protocol => {
+        const filteredProtocols = protocols.filter(protocol => {
           const protocolDate = new Date(protocol.createdAt);
           return (
             protocolDate >= filterStartDate && protocolDate <= filterEndDate
@@ -694,7 +706,7 @@ const Statistics: React.FC = () => {
             }
 
             // Nájdi prenájom pre tento protokol (hľadaj vo všetkých prenájmoch, nie len filtrovaných)
-            const rental = state.rentals.find(r => r.id === protocol.rentalId);
+            const rental = rentals.find(r => r.id === protocol.rentalId);
 
             // Skús získať cenu z rôznych zdrojov
             let rentalPrice = 0;
@@ -772,15 +784,14 @@ const Statistics: React.FC = () => {
       })(),
     };
   }, [
-    state.rentals,
-    state.expenses,
-    state.protocols,
+    rentals,
+    expenses,
+    protocols,
     selectedYear,
     selectedMonth,
     timeRange,
     filterYear,
     filterMonth,
-    getFilteredVehicles,
   ]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {

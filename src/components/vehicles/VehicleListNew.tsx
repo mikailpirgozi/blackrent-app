@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
 import {
   useCreateVehicle,
   useDeleteVehicle,
@@ -21,7 +22,6 @@ import {
   useVehicles,
   type VehicleFilters,
 } from '@/lib/react-query/hooks/useVehicles';
-import { useApp } from '../../context/AppContext';
 import type { Vehicle, VehicleCategory, VehicleStatus } from '../../types';
 import VehicleFiltersComponent from './components/VehicleFilters';
 
@@ -72,7 +72,8 @@ import VehicleKmHistory from './components/VehicleKmHistory';
 import VehicleTable from './components/VehicleTable';
 
 export default function VehicleListNew() {
-  const { state } = useApp(); // Zatiaľ ponechávame pre companies a iné dáta
+  // React Query hooks
+  const { data: companies = [], isLoading: companiesLoading } = useCompanies();
 
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
   const mobileScrollRef = React.useRef<HTMLDivElement>(null);
@@ -154,7 +155,7 @@ export default function VehicleListNew() {
     useVehicles(vehicleFilters);
 
   // Kombinovaný loading state
-  const isLoading = vehiclesLoading || loading;
+  const isLoading = vehiclesLoading || companiesLoading || loading;
   // const [ownershipHistoryDialog, setOwnershipHistoryDialog] = useState(false); // Unused - ownership history disabled
   // const [selectedVehicleHistory, setSelectedVehicleHistory] =
   //   useState<Vehicle | null>(null); // Unused - ownership history disabled
@@ -381,7 +382,7 @@ export default function VehicleListNew() {
 
         // Načítaj shares pre všetkých investorov
         const allShares = [];
-        for (const company of state.companies || []) {
+        for (const company of companies) {
           const sharesResponse = await fetch(
             `${getApiBaseUrl()}/company-investors/${company.id}/shares`,
             {
@@ -402,7 +403,7 @@ export default function VehicleListNew() {
     } finally {
       setLoadingInvestors(false);
     }
-  }, [state.companies]);
+  }, [companies]);
 
   // Načítaj investorov pri zmene tabu
   useEffect(() => {
@@ -1005,7 +1006,7 @@ export default function VehicleListNew() {
             </Box>
 
             {/* Zoznam majiteľov zoskupených podľa firmy */}
-            {state.companies
+            {companies
               ?.filter(company => company.isActive !== false) // Filtrovanie aktívnych firiem
               ?.map(company => {
                 // Nájdi vozidlá pre túto firmu
@@ -1027,8 +1028,7 @@ export default function VehicleListNew() {
               })
               ?.filter(Boolean)}
 
-            {state.companies?.filter(c => c.isActive !== false).length ===
-              0 && (
+            {companies?.filter(c => c.isActive !== false).length === 0 && (
               <Typography
                 variant="body2"
                 color="text.secondary"
@@ -1085,10 +1085,7 @@ export default function VehicleListNew() {
                       >[]
                     }
                     companies={
-                      (state.companies || []) as unknown as Record<
-                        string,
-                        unknown
-                      >[]
+                      companies as unknown as Record<string, unknown>[]
                     }
                     onShareUpdate={loadInvestors}
                     onAssignShare={investor => {
@@ -1147,9 +1144,7 @@ export default function VehicleListNew() {
           selectedInvestorForShare as unknown as Record<string, unknown>
         }
         newShareData={newShareData}
-        companies={
-          (state.companies || []) as unknown as Record<string, unknown>[]
-        }
+        companies={companies as unknown as Record<string, unknown>[]}
         onCloseAssignShare={() => setAssignShareDialogOpen(false)}
         onAssignShare={handleAssignShare}
         onShareDataChange={(field, value) =>
