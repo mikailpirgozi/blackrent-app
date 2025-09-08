@@ -21,6 +21,7 @@
 - **useInsurances Hook** - ✅ **NOVÉ: Implementovaný s pagináciou a filtrami**
 - **useInsuranceClaims Hook** - ✅ **NOVÉ: Implementovaný pre poistné udalosti**
 - **VehicleCentricInsuranceList** - ✅ **NOVÉ: Migrovaný na React Query s optimistickými updates**
+- **Insurance Cache Invalidation Fix** - ✅ **NOVÉ: Opravené okamžité aktualizácie poistiek bez refresh**
 - **Protocol Status System** - Bulk loading, transformácia array→objekt, cache optimalizácia
 - **Optimistic Updates** - Fungujú perfektne (viditeľné v logoch)
 - **Cache Invalidation** - Automatické refresh po mutáciách
@@ -2327,3 +2328,4 @@ Tento implementačný plán je **100% DOKONČENÝ** a zabezpečil:
 - ✅ Optimistické updates pre všetky operácie
 - ✅ Automatické cache invalidation
 - ✅ WebSocket integrácia
+- ✅ **NOVÉ: Opravené okamžité aktualizácie poistiek bez refresh stránky**
