@@ -37,8 +37,10 @@ import {
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useAuth } from '../../context/AuthContext';
+import { useCustomers } from '../../lib/react-query/hooks/useCustomers';
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { Rental } from '../../types';
 // import { Vehicle, Customer } from '../../types'; // TODO: Implement type usage
@@ -324,7 +326,9 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const { state } = useAuth();
-  const { state: appState } = useApp();
+  // const { state: appState } = useApp(); // Migrated to React Query
+  const { data: vehicles = [] } = useVehicles();
+  const { data: customers = [] } = useCustomers();
 
   const fetchPendingRentals = async () => {
     try {
@@ -463,8 +467,8 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
       <EditRentalDialog
         open={editDialogOpen}
         rental={editingRental}
-        vehicles={appState.vehicles}
-        customers={appState.customers}
+        vehicles={vehicles}
+        customers={customers}
         onClose={() => {
           setEditDialogOpen(false);
           setEditingRental(null);

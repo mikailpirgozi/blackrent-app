@@ -7,7 +7,7 @@ import { queryKeys } from '../queryKeys';
 export function useAllProtocols() {
   return useQuery({
     queryKey: queryKeys.protocols.list(),
-    queryFn: () => apiService.get('/protocols'),
+    queryFn: () => apiService.getAllProtocolsForStats(),
     staleTime: 1 * 60 * 1000, // 1 minúta
     refetchInterval: 60000, // Auto-refresh každú minútu
   });

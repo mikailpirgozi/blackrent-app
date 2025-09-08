@@ -23,7 +23,9 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import React, { useEffect, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
+import { useInsurers } from '../../lib/react-query/hooks/useInsurers';
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import type { PaymentFrequency } from '../../types';
 
 import R2FileUpload from './R2FileUpload';
@@ -118,7 +120,9 @@ export default function UnifiedDocumentForm({
   onSave,
   onCancel,
 }: UnifiedDocumentFormProps) {
-  const { state } = useApp();
+  // const { state } = useApp(); // Migrated to React Query
+  const { data: vehicles = [] } = useVehicles();
+  const { data: insurers = [] } = useInsurers();
   const [greenCardManuallyEdited, setGreenCardManuallyEdited] = useState(false);
 
   const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
@@ -386,7 +390,7 @@ export default function UnifiedDocumentForm({
                     <Grid item xs={12} sm={6}>
                       <Autocomplete
                         fullWidth
-                        options={(state.vehicles || []).slice().sort((a, b) => {
+                        options={vehicles.slice().sort((a, b) => {
                           const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
                           const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
                           return aText.localeCompare(bText, 'sk', {
@@ -397,9 +401,8 @@ export default function UnifiedDocumentForm({
                           `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
                         }
                         value={
-                          (state.vehicles || []).find(
-                            v => v.id === formData.vehicleId
-                          ) || null
+                          vehicles.find(v => v.id === formData.vehicleId) ||
+                          null
                         }
                         onChange={(_, newValue) =>
                           setFormData(prev => ({
@@ -511,7 +514,7 @@ export default function UnifiedDocumentForm({
                                 }
                               }}
                             >
-                              {state.insurers.map(insurer => (
+                              {insurers.map(insurer => (
                                 <MenuItem key={insurer.id} value={insurer.name}>
                                   {insurer.name}
                                 </MenuItem>

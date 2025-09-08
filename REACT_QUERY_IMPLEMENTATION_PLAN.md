@@ -38,6 +38,38 @@
 ### 📋 **ZOSTÁVA MIGROVAŤ (0%)**
 - **Všetky komponenty sú migrované!** 🎉
 
+### 🔄 **AKTUÁLNE V PRÍPRAVE (MIGRAČNÝ PLÁN)**
+- **FÁZA 1: Analýza a príprava** - ✅ **DOKONČENÉ** (zmapovaný súčasný stav, backup vytvorený)
+- **FÁZA 2: Vyčistenie cache systémov** - 🔄 **V PRÍPRAVE** (odstránenie UnifiedCache, vyčistenie AppContext)
+- **FÁZA 3: Bulk API → Per-ID normalizácia** - ⏳ **ČAKÁ** (implementácia useBulkDataLoader)
+- **FÁZA 4: Migrácia komponentov** - ⏳ **ČAKÁ** (postupná migrácia z AppContext na React Query)
+- **FÁZA 5: Oprava TypeScript chýb** - ⏳ **ČAKÁ** (finalizácia typov)
+- **FÁZA 6: Testovanie a validácia** - ⏳ **ČAKÁ** (kompletné testovanie)
+
+---
+
+## 🚨 **DÔLEŽITÉ UPOZORNENIE - PUSHOVANIE**
+
+### ⚠️ **NEPUSHOVAŤ DO GITHUBU KÝM NEBUDE 100% DOKONČENÉ!**
+
+**Dôvody:**
+- Migrácia je v priebehu a môže spôsobiť breaking changes
+- Hybrid stav (AppContext + React Query) môže spôsobiť konflikty
+- UnifiedCache sa ešte používa a môže spôsobiť duplicitné API volania
+- TypeScript chyby sa môžu objaviť počas migrácie
+
+**Kedy pushovať:**
+- ✅ **LEN** keď bude FÁZA 6 (Testovanie a validácia) 100% dokončená
+- ✅ **LEN** keď budú všetky buildy prechádzať (frontend + backend)
+- ✅ **LEN** keď bude 0 TypeScript errors a 0 warnings
+- ✅ **LEN** keď bude všetka funkcionalita otestovaná
+
+**Aktuálny stav:**
+- 🔄 **MIGRÁCIA V PRÍPRAVE** - NEPUSHOVAŤ!
+- 📝 **Lokálne testovanie** - OK
+- 🧪 **Development testing** - OK
+- 🚫 **Production push** - ZAKÁZANÉ
+
 ---
 
 ## 📋 OBSAH
@@ -2227,6 +2259,15 @@ describe('React Query Integration', () => {
 - **✅ Streda:** Dokumentácia (DOKONČENÉ)
 - **✅ Štvrtok:** Code review (DOKONČENÉ)
 - **✅ Piatok:** Production deploy (PRIPRAVENÉ)
+
+### **🔄 Týždeň 5: MIGRAČNÝ PLÁN - V PRÍPRAVE**
+- **✅ Pondelok:** FÁZA 1 - Analýza a príprava (DOKONČENÉ)
+- **🔄 Utorok:** FÁZA 2 - Vyčistenie cache systémov (V PRÍPRAVE)
+- **⏳ Streda:** FÁZA 3 - Bulk API → Per-ID normalizácia (ČAKÁ)
+- **⏳ Štvrtok:** FÁZA 4 - Migrácia komponentov (ČAKÁ)
+- **⏳ Piatok:** FÁZA 5 - TypeScript opravy (ČAKÁ)
+- **⏳ Sobota:** FÁZA 6 - Testovanie a validácia (ČAKÁ)
+- **⏳ Nedeľa:** **PUSH DO GITHUBU** (LEN AK VŠETKO OK)
 
 ---
 

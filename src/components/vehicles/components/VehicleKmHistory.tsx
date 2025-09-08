@@ -37,7 +37,9 @@ import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useCallback, useEffect, useState } from 'react';
 
-import { useApp } from '../../../context/AppContext';
+// import { useApp } from '../../../context/AppContext'; // Migrated to React Query
+import { useInsurances } from '../../../lib/react-query/hooks/useInsurances';
+import { useVehicleDocuments } from '../../../lib/react-query/hooks/useVehicleDocuments';
 import type { Vehicle } from '../../../types';
 
 interface KmHistoryEntry {
@@ -120,7 +122,11 @@ export default function VehicleKmHistory({
 }: VehicleKmHistoryProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { state } = useApp();
+  // const { state } = useApp(); // Migrated to React Query
+
+  // React Query hooks for server state
+  const { data: insurances = [] } = useInsurances();
+  const { data: vehicleDocuments = [] } = useVehicleDocuments();
 
   const [kmHistory, setKmHistory] = useState<KmHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -131,7 +137,7 @@ export default function VehicleKmHistory({
     setLoading(true);
     try {
       // Načítaj Kasko poistky s kmState
-      const kaskoInsurances = (state.insurances || [])
+      const kaskoInsurances = (insurances || [])
         .filter(
           insurance =>
             insurance.vehicleId === vehicle.id &&
@@ -151,7 +157,7 @@ export default function VehicleKmHistory({
         }));
 
       // Načítaj STK dokumenty s kmState
-      const stkDocuments = (state.vehicleDocuments || [])
+      const stkDocuments = (vehicleDocuments || [])
         .filter(
           doc =>
             doc.vehicleId === vehicle.id &&
@@ -170,7 +176,7 @@ export default function VehicleKmHistory({
         }));
 
       // Načítaj EK dokumenty s kmState
-      const ekDocuments = (state.vehicleDocuments || [])
+      const ekDocuments = (vehicleDocuments || [])
         .filter(
           doc =>
             doc.vehicleId === vehicle.id &&
@@ -202,7 +208,7 @@ export default function VehicleKmHistory({
     } finally {
       setLoading(false);
     }
-  }, [vehicle, state.insurances, state.vehicleDocuments]);
+  }, [vehicle, insurances, vehicleDocuments]);
 
   useEffect(() => {
     if (open && vehicle) {

@@ -195,13 +195,15 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
 
           // Result už obsahuje priamo dáta, nie je wrapped v success/data
           const {
-            created,
-            updated,
-            errorsCount,
-            successRate,
-            processed,
+            success: created,
+            failed: errorsCount,
             total,
           } = result as { success: number; failed: number; total: number };
+
+          const updated = 0; // Batch import len vytvára nové
+          const processed = created + errorsCount;
+          const successRate =
+            total > 0 ? Math.round((created / total) * 100) : 0;
 
           if ((created as number) > 0 || (updated as number) > 0) {
             alert(

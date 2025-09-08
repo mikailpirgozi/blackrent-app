@@ -34,7 +34,9 @@ import { sk } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
+import { useInsurances } from '@/lib/react-query/hooks/useInsurances';
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { InsuranceClaim } from '../../types';
 import R2FileUpload from '../common/R2FileUpload';
 
@@ -82,7 +84,12 @@ export default function InsuranceClaimForm({
   onSave,
   onCancel,
 }: InsuranceClaimFormProps) {
-  const { state, getEnhancedFilteredVehicles } = useApp();
+  // ✅ MIGRATED: React Query hooks instead of AppContext
+  const { data: insurances = [] } = useInsurances();
+  const { data: vehicles = [] } = useVehicles();
+
+  // Helper functions for compatibility
+  const getEnhancedFilteredVehicles = () => vehicles;
 
   const [formData, setFormData] = useState<Partial<InsuranceClaim>>({
     vehicleId: claim?.vehicleId || '',
@@ -118,9 +125,8 @@ export default function InsuranceClaimForm({
   }, [claim]);
 
   // Get available vehicles and their insurances (including private)
-  const availableVehicles =
-    getEnhancedFilteredVehicles({ includePrivate: true }) || [];
-  const vehicleInsurances = (state.insurances || []).filter(
+  const availableVehicles = getEnhancedFilteredVehicles() || [];
+  const vehicleInsurances = (insurances || []).filter(
     ins => ins.vehicleId === formData.vehicleId
   );
 

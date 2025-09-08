@@ -41,9 +41,11 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
+import { useCompanies } from '../../lib/react-query/hooks/useCompanies';
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import { apiService, getAPI_BASE_URL } from '../../services/api';
 
 interface OwnershipHistory {
@@ -66,9 +68,9 @@ interface VehicleWithHistory {
 }
 
 const VehicleOwnershipTransfer: React.FC = () => {
-  const { state } = useApp();
-  const vehicles = useMemo(() => state.vehicles || [], [state.vehicles]);
-  const companies = state.companies || [];
+  // const { state } = useApp(); // Migrated to React Query
+  const { data: vehicles = [] } = useVehicles();
+  const { data: companies = [] } = useCompanies();
 
   // Transfer form states
   const [selectedVehicleId, setSelectedVehicleId] = useState('');

@@ -31,13 +31,13 @@ import React, { useState } from 'react';
 
 import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
-import { useApp } from '../context/AppContext';
-import type { VehicleCategory } from '../types';
-// 🔄 PHASE 4: Migrated to unified cache system
-import { unifiedCache } from '../utils/unifiedCacheSystem';
+// import { useApp } from '../context/AppContext'; // Migrated to React Query
+import { useVehicles } from '../lib/react-query/hooks/useVehicles';
+import type { Vehicle, VehicleCategory } from '../types';
+// 🔄 PHASE 4: Migrated to React Query
 
 const AvailabilityPageNew: React.FC = () => {
-  const { getFilteredVehicles } = useApp();
+  const { data: vehicles = [] } = useVehicles();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
@@ -55,12 +55,12 @@ const AvailabilityPageNew: React.FC = () => {
   // 🚫 UNAVAILABILITY MODAL STATE
   const [unavailabilityModalOpen, setUnavailabilityModalOpen] = useState(false);
 
-  // Get filtered vehicles based on user permissions
-  const filteredVehicles = getFilteredVehicles();
+  // Use React Query vehicles
+  const allVehicles = vehicles;
 
   // Get unique companies for filter
   const uniqueCompanies = [
-    ...new Set(filteredVehicles.map(v => v.company)),
+    ...new Set(allVehicles.map((v: Vehicle) => v.company)),
   ].sort();
 
   // 🚗 VEHICLE CATEGORIES with emoji icons
@@ -102,10 +102,7 @@ const AvailabilityPageNew: React.FC = () => {
   };
 
   const handleUnavailabilitySuccess = () => {
-    // 🗄️ CLEAR CACHE: Invalidate calendar cache after unavailability change
-    // 🔄 PHASE 4: Using unified cache invalidation
-    unifiedCache.invalidateEntity('calendar');
-    unifiedCache.invalidateEntity('vehicle');
+    // 🔄 PHASE 2: Cache invalidation removed - React Query handles cache automatically
 
     // Force calendar refresh by triggering a re-render
     // Use a small delay to ensure cache invalidation is processed
@@ -222,7 +219,7 @@ const AvailabilityPageNew: React.FC = () => {
                     onChange={e => setSelectedCompany(e.target.value)}
                   >
                     <MenuItem value="">Všetky firmy</MenuItem>
-                    {uniqueCompanies.map(company => (
+                    {uniqueCompanies.map((company: string | undefined) => (
                       <MenuItem key={company} value={company}>
                         {company}
                       </MenuItem>
@@ -369,7 +366,10 @@ const AvailabilityPageNew: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {filteredVehicles.filter(v => v.status === 'available').length}
+                {
+                  allVehicles.filter((v: Vehicle) => v.status === 'available')
+                    .length
+                }
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Dostupné vozidlá
@@ -387,7 +387,10 @@ const AvailabilityPageNew: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {filteredVehicles.filter(v => v.status === 'rented').length}
+                {
+                  allVehicles.filter((v: Vehicle) => v.status === 'rented')
+                    .length
+                }
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Klasicky prenajaté
@@ -406,7 +409,7 @@ const AvailabilityPageNew: React.FC = () => {
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {
-                  filteredVehicles.filter(v => v.status === 'maintenance')
+                  allVehicles.filter((v: Vehicle) => v.status === 'maintenance')
                     .length
                 }
               </Typography>
@@ -426,7 +429,7 @@ const AvailabilityPageNew: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {filteredVehicles.length}
+                {allVehicles.length}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Celkom

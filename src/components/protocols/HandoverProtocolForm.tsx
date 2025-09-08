@@ -29,8 +29,9 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCreateHandoverProtocol } from '@/lib/react-query/hooks/useProtocols';
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useAuth } from '../../context/AuthContext';
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import type {
   HandoverProtocol,
   ProtocolImage,
@@ -81,7 +82,8 @@ SignatureDisplay.displayName = 'SignatureDisplay';
 const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
   ({ open, onClose, rental, onSave }) => {
     const { state } = useAuth();
-    const { state: appState } = useApp();
+    // const { state: appState } = useApp(); // Migrated to React Query
+    const { data: vehicles = [] } = useVehicles();
     const createHandoverProtocol = useCreateHandoverProtocol();
     const [loading, setLoading] = useState(false);
     const [emailStatus, setEmailStatus] = useState<{
@@ -129,11 +131,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
     // 🚀 OPTIMALIZÁCIA: Vehicle indexing pre rýchle vyhľadávanie
     const vehicleIndex = useMemo(() => {
       const index = new Map<string, Vehicle>();
-      appState.vehicles.forEach(vehicle => {
+      vehicles.forEach(vehicle => {
         index.set(vehicle.id, vehicle);
       });
       return index;
-    }, [appState.vehicles]);
+    }, [vehicles]);
 
     // 🚀 OPTIMALIZÁCIA: Okamžité získanie vehicle data bez useEffect
     const currentVehicle = useMemo(() => {

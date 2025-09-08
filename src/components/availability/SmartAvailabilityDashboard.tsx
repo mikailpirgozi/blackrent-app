@@ -59,13 +59,15 @@ import { addDays, format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useAuth } from '../../context/AuthContext';
-// 🔄 PHASE 4: Migrated to unified cache system
+// 🔄 PHASE 4: Migrated to React Query
+import { useRentals } from '../../lib/react-query/hooks/useRentals';
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { Vehicle, VehicleCategory } from '../../types';
 import { logger } from '../../utils/smartLogger';
-import { unifiedCache } from '../../utils/unifiedCacheSystem';
+// 🔄 PHASE 2: UnifiedCache removed - migrating to React Query
 import { PrimaryButton, SecondaryButton, WarningButton } from '../ui';
 
 import AddUnavailabilityModal from './AddUnavailabilityModal';
@@ -119,8 +121,12 @@ interface SmartAvailabilityDashboardProps {
 const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   isMobile: propIsMobile,
 }) => {
-  const { state } = useApp();
+  // const { state } = useApp(); // Migrated to React Query
   const { state: authState } = useAuth();
+
+  // React Query hooks for server state
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles();
+  const { data: rentals = [], isLoading: rentalsLoading } = useRentals();
   const theme = useTheme();
   const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), {
     noSsr: true,
@@ -128,7 +134,6 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const isMobile = propIsMobile !== undefined ? propIsMobile : fallbackIsMobile;
 
   // State
-  const [loading, setLoading] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<AvailabilityData[]>(
     []
   );
@@ -184,7 +189,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   // Derived data - filter out removed vehicles for availability view
   const availableVehicles = useMemo(
     () =>
-      (state.vehicles || [])
+      (vehicles || [])
         .filter(
           vehicle =>
             vehicle.status !== 'removed' &&
@@ -200,7 +205,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
           return a.licensePlate.localeCompare(b.licensePlate, 'sk');
         }),
-    [state.vehicles]
+    [vehicles]
   );
   const availableBrands = useMemo(
     () =>
@@ -322,7 +327,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           // ⚡ FALLBACK: Use existing vehicle/rental data to calculate availability
           calendarData = dateRange.map(date => {
             const dayRentals =
-              state.rentals?.filter(rental => {
+              rentals?.filter(rental => {
                 const startDate = new Date(rental.startDate);
                 const endDate = new Date(rental.endDate);
                 const currentDate = new Date(date);
@@ -350,7 +355,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           logger.performance('Availability calculated from fallback data', {
             calendarDays: calendarData.length,
             vehicles: availableVehicles.length,
-            rentals: state.rentals?.length || 0,
+            rentals: rentals?.length || 0,
             cacheKey,
           });
 
@@ -424,7 +429,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
       return result;
     },
-    [availableVehicles, state.rentals]
+    [availableVehicles, rentals]
   );
 
   /**
@@ -475,7 +480,6 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
    */
   const loadAvailabilityData = useCallback(
     async (forceRefresh: boolean = false) => {
-      setLoading(true);
       try {
         const data = await calculateAvailability(filters, forceRefresh);
         setAvailabilityData(data);
@@ -491,8 +495,6 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         });
       } catch (error) {
         logger.error('Failed to load availability data', error);
-      } finally {
-        setLoading(false);
       }
     },
     [calculateAvailability, filters]
@@ -500,10 +502,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
   // 🚫 UNAVAILABILITY SUCCESS HANDLER
   const handleUnavailabilitySuccess = useCallback(() => {
-    // 🗄️ AGGRESSIVE CACHE CLEARING: Clear all calendar-related cache
-    // 🔄 PHASE 4: Using unified cache invalidation
-    unifiedCache.invalidateEntity('calendar');
-    unifiedCache.invalidateEntity('vehicle');
+    // 🔄 PHASE 2: Cache invalidation removed - React Query handles cache automatically
 
     // Also clear specific cache keys that might be used
     const { dateFrom, dateTo } = filters;
@@ -528,8 +527,6 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       reason: string
     ) => {
       try {
-        setLoading(true);
-
         // Get all unavailabilities for this vehicle
         const response = await apiService.get<
           Array<{
@@ -605,8 +602,6 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         setSelectedVehicleForUnavailability(undefined);
         setSelectedDateForUnavailability(undefined);
         setUnavailabilityModalOpen(true);
-      } finally {
-        setLoading(false);
       }
     },
     []
@@ -955,18 +950,20 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
 
   // Load data on component mount and filter changes
   useEffect(() => {
-    if (state?.dataLoaded?.vehicles && authState?.isAuthenticated) {
+    if (vehicles && rentals && authState?.isAuthenticated) {
       loadAvailabilityData();
     }
   }, [
     loadAvailabilityData,
-    state?.dataLoaded?.vehicles,
+    vehicles,
+    rentals,
     authState?.isAuthenticated,
     filters,
   ]);
 
   // Loading state
-  if (loading) {
+  const isLoading = vehiclesLoading || rentalsLoading;
+  if (isLoading) {
     return (
       <Box
         display="flex"
@@ -1491,7 +1488,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       </Dialog>
 
       {/* Empty State */}
-      {filteredData.length === 0 && !loading && (
+      {filteredData.length === 0 && !isLoading && (
         <Box
           sx={{
             textAlign: 'center',

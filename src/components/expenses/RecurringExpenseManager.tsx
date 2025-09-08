@@ -42,7 +42,9 @@ import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
+import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { ExpenseCategory, RecurringExpense, Vehicle } from '../../types';
 
@@ -63,11 +65,16 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   onClose,
   onExpensesChanged,
 }) => {
-  const { getFilteredVehicles, state } = useApp();
+  // React Query hooks
+  const { data: vehicles = [] } = useVehicles();
+  const { data: companies = [] } = useCompanies();
+
+  // Helper functions for compatibility
+  const getFilteredVehicles = () => vehicles;
   const allVehicles = getFilteredVehicles();
 
-  // Načítanie firiem z context
-  const companies = state.companies?.filter(c => c.isActive !== false) || [];
+  // Načítanie firiem z React Query
+  // const activeCompanies = companies?.filter(c => c.isActive !== false) || [];
 
   // Filtrovanie vozidiel podľa vybranej firmy
   const getVehiclesForCompany = (companyName: string): Vehicle[] => {

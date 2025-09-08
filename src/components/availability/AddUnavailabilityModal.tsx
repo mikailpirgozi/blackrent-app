@@ -39,7 +39,8 @@ import { addDays, format, isAfter } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { Vehicle } from '../../types';
 
@@ -119,7 +120,8 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
   preselectedDate,
   editingUnavailability,
 }) => {
-  const { getFilteredVehicles } = useApp();
+  // const { getFilteredVehicles } = useApp(); // Migrated to React Query
+  const { data: vehicles = [] } = useVehicles();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingUnavailabilities, setExistingUnavailabilities] = useState<
@@ -137,7 +139,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
     recurring: false,
   });
 
-  const vehicles = getFilteredVehicles();
+  const availableVehicles = vehicles;
 
   // Initialize form with preselected data or editing data
   useEffect(() => {
@@ -342,7 +344,9 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
     onClose();
   };
 
-  const selectedVehicle = vehicles.find(v => v.id === formData.vehicleId);
+  const selectedVehicle = availableVehicles.find(
+    (v: Vehicle) => v.id === formData.vehicleId
+  );
   const selectedType = UNAVAILABILITY_TYPES.find(
     t => t.value === formData.type
   );
@@ -392,8 +396,8 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                     vehicleId: newValue?.id || '',
                   }));
                 }}
-                options={vehicles}
-                getOptionLabel={vehicle =>
+                options={availableVehicles}
+                getOptionLabel={(vehicle: Vehicle) =>
                   `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
                 }
                 renderInput={params => (

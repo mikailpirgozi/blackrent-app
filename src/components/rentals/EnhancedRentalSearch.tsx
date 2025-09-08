@@ -7,11 +7,14 @@
 import { Box, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import type {
   QuickFilter,
   SearchSuggestion,
 } from '../../hooks/useEnhancedSearch';
+import { useCustomers } from '../../lib/react-query/hooks/useCustomers';
+import { useRentals } from '../../lib/react-query/hooks/useRentals';
+import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import type { Rental } from '../../types';
 import { searchInTexts } from '../../utils/textNormalization';
 import EnhancedSearchBar from '../common/EnhancedSearchBar';
@@ -38,7 +41,12 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { state } = useApp();
+  // const { state } = useApp(); // Migrated to React Query
+
+  // React Query hooks for server state
+  const { data: rentals = [] } = useRentals();
+  const { data: customers = [] } = useCustomers();
+  const { data: vehicles = [] } = useVehicles();
 
   // State
   const [advancedFilters] = useState<Record<string, unknown>>({});
@@ -48,22 +56,21 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
 
   // Enhanced quick filters with counts
   const enhancedQuickFilters = useMemo<QuickFilter[]>(() => {
-    if (!state.rentals) return RENTAL_QUICK_FILTERS;
+    if (!rentals) return RENTAL_QUICK_FILTERS;
 
     return RENTAL_QUICK_FILTERS.map(filter => {
       let count = 0;
 
       switch (filter.id) {
         case 'active':
-          count = state.rentals?.filter(r => r.status === 'active').length || 0;
+          count = rentals?.filter(r => r.status === 'active').length || 0;
           break;
         case 'pending':
-          count =
-            state.rentals?.filter(r => r.status === 'pending').length || 0;
+          count = rentals?.filter(r => r.status === 'pending').length || 0;
           break;
         case 'overdue':
           count =
-            state.rentals?.filter(r => {
+            rentals?.filter(r => {
               const endDate = new Date(r.endDate);
               return endDate < new Date() && r.status === 'active';
             }).length || 0;
@@ -71,7 +78,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         case 'this_month': {
           const thisMonth = new Date();
           count =
-            state.rentals?.filter(r => {
+            rentals?.filter(r => {
               const startDate = new Date(r.startDate);
               return (
                 startDate.getMonth() === thisMonth.getMonth() &&
@@ -82,29 +89,27 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         }
         case 'high_value':
           count =
-            state.rentals?.filter(r => r.totalPrice && r.totalPrice > 1000)
-              .length || 0;
+            rentals?.filter(r => r.totalPrice && r.totalPrice > 1000).length ||
+            0;
           break;
       }
 
       return { ...filter, count };
     });
-  }, [state.rentals]);
+  }, [rentals]);
 
   // Search function for rentals
   const searchRentals = useCallback(
     async (query: string, quickFilter?: string): Promise<Rental[]> => {
-      if (!state.rentals) return [];
+      if (!rentals) return [];
 
-      let filteredRentals = [...state.rentals];
+      let filteredRentals = [...rentals];
 
       // Apply text search with diacritics normalization
       if (query.trim()) {
         filteredRentals = filteredRentals.filter(rental => {
-          const customer = state.customers?.find(
-            c => c.id === rental.customerId
-          );
-          const vehicle = state.vehicles?.find(v => v.id === rental.vehicleId);
+          const customer = customers?.find(c => c.id === rental.customerId);
+          const vehicle = vehicles?.find(v => v.id === rental.vehicleId);
 
           // 🔤 DIACRITICS NORMALIZATION: Vyhľadávanie bez ohľadu na diakritiku
           return searchInTexts(
@@ -180,7 +185,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
             break;
           case 'vehicle_type':
             filteredRentals = filteredRentals.filter(r => {
-              const vehicle = state.vehicles?.find(v => v.id === r.vehicleId);
+              const vehicle = vehicles?.find(v => v.id === r.vehicleId);
               return vehicle?.category === value;
             });
             break;
@@ -209,7 +214,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
 
       return filteredRentals;
     },
-    [state.rentals, state.customers, state.vehicles, advancedFilters]
+    [rentals, customers, vehicles, advancedFilters]
   );
 
   // Search function for EnhancedSearchBar (returns Record<string, unknown>[])
@@ -235,13 +240,13 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
   // Suggestions function
   const getSuggestions = useCallback(
     async (query: string): Promise<SearchSuggestion[]> => {
-      if (!state.rentals || !state.customers || !state.vehicles) return [];
+      if (!rentals || !customers || !vehicles) return [];
 
       const suggestions: SearchSuggestion[] = [];
       const searchLower = query.toLowerCase();
 
       // Customer suggestions
-      const matchingCustomers = state.customers
+      const matchingCustomers = customers
         .filter(
           c =>
             c.name?.toLowerCase().includes(searchLower) ||
@@ -250,7 +255,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         .slice(0, 3);
 
       matchingCustomers.forEach(customer => {
-        const rentalCount = state.rentals.filter(
+        const rentalCount = rentals.filter(
           r => r.customerId === customer.id
         ).length;
         suggestions.push({
@@ -263,7 +268,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
       });
 
       // Vehicle suggestions
-      const matchingVehicles = state.vehicles
+      const matchingVehicles = vehicles
         .filter(
           v =>
             v.brand?.toLowerCase().includes(searchLower) ||
@@ -273,7 +278,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         .slice(0, 3);
 
       matchingVehicles.forEach(vehicle => {
-        const rentalCount = state.rentals.filter(
+        const rentalCount = rentals.filter(
           r => r.vehicleId === vehicle.id
         ).length;
         suggestions.push({
@@ -287,7 +292,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
 
       return suggestions;
     },
-    [state.rentals, state.customers, state.vehicles]
+    [rentals, customers, vehicles]
   );
 
   // Handlers
@@ -437,7 +442,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
           setAdvancedFilters({});
           setActiveQuickFilter(null);
         }}
-        resultCount={state.rentals?.length}
+        resultCount={rentals?.length}
         hasActiveFilters={Boolean(hasActiveFilters)}
       /> */}
 
@@ -454,7 +459,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
         >
           {hasActiveFilters
             ? 'Filtrované výsledky'
-            : `${state.rentals?.length || 0} prenájmov`}
+            : `${rentals?.length || 0} prenájmov`}
         </Typography>
       )}
     </Box>

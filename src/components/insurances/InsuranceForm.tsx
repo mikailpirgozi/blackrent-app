@@ -11,7 +11,12 @@ import {
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
+import {
+  useCreateInsurer,
+  useInsurers,
+} from '@/lib/react-query/hooks/useInsurers';
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Insurance, PaymentFrequency } from '../../types';
 
 interface InsuranceFormProps {
@@ -25,7 +30,16 @@ export default function InsuranceForm({
   onSave,
   onCancel,
 }: InsuranceFormProps) {
-  const { state, createInsurer, getEnhancedFilteredVehicles } = useApp();
+  // ✅ MIGRATED: React Query hooks instead of AppContext
+  const { data: insurers = [] } = useInsurers();
+  const { data: vehicles = [] } = useVehicles();
+  const createInsurerMutation = useCreateInsurer();
+
+  // Helper functions for compatibility
+  const createInsurer = async (insurer: { id: string; name: string }) => {
+    return createInsurerMutation.mutateAsync(insurer);
+  };
+  const getEnhancedFilteredVehicles = () => vehicles; // Simple implementation for now
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
   const [formData, setFormData] = useState<Partial<Insurance>>({
@@ -79,7 +93,7 @@ export default function InsuranceForm({
       >
         <Autocomplete
           fullWidth
-          options={getEnhancedFilteredVehicles({ includePrivate: true })
+          options={getEnhancedFilteredVehicles()
             .slice()
             .sort((a, b) => {
               const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
@@ -90,7 +104,7 @@ export default function InsuranceForm({
             `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
           }
           value={
-            getEnhancedFilteredVehicles({ includePrivate: true }).find(
+            getEnhancedFilteredVehicles().find(
               v => v.id === formData.vehicleId
             ) || null
           }
@@ -151,7 +165,7 @@ export default function InsuranceForm({
             onChange={e => handleInputChange('company', e.target.value)}
             renderValue={selected => selected || 'Vyberte poisťovňu'}
           >
-            {state.insurers.map(insurer => (
+            {insurers.map(insurer => (
               <MenuItem key={insurer.id} value={insurer.name}>
                 {insurer.name}
               </MenuItem>

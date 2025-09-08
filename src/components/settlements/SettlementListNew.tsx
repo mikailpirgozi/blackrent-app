@@ -41,24 +41,36 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import React, { useMemo, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
+import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
+import {
+  useCreateSettlement,
+  useDeleteSettlement,
+  useSettlements,
+} from '@/lib/react-query/hooks/useSettlements';
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Settlement, Vehicle } from '../../types';
 
 import SettlementDetail from './SettlementDetail';
 
 const SettlementListNew: React.FC = () => {
-  const { state, getFilteredVehicles, createSettlement, deleteSettlement } =
-    useApp();
+  // ✅ MIGRATED: React Query hooks instead of AppContext
+  const { data: settlements = [] } = useSettlements();
+  const { data: vehicles = [] } = useVehicles();
+  const { data: companies = [] } = useCompanies();
+  const createSettlementMutation = useCreateSettlement();
+  const deleteSettlementMutation = useDeleteSettlement();
+
+  // Helper functions for compatibility
+  const createSettlement = async (settlement: Settlement) => {
+    return createSettlementMutation.mutateAsync(settlement);
+  };
+  const deleteSettlement = async (id: string) => {
+    return deleteSettlementMutation.mutateAsync(id);
+  };
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
-
-  // Get data from context with proper memoization
-  const settlements = useMemo(
-    () => state.settlements || [],
-    [state.settlements]
-  );
-  const vehicles = useMemo(() => getFilteredVehicles(), [getFilteredVehicles]);
-  const companies = useMemo(() => state.companies || [], [state.companies]);
 
   // States
   const [searchQuery, setSearchQuery] = useState('');

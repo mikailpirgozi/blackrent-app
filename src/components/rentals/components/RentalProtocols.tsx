@@ -3,6 +3,7 @@ import {
   PictureAsPdf as PDFIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -327,19 +328,47 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                   </Typography>
                 </Box>
               ) : (
-                <ReturnForm
-                  open={openReturnDialog}
-                  onClose={() => setOpenReturnDialog(false)}
-                  rental={
-                    selectedRentalForProtocol as Rental &
-                      Record<string, unknown>
+                (() => {
+                  const handoverProtocol =
+                    protocols[selectedRentalForProtocol.id]?.handover;
+
+                  if (!handoverProtocol) {
+                    return (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          p: 4,
+                        }}
+                      >
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                          Odovzdávací protokol nebol nájdený
+                        </Alert>
+                        <Typography variant="body2" color="text.secondary">
+                          Pre vytvorenie preberacieho protokolu je potrebný
+                          odovzdávací protokol.
+                        </Typography>
+                      </Box>
+                    );
                   }
-                  handoverProtocol={
-                    protocols[selectedRentalForProtocol.id]
-                      ?.handover as HandoverProtocol & Record<string, unknown>
-                  }
-                  onSave={handleSaveReturn}
-                />
+
+                  return (
+                    <ReturnForm
+                      open={openReturnDialog}
+                      onClose={() => setOpenReturnDialog(false)}
+                      rental={
+                        selectedRentalForProtocol as Rental &
+                          Record<string, unknown>
+                      }
+                      handoverProtocol={
+                        handoverProtocol as HandoverProtocol &
+                          Record<string, unknown>
+                      }
+                      onSave={handleSaveReturn}
+                    />
+                  );
+                })()
               )}
             </>
           )}

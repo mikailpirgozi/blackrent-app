@@ -35,3 +35,15 @@ export function useUpdateCustomer() {
     },
   });
 }
+
+// DELETE customer
+export function useDeleteCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiService.deleteCustomer(id),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+    },
+  });
+}

@@ -36,8 +36,7 @@ import {
 } from '@mui/material';
 import React, { memo, useEffect, useState } from 'react';
 
-// 🔄 PHASE 4: Migrated to unified cache system
-import { unifiedCache } from '../../utils/unifiedCacheSystem';
+// 🔄 PHASE 2: UnifiedCache removed - migrating to React Query
 
 interface CacheStatsDisplay {
   size: number;
@@ -60,9 +59,14 @@ const CacheMonitoring: React.FC = () => {
   const loadStats = async () => {
     setLoading(true);
     try {
-      // Frontend cache stats
-      // 🔄 PHASE 4: Using unified cache stats
-      const frontendStats = unifiedCache.getStats();
+      // 🔄 PHASE 2: Cache stats removed - React Query handles cache monitoring
+      const frontendStats = {
+        hits: 0,
+        misses: 0,
+        hitRate: 0,
+        memoryUsage: 'N/A',
+        entryCount: 0,
+      };
 
       // Backend cache stats (if available)
       try {
@@ -109,8 +113,10 @@ const CacheMonitoring: React.FC = () => {
   }, [autoRefresh]);
 
   const handleClearCache = () => {
-    // 🔄 PHASE 4: Using unified cache clear
-    unifiedCache.clear();
+    // 🔄 PHASE 2: Cache clearing removed - React Query handles cache automatically
+    console.log(
+      'Cache clearing disabled - React Query manages cache automatically'
+    );
     loadStats();
   };
 

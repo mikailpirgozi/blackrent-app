@@ -16,7 +16,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { useApp } from '../../../context/AppContext';
+// import { useApp } from '../../../context/AppContext'; // Migrated to React Query
+import { useVehicles } from '../../../lib/react-query/hooks/useVehicles';
 import type { Rental } from '../../../types';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 
@@ -27,10 +28,11 @@ interface RentalCardProps {
 }
 
 export function RentalCard({ rental, onEdit }: RentalCardProps) {
-  const { state } = useApp();
+  // const { state } = useApp(); // Migrated to React Query
+  const { data: vehicles = [] } = useVehicles();
 
   // Nájdi vehicle pre tento rental
-  const vehicle = state.vehicles.find(v => v.id === rental.vehicleId);
+  const vehicle = vehicles.find(v => v.id === rental.vehicleId);
 
   // Status color mapping
   const getStatusColor = (status: string | undefined) => {

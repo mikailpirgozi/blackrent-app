@@ -14,13 +14,20 @@ import {
 } from '@mui/material';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 // import { usePermissions } from '../../hooks/usePermissions'; // Unused
 
 // 🚀 EXTRACTED: Import all our refactored components and hooks
+import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
+import { useCustomers } from '@/lib/react-query/hooks/useCustomers';
 import { useBulkProtocolStatus } from '@/lib/react-query/hooks/useProtocols';
-import { useRentals } from '@/lib/react-query/hooks/useRentals';
+import {
+  useCreateRental,
+  useRentals,
+  useUpdateRental,
+} from '@/lib/react-query/hooks/useRentals';
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { useRentalActions } from '../../hooks/useRentalActions';
 import { useRentalFilters } from '../../hooks/useRentalFilters';
 import { useRentalProtocols } from '../../hooks/useRentalProtocols';
@@ -92,7 +99,27 @@ export default function RentalList() {
     }
   }
 
-  const { state, createRental, updateRental } = useApp();
+  // ✅ MIGRATED: React Query hooks instead of AppContext
+  const { data: vehicles = [] } = useVehicles();
+  const { data: customers = [] } = useCustomers();
+  const { data: companies = [] } = useCompanies();
+  const createRentalMutation = useCreateRental();
+  const updateRentalMutation = useUpdateRental();
+
+  // Helper functions for compatibility
+  const createRental = useCallback(
+    (rental: Rental) => {
+      return createRentalMutation.mutateAsync(rental);
+    },
+    [createRentalMutation]
+  );
+
+  const updateRental = useCallback(
+    (rental: Rental) => {
+      return updateRentalMutation.mutateAsync(rental);
+    },
+    [updateRentalMutation]
+  );
 
   // 📋 PROTOCOL MENU STATE
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
@@ -213,7 +240,7 @@ export default function RentalList() {
     resetFilters,
   } = useRentalFilters({
     rentals: rentals, // Use hybrid rentals data
-    vehicles: (state.vehicles || []) as unknown as Record<string, unknown>[],
+    vehicles: (vehicles || []) as unknown as Record<string, unknown>[],
     protocols: protocolsHook.protocols,
   });
 
@@ -511,11 +538,11 @@ export default function RentalList() {
   const vehicleLookupMap = useMemo(() => {
     const map = new Map();
     // Použiť všetky vozidlá vrátane vyradených pre historické prenájmy
-    (state.vehicles || []).forEach(vehicle => {
+    (vehicles || []).forEach(vehicle => {
       map.set(vehicle.id, vehicle);
     });
     return map;
-  }, [state.vehicles]);
+  }, [vehicles]);
 
   // ⚡ OPTIMIZED: Helper function using lookup map
   const getVehicleByRental = useCallback(
@@ -863,10 +890,10 @@ export default function RentalList() {
       <RentalExport
         filteredRentals={filteredRentals}
         state={{
-          customers: (state.customers || []) as Customer[],
-          companies: (state.companies || []) as Company[],
-          vehicles: (state.vehicles || []) as Vehicle[],
-          rentals: state.rentals || [],
+          customers: (customers || []) as Customer[],
+          companies: (companies || []) as Company[],
+          vehicles: (vehicles || []) as Vehicle[],
+          rentals: rentals || [],
         }}
         isMobile={isMobile}
         setImportError={setImportError}

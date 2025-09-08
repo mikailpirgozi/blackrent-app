@@ -36,7 +36,18 @@ import Papa from 'papaparse';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useApp } from '../../context/AppContext';
+// import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
+import {
+  useCreateCustomer,
+  useCustomers,
+  useDeleteCustomer,
+  useUpdateCustomer,
+} from '@/lib/react-query/hooks/useCustomers';
+import {
+  useRentals,
+  useUpdateRental,
+} from '@/lib/react-query/hooks/useRentals';
+import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Customer } from '../../types';
 import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
 
@@ -44,13 +55,28 @@ import CustomerForm from './CustomerForm';
 import CustomerRentalHistory from './CustomerRentalHistory';
 
 export default function CustomerListNew() {
-  const {
-    state,
-    createCustomer,
-    updateCustomer,
-    deleteCustomer,
-    updateRental,
-  } = useApp();
+  // ✅ MIGRATED: React Query hooks instead of AppContext
+  const { data: customers = [] } = useCustomers();
+  const { data: rentals = [] } = useRentals();
+  const { data: vehicles = [] } = useVehicles();
+  const createCustomerMutation = useCreateCustomer();
+  const updateCustomerMutation = useUpdateCustomer();
+  const deleteCustomerMutation = useDeleteCustomer();
+  const updateRentalMutation = useUpdateRental();
+
+  // Helper functions for compatibility
+  const createCustomer = async (customer: Customer) => {
+    return createCustomerMutation.mutateAsync(customer);
+  };
+  const updateCustomer = async (customer: Customer) => {
+    return updateCustomerMutation.mutateAsync(customer);
+  };
+  const deleteCustomer = async (id: string) => {
+    return deleteCustomerMutation.mutateAsync(id);
+  };
+  const updateRental = async (rental: Record<string, unknown>) => {
+    return updateRentalMutation.mutateAsync(rental);
+  };
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -189,12 +215,12 @@ export default function CustomerListNew() {
       setLoading(true);
       // Získam všetkých unikátnych zákazníkov z prenájmov
       const existingCustomerNames = Array.from(
-        new Set(state.rentals.map(r => r.customerName).filter(Boolean))
+        new Set(rentals.map(r => r.customerName).filter(Boolean))
       );
 
       // Filtrujem len tie, ktoré ešte neexistujú v customers
       const newCustomerNames = existingCustomerNames.filter(
-        name => !state.customers?.some(c => c.name === name)
+        name => !customers?.some(c => c.name === name)
       );
 
       if (newCustomerNames.length === 0) {
@@ -217,11 +243,11 @@ export default function CustomerListNew() {
       }
 
       // Prepojím existujúce prenájmy so zákazníkmi
-      for (const rental of state.rentals) {
+      for (const rental of rentals) {
         if (rental.customerName && !rental.customerId) {
           const customer =
             newCustomers.find(c => c.name === rental.customerName) ||
-            (state.customers || []).find(c => c.name === rental.customerName);
+            (customers || []).find(c => c.name === rental.customerName);
           if (customer) {
             await updateRental({
               ...rental,
@@ -245,7 +271,7 @@ export default function CustomerListNew() {
 
   // Filtered customers
   const filteredCustomers = useMemo(() => {
-    return state.customers.filter(customer => {
+    return customers.filter(customer => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -293,7 +319,7 @@ export default function CustomerListNew() {
       return true;
     });
   }, [
-    state.customers,
+    customers,
     searchQuery,
     filterName,
     filterEmail,
@@ -355,8 +381,7 @@ export default function CustomerListNew() {
 
   // Get customer rental count
   const getCustomerRentalCount = (customerId: string) => {
-    return state.rentals.filter(rental => rental.customerId === customerId)
-      .length;
+    return rentals.filter(rental => rental.customerId === customerId).length;
   };
 
   return (
@@ -549,8 +574,8 @@ export default function CustomerListNew() {
         <Typography variant="body2" color="text.secondary">
           Zobrazených {customersToDisplay.length} z {filteredCustomers.length}{' '}
           zákazníkov
-          {filteredCustomers.length !== state.customers.length &&
-            ` (filtrovaných z ${state.customers.length})`}
+          {filteredCustomers.length !== customers.length &&
+            ` (filtrovaných z ${customers.length})`}
         </Typography>
         {isLoadingMore && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1343,8 +1368,8 @@ export default function CustomerListNew() {
         <CustomerRentalHistory
           open={!!selectedCustomerForHistory}
           customer={selectedCustomerForHistory}
-          rentals={state.rentals}
-          vehicles={state.vehicles}
+          rentals={rentals}
+          vehicles={vehicles}
           onClose={() => setSelectedCustomerForHistory(null)}
         />
       )}
