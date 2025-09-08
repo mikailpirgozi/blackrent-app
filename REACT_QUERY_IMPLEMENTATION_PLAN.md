@@ -12,7 +12,7 @@
 - **useRentalActions Hook** - ✅ **NOVÉ: Migrovaný na React Query mutations**
 - **VehicleListNew** - ✅ **NOVÉ: Kompletne migrovaný na React Query**
 - **AvailabilityCalendar** - ✅ **NOVÉ: Kompletne migrovaný na React Query**
-- **Statistics** - ✅ **NOVÉ: Kompletne migrovaný na React Query**
+- **Statistics** - ✅ **NOVÉ: Kompletne migrovaný na React Query (opravené getFilteredVehicles)**
 - **useCustomers Hook** - ✅ **NOVÉ: Implementovaný a funkčný**
 - **useExpenses Hook** - ✅ **NOVÉ: Implementovaný a funkčný**
 - **useCompanies Hook** - ✅ **NOVÉ: Implementovaný a funkčný**
@@ -2144,7 +2144,7 @@ Tento implementačný plán je **100% DOKONČENÝ** a zabezpečil:
 12. ✅ **useRentalActions migrácia** - kompletne na React Query
 13. ✅ **VehicleListNew migrácia** - kompletne na React Query
 14. ✅ **AvailabilityCalendar migrácia** - kompletne na React Query
-15. ✅ **Statistics migrácia** - kompletne na React Query
+15. ✅ **Statistics migrácia** - kompletne na React Query (opravené getFilteredVehicles)
 16. ✅ **Všetky hooks implementované** - useCustomers, useExpenses, useCompanies, useSettlements
 
 **VŠETKO JE DOKONČENÉ! 🎉**
