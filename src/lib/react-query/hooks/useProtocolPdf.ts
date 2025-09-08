@@ -173,8 +173,11 @@ export function usePdfGenerationStatus(
     enabled: !!protocolId && !!type,
     refetchInterval: data => {
       // Stop polling if PDF is ready or error
-      if (data?.status === 'ready' || data?.status === 'error') {
-        return false;
+      if (data && typeof data === 'object' && 'status' in data) {
+        const status = (data as { status: string }).status;
+        if (status === 'ready' || status === 'error') {
+          return false;
+        }
       }
       // Poll every 2 seconds while generating
       return 2000;
@@ -195,9 +198,9 @@ export function useDownloadProtocolPdf() {
     }) => apiService.downloadProtocolPdf(protocolId, type),
     onSuccess: (data, variables) => {
       // Trigger download
-      if (data.url) {
+      if (data && typeof data === 'object' && 'url' in data) {
         const link = document.createElement('a');
-        link.href = data.url;
+        link.href = (data as { url: string }).url;
         link.download = `protocol_${variables.type}_${variables.protocolId}.pdf`;
         document.body.appendChild(link);
         link.click();

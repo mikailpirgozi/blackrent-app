@@ -220,7 +220,7 @@ export default function SerialPhotoCapture({
 
       try {
         const result = await uploadFileMutation.mutateAsync(uploadData);
-        return result.url || result.fileUrl || '';
+        return (result.url || result.fileUrl || '') as string;
       } catch (error) {
         console.error('Direct upload failed:', error);
         throw error;
@@ -277,7 +277,7 @@ export default function SerialPhotoCapture({
           await presignedUploadMutation.mutateAsync(presignedUploadData);
         logger.debug('✅ File uploaded via presigned URL:', result);
 
-        return result.url || result.publicUrl || '';
+        return (result.url || result.publicUrl || '') as string;
       } catch (error) {
         console.error('❌ Presigned URL upload failed:', error);
 

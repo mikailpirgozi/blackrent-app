@@ -30,8 +30,13 @@ export function useUpdateSettlement() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (settlement: Settlement) =>
-      apiService.updateSettlement(settlement),
+    mutationFn: ({
+      id,
+      settlement,
+    }: {
+      id: string;
+      settlement: Partial<Settlement>;
+    }) => apiService.updateSettlement(id, settlement),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
     },

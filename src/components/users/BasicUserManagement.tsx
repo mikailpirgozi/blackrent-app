@@ -121,6 +121,7 @@ const BasicUserManagement: React.FC = () => {
     lastName: '',
     role: 'user',
     linkedInvestorId: '',
+    companyId: '',
   });
 
   // API Base URL helper
@@ -242,6 +243,7 @@ const BasicUserManagement: React.FC = () => {
       lastName: user.lastName || '',
       role: user.role,
       linkedInvestorId: '', // Pre edit dialog nepovoľujeme zmenu investora
+      companyId: ((user as Record<string, unknown>).companyId as string) || '',
     });
     setEditDialogOpen(true);
   };
@@ -302,6 +304,7 @@ const BasicUserManagement: React.FC = () => {
       lastName: '',
       role: 'user',
       linkedInvestorId: '',
+      companyId: '',
     });
   };
 

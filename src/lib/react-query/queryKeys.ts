@@ -31,6 +31,8 @@ export const queryKeys = {
     all: ['protocols'] as const,
     lists: () => [...queryKeys.protocols.all, 'list'] as const,
     list: () => [...queryKeys.protocols.lists()] as const,
+    details: () => [...queryKeys.protocols.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.protocols.details(), id] as const,
     handover: (rentalId: string) =>
       ['protocols', 'handover', rentalId] as const,
     return: (rentalId: string) => ['protocols', 'return', rentalId] as const,
