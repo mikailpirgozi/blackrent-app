@@ -243,7 +243,9 @@ const BasicUserManagement: React.FC = () => {
       lastName: user.lastName || '',
       role: user.role,
       linkedInvestorId: '', // Pre edit dialog nepovoľujeme zmenu investora
-      companyId: ((user as Record<string, unknown>).companyId as string) || '',
+      companyId:
+        ((user as unknown as Record<string, unknown>).companyId as string) ||
+        '',
     });
     setEditDialogOpen(true);
   };
