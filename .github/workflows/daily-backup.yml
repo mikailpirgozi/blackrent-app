@@ -23,8 +23,10 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
+          echo "🔗 Linking to Railway project..."
+          railway link --project 38dbf675-5b8e-489d-b1e0-e727883208ce
+          echo "🚀 Running backup script..."
           cd scripts/backup
-          railway link 38dbf675-5b8e-489d-b1e0-e727883208ce
           railway run node railway-cron-backup.js
 
       - name: Backup Status
