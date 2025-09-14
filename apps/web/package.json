@@ -42,6 +42,7 @@
     "file-saver": "^2.0.5",
     "handlebars": "^4.7.8",
     "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.2",
     "jszip": "^3.10.1",
     "papaparse": "^5.4.1",
     "pdf-lib": "^1.17.1",
