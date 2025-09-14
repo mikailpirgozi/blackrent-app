@@ -13,8 +13,8 @@ npm run build > /dev/null 2>&1 || {
 
 # TypeScript check for backend
 echo "🔍 TypeScript check (backend)..."
-cd backend && npm run build > /dev/null 2>&1 || {
-  echo "❌ Backend TypeScript errors found! Run 'cd backend && npm run build' to see details."
+cd apps/backend && npm run build > /dev/null 2>&1 || {
+  echo "❌ Backend TypeScript errors found! Run 'cd apps/backend && npm run build' to see details."
   exit 1
 }
 
