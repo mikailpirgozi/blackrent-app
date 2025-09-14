@@ -1,0 +1,6 @@
+module Pods_BlackRent {
+  umbrella header "Pods-BlackRent-umbrella.h"
+
+  export *
+  module * { export * }
+}
