@@ -154,7 +154,7 @@ export default function Layout({ children }: LayoutProps) {
   const handleErrorRetry = async () => {
     // The retry logic is handled by the component that triggered the error
     // This is just for UI feedback
-    // eslint-disable-next-line no-console
+     
     console.log('🔄 Retry requested from ErrorToast');
   };
 

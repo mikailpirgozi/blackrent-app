@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * Wrapper pre HandoverProtocolFormV2
  * Mapuje V1 props (onSave, rental) na V2 props (onSubmit, data)

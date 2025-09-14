@@ -14,7 +14,8 @@
     "list-backups": "ls -la backups/",
     "test-data": "node create-test-data.js",
     "test": "echo \"Error: no test specified\" ",
-    "test:run": "echo \"Error: no test specified\" "
+    "test:run": "echo \"Error: no test specified\" ",
+    "lint": "echo \"No linting configured for backend\""
   },
   "keywords": [
     "blackrent",

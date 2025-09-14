@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps (root)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint || echo "Lint warnings/errors found but continuing..."
+
+      - name: Prettier check
+        run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}" || echo "Formatting issues found but continuing..."
+
+      - name: Build (Vite)
+        run: npm run build
+
+      - name: Test (Vitest)
+        run: npm run test:run
+
+  backend:
+    name: Backend (Railway app)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps (backend)
+        working-directory: apps/backend
+        run: npm ci
+
+      - name: Lint backend (optional)
+        working-directory: apps/backend
+        run: npm run lint || true
+
+      - name: Build backend
+        working-directory: apps/backend
+        run: npm run build

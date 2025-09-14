@@ -36,7 +36,7 @@ export function measurePerformance<T>(
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-  // eslint-disable-next-line no-console
+   
   console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
   return result;
 }
