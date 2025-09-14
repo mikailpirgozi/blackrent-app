@@ -14,24 +14,64 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
+      - name: Install Railway CLI and PostgreSQL tools
         run: |
+          # Install Railway CLI
           curl -fsSL https://railway.app/install.sh | sh
           echo "$HOME/.railway/bin" >> $GITHUB_PATH
+          
+          # Install PostgreSQL client tools
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          
+          # Verify installations
+          railway --version || echo "Railway CLI not found"
+          psql --version || echo "PostgreSQL client not found"
 
       - name: Run Railway Backup
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          PGHOST: trolley.proxy.rlwy.net
+          PGUSER: postgres
+          PGPORT: 13400
+          PGDATABASE: railway
+          PGPASSWORD: nfwrpKxILRUMqunYTZJEhjudEstqLRGv
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET_NAME: blackrent-storage
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           echo "🔐 Setting up Railway authentication..."
-          # Try multiple authentication methods
-          railway login --token $RAILWAY_TOKEN || echo "Token login failed, trying environment variable..."
-          export RAILWAY_TOKEN=$RAILWAY_TOKEN
+          # Nastavenie Railway tokenu cez environment variable
+          export RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }}
+          
+          # Overenie že token existuje
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "❌ RAILWAY_TOKEN nie je nastavený v GitHub secrets"
+            exit 1
+          fi
+          
           echo "🔗 Linking to Railway project..."
-          railway link --project 38dbf675-5b8e-489d-b1e0-e727883208ce
-          echo "🚀 Running backup script..."
+          railway link 38dbf675-5b8e-489d-b1e0-e727883208ce --environment production || {
+            echo "❌ Railway link failed, trying alternative approach..."
+            # Fallback: spustiť backup script lokálne s Railway DB credentials
+            cd scripts/backup
+            npm install aws-sdk
+            node railway-cron-backup.js
+            exit $?
+          }
+          
+          echo "🚀 Running backup script via Railway..."
           cd scripts/backup
-          railway run --project 38dbf675-5b8e-489d-b1e0-e727883208ce node railway-cron-backup.js
+          
+          # Inštalácia Node.js závislostí pre backup script
+          npm install aws-sdk
+          
+          # Spustenie backup scriptu cez Railway
+          railway run node railway-cron-backup.js || {
+            echo "❌ Railway run failed, trying local execution..."
+            node railway-cron-backup.js
+          }
 
       - name: Backup Status
         run: |
