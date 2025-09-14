@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "build",
-  "installCommand": "npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund",
+  "buildCommand": "cd apps/web && npm run build",
+  "outputDirectory": "apps/web/build",
+  "installCommand": "cd apps/web && npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund",
   "rewrites": [
     {
       "source": "/(.*)",
@@ -22,4 +22,4 @@
       "NPM_CONFIG_LOGLEVEL": "error"
     }
   }
-} 
+}

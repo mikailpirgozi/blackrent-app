@@ -23,11 +23,15 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
+          echo "🔐 Setting up Railway authentication..."
+          # Try multiple authentication methods
+          railway login --token $RAILWAY_TOKEN || echo "Token login failed, trying environment variable..."
+          export RAILWAY_TOKEN=$RAILWAY_TOKEN
           echo "🔗 Linking to Railway project..."
           railway link --project 38dbf675-5b8e-489d-b1e0-e727883208ce
           echo "🚀 Running backup script..."
           cd scripts/backup
-          railway run node railway-cron-backup.js
+          railway run --project 38dbf675-5b8e-489d-b1e0-e727883208ce node railway-cron-backup.js
 
       - name: Backup Status
         run: |
