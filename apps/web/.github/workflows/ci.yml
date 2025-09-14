@@ -41,24 +41,41 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Prepare isolated backend build
+        run: |
+          echo "🔧 Preparing isolated backend build..."
+          # Create temporary directory outside workspace
+          mkdir -p /tmp/backend-build
+          # Copy backend source files
+          cp -r apps/backend/* /tmp/backend-build/
+          # Remove any workspace-related files
+          rm -f /tmp/backend-build/package-lock.json
+          rm -f /tmp/backend-build/.npmrc
+          ls -la /tmp/backend-build/
+
       - name: Install deps (backend)
-        working-directory: apps/backend
+        working-directory: /tmp/backend-build
         env:
           NPM_CONFIG_WORKSPACES: false
           NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
         run: |
-          rm -f package-lock.json
+          echo "📦 Installing backend dependencies in isolated environment..."
           npm config set workspaces false
           npm config set include-workspace-root false
           npm install --no-optional --legacy-peer-deps
-
-      - name: Lint backend (optional)
-        working-directory: apps/backend
-        run: npm run lint || true
+          echo "✅ Backend dependencies installed"
 
       - name: Build backend
-        working-directory: apps/backend
+        working-directory: /tmp/backend-build
         env:
           NPM_CONFIG_WORKSPACES: false
           NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
-        run: npm run build
+        run: |
+          echo "🔨 Building backend..."
+          npm run build
+          echo "✅ Backend build completed"
+          ls -la dist/
+
+      - name: Lint backend (optional)
+        working-directory: /tmp/backend-build
+        run: npm run lint || true
