@@ -43,9 +43,14 @@ jobs:
 
       - name: Install deps (backend)
         working-directory: apps/backend
+        env:
+          NPM_CONFIG_WORKSPACES: false
+          NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
         run: |
           rm -f package-lock.json
-          npm install --no-optional --no-workspaces --legacy-peer-deps
+          npm config set workspaces false
+          npm config set include-workspace-root false
+          npm install --no-optional --legacy-peer-deps
 
       - name: Lint backend (optional)
         working-directory: apps/backend
@@ -53,4 +58,7 @@ jobs:
 
       - name: Build backend
         working-directory: apps/backend
+        env:
+          NPM_CONFIG_WORKSPACES: false
+          NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
         run: npm run build
