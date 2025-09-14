@@ -20,7 +20,9 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
 
       - name: Clear npm cache and fix registry
         run: |
@@ -52,7 +54,8 @@ jobs:
           cd apps/backend
           ls -la package*.json
           npm config set registry https://registry.npmjs.org/
-          npm ci --no-optional || npm install --no-optional --no-workspaces
+          rm -f package-lock.json
+          npm install --no-optional --no-workspaces --legacy-peer-deps
           echo "✅ Backend dependencies installed"
           npm run build
           echo "✅ Backend build completed"
