@@ -33,7 +33,7 @@ const assessNetworkQuality = (
   if (effectiveType === '4g') return 'fast';
 
   // Based on downlink speed (Mbps) and RTT (ms)
-  if (downlink && rtt) {
+  if (downlink && rtt && typeof downlink === 'number' && typeof rtt === 'number') {
     if (downlink < 1 || rtt > 500) return 'slow';
     if (downlink < 5 || rtt > 200) return 'medium';
     return 'fast';

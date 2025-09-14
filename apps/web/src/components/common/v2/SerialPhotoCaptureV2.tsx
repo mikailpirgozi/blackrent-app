@@ -55,7 +55,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const processingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /**
    * Helper funkcie pre state updates

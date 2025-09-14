@@ -430,8 +430,8 @@ export default function RentalList() {
   const SCROLL_THRESHOLD = 0.75;
   const DEBOUNCE_DELAY = 150;
   const THROTTLE_DELAY = 100;
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollTimeRef = useRef<number>(0);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície

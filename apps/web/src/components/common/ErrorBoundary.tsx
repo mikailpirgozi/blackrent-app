@@ -37,7 +37,7 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  private retryTimeouts: NodeJS.Timeout[] = [];
+  private retryTimeouts: ReturnType<typeof setTimeout>[] = [];
 
   public state: State = {
     hasError: false,

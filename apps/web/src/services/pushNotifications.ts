@@ -135,7 +135,7 @@ class PushNotificationService {
       if (!subscription) {
         subscription = await this.registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey),
+          applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey) as BufferSource,
         });
       }
 
@@ -350,13 +350,10 @@ class PushNotificationService {
         body: payload.body,
         icon: payload.icon || '/logo192.png',
         badge: payload.badge || '/favicon.ico',
-        image: payload.image,
         tag: payload.tag,
         data: payload.data,
         requireInteraction: payload.requireInteraction || false,
         silent: payload.silent || false,
-        vibrate: payload.vibrate || [200, 100, 200],
-        timestamp: Date.now(),
       });
 
       // Handle click event

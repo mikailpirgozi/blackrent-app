@@ -34,7 +34,7 @@ export const useDebouncedState = <T>(
 ): [T, T, React.Dispatch<React.SetStateAction<T>>] => {
   const [actualValue, setActualValue] = useState<T>(initialValue);
   const [debouncedValue, setDebouncedValue] = useState<T>(initialValue);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const setValue = useCallback(
     (value: React.SetStateAction<T>) => {
@@ -68,7 +68,7 @@ export const useThrottledCallback = <T extends (...args: unknown[]) => unknown>(
   delay: number
 ): T => {
   const lastRun = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const throttledCallback = useCallback(
     (...args: Parameters<T>) => {

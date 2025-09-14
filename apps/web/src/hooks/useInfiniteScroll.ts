@@ -24,7 +24,7 @@ export function useInfiniteScroll(
     const element = scrollRef.current;
     if (!element) return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
       if (!shouldLoad || loadingRef.current) return;
@@ -228,7 +228,7 @@ export function useItemBasedInfiniteScroll(
     const container = containerRef.current;
     if (!container) return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
       if (!shouldLoad || loadingRef.current || totalItems === 0) return;

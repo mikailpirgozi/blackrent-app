@@ -18,7 +18,7 @@ interface PerformanceMetrics {
 }
 
 class MemoryOptimizer {
-  private memoryCheckInterval: NodeJS.Timeout | null = null;
+  private memoryCheckInterval: ReturnType<typeof setInterval> | null = null;
   private memoryHistory: MemoryStats[] = [];
   private activeListeners = new Map<string, Set<EventListener>>();
   private weakRefs = new Set<WeakRef<Record<string, unknown>>>();

@@ -45,7 +45,7 @@ export const useLazyImage = (
 
   const imageRef = useRef<HTMLImageElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Preload image
   const loadImage = useCallback(async () => {

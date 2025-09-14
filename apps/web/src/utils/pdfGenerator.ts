@@ -250,11 +250,11 @@ class PDFGenerator {
       this.doc.setFontSize(10);
       this.setFontSafely('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(label, x, y);
+      this.doc.text(label as string, x, y);
 
       this.setFontSafely('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(value, x + 50, y);
+      this.doc.text(value as string, x + 50, y);
     });
 
     this.currentY += Math.ceil(basicInfo.length / 2) * 7 + 10;
@@ -286,11 +286,11 @@ class PDFGenerator {
       this.doc.setFontSize(10);
       this.setFontSafely('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(label, x, y);
+      this.doc.text(label as string, x, y);
 
       this.setFontSafely('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(value, x + 50, y);
+      this.doc.text(value as string, x + 50, y);
     });
 
     this.currentY += Math.ceil(vehicleInfo.length / 2) * 7 + 10;
