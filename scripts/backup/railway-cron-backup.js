@@ -5,10 +5,12 @@
  * Beží priamo na Railway serveri - nezávisle od lokálneho počítača
  */
 
+/* eslint-disable @typescript-eslint/no-var-requires */
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const AWS = require('aws-sdk');
+/* eslint-enable @typescript-eslint/no-var-requires */
 
 // 📅 Konfigurácia
 const BACKUP_CONFIG = {
@@ -52,7 +54,7 @@ const createDatabaseBackup = () => {
         // Získanie zoznamu tabuliek
         const listTablesCmd = `PGPASSWORD="${BACKUP_CONFIG.DB_PASSWORD}" psql -h ${BACKUP_CONFIG.DB_HOST} -U ${BACKUP_CONFIG.DB_USER} -p ${BACKUP_CONFIG.DB_PORT} -d ${BACKUP_CONFIG.DB_NAME} -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null`;
         
-        exec(listTablesCmd, (listError, stdout, stderr) => {
+        exec(listTablesCmd, (listError, stdout) => {
             if (listError) {
                 log(`❌ Chyba pri získavaní zoznamu tabuliek: ${listError.message}`);
                 reject(listError);
@@ -71,8 +73,6 @@ const createDatabaseBackup = () => {
             // Vytvorenie SQL dump súboru
             let sqlContent = `-- BlackRent Database Backup\n-- Created: ${new Date().toISOString()}\n-- Tables: ${tables.length}\n\n`;
             
-            let processedTables = 0;
-            
             const processTable = (tableIndex) => {
                 if (tableIndex >= tables.length) {
                     // Všetky tabuľky spracované
@@ -86,7 +86,21 @@ const createDatabaseBackup = () => {
                             resolve(backupFile);
                         } else {
                             const compressedFile = `${backupFile}.gz`;
-                            log(`✅ Záloha vytvorená a komprimovaná: ${compressedFile}`);
+                            
+                            // Získanie veľkosti súboru
+                            try {
+                                const stats = fs.statSync(compressedFile);
+                                const fileSizeInBytes = stats.size;
+                                const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
+                                const fileSizeInKB = (fileSizeInBytes / 1024).toFixed(2);
+                                
+                                log(`✅ Záloha vytvorená a komprimovaná: ${compressedFile}`);
+                                log(`📊 Veľkosť súboru: ${fileSizeInMB} MB (${fileSizeInKB} KB, ${fileSizeInBytes} bytes)`);
+                            } catch (sizeError) {
+                                log(`✅ Záloha vytvorená a komprimovaná: ${compressedFile}`);
+                                log(`⚠️ Nepodarilo sa získať veľkosť súboru: ${sizeError.message}`);
+                            }
+                            
                             resolve(compressedFile);
                         }
                     });
@@ -151,8 +165,12 @@ const uploadToR2 = (backupFile) => {
         const fileName = path.basename(backupFile);
         const r2Key = `backups/database/${new Date().toISOString().split('T')[0]}/${fileName}`;
         
-        // Čítanie súboru
+        // Čítanie súboru a získanie veľkosti
         const fileContent = fs.readFileSync(backupFile);
+        const fileSizeInBytes = fileContent.length;
+        const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
+        
+        log(`📤 Nahrávam súbor veľkosti: ${fileSizeInMB} MB`);
         
         const uploadParams = {
             Bucket: BACKUP_CONFIG.R2_BUCKET,
