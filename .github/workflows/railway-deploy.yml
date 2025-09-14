@@ -49,7 +49,7 @@ jobs:
       - name: Build backend
         run: |
           echo "🔧 Building backend..."
-          cd backend
+          cd apps/backend
           ls -la package*.json
           npm config set registry https://registry.npmjs.org/
           npm install --no-optional --prefer-offline || npm install --no-optional || npm install
