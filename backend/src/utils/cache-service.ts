@@ -62,7 +62,7 @@ export class CacheService extends EventEmitter {
     onExpire: () => {}
   };
   
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(options: Partial<CacheOptions> = {}) {
     super();
@@ -71,7 +71,7 @@ export class CacheService extends EventEmitter {
     // Start automatic cleanup
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
-    }, 60000); // Run cleanup every minute
+    }, 60000) as unknown as NodeJS.Timeout; // Run cleanup every minute
     
     console.log('🗄️ Cache Service initialized');
   }
