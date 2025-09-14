@@ -1,0 +1,1 @@
+export { LogaAut } from "./LogaAut";

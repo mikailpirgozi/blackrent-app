@@ -1,0 +1,1 @@
+export { TypShare } from "./TypShare";

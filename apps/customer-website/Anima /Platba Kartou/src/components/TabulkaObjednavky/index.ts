@@ -1,0 +1,1 @@
+export { TabulkaObjednavky } from "./TabulkaObjednavky";

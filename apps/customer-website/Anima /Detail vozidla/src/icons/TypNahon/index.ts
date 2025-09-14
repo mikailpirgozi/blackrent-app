@@ -1,0 +1,1 @@
+export { TypNahon } from "./TypNahon";

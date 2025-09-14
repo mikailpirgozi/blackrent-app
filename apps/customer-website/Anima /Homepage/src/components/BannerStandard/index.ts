@@ -1,0 +1,1 @@
+export { BannerStandard } from "./BannerStandard";

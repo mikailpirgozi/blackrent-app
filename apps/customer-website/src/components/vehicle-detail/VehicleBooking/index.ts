@@ -1,0 +1,1 @@
+export { VehicleBooking } from './VehicleBooking';

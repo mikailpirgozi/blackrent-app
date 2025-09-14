@@ -1,0 +1,1 @@
+export { ElementDetailVozidla } from "./ElementDetailVozidla";

@@ -1,0 +1,1 @@
+export { PredstavenieVozidla } from "./PredstavenieVozidla";

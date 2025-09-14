@@ -1,0 +1,1 @@
+export { ElementIconsDarkSmall } from "./ElementIconsDarkSmall";

@@ -1,0 +1,1 @@
+export { TabulkaObjednVky } from "./TabulkaObjednVky";
