@@ -42,12 +42,12 @@ jobs:
           cache: npm
 
       - name: Install deps (backend)
-        working-directory: backend
+        working-directory: apps/backend
         run: npm ci
 
       - name: Lint backend (optional)
         run: npm run lint --workdir backend || true
 
       - name: Build backend
-        working-directory: backend
+        working-directory: apps/backend
         run: npm run build

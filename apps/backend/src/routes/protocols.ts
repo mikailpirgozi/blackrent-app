@@ -206,7 +206,7 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
         pdfBuffer = generatedPdfBuffer.buffer.slice(
           generatedPdfBuffer.byteOffset,
           generatedPdfBuffer.byteOffset + generatedPdfBuffer.byteLength
-        );
+        ) as ArrayBuffer;
         
         console.log('✅ PDF generated on demand successfully');
       } catch (error) {
