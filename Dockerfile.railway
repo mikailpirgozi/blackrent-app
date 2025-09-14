@@ -29,13 +29,13 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
 WORKDIR /app
 
 # Copy backend package files first for better caching
-COPY backend/package*.json ./
+COPY apps/backend/package*.json ./
 
 # Install dependencies (including dev dependencies for build)
 RUN npm ci
 
 # Copy backend source
-COPY backend/ .
+COPY apps/backend/ .
 
 # Build TypeScript
 RUN npm run build
