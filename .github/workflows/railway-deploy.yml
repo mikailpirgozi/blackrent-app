@@ -48,17 +48,33 @@ jobs:
         env:
           CI: false
 
-      - name: Build backend
+      - name: Prepare isolated backend build
         run: |
-          echo "🔧 Building backend..."
-          cd apps/backend
-          ls -la package*.json
+          echo "🔧 Preparing isolated backend build..."
+          # Create temporary directory outside workspace
+          mkdir -p /tmp/backend-build
+          # Copy backend source files
+          cp -r apps/backend/* /tmp/backend-build/
+          # Remove any workspace-related files
+          rm -f /tmp/backend-build/package-lock.json
+          rm -f /tmp/backend-build/.npmrc
+          ls -la /tmp/backend-build/
+
+      - name: Build backend
+        working-directory: /tmp/backend-build
+        env:
+          NPM_CONFIG_WORKSPACES: false
+          NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
+        run: |
+          echo "🔧 Building backend in isolated environment..."
           npm config set registry https://registry.npmjs.org/
-          rm -f package-lock.json
-          npm install --no-optional --no-workspaces --legacy-peer-deps
+          npm config set workspaces false
+          npm config set include-workspace-root false
+          npm install --no-optional --legacy-peer-deps
           echo "✅ Backend dependencies installed"
           npm run build
           echo "✅ Backend build completed"
+          ls -la dist/
 
       - name: Test build
         run: |
