@@ -216,16 +216,36 @@ export function useDeleteRental() {
         queryKey: queryKeys.rentals.all,
       });
 
-      const previousRentals = queryClient.getQueryData(
-        queryKeys.rentals.lists()
+      // Optimistic update pre všetky rental queries
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.rentals.all },
+        (old: unknown) => {
+          if (Array.isArray(old)) {
+            // Normálny array
+            return old.filter((r: Rental) => r.id !== deletedId);
+          } else if (old && typeof old === 'object' && 'pages' in old) {
+            // Infinite query
+            const infiniteData = old as { pages: Array<{ data?: Rental[] }> };
+            return {
+              ...infiniteData,
+              pages: infiniteData.pages.map((page) => ({
+                ...page,
+                data: page.data?.filter((r: Rental) => r.id !== deletedId) || [],
+              })),
+            };
+          }
+          return old;
+        }
       );
 
-      queryClient.setQueryData(
-        queryKeys.rentals.lists(),
-        (old: Rental[] = []) => old.filter(r => r.id !== deletedId)
+      // Trigger optimistic event pre custom hooks
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-delete', { 
+          detail: { rentalId: deletedId } 
+        })
       );
 
-      return { previousRentals };
+      return { deletedId };
     },
     onError: (err, deletedId, context) => {
       if (context?.previousRentals) {
