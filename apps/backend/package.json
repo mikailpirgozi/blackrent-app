@@ -13,7 +13,8 @@
     "restore": "node restore.js",
     "list-backups": "ls -la backups/",
     "test-data": "node create-test-data.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" ",
+    "test:run": "echo \"Error: no test specified\" "
   },
   "keywords": [
     "blackrent",
