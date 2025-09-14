@@ -1,1 +1,0 @@
-export { TypNahon } from "./TypNahon";

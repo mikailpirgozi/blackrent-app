@@ -133,6 +133,13 @@ export function useCreateRental() {
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-created', { detail: data }));
+      
+      // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: data, action: 'create' } 
+        })
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({
@@ -186,6 +193,13 @@ export function useUpdateRental() {
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-updated', { detail: data }));
+      
+      // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: data, action: 'update' } 
+        })
+      );
     },
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({
@@ -239,6 +253,13 @@ export function useDeleteRental() {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('rental-deleted', { detail: { id: deletedId } })
+      );
+      
+      // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: { id: deletedId }, action: 'delete' } 
+        })
       );
     },
     onSettled: () => {

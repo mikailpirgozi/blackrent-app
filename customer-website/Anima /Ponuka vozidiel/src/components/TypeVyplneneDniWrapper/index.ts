@@ -1,1 +1,0 @@
-export { TypeVyplneneDniWrapper } from "./TypeVyplneneDniWrapper";

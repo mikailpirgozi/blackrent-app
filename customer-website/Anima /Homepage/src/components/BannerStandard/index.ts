@@ -1,1 +1,0 @@
-export { BannerStandard } from "./BannerStandard";

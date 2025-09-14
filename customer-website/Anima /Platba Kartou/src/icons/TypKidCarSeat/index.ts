@@ -1,1 +1,0 @@
-export { TypKidCarSeat } from "./TypKidCarSeat";

@@ -1,1 +1,0 @@
-export { StaviTlaTiekShare } from "./StaviTlaTiekShare";

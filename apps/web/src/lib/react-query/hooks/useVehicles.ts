@@ -88,6 +88,10 @@ export function useCreateVehicle() {
         );
       }
     },
+    onSuccess: data => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(new CustomEvent('vehicle-created', { detail: data }));
+    },
     onSettled: () => {
       // Refresh po dokončení
       queryClient.invalidateQueries({
@@ -137,6 +141,10 @@ export function useUpdateVehicle() {
         );
       }
     },
+    onSuccess: data => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(new CustomEvent('vehicle-updated', { detail: data }));
+    },
     onSettled: (data, error, variables) => {
       // Refresh
       queryClient.invalidateQueries({
@@ -178,6 +186,12 @@ export function useDeleteVehicle() {
           context.previousVehicles
         );
       }
+    },
+    onSuccess: (data, deletedId) => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(
+        new CustomEvent('vehicle-deleted', { detail: { id: deletedId } })
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({

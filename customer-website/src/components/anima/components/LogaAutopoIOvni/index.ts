@@ -1,1 +1,0 @@
-export { LogaAutopoIOvni } from "./LogaAutopoIOvni";

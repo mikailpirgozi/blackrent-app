@@ -124,7 +124,7 @@ export class WebSocketClient {
       reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
       reconnectionAttempts: this.maxReconnectAttempts,
-      timeout: 20000,
+      timeout: process.env.NODE_ENV === 'development' ? 20000 : 5000, // 20s pre localhost
       forceNew: true,
     });
 

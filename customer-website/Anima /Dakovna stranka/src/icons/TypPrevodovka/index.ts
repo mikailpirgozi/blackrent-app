@@ -1,1 +1,0 @@
-export { TypPrevodovka } from "./TypPrevodovka";

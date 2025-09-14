@@ -70,8 +70,8 @@ export function useInfiniteRentals(
       setError(null);
 
       try {
-        // FIXED: Reduced logging to prevent console spam
-        if (process.env.NODE_ENV === 'development') {
+        // FIXED: Reduced logging to prevent console spam - len pre prvú stránku
+        if (process.env.NODE_ENV === 'development' && page === 1) {
           console.log(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, {
             filters: filtersRef.current,
           });

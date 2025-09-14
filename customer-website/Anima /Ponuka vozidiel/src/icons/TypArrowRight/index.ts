@@ -1,1 +1,0 @@
-export { TypArrowRight } from "./TypArrowRight";

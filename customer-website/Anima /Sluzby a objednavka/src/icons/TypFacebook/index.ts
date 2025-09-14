@@ -1,1 +1,0 @@
-export { TypFacebook } from "./TypFacebook";

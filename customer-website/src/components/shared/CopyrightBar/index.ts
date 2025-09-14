@@ -1,1 +1,0 @@
-export { CopyrightBar } from "./CopyrightBar";

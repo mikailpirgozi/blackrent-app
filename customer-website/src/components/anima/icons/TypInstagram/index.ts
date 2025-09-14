@@ -1,1 +1,0 @@
-export { TypInstagram } from "./TypInstagram";

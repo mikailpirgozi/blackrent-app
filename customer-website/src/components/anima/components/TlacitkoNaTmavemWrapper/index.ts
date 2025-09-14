@@ -1,1 +1,0 @@
-export { TlacitkoNaTmavemWrapper } from "./TlacitkoNaTmavemWrapper";

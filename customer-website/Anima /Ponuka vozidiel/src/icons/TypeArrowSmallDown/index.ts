@@ -1,1 +1,0 @@
-export { TypeArrowSmallDown } from "./TypeArrowSmallDown";

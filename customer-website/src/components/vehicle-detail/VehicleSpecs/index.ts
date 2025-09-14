@@ -1,1 +1,0 @@
-export { VehicleSpecs } from './VehicleSpecs';

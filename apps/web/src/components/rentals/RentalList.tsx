@@ -88,8 +88,8 @@ export default function RentalList() {
   if (process.env.NODE_ENV === 'development') {
     renderCountRef.current++;
     const now = Date.now();
-    // Only log every 500ms to prevent spam
-    if (now - lastRenderTimeRef.current > 500) {
+    // Only log every 2 seconds to prevent spam
+    if (now - lastRenderTimeRef.current > 2000) {
       logger.debug('RentalList render', {
         timestamp: now,
         renderCount: renderCountRef.current,
@@ -143,6 +143,7 @@ export default function RentalList() {
     loadMore,
     refresh,
     updateFilters,
+    handleOptimisticDelete,
   } = useInfiniteRentals();
 
   // 🔍 DEBUG: Základné informácie o komponente - OPTIMIZED: Only log once
@@ -340,6 +341,8 @@ export default function RentalList() {
     },
     onDelete: id => {
       logger.debug('🗑️ External delete handler called', { rentalId: id });
+      // ⚡ OPTIMISTIC DELETE: Okamžite odstráň z UI
+      handleOptimisticDelete(id);
     },
     onScrollRestore: () => {
       logger.debug('📜 External scroll restore handler called');

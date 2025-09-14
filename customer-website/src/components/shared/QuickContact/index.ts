@@ -1,1 +1,0 @@
-export { QuickContact } from "./QuickContact";
