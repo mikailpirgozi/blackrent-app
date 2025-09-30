@@ -1,33 +1,39 @@
+"use client";
+
 import React from "react";
-import { ResponsiveHeader } from "../components/shared/ResponsiveHeader";
-import { FeaturedItemsSection } from "../components/anima/sections/FeaturedItemsSection/FeaturedItemsSection";
-import { ReviewsSection } from "../components/anima/sections/ReviewsSection/ReviewsSection";
-import { ResponsiveFooter } from "../components/shared/ResponsiveFooter";
+import { FeaturedSection } from '@/components/figma/FeaturedSection';
+import RightPicsSmall from "@/components/figma/FeaturedSection/RightPicsSmall";
+import LeftPicsSmall from "@/components/figma/FeaturedSection/LeftPicsSmall";
 
 
 export default function Home() {
+
   return (
-    <div className="w-full flex flex-col bg-[#05050a] relative overflow-x-hidden min-h-screen">
-      {/* Responzívny Header */}
-      <ResponsiveHeader />
-      
+    <>
       {/* Main content */}
-      <main className="flex flex-col gap-16 py-8">
+      <main className="flex flex-col py-8">
 
         {/* Featured Items Section */}
-        <section className="px-4 md:px-8">
-          <FeaturedItemsSection />
+        <section className="pt-16">
+          <FeaturedSection />
         </section>
-        
 
-        
+        <div className="content-stretch flex flex-row items-start justify-between relative size-full sm:hidden">
+          <div className="grid">
+            <LeftPicsSmall />
+          </div>
+          <div className="grid">
+            <RightPicsSmall />
+          </div>
+        </div>
+
         {/* Reviews Section */}
-        <ReviewsSection />
+        {/* <ReviewsSection /> */}
       </main>
 
       {/* Responzívny Footer */}
-      <ResponsiveFooter />
+      {/* <ResponsiveFooter /> */}
+    </>
 
-    </div>
   );
 }
