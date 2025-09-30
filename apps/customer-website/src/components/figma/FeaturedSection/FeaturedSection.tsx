@@ -11,6 +11,8 @@ import LeftPicsMedium from './LeftPicsMedium';
 import RightPicsMedium from './RightPicsMedium';
 
 import ButtonLanding from './ButtonLanding';
+import LeftPicsSmall from './LeftPicsSmall';
+import RightPicsSmall from './RightPicsSmall';
 
 interface FeaturedSectionProps {
   /** Optional custom title */
@@ -27,16 +29,19 @@ export default function FeaturedSection({
   className = ""
 }: FeaturedSectionProps) {
   return (
-    <div className={`content-stretch flex flex-row items-start justify-center md:justify-between relative size-full px-0 ${className}`} data-node-id="18218:9991">
+    <div className={`content-stretch flex flex-row items-start justify-center sm:justify-between relative size-full px-0 ${className}`} data-node-id="18218:9991">
 
       {/* Left Car Images Grid For Large Screens */}
 
-      <div className="hidden 2xl:ml-[0] xl:ml-[-56px] md:grid grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0" data-node-id="18218:9992">
+      <div className="hidden 2xl:ml-[0] xl:ml-[-56px] sm:grid grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0" data-node-id="18218:9992">
         <div className="hidden xl:grid">
           <LeftPicsLarge />
         </div>
-        <div className="grid xl:hidden md:ml-[-44px] lg:ml-0">
+        <div className="hidden md:grid xl:hidden md:ml-[-44px] lg:ml-0">
           <LeftPicsMedium />
+        </div>
+        <div className="hidden sm:grid md:hidden ml-[-30px]">
+          <LeftPicsSmall />
         </div>
       </div>
 
@@ -85,15 +90,17 @@ export default function FeaturedSection({
       </div>
 
       {/* Right Car Images Grid For Large Screens */}
-      <div className="hidden 2xl:mr-[0] xl:mr-[-56px] md:grid grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0" data-node-id="18218:10005">
+      <div className="hidden 2xl:mr-[0] xl:mr-[-56px] sm:grid grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0" data-node-id="18218:10005">
         <div className="hidden xl:grid">
           <RightPicsLarge />
         </div>
-        <div className="grid xl:hidden md:mr-[-44px] lg:mr-0">
-          <RightPicsMedium />
-        </div>
+          <div className="hidden md:grid xl:hidden md:mr-[-44px] lg:mr-0">
+            <RightPicsMedium />
+          </div>
+          <div className="hidden sm:grid md:hidden mr-[-30px]">
+            <RightPicsSmall />
+          </div>
       </div>
-
     </div>
   );
 }

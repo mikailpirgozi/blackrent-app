@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Header from "../components/figma/Menu/Header";
 import BurgerMenu from "../components/figma/Menu/BurgerMenu";
 import { FeaturedSection } from '@/components/figma/FeaturedSection';
+import RightPicsSmall from "@/components/figma/FeaturedSection/RightPicsSmall";
+import LeftPicsSmall from "@/components/figma/FeaturedSection/LeftPicsSmall";
 
 
 export default function Home() {
@@ -24,12 +26,25 @@ export default function Home() {
       ) : (
         <>
           {/* Main content */}
-          <main className="flex flex-col gap-16 py-8">
+          <main className="flex flex-col py-8">
 
             {/* Featured Items Section */}
-            <section className="py-16">
+            <section className="pt-16">
               <FeaturedSection />
             </section>
+
+            <div className="content-stretch flex flex-row items-start justify-between relative size-full sm:hidden">
+
+              {/* <div className="grid grid-cols-[max-content] grid-rows-[max-content] inline-grid place-items-start relative shrink-0 md:hidden"> */}
+                <div className="grid">
+                  <LeftPicsSmall />
+                </div>
+                <div className="grid">
+                  <RightPicsSmall />
+                </div>
+              {/* </div> */}
+
+            </div>
 
             {/* Reviews Section */}
             {/* <ReviewsSection /> */}
