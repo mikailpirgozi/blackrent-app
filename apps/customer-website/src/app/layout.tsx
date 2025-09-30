@@ -1,7 +1,11 @@
-import type { Metadata, Viewport } from 'next'
+"use client";
+
 import { Poppins } from 'next/font/google'
 import './globals.css'
 import '../styles/filter-animations.css'
+import BurgerMenu from '@/components/figma/Menu/BurgerMenu'
+import React, { useState } from 'react'
+import Header from '@/components/figma/Menu/Header'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -9,30 +13,36 @@ const poppins = Poppins({
   variable: '--font-poppins',
 })
 
-export const metadata: Metadata = {
-  title: 'BlackRent.sk - Prenájom áut',
-  description: 'Autá pre každodennú potrebu, aj nezabudnuteľný zážitok.',
-  keywords: 'prenájom áut, rental cars, BlackRent, Slovensko',
-  authors: [{ name: 'BlackRent Team' }],
-}
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
-}
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+
+  const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
+
+  const handleBurgerMenuToggle = (isOpen: boolean) => {
+    setIsBurgerMenuOpen(isOpen);
+  };
+
   return (
     <html lang="sk" className={poppins.variable}>
       <body className="antialiased">
-        {children}
+
+        <div className="w-full flex flex-col bg-[#05050a] relative overflow-x-hidden min-h-screen">
+
+          <Header onBurgerMenuToggle={handleBurgerMenuToggle} />
+
+          {/* Mobile Menu Overlay - shows when burger menu is open */}
+          {isBurgerMenuOpen ? (
+            <BurgerMenu />
+          ) : (
+            <>
+              {children}
+            </>
+          )}
+
+        </div>
       </body>
     </html>
   )
