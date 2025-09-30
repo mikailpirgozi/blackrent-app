@@ -67,11 +67,13 @@ export default function FeaturedSection({
         <div className="content-stretch flex flex-col sm:flex-row gap-[16px] sm:gap-[24px] items-center justify-center relative shrink-0 w-full" data-node-id="18218:10002">
 
           {/* Primary Button - Ponuka vozidiel */}
-          <ButtonLanding
-            text="Ponuka vozidiel"
-            iconPath="/assets/icons/arrow-right.svg"
-            iconAlt="Arrow right"
-          />
+          <Link href="/ponuka">
+            <ButtonLanding
+              text="Ponuka vozidiel"
+              iconPath="/assets/icons/arrow-right.svg"
+              iconAlt="Arrow right"
+            />
+          </Link>
 
           {/* Secondary Button - Naše služby */}
           <div className='hidden lg:block'>
@@ -94,12 +96,12 @@ export default function FeaturedSection({
         <div className="hidden xl:grid">
           <RightPicsLarge />
         </div>
-          <div className="hidden md:grid xl:hidden md:mr-[-44px] lg:mr-0">
-            <RightPicsMedium />
-          </div>
-          <div className="hidden sm:grid md:hidden mr-[-30px]">
-            <RightPicsSmall />
-          </div>
+        <div className="hidden md:grid xl:hidden md:mr-[-44px] lg:mr-0">
+          <RightPicsMedium />
+        </div>
+        <div className="hidden sm:grid md:hidden mr-[-30px]">
+          <RightPicsSmall />
+        </div>
       </div>
     </div>
   );

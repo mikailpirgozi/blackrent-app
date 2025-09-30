@@ -21,17 +21,19 @@ export default function Menu({ onBurgerMenuToggle }: MenuProps) {
   };
   return (
     <div className="box-border content-stretch flex items-center justify-between px-[32px] py-0 relative size-full h-[88px]" data-name="Menu" data-node-id="18225:11536">
-      
+
       {/* BLACKRENT LOGO */}
-      <div className="h-[32px] overflow-clip relative shrink-0 w-[214.4px]" data-name="Blackrent-logo" data-node-id="18225:11537">
-        <Image alt="BlackRent Logo" className="block max-w-none size-full" src="/assets/brands/blackrent-logo-white.svg" width={214} height={32} />
-      </div>
+      <Link href="/">
+        <div className="h-[32px] overflow-clip relative shrink-0 w-[214.4px]" data-name="Blackrent-logo" data-node-id="18225:11537">
+          <Image alt="BlackRent Logo" className="block max-w-none size-full" src="/assets/brands/blackrent-logo-white.svg" width={214} height={32} />
+        </div>
+      </Link>
 
       {/* NAVIGATION MENU */}
       <div className="hidden lg:flex content-stretch items-center justify-center relative shrink-0" data-name="Kategorie v menu" data-node-id="18225:11566">
         <div className="flex flex-row items-center self-stretch">
           <div className="content-stretch flex gap-[4px] h-full items-center justify-center relative shrink-0" data-node-id="18225:11567">
-            <Link href="/vozidla" className="box-border content-stretch flex gap-[8px] h-[40px] items-center justify-center p-[8px] relative shrink-0 hover:bg-[#1a1a1a] transition-colors rounded-[4px]" data-name="Sekcie v menu black" data-node-id="18225:11568">
+            <Link href="/ponuka" className="box-border content-stretch flex gap-[8px] h-[40px] items-center justify-center p-[8px] relative shrink-0 hover:bg-[#1a1a1a] transition-colors rounded-[4px]" data-name="Sekcie v menu black" data-node-id="18225:11568">
               <div className="css-fds3rt flex flex-col font-poppins font-medium justify-center leading-[0] not-italic relative shrink-0 text-[#d4d4e0] text-[14px] text-nowrap hover:text-[#d7ff14] transition-colors" data-node-id="I18225:11568;1291:5214">
                 <p className="leading-[24px] whitespace-pre">Ponuka vozidiel</p>
               </div>
@@ -69,27 +71,29 @@ export default function Menu({ onBurgerMenuToggle }: MenuProps) {
               <p className="leading-[24px] whitespace-pre">SK</p>
             </div>
           </div>
-          <ButtonSecondary
-            iconPath="/assets/icons/login-yellow.svg"
-            iconAlt="Prihlásiť sa"
-            text="Prihlásiť sa"
-          />
+          <Link href="/login">
+            <ButtonSecondary
+              iconPath="/assets/icons/login-yellow.svg"
+              iconAlt="Prihlásiť sa"
+              text="Prihlásiť sa"
+            />
+          </Link>
         </div>
       </div>
 
-       {/* Burger menu for 1024px or less */}
-         <button 
-           className="block lg:hidden relative w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity"
-           onClick={handleBurgerClick}
-           aria-label={isBurgerMenuOpen ? "Zavrieť menu" : "Otvoriť menu"}
-         >
-           <Image 
-             alt={"Burger menu"} 
-             src={"/assets/icons/burger-yellow.svg"} 
-             width={24} 
-             height={24} 
-           />
-         </button>
+      {/* Burger menu for 1024px or less */}
+      <button
+        className="block lg:hidden relative w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={handleBurgerClick}
+        aria-label={isBurgerMenuOpen ? "Zavrieť menu" : "Otvoriť menu"}
+      >
+        <Image
+          alt={"Burger menu"}
+          src={"/assets/icons/burger-yellow.svg"}
+          width={24}
+          height={24}
+        />
+      </button>
     </div>
   );
 }
