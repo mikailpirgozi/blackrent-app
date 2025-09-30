@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from 'next'
+import { Poppins } from 'next/font/google'
 import './globals.css'
 import '../styles/filter-animations.css'
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-poppins',
+})
 
 export const metadata: Metadata = {
   title: 'BlackRent.sk - Prenájom áut',
@@ -23,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sk">
+    <html lang="sk" className={poppins.variable}>
       <body className="antialiased">
         {children}
       </body>
