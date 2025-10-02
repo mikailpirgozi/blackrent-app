@@ -60,3 +60,7 @@ Thumbs.db
 
 # Cleanup scripts (môžeš zmazať neskôr)
 cleanup-*.sh
+
+# Logs
+logs/
+*.log
