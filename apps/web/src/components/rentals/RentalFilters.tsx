@@ -236,7 +236,7 @@ const RentalFilters = memo<RentalFiltersProps>(
                 <Input
                   id="search-query"
                   value={searchQuery}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
                   placeholder="Meno zákazníka, ŠPZ, poznámka..."
                 />
               </div>
@@ -283,7 +283,7 @@ const RentalFilters = memo<RentalFiltersProps>(
                 <Input
                   id="filter-customer"
                   value={filterCustomer}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterCustomer(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFilterCustomer(e.target.value)}
                 />
               </div>
 
@@ -327,7 +327,7 @@ const RentalFilters = memo<RentalFiltersProps>(
                   id="filter-date-from"
                   type="date"
                   value={filterDateFrom}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateFrom(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFilterDateFrom(e.target.value)}
                 />
               </div>
 
@@ -338,7 +338,7 @@ const RentalFilters = memo<RentalFiltersProps>(
                   id="filter-date-to"
                   type="date"
                   value={filterDateTo}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateTo(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFilterDateTo(e.target.value)}
                 />
               </div>
             </div>

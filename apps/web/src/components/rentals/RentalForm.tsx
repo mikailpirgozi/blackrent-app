@@ -922,7 +922,7 @@ export default function RentalForm({
           <Input
             id="customer-name"
             value={formData.customerName || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
               const name = e.target.value;
               setFormData(prev => ({ ...prev, customerName: name }));
               // Ak sa zadá meno, ktoré už existuje, automaticky ho vyberiem
@@ -1069,7 +1069,7 @@ export default function RentalForm({
           <Input
             id="order-number"
             value={formData.orderNumber || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
               setFormData(prev => ({ ...prev, orderNumber: e.target.value }))
             }
           />
@@ -1273,7 +1273,7 @@ export default function RentalForm({
                               id="manual-price"
                               type="number"
                               value={manualPrice || ''}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
                                 const value = parseFloat(e.target.value) || 0;
                                 setManualPrice(value);
                               }}
@@ -1334,7 +1334,7 @@ export default function RentalForm({
                 autoFocus
                 placeholder="Nové miesto"
                 value={newPlace}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPlace(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewPlace(e.target.value)}
               />
               <Button
                 variant="default"
@@ -1371,7 +1371,7 @@ export default function RentalForm({
               id="daily-km"
               type="number"
               value={dailyKilometers}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
                 const daily = Number(e.target.value) || 0;
                 setDailyKilometers(daily);
 
@@ -1452,7 +1452,7 @@ export default function RentalForm({
               type="number"
               step="0.1"
               value={extraKilometerRate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
                 const value = e.target.value.replace(',', '.'); // Nahraď čiarku bodkou
                 setExtraKilometerRate(Number(value) || 0);
               }}
@@ -1475,7 +1475,7 @@ export default function RentalForm({
               id="deposit"
               type="number"
               value={deposit}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeposit(Number(e.target.value) || 0)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDeposit(Number(e.target.value) || 0)}
               placeholder="0"
               className="pl-8"
             />
@@ -1553,7 +1553,7 @@ export default function RentalForm({
                       id="discount-value"
                       type="number"
                       value={formData.discount?.value || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                         handleInputChange('discount', {
                           ...formData.discount,
                           value: Number(e.target.value),
@@ -1591,7 +1591,7 @@ export default function RentalForm({
                       id="commission-value"
                       type="number"
                       value={formData.customCommission?.value || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                         handleInputChange('customCommission', {
                           ...formData.customCommission,
                           value: Number(e.target.value),
@@ -1609,7 +1609,7 @@ export default function RentalForm({
               <Input
                 type="number"
                 value={extraKmCharge}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtraKmCharge(Number(e.target.value))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setExtraKmCharge(Number(e.target.value))}
                 className="w-[120px]"
                 min={0}
               />
@@ -1712,7 +1712,7 @@ export default function RentalForm({
                             .split('T')[0]
                         : ''
                     }
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, date: new Date(e.target.value) } : null
                       )
@@ -1725,7 +1725,7 @@ export default function RentalForm({
                     id="payment-amount"
                     type="number"
                     value={editingPayment?.amount || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, amount: Number(e.target.value) } : null
                       )
@@ -1765,7 +1765,7 @@ export default function RentalForm({
                   <Input
                     id="invoice-number"
                     value={editingPayment?.invoiceNumber || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, invoiceNumber: e.target.value } : null
                       )
@@ -1777,7 +1777,7 @@ export default function RentalForm({
                   <Input
                     id="payment-note"
                     value={editingPayment?.note || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, note: e.target.value } : null
                       )

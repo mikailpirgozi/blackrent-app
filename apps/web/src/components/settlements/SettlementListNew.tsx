@@ -385,7 +385,7 @@ const SettlementListNew: React.FC = () => {
               <Input
                 placeholder="Hľadať vyúčtovanie..."
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -863,7 +863,7 @@ const SettlementListNew: React.FC = () => {
                   id="month"
                   type="month"
                   value={selectedMonth}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedMonth(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSelectedMonth(e.target.value)}
                 />
                 <p className="text-sm text-muted-foreground">
                   Vyberte mesiac pre vyúčtovanie
@@ -877,7 +877,7 @@ const SettlementListNew: React.FC = () => {
                     id="from"
                     type="date"
                     value={periodFrom}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriodFrom(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPeriodFrom(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -886,7 +886,7 @@ const SettlementListNew: React.FC = () => {
                     id="to"
                     type="date"
                     value={periodTo}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriodTo(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPeriodTo(e.target.value)}
                   />
                 </div>
               </div>

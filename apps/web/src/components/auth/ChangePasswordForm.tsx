@@ -121,7 +121,7 @@ export default function ChangePasswordForm({
                 id="current-password"
                 type="password"
                 value={currentPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setCurrentPassword(e.target.value)}
                 disabled={loading}
                 required
               />
@@ -133,7 +133,7 @@ export default function ChangePasswordForm({
                 id="new-password"
                 type="password"
                 value={newPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewPassword(e.target.value)}
                 disabled={loading}
                 required
               />
@@ -146,7 +146,7 @@ export default function ChangePasswordForm({
                 id="confirm-password"
                 type="password"
                 value={confirmPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setConfirmPassword(e.target.value)}
                 disabled={loading}
                 required
               />

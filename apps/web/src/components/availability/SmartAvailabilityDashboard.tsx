@@ -1259,7 +1259,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   id="date-from"
                   type="date"
                   value={filters.dateFrom}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setFilters(prev => ({ ...prev, dateFrom: e.target.value }))
                   }
                 />
@@ -1270,7 +1270,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                   id="date-to"
                   type="date"
                   value={filters.dateTo}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setFilters(prev => ({ ...prev, dateTo: e.target.value }))
                   }
                 />
@@ -1368,7 +1368,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                 id="min-availability"
                 type="number"
                 value={filters.minAvailabilityPercent}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFilters(prev => ({
                     ...prev,
                     minAvailabilityPercent: parseInt(e.target.value) || 0,

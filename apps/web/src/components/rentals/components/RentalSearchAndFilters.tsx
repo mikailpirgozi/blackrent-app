@@ -46,7 +46,7 @@ export function RentalSearchAndFilters({
             className="pl-10 bg-background"
             placeholder="Hľadať prenájmy (zákazník, vozidlo, ŠPZ, poznámky...)"
             value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onSearchChange(e.target.value)}
           />
         </div>
 

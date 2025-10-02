@@ -17,14 +17,27 @@ const unifiedButtonVariants = cva(
   {
     variants: {
       variant: {
+        // MUI varianty
         contained: "text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm",
         outlined: "bg-transparent border-2 hover:-translate-y-0.5 active:translate-y-0",
         text: "bg-transparent hover:bg-opacity-10 hover:-translate-y-0.5 active:translate-y-0",
+        // shadcn varianty
+        default: "text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm",
+        outline: "bg-transparent border-2 hover:-translate-y-0.5 active:translate-y-0",
+        ghost: "bg-transparent hover:bg-opacity-10 hover:-translate-y-0.5 active:translate-y-0",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
+        secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         small: "h-8 px-3 text-xs",
         medium: "h-9 px-4 text-sm",
         large: "h-11 px-6 text-base",
+        // shadcn sizes
+        sm: "h-9 px-3",
+        default: "h-10 px-4 py-2",
+        lg: "h-11 px-8",
+        icon: "h-10 w-10",
       },
       color: {
         primary: "",

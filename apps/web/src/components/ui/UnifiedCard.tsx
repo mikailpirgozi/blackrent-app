@@ -116,7 +116,7 @@ export const ElevatedCard: React.FC<
 
 export const OutlinedCard: React.FC<
   Omit<UnifiedCardProps, 'variant'>
-> = props => <UnifiedCard variant="outline" {...props} />;
+> = props => <UnifiedCard variant="outlined" {...props} />;
 
 export const InteractiveCard: React.FC<
   Omit<UnifiedCardProps, 'variant'>

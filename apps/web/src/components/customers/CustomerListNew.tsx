@@ -461,7 +461,7 @@ export default function CustomerListNew() {
               className="w-full pl-10"
               placeholder="Hľadať zákazníkov..."
               value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
             />
           </div>
           <Button 

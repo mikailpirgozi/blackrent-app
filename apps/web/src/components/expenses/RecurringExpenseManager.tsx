@@ -757,7 +757,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({ ...prev, name: e.target.value }))
                 }
                 required
@@ -771,7 +771,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 id="amount"
                 type="number"
                 value={formData.amount || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     amount: parseFloat(e.target.value) || 0,
@@ -788,7 +788,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     description: e.target.value,
@@ -959,7 +959,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 id="startDate"
                 type="date"
                 value={formData.startDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({ ...prev, startDate: e.target.value }))
                 }
                 required
@@ -972,7 +972,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 id="endDate"
                 type="date"
                 value={formData.endDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({ ...prev, endDate: e.target.value }))
                 }
               />
@@ -987,7 +987,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                 id="dayOfMonth"
                 type="number"
                 value={formData.dayOfMonth}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     dayOfMonth: parseInt(e.target.value) || 1,
@@ -1023,7 +1023,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               <Input
                 id="note"
                 value={formData.note}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({ ...prev, note: e.target.value }))
                 }
                 placeholder="Voliteľná poznámka pre generované náklady"

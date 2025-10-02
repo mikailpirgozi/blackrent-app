@@ -100,7 +100,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
             <Input
               placeholder="Hľadať vozidlá..."
               value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>

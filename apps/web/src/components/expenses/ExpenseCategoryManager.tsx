@@ -363,7 +363,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
               <Input
                 id="displayName"
                 value={formData.displayName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     displayName: e.target.value,
@@ -380,7 +380,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({ ...prev, name: e.target.value }))
                 }
                 placeholder="Automaticky generovaný z zobrazovaného názvu"
@@ -393,7 +393,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     description: e.target.value,
@@ -471,7 +471,7 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                 id="sortOrder"
                 type="number"
                 value={formData.sortOrder}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     sortOrder: parseInt(e.target.value) || 0,

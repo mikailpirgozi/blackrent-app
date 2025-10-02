@@ -477,7 +477,7 @@ export default function UnifiedDocumentForm({
                             <Input
                               id="policy-number"
                               value={formData.policyNumber}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                                 setFormData(prev => ({
                                   ...prev,
                                   policyNumber: e.target.value,
@@ -785,7 +785,7 @@ export default function UnifiedDocumentForm({
                           step="0.01"
                           min="0"
                           value={formData.price || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                             setFormData(prev => ({
                               ...prev,
                               price: parseFloat(e.target.value) || 0,
@@ -838,7 +838,7 @@ export default function UnifiedDocumentForm({
                             min="0"
                             step="1"
                             value={formData.kmState || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                               setFormData(prev => ({
                                 ...prev,
                                 kmState: parseInt(e.target.value) || undefined,
@@ -873,7 +873,7 @@ export default function UnifiedDocumentForm({
                           <Input
                             id="document-number"
                             value={formData.documentNumber}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                               setFormData(prev => ({
                                 ...prev,
                                 documentNumber: e.target.value,
@@ -894,7 +894,7 @@ export default function UnifiedDocumentForm({
                             id="notes"
                             rows={3}
                             value={formData.notes}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                               setFormData(prev => ({
                                 ...prev,
                                 notes: e.target.value,
@@ -1022,7 +1022,7 @@ export default function UnifiedDocumentForm({
                 <Input
                   id="new-insurer-name"
                   value={newInsurerName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewInsurerName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewInsurerName(e.target.value)}
                   autoFocus
                   placeholder="Zadajte názov poisťovne..."
                 />

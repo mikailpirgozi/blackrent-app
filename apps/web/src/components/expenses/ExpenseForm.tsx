@@ -116,7 +116,7 @@ export default function ExpenseForm({
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('description', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
                 required
                 placeholder="Zadajte popis nákladu"
               />
@@ -128,7 +128,7 @@ export default function ExpenseForm({
                 id="amount"
                 type="number"
                 value={formData.amount || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   handleInputChange(
                     'amount',
                     e.target.value ? parseFloat(e.target.value) : 0
@@ -148,7 +148,7 @@ export default function ExpenseForm({
                     ? new Date(formData.date).toISOString().split('T')[0]
                     : ''
                 }
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('date', new Date(e.target.value))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('date', new Date(e.target.value))}
                 required
               />
             </div>
@@ -225,7 +225,7 @@ export default function ExpenseForm({
                     autoFocus
                     placeholder="Nová firma"
                     value={newCompanyName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewCompanyName(e.target.value)}
                     className="flex-1"
                   />
                   <Button
@@ -300,7 +300,7 @@ export default function ExpenseForm({
                 id="note"
                 className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.note || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('note', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('note', e.target.value)}
                 placeholder="Zadajte dodatočné informácie k nákladu..."
                 rows={3}
               />

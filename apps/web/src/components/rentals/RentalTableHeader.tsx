@@ -86,7 +86,7 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
           <Input
             placeholder="Vyhľadať rezervácie..."
             value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onSearchChange(e.target.value)}
             disabled={isLoading}
             className="pl-10 pr-10"
           />

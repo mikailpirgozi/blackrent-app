@@ -91,7 +91,7 @@ export const EmailFilters = ({
           <UnifiedTextField
             label="Odosielateľ"
             value={senderFilter}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSenderFilterChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onSenderFilterChange(e.target.value)}
             fullWidth
             size={isExtraSmall ? 'small' : isMobile ? 'medium' : 'small'}
             placeholder={

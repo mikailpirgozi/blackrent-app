@@ -1172,7 +1172,7 @@ export default function SerialPhotoCapture({
                   <Textarea
                     id={`description-${media.id}`}
                     value={media.description}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       handleDescriptionChange(media.id, e.target.value)
                     }
                     rows={2}

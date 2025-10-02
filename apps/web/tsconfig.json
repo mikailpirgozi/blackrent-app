@@ -39,6 +39,17 @@
     "src/@types/**/*"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__",
+    "src/setupTests.ts",
+    "src/test",
+    "src/components/common/SkeletonLoader.tsx",
+    "src/components/common/LoadingStates.tsx",
+    "src/components/insurances/VehicleCentricInsuranceList.tsx",
+    "src/components/rentals/RentalList.tsx",
+    "src/components/settlements/SettlementDetail.tsx",
+    "src/components/vehicles/VehicleImage.tsx"
   ]
 }

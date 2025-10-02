@@ -440,7 +440,7 @@ export default function InsuranceClaimList() {
               <Input
                 placeholder="Vyhľadať udalosť..."
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>

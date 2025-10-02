@@ -106,7 +106,7 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
             <Input
               id="title"
               value={formData.title}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 setFormData({ ...formData, title: e.target.value })
               }
             />
@@ -117,7 +117,7 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
             <Input
               id="subtitle"
               value={formData.subtitle}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 setFormData({ ...formData, subtitle: e.target.value })
               }
             />
@@ -128,7 +128,7 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
             <Input
               id="category"
               value={formData.category}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 setFormData({ ...formData, category: e.target.value })
               }
             />
@@ -159,7 +159,7 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
               id="description"
               rows={4}
               value={formData.description}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 setFormData({ ...formData, description: e.target.value })
               }
             />

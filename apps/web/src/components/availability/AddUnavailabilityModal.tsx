@@ -586,7 +586,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
               <Input
                 id="reason"
                 value={formData.reason}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     reason: e.target.value,
@@ -638,7 +638,7 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 id="notes"
                 rows={3}
                 value={formData.notes}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     notes: e.target.value,

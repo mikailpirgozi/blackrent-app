@@ -1099,7 +1099,7 @@ const EmailManagementDashboard: React.FC = () => {
                 <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>Odosielateľ</Label>
                 <Input
                   value={senderFilter}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSenderFilter(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSenderFilter(e.target.value)}
                   placeholder={
                     isExtraSmall ? 'Hľadať...' : 'Hľadať podľa odosielateľa...'
                   }
@@ -2068,7 +2068,7 @@ const EmailManagementDashboard: React.FC = () => {
             </Label>
             <textarea
               value={rejectReason}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRejectReason(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setRejectReason(e.target.value)}
               rows={isExtraSmall ? 2 : 3}
               className={`w-full px-3 py-2 border border-input bg-background rounded-md resize-none ${isExtraSmall ? 'text-sm' : 'text-base'} focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent`}
             />

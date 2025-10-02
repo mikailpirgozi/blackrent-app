@@ -219,7 +219,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('firstName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('firstName', e.target.value)}
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -231,7 +231,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('lastName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('lastName', e.target.value)}
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">

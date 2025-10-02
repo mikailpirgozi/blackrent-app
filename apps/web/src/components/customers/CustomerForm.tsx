@@ -68,7 +68,7 @@ export default function CustomerForm({
               <Input
                 id="name"
                 value={formData.name || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('name', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('name', e.target.value)}
                 required
               />
             </div>
@@ -79,7 +79,7 @@ export default function CustomerForm({
                 id="email"
                 type="email"
                 value={formData.email || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('email', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('email', e.target.value)}
               />
             </div>
 
@@ -88,7 +88,7 @@ export default function CustomerForm({
               <Input
                 id="phone"
                 value={formData.phone || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('phone', e.target.value)}
               />
             </div>
           </div>

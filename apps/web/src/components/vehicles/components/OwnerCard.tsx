@@ -230,7 +230,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               <Input
                 id="company-name"
                 value={editData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({ ...prev, name: e.target.value }))
                 }
                 className="bg-primary/10"
@@ -242,7 +242,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               <Input
                 id="owner-name"
                 value={editData.ownerName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({ ...prev, ownerName: e.target.value }))
                 }
               />
@@ -253,7 +253,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
                 id="contact-email"
                 type="email"
                 value={editData.contactEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     contactEmail: e.target.value,
@@ -266,7 +266,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               <Input
                 id="contact-phone"
                 value={editData.contactPhone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     contactPhone: e.target.value,
@@ -280,7 +280,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
                 id="commission-rate"
                 type="number"
                 value={editData.defaultCommissionRate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     defaultCommissionRate: parseFloat(e.target.value) || 20,
@@ -296,7 +296,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               <Input
                 id="personal-iban"
                 value={editData.personalIban}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     personalIban: e.target.value,
@@ -310,7 +310,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               <Input
                 id="business-iban"
                 value={editData.businessIban}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     businessIban: e.target.value,
@@ -324,7 +324,7 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
               <Input
                 id="protocol-name"
                 value={editData.protocolDisplayName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     protocolDisplayName: e.target.value,

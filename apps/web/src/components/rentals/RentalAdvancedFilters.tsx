@@ -321,7 +321,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                     id="filter-date-from"
                     type="date"
                     value={filters.dateFrom}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('dateFrom', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('dateFrom', e.target.value)}
                   />
                 </div>
                 <div>
@@ -330,7 +330,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                     id="filter-date-to"
                     type="date"
                     value={filters.dateTo}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('dateTo', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('dateTo', e.target.value)}
                   />
                 </div>
               </div>
@@ -356,7 +356,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                       type="number"
                       className="pl-10"
                       value={filters.priceMin}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('priceMin', e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('priceMin', e.target.value)}
                     />
                   </div>
                 </div>
@@ -369,7 +369,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                       type="number"
                       className="pl-10"
                       value={filters.priceMax}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('priceMax', e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('priceMax', e.target.value)}
                     />
                   </div>
                 </div>
@@ -407,7 +407,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <Input
                     id="filter-customer-name"
                     value={filters.customerName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerName', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('customerName', e.target.value)}
                   />
                 </div>
                 <div>
@@ -416,7 +416,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                     id="filter-customer-email"
                     type="email"
                     value={filters.customerEmail}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerEmail', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('customerEmail', e.target.value)}
                   />
                 </div>
                 <div>
@@ -425,7 +425,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                     id="filter-customer-phone"
                     type="tel"
                     value={filters.customerPhone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerPhone', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('customerPhone', e.target.value)}
                   />
                 </div>
                 <div>
@@ -433,7 +433,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <Input
                     id="filter-customer-company"
                     value={filters.customerCompany}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerCompany', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('customerCompany', e.target.value)}
                   />
                 </div>
               </div>
@@ -471,7 +471,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <Input
                     id="filter-vehicle-model"
                     value={filters.vehicleModel}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('vehicleModel', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('vehicleModel', e.target.value)}
                   />
                 </div>
                 <div>
@@ -479,7 +479,7 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
                   <Input
                     id="filter-license-plate"
                     value={filters.licensePlate}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('licensePlate', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleFilterChange('licensePlate', e.target.value)}
                   />
                 </div>
               </div>

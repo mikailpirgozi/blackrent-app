@@ -571,7 +571,7 @@ export default function ReturnProtocolForm({
               <Input
                 id="location"
                 value={formData.location}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('location', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('location', e.target.value)}
                 required
               />
             </div>
@@ -580,7 +580,7 @@ export default function ReturnProtocolForm({
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('notes', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('notes', e.target.value)}
                 rows={2}
               />
             </div>
@@ -613,7 +613,7 @@ export default function ReturnProtocolForm({
                 id="odometer"
                 type="number"
                 value={formData.odometer || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   handleInputChange(
                     'odometer',
                     e.target.value ? parseInt(e.target.value) : undefined
@@ -627,7 +627,7 @@ export default function ReturnProtocolForm({
                 id="fuelLevel"
                 type="number"
                 value={formData.fuelLevel}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   handleInputChange('fuelLevel', parseInt(e.target.value) || 100)
                 }
                 min={0}
@@ -639,7 +639,7 @@ export default function ReturnProtocolForm({
               <Input
                 id="exteriorCondition"
                 value={formData.exteriorCondition}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   handleInputChange('exteriorCondition', e.target.value)
                 }
               />
@@ -649,7 +649,7 @@ export default function ReturnProtocolForm({
               <Input
                 id="interiorCondition"
                 value={formData.interiorCondition}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   handleInputChange('interiorCondition', e.target.value)
                 }
               />
@@ -788,7 +788,7 @@ export default function ReturnProtocolForm({
                       id="customKmRate"
                       type="number"
                       value={customKmRate || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleKmRateChange(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleKmRateChange(e.target.value)}
                       min={0}
                       step={0.01}
                       className="w-36 text-center"

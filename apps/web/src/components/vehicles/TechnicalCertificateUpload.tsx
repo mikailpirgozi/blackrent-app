@@ -300,7 +300,7 @@ export default function TechnicalCertificateUpload({
                 <Input
                   id="documentName"
                   value={uploadData.documentName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUploadData(prev => ({
                       ...prev,
                       documentName: e.target.value,
@@ -316,7 +316,7 @@ export default function TechnicalCertificateUpload({
                 <Input
                   id="notes"
                   value={uploadData.notes}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUploadData(prev => ({ ...prev, notes: e.target.value }))
                   }
                   placeholder="Dodatočné informácie..."

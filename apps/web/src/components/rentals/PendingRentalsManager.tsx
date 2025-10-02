@@ -278,7 +278,7 @@ const RentalCard: React.FC<RentalCardProps> = ({
                 id="reject-reason"
                 rows={3}
                 value={rejectReason}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRejectReason(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setRejectReason(e.target.value)}
                 placeholder="Napr.: Neplatné dátumy, chýbajúce informácie, duplicitná objednávka..."
                 className="mt-1"
               />

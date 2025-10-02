@@ -219,7 +219,7 @@ export default function SignaturePad({
         <Input
           id="signer-name"
           value={editableSignerName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditableSignerName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditableSignerName(e.target.value)}
           className="w-full"
           placeholder={
             signerRole === 'customer'

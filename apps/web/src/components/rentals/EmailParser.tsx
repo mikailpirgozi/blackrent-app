@@ -635,7 +635,7 @@ export default function EmailParser({
             rows={8}
             placeholder="Vložte text z emailu - vložte sem text z emailu s detailmi objednávky..."
             value={emailText}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailText(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEmailText(e.target.value)}
             className="w-full"
           />
         </div>

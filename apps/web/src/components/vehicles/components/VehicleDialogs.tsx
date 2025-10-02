@@ -216,7 +216,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="company-name"
                 value={newCompanyData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('name', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('name', e.target.value)}
                 required
                 placeholder="Názov firmy"
               />
@@ -227,7 +227,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="owner-name"
                 value={newCompanyData.ownerName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('ownerName', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('ownerName', e.target.value)}
                 placeholder="Meno majiteľa"
               />
             </div>
@@ -238,7 +238,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 id="contact-email"
                 type="email"
                 value={newCompanyData.contactEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('contactEmail', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('contactEmail', e.target.value)}
                 placeholder="email@example.com"
               />
             </div>
@@ -248,7 +248,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="contact-phone"
                 value={newCompanyData.contactPhone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('contactPhone', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('contactPhone', e.target.value)}
                 placeholder="+421 XXX XXX XXX"
               />
             </div>
@@ -258,7 +258,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="personal-iban"
                 value={newCompanyData.personalIban}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('personalIban', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('personalIban', e.target.value)}
                 placeholder="SK89 XXXX XXXX XXXX XXXX XXXX"
               />
             </div>
@@ -268,7 +268,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="business-iban"
                 value={newCompanyData.businessIban}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('businessIban', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('businessIban', e.target.value)}
                 placeholder="SK89 XXXX XXXX XXXX XXXX XXXX"
               />
             </div>
@@ -279,7 +279,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 id="commission-rate"
                 type="number"
                 value={newCompanyData.defaultCommissionRate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCompanyDataChange('defaultCommissionRate', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('defaultCommissionRate', e.target.value)}
                 min="0"
                 max="100"
                 step="0.1"
@@ -319,7 +319,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="first-name"
                 value={newInvestorData.firstName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onInvestorDataChange('firstName', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('firstName', e.target.value)}
                 required
                 placeholder="Krstné meno"
               />
@@ -330,7 +330,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="last-name"
                 value={newInvestorData.lastName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onInvestorDataChange('lastName', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('lastName', e.target.value)}
                 required
                 placeholder="Priezvisko"
               />
@@ -342,7 +342,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 id="investor-email"
                 type="email"
                 value={newInvestorData.email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onInvestorDataChange('email', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('email', e.target.value)}
                 placeholder="email@example.com"
               />
             </div>
@@ -352,7 +352,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="investor-phone"
                 value={newInvestorData.phone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onInvestorDataChange('phone', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('phone', e.target.value)}
                 placeholder="+421 XXX XXX XXX"
               />
             </div>
@@ -423,7 +423,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 id="ownership-percentage"
                 type="number"
                 value={newShareData.ownershipPercentage}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   onShareDataChange(
                     'ownershipPercentage',
                     parseFloat(e.target.value) || 0
@@ -443,7 +443,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 id="investment-amount"
                 type="number"
                 value={newShareData.investmentAmount}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   onShareDataChange(
                     'investmentAmount',
                     parseFloat(e.target.value) || 0

@@ -334,7 +334,7 @@ export default function VehicleForm({
           <Input
             id="brand"
             value={formData.brand}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('brand', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('brand', e.target.value)}
             required
           />
         </div>
@@ -343,7 +343,7 @@ export default function VehicleForm({
           <Input
             id="model"
             value={formData.model}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('model', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('model', e.target.value)}
             required
           />
         </div>
@@ -352,7 +352,7 @@ export default function VehicleForm({
           <Input
             id="licensePlate"
             value={formData.licensePlate}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('licensePlate', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('licensePlate', e.target.value)}
             required
           />
         </div>
@@ -361,7 +361,7 @@ export default function VehicleForm({
           <Input
             id="vin"
             value={formData.vin || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('vin', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('vin', e.target.value)}
             placeholder="Zadajte VIN číslo vozidla"
           />
           <p className="text-sm text-muted-foreground mt-1">
@@ -419,7 +419,7 @@ export default function VehicleForm({
               <Input
                 autoFocus
                 value={newCompanyName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewCompanyName(e.target.value)}
                 onKeyPress={e => {
                   if (e.key === 'Enter') {
                     handleAddCompany();
@@ -539,7 +539,7 @@ export default function VehicleForm({
               id="commission-value"
               type="number"
               value={formData.commission?.value || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 handleInputChange('commission', {
                   ...formData.commission,
                   value: parseFloat(e.target.value),
@@ -596,7 +596,7 @@ export default function VehicleForm({
                   <Input
                     type="number"
                     value={tier.pricePerDay}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       handlePricingChange(
                         index,
                         'pricePerDay',
@@ -617,7 +617,7 @@ export default function VehicleForm({
                     id="extra-km"
                     type="number"
                     value={formData.extraKilometerRate || 0.3}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       handleInputChange(
                         'extraKilometerRate',
                         parseFloat(e.target.value) || 0.3

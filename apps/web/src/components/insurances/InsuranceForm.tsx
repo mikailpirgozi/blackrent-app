@@ -150,7 +150,7 @@ export default function InsuranceForm({
           <Input
             id="policyNumber"
             value={formData.policyNumber || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('policyNumber', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('policyNumber', e.target.value)}
             placeholder="Zadajte číslo poistky..."
             required
           />
@@ -192,7 +192,7 @@ export default function InsuranceForm({
               <Input
                 placeholder="Nová poisťovňa"
                 value={newInsurerName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewInsurerName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewInsurerName(e.target.value)}
                 className="flex-1"
               />
               <Button
@@ -239,7 +239,7 @@ export default function InsuranceForm({
             id="price"
             type="number"
             value={formData.price || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('price', parseFloat(e.target.value) || 0)}
             placeholder="0.00"
             step="0.01"
             min="0"

@@ -838,7 +838,7 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="username"
                   value={userForm.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, username: e.target.value }))
                   }
                   required
@@ -850,7 +850,7 @@ const BasicUserManagement: React.FC = () => {
                   id="email"
                   type="email"
                   value={userForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, email: e.target.value }))
                   }
                   required
@@ -861,7 +861,7 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="firstName"
                   value={userForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, firstName: e.target.value }))
                   }
                 />
@@ -871,7 +871,7 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="lastName"
                   value={userForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, lastName: e.target.value }))
                   }
                 />
@@ -882,7 +882,7 @@ const BasicUserManagement: React.FC = () => {
                   id="password"
                   type="password"
                   value={userForm.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, password: e.target.value }))
                   }
                   required
@@ -1002,7 +1002,7 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="edit-username"
                   value={userForm.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, username: e.target.value }))
                   }
                   required
@@ -1014,7 +1014,7 @@ const BasicUserManagement: React.FC = () => {
                   id="edit-email"
                   type="email"
                   value={userForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, email: e.target.value }))
                   }
                   required
@@ -1025,7 +1025,7 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="edit-firstName"
                   value={userForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, firstName: e.target.value }))
                   }
                 />
@@ -1035,7 +1035,7 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="edit-lastName"
                   value={userForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, lastName: e.target.value }))
                   }
                 />
@@ -1046,7 +1046,7 @@ const BasicUserManagement: React.FC = () => {
                   id="edit-password"
                   type="password"
                   value={userForm.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, password: e.target.value }))
                   }
                 />

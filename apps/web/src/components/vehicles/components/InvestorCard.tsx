@@ -143,7 +143,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 <Input
                   id="first-name"
                   value={editData.firstName || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditData(prev => ({ ...prev, firstName: e.target.value }))
                   }
                   required
@@ -156,7 +156,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 <Input
                   id="last-name"
                   value={editData.lastName || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditData(prev => ({ ...prev, lastName: e.target.value }))
                   }
                   required
@@ -170,7 +170,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                   id="email"
                   type="email"
                   value={editData.email || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditData(prev => ({ ...prev, email: e.target.value }))
                   }
                   placeholder="email@example.com"
@@ -182,7 +182,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 <Input
                   id="phone"
                   value={editData.phone || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditData(prev => ({ ...prev, phone: e.target.value }))
                   }
                   placeholder="+421 XXX XXX XXX"
@@ -194,7 +194,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 <Textarea
                   id="notes"
                   value={editData.notes || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditData(prev => ({ ...prev, notes: e.target.value }))
                   }
                   placeholder="Poznámky..."

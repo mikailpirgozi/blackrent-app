@@ -1225,7 +1225,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="username"
                   value={userForm.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, username: e.target.value }))
                   }
                 />
@@ -1236,7 +1236,7 @@ const AdvancedUserManagement: React.FC = () => {
                   id="email"
                   type="email"
                   value={userForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, email: e.target.value }))
                   }
                 />
@@ -1246,7 +1246,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="firstName"
                   value={userForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, firstName: e.target.value }))
                   }
                 />
@@ -1256,7 +1256,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="lastName"
                   value={userForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, lastName: e.target.value }))
                   }
                 />
@@ -1267,7 +1267,7 @@ const AdvancedUserManagement: React.FC = () => {
                   id="password"
                   type="password"
                   value={userForm.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, password: e.target.value }))
                   }
                 />
@@ -1277,7 +1277,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="phone"
                   value={userForm.phone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setUserForm(prev => ({ ...prev, phone: e.target.value }))
                   }
                 />
@@ -1347,7 +1347,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="role-name"
                   value={roleForm.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setRoleForm(prev => ({ ...prev, name: e.target.value }))
                   }
                 />
@@ -1357,7 +1357,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="role-display-name"
                   value={roleForm.displayName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setRoleForm(prev => ({
                       ...prev,
                       displayName: e.target.value,
@@ -1371,7 +1371,7 @@ const AdvancedUserManagement: React.FC = () => {
                   id="role-description"
                   rows={3}
                   value={roleForm.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setRoleForm(prev => ({
                       ...prev,
                       description: e.target.value,
@@ -1387,7 +1387,7 @@ const AdvancedUserManagement: React.FC = () => {
                   min="1"
                   max="10"
                   value={roleForm.level}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setRoleForm(prev => ({
                       ...prev,
                       level: parseInt(e.target.value) || 1,
@@ -1419,7 +1419,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="dept-name"
                   value={departmentForm.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setDepartmentForm(prev => ({ ...prev, name: e.target.value }))
                   }
                 />
@@ -1430,7 +1430,7 @@ const AdvancedUserManagement: React.FC = () => {
                   id="dept-description"
                   rows={3}
                   value={departmentForm.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setDepartmentForm(prev => ({
                       ...prev,
                       description: e.target.value,
@@ -1445,7 +1445,7 @@ const AdvancedUserManagement: React.FC = () => {
                     id="dept-budget"
                     type="number"
                     value={departmentForm.monthlyBudget}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       setDepartmentForm(prev => ({
                         ...prev,
                         monthlyBudget: e.target.value,
@@ -1459,7 +1459,7 @@ const AdvancedUserManagement: React.FC = () => {
                     id="dept-vehicles"
                     type="number"
                     value={departmentForm.vehicleLimit}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                       setDepartmentForm(prev => ({
                         ...prev,
                         vehicleLimit: e.target.value,
@@ -1492,7 +1492,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="team-name"
                   value={teamForm.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setTeamForm(prev => ({ ...prev, name: e.target.value }))
                   }
                 />
@@ -1503,7 +1503,7 @@ const AdvancedUserManagement: React.FC = () => {
                   id="team-description"
                   rows={3}
                   value={teamForm.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setTeamForm(prev => ({
                       ...prev,
                       description: e.target.value,
@@ -1563,7 +1563,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-firstName"
                   value={editForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditForm({ ...editForm, firstName: e.target.value })
                   }
                 />
@@ -1573,7 +1573,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-lastName"
                   value={editForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditForm({ ...editForm, lastName: e.target.value })
                   }
                 />
@@ -1584,7 +1584,7 @@ const AdvancedUserManagement: React.FC = () => {
                   id="edit-email"
                   type="email"
                   value={editForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditForm({ ...editForm, email: e.target.value })
                   }
                 />
@@ -1594,7 +1594,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-phone"
                   value={editForm.phone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditForm({ ...editForm, phone: e.target.value })
                   }
                 />
@@ -1604,7 +1604,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-jobTitle"
                   value={editForm.jobTitle}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     setEditForm({ ...editForm, jobTitle: e.target.value })
                   }
                 />

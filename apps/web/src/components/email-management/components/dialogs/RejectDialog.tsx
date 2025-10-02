@@ -89,7 +89,7 @@ export const RejectDialog: React.FC<RejectDialogProps> = ({
             <Textarea
               id="reason"
               value={reason}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onReasonChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onReasonChange(e.target.value)}
               rows={isExtraSmall ? 2 : 3}
               className={isExtraSmall ? 'text-sm' : ''}
               placeholder="Zadajte dôvod zamietnutia..."

@@ -1078,7 +1078,7 @@ export default function VehicleCentricInsuranceList() {
                     : 'Vyhľadať vozidlo alebo dokument...'
                 }
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
                 startAdornment={
                   <UnifiedIcon
                     name="search"

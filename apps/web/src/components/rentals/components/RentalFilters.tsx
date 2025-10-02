@@ -124,7 +124,7 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 <Input
                   placeholder="Hľadať prenájmy..."
                   value={searchQuery}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-muted/50 hover:bg-muted/70 focus:bg-background transition-all duration-300 hover:-translate-y-0.5 focus:-translate-y-1 hover:shadow-md focus:shadow-lg"
                 />
               </div>
@@ -632,7 +632,7 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 <Input
                   type="date"
                   value={advancedFilters.dateFrom || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     handleAdvancedFiltersChange({
                       ...advancedFilters,
                       dateFrom: e.target.value,
@@ -648,7 +648,7 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                 <Input
                   type="date"
                   value={advancedFilters.dateTo || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                     handleAdvancedFiltersChange({
                       ...advancedFilters,
                       dateTo: e.target.value,

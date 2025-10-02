@@ -341,7 +341,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
             <Input
               id="customerName"
               value={formData.customerName || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('customerName', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('customerName', e.target.value)}
             />
           </div>
 
@@ -351,7 +351,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               id="customerEmail"
               type="email"
               value={formData.customerEmail || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('customerEmail', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('customerEmail', e.target.value)}
             />
           </div>
 
@@ -360,7 +360,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
             <Input
               id="customerPhone"
               value={formData.customerPhone || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('customerPhone', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('customerPhone', e.target.value)}
             />
           </div>
 
@@ -403,7 +403,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
             <Input
               id="vehicleCode"
               value={formData.vehicleCode || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('vehicleCode', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('vehicleCode', e.target.value)}
             />
           </div>
 
@@ -514,7 +514,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               id="totalPrice"
               type="number"
               value={calculatedPrice || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 setCalculatedPrice(parseFloat(e.target.value) || 0)
               }
             />
@@ -531,7 +531,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               id="deposit"
               type="number"
               value={formData.deposit || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 handleInputChange('deposit', parseFloat(e.target.value) || 0)
               }
             />
@@ -628,7 +628,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                           id="discountValue"
                           type="number"
                           value={formData.discount?.value || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                             handleInputChange('discount', {
                               ...formData.discount,
                               value: Number(e.target.value),
@@ -666,7 +666,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
                           id="commissionValue"
                           type="number"
                           value={formData.customCommission?.value || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                             handleInputChange('customCommission', {
                               ...formData.customCommission,
                               value: Number(e.target.value),
@@ -693,7 +693,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
             <Input
               id="handoverPlace"
               value={formData.handoverPlace || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('handoverPlace', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('handoverPlace', e.target.value)}
             />
           </div>
 
@@ -703,7 +703,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               id="dailyKilometers"
               type="number"
               value={formData.dailyKilometers || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                 handleInputChange(
                   'dailyKilometers',
                   parseInt(e.target.value) || 0
@@ -719,7 +719,7 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
               id="notes"
               rows={3}
               value={formData.notes || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('notes', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('notes', e.target.value)}
             />
           </div>
         </div>

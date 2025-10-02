@@ -499,7 +499,7 @@ const PushNotificationManager = ({
               <Input
                 id="test-title"
                 value={testNotification.title}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setTestNotification((prev: any) => ({ ...prev, title: e.target.value }))
                 }
               />
@@ -511,7 +511,7 @@ const PushNotificationManager = ({
                 id="test-body"
                 className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md resize-none"
                 value={testNotification.body}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setTestNotification((prev: any) => ({ ...prev, body: e.target.value }))
                 }
               />
@@ -522,7 +522,7 @@ const PushNotificationManager = ({
               <Input
                 id="test-icon"
                 value={testNotification.icon}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setTestNotification((prev: any) => ({ ...prev, icon: e.target.value }))
                 }
               />

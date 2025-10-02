@@ -536,7 +536,7 @@ export default function CompanyDocumentManager({
               <Input
                 id="documentName"
                 value={uploadData.documentName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setUploadData(prev => ({
                     ...prev,
                     documentName: e.target.value,
@@ -613,7 +613,7 @@ export default function CompanyDocumentManager({
               <Textarea
                 id="description"
                 value={uploadData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
                   setUploadData(prev => ({
                     ...prev,
                     description: e.target.value,

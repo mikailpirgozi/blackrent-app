@@ -522,7 +522,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                         id="transfer-date"
                         type="date"
                         value={transferDate}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTransferDate(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setTransferDate(e.target.value)}
                         className="pl-10"
                       />
                     </div>
@@ -535,7 +535,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                     id="transfer-notes"
                     placeholder="Ďalšie informácie o transfere..."
                     value={transferNotes}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTransferNotes(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setTransferNotes(e.target.value)}
                     rows={3}
                   />
                 </div>
@@ -767,7 +767,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   id="edit-date"
                   type="date"
                   value={editDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditDate(e.target.value)}
                 />
               </div>
 
@@ -777,7 +777,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   id="edit-notes"
                   rows={3}
                   value={editNotes}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditNotes(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditNotes(e.target.value)}
                 />
               </div>
             </div>

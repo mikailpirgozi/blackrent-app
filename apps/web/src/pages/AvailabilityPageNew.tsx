@@ -182,7 +182,7 @@ const AvailabilityPageNew: React.FC = () => {
               <Input
                 placeholder="Hľadať vozidlá..."
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -289,7 +289,7 @@ const AvailabilityPageNew: React.FC = () => {
                   id="from-date"
                   type="date"
                   value={availableFromDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAvailableFromDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setAvailableFromDate(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -298,7 +298,7 @@ const AvailabilityPageNew: React.FC = () => {
                   id="to-date"
                   type="date"
                   value={availableToDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAvailableToDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setAvailableToDate(e.target.value)}
                 />
               </div>
               {availableFromDate && availableToDate && (
