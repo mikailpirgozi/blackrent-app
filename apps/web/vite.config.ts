@@ -56,8 +56,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          mui: ['@mui/material', '@mui/icons-material', '@mui/system'],
-          muiX: ['@mui/x-data-grid', '@mui/x-date-pickers'],
           query: ['@tanstack/react-query', '@tanstack/react-query-devtools'],
           pdf: ['jspdf'],
           utils: ['date-fns', 'uuid'],
