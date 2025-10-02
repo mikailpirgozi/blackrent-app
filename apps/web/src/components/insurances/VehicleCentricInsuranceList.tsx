@@ -1556,10 +1556,9 @@ function VehicleCard({
                   <UnifiedChip
                     label={isMobile ? 'Vyprší' : 'Vyprší'}
                     variant="default"
-                    className="h-8 px-3 text-sm"
                     icon={<UnifiedIcon name="clock" size={isMobile ? 14 : 16} />}
                     className={cn(
-                      "font-medium bg-orange-100 text-orange-800",
+                      "h-8 px-3 font-medium bg-orange-100 text-orange-800",
                       isMobile ? "text-xs h-6" : "text-sm h-8"
                     )}
                   />
@@ -1572,10 +1571,9 @@ function VehicleCard({
                 <UnifiedChip
                   label={isMobile ? 'OK' : 'V poriadku'}
                   variant="default"
-                  className="h-8 px-3 text-sm"
                   icon={<UnifiedIcon name="check" size={isMobile ? 14 : 16} />}
                   className={cn(
-                    "font-medium bg-green-100 text-green-800",
+                    "h-8 px-3 font-medium bg-green-100 text-green-800",
                     isMobile ? "text-xs h-6" : "text-sm h-8"
                   )}
                 />
