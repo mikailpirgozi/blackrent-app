@@ -198,15 +198,15 @@ export default function SettlementDetail({
   };
 
   return (
-    <div className="p-4 md:p-6">
+    <div >
       {/* Modern Header */}
       <UnifiedCard
         variant="elevated"
         className="mb-6 shadow-lg"
       >
-        <div className="relative text-white bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-t-lg">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-4 mb-4">
+        <div >
+          <div >
+            <div >
               <UnifiedIcon name="assessment" size={32} className="text-white" />
               <div>
                 <UnifiedTypography
@@ -215,8 +215,8 @@ export default function SettlementDetail({
                 >
                   Detail vyúčtovania
                 </UnifiedTypography>
-                <div className="flex items-center gap-2">
-                  <UnifiedIcon name="building" size={20} className="text-white" />
+                <div >
+                  <UnifiedIcon name="building" size={20}  />
                   <UnifiedTypography
                     variant="h6"
                     className="text-white"
@@ -237,8 +237,8 @@ export default function SettlementDetail({
             </UnifiedButton>
           </div>
 
-          <div className="flex items-center gap-2">
-            <UnifiedIcon name="calendar" size={18} className="text-white" />
+          <div >
+            <UnifiedIcon name="calendar" size={18}  />
             <UnifiedTypography variant="body1" className="text-white">
               Obdobie:{' '}
               {format(
@@ -262,7 +262,7 @@ export default function SettlementDetail({
       </UnifiedCard>
 
       {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div >
         <StatisticsCard
           className="bg-gradient-to-br from-blue-400 to-cyan-400 text-white shadow-lg h-full"
         >
@@ -353,7 +353,7 @@ export default function SettlementDetail({
               </UnifiedTypography>
             </div>
             {settlement.profit >= 0 ? (
-              <UnifiedIcon name="trendingUp" size={40} className="opacity-80" />
+              <UnifiedIcon name="trendingUp" size={40}  />
             ) : (
               <UnifiedIcon name="trendingDown" size={40} className="opacity-80" />
             )}
@@ -366,9 +366,9 @@ export default function SettlementDetail({
         variant="default"
         className="mb-6 shadow-md"
       >
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <UnifiedIcon name="payment" size={24} className="text-blue-600" />
+        <div >
+          <div >
+            <UnifiedIcon name="payment" size={24}  />
             <UnifiedTypography
               variant="h6"
               className="font-semibold text-blue-600"
@@ -380,11 +380,11 @@ export default function SettlementDetail({
           <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold text-blue-600">Spôsob platby</TableHead>
-                  <TableHead className="text-center font-semibold text-blue-600">Počet prenájmov</TableHead>
-                  <TableHead className="text-right font-semibold text-blue-600">Celková cena (€)</TableHead>
-                  <TableHead className="text-right font-semibold text-blue-600">Provízie (€)</TableHead>
+                <TableRow >
+                  <TableHead >Spôsob platby</TableHead>
+                  <TableHead >Počet prenájmov</TableHead>
+                  <TableHead >Celková cena (€)</TableHead>
+                  <TableHead >Provízie (€)</TableHead>
                   <TableHead className="text-right font-semibold text-blue-600">
                     Po odpočítaní provízií (€)
                   </TableHead>
@@ -397,7 +397,7 @@ export default function SettlementDetail({
                     className="hover:bg-blue-50/50"
                   >
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div >
                         <div
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: getPaymentMethodColor(method) }}
@@ -410,7 +410,7 @@ export default function SettlementDetail({
                         </UnifiedTypography>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell >
                       <Badge
                         variant="outline"
                         className="bg-blue-100 text-blue-800"
@@ -429,8 +429,8 @@ export default function SettlementDetail({
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow className="bg-blue-50 border-t-2 border-blue-600">
-                  <TableCell className="font-bold">SPOLU</TableCell>
+                <TableRow >
+                  <TableCell >SPOLU</TableCell>
                   <TableCell className="text-center font-bold">
                     {settlement.rentals?.length || 0}
                   </TableCell>
@@ -453,15 +453,15 @@ export default function SettlementDetail({
       </UnifiedCard>
 
       {/* Detailed Lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2">
+      <div >
+        <div >
           <UnifiedCard
             variant="default"
             className="shadow-md h-fit"
           >
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <UnifiedIcon name="car" size={24} className="text-green-600" />
+            <div >
+              <div >
+                <UnifiedIcon name="car" size={24}  />
                 <UnifiedTypography
                   variant="h6"
                   className="font-semibold text-green-600"
@@ -474,11 +474,11 @@ export default function SettlementDetail({
                 <Table>
                   <TableHeader className="sticky top-0 bg-green-50 z-10">
                     <TableRow>
-                      <TableHead className="font-semibold">Vozidlo</TableHead>
-                      <TableHead className="font-semibold">Zákazník</TableHead>
-                      <TableHead className="font-semibold">Dátum prenájmu</TableHead>
-                      <TableHead className="font-semibold">Platba</TableHead>
-                      <TableHead className="text-right font-semibold">Cena (€)</TableHead>
+                      <TableHead >Vozidlo</TableHead>
+                      <TableHead >Zákazník</TableHead>
+                      <TableHead >Dátum prenájmu</TableHead>
+                      <TableHead >Platba</TableHead>
+                      <TableHead >Cena (€)</TableHead>
                       <TableHead className="text-right font-semibold">Provízia (€)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -506,7 +506,7 @@ export default function SettlementDetail({
                           </UnifiedTypography>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
+                          <div >
                             <UnifiedIcon
                               name="person"
                               size={16}
@@ -548,8 +548,7 @@ export default function SettlementDetail({
                         <TableCell>
                           <UnifiedChip
                             label={getPaymentMethodLabel(rental.paymentMethod)}
-                            className="h-8 px-3 text-sm"
-                            className="font-semibold text-white"
+                            className="h-8 px-3 text-sm font-semibold text-white" 
                             style={{
                               backgroundColor: getPaymentMethodColor(
                                 rental.paymentMethod
@@ -572,14 +571,14 @@ export default function SettlementDetail({
           </UnifiedCard>
         </div>
 
-        <div className="lg:col-span-1">
+        <div >
           <UnifiedCard
             variant="default"
             className="shadow-md h-fit"
           >
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <UnifiedIcon name="euro" size={24} className="text-red-600" />
+            <div >
+              <div >
+                <UnifiedIcon name="euro" size={24}  />
                 <UnifiedTypography
                   variant="h6"
                   className="font-semibold text-red-600"
@@ -593,8 +592,8 @@ export default function SettlementDetail({
                 <Table>
                   <TableHeader className="sticky top-0 bg-red-50 z-10">
                     <TableRow>
-                      <TableHead className="font-semibold">Popis</TableHead>
-                      <TableHead className="font-semibold">Kategória</TableHead>
+                      <TableHead >Popis</TableHead>
+                      <TableHead >Kategória</TableHead>
                       <TableHead className="text-right font-semibold">Suma (€)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -641,21 +640,20 @@ export default function SettlementDetail({
         variant="default"
         className="shadow-md"
       >
-        <div className="p-6">
-          <div className="flex justify-between items-center flex-col sm:flex-row gap-4">
+        <div >
+          <div >
             <UnifiedButton
               variant="default"
-              className="h-12 px-8 text-base"
+              className="bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white"
               startIcon={
                 pdfLoading ? (
-                  <Spinner size={20} className="text-white" />
+                  <Spinner size={20} />
                 ) : (
                   <UnifiedIcon name="fileText" size={20} />
                 )
               }
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
-              className="bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed"
             >
               {pdfLoading ? 'Generujem PDF...' : 'Stiahnuť PDF'}
             </UnifiedButton>

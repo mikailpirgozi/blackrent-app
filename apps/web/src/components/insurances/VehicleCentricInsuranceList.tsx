@@ -868,7 +868,7 @@ export default function VehicleCentricInsuranceList() {
                 size={isMobile ? 24 : isTablet ? 28 : 32}
                 className="flex-shrink-0"
               />
-              <div className="min-w-0 flex-1">
+              <div >
                 <UnifiedTypography
                   variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
                   className={cn(
@@ -1236,12 +1236,12 @@ export default function VehicleCentricInsuranceList() {
                       { 
                         value: 'valid', 
                         label: 'Platné',
-                        icon: <UnifiedIcon name="success" size={16} className="text-green-600" />
+                        icon: <UnifiedIcon name="success" size={16}  />
                       },
                       { 
                         value: 'expiring', 
                         label: 'Vypršia čoskoro',
-                        icon: <UnifiedIcon name="clock" size={16} className="text-orange-600" />
+                        icon: <UnifiedIcon name="clock" size={16}  />
                       },
                       { 
                         value: 'expired', 
@@ -1330,7 +1330,7 @@ export default function VehicleCentricInsuranceList() {
 
       {/* Empty State */}
       {activeTab === 0 && sortedVehicles.length === 0 && !loading && (
-        <UnifiedCard className="text-center py-12 mt-6">
+        <UnifiedCard >
           <UnifiedIcon
             name="security"
             size={64}
@@ -1460,7 +1460,7 @@ function VehicleCard({
             </Avatar>
 
             {/* Vehicle Info */}
-            <div className="flex-1 min-w-0">
+            <div >
               <UnifiedTypography
                 variant={isMobile ? 'subtitle1' : isTablet ? 'h6' : 'h5'}
                 className={cn(
@@ -1534,10 +1534,9 @@ function VehicleCard({
                   <UnifiedChip
                     label={isMobile ? 'Vypršané' : 'Vypršané'}
                     variant="default"
-                    className="h-8 px-3 text-sm"
                     icon={<UnifiedIcon name="error" size={isMobile ? 14 : 16} />}
                     className={cn(
-                      "font-medium bg-red-100 text-red-800",
+                      "h-8 px-3 font-medium bg-red-100 text-red-800",
                       isMobile ? "text-xs h-6" : "text-sm h-8"
                     )}
                   />
@@ -1586,7 +1585,7 @@ function VehicleCard({
             {/* Expand/Collapse Icon */}
             <UnifiedButton
               variant="ghost"
-              className="h-8 px-3 text-sm"
+              
               className={cn(
                 "p-2",
                 isMobile ? "ml-0" : "ml-4"
@@ -1717,7 +1716,7 @@ function DocumentListItem({
               isMobile ? "flex-col items-start gap-2" : "flex-row items-center gap-4"
             )}>
               {/* Date and Status Row */}
-              <div className="flex items-center gap-2 flex-wrap">
+              <div >
                 <UnifiedTypography
                   component="span"
                   variant="body2"
@@ -1741,11 +1740,11 @@ function DocumentListItem({
                     })()}
                   </UnifiedTypography>
 
-                  <span className="inline-flex">
+                  <span >
                     <UnifiedChip
                       label={expiryStatus.text}
                       variant="default"
-                      className="h-8 px-3 text-sm"
+                      
                       className={cn(
                         isMobile ? "text-xs h-5" : "text-xs h-6",
                         expiryStatus.status === 'expired' ? "bg-red-100 text-red-800" :
@@ -1757,7 +1756,7 @@ function DocumentListItem({
                 </div>
 
                 {/* Company and Price Row */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div >
                   {document.company && (
                     <UnifiedTypography
                       component="span"
@@ -1823,7 +1822,7 @@ function DocumentListItem({
                         }
                       })()}
                     </UnifiedTypography>
-                    <span className="inline-flex">
+                    <span >
                     <UnifiedChip
                       label={
                         getExpiryStatus(
@@ -1832,8 +1831,7 @@ function DocumentListItem({
                         ).text
                       }
                       variant="default"
-                      className="h-8 px-3 text-sm"
-                      className="border border-gray-300"
+                      className="h-8 px-3 text-sm border border-gray-300" 
                     />
                     </span>
                   </div>
@@ -1847,7 +1845,7 @@ function DocumentListItem({
 
                 if (filePaths.length > 0) {
                   return (
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <div >
                       <UnifiedIcon
                         name="file"
                         size={16}
@@ -1855,15 +1853,14 @@ function DocumentListItem({
                       />
                       {filePaths.length === 1 ? (
                         <UnifiedButton
-                          className="h-8 px-3 text-sm"
+                          className="h-8 px-3 text-sm min-w-auto p-2"
                           variant="ghost"
                           onClick={() => window.open(filePaths[0], '_blank')}
-                          className="min-w-auto p-2"
                         >
                           Zobraziť súbor
                         </UnifiedButton>
                       ) : (
-                        <span className="inline-flex">
+                        <span >
                           <UnifiedChip
                             label={`${filePaths.length} súborov`}
                             className="h-8 px-3 text-sm"
@@ -1872,7 +1869,6 @@ function DocumentListItem({
                               // ZIP download logic here
                               console.log('Download ZIP for files:', filePaths);
                             }}
-                            className="cursor-pointer border border-gray-300"
                           />
                         </span>
                       )}
@@ -1885,13 +1881,12 @@ function DocumentListItem({
 
         {/* Responsive Action Buttons */}
         {isMobile ? (
-          <div className="flex justify-end gap-2 mt-4 w-full">
+          <div >
             <UnifiedButton
               className="h-8 px-3 text-sm"
               variant="outline"
               startIcon={<UnifiedIcon name="edit" size={16} />}
               onClick={onEdit}
-              className="min-w-auto px-3 text-xs"
             >
               Upraviť
             </UnifiedButton>
@@ -1901,7 +1896,6 @@ function DocumentListItem({
               color="error"
               startIcon={<UnifiedIcon name="delete" size={16} />}
               onClick={onDelete}
-              className="min-w-auto px-3 text-xs"
             >
               Vymazať
             </UnifiedButton>
@@ -1912,9 +1906,7 @@ function DocumentListItem({
               <TooltipTrigger asChild>
                 <UnifiedButton
                   variant="ghost"
-                  className="h-8 px-3 text-sm"
-                  onClick={onEdit}
-                  className="text-primary p-2"
+                  className="h-8 px-3 text-sm text-primary p-2" onClick={onEdit}
                 >
                   <UnifiedIcon name="edit" size={18} />
                 </UnifiedButton>
@@ -1927,9 +1919,7 @@ function DocumentListItem({
               <TooltipTrigger asChild>
                 <UnifiedButton
                   variant="ghost"
-                  className="h-8 px-3 text-sm"
-                  onClick={onDelete}
-                  className="text-error p-2"
+                  className="h-8 px-3 text-sm text-error p-2" onClick={onDelete}
                 >
                   <UnifiedIcon name="delete" size={18} />
                 </UnifiedButton>

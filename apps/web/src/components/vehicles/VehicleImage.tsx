@@ -185,8 +185,7 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
       {showBrand && vehicleBrand && (
         <CompactChip
           label={vehicleBrand}
-          className="h-8 px-3 text-sm"
-          className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2"
+          className="h-8 px-3 text-sm absolute top-2 left-2 bg-black/70 text-white text-xs px-2" 
         />
       )}
 

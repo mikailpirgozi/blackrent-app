@@ -868,7 +868,7 @@ export default function RentalList() {
   // Error handling
   if (error) {
     return (
-      <DefaultCard className="text-center">
+      <DefaultCard >
         <h2 className="text-xl font-semibold text-red-600 mb-4">
           Chyba pri načítavaní prenájmov
         </h2>
@@ -1032,12 +1032,11 @@ export default function RentalList() {
 
       {/* Load more button for desktop */}
       {!loading && hasMore && (
-        <div className="hidden md:flex justify-center p-6">
+        <div >
           <PrimaryButton
             onClick={handleLoadMore}
-            className="h-10 px-4"
+            className="h-10 px-6"
             startIcon={<RefreshCw />}
-            className="px-6"
           >
             Načítať ďalších {ITEMS_PER_PAGE} prenájmov
           </PrimaryButton>
@@ -1046,7 +1045,7 @@ export default function RentalList() {
 
       {/* End of data indicator */}
       {!hasMore && rentals.length > 0 && (
-        <div className="text-center p-6 bg-green-50 rounded-lg m-4">
+        <div >
           <p className="text-base text-green-600 font-medium">
             ✅ Všetky prenájmy načítané ({rentals.length} celkom)
           </p>
@@ -1174,7 +1173,7 @@ export default function RentalList() {
         open={protocolMenuOpen}
         onOpenChange={setProtocolMenuOpen}
       >
-        <DialogContent className="max-w-xs w-full">
+        <DialogContent >
           <DialogTitle className="bg-blue-600 text-white flex items-center gap-2 p-4 -m-6 mb-4">
             {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
             {selectedProtocolType === 'handover'
@@ -1186,29 +1185,25 @@ export default function RentalList() {
               ? 'Vyberte akciu pre odovzdávací protokol'
               : 'Vyberte akciu pre preberací protokol'}
           </DialogDescription>
-          <div className="flex flex-col gap-3 p-2">
+          <div >
             <ErrorButton
-              className="w-full"
+              className="w-full h-12 px-8 text-base"
               startIcon={<FileText />}
               onClick={handleDownloadPDF}
-              className="h-12 px-8 text-base"
             >
               📄 Stiahnuť PDF protokol
             </ErrorButton>
 
             <PrimaryButton
-              className="w-full"
+              className="w-full h-12 px-8 text-base"
               startIcon={<ImageIcon />}
               onClick={handleViewGallery}
-              className="h-12 px-8 text-base"
             >
               🖼️ Zobraziť fotky
             </PrimaryButton>
 
             <SecondaryButton
-              className="w-full"
-              onClick={handleCloseProtocolMenu}
-              className="h-12 px-8 text-base"
+              className="w-full h-12 px-8 text-base" onClick={handleCloseProtocolMenu}
             >
               Zavrieť
             </SecondaryButton>

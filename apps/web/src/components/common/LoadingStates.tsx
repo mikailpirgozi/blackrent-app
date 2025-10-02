@@ -64,6 +64,7 @@ interface LoadingStateProps {
   transparent?: boolean;
   color?: 'primary' | 'secondary' | 'inherit';
   icon?: React.ReactNode;
+  className?: string;
 }
 
 export const LoadingState: React.FC<LoadingStateProps> = ({

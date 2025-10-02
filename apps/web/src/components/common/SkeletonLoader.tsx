@@ -9,7 +9,7 @@ import React from 'react';
 // Enhanced Skeleton component with custom styling
 const EnhancedSkeleton: React.FC<{
   className?: string;
-  variant?: 'text' | 'circular' | 'rounded';
+  variant?: 'text' | 'circular' | 'rounded' | 'ghost';
   width?: string | number;
   height?: string | number;
 }> = ({ className, variant = 'rounded', width, height, ...props }) => {
@@ -18,7 +18,8 @@ const EnhancedSkeleton: React.FC<{
   const variantClasses = {
     text: "h-4 w-full rounded",
     circular: "rounded-full",
-    rounded: "rounded-lg"
+    rounded: "rounded-lg",
+    ghost: "rounded-lg opacity-60"
   };
 
   return (

@@ -94,9 +94,8 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
             {error.details && (
               <UnifiedButton
                 variant="ghost"
-                className="h-8 px-3 text-sm"
+                className="h-8 px-3 text-sm p-1"
                 onClick={toggleExpanded}
-                className="p-1"
               >
                 {expanded ? (
                   <UnifiedIcon name="expand_less" size={16} />
@@ -147,11 +146,10 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 
           {error.retry && (
             <UnifiedButton
-              className="h-8 px-3 text-sm"
+              className="h-8 px-3 text-sm mt-2"
               startIcon={<UnifiedIcon name="refresh" size={16} />}
               onClick={handleRetry}
               disabled={!isOnline}
-              className="mt-2"
             >
               Skúsiť znovu
             </UnifiedButton>
@@ -222,14 +220,13 @@ export const ErrorToastContainer: React.FC = () => {
                   + {sortedErrors.length - 3} ďalších chýb
                 </UnifiedTypography>
                 <UnifiedButton
-                  className="h-8 px-3 text-sm"
+                  className="h-8 px-3 text-sm mt-2"
                   onClick={() => {
                     // Dismiss older errors
                     sortedErrors.slice(3).forEach(error => {
                       dismissError(error.id);
                     });
                   }}
-                  className="mt-2"
                 >
                   Skryť staršie
                 </UnifiedButton>
