@@ -45,13 +45,7 @@ export default defineConfig({
   build: {
     outDir: 'build',
     sourcemap: process.env.NODE_ENV === 'development',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: process.env.NODE_ENV === 'production',
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
