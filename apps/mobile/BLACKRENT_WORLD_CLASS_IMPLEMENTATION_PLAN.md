@@ -976,7 +976,7 @@ Implementovali sme **VŠETKY FÁZY 1-6** s najvyššou kvalitou a enterprise-gra
 
 #### **1. OpenAI API Key** 🤖 **KRITICKÉ**
 ```bash
-EXPO_PUBLIC_OPENAI_API_KEY=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
+EXPO_PUBLIC_OPENAI_API_KEY=YOUR_OPENAI_API_KEY_HERE
 ```
 **Potrebné pre:**
 - ✅ AI Chatbot (GPT-4 integration) - **IMPLEMENTOVANÉ, chýba len kľúč**

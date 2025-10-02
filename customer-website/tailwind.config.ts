@@ -120,9 +120,16 @@ const config: Config = {
         "colors-white-900": "rgba(245, 245, 250, 1)",
       },
       fontFamily: {
-        'sf-pro': ['SF Pro', 'system-ui', 'sans-serif'],
-        'poppins': ['Poppins', 'system-ui', 'sans-serif'],
-        'sans': ['SF Pro', 'system-ui', 'sans-serif'], // SF Pro as primary, system fallback
+        poppins: ['var(--font-poppins)', 'sans-serif'],
+        sfpro: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          'sans-serif',
+        ],
       },
       fontSize: {
         'xs': ['12px', { lineHeight: '24px' }],
