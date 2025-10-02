@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2 Protocol Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #ddd;
+        }
+        .test-section.success {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        .test-section.error {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+        .test-section.warning {
+            border-color: #ff9800;
+            background: #fff3e0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .status {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 V2 Protocol System Test</h1>
+        
+        <div class="test-section">
+            <h2>📍 Konfigurácia</h2>
+            <input type="text" id="appUrl" placeholder="Railway URL (napr. my-app.up.railway.app)" />
+            <button onclick="startTest()">🚀 Spustiť Test</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function startTest() {
+            const appUrl = document.getElementById('appUrl').value.trim();
+            if (!appUrl) {
+                alert('Zadajte Railway URL!');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>📊 Výsledky testovania:</h2>';
+            
+            const baseUrl = appUrl.startsWith('http') ? appUrl : `https://${appUrl}`;
+            
+            // Test 1: Connectivity
+            addResult('1️⃣ Test pripojenia...', 'warning');
+            try {
+                const response = await fetch(`${baseUrl}/api/health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    updateResult(1, '✅ Server je dostupný', 'success');
+                } else {
+                    updateResult(1, `⚠️ Server odpoveda so statusom: ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                updateResult(1, `❌ Nemôžem sa pripojiť: ${error.message}`, 'error');
+                addResult('💡 TIP: Otvorte aplikáciu priamo a skúste testy v Console (F12)', 'warning');
+                return;
+            }
+            
+            // Test 2: Login
+            addResult('2️⃣ Test prihlásenia...', 'warning');
+            try {
+                const loginResponse = await fetch(`${baseUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'Black123'
+                    }),
+                    mode: 'cors'
+                });
+                
+                const loginData = await loginResponse.json();
+                
+                if (loginData.token) {
+                    updateResult(2, '✅ Prihlásenie úspešné', 'success');
+                    localStorage.setItem('testToken', loginData.token);
+                    localStorage.setItem('testUserId', loginData.user?.id || '');
+                    
+                    // Test 3: Feature Flags
+                    addResult('3️⃣ Test V2 Feature Flags...', 'warning');
+                    testFeatureFlags(baseUrl, loginData.token, loginData.user?.id);
+                    
+                } else {
+                    updateResult(2, '❌ Prihlásenie zlyhalo', 'error');
+                }
+            } catch (error) {
+                updateResult(2, `❌ Chyba prihlásenia: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testFeatureFlags(baseUrl, token, userId) {
+            // Simulácia feature flag kontroly
+            addResult(`
+📋 MANUÁLNE TESTOVANIE V2:
+
+1. Otvorte vašu aplikáciu: ${baseUrl}
+2. Prihláste sa ako admin
+3. Otvorte Developer Tools (F12)
+4. Do Console napíšte:
+
+// Test 1: Kontrola V2
+localStorage.setItem('protocolVersion', 'v2');
+console.log('V2 enabled:', localStorage.getItem('protocolVersion'));
+
+// Test 2: Vytvorenie protokolu
+// Choďte na stránku protokolov a vytvorte nový
+// Mali by ste vidieť V2 rozhranie
+
+// Test 3: Kontrola v Network tabe
+// Hľadajte requesty na /api/v2/*
+
+User ID: ${userId || 'Neznáme'}
+            `, 'success');
+            
+            addResult(`
+🎯 KONTROLNÝ ZOZNAM:
+
+□ Railway Environment Variables nastavené
+  - PROTOCOL_V2_ENABLED=true ✓
+  - PROTOCOL_V2_PERCENTAGE=100 ✓
+  
+□ Redis service pridaný v Railway
+  
+□ Deploy prebehol úspešne
+
+□ V aplikácii funguje:
+  - Prihlásenie
+  - Vytvorenie protokolu
+  - Fotenie
+  - PDF generovanie
+            `, 'warning');
+        }
+        
+        let resultCounter = 0;
+        function addResult(text, type = '') {
+            resultCounter++;
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-section ${type}`;
+            resultDiv.id = `result-${resultCounter}`;
+            resultDiv.innerHTML = `<pre>${text}</pre>`;
+            resultsDiv.appendChild(resultDiv);
+            return resultCounter;
+        }
+        
+        function updateResult(id, text, type = '') {
+            const resultDiv = document.getElementById(`result-${id}`);
+            if (resultDiv) {
+                resultDiv.className = `test-section ${type}`;
+                resultDiv.innerHTML = `<pre>${text}</pre>`;
+            }
+        }
+        
+        // Auto-fill ak máme URL v localStorage
+        window.onload = () => {
+            const savedUrl = localStorage.getItem('railwayUrl');
+            if (savedUrl) {
+                document.getElementById('appUrl').value = savedUrl;
+            }
+        };
+        
+        // Save URL
+        document.getElementById('appUrl').addEventListener('change', (e) => {
+            localStorage.setItem('railwayUrl', e.target.value);
+        });
+    </script>
+</body>
+</html>

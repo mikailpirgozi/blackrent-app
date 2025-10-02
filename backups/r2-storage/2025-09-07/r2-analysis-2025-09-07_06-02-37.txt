@@ -1,0 +1,19 @@
+BLACKRENT R2 STORAGE ANALYSIS - 2025-09-07
+==========================================
+Timestamp: Sun Sep  7 06:02:40 CEST 2025
+Bucket: blackrent-storage
+Endpoint: https://9ccdca0d876e24bd9acefabe56f94f53.r2.cloudflarestorage.com
+
+SÚBORY PO KATEGÓRIÁCH:
+=====================
+Protokoly: 47 súborov
+Fotky vozidiel: 0
+0 súborov
+Dokumenty: 62 súborov
+Podpisy: 0
+0 súborov
+
+CELKOVÁ ŠTATISTIKA:
+==================
+Celkom súborov:      421
+Celková veľkosť: 

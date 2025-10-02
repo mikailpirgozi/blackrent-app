@@ -1,0 +1,1 @@
+export { IconPxFilled } from "./IconPxFilled";

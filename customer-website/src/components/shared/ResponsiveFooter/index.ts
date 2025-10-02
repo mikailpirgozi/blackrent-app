@@ -1,0 +1,1 @@
+export { ResponsiveFooter } from "./ResponsiveFooter";

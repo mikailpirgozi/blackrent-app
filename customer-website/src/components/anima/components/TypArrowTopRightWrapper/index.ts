@@ -1,0 +1,1 @@
+export { TypArrowTopRightWrapper } from "./TypArrowTopRightWrapper";

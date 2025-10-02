@@ -1,0 +1,1 @@
+export { KartaRecenzieMobil } from "./KartaRecenzieMobil";

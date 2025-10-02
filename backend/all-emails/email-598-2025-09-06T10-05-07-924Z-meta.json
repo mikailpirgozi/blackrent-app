@@ -1,0 +1,29 @@
+{
+  "seqno": 598,
+  "from": {
+    "value": [
+      {
+        "address": "objednavky@blackrent.sk",
+        "name": "Blackrent"
+      }
+    ],
+    "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Blackrent</span> &lt;<a href=\"mailto:objednavky@blackrent.sk\" class=\"mp_address_email\">objednavky@blackrent.sk</a>&gt;</span>",
+    "text": "\"Blackrent\" <objednavky@blackrent.sk>"
+  },
+  "to": {
+    "value": [
+      {
+        "address": "info@blackrent.sk",
+        "name": ""
+      }
+    ],
+    "html": "<span class=\"mp_address_group\"><a href=\"mailto:info@blackrent.sk\" class=\"mp_address_email\">info@blackrent.sk</a></span>",
+    "text": "info@blackrent.sk"
+  },
+  "subject": "Objednávka od zákaznika",
+  "date": "2025-09-03T13:29:51.000Z",
+  "messageId": "<Mh739bpg-YByDn0c8-eHbJZ6ZV-8k25nTe2@ccontroll>",
+  "headers": {},
+  "textLength": 20661,
+  "htmlLength": 26577
+}

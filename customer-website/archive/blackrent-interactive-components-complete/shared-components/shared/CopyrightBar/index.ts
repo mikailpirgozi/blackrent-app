@@ -1,0 +1,1 @@
+export { CopyrightBar } from "./CopyrightBar";

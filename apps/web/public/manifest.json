@@ -1,0 +1,68 @@
+{
+  "short_name": "BlackRent",
+  "name": "BlackRent - Prenájom vozidiel",
+  "description": "Moderný systém pre správu prenájmu vozidiel s pokročilými funkciami",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1976d2",
+  "background_color": "#f5f5f5",
+  "lang": "sk",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Vozidlá",
+      "short_name": "Vozidlá",
+      "description": "Zobrazenie všetkých vozidiel",
+      "url": "/vehicles",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Prenájmy",
+      "short_name": "Prenájmy",
+      "description": "Správa prenájmov",
+      "url": "/rentals",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Zákazníci",
+      "short_name": "Zákazníci",
+      "description": "Databáza zákazníkov",
+      "url": "/customers",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dostupnosť",
+      "short_name": "Kalendár",
+      "description": "Kalendár dostupnosti vozidiel",
+      "url": "/availability",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
+}

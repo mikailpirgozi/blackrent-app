@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot POST /api/protocols/handover/fec987c9-2450-47fe-8976-18ee375722a8/pdf</pre>
+</body>
+</html>

@@ -1,0 +1,10 @@
+export declare const formatDate: (date: string | Date, formatStr?: string) => string;
+export declare const formatDateTime: (date: string | Date) => string;
+export declare const formatTime: (date: string | Date) => string;
+export declare const calculateRentalDays: (startDate: string | Date, endDate: string | Date) => number;
+export declare const calculateRentalHours: (startDate: string | Date, endDate: string | Date) => number;
+export declare const isDateInFuture: (date: string | Date) => boolean;
+export declare const isDateInPast: (date: string | Date) => boolean;
+export declare const addDaysToDate: (date: string | Date, days: number) => Date;
+export declare const getMinimumBookingDate: () => Date;
+export declare const getMaximumBookingDate: () => Date;

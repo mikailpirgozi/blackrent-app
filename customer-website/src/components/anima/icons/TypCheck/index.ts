@@ -1,0 +1,1 @@
+export { TypCheck } from "./TypCheck";

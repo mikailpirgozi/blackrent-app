@@ -1,0 +1,51 @@
+--- a/backend/src/routes/auth.ts
++++ b/backend/src/routes/auth.ts
+@@ -631,6 +631,45 @@
+   }
+ });
+ 
++// Schema inspection endpoint
++router.get('/inspect-schema', async (req: Request, res: Response) => {
++  try {
++    console.log('🔍 Inspecting database schema...');
++    
++    const client = await postgresDatabase.pool.connect();
++    try {
++      // Check all tables
++      const tables = await client.query(`
++        SELECT table_name FROM information_schema.tables 
++        WHERE table_schema = 'public' 
++        ORDER BY table_name
++      `);
++      
++      // Check users table structure
++      let usersSchema = [];
++      try {
++        const result = await client.query(`
++          SELECT column_name, data_type, is_nullable 
++          FROM information_schema.columns 
++          WHERE table_name = 'users' AND table_schema = 'public'
++          ORDER BY ordinal_position
++        `);
++        usersSchema = result.rows;
++      } catch (e) {
++        console.log('Users table check failed:', e.message);
++      }
++      
++      res.json({
++        success: true,
++        tables: tables.rows.map(r => r.table_name),
++        users_schema: usersSchema
++      });
++    } finally {
++      client.release();
++    }
++  } catch (error) {
++    console.error('Schema inspection failed:', error);
++    res.status(500).json({ success: false, error: error.message });
++  }
++});
++
+ // Debug database endpoint
+ router.get('/debug-db', async (req: Request, res: Response) => {
+   try {

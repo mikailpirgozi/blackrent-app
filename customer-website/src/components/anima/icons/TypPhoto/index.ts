@@ -1,0 +1,1 @@
+export { TypPhoto } from "./TypPhoto";

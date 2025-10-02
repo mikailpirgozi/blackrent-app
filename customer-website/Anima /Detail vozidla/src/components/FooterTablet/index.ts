@@ -1,0 +1,1 @@
+export { FooterTablet } from "./FooterTablet";

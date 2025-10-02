@@ -1,0 +1,1 @@
+export { LogaAutAnimationWrapper } from "./LogaAutAnimationWrapper";

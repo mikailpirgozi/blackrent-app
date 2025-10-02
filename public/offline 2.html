@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BlackRent - Offline</title>
+    <style>
+      body { font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif; margin: 0; background: #f5f7fb; }
+      .container { max-width: 420px; margin: 10vh auto; background: #fff; padding: 32px; border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,0.08); text-align: center; }
+      .icon { font-size: 54px; margin-bottom: 16px; }
+      h1 { color: #0f172a; margin: 0 0 10px; font-size: 24px; }
+      p { color: #475569; margin: 0 0 18px; }
+      button { background: #1976d2; color: #fff; border: none; padding: 12px 18px; border-radius: 10px; cursor: pointer; font-size: 15px; }
+      button:hover { background: #1565c0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">📱</div>
+      <h1>Ste offline</h1>
+      <p>Aplikácia je dočasne bez internetového pripojenia.<br/>Skúste to neskôr alebo obnovte stránku.</p>
+      <button onclick="window.location.reload()">Skúsiť znovu</button>
+    </div>
+    <script>
+      window.addEventListener('online', () => window.location.reload());
+    </script>
+  </body>
+  </html>
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackRent - Offline</title>
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+
+    .container {
+      background: white;
+      padding: 60px 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+      margin: 20px;
+    }
+
+    .icon {
+      font-size: 80px;
+      margin-bottom: 30px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    h1 {
+      color: #1976d2;
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffebee;
+      color: #c62828;
+      padding: 12px 20px;
+      border-radius: 25px;
+      margin-bottom: 40px;
+      font-weight: 500;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 200px;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(25, 118, 210, 0.3);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #1976d2;
+      border: 2px solid #1976d2;
+    }
+
+    .btn-secondary:hover {
+      background: #1976d2;
+      color: white;
+    }
+
+    .info {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid #eee;
+    }
+
+    .info p {
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .feature-icon {
+      width: 20px;
+      height: 20px;
+      background: #e3f2fd;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 40px 30px;
+        margin: 10px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+
+      .btn {
+        min-width: 180px;
+        padding: 14px 28px;
+      }
+    }
+
+    /* Connection status indicator */
+    .connection-status {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #f44336;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .connection-status.online {
+      background: #4caf50;
+    }
+
+    .connection-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="connection-status" id="connectionStatus">
+    <div class="connection-dot"></div>
+    <span id="connectionText">Offline</span>
+  </div>
+
+  <div class="container">
+    <div class="icon">📱</div>
+    
+    <h1>BlackRent</h1>
+    
+    <p class="subtitle">
+      Aplikácia je momentálne nedostupná.<br>
+      Skontrolujte internetové pripojenie a skúste znovu.
+    </p>
+
+    <div class="status">
+      <span>🔴</span>
+      <span>Bez internetového pripojenia</span>
+    </div>
+
+    <div class="actions">
+      <button class="btn" onclick="retryConnection()">
+        <span>🔄</span>
+        <span>Skúsiť znovu</span>
+      </button>
+      
+      <a href="/" class="btn btn-secondary">
+        <span>🏠</span>
+        <span>Späť domov</span>
+      </a>
+    </div>
+
+    <div class="info">
+      <p><strong>💡 Tip:</strong> Táto stránka funguje aj offline!</p>
+      
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <span>Rýchle načítanie</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <span>Mobilná optimalizácia</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔄</div>
+          <span>Auto-synchronizácia</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">💾</div>
+          <span>Offline podpora</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Connection status monitoring
+    function updateConnectionStatus() {
+      const status = document.getElementById('connectionStatus');
+      const text = document.getElementById('connectionText');
+      const statusIndicator = document.querySelector('.status');
+      
+      if (navigator.onLine) {
+        status.classList.add('online');
+        text.textContent = 'Online';
+        statusIndicator.innerHTML = '<span>🟢</span><span>Pripojenie obnovené!</span>';
+        statusIndicator.style.background = '#e8f5e8';
+        statusIndicator.style.color = '#2e7d32';
+        
+        // Auto-reload after 2 seconds when back online
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      } else {
+        status.classList.remove('online');
+        text.textContent = 'Offline';
+        statusIndicator.innerHTML = '<span>🔴</span><span>Bez internetového pripojenia</span>';
+        statusIndicator.style.background = '#ffebee';
+        statusIndicator.style.color = '#c62828';
+      }
+    }
+
+    // Retry connection
+    function retryConnection() {
+      const button = event.target;
+      button.innerHTML = '<span>⏳</span><span>Skúšam...</span>';
+      button.disabled = true;
+      
+      // Try to fetch the main page
+      fetch('/', { 
+        method: 'HEAD',
+        cache: 'no-cache'
+      })
+      .then(response => {
+        if (response.ok) {
+          button.innerHTML = '<span>✅</span><span>Úspech!</span>';
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
+          throw new Error('Connection failed');
+        }
+      })
+      .catch(() => {
+        button.innerHTML = '<span>❌</span><span>Stále offline</span>';
+        setTimeout(() => {
+          button.innerHTML = '<span>🔄</span><span>Skúsiť znovu</span>';
+          button.disabled = false;
+        }, 2000);
+      });
+    }
+
+    // Listen for connection changes
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    
+    // Initial status
+    updateConnectionStatus();
+
+    // Periodic connection check
+    setInterval(() => {
+      if (!navigator.onLine) {
+        // Try to ping the server
+        fetch('/', { 
+          method: 'HEAD',
+          cache: 'no-cache',
+          mode: 'no-cors'
+        }).then(() => {
+          // If successful, trigger online event
+          window.dispatchEvent(new Event('online'));
+        }).catch(() => {
+          // Still offline, do nothing
+        });
+      }
+    }, 30000); // Check every 30 seconds
+
+    // Service Worker communication
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', event => {
+        const { type, message } = event.data;
+        
+        if (type === 'SYNC_COMPLETE') {
+          console.log('🔄 Offline actions synced:', message);
+          
+          // Show a temporary success message
+          const successMsg = document.createElement('div');
+          successMsg.style.cssText = `
+            position: fixed; top: 80px; right: 20px; background: #4caf50; 
+            color: white; padding: 12px 20px; border-radius: 8px; 
+            font-size: 0.9rem; z-index: 1001; animation: slideIn 0.3s ease;
+          `;
+          successMsg.textContent = message;
+          document.body.appendChild(successMsg);
+          
+          setTimeout(() => {
+            successMsg.remove();
+          }, 3000);
+        }
+      });
+    }
+
+    // Add slide-in animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

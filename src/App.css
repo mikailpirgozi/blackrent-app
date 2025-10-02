@@ -1,0 +1,126 @@
+/* Základné nastavenia pre mobilné zariadenia */
+body,
+html,
+#root,
+.App {
+  min-height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: #181c20;
+  color: #fff;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.App {
+  text-align: center;
+  min-height: 100vh;
+  background: #181c20;
+  color: #fff;
+}
+
+/* Mobilné kontajnery a paddingy */
+@media (max-width: 600px) {
+  .App {
+    padding: 0 0 60px 0; /* miesto pre spodnú lištu */
+  }
+  .MuiContainer-root,
+  .MuiCard-root,
+  .MuiPaper-root {
+    border-radius: 16px;
+    margin: 0; /* Odstránený automatický margin pre lepšie centrovanie */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .MuiButton-root {
+    font-size: 1.1rem;
+    padding: 14px 0;
+    width: 100%;
+    margin-bottom: 8px;
+    border-radius: 12px;
+  }
+  .MuiTextField-root {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .MuiFormControl-root {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .MuiTable-root,
+  .MuiTableContainer-root {
+    width: 100vw;
+    overflow-x: auto;
+    font-size: 0.95rem;
+  }
+  .MuiTableCell-root {
+    padding: 8px 4px;
+    font-size: 0.95rem;
+  }
+  .MuiDialog-paper {
+    margin: 0;
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: 16px 16px 0 0;
+    bottom: 0;
+    position: absolute;
+  }
+}
+
+/* Zvýraznenie tlačidiel a textu na tmavom pozadí */
+.MuiButton-containedPrimary {
+  background: #1976d2;
+  color: #fff;
+}
+.MuiButton-containedWarning {
+  background: #ed6c02;
+  color: #fff;
+}
+.MuiButton-containedError {
+  background: #d32f2f;
+  color: #fff;
+}
+
+/* Skryť scrollbary na mobile */
+body::-webkit-scrollbar {
+  display: none;
+}
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

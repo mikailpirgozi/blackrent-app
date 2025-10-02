@@ -1,0 +1,1 @@
+export { BrandLogosSection } from './BrandLogosSection';

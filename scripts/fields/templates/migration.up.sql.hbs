@@ -1,0 +1,55 @@
+-- 🔧 BlackRent Database Migration: ADD {{fieldLabel}} FIELD
+-- Autor: Field Scaffolder
+-- Dátum: {{currentDate}}
+-- Cieľ: Pridať pole {{fieldName}} do tabuľky {{table}}
+
+BEGIN;
+
+{{#if (eq type 'enum')}}
+-- Vytvor enum typ pre {{fieldName}}
+DROP TYPE IF EXISTS {{fieldName}}_enum CASCADE;
+CREATE TYPE {{fieldName}}_enum AS ENUM (
+{{#each enumValues}}
+    '{{this}}'{{#unless @last}},{{/unless}}
+{{/each}}
+);
+
+{{/if}}
+-- Pridaj nový stĺpec {{fieldName}}
+ALTER TABLE {{table}} ADD COLUMN IF NOT EXISTS {{fieldName}} {{sqlType}} 
+    NOT NULL DEFAULT {{#if (eq type 'string')}}'{{defaultValue}}'{{else}}{{defaultValue}}{{/if}}
+    {{#if checkConstraint}}{{{checkConstraint}}}{{/if}};
+
+{{#if description}}
+-- Komentár k novému stĺpcu
+COMMENT ON COLUMN {{table}}.{{fieldName}} IS '{{description}}';
+{{/if}}
+
+-- Index pre výkon (ak je potrebný)
+{{#if (eq type 'string')}}
+CREATE INDEX IF NOT EXISTS idx_{{table}}_{{fieldName}} ON {{table}}({{fieldName}});
+{{/if}}
+
+{{#if copyFrom}}
+-- Backfill existujúcich záznamov z {{copyFrom}}
+UPDATE {{table}} 
+SET {{fieldName}} = (
+    SELECT {{copyFrom}}
+    FROM {{table}} t2 
+    WHERE t2.id = {{table}}.id
+    LIMIT 1
+)
+WHERE {{fieldName}} = {{#if (eq type 'string')}}'{{defaultValue}}'{{else}}{{defaultValue}}{{/if}};
+{{/if}}
+
+-- Validácia migrácie
+SELECT 
+    '✅ Migration validation' as status,
+    COUNT(*) as total_rows,
+    COUNT({{fieldName}}) as rows_with_{{fieldName}},
+    COUNT(DISTINCT {{fieldName}}) as unique_values
+FROM {{table}};
+
+COMMIT;
+
+-- ✅ Migrácia {{fieldName}} úspešne dokončená!

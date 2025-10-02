@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Production
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.ai
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+temp-backup-*/
+temp-restore/
+
+# Backup directories (CRITICAL: prevent commit hell!)
+backups/
+complete-backups/
+**/button-migration/
+**/*.backup
+**/*.box-backup
+**/*.sx-backup
+**/*.box-safe-backup
+**/*.box-v2-backup
+
+# AI Assistant sensitive data
+.env.ai
+ai-secrets.txt
+*-token.txt
+.vercel
+Figma-Context-MCP/
+*.tar.gz
+*.zip
+customer-website-assets-backup-*.tar.gz
+backend/dist/
