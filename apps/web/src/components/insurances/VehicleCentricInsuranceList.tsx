@@ -672,6 +672,9 @@ export default function VehicleCentricInsuranceList() {
 
   const handleSave = useCallback(
     (data: UnifiedDocumentData) => {
+      console.log('🟢 handleSave CALLED with data:', data);
+      console.log('🟢 editingDocument:', editingDocument);
+      
       const closeDialog = () => {
         setOpenDialog(false);
         setEditingDocument(null);
@@ -1529,67 +1532,54 @@ function VehicleCard({
                 <Badge
                   variant="destructive"
                   className={cn(
-                    "flex items-center",
-                    isMobile ? "text-xs" : "text-sm"
+                    "flex items-center gap-1",
+                    isMobile ? "text-xs h-6 px-2" : "text-sm h-8 px-3"
                   )}
                 >
-                  <UnifiedChip
-                    label={isMobile ? 'Vypršané' : 'Vypršané'}
-                    variant="default"
-                    icon={<UnifiedIcon name="error" size={isMobile ? 14 : 16} />}
-                    className={cn(
-                      "h-8 px-3 font-medium bg-red-100 text-red-800",
-                      isMobile ? "text-xs h-6" : "text-sm h-8"
-                    )}
-                  />
-                  <span className="ml-1 text-xs font-bold">
-                    {stats.expired}
-                  </span>
+                  <UnifiedIcon name="error" size={isMobile ? 12 : 14} />
+                  <span className="font-medium">Vypršané</span>
+                  <span className="ml-1 font-bold">{stats.expired}</span>
                 </Badge>
               )}
               {stats.expiring > 0 && (
                 <Badge
                   variant="secondary"
                   className={cn(
-                    "flex items-center",
-                    isMobile ? "text-xs" : "text-sm"
+                    "flex items-center gap-1 bg-orange-100 text-orange-800 border-orange-200",
+                    isMobile ? "text-xs h-6 px-2" : "text-sm h-8 px-3"
                   )}
                 >
-                  <UnifiedChip
-                    label={isMobile ? 'Vyprší' : 'Vyprší'}
-                    variant="default"
-                    icon={<UnifiedIcon name="clock" size={isMobile ? 14 : 16} />}
-                    className={cn(
-                      "h-8 px-3 font-medium bg-orange-100 text-orange-800",
-                      isMobile ? "text-xs h-6" : "text-sm h-8"
-                    )}
-                  />
-                  <span className="ml-1 text-xs font-bold">
-                    {stats.expiring}
-                  </span>
+                  <UnifiedIcon name="clock" size={isMobile ? 12 : 14} />
+                  <span className="font-medium">Vyprší</span>
+                  <span className="ml-1 font-bold">{stats.expiring}</span>
                 </Badge>
               )}
               {!stats.hasProblems && (
-                <UnifiedChip
-                  label={isMobile ? 'OK' : 'V poriadku'}
-                  variant="default"
-                  icon={<UnifiedIcon name="check" size={isMobile ? 14 : 16} />}
+                <Badge
+                  variant="secondary"
                   className={cn(
-                    "h-8 px-3 font-medium bg-green-100 text-green-800",
-                    isMobile ? "text-xs h-6" : "text-sm h-8"
+                    "flex items-center gap-1 bg-green-100 text-green-800 border-green-200",
+                    isMobile ? "text-xs h-6 px-2" : "text-sm h-8 px-3"
                   )}
-                />
+                >
+                  <UnifiedIcon name="check" size={isMobile ? 12 : 14} />
+                  <span className="font-medium">{isMobile ? 'OK' : 'V poriadku'}</span>
+                </Badge>
               )}
             </div>
 
             {/* Expand/Collapse Icon */}
             <UnifiedButton
               variant="ghost"
-              
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
               className={cn(
-                "p-2",
+                "p-2 flex-shrink-0",
                 isMobile ? "ml-0" : "ml-4"
               )}
+              aria-label={expanded ? "Schovať dokumenty" : "Zobraziť dokumenty"}
             >
               {expanded ? (
                 <UnifiedIcon name="chevronUp" size={isMobile ? 20 : 24} />

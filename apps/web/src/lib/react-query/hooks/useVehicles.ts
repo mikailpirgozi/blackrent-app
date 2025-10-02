@@ -19,7 +19,7 @@ export function useVehicles(filters?: VehicleFilters) {
   return useQuery({
     queryKey: queryKeys.vehicles.list(filters as Record<string, unknown>),
     queryFn: () => apiService.getVehicles(),
-    staleTime: 5 * 60 * 1000, // 5 minút - vehicles sa nemenia často
+    staleTime: 30 * 1000, // 30s - ✅ FIX: Znížené pre real-time updates (bolo 5 min)
     select: (data: Vehicle[]) => {
       // Tu môžeme aplikovať filtrovanie
       if (!filters) return data;

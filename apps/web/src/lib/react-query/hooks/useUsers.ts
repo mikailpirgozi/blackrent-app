@@ -53,7 +53,7 @@ export function useUsers(filters?: UserFilters) {
   return useQuery({
     queryKey: queryKeys.users.list(filters as Record<string, unknown>),
     queryFn: () => apiService.getUsers(filters),
-    staleTime: 5 * 60 * 1000, // 5 minút - users sa nemenia často
+    staleTime: 30 * 1000, // 30s - ✅ FIX: Znížené pre real-time updates (bolo 5 min)
     select: (data: User[]) => {
       if (!filters) return data;
 

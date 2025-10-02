@@ -8,7 +8,7 @@ export function useExpenses() {
   return useQuery({
     queryKey: queryKeys.expenses.all,
     queryFn: () => apiService.getExpenses(),
-    staleTime: 2 * 60 * 1000, // 2 minúty
+    staleTime: 0, // ✅ FIX: Vždy fresh data po invalidácii (bolo 2 min)
   });
 }
 

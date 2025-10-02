@@ -999,7 +999,10 @@ export default function UnifiedDocumentForm({
             </UnifiedButton>
             <UnifiedButton
               variant="default"
-              onClick={() => onSave(formData)}
+              onClick={() => {
+                console.log('🔵 BUTTON CLICKED - Calling onSave with data:', formData);
+                onSave(formData);
+              }}
             >
               {document?.id ? 'Uložiť zmeny' : 'Pridať dokument'}
             </UnifiedButton>

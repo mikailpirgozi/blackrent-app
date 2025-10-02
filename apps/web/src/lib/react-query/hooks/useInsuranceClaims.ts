@@ -67,7 +67,8 @@ export function useInsuranceClaimsByVehicle(vehicleId: string) {
     queryKey: queryKeys.insuranceClaims.byVehicle(vehicleId),
     queryFn: () => apiService.getInsuranceClaims(vehicleId),
     enabled: !!vehicleId,
-    staleTime: 2 * 60 * 1000, // 2 minúty
+    staleTime: 0, // ✅ FIX: Vždy fresh data po invalidácii (bolo 2 min)
+    refetchOnMount: 'always', // ✅ FIX: Vždy refetch pri mounte
   });
 }
 

@@ -8,7 +8,8 @@ export function useSettlements() {
   return useQuery({
     queryKey: queryKeys.settlements.list(),
     queryFn: () => apiService.getSettlements(),
-    staleTime: 5 * 60 * 1000, // 5 minút
+    staleTime: 30 * 1000, // 30 sekúnd - ✅ FIX: Znížené z 5 minút pre lepší real-time updates
+    refetchOnMount: 'always', // ✅ FIX: Vždy refetch pri mounte
   });
 }
 

@@ -25,8 +25,10 @@ import React, { useMemo, useState } from 'react';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
 import {
+  useCreateInsuranceClaim,
   useDeleteInsuranceClaim,
   useInsuranceClaims,
+  useUpdateInsuranceClaim,
 } from '@/lib/react-query/hooks/useInsuranceClaims';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { InsuranceClaim } from '../../types';
@@ -436,7 +438,7 @@ export default function InsuranceClaimList() {
               <Input
                 placeholder="Vyhľadať udalosť..."
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
