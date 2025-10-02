@@ -50,6 +50,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { format } from 'date-fns';
@@ -103,8 +104,8 @@ const SettlementListNew: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
-  const [periodFrom, setPeriodFrom] = useState('');
-  const [periodTo, setPeriodTo] = useState('');
+  const [periodFrom, setPeriodFrom] = useState<Date | null>(null);
+  const [periodTo, setPeriodTo] = useState<Date | null>(null);
   const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
   const [selectedMonth, setSelectedMonth] = useState('');
 
@@ -191,8 +192,8 @@ const SettlementListNew: React.FC = () => {
   const handleCreateSettlement = () => {
     setSelectedCompanies([]);
     setSelectedVehicleIds([]);
-    setPeriodFrom('');
-    setPeriodTo('');
+    setPeriodFrom(null);
+    setPeriodTo(null);
     setSelectedMonth('');
     setPeriodType('month');
     setCreateDialogOpen(true);
@@ -241,8 +242,8 @@ const SettlementListNew: React.FC = () => {
         window.alert('Prosím vyberte obdobie');
         return;
       }
-      fromDate = new Date(periodFrom);
-      toDate = new Date(periodTo);
+      fromDate = periodFrom;
+      toDate = periodTo;
     }
 
     // Validácia - musí byť vybraná aspoň jedna firma alebo vozidlo
@@ -304,8 +305,8 @@ const SettlementListNew: React.FC = () => {
       // Clear form
       setSelectedCompanies([]);
       setSelectedVehicleIds([]);
-      setPeriodFrom('');
-      setPeriodTo('');
+      setPeriodFrom(null);
+      setPeriodTo(null);
       setSelectedMonth('');
     } catch (error) {
       console.error('Error creating settlement:', error);
@@ -840,8 +841,8 @@ const SettlementListNew: React.FC = () => {
                 onValueChange={(value) => {
                   if (value) {
                     setPeriodType(value as 'month' | 'range');
-                    setPeriodFrom('');
-                    setPeriodTo('');
+                    setPeriodFrom(null);
+                    setPeriodTo(null);
                     setSelectedMonth('');
                   }
                 }}
@@ -870,26 +871,19 @@ const SettlementListNew: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="from">Od dátumu</Label>
-                  <Input
-                    id="from"
-                    type="date"
-                    value={periodFrom}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPeriodFrom(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="to">Do dátumu</Label>
-                  <Input
-                    id="to"
-                    type="date"
-                    value={periodTo}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPeriodTo(e.target.value)}
-                  />
-                </div>
-              </div>
+              <DateRangePicker
+                label="Časové obdobie vyúčtovania"
+                placeholder="Vyberte obdobie od - do"
+                value={{
+                  from: periodFrom,
+                  to: periodTo,
+                }}
+                onChange={(value) => {
+                  setPeriodFrom(value.from);
+                  setPeriodTo(value.to);
+                }}
+                required
+              />
             )}
 
             <div className="space-y-2">

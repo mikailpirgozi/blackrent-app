@@ -13,13 +13,7 @@ declare global {
  * na základe prostredia v ktorom aplikácia beží
  */
 export const getApiBaseUrl = (): string => {
-  // PRIORITA 1: Ak je nastavená custom API URL v environment - VŽDY použiť túto
-  if (env.API_URL) {
-    logger.debug('🌐 Používam API URL z .env (PRIORITY):', env.API_URL);
-    return env.API_URL;
-  }
-
-  // PRIORITA 2: Pre lokálny development - používaj relatívne /api (Vite proxy)
+  // PRIORITA 1: Pre development ignoruj .env a používaj Vite proxy
   if (
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
@@ -28,6 +22,13 @@ export const getApiBaseUrl = (): string => {
     logger.debug('🌐 Localhost detekované, používam Vite proxy: /api');
     return '/api';
   }
+
+  // PRIORITA 2: Ak je nastavená custom API URL v environment - VŽDY použiť túto
+  if (env.API_URL) {
+    logger.debug('🌐 Používam API URL z .env (PRIORITY):', env.API_URL);
+    return env.API_URL;
+  }
+
 
   // PRIORITA 3: Pre Vercel deployment používaj Railway API
   if (
@@ -40,7 +41,7 @@ export const getApiBaseUrl = (): string => {
     return railwayUrl;
   }
 
-  // Pre Railway deployment (celá aplikácia na Railway)
+  // PRIORITA 4: Pre Railway deployment (celá aplikácia na Railway)
   if (
     typeof window !== 'undefined' &&
     window.location.hostname.includes('railway.app')
@@ -50,7 +51,7 @@ export const getApiBaseUrl = (): string => {
     return apiUrl;
   }
 
-  // V produkcii používame Railway URL
+  // PRIORITA 5: V produkcii používame Railway URL
   if (process.env.NODE_ENV === 'production') {
     const railwayUrl =
       'https://blackrent-app-production-4d6f.up.railway.app/api';

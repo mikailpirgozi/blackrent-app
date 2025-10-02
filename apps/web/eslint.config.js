@@ -69,7 +69,9 @@ export default [
         sourceType: 'module',
         ecmaFeatures: {
           jsx: true
-        }
+        },
+        project: './tsconfig.json',
+        tsconfigRootDir: import.meta.dirname || '.'
       },
       globals: {
         window: 'readonly',

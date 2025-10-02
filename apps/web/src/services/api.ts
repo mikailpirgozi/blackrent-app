@@ -26,7 +26,20 @@ const RAILWAY_API_URL =
   'https://blackrent-app-production-4d6f.up.railway.app/api';
 
 const getApiBaseUrl = () => {
-  // Ak je nastavená custom API URL v environment
+  // PRIORITA 1: Pre development ignoruj .env a používaj Vite proxy
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1')
+  ) {
+    if (!(window as any).__API_BASE_URL_LOGGED__) {
+      console.log('🌐 Localhost detekované, používam Vite proxy: /api');
+      (window as any).__API_BASE_URL_LOGGED__ = true;
+    }
+    return '/api';
+  }
+
+  // PRIORITA 2: Ak je nastavená custom API URL v environment
   if (import.meta.env.VITE_API_URL) {
     if (!(window as any).__API_BASE_URL_LOGGED__) {
       console.log('🌐 Používam API URL z .env:', import.meta.env.VITE_API_URL);
@@ -35,7 +48,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
 
-  // Pre Railway deployment (celá aplikácia na Railway)
+  // PRIORITA 3: Pre Railway deployment (celá aplikácia na Railway)
   if ((window as any).location.hostname.includes('railway.app')) {
     const apiUrl = `${window.location.origin}/api`;
     if (!(window as any).__API_BASE_URL_LOGGED__) {
@@ -45,7 +58,7 @@ const getApiBaseUrl = () => {
     return apiUrl;
   }
 
-  // Pre GitHub Pages používaj Railway API
+  // PRIORITA 4: Pre GitHub Pages používaj Railway API
   if ((window as any).location.hostname === 'mikailpirgozi.github.io') {
     if (!(window as any).__API_BASE_URL_LOGGED__) {
       console.log(
@@ -57,17 +70,6 @@ const getApiBaseUrl = () => {
     return RAILWAY_API_URL;
   }
 
-  // Pre lokálny development - používaj Vite proxy
-  if (
-    (window as any).location.hostname === 'localhost' ||
-    (window as any).location.hostname === '127.0.0.1'
-  ) {
-    if (!(window as any).__API_BASE_URL_LOGGED__) {
-      console.log('🌐 Localhost detekované, používam Vite proxy');
-      (window as any).__API_BASE_URL_LOGGED__ = true;
-    }
-    return '/api';
-  }
 
   // Fallback na Railway API
   if (!(window as any).__API_URL_LOGGED__) {

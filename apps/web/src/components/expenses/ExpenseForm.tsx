@@ -2,8 +2,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
+import { DatePicker } from '@/components/ui/date-picker';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
@@ -37,9 +39,9 @@ export default function ExpenseForm({
   const createCompany = async (company: {
     id: string;
     name: string;
-    commissionRate?: number;
-    isActive?: boolean;
-    createdAt?: Date;
+    commissionRate: number;
+    isActive: boolean;
+    createdAt: Date;
   }) => {
     return createCompanyMutation.mutateAsync(company);
   };
@@ -50,7 +52,7 @@ export default function ExpenseForm({
   const [formData, setFormData] = useState<Partial<Expense>>({
     description: '',
     amount: 0,
-    date: new Date(),
+    date: undefined,
     vehicleId: '',
     company: '',
     category: 'other',
@@ -115,7 +117,7 @@ export default function ExpenseForm({
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('description', e.target.value)}
                 required
                 placeholder="Zadajte popis nákladu"
               />
@@ -127,7 +129,7 @@ export default function ExpenseForm({
                 id="amount"
                 type="number"
                 value={formData.amount || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   handleInputChange(
                     'amount',
                     e.target.value ? parseFloat(e.target.value) : 0
@@ -137,94 +139,70 @@ export default function ExpenseForm({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="date">Dátum *</Label>
-              <Input
-                id="date"
-                type="date"
-                value={
-                  formData.date
-                    ? new Date(formData.date).toISOString().split('T')[0]
-                    : ''
-                }
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('date', new Date(e.target.value))}
-                required
-              />
-            </div>
+            <DatePicker
+              label="Dátum *"
+              placeholder="Vyberte dátum nákladu"
+              value={formData.date ? new Date(formData.date) : null}
+              onChange={(date) => handleInputChange('date', date || undefined)}
+              required
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Kategória *</Label>
-              <Select
-                value={formData.category || ''}
-                onValueChange={(value: string) => handleInputChange('category', value)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Vyberte kategóriu" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.length > 0 ? (
-                    categories.map(category => (
-                      <SelectItem key={category.name} value={category.name}>
-                        {category.displayName}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    // Fallback na základné kategórie ak sa nenačítali
-                    <>
-                      <SelectItem value="service">Servis</SelectItem>
-                      <SelectItem value="insurance">Poistenie</SelectItem>
-                      <SelectItem value="fuel">Palivo</SelectItem>
-                      <SelectItem value="other">Iné</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            <SearchableSelect
+              label="Kategória"
+              required
+              value={formData.category || ''}
+              onValueChange={(value) => handleInputChange('category', value)}
+              options={categories.length > 0
+                ? categories.map(category => ({
+                    value: category.name,
+                    label: category.displayName,
+                    searchText: category.name,
+                  }))
+                : [
+                    { value: 'service', label: 'Servis' },
+                    { value: 'insurance', label: 'Poistenie' },
+                    { value: 'fuel', label: 'Palivo' },
+                    { value: 'other', label: 'Iné' },
+                  ]
+              }
+              placeholder="Vyberte kategóriu"
+              searchPlaceholder="Hľadať kategóriu..."
+              emptyMessage="Žiadna kategória nenájdená."
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="company">Firma *</Label>
-              <Select
+            <div>
+              <SearchableSelect
+                label="Firma"
+                required
                 value={formData.company || ''}
-                onValueChange={(value: string) => {
-                  if (value === '__add_new__') {
-                    setAddingCompany(true);
-                  } else {
-                    handleInputChange('company', value);
-                  }
-                }}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Vyberte firmu" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from(
-                    new Set([
-                      ...companies.map(c => c.name),
-                      ...vehicles.map(v => v.company),
-                      ...expenses.map(e => e.company),
-                    ])
-                  )
-                    .filter(Boolean)
-                    .sort((a, b) => a!.localeCompare(b!))
-                    .map(company => (
-                      <SelectItem key={company} value={company!}>
-                        {company}
-                      </SelectItem>
-                    ))}
-                  <SelectItem value="__add_new__">
-                    <em>+ Pridať novú firmu</em>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => handleInputChange('company', value)}
+                options={Array.from(
+                  new Set([
+                    ...companies.map(c => c.name),
+                    ...vehicles.map(v => v.company),
+                    ...expenses.map(e => e.company),
+                  ])
+                )
+                  .filter(Boolean)
+                  .sort((a, b) => a!.localeCompare(b!))
+                  .map(company => ({
+                    value: company!,
+                    label: company!,
+                  }))}
+                placeholder="Vyberte firmu"
+                searchPlaceholder="Hľadať firmu..."
+                emptyMessage="Žiadna firma nenájdená."
+                showAddNew
+                onAddNew={() => setAddingCompany(true)}
+                addNewLabel="+ Pridať novú firmu"
+              />
               {addingCompany && (
                 <div className="flex gap-2 mt-2">
                   <Input
                     autoFocus
                     placeholder="Nová firma"
                     value={newCompanyName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewCompanyName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
                     className="flex-1"
                   />
                   <Button
@@ -299,7 +277,7 @@ export default function ExpenseForm({
                 id="note"
                 className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.note || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('note', e.target.value)}
+                onChange={(e) => handleInputChange('note', e.target.value)}
                 placeholder="Zadajte dodatočné informácie k nákladu..."
                 rows={3}
               />

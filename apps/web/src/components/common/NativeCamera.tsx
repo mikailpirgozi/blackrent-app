@@ -11,7 +11,6 @@ import { Progress } from '../ui/progress';
 import { Alert, AlertDescription } from '../ui/alert';
 import {
   CheckCircle,
-  X,
   FlashlightOff,
   Flashlight,
   RotateCcw,
@@ -440,14 +439,6 @@ export default function NativeCamera({
             >
               {currentPhotoCount + photosInSession}/{maxPhotos}
             </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-white bg-white/10 hover:bg-white/20 ml-2"
-            >
-              <X className="h-5 w-5" />
-            </Button>
           </div>
         </DialogHeader>
 
@@ -490,53 +481,57 @@ export default function NativeCamera({
 
                 {/* Camera controls overlay */}
                 {cameraState.stream && (
-                  <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex items-center gap-6 bg-black/60 rounded-lg p-4">
-                    {/* Flash toggle */}
-                    {cameraState.flashSupported && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={toggleFlash}
-                        className={`${
-                          cameraState.flashEnabled
-                            ? 'text-yellow-400 bg-yellow-400/20'
-                            : 'text-white'
-                        }`}
-                      >
-                        {cameraState.flashEnabled ? (
-                          <Flashlight className="h-6 w-6" />
-                        ) : (
-                          <FlashlightOff className="h-6 w-6" />
-                        )}
-                      </Button>
-                    )}
-
-                    {/* 📸 CAPTURE BUTTON - KĽÚČOVÉ TLAČIDLO! */}
+                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-4">
+                    {/* 📸 HLAVNÉ TLAČIDLO ODFOTIŤ - Extra veľké a viditeľné */}
                     <Button
                       onClick={capturePhoto}
                       disabled={capturing}
-                      className={`w-[70px] h-[70px] rounded-full border-3 border-white ${
+                      size="lg"
+                      className={`w-[90px] h-[90px] rounded-full border-4 shadow-2xl transition-all duration-200 ${
                         capturing
-                          ? 'bg-green-500 text-white'
-                          : 'bg-white text-black hover:bg-white/80'
+                          ? 'bg-green-500 text-white border-green-300 scale-95'
+                          : 'bg-white text-black hover:bg-white/90 border-white hover:scale-105 active:scale-95'
                       }`}
                     >
                       {capturing ? (
-                        <CheckCircle className="h-8 w-8" />
+                        <CheckCircle className="h-12 w-12" />
                       ) : (
-                        <Camera className="h-8 w-8" />
+                        <Camera className="h-12 w-12" />
                       )}
                     </Button>
 
-                    {/* Camera switch */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={switchCamera}
-                      className="text-white"
-                    >
-                      <RotateCcw className="h-6 w-6" />
-                    </Button>
+                    {/* Pomocné tlačidlá - Flash a prepnutie kamery */}
+                    <div className="flex items-center gap-4 bg-black/60 rounded-full px-6 py-3">
+                      {/* Flash toggle */}
+                      {cameraState.flashSupported && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={toggleFlash}
+                          className={`rounded-full ${
+                            cameraState.flashEnabled
+                              ? 'text-yellow-400 bg-yellow-400/20'
+                              : 'text-white hover:bg-white/20'
+                          }`}
+                        >
+                          {cameraState.flashEnabled ? (
+                            <Flashlight className="h-6 w-6" />
+                          ) : (
+                            <FlashlightOff className="h-6 w-6" />
+                          )}
+                        </Button>
+                      )}
+
+                      {/* Camera switch */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={switchCamera}
+                        className="text-white hover:bg-white/20 rounded-full"
+                      >
+                        <RotateCcw className="h-6 w-6" />
+                      </Button>
+                    </div>
                   </div>
                 )}
 

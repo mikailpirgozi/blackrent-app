@@ -7,11 +7,12 @@ import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 // MUI imports úspešne odstránené! ✅
+import { UnifiedDateRangePicker } from '@/components/ui/unified-date-range-picker';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -77,8 +78,8 @@ export default function RentalForm({
     vehicleId: '',
     customerId: '',
     customerName: '',
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: undefined, // ✅ OPRAVENÉ: Žiadny preddefinovaný dátum
+    endDate: undefined, // ✅ OPRAVENÉ: Žiadny preddefinovaný dátum
     paymentMethod: 'cash',
     orderNumber: '',
     // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
@@ -144,16 +145,12 @@ export default function RentalForm({
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
 
   // ═══════════════════════════════════════════════════════════════════
   // 📊 SECTION 5: DATA OPTIONS
   // ═══════════════════════════════════════════════════════════════════
-  const customerOptions = (customers || []).map(c => ({
-    label: c.name,
-    id: c.id,
-    customer: c,
-  }));
-
   const vehicleOptions = vehicles.map(v => ({
     label: `${v.brand} ${v.model} (${v.licensePlate})${v.vin ? ` - VIN: ${v.vin.slice(-8)}` : ''}`,
     id: v.id,
@@ -412,9 +409,7 @@ export default function RentalForm({
         customerPhone: customer.phone,
       }));
 
-      // 🔄 CRITICAL FIX: Refresh rental data aby sa customer údaje prejavili v protokoloch
-      // Refresh debug removed
-      await loadData();
+      // ✅ React Query automaticky refreshne dáta cez invalidateQueries v useUpdateCustomer
 
       setEditCustomerDialogOpen(false);
       setEditingCustomer(null);
@@ -845,39 +840,76 @@ export default function RentalForm({
                 id="vehicle-select"
                 variant="outline"
                 role="combobox"
-                className="w-full justify-between"
+                className="w-full justify-between font-normal"
               >
                 {formData.vehicleId
                   ? vehicleOptions.find(v => v.id === formData.vehicleId)?.label
                   : "Vyberte vozidlo..."}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Hľadať vozidlo..." />
-                <CommandEmpty>Žiadne vozidlo nenájdené.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-auto">
-                  {vehicleOptions.map((option) => (
-                    <CommandItem
-                      key={option.id}
-                      value={option.id}
-                      onSelect={(value) => {
-                        handleInputChange('vehicleId', value);
-                        // Nájdi vozidlo a nastav ho
-                        if (value) {
-                          const vehicle = vehicles.find(v => v.id === value);
-                          setSelectedVehicle(vehicle || null);
-                        } else {
-                          setSelectedVehicle(null);
-                        }
-                        // ✅ Povoliť prepočítanie cien pri zmene vozidla
-                        setPreserveImportedValues(false);
-                      }}
-                    >
-                      {option.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+            <PopoverContent 
+              className="w-[500px] p-0" 
+              align="start" 
+              side="bottom"
+              onWheel={(e) => e.stopPropagation()}
+            >
+              <Command shouldFilter={false} className="overflow-visible">
+                <CommandInput 
+                  placeholder="Hľadať vozidlo podľa značky, modelu alebo ŠPZ..." 
+                  className="h-10"
+                  onValueChange={(searchValue) => {
+                    // Custom filtering
+                    const filtered = vehicles.filter(v => {
+                      const searchLower = searchValue.toLowerCase();
+                      const vehicleText = `${v.brand} ${v.model} ${v.licensePlate} ${v.vin || ''}`.toLowerCase();
+                      return vehicleText.includes(searchLower);
+                    });
+                    // Store filtered results for rendering
+                    setFilteredVehicles(filtered);
+                  }}
+                />
+                <CommandList 
+                  className="max-h-[300px] overflow-y-auto scrollbar-thin"
+                  style={{ 
+                    overflowY: 'auto',
+                    maxHeight: '300px',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                >
+                  <CommandEmpty>Žiadne vozidlo nenájdené.</CommandEmpty>
+                  <CommandGroup>
+                    {(filteredVehicles.length > 0 ? filteredVehicles : vehicles).map((vehicle) => (
+                      <CommandItem
+                        key={vehicle.id}
+                        value={vehicle.id}
+                        onSelect={() => {
+                          handleInputChange('vehicleId', vehicle.id);
+                          setSelectedVehicle(vehicle);
+                          setPreserveImportedValues(false);
+                          // Close popover
+                          document.getElementById('vehicle-select')?.click();
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex flex-col w-full">
+                          <span className="font-medium">
+                            {vehicle.brand} {vehicle.model}
+                          </span>
+                          <div className="flex gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              ŠPZ: {vehicle.licensePlate}
+                            </span>
+                            {vehicle.vin && (
+                              <span className="text-xs text-muted-foreground">
+                                VIN: ...{vehicle.vin.slice(-8)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
@@ -917,7 +949,7 @@ export default function RentalForm({
           <Input
             id="customer-name"
             value={formData.customerName || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               const name = e.target.value;
               setFormData(prev => ({ ...prev, customerName: name }));
               // Ak sa zadá meno, ktoré už existuje, automaticky ho vyberiem
@@ -951,39 +983,85 @@ export default function RentalForm({
                 id="customer-select"
                 variant="outline"
                 role="combobox"
-                className="w-full justify-between"
+                className="w-full justify-between font-normal"
               >
                 {selectedCustomer
                   ? selectedCustomer.name
                   : "Vyberte zákazníka..."}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Hľadať zákazníka..." />
-                <CommandEmpty>Žiadni zákazníci nenájdení.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-auto">
-                  <CommandItem
-                    value="__add_new__"
-                    onSelect={() => {
-                      handleAddCustomer();
-                    }}
-                  >
-                    <em className="text-primary">+ Pridať nového zákazníka</em>
-                  </CommandItem>
-                  {customerOptions.map((option) => (
+            <PopoverContent 
+              className="w-[500px] p-0" 
+              align="start" 
+              side="bottom"
+              onWheel={(e) => e.stopPropagation()}
+            >
+              <Command shouldFilter={false} className="overflow-visible">
+                <CommandInput 
+                  placeholder="Hľadať zákazníka podľa mena, emailu alebo telefónu..." 
+                  className="h-10"
+                  onValueChange={(searchValue) => {
+                    // Custom filtering
+                    const filtered = customers.filter(c => {
+                      const searchLower = searchValue.toLowerCase();
+                      const customerText = `${c.name} ${c.email || ''} ${c.phone || ''}`.toLowerCase();
+                      return customerText.includes(searchLower);
+                    });
+                    // Store filtered results for rendering
+                    setFilteredCustomers(filtered);
+                  }}
+                />
+                <CommandList 
+                  className="max-h-[300px] overflow-y-auto scrollbar-thin"
+                  style={{ 
+                    overflowY: 'auto',
+                    maxHeight: '300px',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                >
+                  <CommandEmpty>Žiadni zákazníci nenájdení.</CommandEmpty>
+                  <CommandGroup>
                     <CommandItem
-                      key={option.id}
-                      value={option.id}
-                      onSelect={(value) => {
-                        const customer = customerOptions.find(c => c.id === value)?.customer;
-                        handleCustomerChange(customer || null);
+                      value="__add_new__"
+                      onSelect={() => {
+                        handleAddCustomer();
+                        document.getElementById('customer-select')?.click();
                       }}
+                      className="cursor-pointer border-b"
                     >
-                      {option.label}
+                      <div className="flex items-center gap-2 w-full py-1">
+                        <span className="text-primary font-medium">+ Pridať nového zákazníka</span>
+                      </div>
                     </CommandItem>
-                  ))}
-                </CommandGroup>
+                    {(filteredCustomers.length > 0 ? filteredCustomers : customers).map((customer) => (
+                      <CommandItem
+                        key={customer.id}
+                        value={customer.id}
+                        onSelect={() => {
+                          handleCustomerChange(customer);
+                          document.getElementById('customer-select')?.click();
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex flex-col w-full">
+                          <span className="font-medium">{customer.name}</span>
+                          <div className="flex gap-3 mt-1">
+                            {customer.email && (
+                              <span className="text-xs text-muted-foreground">
+                                ✉ {customer.email}
+                              </span>
+                            )}
+                            {customer.phone && (
+                              <span className="text-xs text-muted-foreground">
+                                ☎ {customer.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
@@ -1030,12 +1108,11 @@ export default function RentalForm({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  dispatch({
-                    type: 'UPDATE_CUSTOMER',
-                    payload: selectedCustomer,
-                  });
-                  window.alert('Zákazník bol úspešne uložený!');
+                onClick={async () => {
+                  if (selectedCustomer) {
+                    await updateCustomer(selectedCustomer);
+                    window.alert('Zákazník bol úspešne uložený!');
+                  }
                 }}
                 className="ml-2"
               >
@@ -1064,7 +1141,7 @@ export default function RentalForm({
           <Input
             id="order-number"
             value={formData.orderNumber || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setFormData(prev => ({ ...prev, orderNumber: e.target.value }))
             }
           />
@@ -1089,40 +1166,29 @@ export default function RentalForm({
           </Select>
         </div>
 
-        <DateTimePicker
-          label="Dátum a čas od"
-          value={
-            formData.startDate
+        <UnifiedDateRangePicker
+          label="Dátum a čas prenájmu"
+          value={{
+            from: formData.startDate
               ? parseTimezoneFreeDateString(formData.startDate)
-              : null
-          }
+              : null,
+            to: formData.endDate
+              ? parseTimezoneFreeDateString(formData.endDate)
+              : null,
+          }}
           onChange={newValue => {
-            handleInputChange('startDate', newValue);
+            if (newValue.from) {
+              handleInputChange('startDate', newValue.from);
+            }
+            if (newValue.to) {
+              handleInputChange('endDate', newValue.to);
+            }
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
             setPreserveImportedValues(false);
           }}
           required
-          className="w-full"
-        />
-
-        <DateTimePicker
-          label={
-            formData.isFlexible
-              ? 'Dátum a čas do (voliteľné)'
-              : 'Dátum a čas do'
-          }
-          value={
-            formData.endDate
-              ? parseTimezoneFreeDateString(formData.endDate)
-              : null
-          }
-          onChange={newValue => {
-            handleInputChange('endDate', newValue);
-            // ✅ Povoliť prepočítanie cien pri zmene dátumu
-            setPreserveImportedValues(false);
-          }}
-          required={!formData.isFlexible}
-          className="w-full"
+          className="w-full col-span-full"
+          defaultTime="08:00"
         />
 
         {/* 🔄 NOVÉ: Flexibilné prenájmy sekcia */}
@@ -1218,7 +1284,7 @@ export default function RentalForm({
                             )
                           : null
                       }
-                      onChange={newValue => {
+                      onChange={(newValue: Date | null) => {
                         handleInputChange('flexibleEndDate', newValue);
                       }}
                       className="w-full"
@@ -1268,7 +1334,7 @@ export default function RentalForm({
                               id="manual-price"
                               type="number"
                               value={manualPrice || ''}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 const value = parseFloat(e.target.value) || 0;
                                 setManualPrice(value);
                               }}
@@ -1329,7 +1395,7 @@ export default function RentalForm({
                 autoFocus
                 placeholder="Nové miesto"
                 value={newPlace}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewPlace(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPlace(e.target.value)}
               />
               <Button
                 variant="default"
@@ -1366,7 +1432,7 @@ export default function RentalForm({
               id="daily-km"
               type="number"
               value={dailyKilometers}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const daily = Number(e.target.value) || 0;
                 setDailyKilometers(daily);
 
@@ -1400,7 +1466,7 @@ export default function RentalForm({
               id="allowed-km"
               type="number"
               value={allowedKilometers}
-              onChange={(e: any) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 // Ak sú zadané denné km, nepovoľ manuálnu zmenu celkových
                 if (dailyKilometers > 0) {
                   return; // Ignoruj zmenu
@@ -1447,7 +1513,7 @@ export default function RentalForm({
               type="number"
               step="0.1"
               value={extraKilometerRate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const value = e.target.value.replace(',', '.'); // Nahraď čiarku bodkou
                 setExtraKilometerRate(Number(value) || 0);
               }}
@@ -1470,7 +1536,7 @@ export default function RentalForm({
               id="deposit"
               type="number"
               value={deposit}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDeposit(Number(e.target.value) || 0)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeposit(Number(e.target.value) || 0)}
               placeholder="0"
               className="pl-8"
             />
@@ -1548,7 +1614,7 @@ export default function RentalForm({
                       id="discount-value"
                       type="number"
                       value={formData.discount?.value || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         handleInputChange('discount', {
                           ...formData.discount,
                           value: Number(e.target.value),
@@ -1586,7 +1652,7 @@ export default function RentalForm({
                       id="commission-value"
                       type="number"
                       value={formData.customCommission?.value || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         handleInputChange('customCommission', {
                           ...formData.customCommission,
                           value: Number(e.target.value),
@@ -1604,7 +1670,7 @@ export default function RentalForm({
               <Input
                 type="number"
                 value={extraKmCharge}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setExtraKmCharge(Number(e.target.value))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtraKmCharge(Number(e.target.value))}
                 className="w-[120px]"
                 min={0}
               />
@@ -1707,7 +1773,7 @@ export default function RentalForm({
                             .split('T')[0]
                         : ''
                     }
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, date: new Date(e.target.value) } : null
                       )
@@ -1720,7 +1786,7 @@ export default function RentalForm({
                     id="payment-amount"
                     type="number"
                     value={editingPayment?.amount || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, amount: Number(e.target.value) } : null
                       )
@@ -1760,7 +1826,7 @@ export default function RentalForm({
                   <Input
                     id="invoice-number"
                     value={editingPayment?.invoiceNumber || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, invoiceNumber: e.target.value } : null
                       )
@@ -1772,7 +1838,7 @@ export default function RentalForm({
                   <Input
                     id="payment-note"
                     value={editingPayment?.note || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setEditingPayment(p =>
                         p ? { ...p, note: e.target.value } : null
                       )
@@ -1835,8 +1901,8 @@ export default function RentalForm({
           <form
               onSubmit={e => {
                 e.preventDefault();
-                const form = e.currentTarget as any;
-                const formData = new (window as any).FormData(form);
+                const form = e.currentTarget as HTMLFormElement;
+                const formData = new FormData(form);
                 const name = formData.get('name') as string;
                 const email = formData.get('email') as string;
                 const phone = formData.get('phone') as string;
@@ -1920,8 +1986,8 @@ export default function RentalForm({
           <form
               onSubmit={e => {
                 e.preventDefault();
-                const form = e.currentTarget as any;
-                const formData = new (window as any).FormData(form);
+                const form = e.currentTarget as HTMLFormElement;
+                const formData = new FormData(form);
                 const name = formData.get('name') as string;
                 const email = formData.get('email') as string;
                 const phone = formData.get('phone') as string;

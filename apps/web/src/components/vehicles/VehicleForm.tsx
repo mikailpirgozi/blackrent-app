@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect, SearchableSelectOption } from '@/components/ui/SearchableSelect';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -64,7 +65,7 @@ export default function VehicleForm({
   // ✅ FIX: Use proper mutation hook for companies
   const createCompanyMutation = useCreateCompany();
   
-  const createCompany = async (companyData: { id: string; name: string; isActive?: boolean; createdAt?: Date }) => {
+  const createCompany = async (companyData: { id: string; name: string; commissionRate: number; isActive: boolean; createdAt: Date }) => {
     return createCompanyMutation.mutateAsync(companyData);
   };
 
@@ -332,7 +333,7 @@ export default function VehicleForm({
           <Input
             id="brand"
             value={formData.brand}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('brand', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('brand', e.target.value)}
             required
           />
         </div>
@@ -341,7 +342,7 @@ export default function VehicleForm({
           <Input
             id="model"
             value={formData.model}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('model', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('model', e.target.value)}
             required
           />
         </div>
@@ -350,7 +351,7 @@ export default function VehicleForm({
           <Input
             id="licensePlate"
             value={formData.licensePlate}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('licensePlate', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('licensePlate', e.target.value)}
             required
           />
         </div>
@@ -359,65 +360,46 @@ export default function VehicleForm({
           <Input
             id="vin"
             value={formData.vin || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('vin', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('vin', e.target.value)}
             placeholder="Zadajte VIN číslo vozidla"
           />
           <p className="text-sm text-muted-foreground mt-1">
             17-miestny identifikačný kód vozidla
           </p>
         </div>
-        {/* Firma/Autopožičovňa - Select s rozšírenými informáciami */}
+        {/* Firma/Autopožičovňa - SearchableSelect s rozšírenými informáciami */}
         <div>
-          <Label htmlFor="company">Firma/Autopožičovňa *</Label>
-          <Select
+          <SearchableSelect
+            label="Firma/Autopožičovňa"
+            required
             value={formData.ownerCompanyId || ''}
-            onValueChange={(value: string) => {
-              if (value === '__add_new__') {
-                setAddingCompany(true);
-                return;
-              }
-              if (value === '__placeholder__') {
-                return; // Ignoruj placeholder
-              }
-              const selectedCompany = activeCompanies.find(
-                c => c.id === value
-              );
+            onValueChange={(value) => {
+              const selectedCompany = activeCompanies.find(c => c.id === value);
               if (selectedCompany) {
                 handleInputChange('company', selectedCompany.name);
                 handleInputChange('ownerCompanyId', value);
               }
             }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Vyberte firmu..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__placeholder__">
-                <em>Vyberte firmu...</em>
-              </SelectItem>
-              {activeCompanies.map(company => (
-                <SelectItem key={company.id} value={company.id}>
-                  <div>
-                    <div className="font-medium">{company.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {company.ownerName && `👤 ${company.ownerName} • `}
-                      💰 Default provízia: {company.defaultCommissionRate || 20}%
-                      {!company.isActive && ' • NEAKTÍVNA'}
-                    </div>
-                  </div>
-                </SelectItem>
-              ))}
-              <SelectItem value="__add_new__">
-                <em>+ Pridať novú firmu</em>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            options={activeCompanies.map(company => ({
+              value: company.id,
+              label: company.name,
+              subtitle: `${company.ownerName ? `👤 ${company.ownerName} • ` : ''}💰 Default provízia: ${company.defaultCommissionRate || 20}%${!company.isActive ? ' • NEAKTÍVNA' : ''}`,
+              searchText: `${company.name} ${company.ownerName || ''}`,
+              data: company,
+            }))}
+            placeholder="Vyberte firmu..."
+            searchPlaceholder="Hľadať firmu podľa názvu alebo majiteľa..."
+            emptyMessage="Žiadna firma nenájdená."
+            showAddNew
+            onAddNew={() => setAddingCompany(true)}
+            addNewLabel="+ Pridať novú firmu"
+          />
           {addingCompany && (
             <div className="flex gap-2 mt-2">
               <Input
                 autoFocus
                 value={newCompanyName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewCompanyName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
                 onKeyPress={e => {
                   if (e.key === 'Enter') {
                     handleAddCompany();
@@ -537,7 +519,7 @@ export default function VehicleForm({
               id="commission-value"
               type="number"
               value={formData.commission?.value || ''}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleInputChange('commission', {
                   ...formData.commission,
                   value: parseFloat(e.target.value),
@@ -594,7 +576,7 @@ export default function VehicleForm({
                   <Input
                     type="number"
                     value={tier.pricePerDay}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       handlePricingChange(
                         index,
                         'pricePerDay',
@@ -615,7 +597,7 @@ export default function VehicleForm({
                     id="extra-km"
                     type="number"
                     value={formData.extraKilometerRate || 0.3}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       handleInputChange(
                         'extraKilometerRate',
                         parseFloat(e.target.value) || 0.3

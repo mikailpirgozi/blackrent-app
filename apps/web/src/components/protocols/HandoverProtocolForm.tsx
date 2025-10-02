@@ -558,13 +558,15 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // Return result for email status handling - React Query returns protocol directly
         return {
           protocol: protocolData || null,
-          email: emailInfo || (result && 'email' in result)
-            ? (result.email as {
-                sent: boolean;
-                recipient?: string;
-                error?: string;
-              })
-            : { sent: false, error: 'Email information not available' },
+          email: emailInfo 
+            ? emailInfo
+            : (result && 'email' in result)
+              ? (result.email as {
+                  sent: boolean;
+                  recipient?: string;
+                  error?: string;
+                })
+              : { sent: false, error: 'Email information not available' },
         };
       } catch (error) {
         console.error('Error saving protocol:', error);
@@ -738,7 +740,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
     // 🔧 MOBILE ERROR BOUNDARY: Catch any rendering errors
     React.useEffect(() => {
-      const handleError = (event: any) => {
+      const handleError = (event: ErrorEvent) => {
         const isMobile = window.matchMedia('(max-width: 900px)').matches;
         if (isMobile) {
           console.error(
@@ -1066,13 +1068,24 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             >
               <div className="space-y-2">
                 <Label htmlFor="location">Miesto prevzatia *</Label>
-                <Input
-                  id="location"
+                <Select
                   value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  placeholder="Zadajte presné miesto prevzatia vozidla"
-                  required
-                />
+                  onValueChange={(value) => handleInputChange('location', value)}
+                >
+                  <SelectTrigger id="location">
+                    <SelectValue placeholder="Vyberte miesto prevzatia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Bratislava">Bratislava</SelectItem>
+                    <SelectItem value="Košice">Košice</SelectItem>
+                    <SelectItem value="Žilina">Žilina</SelectItem>
+                    <SelectItem value="Trnava">Trnava</SelectItem>
+                    <SelectItem value="Nitra">Nitra</SelectItem>
+                    <SelectItem value="Banská Bystrica">Banská Bystrica</SelectItem>
+                    <SelectItem value="Prešov">Prešov</SelectItem>
+                    <SelectItem value="Trenčín">Trenčín</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Poznámky k protokolu</Label>

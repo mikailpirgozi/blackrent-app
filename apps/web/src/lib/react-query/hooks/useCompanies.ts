@@ -16,7 +16,7 @@ export function useCreateCompany() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (companyData: { id: string; name: string; commissionRate?: number; isActive?: boolean; createdAt?: Date }) =>
+    mutationFn: (companyData: { id: string; name: string; commissionRate: number; isActive: boolean; createdAt: Date }) =>
       apiService.createCompany(companyData),
     onSuccess: () => {
       // Invalidate companies list to refetch with new company

@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { Typography } from '../ui/typography';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { DateRangePicker } from '../ui/date-range-picker';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
@@ -82,7 +83,20 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    amount: number;
+    category: string;
+    company: string;
+    vehicleId: string;
+    note: string;
+    frequency: 'monthly' | 'quarterly' | 'yearly';
+    startDate?: string;
+    endDate?: string;
+    dayOfMonth: number;
+    isActive: boolean;
+  }>({
     name: '',
     description: '',
     amount: 0,
@@ -90,9 +104,9 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     company: '',
     vehicleId: '',
     note: '',
-    frequency: 'monthly' as 'monthly' | 'quarterly' | 'yearly',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
+    frequency: 'monthly',
+    startDate: undefined,
+    endDate: undefined,
     dayOfMonth: 1,
     isActive: true,
   });
@@ -133,8 +147,8 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       vehicleId: '',
       note: '',
       frequency: 'monthly',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: '',
+      startDate: undefined,
+      endDate: undefined,
       dayOfMonth: 1,
       isActive: true,
     });
@@ -953,31 +967,25 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               </Select>
             </div>
 
-            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
-              <Label htmlFor="startDate">Začiatok platnosti *</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  setFormData(prev => ({ ...prev, startDate: e.target.value }))
-                }
+            <div className="col-span-full">
+              <DateRangePicker
+                label="Platnosť pravidelného nákladu *"
+                placeholder="Vyberte obdobie platnosti"
+                value={{
+                  from: formData.startDate ? new Date(formData.startDate) : null,
+                  to: formData.endDate ? new Date(formData.endDate) : null,
+                }}
+                onChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    startDate: value.from ? value.from.toISOString().split('T')[0] : '',
+                    endDate: value.to ? value.to.toISOString().split('T')[0] : '',
+                  }));
+                }}
                 required
               />
-            </div>
-
-            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
-              <Label htmlFor="endDate">Koniec platnosti</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  setFormData(prev => ({ ...prev, endDate: e.target.value }))
-                }
-              />
-              <p className="text-sm text-muted-foreground">
-                Voliteľné - nechajte prázdne pre nekonečne
+              <p className="text-sm text-muted-foreground mt-2">
+                Koncový dátum je voliteľný - nechajte prázdny pre nekonečnú platnosť
               </p>
             </div>
 

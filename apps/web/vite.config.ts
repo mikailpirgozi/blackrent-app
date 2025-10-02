@@ -29,7 +29,7 @@ export default defineConfig({
     // SEPARÁTNY HMR PORT
     hmr: { 
       overlay: true,
-      port: 3002,
+      port: 3003,
       host: 'localhost'
     },
     // PROXY OPTIMALIZÁCIA  

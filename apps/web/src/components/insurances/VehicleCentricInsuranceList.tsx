@@ -9,7 +9,7 @@ import { UnifiedTypography } from '../ui/UnifiedTypography';
 import { Alert, AlertTitle } from '../ui/alert';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
-import { Collapsible } from '../ui/collapsible';
+import { Collapsible, CollapsibleContent } from '../ui/collapsible';
 import { Separator } from '../ui/separator';
 import { Spinner } from '../ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -157,7 +157,7 @@ const getExpiryStatus = (
         bgColor: '#fff3e0',
       };
     }
-  } catch (error) {
+  } catch {
     return {
       status: 'invalid',
       color: 'neutral',
@@ -306,6 +306,7 @@ export default function VehicleCentricInsuranceList() {
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('expiry'); // Default: najbližšia expirácia
+  // ✅ FIX: Predvolene všetky vozidlá zbalené (prázdny Set)
   const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(
     new Set()
   );
@@ -1593,19 +1594,21 @@ function VehicleCard({
 
       {/* Expandable Documents List */}
       <Collapsible open={expanded}>
-        <Separator />
-        <div className="pt-0">
-          {documents.map((doc, index) => (
-            <DocumentListItem
-              key={`${doc.type}-${doc.id || index}`}
-              document={doc}
-              onEdit={() => onEditDocument(doc)}
-              onDelete={() => onDeleteDocument(doc)}
-              isMobile={isMobile}
-              isLast={index === documents.length - 1}
-            />
-          ))}
-        </div>
+        <CollapsibleContent>
+          <Separator />
+          <div className="pt-0">
+            {documents.map((doc, index) => (
+              <DocumentListItem
+                key={`${doc.type}-${doc.id || index}`}
+                document={doc}
+                onEdit={() => onEditDocument(doc)}
+                onDelete={() => onDeleteDocument(doc)}
+                isMobile={isMobile}
+                isLast={index === documents.length - 1}
+              />
+            ))}
+          </div>
+        </CollapsibleContent>
       </Collapsible>
     </InteractiveCard>
   );
@@ -1706,7 +1709,10 @@ function DocumentListItem({
               isMobile ? "flex-col items-start gap-2" : "flex-row items-center gap-4"
             )}>
               {/* Date and Status Row */}
-              <div >
+              <div className={cn(
+                "flex items-center",
+                isMobile ? "gap-2" : "gap-3"
+              )}>
                 <UnifiedTypography
                   component="span"
                   variant="body2"
@@ -1724,29 +1730,27 @@ function DocumentListItem({
                         return isValid(date)
                           ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}`
                           : 'Neplatný dátum';
-                      } catch (error) {
+                      } catch {
                         return 'Neplatný dátum';
                       }
                     })()}
                   </UnifiedTypography>
 
-                  <span >
-                    <UnifiedChip
-                      label={expiryStatus.text}
-                      variant="default"
-                      
-                      className={cn(
-                        isMobile ? "text-xs h-5" : "text-xs h-6",
-                        expiryStatus.status === 'expired' ? "bg-red-100 text-red-800" :
-                        expiryStatus.status === 'expiring' ? "bg-orange-100 text-orange-800" :
-                        "bg-green-100 text-green-800"
-                      )}
-                    />
-                  </span>
+                  <UnifiedChip
+                    label={expiryStatus.text}
+                    variant="default"
+                    
+                    className={cn(
+                      isMobile ? "text-xs h-5" : "text-xs h-6",
+                      expiryStatus.status === 'expired' ? "bg-red-100 text-red-800" :
+                      expiryStatus.status === 'expiring' ? "bg-orange-100 text-orange-800" :
+                      "bg-green-100 text-green-800"
+                    )}
+                  />
                 </div>
 
                 {/* Company and Price Row */}
-                <div >
+                <div className="flex items-center gap-3">
                   {document.company && (
                     <UnifiedTypography
                       component="span"
@@ -1807,7 +1811,7 @@ function DocumentListItem({
                           return isValid(date)
                             ? format(date, 'dd.MM.yyyy', { locale: sk })
                             : 'Neplatný';
-                        } catch (error) {
+                        } catch {
                           return 'Neplatný';
                         }
                       })()}

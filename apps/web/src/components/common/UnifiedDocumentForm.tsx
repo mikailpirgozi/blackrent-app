@@ -993,19 +993,36 @@ export default function UnifiedDocumentForm({
           <Separator className="my-6" />
 
           {/* Action buttons */}
-          <div className="flex gap-4 justify-end">
-            <UnifiedButton variant="outline" onClick={onCancel}>
-              Zrušiť
-            </UnifiedButton>
-            <UnifiedButton
-              variant="default"
+          <div className="flex gap-4 justify-end" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 9999 }}>
+            <button
+              type="button"
               onClick={() => {
-                console.log('🔵 BUTTON CLICKED - Calling onSave with data:', formData);
+                console.log('🔴 CANCEL BUTTON CLICKED');
+                onCancel();
+              }}
+              onMouseDown={() => console.log('🟡 CANCEL MOUSE DOWN')}
+              className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+            >
+              Zrušiť
+            </button>
+            <button
+              type="button"
+              onClick={(e: React.MouseEvent) => {
+                console.log('🔵 SAVE BUTTON CLICKED - Event:', e);
+                console.log('🔵 formData:', formData);
+                e.preventDefault();
+                e.stopPropagation();
                 onSave(formData);
               }}
+              onMouseDown={() => console.log('🟡 SAVE MOUSE DOWN on save button')}
+              onMouseUp={() => console.log('🟡 SAVE MOUSE UP on save button')}
+              onMouseEnter={() => console.log('🟡 SAVE MOUSE ENTER on save button')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              style={{ pointerEvents: 'auto', zIndex: 9999, cursor: 'pointer' }}
             >
               {document?.id ? 'Uložiť zmeny' : 'Pridať dokument'}
-            </UnifiedButton>
+            </button>
           </div>
         </div>
 

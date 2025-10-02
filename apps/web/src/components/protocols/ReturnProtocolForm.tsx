@@ -419,22 +419,54 @@ export default function ReturnProtocolForm({
       };
 
       // Použitie React Query mutation
-      await createReturnProtocol.mutateAsync(protocol);
+      const result = await createReturnProtocol.mutateAsync(protocol);
 
       // Automatický refresh - NETREBA! React Query to spraví automaticky
 
       // Success callback
       onSave(protocol);
 
-      setEmailStatus({
-        status: 'success',
-        message: '✅ Protokol bol úspešne uložený',
-      });
+      // 📧 EMAIL STATUS: Spracovanie email response z backendu
+      const responseData = result as
+        | {
+            success?: boolean;
+            protocol?: ReturnProtocol;
+            email?: { sent: boolean; recipient?: string; error?: string };
+            pdfProxyUrl?: string;
+          }
+        | ReturnProtocol;
+      
+      const emailInfo = 'email' in responseData ? responseData.email : undefined;
 
-      // Počkáme 2 sekundy pred zatvorením
+      // Update email status based on response
+      if (emailInfo) {
+        if (emailInfo.sent) {
+          setEmailStatus({
+            status: 'success',
+            message: `✅ Protokol bol úspešne odoslaný na email ${emailInfo.recipient}`,
+          });
+        } else if (emailInfo.error) {
+          setEmailStatus({
+            status: 'error',
+            message: `❌ Protokol bol uložený, ale email sa nepodarilo odoslať: ${emailInfo.error}`,
+          });
+        } else {
+          setEmailStatus({
+            status: 'warning',
+            message: `⚠️ Protokol bol uložený, ale email sa nepodarilo odoslať`,
+          });
+        }
+      } else {
+        setEmailStatus({
+          status: 'success',
+          message: '✅ Protokol bol úspešne uložený',
+        });
+      }
+
+      // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
       window.setTimeout(() => {
         onClose();
-      }, 2000);
+      }, 4000);
     } catch (error) {
       console.error('❌ Error saving return protocol:', error);
       setEmailStatus({

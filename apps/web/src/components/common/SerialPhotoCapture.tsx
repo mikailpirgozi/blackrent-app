@@ -1,5 +1,4 @@
 import {
-  X as Close,
   Trash2 as Delete,
   Camera as PhotoCamera,
   Eye as Preview,
@@ -812,7 +811,7 @@ export default function SerialPhotoCapture({
           compressedUrl: protocolImage.compressedUrl?.substring(0, 80) + '...',
         });
 
-        images.push(protocolImage as any);
+        images.push(protocolImage);
       } else {
         videos.push({
           id: media.id,
@@ -858,23 +857,29 @@ export default function SerialPhotoCapture({
   return (
     <>
       <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+            <DialogTitle>
               {title}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleClose}
-                className="h-6 w-6"
-              >
-                <Close className="h-4 w-4" />
-              </Button>
             </DialogTitle>
             <DialogDescription>
               Zachyťte fotografie pre {title.toLowerCase()}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Sticky Save/Cancel Buttons - Always visible */}
+          <div className="sticky top-0 z-50 bg-background border-b pb-3 mb-4 -mt-2 flex justify-end gap-2">
+            <Button variant="outline" onClick={handleClose} disabled={processing}>
+              Zrušiť
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={capturedMedia.length === 0 || processing}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Uložiť ({capturedMedia.length})
+            </Button>
+          </div>
 
           {/* Action buttons */}
           <div className="flex gap-4 mb-6 flex-wrap items-center">
@@ -1172,7 +1177,7 @@ export default function SerialPhotoCapture({
                   <Textarea
                     id={`description-${media.id}`}
                     value={media.description}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(e) =>
                       handleDescriptionChange(media.id, e.target.value)
                     }
                     rows={2}
@@ -1199,17 +1204,6 @@ export default function SerialPhotoCapture({
             ))}
           </div>
         </DialogContent>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Zrušiť</Button>
-          <Button
-            onClick={handleSave}
-            disabled={capturedMedia.length === 0 || processing}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Uložiť ({capturedMedia.length})
-          </Button>
-        </DialogFooter>
       </Dialog>
 
       {/* Preview Dialog */}

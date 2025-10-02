@@ -8,13 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { CalendarIcon, Plus, X } from 'lucide-react';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
@@ -55,8 +50,8 @@ export default function InsuranceForm({
     vehicleId: '',
     type: '',
     policyNumber: '',
-    validFrom: new Date(),
-    validTo: new Date(),
+    validFrom: undefined,
+    validTo: undefined,
     price: 0,
     company: '',
     paymentFrequency: 'yearly',
@@ -247,62 +242,21 @@ export default function InsuranceForm({
           />
         </div>
 
-        {/* Platná od */}
-        <div className="space-y-2">
-          <Label>Platná od *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.validFrom ? (
-                  format(new Date(formData.validFrom), 'dd.MM.yyyy', { locale: sk })
-                ) : (
-                  <span>Vyberte dátum</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formData.validFrom ? new Date(formData.validFrom) : undefined}
-                onSelect={(date) => handleInputChange('validFrom', date || new Date())}
-                initialFocus
-                locale={sk}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Platná do */}
-        <div className="space-y-2">
-          <Label>Platná do *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.validTo ? (
-                  format(new Date(formData.validTo), 'dd.MM.yyyy', { locale: sk })
-                ) : (
-                  <span>Vyberte dátum</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formData.validTo ? new Date(formData.validTo) : undefined}
-                onSelect={(date) => handleInputChange('validTo', date || new Date())}
-                initialFocus
-                locale={sk}
-              />
-            </PopoverContent>
-          </Popover>
+        {/* Platnosť poistky */}
+        <div className="col-span-full">
+          <DateRangePicker
+            label="Platnosť poistky *"
+            placeholder="Vyberte obdobie platnosti"
+            value={{
+              from: formData.validFrom ? new Date(formData.validFrom) : null,
+              to: formData.validTo ? new Date(formData.validTo) : null,
+            }}
+            onChange={(value) => {
+              if (value.from) handleInputChange('validFrom', value.from);
+              if (value.to) handleInputChange('validTo', value.to);
+            }}
+            required
+          />
         </div>
 
         {/* Frekvencia platenia */}
