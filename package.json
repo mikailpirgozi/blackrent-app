@@ -89,8 +89,8 @@
     "restore-protocols:dry": "node restore-organized-protocols.js --dry-run"
   },
   "lint-staged": {
-    "apps/web/src/**/*.{ts,tsx}": [
-      "eslint --fix --max-warnings=2000",
+    "apps/web/**/*.{ts,tsx}": [
+      "eslint --config apps/web/eslint.config.js --fix --max-warnings=2000",
       "prettier --write"
     ],
     "apps/backend/src/**/*.{ts,tsx}": [

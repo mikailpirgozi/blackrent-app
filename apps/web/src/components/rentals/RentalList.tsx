@@ -1,5 +1,10 @@
 import { ImageIcon, FileText, RefreshCw } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 // Global type definitions for DOM elements
@@ -122,7 +127,7 @@ export default function RentalList() {
   >(null);
   // const permissions = usePermissions(); // Unused for now
   const [isMobile, setIsMobile] = useState(false);
-  
+
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -186,8 +191,12 @@ export default function RentalList() {
             protocolType === 'return'
               ? true
               : prev[rentalId]?.hasReturnProtocol || false,
-          ...(protocolType === 'handover' && data.id ? { handoverProtocolId: data.id } : {}),
-          ...(protocolType === 'return' && data.id ? { returnProtocolId: data.id } : {}),
+          ...(protocolType === 'handover' && data.id
+            ? { handoverProtocolId: data.id }
+            : {}),
+          ...(protocolType === 'return' && data.id
+            ? { returnProtocolId: data.id }
+            : {}),
         };
         return newMap;
       });
@@ -273,18 +282,40 @@ export default function RentalList() {
         logger.debug('🔧 FILTERS: Syncing filters to server:', serverFilters);
       }
       updateFilters({
-        ...(serverFilters.company !== undefined && { company: serverFilters.company }),
-        ...(serverFilters.status !== undefined && { status: serverFilters.status }),
-        ...(serverFilters.paymentMethod !== undefined && { paymentMethod: serverFilters.paymentMethod }),
-        ...(serverFilters.protocolStatus !== undefined && { protocolStatus: serverFilters.protocolStatus }),
-        ...(serverFilters.vehicleBrand !== undefined && { vehicleBrand: serverFilters.vehicleBrand }),
-        ...(serverFilters.priceMin !== undefined && { priceMin: serverFilters.priceMin }),
-        ...(serverFilters.priceMax !== undefined && { priceMax: serverFilters.priceMax }),
+        ...(serverFilters.company !== undefined && {
+          company: serverFilters.company,
+        }),
+        ...(serverFilters.status !== undefined && {
+          status: serverFilters.status,
+        }),
+        ...(serverFilters.paymentMethod !== undefined && {
+          paymentMethod: serverFilters.paymentMethod,
+        }),
+        ...(serverFilters.protocolStatus !== undefined && {
+          protocolStatus: serverFilters.protocolStatus,
+        }),
+        ...(serverFilters.vehicleBrand !== undefined && {
+          vehicleBrand: serverFilters.vehicleBrand,
+        }),
+        ...(serverFilters.priceMin !== undefined && {
+          priceMin: serverFilters.priceMin,
+        }),
+        ...(serverFilters.priceMax !== undefined && {
+          priceMax: serverFilters.priceMax,
+        }),
         // searchQuery is handled separately via setSearchTerm
-        ...(serverFilters.dateFrom !== undefined && { dateFrom: serverFilters.dateFrom }),
-        ...(serverFilters.dateTo !== undefined && { dateTo: serverFilters.dateTo }),
-        ...(serverFilters.sortBy !== undefined && { sortBy: serverFilters.sortBy }),
-        ...(serverFilters.sortOrder !== undefined && { sortOrder: serverFilters.sortOrder }),
+        ...(serverFilters.dateFrom !== undefined && {
+          dateFrom: serverFilters.dateFrom,
+        }),
+        ...(serverFilters.dateTo !== undefined && {
+          dateTo: serverFilters.dateTo,
+        }),
+        ...(serverFilters.sortBy !== undefined && {
+          sortBy: serverFilters.sortBy,
+        }),
+        ...(serverFilters.sortOrder !== undefined && {
+          sortOrder: serverFilters.sortOrder,
+        }),
       });
       previousFiltersRef.current = filtersString;
     }
@@ -483,11 +514,14 @@ export default function RentalList() {
 
       debounceTimerRef.current = window.setTimeout(() => {
         if (!_event) return;
-        
+
         let scrollPercentage = 0;
 
         // Calculate scroll percentage based on event type
-        if ('scrollOffset' in _event && typeof _event.scrollOffset === 'number') {
+        if (
+          'scrollOffset' in _event &&
+          typeof _event.scrollOffset === 'number'
+        ) {
           // Virtual scroll from React Window (mobile)
           const totalHeight = rentals.length * 160; // itemSize * count
           const viewportHeight = 600;
@@ -611,10 +645,18 @@ export default function RentalList() {
                 acc[status.rentalId] = {
                   hasHandoverProtocol: status.hasHandoverProtocol,
                   hasReturnProtocol: status.hasReturnProtocol,
-                  ...(status.handoverProtocolId ? { handoverProtocolId: status.handoverProtocolId } : {}),
-                  ...(status.returnProtocolId ? { returnProtocolId: status.returnProtocolId } : {}),
-                  ...(status.handoverCreatedAt ? { handoverCreatedAt: status.handoverCreatedAt } : {}),
-                  ...(status.returnCreatedAt ? { returnCreatedAt: status.returnCreatedAt } : {}),
+                  ...(status.handoverProtocolId
+                    ? { handoverProtocolId: status.handoverProtocolId }
+                    : {}),
+                  ...(status.returnProtocolId
+                    ? { returnProtocolId: status.returnProtocolId }
+                    : {}),
+                  ...(status.handoverCreatedAt
+                    ? { handoverCreatedAt: status.handoverCreatedAt }
+                    : {}),
+                  ...(status.returnCreatedAt
+                    ? { returnCreatedAt: status.returnCreatedAt }
+                    : {}),
                 };
                 return acc;
               },
@@ -623,13 +665,25 @@ export default function RentalList() {
           : bulkProtocolStatus;
 
         // Nastav dáta - transform to correct type
-        const transformedMap: Record<string, { hasHandoverProtocol: boolean; hasReturnProtocol: boolean; handoverProtocolId?: string; returnProtocolId?: string; }> = {};
+        const transformedMap: Record<
+          string,
+          {
+            hasHandoverProtocol: boolean;
+            hasReturnProtocol: boolean;
+            handoverProtocolId?: string;
+            returnProtocolId?: string;
+          }
+        > = {};
         Object.entries(protocolStatusMap).forEach(([key, value]) => {
           transformedMap[key] = {
             hasHandoverProtocol: value.hasHandoverProtocol,
             hasReturnProtocol: value.hasReturnProtocol,
-            ...(value.handoverProtocolId ? { handoverProtocolId: value.handoverProtocolId } : {}),
-            ...(value.returnProtocolId ? { returnProtocolId: value.returnProtocolId } : {}),
+            ...(value.handoverProtocolId
+              ? { handoverProtocolId: value.handoverProtocolId }
+              : {}),
+            ...(value.returnProtocolId
+              ? { returnProtocolId: value.returnProtocolId }
+              : {}),
           };
         });
         protocolsHook.setProtocolStatusMap(transformedMap);
@@ -868,7 +922,7 @@ export default function RentalList() {
   // Error handling
   if (error) {
     return (
-      <DefaultCard >
+      <DefaultCard>
         <h2 className="text-xl font-semibold text-red-600 mb-4">
           Chyba pri načítavaní prenájmov
         </h2>
@@ -884,32 +938,121 @@ export default function RentalList() {
     );
   }
 
+  // ✅ Export/Import handlers inline
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = useCallback(async () => {
+    // Import export logic from RentalExport component
+    const { saveAs } = await import('file-saver');
+    const Papa = await import('papaparse');
+
+    const calculateCommission = (rental: Rental): number => {
+      const totalPrice = rental.totalPrice;
+      if (rental.customCommission?.value && rental.customCommission.value > 0) {
+        if (rental.customCommission.type === 'percentage') {
+          return (totalPrice * rental.customCommission.value) / 100;
+        } else {
+          return rental.customCommission.value;
+        }
+      }
+      if (rental.vehicle?.commission) {
+        if (rental.vehicle.commission.type === 'percentage') {
+          return (totalPrice * rental.vehicle.commission.value) / 100;
+        } else {
+          return rental.vehicle.commission.value;
+        }
+      }
+      return rental.commission || 0;
+    };
+
+    const header = [
+      'id',
+      'licensePlate',
+      'company',
+      'brand',
+      'model',
+      'customerName',
+      'customerEmail',
+      'startDate',
+      'endDate',
+      'totalPrice',
+      'commission',
+      'paymentMethod',
+      'discountType',
+      'discountValue',
+      'customCommissionType',
+      'customCommissionValue',
+      'extraKmCharge',
+      'paid',
+      'handoverPlace',
+      'confirmed',
+    ];
+
+    const data = filteredRentals.map(rental => {
+      const vehicle = (vehicles || []).find(v => v.id === rental.vehicleId);
+      const commission = calculateCommission(rental);
+
+      return {
+        id: rental.id,
+        licensePlate: vehicle?.licensePlate || '',
+        company: vehicle?.company || '',
+        brand: vehicle?.brand || '',
+        model: vehicle?.model || '',
+        customerName: rental.customerName,
+        customerEmail: rental.customerEmail || rental.customer?.email || '',
+        startDate: rental.startDate,
+        endDate: rental.endDate,
+        totalPrice: rental.totalPrice,
+        commission,
+        paymentMethod: rental.paymentMethod || '',
+        discountType: rental.discount?.type || '',
+        discountValue: rental.discount?.value || 0,
+        customCommissionType: rental.customCommission?.type || '',
+        customCommissionValue: rental.customCommission?.value || 0,
+        extraKmCharge: rental.extraKmCharge || 0,
+        paid: rental.paid ? 1 : 0,
+        handoverPlace: rental.handoverPlace || '',
+        confirmed: rental.confirmed ? 1 : 0,
+      };
+    });
+
+    const csv = Papa.unparse({ fields: header, data });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `rentals_${new Date().toISOString().split('T')[0]}.csv`);
+  }, [filteredRentals, vehicles]);
+
+  const handleImport = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
   return (
     <div className="p-0 md:p-0">
-      {/* 📊 EXTRACTED: RentalStats komponent */}
+      {/* 📊 UNIFIED HEADER: Stats + Actions */}
       <RentalStats
         rentals={filteredRentals}
         protocols={protocolsHook.protocols}
         isLoading={loading}
         onQuickFilter={handleQuickFilter}
+        onAdd={handleAdd}
+        onExport={handleExport}
+        onImport={handleImport}
+        canCreate={true}
       />
 
-      {/* 🚀 EXTRACTED: Action buttons moved to RentalActions component */}
-      <Can create="rentals">
-        <RentalActions isMobile={isMobile} handleAdd={handleAdd} />
-      </Can>
-
-      {/* 🚀 EXTRACTED: Export/Import moved to RentalExport component */}
-      <RentalExport
-        filteredRentals={filteredRentals}
-        state={{
-          customers: (customers || []) as Customer[],
-          companies: (companies || []) as Company[],
-          vehicles: (vehicles || []) as Vehicle[],
-          rentals: rentals || [],
+      {/* Hidden file input for import */}
+      <input
+        type="file"
+        accept=".csv"
+        hidden
+        ref={fileInputRef}
+        onChange={e => {
+          // Import logic would go here
+          const file = e.target.files?.[0];
+          if (file) {
+            // TODO: Implement import logic
+            console.log('Import file:', file);
+          }
         }}
-        isMobile={isMobile}
-        setImportError={setImportError}
       />
 
       {/* 🚀 EXTRACTED: RentalFilters komponent */}
@@ -1032,7 +1175,7 @@ export default function RentalList() {
 
       {/* Load more button for desktop */}
       {!loading && hasMore && (
-        <div >
+        <div>
           <PrimaryButton
             onClick={handleLoadMore}
             className="h-10 px-6"
@@ -1045,7 +1188,7 @@ export default function RentalList() {
 
       {/* End of data indicator */}
       {!hasMore && rentals.length > 0 && (
-        <div >
+        <div>
           <p className="text-base text-green-600 font-medium">
             ✅ Všetky prenájmy načítané ({rentals.length} celkom)
           </p>
@@ -1169,11 +1312,8 @@ export default function RentalList() {
       />
 
       {/* 📋 PROTOCOL MENU DIALOG */}
-      <Dialog
-        open={protocolMenuOpen}
-        onOpenChange={setProtocolMenuOpen}
-      >
-        <DialogContent >
+      <Dialog open={protocolMenuOpen} onOpenChange={setProtocolMenuOpen}>
+        <DialogContent>
           <DialogTitle className="bg-blue-600 text-white flex items-center gap-2 p-4 -m-6 mb-4">
             {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
             {selectedProtocolType === 'handover'
@@ -1185,7 +1325,7 @@ export default function RentalList() {
               ? 'Vyberte akciu pre odovzdávací protokol'
               : 'Vyberte akciu pre preberací protokol'}
           </DialogDescription>
-          <div >
+          <div>
             <ErrorButton
               className="w-full h-12 px-8 text-base"
               startIcon={<FileText />}
@@ -1203,7 +1343,8 @@ export default function RentalList() {
             </PrimaryButton>
 
             <SecondaryButton
-              className="w-full h-12 px-8 text-base" onClick={handleCloseProtocolMenu}
+              className="w-full h-12 px-8 text-base"
+              onClick={handleCloseProtocolMenu}
             >
               Zavrieť
             </SecondaryButton>

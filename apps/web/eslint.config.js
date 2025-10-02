@@ -70,8 +70,8 @@ export default [
         ecmaFeatures: {
           jsx: true
         },
-        project: './tsconfig.json',
-        tsconfigRootDir: import.meta.dirname || '.'
+        project: true,
+        tsconfigRootDir: import.meta.dirname
       },
       globals: {
         window: 'readonly',

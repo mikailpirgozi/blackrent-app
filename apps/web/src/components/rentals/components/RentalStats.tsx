@@ -1,8 +1,29 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { isAfter, isBefore, isToday, isTomorrow, parseISO } from 'date-fns';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Download,
+  Upload,
+  MoreVertical,
+} from 'lucide-react';
 
 import type { Rental } from '../../../types';
 
@@ -17,6 +38,10 @@ interface RentalStatsProps {
     _filterType: string,
     _value?: string | number | boolean
   ) => void;
+  onAdd?: () => void;
+  onExport?: () => void;
+  onImport?: () => void;
+  canCreate?: boolean;
 }
 
 interface DashboardStats {
@@ -40,8 +65,11 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
   protocols = {},
   isLoading = false,
   onQuickFilter,
+  onAdd,
+  onExport,
+  onImport,
+  canCreate = true,
 }) => {
-
   // 📊 Vypočítaj kľúčové metriky
   const stats: DashboardStats = useMemo(() => {
     const today = new Date();
@@ -237,118 +265,197 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
     }
   };
 
+  // 🎯 Collapsible state
+  const [isOpen, setIsOpen] = useState(false); // Default zbalené pre kompaktnosť
+
   if (isLoading) {
     return (
-      <Card className="mb-6 p-4">
-        <h3 className="text-lg text-muted-foreground">
-          Načítavam štatistiky...
-        </h3>
-      </Card>
+      <div className="mb-4 mx-2 md:mx-0 p-3 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20 animate-pulse">
+        <p className="text-sm text-muted-foreground">Načítavam štatistiky...</p>
+      </div>
     );
   }
 
+  // 🎯 ULTRA KOMPAKTNÉ METRIKY - len najdôležitejšie
+  const compactMetrics = [
+    {
+      label: 'Preterminované',
+      value: stats.overdue,
+      color: stats.overdue > 0 ? 'destructive' : 'secondary',
+      filterType: 'overdue',
+    },
+    {
+      label: 'Dnes',
+      value: stats.todayActivity,
+      color: stats.todayActivity > 0 ? 'warning' : 'secondary',
+      filterType: 'todayActivity',
+    },
+    {
+      label: 'Zajtra',
+      value: stats.tomorrowReturns,
+      color: stats.tomorrowReturns > 0 ? 'warning' : 'secondary',
+      filterType: 'tomorrowReturns',
+    },
+    {
+      label: 'Aktívne',
+      value: stats.active,
+      color: 'default',
+      filterType: 'active',
+    },
+    {
+      label: 'Nezaplatené',
+      value: stats.unpaid,
+      color: stats.unpaid > 0 ? 'destructive' : 'secondary',
+      filterType: 'unpaid',
+    },
+    {
+      label: 'Čakajúce',
+      value: stats.pending,
+      color: stats.pending > 0 ? 'warning' : 'secondary',
+      filterType: 'pending',
+    },
+  ];
+
   return (
-    <Card className="mb-6 mx-2 md:mx-0 bg-background shadow-lg border rounded-lg">
-      <CardContent className="p-4 md:p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-primary flex items-center gap-2">
-            📊 Štatistiky prenájmov
-          </h2>
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="mb-2 mx-2 md:mx-0"
+    >
+      <Card className="bg-gradient-to-r from-background via-primary/5 to-background shadow-sm hover:shadow-md border border-border/50 transition-all duration-200">
+        <CardContent className="p-2 md:p-2.5">
+          {/* 📊 ULTRA KOMPAKTNÝ HEADER - minimálna výška */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Ľavá strana - Metriky inline */}
+            <div className="flex items-center gap-1.5 flex-wrap flex-1">
+              <span className="text-base">📊</span>
 
-          <p className="text-sm text-muted-foreground">
-            Celkom: <strong>{stats.total}</strong> prenájmov
-          </p>
-        </div>
-
-        {/* 📊 ULTRA KOMPAKTNÝ DASHBOARD - všetko v jednom riadku */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1">
-          {allMetrics.map((metric, index) => (
-            <Card
-              key={index}
-              onClick={() =>
-                handleMetricClick(metric.filterType, metric.value)
-              }
-              className={cn(
-                "min-h-[60px] transition-all duration-200 ease-in-out border rounded-md",
-                metric.clickable ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg" : "cursor-default",
-                metric.urgent 
-                  ? "bg-gradient-to-br from-red-50 to-red-100 border-red-200 dark:from-red-950/20 dark:to-red-900/30 dark:border-red-800/30"
-                  : metric.color === 'warning'
-                  ? "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-950/20 dark:to-orange-900/30 dark:border-orange-800/30"
-                  : metric.color === 'success'
-                  ? "bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950/20 dark:to-green-900/30 dark:border-green-800/30"
-                  : metric.color === 'info'
-                  ? "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/20 dark:to-blue-900/30 dark:border-blue-800/30"
-                  : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
-              )}
-            >
-              <CardContent className="text-center p-1">
-                <div className={cn(
-                  "text-lg font-bold leading-tight",
-                  metric.color === 'error' || metric.urgent
-                    ? "text-red-600 dark:text-red-400"
-                    : metric.color === 'warning'
-                    ? "text-orange-600 dark:text-orange-400"
-                    : metric.color === 'success'
-                    ? "text-green-600 dark:text-green-400"
-                    : metric.color === 'info'
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-primary"
-                )}>
-                  {metric.value}
-                </div>
-
-                <div className="text-xs text-muted-foreground leading-tight mt-0.5">
-                  {metric.label}
-                </div>
-
-                {metric.clickable && (
-                  <div className={cn(
-                    "text-xs mt-0.5",
-                    metric.color === 'error' || metric.urgent
-                      ? "text-red-600 dark:text-red-400"
-                      : metric.color === 'warning'
-                      ? "text-orange-600 dark:text-orange-400"
-                      : metric.color === 'success'
-                      ? "text-green-600 dark:text-green-400"
-                      : metric.color === 'info'
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-primary"
-                  )}>
-                    👆
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* 💰 FINANČNÝ PREHĽAD - len reálne dáta */}
-        {stats.totalRevenue > 0 && (
-          <>
-            <Separator className="my-4" />
-            <div className="flex justify-center gap-8">
-              <div className="text-center">
-                <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  {stats.totalRevenue.toLocaleString('sk-SK')}€
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Celkové tržby
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                  {Math.round(stats.avgDailyRevenue).toLocaleString('sk-SK')}€
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Priemerná cena
-                </div>
-              </div>
+              {compactMetrics.map((metric, index) => (
+                <Badge
+                  key={index}
+                  variant={metric.color as any}
+                  className={cn(
+                    'cursor-pointer hover:scale-105 transition-transform text-[0.7rem] px-1.5 py-0 h-5',
+                    metric.value > 0 ? 'opacity-100' : 'opacity-60'
+                  )}
+                  onClick={() =>
+                    metric.value > 0 &&
+                    handleMetricClick(metric.filterType, metric.value)
+                  }
+                >
+                  {metric.value} {metric.label}
+                </Badge>
+              ))}
             </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+
+            {/* Pravá strana - Akcie + Celkom + Toggle */}
+            <div className="flex items-center gap-1.5">
+              {/* Nový prenájom */}
+              {canCreate && onAdd && (
+                <Button
+                  onClick={onAdd}
+                  size="sm"
+                  className="h-6 text-[0.7rem] px-2 bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Nový
+                </Button>
+              )}
+
+              {/* Export/Import dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-6 w-6 p-0">
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onExport && (
+                    <DropdownMenuItem onClick={onExport}>
+                      <Download className="h-3.5 w-3.5 mr-2" />
+                      Export CSV
+                    </DropdownMenuItem>
+                  )}
+                  {onImport && (
+                    <DropdownMenuItem onClick={onImport}>
+                      <Upload className="h-3.5 w-3.5 mr-2" />
+                      Import CSV
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <span className="text-[0.7rem] text-muted-foreground whitespace-nowrap">
+                {stats.total}
+              </span>
+
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-primary/10"
+                >
+                  {isOpen ? (
+                    <ChevronUp className="h-3.5 w-3.5 text-primary" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </div>
+
+          {/* 📊 ROZBALENÉ - všetky metriky - kompaktnejšie */}
+          <CollapsibleContent className="mt-2 animate-slide-down">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1.5">
+              {allMetrics.map((metric, index) => (
+                <div
+                  key={index}
+                  onClick={() =>
+                    metric.clickable &&
+                    handleMetricClick(metric.filterType, metric.value)
+                  }
+                  className={cn(
+                    'p-1.5 rounded-md border transition-all duration-200',
+                    metric.clickable
+                      ? 'cursor-pointer hover:scale-105 hover:shadow-sm'
+                      : 'cursor-default opacity-60',
+                    metric.urgent
+                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
+                      : metric.color === 'warning'
+                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800'
+                        : metric.color === 'success'
+                          ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
+                          : metric.color === 'info'
+                            ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800'
+                            : 'bg-muted/50 border-border'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'text-base font-bold',
+                      metric.color === 'error' || metric.urgent
+                        ? 'text-red-600 dark:text-red-400'
+                        : metric.color === 'warning'
+                          ? 'text-orange-600 dark:text-orange-400'
+                          : metric.color === 'success'
+                            ? 'text-green-600 dark:text-green-400'
+                            : metric.color === 'info'
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-primary'
+                    )}
+                  >
+                    {metric.value}
+                  </div>
+                  <div className="text-[0.6rem] text-muted-foreground leading-tight">
+                    {metric.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </CardContent>
+      </Card>
+    </Collapsible>
   );
 };

@@ -1,4 +1,9 @@
-import { Edit2 as EditIcon, Mail as EmailIcon, Percent as PercentIcon, Phone as PhoneIcon } from 'lucide-react';
+import {
+  Edit2 as EditIcon,
+  Mail as EmailIcon,
+  Percent as PercentIcon,
+  Phone as PhoneIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,10 +11,34 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 // MUI imports úspešne odstránené! ✅
 import { UnifiedDateRangePicker } from '@/components/ui/unified-date-range-picker';
@@ -444,12 +473,15 @@ export default function RentalForm({
     }
 
     // Aktualizácia formulára s parsovanými dátami
-    setFormData(prev => ({
-      ...prev,
-      ...rentalData,
-      customerName: rentalData.customerName || prev.customerName,
-      orderNumber: rentalData.orderNumber || prev.orderNumber,
-    } as Partial<Rental>));
+    setFormData(
+      prev =>
+        ({
+          ...prev,
+          ...rentalData,
+          customerName: rentalData.customerName || prev.customerName,
+          orderNumber: rentalData.orderNumber || prev.orderNumber,
+        }) as Partial<Rental>
+    );
 
     // Nastav selectedVehicle ak bolo parsované vozidlo
     if (rentalData.vehicleId) {
@@ -844,41 +876,45 @@ export default function RentalForm({
               >
                 {formData.vehicleId
                   ? vehicleOptions.find(v => v.id === formData.vehicleId)?.label
-                  : "Vyberte vozidlo..."}
+                  : 'Vyberte vozidlo...'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent 
-              className="w-[500px] p-0" 
-              align="start" 
+            <PopoverContent
+              className="w-[500px] p-0"
+              align="start"
               side="bottom"
-              onWheel={(e) => e.stopPropagation()}
+              onWheel={e => e.stopPropagation()}
             >
               <Command shouldFilter={false} className="overflow-visible">
-                <CommandInput 
-                  placeholder="Hľadať vozidlo podľa značky, modelu alebo ŠPZ..." 
+                <CommandInput
+                  placeholder="Hľadať vozidlo podľa značky, modelu alebo ŠPZ..."
                   className="h-10"
-                  onValueChange={(searchValue) => {
+                  onValueChange={searchValue => {
                     // Custom filtering
                     const filtered = vehicles.filter(v => {
                       const searchLower = searchValue.toLowerCase();
-                      const vehicleText = `${v.brand} ${v.model} ${v.licensePlate} ${v.vin || ''}`.toLowerCase();
+                      const vehicleText =
+                        `${v.brand} ${v.model} ${v.licensePlate} ${v.vin || ''}`.toLowerCase();
                       return vehicleText.includes(searchLower);
                     });
                     // Store filtered results for rendering
                     setFilteredVehicles(filtered);
                   }}
                 />
-                <CommandList 
+                <CommandList
                   className="max-h-[300px] overflow-y-auto scrollbar-thin"
-                  style={{ 
+                  style={{
                     overflowY: 'auto',
                     maxHeight: '300px',
-                    WebkitOverflowScrolling: 'touch'
+                    WebkitOverflowScrolling: 'touch',
                   }}
                 >
                   <CommandEmpty>Žiadne vozidlo nenájdené.</CommandEmpty>
                   <CommandGroup>
-                    {(filteredVehicles.length > 0 ? filteredVehicles : vehicles).map((vehicle) => (
+                    {(filteredVehicles.length > 0
+                      ? filteredVehicles
+                      : vehicles
+                    ).map(vehicle => (
                       <CommandItem
                         key={vehicle.id}
                         value={vehicle.id}
@@ -934,7 +970,10 @@ export default function RentalForm({
                 </Badge>
               )}
               <Badge variant="outline" className="border-blue-500">
-                Provízia: {selectedVehicle.commission.type === 'percentage' ? selectedVehicle.commission.value + '%' : selectedVehicle.commission.value + '€'}
+                Provízia:{' '}
+                {selectedVehicle.commission.type === 'percentage'
+                  ? selectedVehicle.commission.value + '%'
+                  : selectedVehicle.commission.value + '€'}
               </Badge>
             </div>
             <p className="text-sm text-green-600 font-bold mt-2">
@@ -976,7 +1015,9 @@ export default function RentalForm({
 
         {/* Výber z existujúcich zákazníkov s vyhľadávaním */}
         <div className="flex flex-col space-y-2">
-          <Label htmlFor="customer-select">Výber z existujúcich zákazníkov</Label>
+          <Label htmlFor="customer-select">
+            Výber z existujúcich zákazníkov
+          </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -987,36 +1028,37 @@ export default function RentalForm({
               >
                 {selectedCustomer
                   ? selectedCustomer.name
-                  : "Vyberte zákazníka..."}
+                  : 'Vyberte zákazníka...'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent 
-              className="w-[500px] p-0" 
-              align="start" 
+            <PopoverContent
+              className="w-[500px] p-0"
+              align="start"
               side="bottom"
-              onWheel={(e) => e.stopPropagation()}
+              onWheel={e => e.stopPropagation()}
             >
               <Command shouldFilter={false} className="overflow-visible">
-                <CommandInput 
-                  placeholder="Hľadať zákazníka podľa mena, emailu alebo telefónu..." 
+                <CommandInput
+                  placeholder="Hľadať zákazníka podľa mena, emailu alebo telefónu..."
                   className="h-10"
-                  onValueChange={(searchValue) => {
+                  onValueChange={searchValue => {
                     // Custom filtering
                     const filtered = customers.filter(c => {
                       const searchLower = searchValue.toLowerCase();
-                      const customerText = `${c.name} ${c.email || ''} ${c.phone || ''}`.toLowerCase();
+                      const customerText =
+                        `${c.name} ${c.email || ''} ${c.phone || ''}`.toLowerCase();
                       return customerText.includes(searchLower);
                     });
                     // Store filtered results for rendering
                     setFilteredCustomers(filtered);
                   }}
                 />
-                <CommandList 
+                <CommandList
                   className="max-h-[300px] overflow-y-auto scrollbar-thin"
-                  style={{ 
+                  style={{
                     overflowY: 'auto',
                     maxHeight: '300px',
-                    WebkitOverflowScrolling: 'touch'
+                    WebkitOverflowScrolling: 'touch',
                   }}
                 >
                   <CommandEmpty>Žiadni zákazníci nenájdení.</CommandEmpty>
@@ -1030,10 +1072,15 @@ export default function RentalForm({
                       className="cursor-pointer border-b"
                     >
                       <div className="flex items-center gap-2 w-full py-1">
-                        <span className="text-primary font-medium">+ Pridať nového zákazníka</span>
+                        <span className="text-primary font-medium">
+                          + Pridať nového zákazníka
+                        </span>
                       </div>
                     </CommandItem>
-                    {(filteredCustomers.length > 0 ? filteredCustomers : customers).map((customer) => (
+                    {(filteredCustomers.length > 0
+                      ? filteredCustomers
+                      : customers
+                    ).map(customer => (
                       <CommandItem
                         key={customer.id}
                         value={customer.id}
@@ -1078,8 +1125,8 @@ export default function RentalForm({
             </p>
             <div className="flex gap-2 flex-wrap items-center">
               {selectedCustomer.phone && (
-                <Badge 
-                  variant="default" 
+                <Badge
+                  variant="default"
                   className="cursor-pointer hover:bg-primary/90 flex items-center gap-1"
                   onClick={() => handleCallCustomer(selectedCustomer.phone)}
                 >
@@ -1088,7 +1135,7 @@ export default function RentalForm({
                 </Badge>
               )}
               {selectedCustomer.email && (
-                <Badge 
+                <Badge
                   variant="default"
                   className="cursor-pointer hover:bg-primary/90 flex items-center gap-1"
                   onClick={() => handleEmailCustomer(selectedCustomer.email)}
@@ -1125,9 +1172,7 @@ export default function RentalForm({
         {/* Informácia o novom zákazníkovi */}
         {formData.customerName && !selectedCustomer && (
           <div className="col-span-full mt-2">
-            <p className="text-sm text-muted-foreground mb-1">
-              Nový zákazník:
-            </p>
+            <p className="text-sm text-muted-foreground mb-1">Nový zákazník:</p>
             <p className="text-sm text-muted-foreground">
               {formData.customerName} - bude automaticky vytvorený pri uložení
               prenájmu
@@ -1150,9 +1195,11 @@ export default function RentalForm({
         {/* Spôsob platby */}
         <div>
           <Label htmlFor="payment-method">Spôsob platby</Label>
-          <Select 
+          <Select
             value={formData.paymentMethod || 'cash'}
-            onValueChange={(value) => handleInputChange('paymentMethod', value as PaymentMethod)}
+            onValueChange={value =>
+              handleInputChange('paymentMethod', value as PaymentMethod)
+            }
           >
             <SelectTrigger id="payment-method">
               <SelectValue />
@@ -1195,15 +1242,17 @@ export default function RentalForm({
         <div className="col-span-full mt-4 mb-4">
           <Card
             className={`p-4 ${
-              formData.isFlexible 
-                ? 'bg-yellow-50 border-2 border-yellow-500 shadow-lg' 
+              formData.isFlexible
+                ? 'bg-yellow-50 border-2 border-yellow-500 shadow-lg'
                 : 'border'
             }`}
           >
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
               🔄 Flexibilný prenájom
-              <Badge 
-                className={formData.isFlexible ? 'bg-yellow-500 text-white' : ''}
+              <Badge
+                className={
+                  formData.isFlexible ? 'bg-yellow-500 text-white' : ''
+                }
                 variant={formData.isFlexible ? 'default' : 'secondary'}
               >
                 {formData.isFlexible ? 'AKTÍVNY' : 'ŠTANDARDNÝ'}
@@ -1238,8 +1287,12 @@ export default function RentalForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="standard">🔒 Štandardný prenájom</SelectItem>
-                      <SelectItem value="flexible">🔄 Flexibilný prenájom</SelectItem>
+                      <SelectItem value="standard">
+                        🔒 Štandardný prenájom
+                      </SelectItem>
+                      <SelectItem value="flexible">
+                        🔄 Flexibilný prenájom
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1256,7 +1309,10 @@ export default function RentalForm({
                     }
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="private-rental" className="flex items-center gap-2 cursor-pointer">
+                    <Label
+                      htmlFor="private-rental"
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
                       <span className="text-sm">
                         🔒 Súkromný prenájom (mimo BlackRent platformy)
                       </span>
@@ -1265,8 +1321,8 @@ export default function RentalForm({
                       </Badge>
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Prenájom sa zobrazí vo fialovej farbe v dostupnosti a nebude
-                      sa počítať do štatistík platformy
+                      Prenájom sa zobrazí vo fialovej farbe v dostupnosti a
+                      nebude sa počítať do štatistík platformy
                     </p>
                   </div>
                 </div>
@@ -1334,16 +1390,21 @@ export default function RentalForm({
                               id="manual-price"
                               type="number"
                               value={manualPrice || ''}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>
+                              ) => {
                                 const value = parseFloat(e.target.value) || 0;
                                 setManualPrice(value);
                               }}
                               className="pr-8"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                              €
+                            </span>
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Zadajte individuálnu cenu pre tento flexibilný prenájom
+                            Zadajte individuálnu cenu pre tento flexibilný
+                            prenájom
                           </p>
                         </div>
                       )}
@@ -1351,7 +1412,9 @@ export default function RentalForm({
                       {!useManualPricing && (
                         <p className="text-sm text-muted-foreground">
                           Automatická cena:{' '}
-                          <strong className="font-semibold">{calculatedPrice || 0}€</strong>
+                          <strong className="font-semibold">
+                            {calculatedPrice || 0}€
+                          </strong>
                         </p>
                       )}
                     </Card>
@@ -1395,7 +1458,9 @@ export default function RentalForm({
                 autoFocus
                 placeholder="Nové miesto"
                 value={newPlace}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPlace(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewPlace(e.target.value)
+                }
               />
               <Button
                 variant="default"
@@ -1447,7 +1512,9 @@ export default function RentalForm({
               placeholder="250"
               className={dailyKilometers > 0 ? 'bg-green-50' : ''}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">km/deň</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              km/deň
+            </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Automaticky sa prepočítajú na celkové km podľa dĺžky prenájmu
@@ -1477,7 +1544,9 @@ export default function RentalForm({
               placeholder="0 = neobmedzené"
               className="pr-12"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">km</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              km
+            </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {dailyKilometers > 0
@@ -1507,7 +1576,9 @@ export default function RentalForm({
         <div>
           <Label htmlFor="extra-km-rate">Cena za extra km (€)</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              €
+            </span>
             <Input
               id="extra-km-rate"
               type="number"
@@ -1520,7 +1591,9 @@ export default function RentalForm({
               placeholder="0"
               className="pl-8 pr-12"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">/ km</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              / km
+            </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Cena za každý kilometer nad povolený limit
@@ -1531,12 +1604,16 @@ export default function RentalForm({
         <div>
           <Label htmlFor="deposit">Výška depozitu (€)</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              €
+            </span>
             <Input
               id="deposit"
               type="number"
               value={deposit}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeposit(Number(e.target.value) || 0)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setDeposit(Number(e.target.value) || 0)
+              }
               placeholder="0"
               className="pl-8"
             />
@@ -1548,7 +1625,7 @@ export default function RentalForm({
           <Checkbox
             id="paid-checkbox"
             checked={paid}
-            onCheckedChange={(checked) => setPaid(checked as boolean)}
+            onCheckedChange={checked => setPaid(checked as boolean)}
           />
           <Label htmlFor="paid-checkbox" className="cursor-pointer">
             Prenájom uhradený
@@ -1559,9 +1636,7 @@ export default function RentalForm({
       <div className="col-span-full mt-6">
         <Card>
           <CardContent>
-            <h3 className="text-lg font-semibold mb-2">
-              Výpočet ceny
-            </h3>
+            <h3 className="text-lg font-semibold mb-2">Výpočet ceny</h3>
             <PriceSummary
               calculatedPrice={calculatedPrice}
               extraKmCharge={extraKmCharge}
@@ -1575,12 +1650,17 @@ export default function RentalForm({
                 Zľava / Provízia
               </h3>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowDiscountCommission(prev => !prev)}
                 className="h-8 w-8 p-0"
               >
-                {showDiscountCommission ? <PercentIcon className="h-4 w-4" /> : <EditIcon className="h-4 w-4" />}
+                {showDiscountCommission ? (
+                  <PercentIcon className="h-4 w-4" />
+                ) : (
+                  <EditIcon className="h-4 w-4" />
+                )}
               </Button>
             </div>
             {/* Polia pre zľavu a províziu - zobrazia sa až po kliknutí */}
@@ -1670,7 +1750,9 @@ export default function RentalForm({
               <Input
                 type="number"
                 value={extraKmCharge}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtraKmCharge(Number(e.target.value))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setExtraKmCharge(Number(e.target.value))
+                }
                 className="w-[120px]"
                 min={0}
               />
@@ -1683,9 +1765,7 @@ export default function RentalForm({
       <div className="col-span-full mt-6">
         <Card>
           <CardContent>
-            <h3 className="text-lg font-semibold mb-2">
-              Platby (splátky)
-            </h3>
+            <h3 className="text-lg font-semibold mb-2">Platby (splátky)</h3>
             <Button
               variant="outline"
               onClick={handleAddPayment}
@@ -1757,113 +1837,113 @@ export default function RentalForm({
               {editingPayment?.id ? 'Upraviť platbu' : 'Pridať platbu'}
             </DialogTitle>
             <DialogDescription>
-              {editingPayment?.id ? 'Upravte detaily platby' : 'Pridajte novú platbu k rezervácii'}
+              {editingPayment?.id
+                ? 'Upravte detaily platby'
+                : 'Pridajte novú platbu k rezervácii'}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
-                <div>
-                  <Label htmlFor="payment-date">Dátum</Label>
-                  <Input
-                    id="payment-date"
-                    type="date"
-                    value={
-                      editingPayment?.date
-                        ? new Date(editingPayment.date)
-                            .toISOString()
-                            .split('T')[0]
-                        : ''
-                    }
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setEditingPayment(p =>
-                        p ? { ...p, date: new Date(e.target.value) } : null
-                      )
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="payment-amount">Suma (€)</Label>
-                  <Input
-                    id="payment-amount"
-                    type="number"
-                    value={editingPayment?.amount || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setEditingPayment(p =>
-                        p ? { ...p, amount: Number(e.target.value) } : null
-                      )
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="payment-method-dialog">Spôsob platby</Label>
-                  <Select
-                    value={editingPayment?.paymentMethod || 'cash'}
-                    onValueChange={(value: string) =>
-                      setEditingPayment(p =>
-                        p
-                          ? {
-                              ...p,
-                              paymentMethod: value as PaymentMethod,
-                            }
-                          : null
-                      )
-                    }
-                  >
-                    <SelectTrigger id="payment-method-dialog">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Hotovosť</SelectItem>
-                      <SelectItem value="bank_transfer">Bankový prevod</SelectItem>
-                      <SelectItem value="vrp">VRP</SelectItem>
-                      <SelectItem value="direct_to_owner">
-                        Priamo majiteľovi
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="invoice-number">Faktúra</Label>
-                  <Input
-                    id="invoice-number"
-                    value={editingPayment?.invoiceNumber || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setEditingPayment(p =>
-                        p ? { ...p, invoiceNumber: e.target.value } : null
-                      )
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="payment-note">Poznámka</Label>
-                  <Input
-                    id="payment-note"
-                    value={editingPayment?.note || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setEditingPayment(p =>
-                        p ? { ...p, note: e.target.value } : null
-                      )
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="payment-status">Stav</Label>
-                  <Select
-                    value={editingPayment?.isPaid ? 'paid' : 'unpaid'}
-                    onValueChange={(value: string) =>
-                      setEditingPayment(p =>
-                        p ? { ...p, isPaid: value === 'paid' } : null
-                      )
-                    }
-                  >
-                    <SelectTrigger id="payment-status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="paid">Zaplatené</SelectItem>
-                      <SelectItem value="unpaid">Nezaplatené</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div>
+              <Label htmlFor="payment-date">Dátum</Label>
+              <Input
+                id="payment-date"
+                type="date"
+                value={
+                  editingPayment?.date
+                    ? new Date(editingPayment.date).toISOString().split('T')[0]
+                    : ''
+                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditingPayment(p =>
+                    p ? { ...p, date: new Date(e.target.value) } : null
+                  )
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="payment-amount">Suma (€)</Label>
+              <Input
+                id="payment-amount"
+                type="number"
+                value={editingPayment?.amount || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditingPayment(p =>
+                    p ? { ...p, amount: Number(e.target.value) } : null
+                  )
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="payment-method-dialog">Spôsob platby</Label>
+              <Select
+                value={editingPayment?.paymentMethod || 'cash'}
+                onValueChange={(value: string) =>
+                  setEditingPayment(p =>
+                    p
+                      ? {
+                          ...p,
+                          paymentMethod: value as PaymentMethod,
+                        }
+                      : null
+                  )
+                }
+              >
+                <SelectTrigger id="payment-method-dialog">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Hotovosť</SelectItem>
+                  <SelectItem value="bank_transfer">Bankový prevod</SelectItem>
+                  <SelectItem value="vrp">VRP</SelectItem>
+                  <SelectItem value="direct_to_owner">
+                    Priamo majiteľovi
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="invoice-number">Faktúra</Label>
+              <Input
+                id="invoice-number"
+                value={editingPayment?.invoiceNumber || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditingPayment(p =>
+                    p ? { ...p, invoiceNumber: e.target.value } : null
+                  )
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="payment-note">Poznámka</Label>
+              <Input
+                id="payment-note"
+                value={editingPayment?.note || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditingPayment(p =>
+                    p ? { ...p, note: e.target.value } : null
+                  )
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="payment-status">Stav</Label>
+              <Select
+                value={editingPayment?.isPaid ? 'paid' : 'unpaid'}
+                onValueChange={(value: string) =>
+                  setEditingPayment(p =>
+                    p ? { ...p, isPaid: value === 'paid' } : null
+                  )
+                }
+              >
+                <SelectTrigger id="payment-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Zaplatené</SelectItem>
+                  <SelectItem value="unpaid">Nezaplatené</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -1888,7 +1968,10 @@ export default function RentalForm({
       </Dialog>
 
       {/* Dialóg na editáciu zákazníka */}
-      <Dialog open={editCustomerDialogOpen && !!editingCustomer} onOpenChange={setEditCustomerDialogOpen}>
+      <Dialog
+        open={editCustomerDialogOpen && !!editingCustomer}
+        onOpenChange={setEditCustomerDialogOpen}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
@@ -1899,28 +1982,28 @@ export default function RentalForm({
             </DialogDescription>
           </DialogHeader>
           <form
-              onSubmit={e => {
-                e.preventDefault();
-                const form = e.currentTarget as HTMLFormElement;
-                const formData = new FormData(form);
-                const name = formData.get('name') as string;
-                const email = formData.get('email') as string;
-                const phone = formData.get('phone') as string;
+            onSubmit={e => {
+              e.preventDefault();
+              const form = e.currentTarget as HTMLFormElement;
+              const formData = new FormData(form);
+              const name = formData.get('name') as string;
+              const email = formData.get('email') as string;
+              const phone = formData.get('phone') as string;
 
-                if (!name?.trim()) {
-                  window.alert('Meno zákazníka je povinné');
-                  return;
-                }
+              if (!name?.trim()) {
+                window.alert('Meno zákazníka je povinné');
+                return;
+              }
 
-                const updatedCustomer: Customer = {
-                  ...editingCustomer!,
-                  name: name.trim(),
-                  email: email?.trim() || '',
-                  phone: phone?.trim() || '',
-                };
+              const updatedCustomer: Customer = {
+                ...editingCustomer!,
+                name: name.trim(),
+                email: email?.trim() || '',
+                phone: phone?.trim() || '',
+              };
 
-                handleSaveEditedCustomer(updatedCustomer);
-              }}
+              handleSaveEditedCustomer(updatedCustomer);
+            }}
           >
             <div className="flex flex-col gap-4 py-4">
               <div>
@@ -1961,11 +2044,7 @@ export default function RentalForm({
               >
                 Zrušiť
               </Button>
-              <Button
-                type="submit"
-                variant="default"
-                disabled={savingCustomer}
-              >
+              <Button type="submit" variant="default" disabled={savingCustomer}>
                 {savingCustomer && <Spinner className="w-5 h-5 mr-2" />}
                 {savingCustomer ? 'Ukladám...' : 'Uložiť zmeny'}
               </Button>
@@ -1984,53 +2063,42 @@ export default function RentalForm({
             </DialogDescription>
           </DialogHeader>
           <form
-              onSubmit={e => {
-                e.preventDefault();
-                const form = e.currentTarget as HTMLFormElement;
-                const formData = new FormData(form);
-                const name = formData.get('name') as string;
-                const email = formData.get('email') as string;
-                const phone = formData.get('phone') as string;
+            onSubmit={e => {
+              e.preventDefault();
+              const form = e.currentTarget as HTMLFormElement;
+              const formData = new FormData(form);
+              const name = formData.get('name') as string;
+              const email = formData.get('email') as string;
+              const phone = formData.get('phone') as string;
 
-                if (!name?.trim()) {
-                  window.alert('Meno zákazníka je povinné');
-                  return;
-                }
+              if (!name?.trim()) {
+                window.alert('Meno zákazníka je povinné');
+                return;
+              }
 
-                const newCustomer: Customer = {
-                  id: uuidv4(),
-                  name: name.trim(),
-                  email: email?.trim() || '',
-                  phone: phone?.trim() || '',
-                  createdAt: new Date(),
-                };
+              const newCustomer: Customer = {
+                id: uuidv4(),
+                name: name.trim(),
+                email: email?.trim() || '',
+                phone: phone?.trim() || '',
+                createdAt: new Date(),
+              };
 
-                handleSaveCustomer(newCustomer);
-              }}
+              handleSaveCustomer(newCustomer);
+            }}
           >
             <div className="flex flex-col gap-4 py-4">
               <div>
                 <Label htmlFor="new-name">Meno zákazníka *</Label>
-                <Input
-                  id="new-name"
-                  name="name"
-                  required
-                />
+                <Input id="new-name" name="name" required />
               </div>
               <div>
                 <Label htmlFor="new-email">Email</Label>
-                <Input
-                  id="new-email"
-                  name="email"
-                  type="email"
-                />
+                <Input id="new-email" name="email" type="email" />
               </div>
               <div>
                 <Label htmlFor="new-phone">Telefón</Label>
-                <Input
-                  id="new-phone"
-                  name="phone"
-                />
+                <Input id="new-phone" name="phone" />
               </div>
             </div>
             <DialogFooter>
@@ -2049,13 +2117,16 @@ export default function RentalForm({
       </Dialog>
 
       <div className="col-span-full flex gap-4 justify-end mt-6">
-        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isLoading}
+        >
           Zrušiť
         </Button>
         <Button type="submit" variant="default" disabled={isLoading}>
-          {isLoading && (
-            <Spinner className="w-5 h-5 mr-2" />
-          )}
+          {isLoading && <Spinner className="w-5 h-5 mr-2" />}
           {isLoading
             ? 'Ukladá sa...'
             : rental
