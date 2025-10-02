@@ -108,9 +108,8 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
             {error.retry && !isOnline && (
               <UnifiedButton
                 variant="ghost"
-                className="h-8 px-3 text-sm"
-                onClick={handleRetry}
                 className="p-1"
+                onClick={handleRetry}
                 disabled={!isOnline}
               >
                 <UnifiedIcon name="refresh" size={16} />
@@ -118,9 +117,8 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
             )}
             <UnifiedButton
               variant="ghost"
-              className="h-8 px-3 text-sm"
-              onClick={handleDismiss}
               className="p-1"
+              onClick={handleDismiss}
             >
               <UnifiedIcon name="close" size={16} />
             </UnifiedButton>
