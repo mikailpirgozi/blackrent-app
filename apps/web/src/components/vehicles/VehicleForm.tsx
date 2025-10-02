@@ -18,7 +18,7 @@ import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
-import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
+import { useCompanies, useCreateCompany } from '@/lib/react-query/hooks/useCompanies';
 import {
   useCreateVehicleDocument,
   useDeleteVehicleDocument,
@@ -61,13 +61,11 @@ export default function VehicleForm({
   const updateVehicleDocumentMutation = useUpdateVehicleDocument();
   const deleteVehicleDocumentMutation = useDeleteVehicleDocument();
 
-  // Helper functions for compatibility
-  const createCompany = async (companyData: unknown) => {
-    // This would need to be implemented in useCompanies hook
-    console.warn(
-      'createCompany not yet implemented in React Query hooks',
-      companyData
-    );
+  // ✅ FIX: Use proper mutation hook for companies
+  const createCompanyMutation = useCreateCompany();
+  
+  const createCompany = async (companyData: { id: string; name: string; isActive?: boolean; createdAt?: Date }) => {
+    return createCompanyMutation.mutateAsync(companyData);
   };
 
   const createVehicleDocument = async (document: VehicleDocument) => {

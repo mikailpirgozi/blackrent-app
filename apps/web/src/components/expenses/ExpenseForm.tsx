@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
-import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
+import { useCompanies, useCreateCompany } from '@/lib/react-query/hooks/useCompanies';
 import { useExpenses } from '@/lib/react-query/hooks/useExpenses';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Expense, ExpenseCategory } from '../../types';
@@ -31,6 +31,9 @@ export default function ExpenseForm({
   const { data: expenses = [] } = useExpenses();
 
   // Helper functions for compatibility
+  // ✅ FIX: Use proper mutation hook for companies
+  const createCompanyMutation = useCreateCompany();
+  
   const createCompany = async (company: {
     id: string;
     name: string;
@@ -38,11 +41,7 @@ export default function ExpenseForm({
     isActive?: boolean;
     createdAt?: Date;
   }) => {
-    // TODO: Implement createCompany in React Query hooks
-    console.warn(
-      'createCompany not yet implemented in React Query hooks',
-      company
-    );
+    return createCompanyMutation.mutateAsync(company);
   };
   const getFilteredVehicles = () => vehicles;
   const allVehicles = getFilteredVehicles();

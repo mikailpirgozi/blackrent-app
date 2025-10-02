@@ -159,6 +159,8 @@ export default function PDFViewer({
       maxWidth="lg"
       fullWidth
       className="h-[90vh] max-h-[90vh]"
+      title={`${title} - ${protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'} vozidla`}
+      subtitle="Náhľad PDF dokumentu"
     >
       <div className="flex justify-between items-center bg-primary text-white p-6">
         <div className="flex items-center gap-2">

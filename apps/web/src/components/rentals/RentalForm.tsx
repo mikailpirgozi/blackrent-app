@@ -66,14 +66,9 @@ export default function RentalForm({
   const updateCustomer = async (customer: Customer) => {
     return updateCustomerMutation.mutateAsync(customer);
   };
-  const loadData = async () => {
-    // TODO: Implement loadData in React Query hooks
-    console.warn('loadData not yet implemented in React Query hooks');
-  };
-  const dispatch = (action: unknown) => {
-    // TODO: Implement dispatch in React Query hooks
-    console.warn('dispatch not yet implemented in React Query hooks', action);
-  };
+  // ✅ FIX: Removed unused loadData and dispatch - not needed with React Query
+  // Data loading is handled by useVehicles(), useCustomers() hooks
+  // State updates are handled by local useState, not global dispatch
 
   // ═══════════════════════════════════════════════════════════════════
   // 📋 SECTION 1: FORM STATE

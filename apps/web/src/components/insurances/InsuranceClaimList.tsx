@@ -99,25 +99,21 @@ export default function InsuranceClaimList() {
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: insuranceClaims = [] } = useInsuranceClaims();
   const { data: vehicles = [] } = useVehicles();
-  const deleteInsuranceClaimMutation = useDeleteInsuranceClaim();
+  
+  // ✅ FIX: Use proper mutation hooks
+  const createClaimMutation = useCreateInsuranceClaim();
+  const updateClaimMutation = useUpdateInsuranceClaim();
+  const deleteClaimMutation = useDeleteInsuranceClaim();
 
-  // Helper functions for compatibility
+  // Helper functions using mutations
   const createInsuranceClaim = async (claim: InsuranceClaim) => {
-    // TODO: Implement createInsuranceClaim in React Query hooks
-    console.warn(
-      'createInsuranceClaim not yet implemented in React Query hooks',
-      claim
-    );
+    return createClaimMutation.mutateAsync(claim);
   };
   const updateInsuranceClaim = async (claim: InsuranceClaim) => {
-    // TODO: Implement updateInsuranceClaim in React Query hooks
-    console.warn(
-      'updateInsuranceClaim not yet implemented in React Query hooks',
-      claim
-    );
+    return updateClaimMutation.mutateAsync(claim);
   };
   const deleteInsuranceClaim = async (id: string) => {
-    return deleteInsuranceClaimMutation.mutateAsync(id);
+    return deleteClaimMutation.mutateAsync(id);
   };
 
   // Media queries using window.innerWidth

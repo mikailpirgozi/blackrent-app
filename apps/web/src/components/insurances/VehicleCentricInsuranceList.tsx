@@ -1078,7 +1078,7 @@ export default function VehicleCentricInsuranceList() {
                     : 'Vyhľadať vozidlo alebo dokument...'
                 }
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 startAdornment={
                   <UnifiedIcon
                     name="search"
@@ -1383,6 +1383,8 @@ export default function VehicleCentricInsuranceList() {
           fullWidth
           fullScreen={isMobile}
           keepMounted={false}
+          title={editingDocument ? 'Upraviť dokument' : 'Pridať dokument'}
+          subtitle={editingDocument ? 'Upravte údaje dokumentu' : 'Vyplňte údaje nového dokumentu'}
         >
           <UnifiedDocumentForm
             document={editingDocument}
