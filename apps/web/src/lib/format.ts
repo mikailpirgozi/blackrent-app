@@ -1,6 +1,9 @@
 /**
- * Formátovanie pre peniaze a dátumy
+ * Formátovanie pre peniaze
  * Používa Intl API pre lokalizáciu
+ *
+ * NOTE: formatDate() bolo odstránené (duplicita s src/utils/formatters.ts)
+ * Pre formátovanie dátumov použite: import { formatDate } from '@/utils/formatters'
  */
 
 /**
@@ -25,24 +28,4 @@ export function formatMoney(
     style: 'currency',
     currency: currency,
   }).format(euros);
-}
-
-/**
- * Formátuje ISO dátum na zrozumiteľný text
- * @param iso - ISO dátum string (UTC)
- * @param locale - lokalizácia (predvolene sk-SK)
- * @returns formátovaný dátum
- *
- * @example
- * formatDate('2025-08-30T12:00:00Z') // "30. 8. 2025"
- * formatDate('2025-08-30T12:00:00Z', 'en-US') // "8/30/2025"
- */
-export function formatDate(iso: string, locale = 'sk-SK'): string {
-  const date = new Date(iso);
-
-  return new Intl.DateTimeFormat(locale, {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).format(date);
 }
