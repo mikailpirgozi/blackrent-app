@@ -2,13 +2,15 @@ import { apiService } from '@/services/api';
 import type { Customer } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
+import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
 
 // GET customers
 export function useCustomers() {
   return useQuery({
     queryKey: queryKeys.customers.lists(),
     queryFn: () => apiService.getCustomers(),
-    staleTime: 30 * 1000, // 30 sekúnd - ✅ FIX: Znížené z 5 minút pre lepší real-time updates
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
+    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
     refetchOnMount: 'always', // ✅ FIX: Vždy refetch pri mounte
   });
 }
@@ -51,10 +53,14 @@ export function useCreateCustomer() {
     },
     onSuccess: data => {
       // Trigger WebSocket notification
-      window.dispatchEvent(new CustomEvent('customer-created', { detail: data }));
+      window.dispatchEvent(
+        new CustomEvent('customer-created', { detail: data })
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.customers();
     },
   });
 }
@@ -99,10 +105,14 @@ export function useUpdateCustomer() {
     },
     onSuccess: data => {
       // Trigger WebSocket notification
-      window.dispatchEvent(new CustomEvent('customer-updated', { detail: data }));
+      window.dispatchEvent(
+        new CustomEvent('customer-updated', { detail: data })
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.customers();
     },
   });
 }
@@ -145,6 +155,8 @@ export function useDeleteCustomer() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.customers();
     },
   });
 }

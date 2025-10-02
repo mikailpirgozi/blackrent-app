@@ -1,5 +1,9 @@
 import { UnifiedIcon } from '../ui/UnifiedIcon';
-import { UnifiedCard, StatisticsCard, InteractiveCard } from '../ui/UnifiedCard';
+import {
+  UnifiedCard,
+  StatisticsCard,
+  InteractiveCard,
+} from '../ui/UnifiedCard';
 import { UnifiedButton } from '../ui/UnifiedButton';
 import { UnifiedChip } from '../ui/UnifiedChip';
 import { UnifiedTextField } from '../ui/UnifiedTextField';
@@ -92,7 +96,14 @@ type StatusFilter = 'all' | 'valid' | 'expiring' | 'expired';
 interface ExpiryStatus {
   status: 'valid' | 'expiring' | 'expired' | 'invalid';
   text: string;
-  color: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
+  color:
+    | 'primary'
+    | 'secondary'
+    | 'success'
+    | 'warning'
+    | 'error'
+    | 'info'
+    | 'neutral';
   bgColor?: string;
   daysLeft?: number;
 }
@@ -224,23 +235,37 @@ export default function VehicleCentricInsuranceList() {
   // React Query hooks for data
   const { data: vehicles = [] } = useVehicles();
   const { data: insurers = [] } = useInsurers();
-  const { data: vehicleDocuments = [] } = useVehicleDocuments();
+  const {
+    data: vehicleDocuments = [],
+    isLoading: _vehicleDocsLoading,
+    dataUpdatedAt,
+  } = useVehicleDocuments();
+
+  // 🔍 DEBUG: Log when vehicleDocuments change
+  useEffect(() => {
+    console.log('🔄 VehicleDocuments updated:', {
+      count: vehicleDocuments?.length,
+      dataUpdatedAt: new Date(dataUpdatedAt),
+      timestamp: Date.now(),
+      data: vehicleDocuments,
+    });
+  }, [vehicleDocuments, dataUpdatedAt]);
 
   // React Query mutations for vehicle documents
   const createVehicleDocumentMutation = useCreateVehicleDocument();
   const updateVehicleDocumentMutation = useUpdateVehicleDocument();
   const deleteVehicleDocumentMutation = useDeleteVehicleDocument();
-  
+
   // Media queries using window.innerWidth
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  
+
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
       setIsTablet(window.innerWidth < 1024); // lg breakpoint
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
@@ -466,9 +491,7 @@ export default function VehicleCentricInsuranceList() {
       // Calculate stats
       const nextExpiryDate = filteredDocs
         .map(doc =>
-          typeof doc.validTo === 'string'
-            ? parseISO(doc.validTo)
-            : doc.validTo
+          typeof doc.validTo === 'string' ? parseISO(doc.validTo) : doc.validTo
         )
         .filter(date => isValid(date) && isAfter(date, new Date()))
         .sort((a, b) => a.getTime() - b.getTime())[0];
@@ -675,7 +698,7 @@ export default function VehicleCentricInsuranceList() {
     (data: UnifiedDocumentData) => {
       console.log('🟢 handleSave CALLED with data:', data);
       console.log('🟢 editingDocument:', editingDocument);
-      
+
       const closeDialog = () => {
         setOpenDialog(false);
         setEditingDocument(null);
@@ -714,9 +737,17 @@ export default function VehicleCentricInsuranceList() {
             greenCardValidTo: data.greenCardValidTo || new Date(),
             kmState: data.kmState || 0, // 🚗 Stav kilometrov
           };
+          console.log(
+            '🔵 BEFORE MUTATION: Calling updateInsuranceMutation.mutate with:',
+            insuranceData
+          );
           updateInsuranceMutation.mutate(insuranceData, {
-            onSuccess: closeDialog,
+            onSuccess: data => {
+              console.log('✅ UPDATE SUCCESS:', data);
+              closeDialog();
+            },
             onError: error => {
+              console.error('❌ UPDATE ERROR:', error);
               console.error('Chyba pri ukladaní insurance:', error);
               window.alert('Chyba pri ukladaní insurance: ' + error.message);
             },
@@ -726,6 +757,7 @@ export default function VehicleCentricInsuranceList() {
               // Per-entity cache invalidation is handled in useInsurances hook
             },
           });
+          console.log('🔵 AFTER MUTATION: Mutation called');
         } else {
           // Type guard pre DocumentType
           const isValidDocumentType = (type: string): type is DocumentType => {
@@ -747,13 +779,24 @@ export default function VehicleCentricInsuranceList() {
               filePath: data.filePath || '',
               kmState: data.kmState || 0, // 🚗 Stav kilometrov pre STK/EK
             };
+            console.log(
+              '🔵 BEFORE MUTATION: Calling updateVehicleDocumentMutation.mutate with:',
+              vehicleDocData
+            );
             updateVehicleDocumentMutation.mutate(vehicleDocData, {
-              onSuccess: closeDialog,
+              onSuccess: data => {
+                console.log('✅ VEHICLE DOCUMENT UPDATE SUCCESS:', data);
+                closeDialog();
+              },
               onError: error => {
+                console.error('❌ VEHICLE DOCUMENT UPDATE ERROR:', error);
                 console.error('Chyba pri ukladaní vehicle document:', error);
-                window.alert('Chyba pri ukladaní vehicle document: ' + error.message);
+                window.alert(
+                  'Chyba pri ukladaní vehicle document: ' + error.message
+                );
               },
             });
+            console.log('🔵 AFTER MUTATION: Mutation called');
           }
         }
       } else {
@@ -814,7 +857,9 @@ export default function VehicleCentricInsuranceList() {
             onSuccess: closeDialog,
             onError: error => {
               console.error('Chyba pri ukladaní vehicle document:', error);
-              window.alert('Chyba pri ukladaní vehicle document: ' + error.message);
+              window.alert(
+                'Chyba pri ukladaní vehicle document: ' + error.message
+              );
             },
           });
         }
@@ -842,42 +887,49 @@ export default function VehicleCentricInsuranceList() {
     searchQuery || filterVehicle || filterCompany || filterType || filterStatus;
 
   return (
-    <div className={cn(
-      "w-full max-w-full overflow-hidden",
-      isMobile ? "p-4" : isTablet ? "p-6" : "p-8"
-    )}>
+    <div
+      className={cn(
+        'w-full max-w-full overflow-hidden',
+        isMobile ? 'p-4' : isTablet ? 'p-6' : 'p-8'
+      )}
+    >
       {/* Modern Responsive Header */}
       <UnifiedCard
         variant="elevated"
-        className={cn(
-          "mb-6",
-          isMobile ? "rounded-lg" : "rounded-xl"
-        )}
+        className={cn('mb-6', isMobile ? 'rounded-lg' : 'rounded-xl')}
       >
-        <div className={cn(
-          "relative text-white",
-          "bg-gradient-to-br from-blue-600 to-purple-600",
-          isMobile ? "p-4" : isTablet ? "p-6" : "p-8"
-        )}>
-          <div className={cn(
-            "flex justify-between",
-            isMobile ? "flex-col items-start gap-4" : "flex-row items-center gap-4"
-          )}>
-            <div className={cn(
-              "flex items-center",
-              isMobile ? "w-full gap-3" : "gap-4"
-            )}>
-              <UnifiedIcon 
-                name="security" 
+        <div
+          className={cn(
+            'relative text-white',
+            'bg-gradient-to-br from-blue-600 to-purple-600',
+            isMobile ? 'p-4' : isTablet ? 'p-6' : 'p-8'
+          )}
+        >
+          <div
+            className={cn(
+              'flex justify-between',
+              isMobile
+                ? 'flex-col items-start gap-4'
+                : 'flex-row items-center gap-4'
+            )}
+          >
+            <div
+              className={cn(
+                'flex items-center',
+                isMobile ? 'w-full gap-3' : 'gap-4'
+              )}
+            >
+              <UnifiedIcon
+                name="security"
                 size={isMobile ? 24 : isTablet ? 28 : 32}
                 className="flex-shrink-0"
               />
-              <div >
+              <div>
                 <UnifiedTypography
                   variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
                   className={cn(
-                    "font-bold mb-2 leading-tight",
-                    isMobile ? "text-lg" : isTablet ? "text-xl" : "text-2xl"
+                    'font-bold mb-2 leading-tight',
+                    isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'
                   )}
                 >
                   {isMobile ? 'Poistky & STK' : 'Poistky/STK/Dialničné'}
@@ -885,8 +937,8 @@ export default function VehicleCentricInsuranceList() {
                 <UnifiedTypography
                   variant={isMobile ? 'body2' : 'body1'}
                   className={cn(
-                    "opacity-90 flex flex-wrap",
-                    isMobile ? "text-sm gap-2" : "text-base gap-4"
+                    'opacity-90 flex flex-wrap',
+                    isMobile ? 'text-sm gap-2' : 'text-base gap-4'
                   )}
                 >
                   <span>{overallStats.totalVehicles} vozidiel</span>
@@ -913,148 +965,166 @@ export default function VehicleCentricInsuranceList() {
 
       {/* Responsive Statistics Cards */}
       {activeTab === 0 && (
-        <div className={cn(
-          "grid grid-cols-2 md:grid-cols-4 gap-4",
-          isMobile ? "mb-4" : "mb-6"
-        )}>
-          <StatisticsCard
-            className="bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
-          >
-                <div className={cn(
-                  "flex items-center justify-between",
-                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
-                )}>
-                  <div className={cn(isMobile ? "order-2" : "order-1")}>
-                    <UnifiedTypography
-                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
-                      className={cn(
-                        "font-semibold tracking-wider",
-                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
-                      )}
-                    >
-                      VOZIDLÁ
-                    </UnifiedTypography>
-                    <UnifiedTypography
-                      variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      className={cn(
-                        "font-bold",
-                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
-                      )}
-                    >
-                      {overallStats.totalVehicles}
-                    </UnifiedTypography>
-                  </div>
-                  <UnifiedIcon
-                    name="car"
-                    size={isMobile ? 20 : isTablet ? 32 : 40}
-                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
-                  />
-                </div>
+        <div
+          className={cn(
+            'grid grid-cols-2 md:grid-cols-4 gap-4',
+            isMobile ? 'mb-4' : 'mb-6'
+          )}
+        >
+          <StatisticsCard className="bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5">
+            <div
+              className={cn(
+                'flex items-center justify-between',
+                isMobile ? 'flex-col text-center gap-4' : 'flex-row text-left'
+              )}
+            >
+              <div className={cn(isMobile ? 'order-2' : 'order-1')}>
+                <UnifiedTypography
+                  variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                  className={cn(
+                    'font-semibold tracking-wider',
+                    isMobile
+                      ? 'mb-2 text-xs'
+                      : isTablet
+                        ? 'mb-2 text-sm'
+                        : 'mb-4 text-base'
+                  )}
+                >
+                  VOZIDLÁ
+                </UnifiedTypography>
+                <UnifiedTypography
+                  variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
+                  className={cn(
+                    'font-bold',
+                    isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'
+                  )}
+                >
+                  {overallStats.totalVehicles}
+                </UnifiedTypography>
+              </div>
+              <UnifiedIcon
+                name="car"
+                size={isMobile ? 20 : isTablet ? 32 : 40}
+                className={cn('opacity-80', isMobile ? 'order-1' : 'order-2')}
+              />
+            </div>
           </StatisticsCard>
 
-          <StatisticsCard
-            className="bg-gradient-to-br from-green-500 to-green-400 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
-          >
-                <div className={cn(
-                  "flex items-center justify-between",
-                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
-                )}>
-                  <div className={cn(isMobile ? "order-2" : "order-1")}>
-                    <UnifiedTypography
-                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
-                      className={cn(
-                        "font-semibold tracking-wider",
-                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
-                      )}
-                    >
-                      PLATNÉ
-                    </UnifiedTypography>
-                    <UnifiedTypography
-                      variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      className={cn(
-                        "font-bold",
-                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
-                      )}
-                    >
-                      {overallStats.validDocs}
-                    </UnifiedTypography>
-                  </div>
-                  <UnifiedIcon
-                    name="success"
-                    size={isMobile ? 20 : isTablet ? 32 : 40}
-                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
-                  />
-                </div>
+          <StatisticsCard className="bg-gradient-to-br from-green-500 to-green-400 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5">
+            <div
+              className={cn(
+                'flex items-center justify-between',
+                isMobile ? 'flex-col text-center gap-4' : 'flex-row text-left'
+              )}
+            >
+              <div className={cn(isMobile ? 'order-2' : 'order-1')}>
+                <UnifiedTypography
+                  variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                  className={cn(
+                    'font-semibold tracking-wider',
+                    isMobile
+                      ? 'mb-2 text-xs'
+                      : isTablet
+                        ? 'mb-2 text-sm'
+                        : 'mb-4 text-base'
+                  )}
+                >
+                  PLATNÉ
+                </UnifiedTypography>
+                <UnifiedTypography
+                  variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
+                  className={cn(
+                    'font-bold',
+                    isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'
+                  )}
+                >
+                  {overallStats.validDocs}
+                </UnifiedTypography>
+              </div>
+              <UnifiedIcon
+                name="success"
+                size={isMobile ? 20 : isTablet ? 32 : 40}
+                className={cn('opacity-80', isMobile ? 'order-1' : 'order-2')}
+              />
+            </div>
           </StatisticsCard>
 
-          <StatisticsCard
-            className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
-          >
-                <div className={cn(
-                  "flex items-center justify-between",
-                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
-                )}>
-                  <div className={cn(isMobile ? "order-2" : "order-1")}>
-                    <UnifiedTypography
-                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
-                      className={cn(
-                        "font-semibold tracking-wider",
-                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
-                      )}
-                    >
-                      VYPRŠÍ
-                    </UnifiedTypography>
-                    <UnifiedTypography
-                      variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      className={cn(
-                        "font-bold",
-                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
-                      )}
-                    >
-                      {overallStats.expiringDocs}
-                    </UnifiedTypography>
-                  </div>
-                  <UnifiedIcon
-                    name="clock"
-                    size={isMobile ? 20 : isTablet ? 32 : 40}
-                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
-                  />
-                </div>
+          <StatisticsCard className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5">
+            <div
+              className={cn(
+                'flex items-center justify-between',
+                isMobile ? 'flex-col text-center gap-4' : 'flex-row text-left'
+              )}
+            >
+              <div className={cn(isMobile ? 'order-2' : 'order-1')}>
+                <UnifiedTypography
+                  variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                  className={cn(
+                    'font-semibold tracking-wider',
+                    isMobile
+                      ? 'mb-2 text-xs'
+                      : isTablet
+                        ? 'mb-2 text-sm'
+                        : 'mb-4 text-base'
+                  )}
+                >
+                  VYPRŠÍ
+                </UnifiedTypography>
+                <UnifiedTypography
+                  variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
+                  className={cn(
+                    'font-bold',
+                    isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'
+                  )}
+                >
+                  {overallStats.expiringDocs}
+                </UnifiedTypography>
+              </div>
+              <UnifiedIcon
+                name="clock"
+                size={isMobile ? 20 : isTablet ? 32 : 40}
+                className={cn('opacity-80', isMobile ? 'order-1' : 'order-2')}
+              />
+            </div>
           </StatisticsCard>
 
-          <StatisticsCard
-            className="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
-          >
-                <div className={cn(
-                  "flex items-center justify-between",
-                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
-                )}>
-                  <div className={cn(isMobile ? "order-2" : "order-1")}>
-                    <UnifiedTypography
-                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
-                      className={cn(
-                        "font-semibold tracking-wider",
-                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
-                      )}
-                    >
-                      VYPRŠANÉ
-                    </UnifiedTypography>
-                    <UnifiedTypography
-                      variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      className={cn(
-                        "font-bold",
-                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
-                      )}
-                    >
-                      {overallStats.expiredDocs}
-                    </UnifiedTypography>
-                  </div>
-                  <UnifiedIcon
-                    name="error"
-                    size={isMobile ? 20 : isTablet ? 32 : 40}
-                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
-                  />
-                </div>
+          <StatisticsCard className="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5">
+            <div
+              className={cn(
+                'flex items-center justify-between',
+                isMobile ? 'flex-col text-center gap-4' : 'flex-row text-left'
+              )}
+            >
+              <div className={cn(isMobile ? 'order-2' : 'order-1')}>
+                <UnifiedTypography
+                  variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                  className={cn(
+                    'font-semibold tracking-wider',
+                    isMobile
+                      ? 'mb-2 text-xs'
+                      : isTablet
+                        ? 'mb-2 text-sm'
+                        : 'mb-4 text-base'
+                  )}
+                >
+                  VYPRŠANÉ
+                </UnifiedTypography>
+                <UnifiedTypography
+                  variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
+                  className={cn(
+                    'font-bold',
+                    isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'
+                  )}
+                >
+                  {overallStats.expiredDocs}
+                </UnifiedTypography>
+              </div>
+              <UnifiedIcon
+                name="error"
+                size={isMobile ? 20 : isTablet ? 32 : 40}
+                className={cn('opacity-80', isMobile ? 'order-1' : 'order-2')}
+              />
+            </div>
           </StatisticsCard>
         </div>
       )}
@@ -1064,202 +1134,237 @@ export default function VehicleCentricInsuranceList() {
         <UnifiedCard
           variant="default"
           className={cn(
-            "shadow-md",
-            isMobile ? "mb-4 rounded-lg" : "mb-6 rounded-xl"
+            'shadow-md',
+            isMobile ? 'mb-4 rounded-lg' : 'mb-6 rounded-xl'
           )}
         >
-            {/* Mobile-first Search and main controls */}
-            <div className={cn(
-              "flex gap-4",
-              showFilters ? (isMobile ? "mb-4" : "mb-6") : "mb-0",
-              isMobile ? "flex-col items-stretch" : "flex-row items-center flex-wrap"
-            )}>
-              {/* Search Field */}
-              <UnifiedTextField
-                placeholder={
-                  isMobile
-                    ? 'Vyhľadať...'
-                    : 'Vyhľadať vozidlo alebo dokument...'
+          {/* Mobile-first Search and main controls */}
+          <div
+            className={cn(
+              'flex gap-4',
+              showFilters ? (isMobile ? 'mb-4' : 'mb-6') : 'mb-0',
+              isMobile
+                ? 'flex-col items-stretch'
+                : 'flex-row items-center flex-wrap'
+            )}
+          >
+            {/* Search Field */}
+            <UnifiedTextField
+              placeholder={
+                isMobile ? 'Vyhľadať...' : 'Vyhľadať vozidlo alebo dokument...'
+              }
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              startAdornment={
+                <UnifiedIcon
+                  name="search"
+                  size={isMobile ? 20 : 24}
+                  className="text-muted-foreground mr-2"
+                />
+              }
+              className={cn(isMobile ? 'w-full' : 'flex-1 min-w-[250px]')}
+              size={isMobile ? 'small' : 'medium'}
+              fullWidth={isMobile}
+            />
+
+            {/* Controls Row for Mobile */}
+            <div
+              className={cn(
+                'flex gap-4 flex-wrap',
+                isMobile ? 'w-full' : 'w-auto'
+              )}
+            >
+              {/* Sort dropdown */}
+              <UnifiedSelect
+                value={sortBy}
+                onChange={(value: string | string[]) =>
+                  setSortBy(
+                    (Array.isArray(value) ? value[0] : value) as SortOption
+                  )
                 }
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                startAdornment={
-                  <UnifiedIcon
-                    name="search"
-                    size={isMobile ? 20 : 24}
-                    className="text-muted-foreground mr-2"
-                  />
-                }
+                options={[
+                  {
+                    value: 'expiry',
+                    label: isMobile ? 'Expirácia' : 'Najbližšia expirácia',
+                  },
+                  {
+                    value: 'problems',
+                    label: isMobile ? 'Problémy' : 'Počet problémov',
+                  },
+                  {
+                    value: 'name',
+                    label: isMobile ? 'Názov' : 'Názov vozidla',
+                  },
+                ]}
+                placeholder={isMobile ? 'Triediť' : 'Triediť podľa'}
                 className={cn(
-                  isMobile ? "w-full" : "flex-1 min-w-[250px]"
+                  isMobile ? 'w-[calc(50%-8px)] flex-1' : 'w-[180px]'
                 )}
-                size={isMobile ? 'small' : 'medium'}
-                fullWidth={isMobile}
+                size={isMobile ? 'sm' : 'default'}
               />
 
-              {/* Controls Row for Mobile */}
-              <div className={cn(
-                "flex gap-4 flex-wrap",
-                isMobile ? "w-full" : "w-auto"
-              )}>
-                {/* Sort dropdown */}
-                <UnifiedSelect
-                  value={sortBy}
-                  onChange={(value: string | string[]) => setSortBy((Array.isArray(value) ? value[0] : value) as SortOption)}
-                  options={[
-                    { value: 'expiry', label: isMobile ? 'Expirácia' : 'Najbližšia expirácia' },
-                    { value: 'problems', label: isMobile ? 'Problémy' : 'Počet problémov' },
-                    { value: 'name', label: isMobile ? 'Názov' : 'Názov vozidla' }
-                  ]}
-                  placeholder={isMobile ? 'Triediť' : 'Triediť podľa'}
-                  className={cn(
-                    isMobile ? "w-[calc(50%-8px)] flex-1" : "w-[180px]"
-                  )}
-                  size={isMobile ? 'sm' : 'default'}
-                />
+              {/* Filter Button */}
+              <UnifiedButton
+                variant={showFilters ? 'contained' : 'outlined'}
+                startIcon={<UnifiedIcon name="filter" size={20} />}
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'whitespace-nowrap',
+                  isMobile ? 'w-[calc(50%-8px)] flex-1' : 'w-auto'
+                )}
+                size={isMobile ? 'small' : 'medium'}
+              >
+                {isMobile
+                  ? `Filtre${hasActiveFilters ? ` (${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`
+                  : `Filtre ${hasActiveFilters ? `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`}
+              </UnifiedButton>
 
-                {/* Filter Button */}
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
                 <UnifiedButton
-                  variant={showFilters ? 'contained' : 'outlined'}
-                  startIcon={<UnifiedIcon name="filter" size={20} />}
-                  onClick={() => setShowFilters(!showFilters)}
+                  variant="outline"
+                  startIcon={<UnifiedIcon name="close" size={20} />}
+                  onClick={clearFilters}
+                  color="secondary"
                   className={cn(
-                    "whitespace-nowrap",
-                    isMobile ? "w-[calc(50%-8px)] flex-1" : "w-auto"
+                    'whitespace-nowrap',
+                    isMobile ? 'w-full' : 'w-auto'
                   )}
                   size={isMobile ? 'small' : 'medium'}
+                  fullWidth={isMobile}
                 >
-                  {isMobile
-                    ? `Filtre${hasActiveFilters ? ` (${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`
-                    : `Filtre ${hasActiveFilters ? `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`}
+                  {isMobile ? 'Zrušiť filtre' : 'Zrušiť'}
                 </UnifiedButton>
-
-                {/* Clear Filters Button */}
-                {hasActiveFilters && (
-                  <UnifiedButton
-                    variant="outline"
-                    startIcon={<UnifiedIcon name="close" size={20} />}
-                    onClick={clearFilters}
-                    color="secondary"
-                    className={cn(
-                      "whitespace-nowrap",
-                      isMobile ? "w-full" : "w-auto"
-                    )}
-                    size={isMobile ? 'small' : 'medium'}
-                    fullWidth={isMobile}
-                  >
-                    {isMobile ? 'Zrušiť filtre' : 'Zrušiť'}
-                  </UnifiedButton>
-                )}
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* Responsive Advanced filters */}
-            {showFilters && (
-              <>
-                <Separator className={cn(isMobile ? "my-4" : "my-6")} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <UnifiedSelect
-                    value={filterVehicle}
-                    onChange={(value: string | string[]) => setFilterVehicle(Array.isArray(value) ? value[0] || '' : value)}
-                    options={[
-                      { value: '', label: 'Všetky vozidlá' },
-                      ...(vehicles?.map(vehicle => ({
-                        value: vehicle.id,
-                        label: `${vehicle.brand} ${vehicle.model}`,
-                        description: vehicle.licensePlate
-                      })) || [])
-                    ]}
-                    placeholder="Vozidlo"
-                    fullWidth
-                    size={isMobile ? 'sm' : 'default'}
-                  />
-                  <UnifiedSelect
-                    value={filterType}
-                    onChange={(value: string | string[]) => setFilterType(Array.isArray(value) ? value[0] || '' : value)}
-                    options={[
-                      { value: '', label: 'Všetky typy' },
-                      { 
-                        value: 'insurance_pzp', 
-                        label: 'Poistka - PZP',
-                        icon: <UnifiedIcon name="security" size={16} />
-                      },
-                      { 
-                        value: 'insurance_kasko', 
-                        label: 'Poistka - Kasko',
-                        icon: <UnifiedIcon name="security" size={16} />
-                      },
-                      { 
-                        value: 'insurance_pzp_kasko', 
-                        label: 'Poistka - PZP + Kasko',
-                        icon: <UnifiedIcon name="security" size={16} />
-                      },
-                      { 
-                        value: 'stk', 
-                        label: 'STK',
-                        icon: <UnifiedIcon name="build" size={16} />
-                      },
-                      { 
-                        value: 'ek', 
-                        label: 'EK',
-                        icon: <UnifiedIcon name="assignment" size={16} />
-                      },
-                      { 
-                        value: 'vignette', 
-                        label: 'Dialničná',
-                        icon: <UnifiedIcon name="truck" size={16} />
-                      }
-                    ]}
-                    placeholder="Typ dokumentu"
-                    fullWidth
-                    size={isMobile ? 'sm' : 'default'}
-                  />
-                  <UnifiedSelect
-                    value={filterCompany}
-                    onChange={(value: string | string[]) => setFilterCompany(Array.isArray(value) ? value[0] || '' : value)}
-                    options={[
-                      { value: '', label: 'Všetky spoločnosti' },
-                      ...Array.from(
-                        new Set(
-                          unifiedDocuments.map(d => d.company).filter(Boolean)
-                        )
-                      ).map(company => ({
-                        value: company || '',
-                        label: company || ''
-                      }))
-                    ]}
-                    placeholder="Spoločnosť"
-                    fullWidth
-                    size={isMobile ? 'sm' : 'default'}
-                  />
-                  <UnifiedSelect
-                    value={filterStatus}
-                    onChange={(value: string | string[]) => setFilterStatus(Array.isArray(value) ? value[0] || '' : value)}
-                    options={[
-                      { value: '', label: 'Všetky stavy' },
-                      { 
-                        value: 'valid', 
-                        label: 'Platné',
-                        icon: <UnifiedIcon name="success" size={16}  />
-                      },
-                      { 
-                        value: 'expiring', 
-                        label: 'Vypršia čoskoro',
-                        icon: <UnifiedIcon name="clock" size={16}  />
-                      },
-                      { 
-                        value: 'expired', 
-                        label: 'Vypršané',
-                        icon: <UnifiedIcon name="error" size={16} className="text-red-600" />
-                      }
-                    ]}
-                    placeholder="Stav"
-                    fullWidth
-                    size={isMobile ? 'sm' : 'default'}
-                  />
-                </div>
-              </>
-            )}
+          {/* Responsive Advanced filters */}
+          {showFilters && (
+            <>
+              <Separator className={cn(isMobile ? 'my-4' : 'my-6')} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <UnifiedSelect
+                  value={filterVehicle}
+                  onChange={(value: string | string[]) =>
+                    setFilterVehicle(
+                      Array.isArray(value) ? value[0] || '' : value
+                    )
+                  }
+                  options={[
+                    { value: '', label: 'Všetky vozidlá' },
+                    ...(vehicles?.map(vehicle => ({
+                      value: vehicle.id,
+                      label: `${vehicle.brand} ${vehicle.model}`,
+                      description: vehicle.licensePlate,
+                    })) || []),
+                  ]}
+                  placeholder="Vozidlo"
+                  fullWidth
+                  size={isMobile ? 'sm' : 'default'}
+                />
+                <UnifiedSelect
+                  value={filterType}
+                  onChange={(value: string | string[]) =>
+                    setFilterType(Array.isArray(value) ? value[0] || '' : value)
+                  }
+                  options={[
+                    { value: '', label: 'Všetky typy' },
+                    {
+                      value: 'insurance_pzp',
+                      label: 'Poistka - PZP',
+                      icon: <UnifiedIcon name="security" size={16} />,
+                    },
+                    {
+                      value: 'insurance_kasko',
+                      label: 'Poistka - Kasko',
+                      icon: <UnifiedIcon name="security" size={16} />,
+                    },
+                    {
+                      value: 'insurance_pzp_kasko',
+                      label: 'Poistka - PZP + Kasko',
+                      icon: <UnifiedIcon name="security" size={16} />,
+                    },
+                    {
+                      value: 'stk',
+                      label: 'STK',
+                      icon: <UnifiedIcon name="build" size={16} />,
+                    },
+                    {
+                      value: 'ek',
+                      label: 'EK',
+                      icon: <UnifiedIcon name="assignment" size={16} />,
+                    },
+                    {
+                      value: 'vignette',
+                      label: 'Dialničná',
+                      icon: <UnifiedIcon name="truck" size={16} />,
+                    },
+                  ]}
+                  placeholder="Typ dokumentu"
+                  fullWidth
+                  size={isMobile ? 'sm' : 'default'}
+                />
+                <UnifiedSelect
+                  value={filterCompany}
+                  onChange={(value: string | string[]) =>
+                    setFilterCompany(
+                      Array.isArray(value) ? value[0] || '' : value
+                    )
+                  }
+                  options={[
+                    { value: '', label: 'Všetky spoločnosti' },
+                    ...Array.from(
+                      new Set(
+                        unifiedDocuments.map(d => d.company).filter(Boolean)
+                      )
+                    ).map(company => ({
+                      value: company || '',
+                      label: company || '',
+                    })),
+                  ]}
+                  placeholder="Spoločnosť"
+                  fullWidth
+                  size={isMobile ? 'sm' : 'default'}
+                />
+                <UnifiedSelect
+                  value={filterStatus}
+                  onChange={(value: string | string[]) =>
+                    setFilterStatus(
+                      Array.isArray(value) ? value[0] || '' : value
+                    )
+                  }
+                  options={[
+                    { value: '', label: 'Všetky stavy' },
+                    {
+                      value: 'valid',
+                      label: 'Platné',
+                      icon: <UnifiedIcon name="success" size={16} />,
+                    },
+                    {
+                      value: 'expiring',
+                      label: 'Vypršia čoskoro',
+                      icon: <UnifiedIcon name="clock" size={16} />,
+                    },
+                    {
+                      value: 'expired',
+                      label: 'Vypršané',
+                      icon: (
+                        <UnifiedIcon
+                          name="error"
+                          size={16}
+                          className="text-red-600"
+                        />
+                      ),
+                    },
+                  ]}
+                  placeholder="Stav"
+                  fullWidth
+                  size={isMobile ? 'sm' : 'default'}
+                />
+              </div>
+            </>
+          )}
         </UnifiedCard>
       )}
 
@@ -1334,18 +1439,26 @@ export default function VehicleCentricInsuranceList() {
 
       {/* Empty State */}
       {activeTab === 0 && sortedVehicles.length === 0 && !loading && (
-        <UnifiedCard >
+        <UnifiedCard>
           <UnifiedIcon
             name="security"
             size={64}
             className="text-muted-foreground mb-4"
           />
-          <UnifiedTypography variant="h6" color="textSecondary" className="mb-2">
+          <UnifiedTypography
+            variant="h6"
+            color="textSecondary"
+            className="mb-2"
+          >
             {hasActiveFilters
               ? 'Žiadne vozidlá nevyhovujú filtrom'
               : 'Žiadne vozidlá s dokumentmi'}
           </UnifiedTypography>
-          <UnifiedTypography variant="body2" color="textSecondary" className="mb-6">
+          <UnifiedTypography
+            variant="body2"
+            color="textSecondary"
+            className="mb-6"
+          >
             {hasActiveFilters
               ? 'Skúste zmeniť filtre alebo vyhľadávanie'
               : 'Začnite pridaním prvého dokumentu'}
@@ -1388,7 +1501,11 @@ export default function VehicleCentricInsuranceList() {
           fullScreen={isMobile}
           keepMounted={false}
           title={editingDocument ? 'Upraviť dokument' : 'Pridať dokument'}
-          subtitle={editingDocument ? 'Upravte údaje dokumentu' : 'Vyplňte údaje nového dokumentu'}
+          subtitle={
+            editingDocument
+              ? 'Upravte údaje dokumentu'
+              : 'Vyplňte údaje nového dokumentu'
+          }
         >
           <UnifiedDocumentForm
             document={editingDocument}
@@ -1426,39 +1543,47 @@ function VehicleCard({
   return (
     <InteractiveCard
       className={cn(
-        "mb-4 overflow-hidden transition-all duration-200",
-        isMobile ? "rounded-lg" : "rounded-xl",
-        stats.hasProblems 
-          ? "shadow-lg border border-red-200 hover:shadow-xl" 
-          : "shadow-md hover:shadow-lg",
-        !isMobile && "hover:-translate-y-0.5"
+        'mb-4 overflow-hidden transition-all duration-200',
+        isMobile ? 'rounded-lg' : 'rounded-xl',
+        stats.hasProblems
+          ? 'shadow-lg border border-red-200 hover:shadow-xl'
+          : 'shadow-md hover:shadow-lg',
+        !isMobile && 'hover:-translate-y-0.5'
       )}
     >
       {/* Responsive Vehicle Header */}
       <div
         className={cn(
-          "cursor-pointer hover:bg-gray-50/50 transition-colors",
-          isMobile ? "p-4" : isTablet ? "p-6" : "p-8"
+          'cursor-pointer hover:bg-gray-50/50 transition-colors',
+          isMobile ? 'p-4' : isTablet ? 'p-6' : 'p-8'
         )}
         onClick={onToggleExpand}
       >
-        <div className={cn(
-          "flex justify-between",
-          isMobile ? "flex-col items-start gap-4" : "flex-row items-center gap-4"
-        )}>
-          <div className={cn(
-            "flex items-center flex-1 min-w-0",
-            isMobile ? "w-full gap-3" : "gap-4"
-          )}>
+        <div
+          className={cn(
+            'flex justify-between',
+            isMobile
+              ? 'flex-col items-start gap-4'
+              : 'flex-row items-center gap-4'
+          )}
+        >
+          <div
+            className={cn(
+              'flex items-center flex-1 min-w-0',
+              isMobile ? 'w-full gap-3' : 'gap-4'
+            )}
+          >
             {/* Vehicle Avatar/Icon */}
-            <Avatar className={cn(
-              "flex-shrink-0",
-              stats.hasProblems ? "bg-red-600" : "bg-blue-600",
-              isMobile ? "w-9 h-9" : isTablet ? "w-10 h-10" : "w-12 h-12"
-            )}>
+            <Avatar
+              className={cn(
+                'flex-shrink-0',
+                stats.hasProblems ? 'bg-red-600' : 'bg-blue-600',
+                isMobile ? 'w-9 h-9' : isTablet ? 'w-10 h-10' : 'w-12 h-12'
+              )}
+            >
               <AvatarFallback>
-                <UnifiedIcon 
-                  name="car" 
+                <UnifiedIcon
+                  name="car"
                   size={isMobile ? 18 : isTablet ? 20 : 24}
                   className="text-white"
                 />
@@ -1466,12 +1591,12 @@ function VehicleCard({
             </Avatar>
 
             {/* Vehicle Info */}
-            <div >
+            <div>
               <UnifiedTypography
                 variant={isMobile ? 'subtitle1' : isTablet ? 'h6' : 'h5'}
                 className={cn(
-                  "font-bold mb-2 leading-tight overflow-hidden text-ellipsis whitespace-nowrap",
-                  isMobile ? "text-base" : isTablet ? "text-lg" : "text-xl"
+                  'font-bold mb-2 leading-tight overflow-hidden text-ellipsis whitespace-nowrap',
+                  isMobile ? 'text-base' : isTablet ? 'text-lg' : 'text-xl'
                 )}
               >
                 {vehicle.brand} {vehicle.model}
@@ -1481,13 +1606,11 @@ function VehicleCard({
                   variant="body2"
                   color="textSecondary"
                   className={cn(
-                    "flex flex-wrap items-center gap-2",
-                    isMobile ? "text-sm" : "text-sm"
+                    'flex flex-wrap items-center gap-2',
+                    isMobile ? 'text-sm' : 'text-sm'
                   )}
                 >
-                  <span className="font-semibold">
-                    {vehicle.licensePlate}
-                  </span>
+                  <span className="font-semibold">{vehicle.licensePlate}</span>
                   <span>•</span>
                   {!isMobile && (
                     <>
@@ -1523,18 +1646,20 @@ function VehicleCard({
           </div>
 
           {/* Responsive Status Badges */}
-          <div className={cn(
-            "flex items-center flex-wrap",
-            isMobile ? "justify-between w-full gap-2" : "justify-end gap-4"
-          )}>
+          <div
+            className={cn(
+              'flex items-center flex-wrap',
+              isMobile ? 'justify-between w-full gap-2' : 'justify-end gap-4'
+            )}
+          >
             {/* Status Chips */}
             <div className="flex gap-2 flex-wrap items-center">
               {stats.expired > 0 && (
                 <Badge
                   variant="destructive"
                   className={cn(
-                    "flex items-center gap-1",
-                    isMobile ? "text-xs h-6 px-2" : "text-sm h-8 px-3"
+                    'flex items-center gap-1',
+                    isMobile ? 'text-xs h-6 px-2' : 'text-sm h-8 px-3'
                   )}
                 >
                   <UnifiedIcon name="error" size={isMobile ? 12 : 14} />
@@ -1546,8 +1671,8 @@ function VehicleCard({
                 <Badge
                   variant="secondary"
                   className={cn(
-                    "flex items-center gap-1 bg-orange-100 text-orange-800 border-orange-200",
-                    isMobile ? "text-xs h-6 px-2" : "text-sm h-8 px-3"
+                    'flex items-center gap-1 bg-orange-100 text-orange-800 border-orange-200',
+                    isMobile ? 'text-xs h-6 px-2' : 'text-sm h-8 px-3'
                   )}
                 >
                   <UnifiedIcon name="clock" size={isMobile ? 12 : 14} />
@@ -1559,12 +1684,14 @@ function VehicleCard({
                 <Badge
                   variant="secondary"
                   className={cn(
-                    "flex items-center gap-1 bg-green-100 text-green-800 border-green-200",
-                    isMobile ? "text-xs h-6 px-2" : "text-sm h-8 px-3"
+                    'flex items-center gap-1 bg-green-100 text-green-800 border-green-200',
+                    isMobile ? 'text-xs h-6 px-2' : 'text-sm h-8 px-3'
                   )}
                 >
                   <UnifiedIcon name="check" size={isMobile ? 12 : 14} />
-                  <span className="font-medium">{isMobile ? 'OK' : 'V poriadku'}</span>
+                  <span className="font-medium">
+                    {isMobile ? 'OK' : 'V poriadku'}
+                  </span>
                 </Badge>
               )}
             </div>
@@ -1572,15 +1699,12 @@ function VehicleCard({
             {/* Expand/Collapse Icon */}
             <UnifiedButton
               variant="ghost"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onToggleExpand();
               }}
-              className={cn(
-                "p-2 flex-shrink-0",
-                isMobile ? "ml-0" : "ml-4"
-              )}
-              aria-label={expanded ? "Schovať dokumenty" : "Zobraziť dokumenty"}
+              className={cn('p-2 flex-shrink-0', isMobile ? 'ml-0' : 'ml-4')}
+              aria-label={expanded ? 'Schovať dokumenty' : 'Zobraziť dokumenty'}
             >
               {expanded ? (
                 <UnifiedIcon name="chevronUp" size={isMobile ? 20 : 24} />
@@ -1635,24 +1759,27 @@ function DocumentListItem({
 
   return (
     <>
-      <div className={cn(
-        "flex transition-colors hover:bg-gray-50/50",
-        isMobile ? "flex-col items-stretch gap-4 py-4 px-6" : "flex-row items-center gap-0 py-6 px-8"
-      )}>
+      <div
+        className={cn(
+          'flex transition-colors hover:bg-gray-50/50',
+          isMobile
+            ? 'flex-col items-stretch gap-4 py-4 px-6'
+            : 'flex-row items-center gap-0 py-6 px-8'
+        )}
+      >
         {!isMobile && (
           <div className="min-w-10 mr-8">
             <div style={{ color: typeInfo.color }}>{typeInfo.icon}</div>
           </div>
         )}
 
-        <div className={cn(
-          "flex-1",
-          isMobile ? "mr-0" : "mr-8"
-        )}>
-          <div className={cn(
-            "flex gap-2 flex-wrap",
-            isMobile ? "flex-col items-start" : "flex-row items-center"
-          )}>
+        <div className={cn('flex-1', isMobile ? 'mr-0' : 'mr-8')}>
+          <div
+            className={cn(
+              'flex gap-2 flex-wrap',
+              isMobile ? 'flex-col items-start' : 'flex-row items-center'
+            )}
+          >
             <div className="flex items-center gap-2 flex-wrap">
               {isMobile && (
                 <div
@@ -1669,213 +1796,209 @@ function DocumentListItem({
                 component="span"
                 variant={isMobile ? 'subtitle2' : 'body1'}
                 className={cn(
-                  "font-semibold",
-                  isMobile ? "text-sm" : "text-base"
+                  'font-semibold',
+                  isMobile ? 'text-sm' : 'text-base'
                 )}
               >
                 {typeInfo.label}
               </UnifiedTypography>
-                {(document.policyNumber ||
-                  document.documentNumber ||
-                  document.kmState) && (
-                  <UnifiedTypography
-                    component="span"
-                    variant="body2"
-                    color="textSecondary"
-                    className={cn(
-                      "font-mono",
-                      isMobile ? "text-xs" : "text-sm"
-                    )}
-                  >
-                    {document.type === 'stk' || document.type === 'ek'
-                      ? document.kmState
-                        ? `${document.kmState.toLocaleString()} km`
-                        : document.documentNumber
-                      : document.type === 'insurance_kasko' && document.kmState
-                        ? `${document.kmState.toLocaleString()} km`
-                        : document.policyNumber || document.documentNumber}
-                  </UnifiedTypography>
-                )}
-              </div>
+              {(document.policyNumber ||
+                document.documentNumber ||
+                document.kmState) && (
+                <UnifiedTypography
+                  component="span"
+                  variant="body2"
+                  color="textSecondary"
+                  className={cn('font-mono', isMobile ? 'text-xs' : 'text-sm')}
+                >
+                  {document.type === 'stk' || document.type === 'ek'
+                    ? document.kmState
+                      ? `${document.kmState.toLocaleString()} km`
+                      : document.documentNumber
+                    : document.type === 'insurance_kasko' && document.kmState
+                      ? `${document.kmState.toLocaleString()} km`
+                      : document.policyNumber || document.documentNumber}
+                </UnifiedTypography>
+              )}
             </div>
           </div>
-          
-          <div className={cn(
-            "block",
-            isMobile ? "mt-2" : "mt-1"
-          )}>
-            <div className={cn(
-              "flex flex-wrap",
-              isMobile ? "flex-col items-start gap-2" : "flex-row items-center gap-4"
-            )}>
-              {/* Date and Status Row */}
-              <div className={cn(
-                "flex items-center",
-                isMobile ? "gap-2" : "gap-3"
-              )}>
+        </div>
+
+        <div className={cn('block', isMobile ? 'mt-2' : 'mt-1')}>
+          <div
+            className={cn(
+              'flex flex-wrap',
+              isMobile
+                ? 'flex-col items-start gap-2'
+                : 'flex-row items-center gap-4'
+            )}
+          >
+            {/* Date and Status Row */}
+            <div
+              className={cn('flex items-center', isMobile ? 'gap-2' : 'gap-3')}
+            >
+              <UnifiedTypography
+                component="span"
+                variant="body2"
+                color="textSecondary"
+                className={cn(isMobile ? 'text-xs' : 'text-sm')}
+              >
+                {(() => {
+                  try {
+                    const date =
+                      typeof document.validTo === 'string'
+                        ? parseISO(document.validTo)
+                        : document.validTo;
+                    return isValid(date)
+                      ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}`
+                      : 'Neplatný dátum';
+                  } catch {
+                    return 'Neplatný dátum';
+                  }
+                })()}
+              </UnifiedTypography>
+
+              <UnifiedChip
+                label={expiryStatus.text}
+                variant="default"
+                className={cn(
+                  isMobile ? 'text-xs h-5' : 'text-xs h-6',
+                  expiryStatus.status === 'expired'
+                    ? 'bg-red-100 text-red-800'
+                    : expiryStatus.status === 'expiring'
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-green-100 text-green-800'
+                )}
+              />
+            </div>
+
+            {/* Company and Price Row */}
+            <div className="flex items-center gap-3">
+              {document.company && (
                 <UnifiedTypography
                   component="span"
                   variant="body2"
                   color="textSecondary"
                   className={cn(
-                    isMobile ? "text-xs" : "text-sm"
+                    'font-medium',
+                    isMobile ? 'text-xs' : 'text-sm'
                   )}
                 >
-                    {(() => {
-                      try {
-                        const date =
-                          typeof document.validTo === 'string'
-                            ? parseISO(document.validTo)
-                            : document.validTo;
-                        return isValid(date)
-                          ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}`
-                          : 'Neplatný dátum';
-                      } catch {
-                        return 'Neplatný dátum';
-                      }
-                    })()}
-                  </UnifiedTypography>
+                  {document.company}
+                </UnifiedTypography>
+              )}
 
-                  <UnifiedChip
-                    label={expiryStatus.text}
-                    variant="default"
-                    
-                    className={cn(
-                      isMobile ? "text-xs h-5" : "text-xs h-6",
-                      expiryStatus.status === 'expired' ? "bg-red-100 text-red-800" :
-                      expiryStatus.status === 'expiring' ? "bg-orange-100 text-orange-800" :
-                      "bg-green-100 text-green-800"
-                    )}
-                  />
-                </div>
-
-                {/* Company and Price Row */}
-                <div className="flex items-center gap-3">
-                  {document.company && (
-                    <UnifiedTypography
-                      component="span"
-                      variant="body2"
-                      color="textSecondary"
-                      className={cn(
-                        "font-medium",
-                        isMobile ? "text-xs" : "text-sm"
-                      )}
-                    >
-                      {document.company}
-                    </UnifiedTypography>
+              {document.price && (
+                <UnifiedTypography
+                  component="span"
+                  variant="body2"
+                  color="primary"
+                  className={cn(
+                    'font-semibold text-primary',
+                    isMobile ? 'text-xs' : 'text-sm'
                   )}
-
-                  {document.price && (
-                    <UnifiedTypography
-                      component="span"
-                      variant="body2"
-                      color="primary"
-                      className={cn(
-                        "font-semibold text-primary",
-                        isMobile ? "text-xs" : "text-sm"
-                      )}
-                    >
-                      €{document.price.toFixed(2)}
-                    </UnifiedTypography>
-                  )}
-                </div>
-              </div>
-
-              {/* Green Card info for insurance */}
-              {(document.type === 'insurance_pzp' ||
-                document.type === 'insurance_kasko' ||
-                document.type === 'insurance_pzp_kasko') &&
-                document.originalData &&
-                'greenCardValidTo' in document.originalData &&
-                document.originalData.greenCardValidTo && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <UnifiedTypography
-                      component="span"
-                      variant="caption"
-                      color="textSecondary"
-                    >
-                      🟢 Biela karta:
-                    </UnifiedTypography>
-                    <UnifiedTypography
-                      component="span"
-                      variant="caption"
-                      color="textSecondary"
-                    >
-                      {(() => {
-                        try {
-                          const date =
-                            typeof document.originalData.greenCardValidTo ===
-                            'string'
-                              ? parseISO(document.originalData.greenCardValidTo)
-                              : document.originalData.greenCardValidTo;
-                          return isValid(date)
-                            ? format(date, 'dd.MM.yyyy', { locale: sk })
-                            : 'Neplatný';
-                        } catch {
-                          return 'Neplatný';
-                        }
-                      })()}
-                    </UnifiedTypography>
-                    <span >
-                    <UnifiedChip
-                      label={
-                        getExpiryStatus(
-                          document.originalData.greenCardValidTo,
-                          'greencard'
-                        ).text
-                      }
-                      variant="default"
-                      className="h-8 px-3 text-sm border border-gray-300" 
-                    />
-                    </span>
-                  </div>
-                )}
-
-              {/* Files */}
-              {(() => {
-                const filePaths =
-                  (document.originalData as Insurance)?.filePaths ||
-                  (document.filePath ? [document.filePath] : []);
-
-                if (filePaths.length > 0) {
-                  return (
-                    <div >
-                      <UnifiedIcon
-                        name="file"
-                        size={16}
-                        className="text-muted-foreground"
-                      />
-                      {filePaths.length === 1 ? (
-                        <UnifiedButton
-                          className="h-8 px-3 text-sm min-w-auto p-2"
-                          variant="ghost"
-                          onClick={() => window.open(filePaths[0], '_blank')}
-                        >
-                          Zobraziť súbor
-                        </UnifiedButton>
-                      ) : (
-                        <span >
-                          <UnifiedChip
-                            label={`${filePaths.length} súborov`}
-                            className="h-8 px-3 text-sm"
-                            variant="default"
-                            onClick={() => {
-                              // ZIP download logic here
-                              console.log('Download ZIP for files:', filePaths);
-                            }}
-                          />
-                        </span>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              })()}
+                >
+                  €{document.price.toFixed(2)}
+                </UnifiedTypography>
+              )}
             </div>
+          </div>
+
+          {/* Green Card info for insurance */}
+          {(document.type === 'insurance_pzp' ||
+            document.type === 'insurance_kasko' ||
+            document.type === 'insurance_pzp_kasko') &&
+            document.originalData &&
+            'greenCardValidTo' in document.originalData &&
+            document.originalData.greenCardValidTo && (
+              <div className="mt-2 flex items-center gap-2">
+                <UnifiedTypography
+                  component="span"
+                  variant="caption"
+                  color="textSecondary"
+                >
+                  🟢 Biela karta:
+                </UnifiedTypography>
+                <UnifiedTypography
+                  component="span"
+                  variant="caption"
+                  color="textSecondary"
+                >
+                  {(() => {
+                    try {
+                      const date =
+                        typeof document.originalData.greenCardValidTo ===
+                        'string'
+                          ? parseISO(document.originalData.greenCardValidTo)
+                          : document.originalData.greenCardValidTo;
+                      return isValid(date)
+                        ? format(date, 'dd.MM.yyyy', { locale: sk })
+                        : 'Neplatný';
+                    } catch {
+                      return 'Neplatný';
+                    }
+                  })()}
+                </UnifiedTypography>
+                <span>
+                  <UnifiedChip
+                    label={
+                      getExpiryStatus(
+                        document.originalData.greenCardValidTo,
+                        'greencard'
+                      ).text
+                    }
+                    variant="default"
+                    className="h-8 px-3 text-sm border border-gray-300"
+                  />
+                </span>
+              </div>
+            )}
+
+          {/* Files */}
+          {(() => {
+            const filePaths =
+              (document.originalData as Insurance)?.filePaths ||
+              (document.filePath ? [document.filePath] : []);
+
+            if (filePaths.length > 0) {
+              return (
+                <div>
+                  <UnifiedIcon
+                    name="file"
+                    size={16}
+                    className="text-muted-foreground"
+                  />
+                  {filePaths.length === 1 ? (
+                    <UnifiedButton
+                      className="h-8 px-3 text-sm min-w-auto p-2"
+                      variant="ghost"
+                      onClick={() => window.open(filePaths[0], '_blank')}
+                    >
+                      Zobraziť súbor
+                    </UnifiedButton>
+                  ) : (
+                    <span>
+                      <UnifiedChip
+                        label={`${filePaths.length} súborov`}
+                        className="h-8 px-3 text-sm"
+                        variant="default"
+                        onClick={() => {
+                          // ZIP download logic here
+                          console.log('Download ZIP for files:', filePaths);
+                        }}
+                      />
+                    </span>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </div>
 
         {/* Responsive Action Buttons */}
         {isMobile ? (
-          <div >
+          <div>
             <UnifiedButton
               className="h-8 px-3 text-sm"
               variant="outline"
@@ -1900,7 +2023,8 @@ function DocumentListItem({
               <TooltipTrigger asChild>
                 <UnifiedButton
                   variant="ghost"
-                  className="h-8 px-3 text-sm text-primary p-2" onClick={onEdit}
+                  className="h-8 px-3 text-sm text-primary p-2"
+                  onClick={onEdit}
                 >
                   <UnifiedIcon name="edit" size={18} />
                 </UnifiedButton>
@@ -1913,7 +2037,8 @@ function DocumentListItem({
               <TooltipTrigger asChild>
                 <UnifiedButton
                   variant="ghost"
-                  className="h-8 px-3 text-sm text-error p-2" onClick={onDelete}
+                  className="h-8 px-3 text-sm text-error p-2"
+                  onClick={onDelete}
                 >
                   <UnifiedIcon name="delete" size={18} />
                 </UnifiedButton>

@@ -1,7 +1,7 @@
 // 🚀 BlackRent Service Worker - Enhanced Performance & PWA Experience
 // Provides offline support, intelligent caching, and performance optimizations
 
-const CACHE_VERSION = '2.1.0';
+const CACHE_VERSION = '2.2.0'; // ✅ BUMPED: Force update pre NO_CACHE fix
 const CACHE_NAME = `blackrent-v${CACHE_VERSION}`;
 const API_CACHE = `blackrent-api-v${CACHE_VERSION}`;
 const IMAGE_CACHE = `blackrent-images-v${CACHE_VERSION}`;
@@ -52,18 +52,24 @@ const API_CACHE_STRATEGIES = {
   ],
   // Medium cache (15 minutes)
   MEDIUM_CACHE: [
-    '/api/vehicles',
-    '/api/customers',
+    // PRÁZDNE - statické endpointy môžu byť pridané neskôr
   ],
   // Short cache (5 minutes)
   SHORT_CACHE: [
     '/api/rentals',
     '/api/availability',
   ],
-  // No cache (always network)
+  // No cache (always network) - ✅ REAL-TIME SEKCIE
   NO_CACHE: [
     '/api/auth',
     '/api/logout',
+    '/api/insurances',      // ✅ Poisťovne - real-time updates
+    '/api/expenses',        // ✅ Náklady - real-time updates
+    '/api/settlements',     // ✅ Vyúčtovanie - real-time updates
+    '/api/vehicles',        // ✅ Vozidlá - real-time updates
+    '/api/customers',       // ✅ Zákazníci - real-time updates
+    '/api/insurance-claims', // ✅ Poistné udalosti - real-time updates
+    '/api/vehicle-documents', // ✅ Vehicle documents (STK/EK) - real-time updates
   ],
 };
 
@@ -629,6 +635,15 @@ self.addEventListener('message', event => {
       });
       break;
       
+    case 'INVALIDATE_CACHE':
+      // ✅ NEW: Invalidovať špecifické API cache po mutation
+      invalidateApiCache(payload?.urls || []).then(() => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
+      });
+      break;
+      
     default:
       console.log('📨 Service Worker: Unknown message type:', type);
   }
@@ -641,6 +656,33 @@ async function clearAllCaches() {
     cacheNames.map(cacheName => caches.delete(cacheName))
   );
   console.log('🗑️ Service Worker: All caches cleared');
+}
+
+// ✅ NEW: Invalidovať špecifické API cache
+async function invalidateApiCache(urls) {
+  try {
+    const cache = await caches.open(API_CACHE);
+    const requests = await cache.keys();
+    
+    console.log(`🔄 Service Worker: Invalidating cache for URLs:`, urls);
+    
+    let invalidatedCount = 0;
+    
+    for (const request of requests) {
+      // Skontroluj či request URL obsahuje niektorú z invalidovaných URLs
+      const shouldInvalidate = urls.some(url => request.url.includes(url));
+      
+      if (shouldInvalidate) {
+        await cache.delete(request);
+        invalidatedCount++;
+      }
+    }
+    
+    console.log(`✅ Service Worker: Invalidated ${invalidatedCount} cache entries`);
+    
+  } catch (error) {
+    console.error('❌ Service Worker: Cache invalidation failed:', error);
+  }
 }
 
 // ================================================================================

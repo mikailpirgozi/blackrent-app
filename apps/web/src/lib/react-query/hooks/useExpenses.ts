@@ -2,6 +2,7 @@ import { apiService } from '@/services/api';
 import type { Expense } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
+import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
 
 // GET expenses
 export function useExpenses() {
@@ -9,6 +10,8 @@ export function useExpenses() {
     queryKey: queryKeys.expenses.all,
     queryFn: () => apiService.getExpenses(),
     staleTime: 0, // ✅ FIX: Vždy fresh data po invalidácii (bolo 2 min)
+    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
+    refetchOnMount: 'always', // ✅ Vždy refetch pri mount
   });
 }
 
@@ -20,6 +23,8 @@ export function useCreateExpense() {
     mutationFn: (expense: Expense) => apiService.createExpense(expense),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.expenses();
     },
   });
 }
@@ -32,6 +37,8 @@ export function useUpdateExpense() {
     mutationFn: (expense: Expense) => apiService.updateExpense(expense),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.expenses();
     },
   });
 }
@@ -44,6 +51,8 @@ export function useDeleteExpense() {
     mutationFn: (id: string) => apiService.deleteExpense(id),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.expenses();
     },
   });
 }

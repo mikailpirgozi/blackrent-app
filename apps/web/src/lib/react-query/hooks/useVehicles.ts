@@ -3,8 +3,12 @@ import type { Vehicle } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Declare browser APIs
-declare const CustomEvent: any;
+declare const CustomEvent: new <T>(
+  event: string,
+  eventInitDict?: CustomEventInit<T>
+) => Event;
 import { queryKeys } from '../queryKeys';
+import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
 
 // Filter interface pre vehicles
 export interface VehicleFilters {
@@ -19,7 +23,9 @@ export function useVehicles(filters?: VehicleFilters) {
   return useQuery({
     queryKey: queryKeys.vehicles.list(filters as Record<string, unknown>),
     queryFn: () => apiService.getVehicles(),
-    staleTime: 30 * 1000, // 30s - ✅ FIX: Znížené pre real-time updates (bolo 5 min)
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
+    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
+    refetchOnMount: 'always', // ✅ Vždy refetch pri mount
     select: (data: Vehicle[]) => {
       // Tu môžeme aplikovať filtrovanie
       if (!filters) return data;
@@ -93,13 +99,17 @@ export function useCreateVehicle() {
     },
     onSuccess: data => {
       // Trigger WebSocket notification
-      window.dispatchEvent(new CustomEvent('vehicle-created', { detail: data }));
+      window.dispatchEvent(
+        new CustomEvent('vehicle-created', { detail: data })
+      );
     },
     onSettled: () => {
       // Refresh po dokončení
       queryClient.invalidateQueries({
         queryKey: queryKeys.vehicles.all,
       });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.vehicles();
     },
   });
 }
@@ -146,7 +156,9 @@ export function useUpdateVehicle() {
     },
     onSuccess: data => {
       // Trigger WebSocket notification
-      window.dispatchEvent(new CustomEvent('vehicle-updated', { detail: data }));
+      window.dispatchEvent(
+        new CustomEvent('vehicle-updated', { detail: data })
+      );
     },
     onSettled: (_data, _error, variables) => {
       // Refresh
@@ -156,6 +168,8 @@ export function useUpdateVehicle() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vehicles.lists(),
       });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.vehicles();
     },
   });
 }
@@ -200,6 +214,8 @@ export function useDeleteVehicle() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vehicles.all,
       });
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.vehicles();
     },
   });
 }

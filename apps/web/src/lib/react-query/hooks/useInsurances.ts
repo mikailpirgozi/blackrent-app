@@ -3,6 +3,7 @@ import type { Insurance } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { useInvalidateEntity } from './useBulkDataLoader';
+import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
 
 export interface InsuranceFilters extends Record<string, unknown> {
   search?: string;
@@ -18,6 +19,8 @@ export function useInsurances(filters?: InsuranceFilters) {
     queryKey: queryKeys.insurances.list(filters),
     queryFn: () => apiService.getInsurances(),
     staleTime: 0, // Vždy fresh data po invalidácii
+    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
+    refetchOnMount: 'always', // ✅ Vždy refetch pri mount
     select: data => {
       if (!filters) return data;
 
@@ -177,6 +180,8 @@ export function useCreateInsurance() {
       if (data && typeof data === 'object' && 'id' in data) {
         invalidateInsurance((data as Insurance).id);
       }
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.insurances();
     },
   });
 }
@@ -272,6 +277,8 @@ export function useUpdateInsurance() {
       if (data && typeof data === 'object' && 'id' in data) {
         invalidateInsurance((data as Insurance).id);
       }
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.insurances();
     },
   });
 }
@@ -370,6 +377,8 @@ export function useDeleteInsurance() {
       });
       // Invalidate specific insurance cache
       invalidateInsurance(deletedId);
+      // ✅ Invaliduj Service Worker cache
+      swCacheInvalidators.insurances();
     },
   });
 }

@@ -9,9 +9,14 @@ declare const CustomEvent: any;
 export function useVehicleDocuments(vehicleId?: string) {
   return useQuery({
     queryKey: ['vehicleDocuments', vehicleId],
-    queryFn: () => apiService.getVehicleDocuments(vehicleId),
+    queryFn: () => {
+      console.log('🔍 FETCHING VehicleDocuments from API...');
+      return apiService.getVehicleDocuments(vehicleId);
+    },
     enabled: true, // Always enabled, vehicleId is optional
     staleTime: 0, // Vždy fresh data po invalidácii
+    gcTime: 0, // ✅ CRITICAL FIX: Okamžite vymaž staré data z cache (no GC cache!)
+    refetchOnMount: 'always', // ✅ Vždy refetch pri mount
   });
 }
 
@@ -71,10 +76,14 @@ export function useCreateVehicleDocument() {
         new CustomEvent('vehicle-document-created', { detail: variables })
       );
     },
-    onSettled: () => {
-      // Always invalidate to get fresh data from server
-      queryClient.invalidateQueries({
-        queryKey: ['vehicleDocuments'],
+    onSettled: async () => {
+      // ✅ FIX: Invalidate ALL vehicleDocuments queries + immediate refetch
+      await queryClient.invalidateQueries({
+        predicate: query => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && queryKey[0] === 'vehicleDocuments';
+        },
+        refetchType: 'active',
       });
     },
   });
@@ -85,52 +94,35 @@ export function useUpdateVehicleDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (document: VehicleDocument) =>
-      apiService.updateVehicleDocument(document),
-    onMutate: async _updatedDocument => {
-      await queryClient.cancelQueries({
-        queryKey: ['vehicleDocuments'],
-      });
-
-      const previousDocuments = queryClient.getQueryData([
-        'vehicleDocuments',
-        _updatedDocument.vehicleId,
-      ]);
-
-      queryClient.setQueryData(
-        ['vehicleDocuments', _updatedDocument.vehicleId],
-        (old: VehicleDocument[] = []) =>
-          old.map(d => (d.id === _updatedDocument.id ? _updatedDocument : d))
-      );
-
-      // Also update the general vehicle documents query
-      queryClient.setQueryData(
-        ['vehicleDocuments'],
-        (old: VehicleDocument[] = []) =>
-          old.map(d => (d.id === _updatedDocument.id ? _updatedDocument : d))
-      );
-
-      return { previousDocuments };
+    mutationFn: (document: VehicleDocument) => {
+      console.log('🚀 UPDATE VEHICLE DOCUMENT: Sending to server:', document);
+      return apiService.updateVehicleDocument(document);
     },
-    onError: (_err, __updatedDocument, context) => {
-      if (context?.previousDocuments) {
-        queryClient.setQueryData(
-          ['vehicleDocuments', __updatedDocument.vehicleId],
-          context.previousDocuments
-        );
-      }
-    },
+    // ❌ DISABLED: Optimistic updates removed - they conflict with staleTime=0
+    // Optimistic updates cause: Update sets cache → invalidation refetches → but cache is "fresh" → no refetch!
+    // Google/Facebook approach: NO optimistic updates, just wait for server response
     onSuccess: (_data, variables) => {
+      console.log('✅ UPDATE VEHICLE DOCUMENT SUCCESS:', _data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('vehicle-document-updated', { detail: variables })
       );
     },
-    onSettled: () => {
-      // Always invalidate to get fresh data from server
-      queryClient.invalidateQueries({
-        queryKey: ['vehicleDocuments'],
+    onError: error => {
+      console.error('❌ UPDATE VEHICLE DOCUMENT ERROR:', error);
+    },
+    onSettled: async () => {
+      console.log('🔄 UPDATE VEHICLE DOCUMENT: Invalidating cache...');
+      // ✅ FIX: Invalidate AND refetch immediately
+      // React Query v5: invalidate alone doesn't refetch if component isn't active
+      await queryClient.invalidateQueries({
+        predicate: query => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && queryKey[0] === 'vehicleDocuments';
+        },
+        refetchType: 'active', // Refetch active queries immediately
       });
+      console.log('✅ All vehicleDocuments queries invalidated + refetched');
     },
   });
 }
@@ -198,10 +190,14 @@ export function useDeleteVehicleDocument() {
         })
       );
     },
-    onSettled: () => {
-      // Always invalidate to get fresh data from server
-      queryClient.invalidateQueries({
-        queryKey: ['vehicleDocuments'],
+    onSettled: async () => {
+      // ✅ FIX: Invalidate ALL vehicleDocuments queries + immediate refetch
+      await queryClient.invalidateQueries({
+        predicate: query => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && queryKey[0] === 'vehicleDocuments';
+        },
+        refetchType: 'active',
       });
     },
   });

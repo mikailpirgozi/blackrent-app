@@ -44,7 +44,9 @@ export const usePWA = (): PWAState & PWAActions => {
   const [state, setState] = useState<PWAState>({
     isInstallable: false,
     isInstalled: false,
-    isOffline: !(typeof window !== 'undefined' && 'navigator' in window ? (window.navigator as PWANavigator).onLine : true),
+    isOffline: !(typeof window !== 'undefined' && 'navigator' in window
+      ? (window.navigator as PWANavigator).onLine
+      : true),
     isUpdateAvailable: false,
     installPrompt: null,
     swRegistration: globalSWRegistration,
@@ -54,15 +56,21 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const registerServiceWorker =
     useCallback(async (): Promise<PWAServiceWorkerRegistration | null> => {
-      if (typeof window === 'undefined' || !('navigator' in window) || !('serviceWorker' in (window.navigator as PWANavigator))) {
+      if (
+        typeof window === 'undefined' ||
+        !('navigator' in window) ||
+        !('serviceWorker' in (window.navigator as PWANavigator))
+      ) {
         console.warn('Service Worker not supported');
         return null;
       }
 
       try {
-        const registration = await (window.navigator as PWANavigator).serviceWorker.register('/sw.js', {
+        const registration = (await (
+          window.navigator as PWANavigator
+        ).serviceWorker.register('/sw.js', {
           scope: '/',
-        }) as PWAServiceWorkerRegistration;
+        })) as PWAServiceWorkerRegistration;
 
         console.log(
           '✅ Service Worker registered successfully:',
@@ -71,26 +79,34 @@ export const usePWA = (): PWAState & PWAActions => {
 
         // ✅ ENABLED: Service Worker update detection with smart handling
         console.log('🔄 PWA: Service Worker update detection ENABLED');
-        console.log('📱 Smart update handling prevents unwanted mobile refreshes');
+        console.log(
+          '📱 Smart update handling prevents unwanted mobile refreshes'
+        );
 
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (!newWorker) return;
-          
+
           newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && (window.navigator as PWANavigator).serviceWorker.controller) {
+            if (
+              newWorker.state === 'installed' &&
+              (window.navigator as PWANavigator).serviceWorker.controller
+            ) {
               setState(prev => ({ ...prev, isUpdateAvailable: true }));
               console.log('🔄 PWA: Update available - user will be notified');
-              
+
               // Smart update notification instead of automatic refresh
               if (typeof window !== 'undefined') {
                 // Check if user is on a critical page where refresh would be disruptive
-                const isCriticalPage = window.location.pathname.includes('/availability') || 
-                                     window.location.pathname.includes('/protocols') ||
-                                     window.location.pathname.includes('/rentals');
-                
+                const isCriticalPage =
+                  window.location.pathname.includes('/availability') ||
+                  window.location.pathname.includes('/protocols') ||
+                  window.location.pathname.includes('/rentals');
+
                 if (isCriticalPage) {
-                  console.log('📱 Critical page detected - update notification only');
+                  console.log(
+                    '📱 Critical page detected - update notification only'
+                  );
                 } else {
                   console.log('🔄 Safe to show update prompt');
                 }
@@ -141,6 +157,24 @@ export const usePWA = (): PWAState & PWAActions => {
       // Check if app is already installed
       checkInstallationStatus();
 
+      // ✅ CHECK: Auto-update Service Worker if version changed
+      console.log('🔍 Checking Service Worker version...');
+
+      // Dynamic import to avoid circular dependencies
+      const { checkServiceWorkerVersion, forceServiceWorkerUpdate } =
+        await import('../utils/forceServiceWorkerUpdate');
+      const versionCheck = await checkServiceWorkerVersion();
+
+      if (versionCheck.needsUpdate) {
+        console.log('🔄 Service Worker update needed - forcing update...');
+        await forceServiceWorkerUpdate();
+        console.log(
+          '✅ Service Worker updated - will activate on next page load'
+        );
+      } else {
+        console.log('✅ Service Worker is up to date');
+      }
+
       // 🔧 ALLOW Service Worker on mobile but with disabled auto-updates
       const isMobileDevice = window.matchMedia('(max-width: 900px)').matches;
 
@@ -151,7 +185,11 @@ export const usePWA = (): PWAState & PWAActions => {
       }
 
       // Register service worker na všetkých zariadeniach
-      if (typeof window !== 'undefined' && 'navigator' in window && 'serviceWorker' in (window.navigator as PWANavigator)) {
+      if (
+        typeof window !== 'undefined' &&
+        'navigator' in window &&
+        'serviceWorker' in (window.navigator as PWANavigator)
+      ) {
         const registration = await registerServiceWorker();
         if (registration) {
           globalSWRegistration = registration; // Store globally
@@ -172,7 +210,10 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const setupEventListeners = useCallback(() => {
     // Install prompt event
-    (window as any).addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    (window as any).addEventListener(
+      'beforeinstallprompt',
+      handleBeforeInstallPrompt
+    );
 
     // App installed event
     (window as any).addEventListener('appinstalled', handleAppInstalled);
@@ -235,8 +276,11 @@ export const usePWA = (): PWAState & PWAActions => {
     // Check if running as installed PWA
     const isInstalled =
       (window as any).matchMedia('(display-mode: standalone)').matches ||
-      ((window.navigator as PWANavigator) as PWANavigator & { standalone?: boolean }).standalone ===
-        true;
+      (
+        window.navigator as PWANavigator as PWANavigator & {
+          standalone?: boolean;
+        }
+      ).standalone === true;
 
     setState(prev => ({ ...prev, isInstalled }));
   };
@@ -354,7 +398,9 @@ export const usePWA = (): PWAState & PWAActions => {
         console.groupEnd();
 
         // ✅ ENABLED: Smart Service Worker update handling
-        console.log('🔄 Service Worker updated - Smart update handling enabled');
+        console.log(
+          '🔄 Service Worker updated - Smart update handling enabled'
+        );
         console.log('📱 Update will be applied with user consent');
 
         // Set update available flag
@@ -411,7 +457,9 @@ export const usePWA = (): PWAState & PWAActions => {
       if (typeof window !== 'undefined' && 'caches' in window) {
         const cacheNames = await (window as any).caches.keys();
         await Promise.all(
-          cacheNames.map((cacheName: string) => (window as any).caches.delete(cacheName))
+          cacheNames.map((cacheName: string) =>
+            (window as any).caches.delete(cacheName)
+          )
         );
       }
 

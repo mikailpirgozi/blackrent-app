@@ -70,7 +70,6 @@ const getApiBaseUrl = () => {
     return RAILWAY_API_URL;
   }
 
-
   // Fallback na Railway API
   if (!(window as any).__API_URL_LOGGED__) {
     console.log('🌐 Používam Railway API ako fallback:', RAILWAY_API_URL);
@@ -92,10 +91,7 @@ class ApiService {
     return token;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: any = {}
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: any = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getAuthToken();
 
@@ -103,10 +99,28 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
+        // ✅ CRITICAL FIX: Disable ALL caching mechanisms
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        // ✅ CRITICAL FIX: Disable ETag caching
+        'If-None-Match': '', // Force fresh response, ignore ETag
+        'If-Modified-Since': '', // Force fresh response, ignore Last-Modified
         ...options.headers,
       },
+      cache: 'no-store', // ✅ Fetch API cache option
       ...options,
     };
+
+    // 🔍 DEBUG: Log každý API request
+    if (endpoint.includes('vehicle-documents')) {
+      console.log('🌐 API REQUEST:', {
+        method: options.method || 'GET',
+        endpoint,
+        url,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     try {
       const response = await fetch(url, config);
@@ -133,7 +147,7 @@ class ApiService {
 
       // Check if response has content before parsing JSON
       const responseText = await response.text();
-      
+
       if (!responseText.trim()) {
         console.warn('⚠️ Empty response from API:', endpoint);
         throw new Error('Prázdna odpoveď zo servera');
@@ -146,7 +160,7 @@ class ApiService {
         console.error('❌ JSON parsing error:', {
           endpoint,
           responseText: responseText.substring(0, 200),
-          error: parseError
+          error: parseError,
         });
         throw new Error('Neplatná odpoveď zo servera');
       }
@@ -824,10 +838,31 @@ class ApiService {
 
   // Vehicle Documents API
   async getVehicleDocuments(vehicleId?: string): Promise<VehicleDocument[]> {
+    // ✅ Add cache-busting query param to force fresh data
+    const timestamp = Date.now();
     const endpoint = vehicleId
-      ? `/vehicle-documents?vehicleId=${vehicleId}`
-      : '/vehicle-documents';
-    return this.request<VehicleDocument[]>(endpoint);
+      ? `/vehicle-documents?vehicleId=${vehicleId}&_t=${timestamp}`
+      : `/vehicle-documents?_t=${timestamp}`;
+    const result = await this.request<VehicleDocument[]>(endpoint);
+
+    // 🔍 DEBUG: Log API response
+    const sample = result.find(
+      d => d.id === 'ce0d2d86-2f70-419d-a459-b81a71805d21'
+    );
+    console.log('📡 API RESPONSE /vehicle-documents:', {
+      count: result.length,
+      timestamp: new Date().toISOString(),
+      sampleDoc: sample
+        ? {
+            id: sample.id,
+            validFrom: sample.validFrom,
+            validTo: sample.validTo,
+            documentType: sample.documentType,
+          }
+        : 'not found',
+    });
+
+    return result;
   }
 
   async createVehicleDocument(document: VehicleDocument): Promise<void> {
@@ -838,10 +873,19 @@ class ApiService {
   }
 
   async updateVehicleDocument(document: VehicleDocument): Promise<void> {
-    return this.request<void>(`/vehicle-documents/${document.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(document),
-    });
+    console.log(
+      '📤 API: Sending UPDATE request for vehicle document:',
+      document.id
+    );
+    const result = await this.request<void>(
+      `/vehicle-documents/${document.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(document),
+      }
+    );
+    console.log('✅ API: UPDATE request completed');
+    return result;
   }
 
   async deleteVehicleDocument(id: string): Promise<void> {

@@ -21,26 +21,38 @@ export default defineConfig({
   server: {
     port: 3000,
     // OPTIMALIZÁCIA FILE WATCHING
-    watch: { 
+    watch: {
       usePolling: true,
-      interval: 100,  // Rýchlejšie než default 200ms
-      ignored: ['**/node_modules/**', '**/.git/**']
+      interval: 100, // Rýchlejšie než default 200ms
+      ignored: ['**/node_modules/**', '**/.git/**'],
     },
     // SEPARÁTNY HMR PORT
-    hmr: { 
+    hmr: {
       overlay: true,
       port: 3003,
-      host: 'localhost'
+      host: 'localhost',
     },
-    // PROXY OPTIMALIZÁCIA  
+    // PROXY OPTIMALIZÁCIA
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
-        timeout: 5000  // Rýchlejší timeout
-      }
-    }
+        timeout: 5000, // Rýchlejší timeout
+        // ✅ CRITICAL FIX: Disable proxy cache pre fresh data
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Add cache-busting headers
+            proxyReq.setHeader(
+              'Cache-Control',
+              'no-cache, no-store, must-revalidate'
+            );
+            proxyReq.setHeader('Pragma', 'no-cache');
+            proxyReq.setHeader('Expires', '0');
+          });
+        },
+      },
+    },
   },
   build: {
     outDir: 'build',
@@ -63,7 +75,11 @@ export default defineConfig({
   // DEV FLAGS
   define: {
     global: 'globalThis',
-    __DEV_DISABLE_SW_CACHE__: JSON.stringify(process.env.NODE_ENV === 'development'),
-    __DEV_FAST_REFRESH__: JSON.stringify(process.env.NODE_ENV === 'development')
+    __DEV_DISABLE_SW_CACHE__: JSON.stringify(
+      process.env.NODE_ENV === 'development'
+    ),
+    __DEV_FAST_REFRESH__: JSON.stringify(
+      process.env.NODE_ENV === 'development'
+    ),
   },
 });

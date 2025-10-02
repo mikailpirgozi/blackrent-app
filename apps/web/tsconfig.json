@@ -36,7 +36,9 @@
   "include": [
     "src",
     "src/vite-env.d.ts",
-    "src/@types/**/*"
+    "src/@types/**/*",
+    "vite.config.ts",
+    "vitest.config.ts"
   ],
   "exclude": [
     "node_modules",
