@@ -1,48 +1,24 @@
+import { UnifiedIcon } from '../ui/UnifiedIcon';
+import { UnifiedCard } from '../ui/UnifiedCard';
+import { UnifiedChip } from '../ui/UnifiedChip';
+import { H1, H4, H6, Body2, Caption } from '../ui/UnifiedTypography';
+import { Spinner } from '../ui/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import {
-  Add as AddIcon,
-  DirectionsCar as CarIcon,
-  CheckCircle as CheckCircleIcon,
-  ReportProblem as ClaimIcon,
-  Close as CloseIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Error as ErrorIcon,
-  Euro as EuroIcon,
-  Event as EventIcon,
-  FilterList as FilterListIcon,
-  Schedule as ScheduleIcon,
-  Search as SearchIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  Fab,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
-  TablePagination,
+  TableHeader,
   TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+} from '../ui/table';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Card, CardContent } from '../ui/card';
+import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useMemo, useState } from 'react';
@@ -79,42 +55,42 @@ const getStatusInfo = (status: string) => {
         label: 'Nahlásené',
         color: '#f57c00',
         bgColor: '#fff3e0',
-        icon: <ScheduleIcon sx={{ fontSize: 14 }} />,
+        icon: <UnifiedIcon name="clock" size={14} />,
       };
     case 'investigating':
       return {
         label: 'Vyšetruje sa',
         color: '#1976d2',
         bgColor: '#e3f2fd',
-        icon: <SearchIcon sx={{ fontSize: 14 }} />,
+        icon: <UnifiedIcon name="search" size={14} />,
       };
     case 'approved':
       return {
         label: 'Schválené',
         color: '#388e3c',
         bgColor: '#e8f5e8',
-        icon: <CheckCircleIcon sx={{ fontSize: 14 }} />,
+        icon: <UnifiedIcon name="check" size={14} />,
       };
     case 'rejected':
       return {
         label: 'Zamietnuté',
         color: '#d32f2f',
         bgColor: '#ffebee',
-        icon: <ErrorIcon sx={{ fontSize: 14 }} />,
+        icon: <UnifiedIcon name="error" size={14} />,
       };
     case 'closed':
       return {
         label: 'Uzavreté',
         color: '#616161',
         bgColor: '#f5f5f5',
-        icon: <CheckCircleIcon sx={{ fontSize: 14 }} />,
+        icon: <UnifiedIcon name="check" size={14} />,
       };
     default:
       return {
         label: 'Neznáme',
         color: '#616161',
         bgColor: '#f5f5f5',
-        icon: <WarningIcon sx={{ fontSize: 14 }} />,
+        icon: <UnifiedIcon name="warning" size={14} />,
       };
   }
 };
@@ -144,9 +120,20 @@ export default function InsuranceClaimList() {
     return deleteInsuranceClaimMutation.mutateAsync(id);
   };
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  // Media queries using window.innerWidth
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  
+  React.useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsTablet(window.innerWidth < 1024); // lg breakpoint
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingClaim, setEditingClaim] = useState<InsuranceClaim | null>(null);
@@ -176,9 +163,9 @@ export default function InsuranceClaimList() {
           claim.location.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchesVehicle =
-        !filterVehicle || claim.vehicleId === filterVehicle;
-      const matchesStatus = !filterStatus || claim.status === filterStatus;
-      const matchesType = !filterType || claim.incidentType === filterType;
+        !filterVehicle || filterVehicle === 'all-vehicles' || claim.vehicleId === filterVehicle;
+      const matchesStatus = !filterStatus || filterStatus === 'all-statuses' || claim.status === filterStatus;
+      const matchesType = !filterType || filterType === 'all-types' || claim.incidentType === filterType;
 
       return matchesSearch && matchesVehicle && matchesStatus && matchesType;
     });
@@ -204,8 +191,8 @@ export default function InsuranceClaimList() {
     if (window.confirm('Naozaj chcete vymazať túto poistnú udalosť?')) {
       try {
         await deleteInsuranceClaim(id);
-      } catch {
-        alert('Chyba pri mazaní poistnej udalosti');
+      } catch (error) {
+        console.error('Chyba pri mazaní poistnej udalosti:', error);
       }
     }
   };
@@ -221,7 +208,7 @@ export default function InsuranceClaimList() {
       setEditingClaim(null);
     } catch (error) {
       console.error('Chyba pri ukladaní poistnej udalosti:', error);
-      alert(
+      console.error(
         'Chyba pri ukladaní poistnej udalosti: ' +
           (error instanceof Error ? error.message : 'Neznáma chyba')
       );
@@ -238,555 +225,344 @@ export default function InsuranceClaimList() {
   const hasActiveFilters =
     searchQuery || filterVehicle || filterStatus || filterType;
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  // Pagination handlers are now inline in the JSX
 
   if (!insuranceClaims) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 200,
-        }}
-      >
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-48">
+        <Spinner size={32} />
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        p: { xs: 1, sm: 2, md: 3 },
-        width: '100%',
-        maxWidth: '100%',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="p-2 sm:p-4 md:p-6 w-full max-w-full overflow-hidden">
       {/* Responsive Header */}
-      <Card
-        sx={{
-          mb: { xs: 2, sm: 3 },
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          borderRadius: { xs: 2, sm: 3 },
-        }}
+      <UnifiedCard
+        variant="elevated"
+        className="mb-4 sm:mb-6 shadow-lg rounded-lg sm:rounded-xl"
       >
-        <CardContent
-          sx={{
-            background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
-            color: 'white',
-            p: { xs: 2, sm: 2.5, md: 3 },
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              flexDirection: isMobile ? 'column' : 'row',
-              gap: { xs: 2, sm: 2 },
-            }}
+        <div className="relative text-white bg-gradient-to-br from-red-600 to-red-800 p-4 sm:p-5 md:p-6 rounded-t-lg sm:rounded-t-xl">
+          <div
+            className={cn(
+              "flex",
+              isMobile ? "flex-col items-start" : "flex-row items-center",
+              "justify-between",
+              "gap-2"
+            )}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: { xs: 1.5, sm: 2 },
-                width: isMobile ? '100%' : 'auto',
-              }}
+            <div
+              className={cn(
+                "flex items-center",
+                "gap-1.5 sm:gap-2",
+                isMobile ? "w-full" : "w-auto"
+              )}
             >
-              <ClaimIcon
-                sx={{
-                  fontSize: { xs: 24, sm: 28, md: 32 },
-                  flexShrink: 0,
-                }}
+              <UnifiedIcon
+                name="claim"
+                size={isMobile ? 24 : isTablet ? 28 : 32}
+                className="flex-shrink-0"
               />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                  sx={{
-                    fontWeight: 700,
-                    mb: 0.5,
-                    fontSize: {
-                      xs: '1.1rem',
-                      sm: '1.25rem',
-                      md: '1.5rem',
-                      lg: '2rem',
-                    },
-                    lineHeight: 1.2,
-                  }}
+              <div className="min-w-0 flex-1">
+                <H1
+                  className={cn(
+                    "font-bold mb-0.5 leading-tight",
+                    isMobile ? "text-lg" : isTablet ? "text-xl" : "text-2xl lg:text-3xl"
+                  )}
                 >
                   {isMobile ? 'Poistné udalosti' : 'Poistné udalosti'}
-                </Typography>
-                <Typography
-                  variant={isMobile ? 'body2' : 'body1'}
-                  sx={{
-                    opacity: 0.9,
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                  }}
+                </H1>
+                <Body2
+                  className={cn(
+                    "opacity-90",
+                    isMobile ? "text-sm" : "text-base"
+                  )}
                 >
                   {claims.length} udalostí celkom
-                </Typography>
-              </Box>
-            </Box>
+                </Body2>
+              </div>
+            </div>
 
             {!isMobile && (
               <Button
-                variant="contained"
-                startIcon={<AddIcon />}
                 onClick={handleAdd}
-                size={isTablet ? 'medium' : 'large'}
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                  },
-                }}
+                size={isTablet ? "default" : "lg"}
+                className="bg-white/20 backdrop-blur-sm border border-white/30 whitespace-nowrap flex-shrink-0 hover:bg-white/30"
               >
+                <UnifiedIcon name="plus" size={16} className="mr-2" />
                 Pridať udalosť
               </Button>
             )}
-          </Box>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </UnifiedCard>
 
       {/* Responsive Statistics */}
-      <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Grid item xs={6} sm={6} md={3}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-2 sm:mb-3">
+        <div className="col-span-1">
           <Card
-            sx={{
-              height: '100%',
-              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
-              color: 'white',
-              minHeight: { xs: 80, sm: 100, md: 120 },
-              borderRadius: { xs: 2, sm: 3 },
-              transition: 'transform 0.2s ease-in-out',
-              '&:hover': {
-                transform: isMobile ? 'none' : 'translateY(-2px)',
-              },
-            }}
+            className={cn(
+              "h-full bg-gradient-to-br from-orange-500 to-orange-600 text-white",
+              "min-h-20 sm:min-h-24 md:min-h-28",
+              "rounded-lg sm:rounded-xl",
+              "transition-transform duration-200 ease-in-out",
+              !isMobile && "hover:-translate-y-0.5"
+            )}
           >
-            <CardContent
-              sx={{
-                p: { xs: 1.5, sm: 2, md: 2.5 },
-                '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } },
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  textAlign: isMobile ? 'center' : 'left',
-                  gap: isMobile ? 1 : 0,
-                }}
+            <CardContent className="p-3 sm:p-4 md:p-5">
+              <div
+                className={cn(
+                  "flex justify-between items-center",
+                  isMobile ? "flex-col text-center gap-1" : "flex-row text-left gap-0"
+                )}
               >
-                <Box sx={{ order: isMobile ? 2 : 1 }}>
-                  <Typography
-                    variant={
-                      isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'
-                    }
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                      letterSpacing: 0.5,
-                      mb: { xs: 0.5, sm: 1 },
-                    }}
+                <div className={cn(isMobile ? "order-2" : "order-1")}>
+                  <Caption
+                    className={cn(
+                      "font-semibold tracking-wider mb-0.5 sm:mb-1",
+                      isMobile ? "text-xs" : isTablet ? "text-sm" : "text-base"
+                    )}
                   >
                     CELKOM
-                  </Typography>
-                  <Typography
-                    variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
-                    }}
+                  </Caption>
+                  <H4
+                    className={cn(
+                      "font-bold",
+                      isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
+                    )}
                   >
                     {claims.length}
-                  </Typography>
-                </Box>
-                <ClaimIcon
-                  sx={{
-                    fontSize: { xs: 20, sm: 32, md: 40 },
-                    opacity: 0.8,
-                    order: isMobile ? 1 : 2,
-                  }}
+                  </H4>
+                </div>
+                <UnifiedIcon
+                  name="claim"
+                  size={isMobile ? 20 : isTablet ? 32 : 40}
+                  className={cn(
+                    "opacity-80",
+                    isMobile ? "order-1" : "order-2"
+                  )}
                 />
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
-        <Grid item xs={6} sm={6} md={3}>
+        <div className="col-span-1">
           <Card
-            sx={{
-              height: '100%',
-              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
-              color: 'white',
-              minHeight: { xs: 100, sm: 120 },
-            }}
+            className="h-full bg-gradient-to-br from-blue-500 to-blue-700 text-white min-h-24 sm:min-h-28"
           >
-            <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  textAlign: { xs: 'center', sm: 'left' },
-                  gap: { xs: 1, sm: 0 },
-                }}
-              >
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' },
-                    }}
-                  >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex justify-between items-center flex-col sm:flex-row text-center sm:text-left gap-1 sm:gap-0">
+                <div>
+                  <H6 className="font-semibold text-xs sm:text-xl">
                     VYŠETRUJE SA
-                  </Typography>
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
-                    }}
-                  >
+                  </H6>
+                  <H4 className="font-bold text-2xl sm:text-3xl">
                     {claims.filter(c => c.status === 'investigating').length}
-                  </Typography>
-                </Box>
-                <SearchIcon
-                  sx={{
-                    fontSize: { xs: 24, sm: 40 },
-                    opacity: 0.8,
-                    display: { xs: 'none', sm: 'block' },
-                  }}
+                  </H4>
+                </div>
+                <UnifiedIcon
+                  name="search"
+                  size={isMobile ? 24 : 40}
+                  className="opacity-80 hidden sm:block"
                 />
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
-        <Grid item xs={6} sm={6} md={3}>
+        <div className="col-span-1">
           <Card
-            sx={{
-              height: '100%',
-              background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
-              color: 'white',
-              minHeight: { xs: 100, sm: 120 },
-            }}
+            className="h-full bg-gradient-to-br from-green-500 to-green-700 text-white min-h-24 sm:min-h-28"
           >
-            <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  textAlign: { xs: 'center', sm: 'left' },
-                  gap: { xs: 1, sm: 0 },
-                }}
-              >
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' },
-                    }}
-                  >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex justify-between items-center flex-col sm:flex-row text-center sm:text-left gap-1 sm:gap-0">
+                <div>
+                  <H6 className="font-semibold text-xs sm:text-xl">
                     SCHVÁLENÉ
-                  </Typography>
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
-                    }}
-                  >
+                  </H6>
+                  <H4 className="font-bold text-2xl sm:text-3xl">
                     {claims.filter(c => c.status === 'approved').length}
-                  </Typography>
-                </Box>
-                <CheckCircleIcon
-                  sx={{
-                    fontSize: { xs: 24, sm: 40 },
-                    opacity: 0.8,
-                    display: { xs: 'none', sm: 'block' },
-                  }}
+                  </H4>
+                </div>
+                <UnifiedIcon
+                  name="check"
+                  size={isMobile ? 24 : 40}
+                  className="opacity-80 hidden sm:block"
                 />
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
-        <Grid item xs={6} sm={6} md={3}>
+        <div className="col-span-1">
           <Card
-            sx={{
-              height: '100%',
-              background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
-              color: 'white',
-              minHeight: { xs: 100, sm: 120 },
-            }}
+            className="h-full bg-gradient-to-br from-red-500 to-red-700 text-white min-h-24 sm:min-h-28"
           >
-            <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  textAlign: { xs: 'center', sm: 'left' },
-                  gap: { xs: 1, sm: 0 },
-                }}
-              >
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '1.25rem' },
-                    }}
-                  >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex justify-between items-center flex-col sm:flex-row text-center sm:text-left gap-1 sm:gap-0">
+                <div>
+                  <H6 className="font-semibold text-xs sm:text-xl">
                     ZAMIETNUTÉ
-                  </Typography>
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
-                    }}
-                  >
+                  </H6>
+                  <H4 className="font-bold text-2xl sm:text-3xl">
                     {claims.filter(c => c.status === 'rejected').length}
-                  </Typography>
-                </Box>
-                <ErrorIcon
-                  sx={{
-                    fontSize: { xs: 24, sm: 40 },
-                    opacity: 0.8,
-                    display: { xs: 'none', sm: 'block' },
-                  }}
+                  </H4>
+                </div>
+                <UnifiedIcon
+                  name="error"
+                  size={isMobile ? 24 : 40}
+                  className="opacity-80 hidden sm:block"
                 />
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Search and Filters */}
-      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Box
-            sx={{
-              display: 'flex',
-              gap: { xs: 1, sm: 2 },
-              mb: showFilters ? 2 : 0,
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'stretch', sm: 'center' },
-            }}
+      <Card className="mb-3 shadow-lg">
+        <CardContent className="p-4 sm:p-6">
+          <div
+            className={cn(
+              "flex gap-1 sm:gap-2",
+              showFilters ? "mb-4" : "mb-0",
+              "flex-col sm:flex-row",
+              "items-stretch sm:items-center"
+            )}
           >
-            <TextField
-              placeholder="Vyhľadať udalosť..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                ),
-              }}
-              sx={{
-                flex: 1,
-                minWidth: { xs: 'auto', sm: '250px' },
-                mb: { xs: 1, sm: 0 },
-              }}
-              size="medium"
-            />
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                flexDirection: { xs: 'row', sm: 'row' },
-                justifyContent: { xs: 'space-between', sm: 'flex-start' },
-              }}
-            >
+            <div className="relative flex-1 min-w-0 sm:min-w-64 mb-1 sm:mb-0">
+              <UnifiedIcon
+                name="search"
+                size={16}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                placeholder="Vyhľadať udalosť..."
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex gap-1 flex-row justify-between sm:justify-start">
               <Button
-                variant={showFilters ? 'contained' : 'outlined'}
-                startIcon={
-                  <FilterListIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                }
+                variant={showFilters ? "default" : "outline"}
                 onClick={() => setShowFilters(!showFilters)}
-                sx={{
-                  whiteSpace: 'nowrap',
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  px: { xs: 2, sm: 3 },
-                  flex: { xs: 1, sm: 'none' },
-                }}
-                size="medium"
+                className="whitespace-nowrap text-sm sm:text-base px-4 sm:px-6 flex-1 sm:flex-none"
               >
-                <Box
-                  component="span"
-                  sx={{ display: { xs: 'none', sm: 'inline' } }}
-                >
+                <UnifiedIcon name="filter" size={isMobile ? 18 : 20} className="mr-2" />
+                <span className="hidden sm:inline">
                   Filtre{' '}
                   {hasActiveFilters &&
                     `(${[searchQuery, filterVehicle, filterStatus, filterType].filter(Boolean).length})`}
-                </Box>
-                <Box
-                  component="span"
-                  sx={{ display: { xs: 'inline', sm: 'none' } }}
-                >
+                </span>
+                <span className="sm:hidden">
                   Filtre
-                </Box>
+                </span>
               </Button>
               {hasActiveFilters && (
                 <Button
-                  variant="outlined"
-                  startIcon={
-                    <CloseIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                  }
+                  variant="outline"
                   onClick={clearFilters}
-                  sx={{
-                    whiteSpace: 'nowrap',
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    px: { xs: 2, sm: 3 },
-                    flex: { xs: 1, sm: 'none' },
-                  }}
-                  size="medium"
+                  className="whitespace-nowrap text-sm sm:text-base px-4 sm:px-6 flex-1 sm:flex-none"
                 >
-                  <Box
-                    component="span"
-                    sx={{ display: { xs: 'none', sm: 'inline' } }}
-                  >
+                  <UnifiedIcon name="close" size={isMobile ? 18 : 20} className="mr-2" />
+                  <span className="hidden sm:inline">
                     Vyčistiť
-                  </Box>
-                  <Box
-                    component="span"
-                    sx={{ display: { xs: 'inline', sm: 'none' } }}
-                  >
+                  </span>
+                  <span className="sm:hidden">
                     Reset
-                  </Box>
+                  </span>
                 </Button>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {showFilters && (
-            <Grid container spacing={{ xs: 1, sm: 2 }}>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Vozidlo</InputLabel>
-                  <Select
-                    value={filterVehicle}
-                    onChange={e => setFilterVehicle(e.target.value)}
-                    label="Vozidlo"
-                  >
-                    <MenuItem value="">Všetky</MenuItem>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vehicle-filter">Vozidlo</Label>
+                <Select value={filterVehicle} onValueChange={setFilterVehicle}>
+                  <SelectTrigger id="vehicle-filter">
+                    <SelectValue placeholder="Všetky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-vehicles">Všetky</SelectItem>
                     {vehicles?.map(vehicle => (
-                      <MenuItem key={vehicle.id} value={vehicle.id}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            fontSize: { xs: '0.875rem', sm: '1rem' },
-                          }}
-                        >
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        <div className="flex flex-col text-sm">
                           <span>
                             {vehicle.brand} {vehicle.model}
                           </span>
-                          <Typography variant="caption" color="text.secondary">
+                          <Caption className="text-muted-foreground">
                             {vehicle.licensePlate}
-                          </Typography>
-                        </Box>
-                      </MenuItem>
+                          </Caption>
+                        </div>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Stav</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    onChange={e => setFilterStatus(e.target.value)}
-                    label="Stav"
-                  >
-                    <MenuItem value="">Všetky</MenuItem>
-                    <MenuItem value="reported">Nahlásené</MenuItem>
-                    <MenuItem value="investigating">Vyšetruje sa</MenuItem>
-                    <MenuItem value="approved">Schválené</MenuItem>
-                    <MenuItem value="rejected">Zamietnuté</MenuItem>
-                    <MenuItem value="closed">Uzavreté</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Typ udalosti</InputLabel>
-                  <Select
-                    value={filterType}
-                    onChange={e => setFilterType(e.target.value)}
-                    label="Typ udalosti"
-                  >
-                    <MenuItem value="">Všetky</MenuItem>
-                    <MenuItem value="accident">Nehoda</MenuItem>
-                    <MenuItem value="theft">Krádež</MenuItem>
-                    <MenuItem value="vandalism">Vandalizmus</MenuItem>
-                    <MenuItem value="weather">Počasie</MenuItem>
-                    <MenuItem value="other">Iné</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status-filter">Stav</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger id="status-filter">
+                    <SelectValue placeholder="Všetky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-statuses">Všetky</SelectItem>
+                    <SelectItem value="reported">Nahlásené</SelectItem>
+                    <SelectItem value="investigating">Vyšetruje sa</SelectItem>
+                    <SelectItem value="approved">Schválené</SelectItem>
+                    <SelectItem value="rejected">Zamietnuté</SelectItem>
+                    <SelectItem value="closed">Uzavreté</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type-filter">Typ udalosti</Label>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger id="type-filter">
+                    <SelectValue placeholder="Všetky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-types">Všetky</SelectItem>
+                    <SelectItem value="accident">Nehoda</SelectItem>
+                    <SelectItem value="theft">Krádež</SelectItem>
+                    <SelectItem value="vandalism">Vandalizmus</SelectItem>
+                    <SelectItem value="weather">Počasie</SelectItem>
+                    <SelectItem value="other">Iné</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Claims Table/Cards */}
       {filteredClaims.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 6 } }}>
+        <Card className="text-center py-8 sm:py-12">
           <CardContent>
-            <ClaimIcon
-              sx={{
-                fontSize: { xs: 48, sm: 64 },
-                color: 'text.secondary',
-                mb: 2,
-              }}
+            <UnifiedIcon
+              name="claim"
+              size={isMobile ? 48 : 64}
+              className="text-muted-foreground mb-4"
             />
-            <Typography
-              variant="h6"
-              sx={{ mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}
-              color="text.secondary"
-            >
+            <H6 className="mb-2 text-base sm:text-xl text-muted-foreground">
               {hasActiveFilters ? 'Žiadne výsledky' : 'Žiadne poistné udalosti'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            </H6>
+            <Body2 className="text-muted-foreground mb-6">
               {hasActiveFilters
                 ? 'Skúste zmeniť filter alebo vyhľadávací výraz'
                 : 'Zatiaľ neboli vytvorené žiadne poistné udalosti'}
-            </Typography>
+            </Body2>
             {!hasActiveFilters && (
               <Button
-                variant="contained"
-                startIcon={<AddIcon />}
                 onClick={handleAdd}
-                size="medium"
+                size="default"
               >
+                <UnifiedIcon name="plus" size={16} className="mr-2" />
                 Pridať prvú udalosť
               </Button>
             )}
@@ -795,25 +571,22 @@ export default function InsuranceClaimList() {
       ) : (
         <>
           {/* Desktop Table */}
-          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <TableContainer
-              component={Paper}
-              sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-            >
+          <div className="hidden md:block">
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
               <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-semibold">
                       Dátum udalosti
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Vozidlo</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Typ</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Popis</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Stav</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Škoda</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Akcie</TableCell>
+                    </TableHead>
+                    <TableHead className="font-semibold">Vozidlo</TableHead>
+                    <TableHead className="font-semibold">Typ</TableHead>
+                    <TableHead className="font-semibold">Popis</TableHead>
+                    <TableHead className="font-semibold">Stav</TableHead>
+                    <TableHead className="font-semibold">Škoda</TableHead>
+                    <TableHead className="font-semibold">Akcie</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {paginatedClaims.map(claim => {
                     const vehicle = vehicles?.find(
@@ -823,51 +596,45 @@ export default function InsuranceClaimList() {
                     const statusInfo = getStatusInfo(claim.status);
 
                     return (
-                      <TableRow key={claim.id} hover>
+                      <TableRow key={claim.id} className="hover:bg-gray-50">
                         <TableCell>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <EventIcon
-                              sx={{ fontSize: 18, color: 'text.secondary' }}
+                          <div className="flex items-center gap-2">
+                            <UnifiedIcon
+                              name="event"
+                              size={18}
+                              className="text-muted-foreground"
                             />
                             {format(
                               new Date(claim.incidentDate),
                               'dd.MM.yyyy',
                               { locale: sk }
                             )}
-                          </Box>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <CarIcon sx={{ fontSize: 18, color: '#1976d2' }} />
-                            {vehicle
-                              ? `${vehicle.brand} ${vehicle.model}`
-                              : 'Neznáme vozidlo'}
-                            <br />
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {vehicle?.licensePlate}
-                            </Typography>
-                          </Box>
+                          <div className="flex items-center gap-2">
+                            <UnifiedIcon
+                              name="car"
+                              size={18}
+                              className="text-blue-600"
+                            />
+                            <div>
+                              <div>
+                                {vehicle
+                                  ? `${vehicle.brand} ${vehicle.model}`
+                                  : 'Neznáme vozidlo'}
+                              </div>
+                              <Caption className="text-muted-foreground">
+                                {vehicle?.licensePlate}
+                              </Caption>
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <UnifiedChip
                             label={typeInfo.label}
-                            size="small"
-                            sx={{
+                            className="h-8 px-3 text-sm"
+                            style={{
                               backgroundColor: typeInfo.bgColor,
                               color: typeInfo.color,
                               fontWeight: 600,
@@ -875,26 +642,23 @@ export default function InsuranceClaimList() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" sx={{ maxWidth: 200 }}>
+                          <Body2 className="max-w-48">
                             {claim.description.length > 50
                               ? `${claim.description.substring(0, 50)}...`
                               : claim.description}
-                          </Typography>
+                          </Body2>
                           {claim.location && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Caption className="text-muted-foreground">
                               📍 {claim.location}
-                            </Typography>
+                            </Caption>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <UnifiedChip
                             icon={statusInfo.icon}
                             label={statusInfo.label}
-                            size="small"
-                            sx={{
+                            className="h-8 px-3 text-sm"
+                            style={{
                               backgroundColor: statusInfo.bgColor,
                               color: statusInfo.color,
                               fontWeight: 600,
@@ -903,297 +667,260 @@ export default function InsuranceClaimList() {
                         </TableCell>
                         <TableCell>
                           {claim.estimatedDamage ? (
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
-                            >
-                              <EuroIcon
-                                sx={{ fontSize: 16, color: 'text.secondary' }}
+                            <div className="flex items-center gap-2">
+                              <UnifiedIcon
+                                name="euro"
+                                size={16}
+                                className="text-muted-foreground"
                               />
                               {claim.estimatedDamage.toLocaleString()} €
-                            </Box>
+                            </div>
                           ) : (
-                            <Typography variant="body2" color="text.secondary">
+                            <Body2 className="text-muted-foreground">
                               -
-                            </Typography>
+                            </Body2>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Upraviť">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEdit(claim)}
-                                sx={{ color: '#1976d2' }}
-                              >
-                                <EditIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
+                          <div className="flex gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEdit(claim)}
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                >
+                                  <UnifiedIcon name="edit" size={18} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Upraviť</p>
+                              </TooltipContent>
                             </Tooltip>
-                            <Tooltip title="Vymazať">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDelete(claim.id)}
-                                sx={{ color: '#d32f2f' }}
-                              >
-                                <DeleteIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDelete(claim.id)}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                >
+                                  <UnifiedIcon name="delete" size={18} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Vymazať</p>
+                              </TooltipContent>
                             </Tooltip>
-                          </Box>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            </TableContainer>
-          </Box>
+            </div>
+          </div>
 
           {/* Mobile Cards */}
-          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-            <Grid container spacing={2}>
+          <div className="block md:hidden">
+            <div className="grid grid-cols-1 gap-4">
               {paginatedClaims.map(claim => {
                 const vehicle = vehicles?.find(v => v.id === claim.vehicleId);
                 const typeInfo = getIncidentTypeInfo(claim.incidentType);
                 const statusInfo = getStatusInfo(claim.status);
 
                 return (
-                  <Grid item xs={12} key={claim.id}>
+                  <div key={claim.id}>
                     <Card
-                      sx={{
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        border: '1px solid #e0e0e0',
-                        '&:hover': {
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        },
-                      }}
+                      className="shadow-lg border border-gray-200 hover:shadow-xl transition-shadow"
                     >
-                      <CardContent sx={{ p: 2 }}>
+                      <CardContent className="p-4">
                         {/* Header with date and actions */}
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            mb: 2,
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <EventIcon
-                              sx={{ fontSize: 18, color: 'text.secondary' }}
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-2">
+                            <UnifiedIcon
+                              name="event"
+                              size={18}
+                              className="text-muted-foreground"
                             />
-                            <Typography variant="body2" fontWeight={600}>
+                            <Body2 className="font-semibold">
                               {format(
                                 new Date(claim.incidentDate),
                                 'dd.MM.yyyy',
                                 { locale: sk }
                               )}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <IconButton
-                              size="small"
+                            </Body2>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleEdit(claim)}
-                              sx={{ color: '#1976d2' }}
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
                             >
-                              <EditIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                            <IconButton
-                              size="small"
+                              <UnifiedIcon name="edit" size={16} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleDelete(claim.id)}
-                              sx={{ color: '#d32f2f' }}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             >
-                              <DeleteIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                          </Box>
-                        </Box>
+                              <UnifiedIcon name="delete" size={16} />
+                            </Button>
+                          </div>
+                        </div>
 
                         {/* Vehicle info */}
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            mb: 2,
-                          }}
-                        >
-                          <CarIcon sx={{ fontSize: 18, color: '#1976d2' }} />
-                          <Box>
-                            <Typography variant="body2" fontWeight={600}>
+                        <div className="flex items-center gap-2 mb-4">
+                          <UnifiedIcon
+                            name="car"
+                            size={18}
+                            className="text-blue-600"
+                          />
+                          <div>
+                            <Body2 className="font-semibold">
                               {vehicle
                                 ? `${vehicle.brand} ${vehicle.model}`
                                 : 'Neznáme vozidlo'}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            </Body2>
+                            <Caption className="text-muted-foreground">
                               {vehicle?.licensePlate}
-                            </Typography>
-                          </Box>
-                        </Box>
+                            </Caption>
+                          </div>
+                        </div>
 
                         {/* Type and Status */}
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            gap: 1,
-                            mb: 2,
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <Chip
+                        <div className="flex gap-2 mb-4 flex-wrap">
+                          <UnifiedChip
                             label={typeInfo.label}
-                            size="small"
-                            sx={{
+                            className="h-8 px-3 text-sm"
+                            style={{
                               backgroundColor: typeInfo.bgColor,
                               color: typeInfo.color,
                               fontWeight: 600,
                               fontSize: '0.75rem',
                             }}
                           />
-                          <Chip
+                          <UnifiedChip
                             icon={statusInfo.icon}
                             label={statusInfo.label}
-                            size="small"
-                            sx={{
+                            className="h-8 px-3 text-sm"
+                            style={{
                               backgroundColor: statusInfo.bgColor,
                               color: statusInfo.color,
                               fontWeight: 600,
                               fontSize: '0.75rem',
                             }}
                           />
-                        </Box>
+                        </div>
 
                         {/* Description */}
-                        <Typography
-                          variant="body2"
-                          sx={{ mb: 1, lineHeight: 1.4 }}
-                        >
+                        <Body2 className="mb-2 leading-relaxed">
                           {claim.description}
-                        </Typography>
+                        </Body2>
 
                         {/* Location */}
                         {claim.location && (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ mb: 2, display: 'block' }}
-                          >
+                          <Caption className="text-muted-foreground mb-4 block">
                             📍 {claim.location}
-                          </Typography>
+                          </Caption>
                         )}
 
                         {/* Damage amount */}
                         {claim.estimatedDamage && (
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                              mt: 1,
-                            }}
-                          >
-                            <EuroIcon
-                              sx={{ fontSize: 16, color: 'text.secondary' }}
+                          <div className="flex items-center gap-2 mt-2">
+                            <UnifiedIcon
+                              name="euro"
+                              size={16}
+                              className="text-muted-foreground"
                             />
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              color="primary"
-                            >
+                            <Body2 className="font-semibold text-primary">
                               {claim.estimatedDamage.toLocaleString()} €
-                            </Typography>
-                          </Box>
+                            </Body2>
+                          </div>
                         )}
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </div>
                 );
               })}
-            </Grid>
-          </Box>
+            </div>
+          </div>
 
-          <TablePagination
-            component="div"
-            count={filteredClaims.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Riadkov na stránku:"
-            labelDisplayedRows={({ from, to, count }) =>
-              `${from}–${to} z ${count}`
-            }
-            sx={{
-              mt: 2,
-              '& .MuiTablePagination-toolbar': {
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-                px: { xs: 1, sm: 2 },
-              },
-              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows':
-                {
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                },
-            }}
-          />
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 p-2 sm:p-4">
+            <div className="flex items-center gap-2 text-sm">
+              <span>Riadkov na stránku:</span>
+              <Select value={rowsPerPage.toString()} onValueChange={(value) => setRowsPerPage(parseInt(value))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, filteredClaims.length)} z {filteredClaims.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+              >
+                Predchádzajúca
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.min(Math.ceil(filteredClaims.length / rowsPerPage) - 1, page + 1))}
+                disabled={page >= Math.ceil(filteredClaims.length / rowsPerPage) - 1}
+              >
+                Ďalšia
+              </Button>
+            </div>
+          </div>
         </>
       )}
 
       {/* Responsive Floating Action Button for Mobile */}
       {isMobile && (
-        <Fab
-          color="primary"
-          aria-label="add"
+        <Button
           onClick={handleAdd}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #c62828 0%, #a00000 100%)',
-            },
-            zIndex: 1000,
-            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)',
-          }}
+          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30"
+          size="lg"
         >
-          <AddIcon />
-        </Fab>
+          <UnifiedIcon name="plus" size={24} />
+        </Button>
       )}
 
       {/* Responsive Insurance Claim Form Dialog */}
       {openDialog && (
-        <Dialog
-          open={openDialog}
-          onClose={() => setOpenDialog(false)}
-          maxWidth="lg"
-          fullWidth
-          fullScreen={isMobile}
-          disableRestoreFocus
-          keepMounted={false}
-          sx={{
-            '& .MuiDialog-paper': {
-              borderRadius: isMobile ? 0 : { xs: 2, sm: 3 },
-              margin: isMobile ? 0 : { xs: 1, sm: 2 },
-            },
-          }}
-        >
-          <InsuranceClaimForm
-            claim={editingClaim}
-            onSave={handleSave}
-            onCancel={() => setOpenDialog(false)}
-          />
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogContent className={cn(
+            "max-w-5xl w-full",
+            isMobile ? "h-screen max-h-screen rounded-none overflow-y-auto" : "max-h-[90vh] rounded-lg"
+          )}>
+            <DialogHeader>
+              <DialogTitle>
+                {editingClaim ? 'Upraviť poistnú udalosť' : 'Nová poistná udalosť'}
+              </DialogTitle>
+            </DialogHeader>
+            <InsuranceClaimForm
+              claim={editingClaim}
+              onSave={handleSave}
+              onCancel={() => setOpenDialog(false)}
+            />
+          </DialogContent>
         </Dialog>
       )}
-    </Box>
+    </div>
   );
 }

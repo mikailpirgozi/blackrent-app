@@ -1,24 +1,21 @@
 // ⚡ Performance Optimized List Component
 // Demonstrates all performance optimization techniques
 
-import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Grid,
-  IconButton,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
+import {
+  Trash2,
+  Edit,
+  Eye,
+} from 'lucide-react';
 
 // Import our performance optimization tools
 import {
@@ -63,31 +60,23 @@ interface ListItemProps {
 
 const OptimizedListItem = memo<ListItemProps>(
   ({ item, onEdit, onDelete, onView, index }) => {
-    const theme = useTheme();
-    // const _isMobile = useMediaQuery(theme.breakpoints.down('md')); // TODO: Implement mobile-specific optimizations
     const { getStats } = usePerformanceMonitor(`ListItem-${item.id}`);
 
     // Memoize style calculations
-    const itemStyles = useShallowMemo(
-      () => ({
-        card: {
-          height: '100%',
-          transition: 'all 0.2s ease',
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: theme.customShadows?.lg || theme.shadows[6],
-          },
-        },
-        statusChip: {
-          backgroundColor:
-            item.status === 'active'
-              ? theme.palette.success.light
-              : item.status === 'pending'
-                ? theme.palette.warning.light
-                : theme.palette.error.light,
-        },
-      }),
-      [item.status, theme]
+    const statusColor = useShallowMemo(
+      () => {
+        switch (item.status) {
+          case 'active':
+            return 'bg-green-100 text-green-800 hover:bg-green-200';
+          case 'pending':
+            return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+          case 'inactive':
+            return 'bg-red-100 text-red-800 hover:bg-red-200';
+          default:
+            return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        }
+      },
+      [item.status]
     );
 
     // Throttled event handlers
@@ -114,9 +103,9 @@ const OptimizedListItem = memo<ListItemProps>(
     }, [item.id, getStats]);
 
     return (
-      <Grid item xs={12} sm={6} md={4} lg={3}>
-        <Card sx={itemStyles.card}>
-          <CardContent>
+      <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3">
+        <Card className="h-full transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <CardContent className="p-4">
             {/* Optimized image with lazy loading */}
             {item.image && (
               <OptimizedImage
@@ -132,55 +121,87 @@ const OptimizedListItem = memo<ListItemProps>(
             )}
 
             {/* Content */}
-            <Box sx={{ mt: item.image ? 2 : 0 }}>
-              <Typography variant="h6" noWrap>
+            <div className={item.image ? 'mt-4' : ''}>
+              <h3 className="text-lg font-semibold truncate">
                 {item.title}
-              </Typography>
+              </h3>
 
               {item.subtitle && (
-                <Typography variant="body2" color="text.secondary" noWrap>
+                <p className="text-sm text-muted-foreground truncate">
                   {item.subtitle}
-                </Typography>
+                </p>
               )}
 
               {/* Status and category */}
-              <Box
-                sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}
-              >
-                <Chip
-                  label={item.status}
-                  size="small"
-                  sx={itemStyles.statusChip}
-                />
-                <Typography variant="caption" color="text.secondary">
+              <div className="mt-2 flex gap-2 items-center">
+                <Badge className={statusColor}>
+                  {item.status}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
                   {item.category}
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* Action buttons */}
-              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                <Tooltip title="Zobraziť">
-                  <IconButton size="small" onClick={handleView}>
-                    <ViewIcon />
-                  </IconButton>
-                </Tooltip>
+              <div className="mt-4 flex gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleView}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Zobraziť</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <Tooltip title="Upraviť">
-                  <IconButton size="small" onClick={handleEdit}>
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEdit}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Upraviť</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <Tooltip title="Odstrániť">
-                  <IconButton size="small" onClick={handleDelete}>
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleDelete}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Odstrániť</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
     );
   },
   (prevProps, nextProps) => {
@@ -227,8 +248,6 @@ export const PerformanceOptimizedList: React.FC<
   containerHeight = 800,
   itemHeight = 300,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { getStats } = usePerformanceMonitor('PerformanceOptimizedList');
 
   // State for lazy components
@@ -310,7 +329,7 @@ export const PerformanceOptimizedList: React.FC<
     return (
       <SkeletonLoader
         variant="card"
-        count={isMobile ? 2 : 4}
+        count={4}
         showText={true}
         showButtons={true}
       />
@@ -318,7 +337,7 @@ export const PerformanceOptimizedList: React.FC<
   }
 
   const content = (
-    <Grid container spacing={3}>
+    <div className="grid grid-cols-12 gap-6">
       {processedItems.map(item => (
         <OptimizedListItem
           key={item.id}
@@ -329,32 +348,27 @@ export const PerformanceOptimizedList: React.FC<
           onView={handleViewItem}
         />
       ))}
-    </Grid>
+    </div>
   );
 
   return (
-    <Box>
+    <div>
       {/* Virtual scrolling container */}
       {enableVirtualScrolling ? (
-        <Box
-          sx={{
-            height: containerHeight,
-            overflow: 'auto',
-            position: 'relative',
-          }}
+        <div
+          className="overflow-auto relative"
+          style={{ height: containerHeight }}
           onScroll={handleScroll}
         >
-          <Box sx={{ height: totalHeight, position: 'relative' }}>
-            <Box
-              sx={{
-                transform: `translateY(${offsetY}px)`,
-                position: 'relative',
-              }}
+          <div className="relative" style={{ height: totalHeight }}>
+            <div
+              className="relative"
+              style={{ transform: `translateY(${offsetY}px)` }}
             >
               {content}
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
       ) : (
         content
       )}
@@ -378,16 +392,16 @@ export const PerformanceOptimizedList: React.FC<
 
       {/* Performance info in development */}
       {process.env.NODE_ENV === 'development' && (
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="caption">
+        <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+          <p className="text-sm text-gray-600">
             🔧 Performance: {items.length} items, Virtual:{' '}
             {enableVirtualScrolling ? 'ON' : 'OFF'}
             {enableVirtualScrolling &&
               ` (${visibleRange.startIndex}-${visibleRange.endIndex} visible)`}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

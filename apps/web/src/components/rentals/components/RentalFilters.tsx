@@ -1,25 +1,16 @@
 import {
-  FilterList as FilterListIcon,
-  Refresh as RefreshIcon,
-  Search as SearchIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Collapse,
-  Divider,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
+  Filter,
+  RotateCcw,
+  Search,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import React from 'react';
 
 // Types - PRESNE TIE ISTÉ ako v RentalListNew.tsx
@@ -120,194 +111,105 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
   totalRentalsCount,
 }) => {
   return (
-    <Card
-      sx={{
-        mb: 3,
-        mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
-        backgroundColor: 'background.paper',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-        border: '1px solid rgba(0,0,0,0.06)',
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+    <Card className="mb-6 mx-1 md:mx-0 bg-background shadow-lg border">
+      <CardContent className="p-4 md:p-6">
         {/* Hlavný riadok s vyhľadávaním a tlačidlami */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 2,
-            alignItems: { xs: 'stretch', md: 'center' },
-            mb: 2,
-          }}
-        >
-          {/* Search Input */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              flex: { xs: 'none', md: 1 },
-              minWidth: { xs: '100%', md: 250 },
-            }}
-          >
-            <TextField
-              placeholder="Hľadať prenájmy..."
-              variant="outlined"
-              size="small"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              fullWidth
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                  backgroundColor: 'background.default',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  },
-                  '&.Mui-focused': {
-                    backgroundColor: 'background.paper',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-                  },
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <Box sx={{ mr: 1, color: 'text.secondary' }}>
-                    <SearchIcon fontSize="small" />
-                  </Box>
-                ),
-              }}
-            />
-          </Box>
+        <div className="space-y-3">
+          {/* Prvý riadok: Search a tlačidlá Filtre/Reset */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+            {/* Search Input */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Hľadať prenájmy..."
+                  value={searchQuery}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-muted/50 hover:bg-muted/70 focus:bg-background transition-all duration-300 hover:-translate-y-0.5 focus:-translate-y-1 hover:shadow-md focus:shadow-lg"
+                />
+              </div>
+            </div>
 
-          {/* Sorting controls */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              alignItems: 'center',
-              minWidth: { xs: '100%', md: 'auto' },
-            }}
-          >
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Zoradiť podľa</InputLabel>
+            {/* Tlačidlá Filtre a Reset */}
+            <div className="flex gap-2 shrink-0">
+              {/* 🚀 FILTRE TLAČIDLO - viditeľné s textom */}
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                size="sm"
+                variant={showFilters ? 'default' : 'outline'}
+                className="h-10 px-4 rounded-lg border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                <span className="font-medium">Filtre</span>
+              </Button>
+
+              {/* Reset Button */}
+              <Button
+                variant="outline"
+                onClick={resetAllFilters}
+                size="sm"
+                className="h-10 px-4 rounded-lg font-medium transition-all duration-300 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset
+              </Button>
+            </div>
+          </div>
+
+          {/* Druhý riadok: Sorting controls */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="min-w-[160px] flex-1 sm:flex-initial">
+              <Label className="text-xs text-muted-foreground mb-1 block">Zoradiť podľa</Label>
               <Select
                 value={advancedFilters.sortBy}
-                label="Zoradiť podľa"
-                onChange={e =>
+                onValueChange={(value) =>
                   handleAdvancedFiltersChange({
                     ...advancedFilters,
-                    sortBy: e.target.value as
-                      | 'created_at'
-                      | 'start_date'
-                      | 'end_date',
+                    sortBy: value as 'created_at' | 'start_date' | 'end_date',
                   })
                 }
-                sx={{
-                  borderRadius: 2,
-                  backgroundColor: 'background.default',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
               >
-                <MenuItem value="created_at">Dátumu vytvorenia</MenuItem>
-                <MenuItem value="start_date">Dátumu začiatku</MenuItem>
-                <MenuItem value="end_date">Dátumu konca</MenuItem>
+                <SelectTrigger className="h-10 rounded-lg bg-muted/50 hover:bg-muted/70">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_at">Dátumu vytvorenia</SelectItem>
+                  <SelectItem value="start_date">Dátumu začiatku</SelectItem>
+                  <SelectItem value="end_date">Dátumu konca</SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
 
-            <FormControl size="small" sx={{ minWidth: 100 }}>
+            <div className="min-w-[120px] flex-1 sm:flex-initial">
+              <Label className="text-xs text-muted-foreground mb-1 block">Poradie</Label>
               <Select
                 value={advancedFilters.sortOrder}
-                onChange={e =>
+                onValueChange={(value) =>
                   handleAdvancedFiltersChange({
                     ...advancedFilters,
-                    sortOrder: e.target.value as 'asc' | 'desc',
+                    sortOrder: value as 'asc' | 'desc',
                   })
                 }
-                sx={{
-                  borderRadius: 2,
-                  backgroundColor: 'background.default',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
               >
-                <MenuItem value="desc">
-                  {advancedFilters.sortBy === 'created_at'
-                    ? 'Najnovšie'
-                    : 'Zostupne'}
-                </MenuItem>
-                <MenuItem value="asc">
-                  {advancedFilters.sortBy === 'created_at'
-                    ? 'Najstaršie'
-                    : 'Vzostupne'}
-                </MenuItem>
+                <SelectTrigger className="h-10 rounded-lg bg-muted/50 hover:bg-muted/70">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">
+                    {advancedFilters.sortBy === 'created_at'
+                      ? 'Najnovšie'
+                      : 'Zostupne'}
+                  </SelectItem>
+                  <SelectItem value="asc">
+                    {advancedFilters.sortBy === 'created_at'
+                      ? 'Najstaršie'
+                      : 'Vzostupne'}
+                  </SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
-          </Box>
-
-          {/* Tlačidlá v riadku na mobile, vedľa seba na desktop */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'row', md: 'row' },
-              gap: 1,
-              flexWrap: 'wrap',
-              justifyContent: { xs: 'space-between', md: 'flex-start' },
-            }}
-          >
-            {/* 🚀 KOMPAKTNÉ FILTRE - len ikonka */}
-            <IconButton
-              onClick={() => setShowFilters(!showFilters)}
-              size="small"
-              sx={{
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: showFilters ? 'primary.main' : 'rgba(0,0,0,0.23)',
-                bgcolor: showFilters ? 'primary.main' : 'transparent',
-                color: showFilters ? 'white' : 'inherit',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  bgcolor: showFilters ? 'primary.dark' : 'rgba(0,0,0,0.04)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                },
-              }}
-            >
-              <FilterListIcon fontSize="small" />
-            </IconButton>
-
-            {/* Reset Button */}
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={resetAllFilters}
-              size="small"
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                transition: 'all 0.3s ease',
-                fontSize: { xs: '0.75rem', md: '0.875rem' },
-                px: { xs: 1, md: 2 },
-                '&:hover': {
-                  bgcolor: 'error.light',
-                  color: 'white',
-                  borderColor: 'error.main',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                },
-              }}
-            >
-              Reset
-            </Button>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
 
         {/* Search results info */}
         {(searchQuery ||
@@ -323,22 +225,14 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
           advancedFilters.priceMax ||
           (Array.isArray(advancedFilters.protocolStatus) &&
             advancedFilters.protocolStatus.length > 0)) && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <p className="text-sm text-muted-foreground mb-4">
             Zobrazených: {filteredRentalsCount} z {totalRentalsCount} prenájmov
-          </Typography>
+          </p>
         )}
 
         {/* 🚀 RÝCHLE FILTRE - len tie najdôležitejšie */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
-            mb: 2,
-            alignItems: 'center',
-          }}
-        >
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+        <div className="flex gap-2 flex-wrap mb-4 items-center">
+          <span className="text-xs text-muted-foreground mr-2">
             Rýchle filtre:
             {/* Počet označených filtrov */}
             {(() => {
@@ -353,21 +247,15 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                   ? advancedFilters.protocolStatus.length
                   : 0);
               return totalSelected > 0 ? (
-                <Chip
-                  label={totalSelected}
-                  size="small"
-                  color="primary"
-                  variant="filled"
-                  sx={{
-                    ml: 1,
-                    height: 20,
-                    fontSize: '0.7rem',
-                    fontWeight: 'bold',
-                  }}
-                />
+                <Badge
+                  variant="default"
+                  className="ml-2 h-5 text-xs font-bold"
+                >
+                  {totalSelected}
+                </Badge>
               ) : null;
             })()}
-          </Typography>
+          </span>
 
           {/* Spôsob platby */}
           {uniquePaymentMethods.slice(0, 3).map(method => {
@@ -389,288 +277,179 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
             };
 
             return (
-              <Chip
+              <Badge
                 key={method}
-                label={getPaymentMethodLabel(method)}
-                size="small"
                 variant={
                   isFilterValueSelected('paymentMethod', method)
-                    ? 'filled'
-                    : 'outlined'
+                    ? 'default'
+                    : 'outline'
                 }
-                color={
+                className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
                   isFilterValueSelected('paymentMethod', method)
-                    ? 'primary'
-                    : 'default'
-                }
+                    ? 'font-bold shadow-md border-2 border-primary'
+                    : ''
+                }`}
                 onClick={() => toggleFilterValue('paymentMethod', method)}
-                sx={{
-                  borderRadius: 2,
-                  '&:hover': { transform: 'translateY(-1px)' },
-                  transition: 'all 0.2s ease',
-                  // Výrazné zvýraznenie označených filtrov
-                  ...(isFilterValueSelected('paymentMethod', method) && {
-                    fontWeight: 'bold',
-                    boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
-                    border: '2px solid',
-                    borderColor: 'primary.main',
-                  }),
-                }}
-              />
+              >
+                {getPaymentMethodLabel(method)}
+              </Badge>
             );
           })}
 
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+          <Separator orientation="vertical" className="h-6 mx-2" />
 
           {/* Stav prenájmu */}
-          <Chip
-            label="Aktívne"
-            size="small"
+          <Badge
             variant={
-              isFilterValueSelected('status', 'active') ? 'filled' : 'outlined'
+              isFilterValueSelected('status', 'active') ? 'default' : 'outline'
             }
-            color={
-              isFilterValueSelected('status', 'active') ? 'success' : 'default'
-            }
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
+              isFilterValueSelected('status', 'active')
+                ? 'font-bold shadow-md border-2 border-green-500 bg-green-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('status', 'active')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              // Výrazné zvýraznenie označených filtrov
-              ...(isFilterValueSelected('status', 'active') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
-                border: '2px solid',
-                borderColor: 'success.main',
-              }),
-            }}
-          />
-          <Chip
-            label="Čakajúci"
-            size="small"
+          >
+            Aktívne
+          </Badge>
+          <Badge
             variant={
-              isFilterValueSelected('status', 'pending') ? 'filled' : 'outlined'
+              isFilterValueSelected('status', 'pending') ? 'default' : 'outline'
             }
-            color={
-              isFilterValueSelected('status', 'pending') ? 'warning' : 'default'
-            }
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
+              isFilterValueSelected('status', 'pending')
+                ? 'font-bold shadow-md border-2 border-yellow-500 bg-yellow-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('status', 'pending')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              // Výrazné zvýraznenie označených filtrov
-              ...(isFilterValueSelected('status', 'pending') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(237, 108, 2, 0.3)',
-                border: '2px solid',
-                borderColor: 'warning.main',
-              }),
-            }}
-          />
-          <Chip
-            label="Ukončené"
-            size="small"
+          >
+            Čakajúci
+          </Badge>
+          <Badge
             variant={
+              isFilterValueSelected('status', 'completed') ? 'default' : 'outline'
+            }
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
               isFilterValueSelected('status', 'completed')
-                ? 'filled'
-                : 'outlined'
-            }
-            color={
-              isFilterValueSelected('status', 'completed') ? 'info' : 'default'
-            }
+                ? 'font-bold shadow-md border-2 border-blue-500 bg-blue-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('status', 'completed')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              // Výrazné zvýraznenie označených filtrov
-              ...(isFilterValueSelected('status', 'completed') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(2, 136, 209, 0.3)',
-                border: '2px solid',
-                borderColor: 'info.main',
-              }),
-            }}
-          />
+          >
+            Ukončené
+          </Badge>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+          <Separator orientation="vertical" className="h-6 mx-2" />
 
           {/* Platobné filtre */}
-          <Chip
-            label="Zaplatené"
-            size="small"
+          <Badge
             variant={
-              isFilterValueSelected('paymentStatus', 'paid')
-                ? 'filled'
-                : 'outlined'
+              isFilterValueSelected('paymentStatus', 'paid') ? 'default' : 'outline'
             }
-            color={
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
               isFilterValueSelected('paymentStatus', 'paid')
-                ? 'success'
-                : 'default'
-            }
+                ? 'font-bold shadow-md border-2 border-green-500 bg-green-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('paymentStatus', 'paid')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              ...(isFilterValueSelected('paymentStatus', 'paid') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
-                border: '2px solid',
-                borderColor: 'success.main',
-              }),
-            }}
-          />
-          <Chip
-            label="Nezaplatené"
-            size="small"
+          >
+            Zaplatené
+          </Badge>
+          <Badge
             variant={
-              isFilterValueSelected('paymentStatus', 'unpaid')
-                ? 'filled'
-                : 'outlined'
+              isFilterValueSelected('paymentStatus', 'unpaid') ? 'default' : 'outline'
             }
-            color={
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
               isFilterValueSelected('paymentStatus', 'unpaid')
-                ? 'error'
-                : 'default'
-            }
+                ? 'font-bold shadow-md border-2 border-red-500 bg-red-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('paymentStatus', 'unpaid')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              ...(isFilterValueSelected('paymentStatus', 'unpaid') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(211, 47, 47, 0.3)',
-                border: '2px solid',
-                borderColor: 'error.main',
-              }),
-            }}
-          />
+          >
+            Nezaplatené
+          </Badge>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+          <Separator orientation="vertical" className="h-6 mx-2" />
 
           {/* Stavy protokolov */}
-          <Chip
-            label="Bez protokolu"
-            size="small"
+          <Badge
             variant={
-              isFilterValueSelected('protocolStatus', 'none')
-                ? 'filled'
-                : 'outlined'
+              isFilterValueSelected('protocolStatus', 'none') ? 'default' : 'outline'
             }
-            color={
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
               isFilterValueSelected('protocolStatus', 'none')
-                ? 'warning'
-                : 'default'
-            }
+                ? 'font-bold shadow-md border-2 border-yellow-500 bg-yellow-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('protocolStatus', 'none')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              ...(isFilterValueSelected('protocolStatus', 'none') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(237, 108, 2, 0.3)',
-                border: '2px solid',
-                borderColor: 'warning.main',
-              }),
-            }}
-          />
-          <Chip
-            label="S protokolom"
-            size="small"
+          >
+            Bez protokolu
+          </Badge>
+          <Badge
             variant={
-              isFilterValueSelected('protocolStatus', 'with_handover')
-                ? 'filled'
-                : 'outlined'
+              isFilterValueSelected('protocolStatus', 'with_handover') ? 'default' : 'outline'
             }
-            color={
+            className={`cursor-pointer rounded-lg hover:-translate-y-0.5 transition-all duration-200 ${
               isFilterValueSelected('protocolStatus', 'with_handover')
-                ? 'success'
-                : 'default'
-            }
+                ? 'font-bold shadow-md border-2 border-green-500 bg-green-500 text-white'
+                : ''
+            }`}
             onClick={() => toggleFilterValue('protocolStatus', 'with_handover')}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { transform: 'translateY(-1px)' },
-              transition: 'all 0.2s ease',
-              ...(isFilterValueSelected('protocolStatus', 'with_handover') && {
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
-                border: '2px solid',
-                borderColor: 'success.main',
-              }),
-            }}
-          />
-        </Box>
+          >
+            S protokolom
+          </Badge>
+        </div>
 
         {/* Pokročilé filtre */}
-        <Collapse in={showFilters}>
-          <Divider sx={{ my: 2 }} />
-          <Box sx={{ p: 3 }}>
-            <Typography
-              variant="h6"
-              sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <FilterListIcon fontSize="small" />
-              Filtre
-            </Typography>
+        <Collapsible open={showFilters}>
+          <CollapsibleContent>
+            <Separator className="my-4" />
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filtre
+              </h3>
 
-            <Grid container spacing={3}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {/* Spôsob platby */}
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Spôsob platby</InputLabel>
-                  <Select
-                    multiple
-                    value={
-                      Array.isArray(advancedFilters.paymentMethod)
-                        ? advancedFilters.paymentMethod
-                        : []
-                    }
-                    onChange={e =>
-                      handleAdvancedFiltersChange({
-                        ...advancedFilters,
-                        paymentMethod: Array.isArray(e.target.value)
-                          ? e.target.value
-                          : [e.target.value],
-                      })
-                    }
-                    label="Spôsob platby"
-                    renderValue={selected => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {(selected as string[]).map(value => {
-                          const getPaymentMethodLabel = (method: string) => {
-                            switch (method) {
-                              case 'cash':
-                                return 'Hotovosť';
-                              case 'bank_transfer':
-                                return 'Bankový prevod';
-                              case 'direct_to_owner':
-                                return 'Priamo majiteľovi';
-                              case 'card':
-                                return 'Kartou';
-                              case 'crypto':
-                                return 'Kryptomeny';
-                              default:
-                                return method;
-                            }
-                          };
-                          return (
-                            <Chip
-                              key={value}
-                              label={getPaymentMethodLabel(value)}
-                              size="small"
-                            />
-                          );
-                        })}
-                      </Box>
-                    )}
-                  >
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Spôsob platby</Label>
+                <div className="space-y-2">
+                  {/* Selected payment methods display */}
+                  {Array.isArray(advancedFilters.paymentMethod) && advancedFilters.paymentMethod.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {advancedFilters.paymentMethod.map(value => {
+                        const getPaymentMethodLabel = (method: string) => {
+                          switch (method) {
+                            case 'cash':
+                              return 'Hotovosť';
+                            case 'bank_transfer':
+                              return 'Bankový prevod';
+                            case 'direct_to_owner':
+                              return 'Priamo majiteľovi';
+                            case 'card':
+                              return 'Kartou';
+                            case 'crypto':
+                              return 'Kryptomeny';
+                            default:
+                              return method;
+                          }
+                        };
+                        return (
+                          <Badge
+                            key={value}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {getPaymentMethodLabel(value)}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Multi-select checkboxes */}
+                  <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
                     {uniquePaymentMethods.map(method => {
                       const getPaymentMethodLabel = (method: string) => {
                         switch (method) {
@@ -688,128 +467,200 @@ export const RentalFilters: React.FC<RentalFiltersProps> = ({
                             return method;
                         }
                       };
+                      
+                      const isSelected = Array.isArray(advancedFilters.paymentMethod) && 
+                        advancedFilters.paymentMethod.includes(method);
+                      
                       return (
-                        <MenuItem key={method} value={method}>
-                          {getPaymentMethodLabel(method)}
-                        </MenuItem>
+                        <div key={method} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`payment-${method}`}
+                            checked={isSelected}
+                            onChange={() => {
+                              const currentMethods = Array.isArray(advancedFilters.paymentMethod) 
+                                ? advancedFilters.paymentMethod 
+                                : [];
+                              
+                              const newMethods = isSelected
+                                ? currentMethods.filter(m => m !== method)
+                                : [...currentMethods, method];
+                              
+                              handleAdvancedFiltersChange({
+                                ...advancedFilters,
+                                paymentMethod: newMethods,
+                              });
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <Label 
+                            htmlFor={`payment-${method}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {getPaymentMethodLabel(method)}
+                          </Label>
+                        </div>
                       );
                     })}
-                  </Select>
-                </FormControl>
-              </Grid>
+                  </div>
+                </div>
+              </div>
 
               {/* Firma */}
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Firma</InputLabel>
-                  <Select
-                    multiple
-                    value={
-                      Array.isArray(advancedFilters.company)
-                        ? advancedFilters.company
-                        : []
-                    }
-                    onChange={e =>
-                      handleAdvancedFiltersChange({
-                        ...advancedFilters,
-                        company: Array.isArray(e.target.value)
-                          ? e.target.value
-                          : [e.target.value],
-                      })
-                    }
-                    label="Firma"
-                    renderValue={selected => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {(selected as string[]).map(value => (
-                          <Chip key={value} label={value} size="small" />
-                        ))}
-                      </Box>
-                    )}
-                  >
-                    {uniqueCompanies.map(company => (
-                      <MenuItem key={company} value={company}>
-                        {company}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Firma</Label>
+                <div className="space-y-2">
+                  {/* Selected companies display */}
+                  {Array.isArray(advancedFilters.company) && advancedFilters.company.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {advancedFilters.company.map(value => (
+                        <Badge
+                          key={value}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {value}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Multi-select checkboxes */}
+                  <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
+                    {uniqueCompanies.map(company => {
+                      const isSelected = Array.isArray(advancedFilters.company) && 
+                        advancedFilters.company.includes(company);
+                      
+                      return (
+                        <div key={company} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`company-${company}`}
+                            checked={isSelected}
+                            onChange={() => {
+                              const currentCompanies = Array.isArray(advancedFilters.company) 
+                                ? advancedFilters.company 
+                                : [];
+                              
+                              const newCompanies = isSelected
+                                ? currentCompanies.filter(c => c !== company)
+                                : [...currentCompanies, company];
+                              
+                              handleAdvancedFiltersChange({
+                                ...advancedFilters,
+                                company: newCompanies,
+                              });
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <Label 
+                            htmlFor={`company-${company}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {company}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
 
               {/* Stav prenájmu */}
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Stav prenájmu</InputLabel>
-                  <Select
-                    multiple
-                    value={
-                      Array.isArray(advancedFilters.status)
-                        ? advancedFilters.status
-                        : []
-                    }
-                    onChange={e =>
-                      handleAdvancedFiltersChange({
-                        ...advancedFilters,
-                        status: Array.isArray(e.target.value)
-                          ? e.target.value
-                          : [e.target.value],
-                      })
-                    }
-                    label="Stav prenájmu"
-                    renderValue={selected => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {(selected as string[]).map(value => (
-                          <Chip key={value} label={value} size="small" />
-                        ))}
-                      </Box>
-                    )}
-                  >
-                    {uniqueStatuses.map(status => (
-                      <MenuItem key={status} value={status}>
-                        {status}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Stav prenájmu</Label>
+                <div className="space-y-2">
+                  {/* Selected statuses display */}
+                  {Array.isArray(advancedFilters.status) && advancedFilters.status.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {advancedFilters.status.map(value => (
+                        <Badge
+                          key={value}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {value}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Multi-select checkboxes */}
+                  <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
+                    {uniqueStatuses.map(status => {
+                      const isSelected = Array.isArray(advancedFilters.status) && 
+                        advancedFilters.status.includes(status);
+                      
+                      return (
+                        <div key={status} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`status-${status}`}
+                            checked={isSelected}
+                            onChange={() => {
+                              const currentStatuses = Array.isArray(advancedFilters.status) 
+                                ? advancedFilters.status 
+                                : [];
+                              
+                              const newStatuses = isSelected
+                                ? currentStatuses.filter(s => s !== status)
+                                : [...currentStatuses, status];
+                              
+                              handleAdvancedFiltersChange({
+                                ...advancedFilters,
+                                status: newStatuses,
+                              });
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <Label 
+                            htmlFor={`status-${status}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {status}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
 
               {/* Dátum od */}
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Dátum od"
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Dátum od</Label>
+                <Input
                   type="date"
                   value={advancedFilters.dateFrom || ''}
-                  onChange={e =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     handleAdvancedFiltersChange({
                       ...advancedFilters,
                       dateFrom: e.target.value,
                     })
                   }
-                  InputLabelProps={{ shrink: true }}
+                  className="w-full"
                 />
-              </Grid>
+              </div>
 
               {/* Dátum do */}
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Dátum do"
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Dátum do</Label>
+                <Input
                   type="date"
                   value={advancedFilters.dateTo || ''}
-                  onChange={e =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     handleAdvancedFiltersChange({
                       ...advancedFilters,
                       dateTo: e.target.value,
                     })
                   }
-                  InputLabelProps={{ shrink: true }}
+                  className="w-full"
                 />
-              </Grid>
-            </Grid>
-          </Box>
-        </Collapse>
+              </div>
+            </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

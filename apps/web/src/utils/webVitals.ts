@@ -10,8 +10,6 @@ import {
   type Metric,
 } from 'web-vitals';
 
-import { devLogger } from './devLogger';
-
 interface VitalsMetric {
   name: string;
   value: number;
@@ -32,7 +30,7 @@ class WebVitalsMonitor {
   private onMetricCallback?: (data: PerformanceData) => void;
 
   constructor(onMetricCallback?: (data: PerformanceData) => void) {
-    this.onMetricCallback = onMetricCallback;
+    this.onMetricCallback = onMetricCallback ?? (() => {});
     this.initializeMonitoring();
   }
 
@@ -77,7 +75,9 @@ class WebVitalsMonitor {
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.group(`📊 Web Vital: ${metric.name}`);
-      devLogger.perf(`${metric.name}: ${metric.value.toFixed(2)}ms (${vitalsMetric.rating})`);
+      console.log(`Value: ${metric.value.toFixed(2)}ms`);
+      console.log(`Rating: ${vitalsMetric.rating}`);
+      console.log(`Navigation: ${vitalsMetric.navigationType}`);
       console.groupEnd();
     }
   }
@@ -135,7 +135,7 @@ class WebVitalsMonitor {
         });
 
         observer.observe({ entryTypes: ['longtask'] });
-      } catch {
+      } catch (error) {
         console.warn('Long task observation not supported');
       }
     }
@@ -197,7 +197,7 @@ class WebVitalsMonitor {
     const summary: { [key: string]: VitalsMetric } = {};
 
     this.metrics.forEach(metric => {
-      if (!summary[metric.name] || metric.value < summary[metric.name].value) {
+      if (!summary[metric.name] || metric.value < (summary[metric.name]?.value ?? 0)) {
         summary[metric.name] = metric;
       }
     });
@@ -255,9 +255,9 @@ class WebVitalsMonitor {
     } else if (process.env.NODE_ENV === 'development') {
       // Log summary in development
       console.group('📈 Performance Summary');
-      devLogger.perf(`Performance Score: ${this.getPerformanceScore()}/100`);
-      devLogger.debug('Metrics Summary:', this.getMetricsSummary());
-      devLogger.debug('Connection:', performanceData.connection);
+      console.log('Score:', this.getPerformanceScore() + '/100');
+      console.log('Metrics:', this.getMetricsSummary());
+      console.log('Connection:', performanceData.connection);
       console.groupEnd();
     }
   }
@@ -280,6 +280,7 @@ export const reportWebVitals = (
 
     return monitor;
   }
+  return undefined;
 };
 
 // Helper function for performance debugging
@@ -294,16 +295,18 @@ export const debugPerformance = () => {
   const domReady =
     perfTiming.domContentLoadedEventEnd - perfTiming.navigationStart;
 
-  devLogger.perf(`Page Load: ${pageLoad}ms, DOM Ready: ${domReady}ms`);
+  console.log(`Page Load Time: ${pageLoad}ms`);
+  console.log(`DOM Ready Time: ${domReady}ms`);
 
   // Memory usage (if available)
   if ('memory' in performance) {
     const memory = (performance as unknown as Record<string, unknown>)
       .memory as Record<string, unknown>;
-    devLogger.perf(
-      `Memory: ${((memory.usedJSHeapSize as number) / 1048576).toFixed(1)}MB used / ${
-        ((memory.jsHeapSizeLimit as number) / 1048576).toFixed(1)
-      }MB limit`
+    console.log(
+      `Memory Used: ${((memory.usedJSHeapSize as number) / 1048576).toFixed(2)} MB`
+    );
+    console.log(
+      `Memory Limit: ${((memory.jsHeapSizeLimit as number) / 1048576).toFixed(2)} MB`
     );
   }
 

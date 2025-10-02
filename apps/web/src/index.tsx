@@ -24,13 +24,12 @@ window.addEventListener('error', event => {
 });
 
 // Initialize error handling for manifest.json and performance monitoring
-// DOČASNE VYPNUTÉ - spôsobuje page reload a blokuje HMR
-// if (process.env.NODE_ENV === 'development') {
-//   // ⚡ PERFORMANCE: Disabled verbose Web Vitals logging to reduce console spam
-//   import('./utils/webVitals').then(({ reportWebVitals }) => {
-//     // debugPerformance(); // Disabled - too verbose
-//
-//     // Initialize Web Vitals monitoring (silent mode)
-//     reportWebVitals(); // No callback = silent monitoring
-//   });
-// }
+if (process.env.NODE_ENV === 'development') {
+  // ⚡ PERFORMANCE: Disabled verbose Web Vitals logging to reduce console spam
+  import('./utils/webVitals').then(({ reportWebVitals }) => {
+    // debugPerformance(); // Disabled - too verbose
+
+    // Initialize Web Vitals monitoring (silent mode)
+    reportWebVitals(); // No callback = silent monitoring
+  });
+}

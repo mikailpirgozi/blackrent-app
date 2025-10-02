@@ -1,51 +1,39 @@
 // 🍞 Error Toast Container
 // Displays error messages as elegant toast notifications
 
-import {
-  Close as CloseIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  Refresh as RefreshIcon,
-  WifiOff as WifiOffIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  AlertTitle,
-  Box,
-  Button,
-  Chip,
-  Collapse,
-  IconButton,
-  Snackbar,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { UnifiedIcon } from '../ui/UnifiedIcon';
+import { UnifiedButton } from '../ui/UnifiedButton';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
+import { Alert, AlertTitle } from '../ui/alert';
+import { Badge } from '../ui/badge';
+import { Collapsible, CollapsibleContent } from '../ui/collapsible';
+import { cn } from '../../lib/utils';
 import React, { useMemo } from 'react';
 
 import { useError } from '../../context/ErrorContext';
-import type { AppError, ErrorSeverity } from '../../types/errors';
+import type { AppError } from '../../types/errors';
 
-// Toast severity mapping
-const getSeverityColor = (severity: ErrorSeverity) => {
-  switch (severity) {
-    case 'info':
-      return 'info';
-    case 'warning':
-      return 'warning';
-    case 'error':
-      return 'error';
-    case 'critical':
-      return 'error';
-    default:
-      return 'info';
-  }
-};
+// Toast severity mapping - currently not used
+// const getSeverityColor = (severity: ErrorSeverity) => {
+//   switch (severity) {
+//     case 'info':
+//       return 'info';
+//     case 'warning':
+//       return 'warning';
+//     case 'error':
+//       return 'error';
+//     case 'critical':
+//       return 'error';
+//     default:
+//       return 'info';
+//   }
+// };
 
 // Error icon mapping
 const getErrorIcon = (error: AppError) => {
   switch (error.category) {
     case 'network':
-      return <WifiOffIcon fontSize="small" />;
+      return <UnifiedIcon name="wifi_off" size={16} />;
     default:
       return undefined;
   }
@@ -65,7 +53,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 }) => {
   const [expanded, setExpanded] = React.useState(false);
 
-  const severity = getSeverityColor(error.severity);
+  // const severity = getSeverityColor(error.severity);
   const icon = getErrorIcon(error);
 
   const handleRetry = async () => {
@@ -83,107 +71,103 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
   };
 
   return (
-    <Alert
-      severity={severity}
-      icon={icon}
-      sx={{
-        mb: 1,
-        minWidth: 300,
-        maxWidth: 500,
-        '& .MuiAlert-message': { width: '100%' },
-        '& .MuiAlert-action': { alignItems: 'flex-start', pt: 0.5 },
-      }}
-      action={
-        <Box>
+    <div className="mb-2 min-w-[300px] max-w-[500px]">
+      <Alert>
+        <div className="flex justify-between items-start w-full">
+          <div className="flex items-center gap-2">
+            {icon}
+            <AlertTitle className="mb-0">
+              <div className="flex items-center gap-2">
+                <UnifiedTypography variant="subtitle2" className="flex-grow">
+                  {error.message}
+                </UnifiedTypography>
+                <Badge
+                  variant="outline"
+                  className="text-xs h-5"
+                >
+                  {error.category}
+                </Badge>
+              </div>
+            </AlertTitle>
+          </div>
+          <div className="flex items-center gap-1">
+            {error.details && (
+              <UnifiedButton
+                variant="ghost"
+                className="h-8 px-3 text-sm"
+                onClick={toggleExpanded}
+                className="p-1"
+              >
+                {expanded ? (
+                  <UnifiedIcon name="expand_less" size={16} />
+                ) : (
+                  <UnifiedIcon name="expand_more" size={16} />
+                )}
+              </UnifiedButton>
+            )}
+            {error.retry && !isOnline && (
+              <UnifiedButton
+                variant="ghost"
+                className="h-8 px-3 text-sm"
+                onClick={handleRetry}
+                className="p-1"
+                disabled={!isOnline}
+              >
+                <UnifiedIcon name="refresh" size={16} />
+              </UnifiedButton>
+            )}
+            <UnifiedButton
+              variant="ghost"
+              className="h-8 px-3 text-sm"
+              onClick={handleDismiss}
+              className="p-1"
+            >
+              <UnifiedIcon name="close" size={16} />
+            </UnifiedButton>
+          </div>
+        </div>
+      </Alert>
+
+      <Collapsible open={expanded}>
+        <CollapsibleContent>
           {error.details && (
-            <IconButton size="small" onClick={toggleExpanded} sx={{ mr: 0.5 }}>
-              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+            <UnifiedTypography variant="body2" className="mt-2 opacity-80">
+              {error.details}
+            </UnifiedTypography>
           )}
-          {error.retry && !isOnline && (
-            <IconButton
-              size="small"
+
+          {error.context && Object.keys(error.context).length > 0 && (
+            <div className="mt-2">
+              <UnifiedTypography variant="caption" className="font-bold">
+                Technické detaily:
+              </UnifiedTypography>
+              <pre className="text-xs mt-1 p-2 bg-black/10 rounded overflow-auto max-h-[100px]">
+                {JSON.stringify(error.context, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {error.retry && (
+            <UnifiedButton
+              className="h-8 px-3 text-sm"
+              startIcon={<UnifiedIcon name="refresh" size={16} />}
               onClick={handleRetry}
-              sx={{ mr: 0.5 }}
               disabled={!isOnline}
+              className="mt-2"
             >
-              <RefreshIcon />
-            </IconButton>
+              Skúsiť znovu
+            </UnifiedButton>
           )}
-          <IconButton size="small" onClick={handleDismiss}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      }
-    >
-      <AlertTitle sx={{ mb: error.details ? 1 : 0 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
-            {error.message}
-          </Typography>
-          <Chip
-            label={error.category}
-            size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.7rem', height: 20 }}
-          />
-        </Stack>
-      </AlertTitle>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <Collapse in={expanded}>
-        {error.details && (
-          <Typography variant="body2" sx={{ mt: 1, opacity: 0.8 }}>
-            {error.details}
-          </Typography>
-        )}
-
-        {error.context && Object.keys(error.context).length > 0 && (
-          <Box sx={{ mt: 1 }}>
-            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
-              Technické detaily:
-            </Typography>
-            <Box
-              component="pre"
-              sx={{
-                fontSize: '0.7rem',
-                mt: 0.5,
-                p: 1,
-                bgcolor: 'rgba(0,0,0,0.1)',
-                borderRadius: 1,
-                overflow: 'auto',
-                maxHeight: 100,
-              }}
-            >
-              {JSON.stringify(error.context, null, 2)}
-            </Box>
-          </Box>
-        )}
-
-        {error.retry && (
-          <Button
-            size="small"
-            startIcon={<RefreshIcon />}
-            onClick={handleRetry}
-            disabled={!isOnline}
-            sx={{ mt: 1 }}
-          >
-            Skúsiť znovu
-          </Button>
-        )}
-      </Collapse>
-
-      <Typography
+      <UnifiedTypography
         variant="caption"
-        sx={{
-          display: 'block',
-          mt: 1,
-          opacity: 0.6,
-          fontSize: '0.7rem',
-        }}
+        className="block mt-2 opacity-60 text-xs"
       >
         {error.timestamp.toLocaleTimeString()}
-      </Typography>
-    </Alert>
+      </UnifiedTypography>
+    </div>
   );
 };
 
@@ -191,25 +175,13 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 const NetworkStatusIndicator: React.FC<{ isOnline: boolean }> = ({
   isOnline,
 }) => (
-  <Box
-    sx={{
-      position: 'fixed',
-      top: 16,
-      right: 16,
-      zIndex: 2000,
-      display: isOnline ? 'none' : 'flex',
-      alignItems: 'center',
-      gap: 1,
-      p: 1,
-      bgcolor: 'warning.main',
-      color: 'warning.contrastText',
-      borderRadius: 1,
-      boxShadow: 2,
-    }}
-  >
-    <WifiOffIcon fontSize="small" />
-    <Typography variant="body2">Offline</Typography>
-  </Box>
+  <div className={cn(
+    "fixed top-4 right-4 z-[2000] flex items-center gap-2 p-2 bg-orange-500 text-white rounded shadow-lg",
+    isOnline ? "hidden" : "flex"
+  )}>
+    <UnifiedIcon name="wifi_off" size={16} />
+    <UnifiedTypography variant="body2">Offline</UnifiedTypography>
+  </div>
 );
 
 // Main Error Toast Container
@@ -234,19 +206,8 @@ export const ErrorToastContainer: React.FC = () => {
     <>
       <NetworkStatusIndicator isOnline={isOnline} />
 
-      <Snackbar
-        open={sortedErrors.length > 0}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{
-          top: { xs: 80, sm: 24 },
-          '& .MuiSnackbarContent-root': {
-            p: 0,
-            bgcolor: 'transparent',
-            boxShadow: 'none',
-          },
-        }}
-      >
-        <Stack spacing={1} sx={{ minWidth: 300 }}>
+      {sortedErrors.length > 0 && (
+        <div className="fixed top-6 right-6 z-[1500] min-w-[300px] space-y-2">
           {sortedErrors.map(error => (
             <ErrorToast
               key={error.id}
@@ -257,26 +218,28 @@ export const ErrorToastContainer: React.FC = () => {
           ))}
 
           {sortedErrors.length > 3 && (
-            <Alert severity="info" sx={{ opacity: 0.8 }}>
-              <Typography variant="body2">
-                + {sortedErrors.length - 3} ďalších chýb
-              </Typography>
-              <Button
-                size="small"
-                onClick={() => {
-                  // Dismiss older errors
-                  sortedErrors.slice(3).forEach(error => {
-                    dismissError(error.id);
-                  });
-                }}
-                sx={{ mt: 0.5 }}
-              >
-                Skryť staršie
-              </Button>
+            <Alert className="opacity-80">
+              <AlertTitle>
+                <UnifiedTypography variant="body2">
+                  + {sortedErrors.length - 3} ďalších chýb
+                </UnifiedTypography>
+                <UnifiedButton
+                  className="h-8 px-3 text-sm"
+                  onClick={() => {
+                    // Dismiss older errors
+                    sortedErrors.slice(3).forEach(error => {
+                      dismissError(error.id);
+                    });
+                  }}
+                  className="mt-2"
+                >
+                  Skryť staršie
+                </UnifiedButton>
+              </AlertTitle>
             </Alert>
           )}
-        </Stack>
-      </Snackbar>
+        </div>
+      )}
     </>
   );
 };

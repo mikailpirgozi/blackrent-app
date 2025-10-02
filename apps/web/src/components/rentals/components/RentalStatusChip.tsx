@@ -1,8 +1,9 @@
+// Lucide icons (replacing MUI icons)
 import {
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Pending as PendingIcon,
-} from '@mui/icons-material';
+  AlertCircle as ErrorIcon,
+  Clock as PendingIcon,
+} from 'lucide-react';
 import React from 'react';
 
 import { StatusChip } from '../../ui';
@@ -22,31 +23,31 @@ const RentalStatusChip = React.memo<RentalStatusChipProps>(
           return {
             label: 'Aktívny',
             color: 'success' as const,
-            icon: <CheckCircleIcon sx={{ fontSize: 16 }} />,
+            icon: <CheckCircleIcon className="h-4 w-4" />,
           };
         case 'finished':
           return {
             label: 'Ukončený',
             color: 'neutral' as const,
-            icon: <CheckCircleIcon sx={{ fontSize: 16 }} />,
+            icon: <CheckCircleIcon className="h-4 w-4" />,
           };
         case 'pending':
           return {
             label: 'Čakajúci',
             color: 'warning' as const,
-            icon: <PendingIcon sx={{ fontSize: 16 }} />,
+            icon: <PendingIcon className="h-4 w-4" />,
           };
         case 'cancelled':
           return {
             label: 'Zrušený',
             color: 'error' as const,
-            icon: <ErrorIcon sx={{ fontSize: 16 }} />,
+            icon: <ErrorIcon className="h-4 w-4" />,
           };
         default:
           return {
             label: status || 'Neznámy',
             color: 'neutral' as const,
-            icon: <PendingIcon sx={{ fontSize: 16 }} />,
+            icon: <PendingIcon className="h-4 w-4" />,
           };
       }
     };
@@ -59,13 +60,7 @@ const RentalStatusChip = React.memo<RentalStatusChipProps>(
         chipColor={statusProps.color}
         size={size}
         icon={statusProps.icon}
-        sx={{
-          fontWeight: 600,
-          borderRadius: 1.5,
-          '& .MuiChip-icon': {
-            fontSize: 16,
-          },
-        }}
+        className="font-semibold rounded-md"
       />
     );
   }

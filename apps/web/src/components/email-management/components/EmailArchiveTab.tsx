@@ -4,35 +4,23 @@
  */
 
 import {
-  Archive as ArchiveIcon,
-  Delete as DeleteIcon,
-  Refresh as RefreshIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Pagination,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import React, { useCallback, useEffect, useState } from 'react';
+  Archive,
+  Trash2,
+  RefreshCw,
+  Eye,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+
+// shadcn/ui components
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Spinner } from '@/components/ui/spinner';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Typography } from '@/components/ui/typography';
 
 import { useEmailApi } from '../hooks/useEmailApi';
 import type {
@@ -52,10 +40,8 @@ interface EmailArchiveTabProps {
 export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
   senderFilter,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
+  // Responsive breakpoints using Tailwind classes
+  // md: 768px, sm: 640px, xs: 0px
 
   // State
   const [archivedEmails, setArchivedEmails] = useState<EmailEntry[]>([]);
@@ -101,7 +87,7 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
         const result = await fetchArchivedEmails(offset, senderFilter);
         setArchivedEmails(result.emails);
         setArchivePagination(result.pagination);
-      } catch {
+      } catch (err) {
         // Error handled by hook
       } finally {
         setArchiveLoading(false);
@@ -160,358 +146,318 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
     <>
       <Card>
         <CardContent>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems={isMobile ? 'flex-start' : 'center'}
-            mb={3}
-            flexDirection={isMobile ? 'column' : 'row'}
-            gap={isMobile ? 2 : 0}
-          >
-            <Typography variant="h6" gutterBottom={isMobile}>
+          <div className="flex justify-between items-start md:items-center mb-6 flex-col md:flex-row gap-4">
+            <Typography variant="h6" className="mb-0">
               📁 Archív emailov ({archivePagination.total})
             </Typography>
-            <Box
-              display="flex"
-              gap={1}
-              flexWrap="wrap"
-              justifyContent={isMobile ? 'center' : 'flex-end'}
-            >
+            <div className="flex gap-2 flex-wrap justify-center md:justify-end">
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={() => loadArchivedEmails(0)}
                 disabled={archiveLoading}
-                startIcon={<RefreshIcon />}
-                size={isSmallMobile ? 'small' : 'medium'}
+                className="text-sm"
               >
-                {isExtraSmall ? 'Obnoviť' : 'Obnoviť'}
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Obnoviť
               </Button>
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={handleAutoArchive}
                 disabled={actionLoading === 'auto-archive'}
-                startIcon={
-                  actionLoading === 'auto-archive' ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <ArchiveIcon />
-                  )
-                }
-                color="warning"
-                size={isSmallMobile ? 'small' : 'medium'}
+                className="text-sm text-orange-600 border-orange-600 hover:bg-orange-50"
               >
-                {isExtraSmall ? 'Auto' : 'Auto-archív'}
+                {actionLoading === 'auto-archive' ? (
+                  <Spinner className="w-4 h-4 mr-1" />
+                ) : (
+                  <Archive className="w-4 h-4 mr-1" />
+                )}
+                Auto-archív
               </Button>
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={handleClearHistorical}
                 disabled={actionLoading === 'clear-historical'}
-                startIcon={
-                  actionLoading === 'clear-historical' ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <DeleteIcon />
-                  )
-                }
-                color="error"
-                size={isSmallMobile ? 'small' : 'medium'}
+                className="text-sm text-red-600 border-red-600 hover:bg-red-50"
               >
-                {isExtraSmall ? 'Vymazať' : 'Vymazať historické'}
+                {actionLoading === 'clear-historical' ? (
+                  <Spinner className="w-4 h-4 mr-1" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-1" />
+                )}
+                Vymazať historické
               </Button>
               {selectedEmails.size > 0 && (
                 <Button
-                  variant="contained"
+                  variant="default"
                   onClick={handleBulkArchive}
                   disabled={actionLoading === 'bulk-archive'}
-                  startIcon={
-                    actionLoading === 'bulk-archive' ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <ArchiveIcon />
-                    )
-                  }
-                  color="primary"
-                  size={isSmallMobile ? 'small' : 'medium'}
+                  className="text-sm"
                 >
-                  {isExtraSmall
-                    ? `Archív (${selectedEmails.size})`
-                    : `Archivovať (${selectedEmails.size})`}
+                  {actionLoading === 'bulk-archive' ? (
+                    <Spinner className="w-4 h-4 mr-1" />
+                  ) : (
+                    <Archive className="w-4 h-4 mr-1" />
+                  )}
+                  Archivovať ({selectedEmails.size})
                 </Button>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {archiveLoading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center p-8">
+              <Spinner />
+            </div>
           ) : archivedEmails.length === 0 ? (
-            <Box textAlign="center" py={6}>
-              <ArchiveIcon fontSize="large" color="disabled" sx={{ mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+            <div className="text-center py-12">
+              <Archive className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <Typography variant="h6" className="mb-2">
                 Archív je prázdny
               </Typography>
-              <Typography variant="body2" color="textSecondary">
+              <Typography variant="body2" className="text-muted-foreground">
                 Žiadne emaily nie sú archivované. Schválené a zamietnuté emaily
                 sa automaticky archivujú po 30 dňoch.
               </Typography>
-            </Box>
+            </div>
           ) : (
             <>
               {/* Mobile View - Card List */}
-              {isMobile ? (
-                <Stack spacing={2}>
-                  {archivedEmails.map(email => (
-                    <Card
-                      key={email.id}
-                      variant="outlined"
-                      sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          boxShadow: 1,
-                        },
-                      }}
-                    >
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        {/* Header - Subject and Status */}
-                        <Box
-                          display="flex"
-                          justifyContent="space-between"
-                          alignItems="flex-start"
-                          mb={1}
+              <div className="md:hidden space-y-4">
+                {archivedEmails.map(email => (
+                  <Card
+                    key={email.id}
+                    className="border border-border hover:border-primary hover:shadow-sm transition-all"
+                  >
+                    <CardContent className="p-4">
+                      {/* Header - Subject and Status */}
+                      <div className="flex justify-between items-start mb-2">
+                        <Typography
+                          variant="subtitle2"
+                          className="font-semibold flex-1 mr-2 overflow-hidden text-ellipsis line-clamp-2"
                         >
+                          {email.subject}
+                        </Typography>
+                        <StatusChip
+                          status={email.status}
+                          {...(email.action_taken && { actionTaken: email.action_taken })}
+                        />
+                      </div>
+
+                      {/* Sender and Date */}
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-6 h-6 text-xs bg-muted text-muted-foreground">
+                            {email.sender.charAt(0).toUpperCase()}
+                          </Avatar>
                           <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: 600,
-                              flex: 1,
-                              mr: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}
+                            variant="body2"
+                            className="text-muted-foreground text-sm"
+                          >
+                            {truncateText(email.sender, 25)}
+                          </Typography>
+                        </div>
+                        <Typography variant="caption" className="text-muted-foreground">
+                          {new Date(email.received_at).toLocaleDateString('sk')}
+                        </Typography>
+                      </div>
+
+                      {/* Order Number */}
+                      {email.order_number && (
+                        <div className="mb-4">
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            📋 {email.order_number}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          onClick={() => handleViewEmail(email.id)}
+                          variant="outline"
+                          className="min-w-auto text-xs"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Detail
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleUnarchiveEmail(email.id)}
+                          disabled={actionLoading === email.id}
+                          variant="outline"
+                          className="min-w-auto text-xs text-green-600 border-green-600 hover:bg-green-50"
+                        >
+                          {actionLoading === email.id ? (
+                            <Spinner className="w-4 h-4 mr-1" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                          )}
+                          Obnoviť
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop View - Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Predmet</TableHead>
+                      <TableHead className="min-w-[150px]">Odosielateľ</TableHead>
+                      <TableHead className="min-w-[120px]">Archivované</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="min-w-[120px]">Objednávka</TableHead>
+                      <TableHead className="min-w-[150px]">Akcie</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {archivedEmails.map(email => (
+                      <TableRow key={email.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            className="max-w-[250px] overflow-hidden text-ellipsis line-clamp-2"
                           >
                             {email.subject}
                           </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            className="max-w-[150px] truncate"
+                          >
+                            {email.sender}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {new Date(email.received_at).toLocaleString('sk')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
                           <StatusChip
                             status={email.status}
-                            actionTaken={email.action_taken}
+                            {...(email.action_taken && { actionTaken: email.action_taken })}
                           />
-                        </Box>
-
-                        {/* Sender and Date */}
-                        <Box
-                          display="flex"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          mb={2}
-                        >
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Avatar
-                              sx={{
-                                width: 24,
-                                height: 24,
-                                fontSize: '0.75rem',
-                                bgcolor: 'grey.500',
-                              }}
-                            >
-                              {email.sender.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ fontSize: '0.875rem' }}
-                            >
-                              {truncateText(email.sender, 25)}
-                            </Typography>
-                          </Box>
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(email.received_at).toLocaleDateString(
-                              'sk'
-                            )}
-                          </Typography>
-                        </Box>
-
-                        {/* Order Number */}
-                        {email.order_number && (
-                          <Box mb={2}>
-                            <Chip
-                              label={`📋 ${email.order_number}`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ fontSize: '0.75rem' }}
-                            />
-                          </Box>
-                        )}
-
-                        {/* Actions */}
-                        <Box display="flex" gap={1} flexWrap="wrap">
-                          <Button
-                            size="small"
-                            startIcon={<ViewIcon />}
-                            onClick={() => handleViewEmail(email.id)}
-                            variant="outlined"
-                            sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
-                          >
-                            Detail
-                          </Button>
-
-                          <Button
-                            size="small"
-                            startIcon={
-                              actionLoading === email.id ? (
-                                <CircularProgress size={16} />
-                              ) : (
-                                <RefreshIcon />
-                              )
-                            }
-                            onClick={() => handleUnarchiveEmail(email.id)}
-                            disabled={actionLoading === email.id}
-                            color="success"
-                            variant="outlined"
-                            sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
-                          >
-                            Obnoviť
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </Stack>
-              ) : (
-                /* Desktop View - Table */
-                <TableContainer
-                  component={Paper}
-                  elevation={0}
-                  sx={{ overflowX: 'auto' }}
-                >
-                  <Table stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ minWidth: 200 }}>Predmet</TableCell>
-                        <TableCell sx={{ minWidth: 150 }}>
-                          Odosielateľ
                         </TableCell>
-                        <TableCell sx={{ minWidth: 120 }}>
-                          Archivované
+                        <TableCell>
+                          {email.order_number ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {email.order_number}
+                            </Badge>
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              className="text-muted-foreground"
+                            >
+                              -
+                            </Typography>
+                          )}
                         </TableCell>
-                        <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-                        <TableCell sx={{ minWidth: 120 }}>Objednávka</TableCell>
-                        <TableCell sx={{ minWidth: 150 }}>Akcie</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {archivedEmails.map(email => (
-                        <TableRow key={email.id} hover>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                maxWidth: 250,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                              }}
-                            >
-                              {email.subject}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                              sx={{ maxWidth: 150 }}
-                              noWrap
-                            >
-                              {email.sender}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {new Date(email.received_at).toLocaleString('sk')}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <StatusChip
-                              status={email.status}
-                              actionTaken={email.action_taken}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {email.order_number ? (
-                              <Chip
-                                label={email.order_number}
-                                size="small"
-                                variant="outlined"
-                              />
-                            ) : (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                -
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Box display="flex" gap={1} flexWrap="wrap">
-                              <Tooltip title="Zobraziť detail">
-                                <IconButton
-                                  size="small"
+                        <TableCell>
+                          <div className="flex gap-1 flex-wrap">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
                                   onClick={() => handleViewEmail(email.id)}
+                                  className="h-8 w-8 p-0"
                                 >
-                                  <ViewIcon />
-                                </IconButton>
-                              </Tooltip>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Zobraziť detail</p>
+                              </TooltipContent>
+                            </Tooltip>
 
-                              <Tooltip title="Obnoviť z archívu">
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() =>
-                                      handleUnarchiveEmail(email.id)
-                                    }
-                                    disabled={actionLoading === email.id}
-                                    color="success"
-                                  >
-                                    {actionLoading === email.id ? (
-                                      <CircularProgress size={20} />
-                                    ) : (
-                                      <RefreshIcon />
-                                    )}
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleUnarchiveEmail(email.id)}
+                                  disabled={actionLoading === email.id}
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                >
+                                  {actionLoading === email.id ? (
+                                    <Spinner className="h-4 w-4" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Obnoviť z archívu</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Pagination */}
               {archivePagination.total > archivePagination.limit && (
-                <Box display="flex" justifyContent="center" mt={2}>
-                  <Pagination
-                    count={Math.ceil(
-                      archivePagination.total / archivePagination.limit
-                    )}
-                    page={
-                      Math.floor(
-                        archivePagination.offset / archivePagination.limit
-                      ) + 1
-                    }
-                    onChange={(_, page) => handlePageChange(page)}
-                    color="primary"
-                  />
-                </Box>
+                <div className="flex justify-center mt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const currentPage = Math.floor(archivePagination.offset / archivePagination.limit) + 1;
+                            if (currentPage > 1) handlePageChange(currentPage - 1);
+                          }}
+                          className={Math.floor(archivePagination.offset / archivePagination.limit) + 1 <= 1 ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: Math.ceil(archivePagination.total / archivePagination.limit) }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(page);
+                            }}
+                            isActive={Math.floor(archivePagination.offset / archivePagination.limit) + 1 === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const currentPage = Math.floor(archivePagination.offset / archivePagination.limit) + 1;
+                            const totalPages = Math.ceil(archivePagination.total / archivePagination.limit);
+                            if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                          }}
+                          className={Math.floor(archivePagination.offset / archivePagination.limit) + 1 >= Math.ceil(archivePagination.total / archivePagination.limit) ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
               )}
             </>
           )}

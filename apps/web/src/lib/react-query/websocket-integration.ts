@@ -1,4 +1,4 @@
-import { getWebSocketClient } from '../../services/websocket-client';
+import { getWebSocketClient } from '@/services/websocket-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import type { Customer, Rental, Vehicle } from '../../types';

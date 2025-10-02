@@ -1,6 +1,10 @@
-import React from 'react';
-import { LocalOffer as DiscountIcon } from '@mui/icons-material';
-import { Box, Chip, Divider, Typography } from '@mui/material';
+// Lucide icons (replacing MUI icons)
+import { Tag as DiscountIcon } from 'lucide-react';
+
+// shadcn/ui components
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Rental } from '../../../types';
 import { calculateOriginalPriceFromDiscounted } from '../../../utils/priceCalculator';
 
@@ -23,6 +27,14 @@ export default function PriceSummary({
   discount,
   showOriginalPrice = true,
 }: PriceSummaryProps) {
+  const formatPrice = (amount: number): string => {
+    return new Intl.NumberFormat('sk-SK', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
   const basePrice = calculatedPrice || 0;
   const extraKm = extraKmCharge || 0;
   const commission = calculatedCommission || 0;
@@ -42,75 +54,57 @@ export default function PriceSummary({
   const originalFinalPrice = originalPrice + extraKm;
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        bgcolor: 'background.paper',
-      }}
-    >
-      {/* Originálna cena (ak existuje zľava) */}
-      {hasDiscount && showOriginalPrice && (
-        <>
-          <Typography variant="body2" color="text.secondary">
-            Originálna cena:
-            <span style={{ textDecoration: 'line-through', marginLeft: 8 }}>
-              {originalPrice.toFixed(2)} €
-            </span>
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Chip
-              icon={<DiscountIcon />}
-              label={
-                discount?.type === 'percentage'
-                  ? `Zľava ${discount.value}% (-${discountAmount.toFixed(2)}€)`
-                  : `Zľava -${discountAmount.toFixed(2)}€`
-              }
-              color="secondary"
-              size="small"
-              variant="outlined"
-            />
-          </Box>
-          <Divider sx={{ my: 1 }} />
-        </>
-      )}
-
-      {/* Aktuálne ceny */}
-      <Box>
-        <Typography>
-          {hasDiscount ? 'Cena po zľave' : 'Základná cena'}:{' '}
-          <strong>{basePrice.toFixed(2)} €</strong>
-        </Typography>
-
-        {extraKm > 0 && (
-          <Typography color="warning.main">
-            Doplatok za km: <strong>+{extraKm.toFixed(2)} €</strong>
-          </Typography>
+    <Card className="bg-background">
+      <CardContent className="p-4">
+        {/* Originálna cena (ak existuje zľava) */}
+        {hasDiscount && showOriginalPrice && (
+          <>
+            <div className="text-sm text-muted-foreground mb-2">
+              Originálna cena:
+              <span className="line-through ml-2">
+                {formatPrice(originalPrice)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <DiscountIcon className="w-3 h-3" />
+                {discount?.type === 'percentage'
+                  ? `Zľava ${discount.value}% (-${formatPrice(discountAmount)})`
+                  : `Zľava -${formatPrice(discountAmount)}`
+                }
+              </Badge>
+            </div>
+            <Separator className="my-2" />
+          </>
         )}
 
-        <Typography variant="h6" color="primary">
-          Celková cena: <strong>{finalPrice.toFixed(2)} €</strong>
-          {hasDiscount && showOriginalPrice && (
-            <Typography
-              component="span"
-              variant="body2"
-              sx={{
-                ml: 1,
-                textDecoration: 'line-through',
-                color: 'text.secondary',
-              }}
-            >
-              (pôvodne {originalFinalPrice.toFixed(2)} €)
-            </Typography>
-          )}
-        </Typography>
-      </Box>
+        {/* Aktuálne ceny */}
+        <div className="space-y-2">
+          <div className="text-sm">
+            {hasDiscount ? 'Cena po zľave' : 'Základná cena'}:{' '}
+            <strong>{formatPrice(basePrice)}</strong>
+          </div>
 
-      <Typography sx={{ mt: 1 }}>
-        Provízia: <strong>{commission.toFixed(2)} €</strong>
-      </Typography>
-    </Box>
+          {extraKm > 0 && (
+            <div className="text-sm text-orange-600 dark:text-orange-400">
+              Doplatok za km: <strong>+{formatPrice(extraKm)}</strong>
+            </div>
+          )}
+
+          <div className="text-lg font-semibold text-primary">
+            Celková cena: <strong>{formatPrice(finalPrice)}</strong>
+            {hasDiscount && showOriginalPrice && (
+              <span className="ml-2 text-sm font-normal line-through text-muted-foreground">
+                (pôvodne {formatPrice(originalFinalPrice)})
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="text-sm mt-3 pt-2 border-t">
+          Provízia: <strong>{formatPrice(commission)}</strong>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

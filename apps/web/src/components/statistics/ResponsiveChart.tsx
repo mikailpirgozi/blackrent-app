@@ -4,7 +4,8 @@
  * Mobile-optimized chart wrapper s responsive design
  */
 
-import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Typography } from '@/components/ui/typography';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import React, { memo } from 'react';
 import {
   Area,
@@ -61,9 +62,8 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   valueKey = 'value',
   series = [],
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isSmallMobile = useMediaQuery('(max-width: 640px)');
 
   // Responsive height
   const chartHeight = isMobile ? Math.min(height, 250) : height;
@@ -80,28 +80,16 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   }) => {
     if (active && payload && payload.length) {
       return (
-        <Box
-          sx={{
-            backgroundColor: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 2,
-            p: 1.5,
-            boxShadow: theme.shadows[4],
-            minWidth: 120,
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+        <div className="bg-background border border-border rounded-lg p-3 shadow-lg min-w-[120px]">
+          <Typography variant="body2" className="font-semibold mb-1">
             {label}
           </Typography>
           {payload.map((entry: Record<string, unknown>, index: number) => (
             <Typography
               key={index}
-              variant="caption"
-              sx={{
-                color: entry.color as string,
-                display: 'block',
-                lineHeight: 1.2,
-              }}
+              variant="body2"
+              className="block leading-tight"
+              style={{ color: entry.color as string }}
             >
               {String(entry.name)}:{' '}
               {typeof entry.value === 'number'
@@ -110,7 +98,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
               {entry.unit ? ` ${String(entry.unit)}` : ''}
             </Typography>
           ))}
-        </Box>
+        </div>
       );
     }
     return null;
@@ -263,7 +251,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
               label={!isMobile}
               labelLine={false}
             >
-              {data.map((entry, index) => (
+              {data.map((_entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={colors[index % colors.length]}
@@ -281,16 +269,11 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <div className="w-full">
       {title && (
         <Typography
-          variant={isMobile ? 'subtitle2' : 'h6'}
-          sx={{
-            textAlign: 'center',
-            mb: 2,
-            fontWeight: 600,
-            color: 'text.primary',
-          }}
+          variant={isMobile ? 'body2' : 'h6'}
+          className="text-center mb-4 font-semibold text-foreground"
         >
           {title}
         </Typography>
@@ -299,7 +282,7 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
       <ResponsiveContainer width="100%" height={chartHeight}>
         {renderChart()}
       </ResponsiveContainer>
-    </Box>
+    </div>
   );
 };
 

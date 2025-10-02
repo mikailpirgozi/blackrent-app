@@ -1,18 +1,10 @@
-import { Delete as DeleteIcon } from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  FormControlLabel,
-  Tab,
-  Tabs,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Trash2 as DeleteIcon } from 'lucide-react';
+import { UnifiedButton as Button } from '@/components/ui/UnifiedButton';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
 import {
@@ -71,21 +63,28 @@ import VehicleImportExport from './components/VehicleImportExport';
 import VehicleKmHistory from './components/VehicleKmHistory';
 import VehicleTable from './components/VehicleTable';
 
-const VehicleListNew = () => {
+export default function VehicleListNew() {
   // React Query hooks
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
 
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
-  const mobileScrollRef = React.useRef<HTMLDivElement>(null);
-  const desktopScrollRef = React.useRef<HTMLDivElement>(null);
+  const mobileScrollRef = React.useRef<any>(null);
+  const desktopScrollRef = React.useRef<any>(null);
   const savedScrollPosition = React.useRef<number>(0);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Pre načítanie ďalších vozidiel
   const infiniteScrollPosition = React.useRef<number>(0);
   const isLoadingMoreRef = React.useRef<boolean>(false);
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // 🔍 DEBUG: Základné informácie o komponente (len raz)
   React.useEffect(() => {
@@ -116,10 +115,10 @@ const VehicleListNew = () => {
   const [showBulkActions, setShowBulkActions] = useState(false);
 
   // Filters
-  const [filterBrand, setFilterBrand] = useState('');
-  const [filterModel, setFilterModel] = useState('');
-  const [filterCompany, setFilterCompany] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterBrand, setFilterBrand] = useState('all');
+  const [filterModel, setFilterModel] = useState('all');
+  const [filterCompany, setFilterCompany] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState<VehicleCategory | 'all'>(
     'all'
   ); // 🚗 Category filter
@@ -138,15 +137,29 @@ const VehicleListNew = () => {
 
   // Pripravíme filters pre React Query
   const vehicleFilters: VehicleFilters = useMemo(
-    () => ({
-      status: filterStatus || undefined,
-      company: filterCompany || undefined,
-      category: filterCategory !== 'all' ? filterCategory : undefined,
-      search:
-        filterBrand || filterModel
-          ? `${filterBrand} ${filterModel}`.trim()
-          : undefined,
-    }),
+    () => {
+      const filters: VehicleFilters = {};
+      
+      if (filterStatus !== 'all') {
+        filters.status = filterStatus;
+      }
+      
+      if (filterCompany !== 'all') {
+        filters.company = filterCompany;
+      }
+      
+      if (filterCategory !== 'all') {
+        filters.category = filterCategory;
+      }
+      
+      if (filterBrand !== 'all' || filterModel !== 'all') {
+        const brandPart = filterBrand !== 'all' ? filterBrand : '';
+        const modelPart = filterModel !== 'all' ? filterModel : '';
+        filters.search = `${brandPart} ${modelPart}`.trim();
+      }
+      
+      return filters;
+    },
     [filterStatus, filterCompany, filterCategory, filterBrand, filterModel]
   );
 
@@ -207,7 +220,7 @@ const VehicleListNew = () => {
   // Handlers
   // 🎯 SCROLL PRESERVATION: Funkcia na obnovenie scroll pozície
   const restoreScrollPosition = React.useCallback(() => {
-    setTimeout(() => {
+    window.setTimeout(() => {
       const scrollContainer = isMobile
         ? mobileScrollRef.current
         : desktopScrollRef.current;
@@ -242,7 +255,7 @@ const VehicleListNew = () => {
         scrollContainer.scrollTop = targetPosition;
 
         // Verify restoration worked
-        setTimeout(() => {
+        window.setTimeout(() => {
           const actualPosition = scrollContainer.scrollTop;
           const success = Math.abs(actualPosition - targetPosition) < 50;
 
@@ -255,12 +268,12 @@ const VehicleListNew = () => {
     };
 
     // Single attempt with optimal timing
-    requestAnimationFrame(() => {
-      setTimeout(attemptRestore, 200); // Wait for DOM to settle
+    window.requestAnimationFrame(() => {
+      window.setTimeout(attemptRestore, 200); // Wait for DOM to settle
     });
 
     // Cleanup
-    setTimeout(() => {
+    window.setTimeout(() => {
       isLoadingMoreRef.current = false;
       infiniteScrollPosition.current = 0;
     }, 500);
@@ -318,11 +331,11 @@ const VehicleListNew = () => {
         window.location.reload();
       } else {
         console.error('❌ Failed to create company:', result.error);
-        alert(`Chyba pri vytváraní firmy: ${result.error}`);
+        window.alert(`Chyba pri vytváraní firmy: ${result.error}`);
       }
     } catch (error) {
       console.error('❌ Error creating company:', error);
-      alert('Chyba pri vytváraní firmy');
+      window.alert('Chyba pri vytváraní firmy');
     }
   };
 
@@ -356,11 +369,11 @@ const VehicleListNew = () => {
         window.location.reload();
       } else {
         console.error('❌ Failed to create investor:', result.error);
-        alert(`Chyba pri vytváraní spoluinvestora: ${result.error}`);
+        window.alert(`Chyba pri vytváraní spoluinvestora: ${result.error}`);
       }
     } catch (error) {
       console.error('❌ Error creating investor:', error);
-      alert('Chyba pri vytváraní spoluinvestora');
+      window.alert('Chyba pri vytváraní spoluinvestora');
     }
   };
 
@@ -447,11 +460,11 @@ const VehicleListNew = () => {
         loadInvestors(); // Refresh data
       } else {
         console.error('❌ Failed to assign share:', result.error);
-        alert(`Chyba pri priradzovaní podielu: ${result.error}`);
+        window.alert(`Chyba pri priradzovaní podielu: ${result.error}`);
       }
     } catch (error) {
       console.error('❌ Error assigning share:', error);
-      alert('Chyba pri priradzovaní podielu');
+      window.alert('Chyba pri priradzovaní podielu');
     }
   };
 
@@ -523,9 +536,7 @@ const VehicleListNew = () => {
   };
 
   // 🆕 Tab handlers
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setCurrentTab(newValue);
-  };
+  // Tab change handled by onValueChange in Tabs component
 
   // 👤 Save owner name - REMOVED (ownerName field no longer exists)
 
@@ -602,7 +613,7 @@ const VehicleListNew = () => {
     setIsLoadingMore(true);
 
     // Simulate loading delay for better UX
-    setTimeout(() => {
+    window.setTimeout(() => {
       setDisplayedVehicles(prev =>
         Math.min(prev + 20, filteredVehicles.length)
       );
@@ -639,7 +650,7 @@ const VehicleListNew = () => {
 
   // Infinite scroll event handler
   const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
+    (e: React.UIEvent<any>) => {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
       // Load more when user scrolls to 80% of the content
@@ -671,28 +682,7 @@ const VehicleListNew = () => {
   //   ...new Set(state.vehicles.map(v => v.category).filter(Boolean)),
   // ].sort() as VehicleCategory[]; // 🚗 Unique categories - unused
 
-  // 🆕 TabPanel component
-  interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
-  }
-
-  function TabPanel(props: TabPanelProps) {
-    const { children, value, index, ...other } = props;
-
-    return (
-      <div
-        role="tabpanel"
-        hidden={value !== index}
-        id={`vehicle-tabpanel-${index}`}
-        aria-labelledby={`vehicle-tab-${index}`}
-        {...other}
-      >
-        {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-      </div>
-    );
-  }
+  // TabPanel component replaced with TabsContent
 
   // ✅ NOVÉ: Funkcie pre hromadné mazanie
   const handleVehicleSelect = (vehicleId: string, checked: boolean) => {
@@ -757,75 +747,47 @@ const VehicleListNew = () => {
 
       // Zobraz výsledok
       if (errorCount === 0) {
-        alert(`✅ Úspešne zmazaných ${deletedCount} vozidiel.`);
+        window.alert(`✅ Úspešne zmazaných ${deletedCount} vozidiel.`);
       } else {
-        alert(
+        window.alert(
           `⚠️ Zmazaných ${deletedCount} vozidiel.\nChyby: ${errorCount} vozidiel sa nepodarilo zmazať.`
         );
       }
     } catch (error) {
       console.error('❌ Bulk delete error:', error);
-      alert('❌ Chyba pri hromadnom mazaní vozidiel.');
+      window.alert('❌ Chyba pri hromadnom mazaní vozidiel.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+    <div className="p-1 sm:p-2 md:p-3">
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 2, sm: 0 },
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: '#1976d2',
-            fontSize: { xs: '1.5rem', sm: '2rem' },
-          }}
-        >
+      <div className="flex justify-between items-center mb-6 flex-col sm:flex-row gap-2 sm:gap-0">
+        <UnifiedTypography variant="h4" className="font-bold text-blue-600 text-2xl sm:text-3xl">
           🚗 Databáza vozidiel
-        </Typography>
+        </UnifiedTypography>
 
         {/* ✅ NOVÉ: Bulk Actions */}
         {showBulkActions && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              bgcolor: '#fff3cd',
-              border: '1px solid #ffeaa7',
-              borderRadius: 1,
-              px: 2,
-              py: 1,
-            }}
-          >
-            <Typography variant="body2" sx={{ color: '#856404' }}>
+          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
+            <UnifiedTypography variant="body2" className="text-yellow-800">
               Vybraných: {selectedVehicles.size}
-            </Typography>
+            </UnifiedTypography>
             <Button
-              variant="contained"
-              color="error"
-              size="small"
-              startIcon={<DeleteIcon />}
+              variant="destructive"
+              size="sm"
               onClick={handleBulkDelete}
               disabled={isLoading}
-              sx={{ minWidth: 120 }}
+              className="min-w-[120px] gap-2"
             >
+              <DeleteIcon className="h-4 w-4" />
               {loading ? 'Mažem...' : 'Zmazať vybrané'}
             </Button>
             <Button
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setSelectedVehicles(new Set());
                 setShowBulkActions(false);
@@ -834,37 +796,22 @@ const VehicleListNew = () => {
             >
               Zrušiť výber
             </Button>
-          </Box>
+          </div>
         )}
 
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex gap-2 flex-wrap">
           {/* ✅ NOVÉ: Select All Checkbox */}
           {filteredVehicles.length > 0 && (
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isSelectAllChecked}
-                  indeterminate={
-                    selectedVehicles.size > 0 &&
-                    selectedVehicles.size < filteredVehicles.length
-                  }
-                  onChange={e => handleSelectAll(e.target.checked)}
-                  sx={{ '& .MuiSvgIcon-root': { fontSize: 20 } }}
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                  Vybrať všetky ({filteredVehicles.length})
-                </Typography>
-              }
-              sx={{
-                bgcolor: '#f5f5f5',
-                borderRadius: 1,
-                px: 1,
-                py: 0.5,
-                mr: 1,
-              }}
-            />
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded px-2 py-1 hover:bg-gray-100 mr-1">
+              <Checkbox
+                checked={isSelectAllChecked}
+                onCheckedChange={handleSelectAll}
+                className="h-5 w-5"
+              />
+              <UnifiedTypography variant="body2" className="text-sm">
+                Vybrať všetky ({filteredVehicles.length})
+              </UnifiedTypography>
+            </div>
           )}
 
           <VehicleActions
@@ -881,8 +828,8 @@ const VehicleListNew = () => {
             setLoading={setLoading}
             isMobile={isMobile}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Search and Filters */}
       <VehicleFiltersComponent
@@ -920,40 +867,24 @@ const VehicleListNew = () => {
       />
 
       {/* 🎯 TABS NAVIGATION */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          aria-label="vehicle tabs"
-        >
-          <Tab
-            label="Vozidlá"
-            id="vehicle-tab-0"
-            aria-controls="vehicle-tabpanel-0"
-          />
-          <Tab
-            label="👤 Majitelia"
-            id="vehicle-tab-1"
-            aria-controls="vehicle-tabpanel-1"
-          />
-          <Tab
-            label="🤝 Používatelia"
-            id="vehicle-tab-2"
-            aria-controls="vehicle-tabpanel-2"
-          />
-        </Tabs>
-      </Box>
+      <div className="border-b border-border mb-6">
+        <Tabs value={currentTab.toString()} onValueChange={(value) => setCurrentTab(parseInt(value))}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="0">Vozidlá</TabsTrigger>
+            <TabsTrigger value="1">👤 Majitelia</TabsTrigger>
+            <TabsTrigger value="2">🤝 Používatelia</TabsTrigger>
+          </TabsList>
 
-      {/* TAB 0 - VOZIDLÁ */}
-      <TabPanel value={currentTab} index={0}>
+          {/* TAB 0 - VOZIDLÁ */}
+          <TabsContent value="0" className="pt-6">
         {/* Results Count */}
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        <div className="mb-4 flex items-center gap-2">
+          <UnifiedTypography variant="body2" className="text-muted-foreground">
             Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length}{' '}
             vozidiel
             {filteredVehicles.length !== vehicles.length &&
               ` (filtrovaných z ${vehicles.length})`}
-          </Typography>
+          </UnifiedTypography>
           {isLoading && (
             <EnhancedLoading
               variant="inline"
@@ -968,7 +899,7 @@ const VehicleListNew = () => {
               showMessage={true}
             />
           )}
-        </Box>
+        </div>
 
         {/* Vehicle List */}
         <VehicleTable
@@ -987,23 +918,23 @@ const VehicleListNew = () => {
           onLoadMore={loadMoreVehicles}
           onKmHistory={handleKmHistory}
         />
-      </TabPanel>
+          </TabsContent>
 
-      {/* TAB 1 - MAJITELIA */}
-      <TabPanel value={currentTab} index={1}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">👤 Správa majiteľov vozidiel</Typography>
-        </Box>
+          {/* TAB 1 - MAJITELIA */}
+          <TabsContent value="1" className="pt-6">
+        <div className="mb-6">
+          <UnifiedTypography variant="h6">👤 Správa majiteľov vozidiel</UnifiedTypography>
+        </div>
 
         {/* Owners List - Nový dizajn */}
         <Card>
           <CardContent>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <div className="mb-4">
+              <UnifiedTypography variant="body2" className="text-muted-foreground mb-4">
                 Zoznam majiteľov vozidiel. Kliknite na majiteľa pre
                 zobrazenie/skrytie jeho vozidiel.
-              </Typography>
-            </Box>
+              </UnifiedTypography>
+            </div>
 
             {/* Zoznam majiteľov zoskupených podľa firmy */}
             {companies
@@ -1029,44 +960,43 @@ const VehicleListNew = () => {
               ?.filter(Boolean)}
 
             {companies?.filter(c => c.isActive !== false).length === 0 && (
-              <Typography
+              <UnifiedTypography
                 variant="body2"
-                color="text.secondary"
-                sx={{ textAlign: 'center', py: 4 }}
+                className="text-center py-8 text-muted-foreground"
               >
                 Žiadni aktívni majitelia vozidiel
-              </Typography>
+              </UnifiedTypography>
             )}
           </CardContent>
         </Card>
-      </TabPanel>
+          </TabsContent>
 
-      {/* TAB 2 - POUŽÍVATELIA (SPOLUINVESTORI) */}
-      <TabPanel value={currentTab} index={2}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">🤝 Správa spoluinvestorov</Typography>
-        </Box>
+          {/* TAB 2 - POUŽÍVATELIA (SPOLUINVESTORI) */}
+          <TabsContent value="2" className="pt-6">
+        <div className="mb-6">
+          <UnifiedTypography variant="h6">🤝 Správa spoluinvestorov</UnifiedTypography>
+        </div>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <UnifiedTypography variant="body2" className="text-muted-foreground mb-6">
           Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým
           firmám.
-        </Typography>
+        </UnifiedTypography>
 
         {/* Investors List */}
         <Card>
           <CardContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <UnifiedTypography variant="body2" className="text-muted-foreground mb-4">
               Zoznam všetkých spoluinvestorov a ich podiely vo firmách.
-            </Typography>
+            </UnifiedTypography>
 
             {loadingInvestors ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <div className="flex justify-center py-8">
                 <EnhancedLoading
                   variant="page"
                   showMessage={true}
                   message="Načítavam spoluinvestorov..."
                 />
-              </Box>
+              </div>
             ) : investors.length > 0 ? (
               investors.map(investor => {
                 // Nájdi podiely tohto investora
@@ -1098,17 +1028,19 @@ const VehicleListNew = () => {
                 );
               })
             ) : (
-              <Typography
+              <UnifiedTypography
                 variant="body2"
-                sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}
+                className="text-center py-8 text-muted-foreground"
               >
                 Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre
                 vytvorenie nového.
-              </Typography>
+              </UnifiedTypography>
             )}
           </CardContent>
         </Card>
-      </TabPanel>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* All Dialogs */}
       <VehicleDialogs
@@ -1161,9 +1093,6 @@ const VehicleListNew = () => {
         }}
         vehicle={selectedVehicleKmHistory}
       />
-    </Box>
+    </div>
   );
-};
-
-// Export with memo for performance optimization
-export default memo(VehicleListNew);
+}

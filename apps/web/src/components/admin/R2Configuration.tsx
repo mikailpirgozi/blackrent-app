@@ -2,27 +2,17 @@ import {
   CheckCircle as CheckCircleIcon,
   Cloud as CloudIcon,
   Download as DownloadIcon,
-  Error as ErrorIcon,
+  AlertCircle as ErrorIcon,
   Settings as SettingsIcon,
-  Storage as StorageIcon,
+  Database as StorageIcon,
   Upload as UploadIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  // Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-} from '@mui/material';
+  AlertTriangle as WarningIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { useEffect, useState } from 'react';
 
 import { getAPI_BASE_URL } from '../../services/api';
@@ -105,69 +95,57 @@ export default function R2Configuration() {
   }, []);
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-      >
-        <CloudIcon />
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-semibold flex items-center gap-2">
+        <CloudIcon className="h-8 w-8" />
         Cloudflare R2 Storage Konfigurácia
-      </Typography>
+      </h1>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography
-            variant="h6"
-            gutterBottom
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <SettingsIcon />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <SettingsIcon className="h-5 w-5" />
             Aktuálny stav
-          </Typography>
-
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           {loading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <CircularProgress size={20} />
-              <Typography>Načítavam stav...</Typography>
-            </Box>
+            <div className="flex items-center gap-3">
+              <Spinner className="h-5 w-5" />
+              <span>Načítavam stav...</span>
+            </div>
           ) : r2Status ? (
-            <Box>
-              <Alert
-                severity={r2Status.configured ? 'success' : 'warning'}
-                sx={{ mb: 2 }}
-                icon={
-                  r2Status.configured ? <CheckCircleIcon /> : <WarningIcon />
-                }
-              >
-                {r2Status.message}
+            <div>
+              <Alert variant={r2Status.configured ? 'default' : 'destructive'} className="mb-4">
+                {r2Status.configured ? (
+                  <CheckCircleIcon className="h-4 w-4" />
+                ) : (
+                  <WarningIcon className="h-4 w-4" />
+                )}
+                <AlertDescription>{r2Status.message}</AlertDescription>
               </Alert>
 
               {!r2Status.configured && r2Status.missingVariables.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Chýbajúce environment variables:
-                  </Typography>
-                  <List dense>
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold mb-2">Chýbajúce environment variables:</h4>
+                  <ul className="space-y-2">
                     {r2Status.missingVariables.map(variable => (
-                      <ListItem key={variable}>
-                        <ListItemIcon>
-                          <ErrorIcon color="error" />
-                        </ListItemIcon>
-                        <ListItemText primary={variable} />
-                      </ListItem>
+                      <li key={variable} className="flex items-center gap-2 text-sm">
+                        <ErrorIcon className="h-4 w-4 text-destructive" />
+                        {variable}
+                      </li>
                     ))}
-                  </List>
-                </Box>
+                  </ul>
+                </div>
               )}
-            </Box>
+            </div>
           ) : null}
 
           <Button
-            variant="outlined"
+            variant="outline"
             onClick={loadR2Status}
             disabled={loading}
-            sx={{ mt: 2 }}
+            className="mt-4"
           >
             Obnoviť stav
           </Button>
@@ -175,217 +153,195 @@ export default function R2Configuration() {
       </Card>
 
       {r2Status?.configured && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <UploadIcon />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UploadIcon className="h-5 w-5" />
               Migrácia súborov
-            </Typography>
-
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
               Migrujte existujúce base64 fotky a podpisy do Cloudflare R2
               storage pre lepší výkon a úsporu miesta.
-            </Typography>
+            </p>
 
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-              <Chip
-                icon={<StorageIcon />}
-                label="Base64 → R2 URLs"
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                icon={<DownloadIcon />}
-                label="Automatické zálohovanie"
-                color="success"
-                variant="outlined"
-              />
-              <Chip
-                icon={<CloudIcon />}
-                label="CDN rýchlosť"
-                color="info"
-                variant="outlined"
-              />
-            </Box>
+            <div className="flex gap-2 flex-wrap mb-4">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <StorageIcon className="h-3 w-3" />
+                Base64 → R2 URLs
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <DownloadIcon className="h-3 w-3" />
+                Automatické zálohovanie
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <CloudIcon className="h-3 w-3" />
+                CDN rýchlosť
+              </Badge>
+            </div>
 
-            <Button
-              variant="contained"
-              onClick={startMigration}
-              disabled={migrating}
-              startIcon={
-                migrating ? <CircularProgress size={20} /> : <UploadIcon />
-              }
-              sx={{ mr: 2 }}
-            >
-              {migrating ? 'Migrujem...' : 'Spustiť migráciu'}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={startMigration}
+                disabled={migrating}
+                className="flex items-center gap-2"
+              >
+                {migrating ? (
+                  <Spinner className="h-4 w-4" />
+                ) : (
+                  <UploadIcon className="h-4 w-4" />
+                )}
+                {migrating ? 'Migrujem...' : 'Spustiť migráciu'}
+              </Button>
 
-            <Button
-              variant="outlined"
-              onClick={() =>
-                window.open('https://dash.cloudflare.com', '_blank')
-              }
-            >
-              Cloudflare Dashboard
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open('https://dash.cloudflare.com', '_blank')
+                }
+              >
+                Cloudflare Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {!r2Status?.configured && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <WarningIcon />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <WarningIcon className="h-5 w-5" />
               Nastavenie R2 Storage
-            </Typography>
-
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
               Pre použitie R2 storage musíte nastaviť environment variables v
               Railway dashboard.
-            </Typography>
+            </p>
 
-            <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Potrebné environment variables:
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemText
-                    primary="R2_ENDPOINT"
-                    secondary="https://xxx.r2.cloudflarestorage.com"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="R2_ACCESS_KEY_ID"
-                    secondary="Váš Cloudflare API access key"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="R2_SECRET_ACCESS_KEY"
-                    secondary="Váš Cloudflare API secret key"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="R2_BUCKET_NAME"
-                    secondary="blackrent-storage"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="R2_PUBLIC_URL"
-                    secondary="https://blackrent-storage.xxx.r2.dev"
-                  />
-                </ListItem>
-              </List>
-            </Box>
+            <div className="bg-muted p-4 rounded-lg mb-4">
+              <h4 className="text-sm font-semibold mb-3">Potrebné environment variables:</h4>
+              <ul className="space-y-3">
+                <li>
+                  <div>
+                    <span className="font-mono text-sm font-semibold">R2_ENDPOINT</span>
+                    <p className="text-xs text-muted-foreground">https://xxx.r2.cloudflarestorage.com</p>
+                  </div>
+                </li>
+                <li>
+                  <div>
+                    <span className="font-mono text-sm font-semibold">R2_ACCESS_KEY_ID</span>
+                    <p className="text-xs text-muted-foreground">Váš Cloudflare API access key</p>
+                  </div>
+                </li>
+                <li>
+                  <div>
+                    <span className="font-mono text-sm font-semibold">R2_SECRET_ACCESS_KEY</span>
+                    <p className="text-xs text-muted-foreground">Váš Cloudflare API secret key</p>
+                  </div>
+                </li>
+                <li>
+                  <div>
+                    <span className="font-mono text-sm font-semibold">R2_BUCKET_NAME</span>
+                    <p className="text-xs text-muted-foreground">blackrent-storage</p>
+                  </div>
+                </li>
+                <li>
+                  <div>
+                    <span className="font-mono text-sm font-semibold">R2_PUBLIC_URL</span>
+                    <p className="text-xs text-muted-foreground">https://blackrent-storage.xxx.r2.dev</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
 
-            <Button
-              variant="contained"
-              onClick={() =>
-                window.open('https://dash.cloudflare.com', '_blank')
-              }
-              startIcon={<CloudIcon />}
-              sx={{ mr: 2 }}
-            >
-              Vytvoriť R2 Bucket
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={() =>
+                  window.open('https://dash.cloudflare.com', '_blank')
+                }
+                className="flex items-center gap-2"
+              >
+                <CloudIcon className="h-4 w-4" />
+                Vytvoriť R2 Bucket
+              </Button>
 
-            <Button
-              variant="outlined"
-              onClick={() => window.open('https://railway.app', '_blank')}
-            >
-              Railway Dashboard
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open('https://railway.app', '_blank')}
+              >
+                Railway Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Výhody R2 Storage */}
       <Card>
-        <CardContent>
-          <Typography
-            variant="h6"
-            gutterBottom
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <CheckCircleIcon />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircleIcon className="h-5 w-5" />
             Výhody Cloudflare R2
-          </Typography>
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: 2,
-            }}
-          >
-            <Box>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <h4 className="text-sm font-semibold text-primary mb-1">
                 💰 Nižšie náklady
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h4>
+              <p className="text-xs text-muted-foreground">
                 90% lacnejšie ako AWS S3, žiadne egress poplatky
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
+            <div>
+              <h4 className="text-sm font-semibold text-primary mb-1">
                 ⚡ Rýchlosť
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h4>
+              <p className="text-xs text-muted-foreground">
                 Globálny CDN, ultra-rýchle načítanie fotiek
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
+            <div>
+              <h4 className="text-sm font-semibold text-primary mb-1">
                 🔒 Bezpečnosť
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h4>
+              <p className="text-xs text-muted-foreground">
                 Automatické zálohovanie, enterprise-grade bezpečnosť
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
+            <div>
+              <h4 className="text-sm font-semibold text-primary mb-1">
                 🌍 Dostupnosť
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h4>
+              <p className="text-xs text-muted-foreground">
                 99.9% uptime, dostupné z celého sveta
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Error/Success messages */}
       {error && (
-        <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
-          {error}
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {success && (
-        <Alert
-          severity="success"
-          sx={{ mt: 2 }}
-          onClose={() => setSuccess(null)}
-        >
-          {success}
+        <Alert>
+          <CheckCircleIcon className="h-4 w-4" />
+          <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
-    </Box>
+    </div>
   );
 }

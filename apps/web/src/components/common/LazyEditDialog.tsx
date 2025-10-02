@@ -1,23 +1,29 @@
 // 📝 Lazy Edit Dialog - Heavy component for performance testing
 // This represents a complex form component that should be lazy loaded
 
+import React, { useState, useEffect } from 'react';
+
+// shadcn/ui components (direct imports)
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
   Select,
-  MenuItem,
-  Grid,
-  Typography,
-  Box,
-  CircularProgress,
-} from '@mui/material';
-import React, { useState, useEffect } from 'react';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2 } from 'lucide-react';
 
 interface LazyEditDialogProps {
   itemId: string;
@@ -65,98 +71,108 @@ const LazyEditDialog: React.FC<LazyEditDialogProps> = ({
 
   if (loading) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogContent>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            py={4}
-          >
-            <CircularProgress />
-            <Typography sx={{ ml: 2 }}>Načítavam formulár...</Typography>
-          </Box>
+      <Dialog open={open} onOpenChange={(open: boolean) => !open && onClose()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Načítavam...</DialogTitle>
+            <DialogDescription>
+              Načítavam formulár pre úpravu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8 gap-3">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="text-sm text-muted-foreground">
+              Načítavam formulár...
+            </span>
+          </div>
         </DialogContent>
       </Dialog>
     );
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Upraviť položku</DialogTitle>
-      <DialogContent>
-        <Grid container spacing={3} sx={{ mt: 1 }}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Názov"
+    <Dialog open={open} onOpenChange={(open: boolean) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Upraviť položku</DialogTitle>
+          <DialogDescription>
+            Upravte detaily vybranej položky
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Názov</Label>
+            <Input
+              id="title"
               value={formData.title}
-              onChange={e =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, title: e.target.value })
               }
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Podtitul"
+          <div className="space-y-2">
+            <Label htmlFor="subtitle">Podtitul</Label>
+            <Input
+              id="subtitle"
               value={formData.subtitle}
-              onChange={e =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, subtitle: e.target.value })
               }
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Kategória"
+          <div className="space-y-2">
+            <Label htmlFor="category">Kategória</Label>
+            <Input
+              id="category"
               value={formData.category}
-              onChange={e =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, category: e.target.value })
               }
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={formData.status}
-                label="Status"
-                onChange={e =>
-                  setFormData({ ...formData, status: e.target.value })
-                }
-              >
-                <MenuItem value="active">Aktívny</MenuItem>
-                <MenuItem value="inactive">Neaktívny</MenuItem>
-                <MenuItem value="pending">Čakajúci</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value: string) =>
+                setFormData({ ...formData, status: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Vyberte status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktívny</SelectItem>
+                <SelectItem value="inactive">Neaktívny</SelectItem>
+                <SelectItem value="pending">Čakajúci</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
+          <div className="col-span-full space-y-2">
+            <Label htmlFor="description">Popis</Label>
+            <Textarea
+              id="description"
               rows={4}
-              label="Popis"
               value={formData.description}
-              onChange={e =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, description: e.target.value })
               }
             />
-          </Grid>
-        </Grid>
-      </DialogContent>
+          </div>
+        </div>
 
-      <DialogActions>
-        <Button onClick={onClose}>Zrušiť</Button>
-        <Button onClick={handleSave} variant="contained">
-          Uložiť
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Zrušiť
+          </Button>
+          <Button onClick={handleSave}>Uložiť</Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

@@ -1,25 +1,15 @@
 import {
   Search as SearchIcon,
-  FilterList as FilterListIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  TextField,
-  IconButton,
-  Card,
-  CardContent,
-  Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Grid,
-  Divider,
-  FormGroup,
-  Typography,
-} from '@mui/material';
+  Filter as FilterListIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';  
 import React from 'react';
 
 import type { VehicleCategory } from '../../../types';
@@ -101,205 +91,201 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   uniqueCompanies,
 }) => {
   return (
-    <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <Card className="mb-6 shadow-lg">
       <CardContent>
         {/* Search Bar */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-          <TextField
-            fullWidth
-            placeholder="Hľadať vozidlá..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
-            }}
-            sx={{ flex: 1 }}
-          />
-          <IconButton
+        <div className="flex gap-4 mb-4 items-center">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Hľadať vozidlá..."
+              value={searchQuery}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button
+            variant={filtersOpen ? 'default' : 'outline'}
             onClick={() => setFiltersOpen(!filtersOpen)}
-            sx={{
-              bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
-              color: filtersOpen ? 'white' : '#666',
-              '&:hover': {
-                bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
-              },
-            }}
           >
-            <FilterListIcon />
-          </IconButton>
-        </Box>
+            <FilterListIcon className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Filters */}
-        <Collapse in={filtersOpen}>
-          <Divider sx={{ mb: 2 }} />
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Značka</InputLabel>
+        <Collapsible open={filtersOpen}>
+          <CollapsibleContent>
+            <Separator className="mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <Label>Značka</Label>
                 <Select
                   value={filterBrand}
-                  label="Značka"
-                  onChange={e => setFilterBrand(e.target.value)}
+                  onValueChange={setFilterBrand}
                 >
-                  <MenuItem value="">Všetky značky</MenuItem>
-                  {uniqueBrands.map(brand => (
-                    <MenuItem key={brand} value={brand}>
-                      {brand}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky značky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky značky</SelectItem>
+                    {uniqueBrands.map(brand => (
+                      <SelectItem key={brand} value={brand}>
+                        {brand}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Model</InputLabel>
+              </div>
+              <div>
+                <Label>Model</Label>
                 <Select
                   value={filterModel}
-                  label="Model"
-                  onChange={e => setFilterModel(e.target.value)}
+                  onValueChange={setFilterModel}
                 >
-                  <MenuItem value="">Všetky modely</MenuItem>
-                  {uniqueModels.map(model => (
-                    <MenuItem key={model} value={model}>
-                      {model}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky modely" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky modely</SelectItem>
+                    {uniqueModels.map(model => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Firma</InputLabel>
+              </div>
+              <div>
+                <Label>Firma</Label>
                 <Select
                   value={filterCompany}
-                  label="Firma"
-                  onChange={e => setFilterCompany(e.target.value)}
+                  onValueChange={setFilterCompany}
                 >
-                  <MenuItem value="">Všetky firmy</MenuItem>
-                  {uniqueCompanies.map(company => (
-                    <MenuItem key={company} value={company}>
-                      {company}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky firmy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky firmy</SelectItem>
+                    {uniqueCompanies.map(company => (
+                      <SelectItem key={company} value={company}>
+                        {company}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
+              </div>
+              <div>
+                <Label>Status</Label>
                 <Select
                   value={filterStatus}
-                  label="Status"
-                  onChange={e => setFilterStatus(e.target.value)}
+                  onValueChange={setFilterStatus}
                 >
-                  <MenuItem value="">Všetky statusy</MenuItem>
-                  <MenuItem value="available">Dostupné</MenuItem>
-                  <MenuItem value="rented">Prenajaté</MenuItem>
-                  <MenuItem value="maintenance">Údržba</MenuItem>
-                  <MenuItem value="temporarily_removed">
-                    Dočasne vyradené
-                  </MenuItem>
-                  <MenuItem value="removed">Vyradené</MenuItem>
-                  <MenuItem value="transferred">Prepisané</MenuItem>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky statusy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky statusy</SelectItem>
+                    <SelectItem value="available">Dostupné</SelectItem>
+                    <SelectItem value="rented">Prenajaté</SelectItem>
+                    <SelectItem value="maintenance">Údržba</SelectItem>
+                    <SelectItem value="temporarily_removed">
+                      Dočasne vyradené
+                    </SelectItem>
+                    <SelectItem value="removed">Vyradené</SelectItem>
+                    <SelectItem value="transferred">Prepisané</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Kategória</InputLabel>
+              </div>
+              <div>
+                <Label>Kategória</Label>
                 <Select
                   value={filterCategory}
-                  label="Kategória"
-                  onChange={e =>
-                    setFilterCategory(e.target.value as VehicleCategory | 'all')
-                  }
+                  onValueChange={(value) => setFilterCategory(value as VehicleCategory | 'all')}
                 >
-                  <MenuItem value="all">Všetky kategórie</MenuItem>
-                  <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
-                  <MenuItem value="stredna-trieda">🚙 Stredná trieda</MenuItem>
-                  <MenuItem value="vyssia-stredna">🚘 Vyššia stredná</MenuItem>
-                  <MenuItem value="luxusne">💎 Luxusné</MenuItem>
-                  <MenuItem value="sportove">🏎️ Športové</MenuItem>
-                  <MenuItem value="suv">🚜 SUV</MenuItem>
-                  <MenuItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne</MenuItem>
-                  <MenuItem value="dodavky">📦 Dodávky</MenuItem>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky kategórie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky kategórie</SelectItem>
+                    <SelectItem value="nizka-trieda">🚗 Nízka trieda</SelectItem>
+                    <SelectItem value="stredna-trieda">🚙 Stredná trieda</SelectItem>
+                    <SelectItem value="vyssia-stredna">🚘 Vyššia stredná</SelectItem>
+                    <SelectItem value="luxusne">💎 Luxusné</SelectItem>
+                    <SelectItem value="sportove">🏎️ Športové</SelectItem>
+                    <SelectItem value="suv">🚜 SUV</SelectItem>
+                    <SelectItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne</SelectItem>
+                    <SelectItem value="dodavky">📦 Dodávky</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+              </div>
+            </div>
 
           {/* Status Checkboxes */}
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, color: '#666' }}>
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-600 mb-2">
               Zobraziť statusy:
-            </Typography>
-            <FormGroup row>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showAvailable}
-                    onChange={e => setShowAvailable(e.target.checked)}
-                  />
-                }
-                label="Dostupné"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showRented}
-                    onChange={e => setShowRented(e.target.checked)}
-                  />
-                }
-                label="Prenajaté"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showMaintenance}
-                    onChange={e => setShowMaintenance(e.target.checked)}
-                  />
-                }
-                label="Údržba"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showOther}
-                    onChange={e => setShowOther(e.target.checked)}
-                  />
-                }
-                label="Ostatné"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showPrivate}
-                    onChange={e => setShowPrivate(e.target.checked)}
-                  />
-                }
-                label="🏠 Súkromné"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showRemoved}
-                    onChange={e => setShowRemoved(e.target.checked)}
-                  />
-                }
-                label="🗑️ Vyradené"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showTempRemoved}
-                    onChange={e => setShowTempRemoved(e.target.checked)}
-                  />
-                }
-                label="⏸️ Dočasne vyradené"
-              />
-            </FormGroup>
-          </Box>
-        </Collapse>
+            </h4>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-available"
+                  checked={showAvailable}
+                  onCheckedChange={setShowAvailable}
+                />
+                <Label htmlFor="show-available">Dostupné</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-rented"
+                  checked={showRented}
+                  onCheckedChange={setShowRented}
+                />
+                <Label htmlFor="show-rented">Prenajaté</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-maintenance"
+                  checked={showMaintenance}
+                  onCheckedChange={setShowMaintenance}
+                />
+                <Label htmlFor="show-maintenance">Údržba</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-other"
+                  checked={showOther}
+                  onCheckedChange={setShowOther}
+                />
+                <Label htmlFor="show-other">Ostatné</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-private"
+                  checked={showPrivate}
+                  onCheckedChange={setShowPrivate}
+                />
+                <Label htmlFor="show-private">🏠 Súkromné</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-removed"
+                  checked={showRemoved}
+                  onCheckedChange={setShowRemoved}
+                />
+                <Label htmlFor="show-removed">🗑️ Vyradené</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-temp-removed"
+                  checked={showTempRemoved}
+                  onCheckedChange={setShowTempRemoved}
+                />
+                <Label htmlFor="show-temp-removed">⏸️ Dočasne vyradené</Label>
+              </div>
+            </div>
+          </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

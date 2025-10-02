@@ -1,4 +1,5 @@
-import { Card, CardContent, Grid, Typography } from '@mui/material';
+import { Card, CardContent } from '@/components/ui/card';
+import { Typography } from '@/components/ui/typography';
 import React from 'react';
 import {
   Bar,
@@ -42,23 +43,12 @@ interface ChartsTabProps {
 
 const ChartsTab: React.FC<ChartsTabProps> = ({ stats, COLORS }) => {
   return (
-    <Grid container spacing={3}>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Stĺpcový graf - mesiačné prenájmy */}
-      <Grid item xs={12} lg={6}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+      <div className="lg:col-span-1">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <Typography variant="h6" className="font-bold text-blue-600 mb-4">
               Počet prenájmov podľa mesiacov
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -77,24 +67,13 @@ const ChartsTab: React.FC<ChartsTabProps> = ({ stats, COLORS }) => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
 
       {/* Koláčový graf - spôsoby platby */}
-      <Grid item xs={12} lg={6}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+      <div className="lg:col-span-1">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <Typography variant="h6" className="font-bold text-blue-600 mb-4">
               Rozdelenie podľa spôsobu platby
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -117,7 +96,7 @@ const ChartsTab: React.FC<ChartsTabProps> = ({ stats, COLORS }) => {
                   dataKey="value"
                 >
                   {Object.entries(stats.paymentMethodStats).map(
-                    (entry, index) => (
+                    (_entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -130,24 +109,13 @@ const ChartsTab: React.FC<ChartsTabProps> = ({ stats, COLORS }) => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
 
       {/* Línový graf - trend príjmov vs provízií */}
-      <Grid item xs={12}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+      <div className="col-span-2">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <Typography variant="h6" className="font-bold text-blue-600 mb-4">
               Trend príjmov vs provízií
             </Typography>
             <ResponsiveContainer width="100%" height={400}>
@@ -177,8 +145,8 @@ const ChartsTab: React.FC<ChartsTabProps> = ({ stats, COLORS }) => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 };
 

@@ -116,7 +116,7 @@ export function useCreateInsuranceClaim() {
 
       return { previousClaims };
     },
-    onError: (err, newClaim, context) => {
+    onError: (_err, _newClaim, context) => {
       // Rollback pri chybe
       if (context?.previousClaims) {
         queryClient.setQueryData(
@@ -125,7 +125,7 @@ export function useCreateInsuranceClaim() {
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-claim-created', { detail: variables })
@@ -181,22 +181,22 @@ export function useUpdateInsuranceClaim() {
 
       return { previousClaim };
     },
-    onError: (err, updatedClaim, context) => {
+    onError: (_err, _updatedClaim, context) => {
       // Rollback
       if (context?.previousClaim) {
         queryClient.setQueryData(
-          queryKeys.insuranceClaims.detail(updatedClaim.id),
+          queryKeys.insuranceClaims.detail(_updatedClaim.id),
           context.previousClaim
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-claim-updated', { detail: variables })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       // Refresh
       queryClient.invalidateQueries({
         queryKey: queryKeys.insuranceClaims.detail(variables.id),
@@ -259,7 +259,7 @@ export function useDeleteInsuranceClaim() {
 
       return { previousClaims, vehicleId };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousClaims) {
         queryClient.setQueryData(
           queryKeys.insuranceClaims.lists(),
@@ -267,7 +267,7 @@ export function useDeleteInsuranceClaim() {
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-claim-deleted', {

@@ -5,6 +5,26 @@
  * Zabezpečuje konzistentný dizajn v celej aplikácii
  */
 
+// 🎨 Základné shadcn/ui komponenty
+export { Button } from './button';
+export { Input } from './input';
+export { Label } from './label';
+export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card';
+export { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
+export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
+export { Badge } from './badge';
+export { Avatar, AvatarFallback, AvatarImage } from './avatar';
+export { Skeleton } from './skeleton';
+export { Progress } from './progress';
+export { Separator } from './separator';
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
+export { Popover, PopoverContent, PopoverTrigger } from './popover';
+export { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from './command';
+export { ToggleGroup, ToggleGroupItem } from './toggle-group';
+// export { Typography } from './typography';
+export { Spinner } from './spinner';
+
 // 🎨 Button komponenty
 export {
   ErrorButton,
@@ -45,6 +65,126 @@ export {
   type ChipVariant,
   type UnifiedChipProps,
 } from './UnifiedChip';
+
+// 🎨 Icon komponenty
+export {
+  ICONS,
+  UnifiedIcon,
+  type UnifiedIconProps,
+} from './UnifiedIcon';
+
+export type { IconName } from './icon-map';
+
+// 🎨 Search komponenty
+export {
+  SearchField,
+  UnifiedSearch,
+  UnifiedSearchField,
+  type SearchHistoryItem,
+  type SearchSuggestion,
+  type UnifiedSearchFieldProps,
+} from './UnifiedSearchField';
+
+// 🎨 Form komponenty
+export {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  UnifiedForm,
+  UnifiedFormField,
+  UnifiedFormItem,
+  UnifiedFormLabel,
+  UnifiedFormControl,
+  UnifiedFormDescription,
+  UnifiedFormMessage,
+  useFormContext,
+  useUnifiedFormContext,
+  type UnifiedFormFieldProps,
+  type UnifiedFormItemProps,
+  type UnifiedFormLabelProps,
+  type UnifiedFormControlProps,
+  type UnifiedFormDescriptionProps,
+  type UnifiedFormMessageProps,
+  type UnifiedFormProps,
+} from './UnifiedForm';
+
+// 🎨 TextField komponenty
+export {
+  TextField,
+  UnifiedTextField,
+  type UnifiedTextFieldProps,
+} from './UnifiedTextField';
+
+// 🎨 SelectField komponenty
+export {
+  SelectField,
+  UnifiedSelectField,
+  type SelectOption,
+  type UnifiedSelectFieldProps,
+} from './UnifiedSelectField';
+
+// 🎨 DatePicker komponenty
+export {
+  DatePicker,
+  DateTimePicker,
+  TimePicker,
+  UnifiedDatePicker,
+  type UnifiedDatePickerProps,
+} from './UnifiedDatePicker';
+
+// 🎨 DataTable komponenty
+export {
+  DataGrid,
+  DataTable,
+  UnifiedDataTable,
+  type DataTableColumn,
+  type UnifiedDataTableProps,
+} from './UnifiedDataTable';
+
+// 🎨 Typography komponenty
+export {
+  Body1,
+  Body2,
+  Caption,
+  H1,
+  H2,
+  H3,
+  H4,
+  H5,
+  H6,
+  Overline,
+  Subtitle1,
+  Subtitle2,
+  Typography,
+  UnifiedTypography,
+  type UnifiedTypographyProps,
+} from './UnifiedTypography';
+
+// 🎨 Dialog komponenty
+export {
+  DialogWithTrigger,
+  UnifiedDialog,
+  UnifiedDialogWithTrigger,
+  type UnifiedDialogProps,
+  type UnifiedDialogWithTriggerProps,
+} from './UnifiedDialog';
+
+// 🎨 Alert komponenty
+export {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from './alert';
+
+// 🎨 Badge komponenty
+export {
+  badgeVariants,
+  type BadgeProps,
+} from './badge';
 
 // 🎨 Design system constants
 export const BLACKRENT_DESIGN_TOKENS = {

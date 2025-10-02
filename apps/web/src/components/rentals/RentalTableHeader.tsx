@@ -4,27 +4,27 @@
  * Memoized header komponent pre RentalList tabuľku
  */
 
+// Lucide icons (replacing MUI icons)
 import {
-  Add as AddIcon,
+  Plus as AddIcon,
   Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Refresh as RefreshIcon,
-  GetApp as ExportIcon,
-  Clear as ClearIcon,
-} from '@mui/icons-material';
+  Filter as FilterListIcon,
+  RefreshCw as RefreshIcon,
+  Download as ExportIcon,
+  X as ClearIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
-  Box,
-  Typography,
-  TextField,
-  IconButton,
   Tooltip,
-  useTheme,
-  useMediaQuery,
-  InputAdornment,
-} from '@mui/material';
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import React, { memo } from 'react';
 
-import { PrimaryButton } from '../ui';
 
 interface RentalTableHeaderProps {
   searchQuery: string;
@@ -51,139 +51,126 @@ const RentalTableHeader: React.FC<RentalTableHeaderProps> = ({
   totalCount,
   filteredCount,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+  
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleClearSearch = () => {
     onSearchChange('');
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 2,
-        mb: 3,
-        p: 2,
-        backgroundColor: theme.palette.background.paper,
-        borderRadius: 3,
-        boxShadow: `0 2px 12px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}`,
-        border: `1px solid ${theme.palette.divider}`,
-      }}
-    >
+    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 mb-6 p-4 bg-background rounded-lg shadow-sm border`}>
       {/* Title and Stats */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 600, color: 'primary.main' }}
-        >
+      <div className="flex items-center gap-4 flex-1">
+        <h2 className="text-xl font-semibold text-primary">
           📋 Rezervácie
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        </h2>
+        <span className="text-sm text-muted-foreground">
           {filteredCount !== totalCount
             ? `${filteredCount} z ${totalCount}`
             : `${totalCount} celkom`}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {/* Search Bar */}
-      <Box
-        sx={{
-          flex: isMobile ? '1' : '0 0 300px',
-          order: isMobile ? 1 : 0,
-        }}
-      >
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Vyhľadať rezervácie..."
-          value={searchQuery}
-          onChange={e => onSearchChange(e.target.value)}
-          disabled={isLoading}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  onClick={handleClearSearch}
-                  disabled={isLoading}
-                >
-                  <ClearIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              backgroundColor: theme.palette.background.default,
-              '&:hover': {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: theme.palette.primary.main,
-                },
-              },
-            },
-          }}
-        />
-      </Box>
+      <div className={`${isMobile ? 'flex-1 order-1' : 'w-80 order-0'}`}>
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Vyhľadať rezervácie..."
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+            disabled={isLoading}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearSearch}
+              disabled={isLoading}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+            >
+              <ClearIcon className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Action Buttons */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          order: isMobile ? 2 : 0,
-          justifyContent: isMobile ? 'center' : 'flex-end',
-        }}
-      >
-        <Tooltip title="Filtrovať">
-          <IconButton
-            onClick={onToggleFilters}
-            color={showFilters ? 'primary' : 'default'}
-            disabled={isLoading}
-            sx={{
-              backgroundColor: showFilters
-                ? theme.palette.primary.main + '20'
-                : 'transparent',
-              '&:hover': {
-                backgroundColor: showFilters
-                  ? theme.palette.primary.main + '30'
-                  : theme.palette.action.hover,
-              },
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
-        </Tooltip>
+      <div className={`flex gap-2 ${isMobile ? 'order-2 justify-center' : 'order-0 justify-end'}`}>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={showFilters ? "default" : "outline"}
+                size="sm"
+                onClick={onToggleFilters}
+                disabled={isLoading}
+                className={showFilters ? "bg-primary/20 hover:bg-primary/30" : ""}
+              >
+                <FilterListIcon className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filtrovať</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        <Tooltip title="Obnoviť">
-          <IconButton onClick={onRefresh} disabled={isLoading}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                disabled={isLoading}
+              >
+                <RefreshIcon className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Obnoviť</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        <Tooltip title="Exportovať">
-          <IconButton onClick={onExport} disabled={isLoading}>
-            <ExportIcon />
-          </IconButton>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExport}
+                disabled={isLoading}
+              >
+                <ExportIcon className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Exportovať</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-        <PrimaryButton
-          startIcon={<AddIcon />}
+        <Button
           onClick={onAddRental}
           disabled={isLoading}
-          sx={{ px: 3 }}
+          className="px-6"
         >
+          <AddIcon className="h-4 w-4 mr-2" />
           {isMobile ? 'Pridať' : 'Nová rezervácia'}
-        </PrimaryButton>
-      </Box>
-    </Box>
+        </Button>
+      </div>
+    </div>
   );
 };
 

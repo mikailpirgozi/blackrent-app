@@ -5,6 +5,15 @@ import type { Rental } from '../types';
 import { logger } from '../utils/smartLogger';
 import { normalizeText } from '../utils/textNormalization';
 
+// DOM types for event listeners
+interface RentalRefreshEvent {
+  detail?: { rentalId?: string };
+}
+
+interface RentalOptimisticEvent {
+  detail: { rental: Rental; action: string };
+}
+
 interface RentalFilters {
   search?: string;
   dateFilter?: string;
@@ -30,12 +39,12 @@ interface UseInfiniteRentalsReturn {
   totalCount: number;
   currentPage: number;
   searchTerm: string;
-  setSearchTerm: (term: string) => void;
+  setSearchTerm: (_term: string) => void;
   loadMore: () => void;
   refresh: () => void;
-  updateFilters: (filters: RentalFilters) => void;
-  updateRentalInList: (updatedRental: Rental) => void;
-  handleOptimisticDelete: (rentalId: string) => void;
+  updateFilters: (_filters: RentalFilters) => void;
+  updateRentalInList: (_updatedRental: Rental) => void;
+  handleOptimisticDelete: (_rentalId: string) => void;
 }
 
 const ITEMS_PER_PAGE = 50;
@@ -56,7 +65,6 @@ export function useInfiniteRentals(
   // Prevent duplicate requests
   const loadingRef = useRef(false);
   const filtersRef = useRef(filters);
-  const loadRentalsRef = useRef<typeof loadRentals>();
   filtersRef.current = filters;
 
   const loadRentals = useCallback(
@@ -70,8 +78,8 @@ export function useInfiniteRentals(
       setError(null);
 
       try {
-        // FIXED: Reduced logging to prevent console spam
-        if (process.env.NODE_ENV === 'development') {
+        // FIXED: Reduced logging to prevent console spam - len pre prvú stránku
+        if (process.env.NODE_ENV === 'development' && page === 1) {
           console.log(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, {
             filters: filtersRef.current,
           });
@@ -138,8 +146,7 @@ export function useInfiniteRentals(
     [searchTerm, initialLoad] // FIXED: Added initialLoad back but with proper handling
   );
 
-  // Update ref
-  loadRentalsRef.current = loadRentals;
+  // Update ref - removed loadRentalsRef
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -226,41 +233,43 @@ export function useInfiniteRentals(
 
   // Initial load - FIXED: Prevent duplicate loading
   useEffect(() => {
-    if (initialLoad && loadRentalsRef.current) {
+    if (initialLoad && loadRentals) {
       setInitialLoad(false);
-      loadRentalsRef.current(1, true);
+      loadRentals(1, true);
     }
   }, [initialLoad]); // FIXED: Use ref to avoid dependency
 
   // Filter changes - FIXED: Prevent duplicate loading
   useEffect(() => {
-    if (!initialLoad && loadRentalsRef.current) {
+    if (!initialLoad && loadRentals) {
       // Debounce filter changes to avoid rapid re-fetching
-      const timer = setTimeout(() => {
-        loadRentalsRef.current?.(1, true);
+      const timer = window.setTimeout(() => {
+        loadRentals?.(1, true);
       }, 300);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [filters, initialLoad]); // FIXED: Use ref to avoid dependency
 
   // Search term changes - trigger new search - FIXED: Prevent duplicate loading
   useEffect(() => {
-    if (!initialLoad && loadRentalsRef.current) {
+    if (!initialLoad && loadRentals) {
       // Reset pagination and load new results
       setCurrentPage(1);
       setRentals([]);
       setHasMore(true);
       // Debounce search to avoid rapid API calls
-      const timer = setTimeout(() => {
-        loadRentalsRef.current?.(1, true);
+      const timer = window.setTimeout(() => {
+        loadRentals?.(1, true);
       }, 300);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [searchTerm, initialLoad]); // FIXED: Use ref to avoid dependency
 
   // 🔴 ENHANCED: Listen for WebSocket refresh events s smart updates
   useEffect(() => {
-    const handleRefresh = (event?: CustomEvent) => {
+    const handleRefresh = (event?: RentalRefreshEvent) => {
       const eventData = event?.detail;
 
       if (eventData?.rentalId) {
@@ -276,7 +285,7 @@ export function useInfiniteRentals(
       }
     };
 
-    const handleOptimisticUpdate = (event: CustomEvent) => {
+    const handleOptimisticUpdate = (event: RentalOptimisticEvent) => {
       const { rental, action } = event.detail;
 
       if (action === 'update' || action === 'rollback') {
@@ -294,40 +303,24 @@ export function useInfiniteRentals(
     // Listen for both refresh and optimistic update events
     window.addEventListener(
       'rental-list-refresh',
-      handleRefresh as EventListener
+      handleRefresh as any
     );
     window.addEventListener(
       'rental-optimistic-update',
-      handleOptimisticUpdate as EventListener
-    );
-
-    // Listen for optimistic delete events
-    const handleOptimisticDeleteEvent = (event: CustomEvent) => {
-      const { rentalId } = event.detail;
-      logger.info('⚡ Optimistic delete received for rental:', rentalId);
-      handleOptimisticDelete(rentalId);
-    };
-
-    window.addEventListener(
-      'rental-optimistic-delete',
-      handleOptimisticDeleteEvent as EventListener
+      handleOptimisticUpdate as any
     );
 
     return () => {
       window.removeEventListener(
         'rental-list-refresh',
-        handleRefresh as EventListener
+        handleRefresh as any
       );
       window.removeEventListener(
         'rental-optimistic-update',
-        handleOptimisticUpdate as EventListener
-      );
-      window.removeEventListener(
-        'rental-optimistic-delete',
-        handleOptimisticDeleteEvent as EventListener
+        handleOptimisticUpdate as any
       );
     };
-  }, [refresh, updateRentalInList, handleSmartRentalUpdate, handleOptimisticDelete]);
+  }, [refresh, updateRentalInList, handleSmartRentalUpdate]);
 
   // Debug logging
   useEffect(() => {

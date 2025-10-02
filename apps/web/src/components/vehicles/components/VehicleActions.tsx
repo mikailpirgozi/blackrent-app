@@ -1,5 +1,5 @@
-import { Add as AddIcon } from '@mui/icons-material';
-import { Box, Button } from '@mui/material';
+import { Plus as AddIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import React from 'react';
 
 import { Can } from '../../common/PermissionGuard';
@@ -20,76 +20,44 @@ const VehicleActions: React.FC<VehicleActionsProps> = ({
   onCreateInvestor,
 }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 2,
-        alignItems: isMobile ? 'stretch' : 'center',
-        mb: 3,
-      }}
+    <div
+      className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 ${isMobile ? 'items-stretch' : 'items-center'} mb-6`}
     >
       {/* Add Vehicle Button */}
       <Can create="vehicles">
         <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+          variant="default"
           onClick={onAddVehicle}
           disabled={loading}
-          sx={{
-            bgcolor: '#1976d2',
-            '&:hover': { bgcolor: '#1565c0' },
-            borderRadius: 2,
-            px: 3,
-            py: 1,
-          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-2 flex items-center gap-2"
         >
+          <AddIcon className="w-4 h-4" />
           Nové vozidlo
         </Button>
       </Can>
 
       {/* Create Company Button */}
       <Button
-        variant="outlined"
-        startIcon={<AddIcon />}
+        variant="outline"
         onClick={onCreateCompany}
         disabled={loading}
-        sx={{
-          borderColor: '#2196f3',
-          color: '#2196f3',
-          '&:hover': {
-            borderColor: '#1976d2',
-            color: '#1976d2',
-            bgcolor: 'rgba(33, 150, 243, 0.04)',
-          },
-          borderRadius: 2,
-          px: 3,
-        }}
+        className="border-blue-500 text-blue-500 hover:bg-blue-50 hover:border-blue-600 hover:text-blue-600 rounded-lg px-6 py-2 flex items-center gap-2"
       >
+        <AddIcon className="w-4 h-4" />
         🏢 Pridať firmu
       </Button>
 
       {/* Create Investor Button */}
       <Button
-        variant="outlined"
-        startIcon={<AddIcon />}
+        variant="outline"
         onClick={onCreateInvestor}
         disabled={loading}
-        sx={{
-          borderColor: '#2196f3',
-          color: '#2196f3',
-          '&:hover': {
-            borderColor: '#1976d2',
-            color: '#1976d2',
-            bgcolor: 'rgba(33, 150, 243, 0.04)',
-          },
-          borderRadius: 2,
-          px: 3,
-        }}
+        className="border-blue-500 text-blue-500 hover:bg-blue-50 hover:border-blue-600 hover:text-blue-600 rounded-lg px-6 py-2 flex items-center gap-2"
       >
+        <AddIcon className="w-4 h-4" />
         👤 Pridať spoluinvestora
       </Button>
-    </Box>
+    </div>
   );
 };
 

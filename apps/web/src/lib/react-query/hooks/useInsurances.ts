@@ -151,8 +151,8 @@ export function useCreateInsurance() {
 
       return { previousInsurances };
     },
-    onError: (err, newInsurance, context) => {
-      console.error('❌ CREATE INSURANCE: Error occurred:', err);
+    onError: (_err, _newInsurance, context) => {
+      console.error('❌ CREATE INSURANCE: Error occurred:', _err);
       // Rollback pri chybe
       if (context?.previousInsurances) {
         queryClient.setQueryData(
@@ -161,8 +161,8 @@ export function useCreateInsurance() {
         );
       }
     },
-    onSuccess: (data, variables) => {
-      console.log('✅ CREATE INSURANCE: Success!', data);
+    onSuccess: (_data, variables) => {
+      console.log('✅ CREATE INSURANCE: Success!', _data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-created', { detail: variables })
@@ -246,18 +246,18 @@ export function useUpdateInsurance() {
 
       return { previousInsurance };
     },
-    onError: (err, updatedInsurance, context) => {
-      console.error('❌ UPDATE INSURANCE: Error occurred:', err);
+    onError: (_err, _updatedInsurance, context) => {
+      console.error('❌ UPDATE INSURANCE: Error occurred:', _err);
       // Rollback
       if (context?.previousInsurance) {
         queryClient.setQueryData(
-          queryKeys.insurances.detail(updatedInsurance.id),
+          queryKeys.insurances.detail(_updatedInsurance.id),
           context.previousInsurance
         );
       }
     },
-    onSuccess: (data, variables) => {
-      console.log('✅ UPDATE INSURANCE: Success!', data);
+    onSuccess: (_data, variables) => {
+      console.log('✅ UPDATE INSURANCE: Success!', _data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-updated', { detail: variables })
@@ -349,7 +349,7 @@ export function useDeleteInsurance() {
 
       return { previousInsurances, vehicleId };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousInsurances) {
         queryClient.setQueryData(
           queryKeys.insurances.lists(),
@@ -357,13 +357,13 @@ export function useDeleteInsurance() {
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-deleted', { detail: { id: variables } })
       );
     },
-    onSettled: (data, error, deletedId) => {
+    onSettled: (_data, _error, deletedId) => {
       // Always invalidate to get fresh data from server
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.all,

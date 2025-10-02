@@ -5,28 +5,18 @@
  */
 
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
-  DirectionsCar as CarIcon,
-  Business as BusinessIcon,
-  Speed as SpeedIcon,
-  LocalGasStation as FuelIcon,
-} from '@mui/icons-material';
-import {
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Button,
-  Box,
-  Chip,
-  IconButton,
-  Tooltip,
-  Stack,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
+  Edit2 as EditIcon,
+  Trash2 as DeleteIcon,
+  Eye as VisibilityIcon,
+  Car as CarIcon,
+  Building as BusinessIcon,
+  Gauge as SpeedIcon,
+  Fuel as FuelIcon,
+} from 'lucide-react';
+import { UnifiedButton as Button } from '@/components/ui/UnifiedButton';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { UnifiedBadge as Badge } from '@/components/ui/UnifiedBadge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import React, { memo, useCallback } from 'react';
 
 import VehicleImage from './VehicleImage';
@@ -72,8 +62,18 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
   compact = false,
   className,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Custom hook for mobile detection using Tailwind breakpoints
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640); // sm breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Memoized handlers
   const handleEdit = useCallback(() => onEdit?.(vehicle), [onEdit, vehicle]);
@@ -92,23 +92,23 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
     const configs = {
       available: {
         label: 'Dostupné',
-        color: 'success' as const,
-        backgroundColor: theme.palette.success.main + '20',
+        variant: 'default' as const,
+        className: 'bg-green-100 text-green-800 border-green-200',
       },
       rented: {
         label: 'Prenajatý',
-        color: 'primary' as const,
-        backgroundColor: theme.palette.primary.main + '20',
+        variant: 'default' as const,
+        className: 'bg-blue-100 text-blue-800 border-blue-200',
       },
       maintenance: {
         label: 'Údržba',
-        color: 'warning' as const,
-        backgroundColor: theme.palette.warning.main + '20',
+        variant: 'secondary' as const,
+        className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       },
       inactive: {
         label: 'Neaktívny',
-        color: 'error' as const,
-        backgroundColor: theme.palette.error.main + '20',
+        variant: 'destructive' as const,
+        className: 'bg-red-100 text-red-800 border-red-200',
       },
     };
 
@@ -118,23 +118,9 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
   const statusConfig = getStatusConfig(vehicle.status || 'available');
 
   return (
-    <Card
-      className={className}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: 3,
-        boxShadow: theme.shadows[2],
-        transition: 'all 0.2s ease-in-out',
-        '&:hover': {
-          boxShadow: theme.shadows[8],
-          transform: 'translateY(-2px)',
-        },
-      }}
-    >
+    <Card className={`h-full flex flex-col rounded-xl shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${className || ''}`}>
       {/* Vehicle Image */}
-      <Box sx={{ position: 'relative' }}>
+      <div className="relative">
         <VehicleImage
           vehicleId={vehicle.id}
           vehicleBrand={vehicle.brand}
@@ -148,168 +134,119 @@ const VehicleCardLazy: React.FC<VehicleCardLazyProps> = ({
 
         {/* Status Badge */}
         {showStatus && (
-          <Chip
-            label={statusConfig.label}
-            size="small"
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              backgroundColor: statusConfig.backgroundColor,
-              color:
-                statusConfig.color === 'success'
-                  ? theme.palette.success.main
-                  : statusConfig.color === 'primary'
-                    ? theme.palette.primary.main
-                    : statusConfig.color === 'warning'
-                      ? theme.palette.warning.main
-                      : theme.palette.error.main,
-              fontWeight: 600,
-              fontSize: '0.7rem',
-            }}
-          />
+          <Badge
+            variant={statusConfig.variant}
+            className={`absolute top-2 right-2 text-xs font-semibold ${statusConfig.className}`}
+          >
+            {statusConfig.label}
+          </Badge>
         )}
 
         {/* Daily Rate Badge */}
         {vehicle.dailyRate && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              backgroundColor: 'rgba(0,0,0,0.8)',
-              color: 'white',
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 2,
-              fontSize: '0.85rem',
-              fontWeight: 600,
-            }}
-          >
+          <div className="absolute bottom-2 left-2 bg-black bg-opacity-80 text-white px-3 py-1 rounded-lg text-sm font-semibold">
             €{vehicle.dailyRate}/deň
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Card Content */}
-      <CardContent sx={{ flexGrow: 1, pb: compact ? 1 : 2 }}>
+      <CardContent className={`flex-grow ${compact ? 'pb-2' : 'pb-4'}`}>
         {/* Title */}
-        <Typography
-          variant={compact ? 'subtitle2' : 'h6'}
-          sx={{
-            fontWeight: 600,
-            mb: 1,
-            lineHeight: 1.2,
-          }}
-        >
+        <h3 className={`font-semibold mb-2 leading-tight ${compact ? 'text-sm' : 'text-lg'}`}>
           {vehicle.brand} {vehicle.model}
-        </Typography>
+        </h3>
 
         {/* License Plate */}
-        <Typography
-          variant="body2"
-          sx={{
-            color: 'text.secondary',
-            mb: compact ? 0.5 : 1,
-            fontFamily: 'monospace',
-            fontWeight: 600,
-            backgroundColor: theme.palette.grey[100],
-            px: 1,
-            py: 0.5,
-            borderRadius: 1,
-            display: 'inline-block',
-          }}
-        >
+        <div className={`text-gray-600 font-mono font-semibold bg-gray-100 px-2 py-1 rounded inline-block ${compact ? 'mb-1' : 'mb-2'} text-sm`}>
           {vehicle.licensePlate}
-        </Typography>
+        </div>
 
         {/* Details */}
         {!compact && (
-          <Stack direction="row" spacing={2} sx={{ mt: 1, mb: 1 }}>
+          <div className="flex gap-4 mt-2 mb-2">
             {vehicle.year && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <CarIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                <Typography variant="caption">{vehicle.year}</Typography>
-              </Box>
+              <div className="flex items-center gap-1">
+                <CarIcon className="h-4 w-4 text-gray-500" />
+                <span className="text-xs text-gray-600">{vehicle.year}</span>
+              </div>
             )}
 
             {vehicle.fuelType && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <FuelIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                <Typography variant="caption">{vehicle.fuelType}</Typography>
-              </Box>
+              <div className="flex items-center gap-1">
+                <FuelIcon className="h-4 w-4 text-gray-500" />
+                <span className="text-xs text-gray-600">{vehicle.fuelType}</span>
+              </div>
             )}
 
             {vehicle.mileage && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <SpeedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                <Typography variant="caption">
+              <div className="flex items-center gap-1">
+                <SpeedIcon className="h-4 w-4 text-gray-500" />
+                <span className="text-xs text-gray-600">
                   {vehicle.mileage.toLocaleString()} km
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
-          </Stack>
+          </div>
         )}
 
         {/* Company */}
         {showCompany && vehicle.company && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
-            <BusinessIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {vehicle.company}
-            </Typography>
-          </Box>
+          <div className="flex items-center gap-1 mt-2">
+            <BusinessIcon className="h-4 w-4 text-gray-500" />
+            <span className="text-xs text-gray-600">{vehicle.company}</span>
+          </div>
         )}
 
         {/* Description */}
         {!compact && vehicle.description && (
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 1,
-              color: 'text.secondary',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
+          <p className="mt-2 text-sm text-gray-600 line-clamp-2">
             {vehicle.description}
-          </Typography>
+          </p>
         )}
       </CardContent>
 
       {/* Actions */}
       {showActions && (
-        <CardActions sx={{ pt: 0, px: 2, pb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+        <CardFooter className="pt-0 px-4 pb-4">
+          <div className="flex gap-2 w-full">
             {/* Primary Actions */}
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={<VisibilityIcon />}
+              size="sm"
+              variant="outline"
               onClick={handleView}
-              sx={{ flex: 1, textTransform: 'none' }}
+              className="flex-1"
             >
+              <VisibilityIcon className="h-4 w-4 mr-2" />
               {isMobile ? 'Detail' : 'Zobraziť'}
             </Button>
 
             {/* Secondary Actions */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Tooltip title="Upraviť">
-                <IconButton size="small" onClick={handleEdit}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+            <div className="flex gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="ghost" onClick={handleEdit}>
+                      <EditIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Upraviť</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              <Tooltip title="Zmazať">
-                <IconButton size="small" onClick={handleDelete} color="error">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
-        </CardActions>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="ghost" onClick={handleDelete} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <DeleteIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zmazať</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </CardFooter>
       )}
     </Card>
   );

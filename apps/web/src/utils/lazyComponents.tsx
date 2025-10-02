@@ -204,7 +204,7 @@ export const preloadComponents = (
 
 // Route-based preloading
 export const preloadRouteOnHover = (
-  routePath: string,
+  _routePath: string,
   LazyComponent: RetryableLazyComponent<ComponentType<unknown>>
 ) => {
   return () => {
@@ -235,7 +235,7 @@ export const createIntersectionLazyComponent = <
       const observer = new IntersectionObserver(
         entries => {
           const [entry] = entries;
-          if (entry.isIntersecting) {
+          if (entry?.isIntersecting) {
             setShouldLoad(true);
             observer.disconnect();
           }

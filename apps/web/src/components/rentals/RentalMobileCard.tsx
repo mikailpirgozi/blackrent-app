@@ -1,21 +1,15 @@
 import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Assignment as HandoverProtocolIcon,
-  Phone as PhoneIcon,
-  AssignmentReturn as ReturnProtocolIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Divider,
-  IconButton,
-  Typography,
-} from '@mui/material';
+  Trash2,
+  Edit,
+  FileText,
+  Phone,
+  FileCheck,
+  Eye,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { memo } from 'react';
 import PriceDisplay from './components/PriceDisplay';
 
@@ -50,234 +44,181 @@ const RentalMobileCard = memo<RentalMobileCardProps>(
 
     return (
       <Card
-        sx={{
-          mb: 2,
-          background: getRentalBackgroundColor(rental),
-          border: '1px solid',
-          borderColor: priority <= 3 ? 'warning.main' : 'divider',
-          '&:hover': {
-            boxShadow: 3,
-            transform: 'translateY(-1px)',
-            transition: 'all 0.2s ease-in-out',
-          },
-        }}
+        className={`mb-4 border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 ${
+          priority <= 3 ? 'border-yellow-500' : 'border-border'
+        }`}
+        style={{ background: getRentalBackgroundColor(rental) }}
       >
-        <CardContent sx={{ pb: 1 }}>
+        <CardContent className="pb-2">
           {/* Header with priority and vehicle */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              mb: 1,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label={`P${priority}`}
-                size="small"
-                color={
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={
                   priority <= 3
-                    ? 'error'
+                    ? 'destructive'
                     : priority <= 5
-                      ? 'warning'
-                      : 'default'
+                      ? 'default'
+                      : 'secondary'
                 }
-              />
+                className="text-xs"
+              >
+                P{priority}
+              </Badge>
               {rental.vehicle ? (
-                <Box>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: 600, fontSize: '0.9rem' }}
-                  >
+                <div>
+                  <p className="text-sm font-semibold">
                     {rental.vehicle.licensePlate}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </p>
+                  <p className="text-xs text-muted-foreground">
                     {rental.vehicle.brand} {rental.vehicle.model}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               ) : (
-                <Typography
-                  variant="subtitle1"
-                  color="error"
-                  sx={{ fontSize: '0.9rem' }}
-                >
+                <p className="text-sm text-destructive">
                   Bez vozidla
-                </Typography>
+                </p>
               )}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <IconButton size="small" onClick={() => onShowDetail(rental)}>
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => onEdit(rental)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onShowDetail(rental)}
+                className="h-8 w-8 p-0"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(rental)}
+                className="h-8 w-8 p-0"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
           {/* Customer info */}
-          <Box sx={{ mb: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <div className="mb-2">
+            <p className="text-sm font-medium">
               👤 {rental.customerName}
-            </Typography>
+            </p>
             {(rental.customerPhone || rental.customer?.phone) && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  mt: 0.5,
-                }}
-              >
-                <PhoneIcon sx={{ fontSize: 12 }} />
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <Phone className="h-3 w-3" />
                 {rental.customerPhone || rental.customer?.phone}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {/* Company */}
           {rental.vehicle?.company && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mb: 1 }}
-            >
+            <p className="text-xs text-muted-foreground mb-2">
               🏢 {rental.vehicle.company}
-            </Typography>
+            </p>
           )}
 
           {/* Date range */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
+          <div className="flex justify-between mb-2">
+            <div>
+              <p className="text-xs text-muted-foreground">
                 Od:
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              </p>
+              <p className="text-sm font-medium">
                 {formatDate(rental.startDate)}
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontSize: '0.65rem' }}
-              >
+              </p>
+              <p className="text-[10px] text-muted-foreground">
                 {formatTime(rental.startDate)}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">
                 Do:
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              </p>
+              <p className="text-sm font-medium">
                 {formatDate(rental.endDate)}
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontSize: '0.65rem' }}
-              >
+              </p>
+              <p className="text-[10px] text-muted-foreground">
                 {formatTime(rental.endDate)}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
-          <Divider sx={{ my: 1 }} />
+          <Separator className="my-2" />
 
           {/* Price and status */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 1,
-            }}
-          >
-            <Box>
+          <div className="flex justify-between items-center mb-2">
+            <div>
               <PriceDisplay
                 rental={rental}
                 variant="mobile"
                 showExtraKm={true}
               />
-            </Box>
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.5,
-                alignItems: 'flex-end',
-              }}
-            >
-              <Chip
-                label={rental.paid ? 'Zaplatené' : 'Nezaplatené'}
-                size="small"
-                color={rental.paid ? 'success' : 'error'}
-                variant={rental.paid ? 'filled' : 'outlined'}
-              />
-              <Chip
-                label={rental.confirmed ? 'Potvrdené' : 'Nepotvrdené'}
-                size="small"
-                color={rental.confirmed ? 'success' : 'warning'}
-                variant={rental.confirmed ? 'filled' : 'outlined'}
-              />
-            </Box>
-          </Box>
+            </div>
+            <div className="flex flex-col gap-1 items-end">
+              <Badge
+                variant={rental.paid ? 'default' : 'destructive'}
+                className="text-xs"
+              >
+                {rental.paid ? 'Zaplatené' : 'Nezaplatené'}
+              </Badge>
+              <Badge
+                variant={rental.confirmed ? 'default' : 'outline'}
+                className="text-xs"
+              >
+                {rental.confirmed ? 'Potvrdené' : 'Nepotvrdené'}
+              </Badge>
+            </div>
+          </div>
 
           {/* Order number and handover place */}
           {(rental.orderNumber || rental.handoverPlace) && (
-            <Box sx={{ mb: 1 }}>
+            <div className="mb-2">
               {rental.orderNumber && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block' }}
-                >
+                <p className="text-xs text-muted-foreground">
                   📋 Obj. č.: {rental.orderNumber}
-                </Typography>
+                </p>
               )}
               {rental.handoverPlace && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block' }}
-                >
+                <p className="text-xs text-muted-foreground">
                   📍 {rental.handoverPlace}
-                </Typography>
+                </p>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+          <div className="flex gap-2 mt-4">
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={<HandoverProtocolIcon />}
+              size="sm"
+              variant="outline"
               onClick={() => onProtocol(rental, 'handover')}
-              sx={{ flex: 1 }}
+              className="flex-1 gap-1"
             >
+              <FileText className="h-3 w-3" />
               Prevzatie
             </Button>
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={<ReturnProtocolIcon />}
+              size="sm"
+              variant="outline"
               onClick={() => onProtocol(rental, 'return')}
-              sx={{ flex: 1 }}
+              className="flex-1 gap-1"
             >
+              <FileCheck className="h-3 w-3" />
               Vrátenie
             </Button>
             <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
+              size="sm"
+              variant="outline"
               onClick={() => onDelete(rental.id)}
+              className="gap-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             >
+              <Trash2 className="h-3 w-3" />
               Zmazať
             </Button>
-          </Box>
+          </div>
         </CardContent>
       </Card>
     );

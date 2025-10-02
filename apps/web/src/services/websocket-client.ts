@@ -1,23 +1,23 @@
 // 🔴 WEBSOCKET CLIENT SERVICE - BlackRent Frontend
 // Real-time komunikácia s backend WebSocket serverom
 
-import type { Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
-import type { Customer, Rental, Vehicle } from '../types';
+import { Customer, Rental, Vehicle } from '../types';
 import { getBaseUrl } from '../utils/apiUrl';
 
 // Event typy pre TypeScript
 export interface WebSocketEvents {
   // Rental events
-  'rental:created': (data: {
+  'rental:created': (_data: {
     rental: Rental;
     createdBy: string;
     timestamp: string;
     message: string;
   }) => void;
 
-  'rental:updated': (data: {
+  'rental:updated': (_data: {
     rental: Rental;
     updatedBy: string;
     changes?: string[];
@@ -25,7 +25,7 @@ export interface WebSocketEvents {
     message: string;
   }) => void;
 
-  'rental:deleted': (data: {
+  'rental:deleted': (_data: {
     rentalId: string;
     customerName: string;
     deletedBy: string;
@@ -34,7 +34,7 @@ export interface WebSocketEvents {
   }) => void;
 
   // Vehicle events
-  'vehicle:updated': (data: {
+  'vehicle:updated': (_data: {
     vehicle: Vehicle;
     updatedBy: string;
     changes?: string[];
@@ -43,7 +43,7 @@ export interface WebSocketEvents {
   }) => void;
 
   // Customer events
-  'customer:created': (data: {
+  'customer:created': (_data: {
     customer: Customer;
     createdBy: string;
     timestamp: string;
@@ -51,7 +51,7 @@ export interface WebSocketEvents {
   }) => void;
 
   // Protocol events
-  'protocol:created': (data: {
+  'protocol:created': (_data: {
     rentalId: string;
     protocolType: 'handover' | 'return';
     protocolId: string;
@@ -60,7 +60,7 @@ export interface WebSocketEvents {
     message: string;
   }) => void;
 
-  'protocol:updated': (data: {
+  'protocol:updated': (_data: {
     rentalId: string;
     protocolType: 'handover' | 'return';
     protocolId: string;
@@ -71,14 +71,14 @@ export interface WebSocketEvents {
   }) => void;
 
   // System events
-  'system:notification': (data: {
+  'system:notification': (_data: {
     type: 'info' | 'warning' | 'error';
     message: string;
     details?: Record<string, unknown>;
     timestamp: string;
   }) => void;
 
-  'system:migration': (data: {
+  'system:migration': (_data: {
     migrationName: string;
     success: boolean;
     details?: string;
@@ -87,13 +87,13 @@ export interface WebSocketEvents {
   }) => void;
 
   // Connection events
-  'connected-users': (data: {
+  'connected-users': (_data: {
     count: number;
     users: Array<{ userName?: string; socketId: string }>;
   }) => void;
 
-  pong: (data: { timestamp: number }) => void;
-  test: (data: {
+  pong: (_data: { timestamp: number }) => void;
+  test: (_data: {
     message: string;
     timestamp: string;
     connectedClients: number;
@@ -104,7 +104,8 @@ export class WebSocketClient {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private eventListeners = new Map<string, ((...args: unknown[]) => void)[]>();
+  private eventListeners = new Map<string, ((..._args: unknown[]) => void)[]>();
+  private baseUrl: string = '';
 
   constructor() {
     this.connect();
@@ -112,23 +113,62 @@ export class WebSocketClient {
 
   private connect() {
     // WebSocket server beží na root, nie na /api ako REST API
-    const baseUrl = getBaseUrl();
+    this.baseUrl = getBaseUrl();
 
     // OPTIMIZED: Only log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔴 Connecting to WebSocket:', baseUrl);
+      console.log('🔴 Connecting to WebSocket:', this.baseUrl);
     }
 
-    this.socket = io(baseUrl, {
+    this.socket = io(this.baseUrl, {
       transports: ['websocket', 'polling'],
       reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
       reconnectionAttempts: this.maxReconnectAttempts,
-      timeout: 20000,
+      timeout: process.env.NODE_ENV === 'development' ? 30000 : 15000, // Zvýšený timeout
       forceNew: true,
+      autoConnect: false, // Necháme sa pripojiť manuálne
+      // Pridané pre lepšiu kompatibilitu
+      upgrade: true,
+      rememberUpgrade: false,
+      // Pridané pre lepšiu kompatibilitu s backend
+      path: '/socket.io/',
+      withCredentials: true,
+      // Pridané pre lepšiu stabilitu
+      // pingTimeout a pingInterval nie sú podporované v tejto verzii
     });
 
+    // Pripoj sa manuálne s retry logikou
+    this.connectWithRetry();
+
     this.setupEventHandlers();
+  }
+
+  private connectWithRetry() {
+    if (!this.socket) return;
+
+    // Skús pripojenie s timeout
+    const connectTimeout = window.setTimeout(() => {
+      if (this.socket && !this.socket.connected) {
+        console.log('⏰ WebSocket connection timeout, trying polling fallback...');
+        this.socket.disconnect();
+        this.socket.io.opts.transports = ['polling']; // Fallback na polling
+        this.socket.connect();
+      }
+    }, 5000);
+
+    this.socket.on('connect', () => {
+      window.clearTimeout(connectTimeout);
+      console.log('✅ WebSocket connected successfully');
+    });
+
+    this.socket.on('connect_error', (error) => {
+      window.clearTimeout(connectTimeout);
+      console.log('❌ WebSocket connection failed, will retry...', error.message);
+    });
+
+    // Pripoj sa
+    this.socket.connect();
   }
 
   private setupEventHandlers() {
@@ -157,6 +197,12 @@ export class WebSocketClient {
     this.socket.on('connect_error', error => {
       if (process.env.NODE_ENV === 'development') {
         console.error('🚫 WebSocket connection error:', error);
+        console.log('🔍 WebSocket connection details:', {
+          baseUrl: this.baseUrl,
+          errorType: (error as any).type || 'unknown',
+          errorMessage: error.message,
+          reconnectAttempts: this.reconnectAttempts + 1,
+        });
       }
       this.reconnectAttempts++;
 
@@ -165,6 +211,12 @@ export class WebSocketClient {
           console.error(
             '💀 Max reconnection attempts reached. WebSocket disabled.'
           );
+          console.log('🔧 WebSocket troubleshooting tips:', {
+            '1': 'Check if backend is running on port 3001',
+            '2': 'Verify WebSocket server is enabled in backend',
+            '3': 'Check firewall/network settings',
+            '4': 'Try refreshing the page',
+          });
         }
       }
     });
@@ -248,7 +300,7 @@ export class WebSocketClient {
     }
     this.eventListeners
       .get(event)!
-      .push(callback as (...args: unknown[]) => void);
+      .push(callback as (..._args: unknown[]) => void);
   }
 
   /**
@@ -268,7 +320,7 @@ export class WebSocketClient {
       const listeners = this.eventListeners.get(event);
       if (listeners) {
         const index = listeners.indexOf(
-          callback as (...args: unknown[]) => void
+          callback as (..._args: unknown[]) => void
         );
         if (index > -1) {
           listeners.splice(index, 1);
@@ -291,7 +343,7 @@ export class WebSocketClient {
       }
 
       // Vyčisti všetky event listeners
-      this.eventListeners.forEach((listeners, event) => {
+      this.eventListeners.forEach((_listeners, event) => {
         this.socket?.off(event);
       });
       this.eventListeners.clear();
@@ -306,7 +358,7 @@ export class WebSocketClient {
    */
   reconnect() {
     this.disconnect();
-    setTimeout(() => {
+      window.setTimeout(() => {
       this.connect();
     }, 1000);
   }

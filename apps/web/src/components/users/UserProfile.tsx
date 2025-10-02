@@ -1,15 +1,17 @@
-import { Edit, Person, Save } from '@mui/icons-material';
+// Lucide icons (replacing MUI icons)
 import {
-  // Divider, // Nepoužívané
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+  Edit,
+  User as Person,
+  Save,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
@@ -183,109 +185,101 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
   if (!open) return null;
 
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        p: 2,
-      }}
-    >
-      <Box
-        sx={{
-          backgroundColor: 'white',
-          borderRadius: 2,
-          maxWidth: 800,
-          width: '100%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          p: 3,
-        }}
-      >
-        <Typography variant="h4" gutterBottom>
-          👤 Môj Profil
-        </Typography>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            👤 Môj Profil
+          </DialogTitle>
+          <DialogDescription>
+            Spravujte svoje osobné údaje a nastavenia účtu
+          </DialogDescription>
+        </DialogHeader>
 
         {message && (
-          <Alert severity={message.type} sx={{ mb: 3 }}>
-            {message.text}
+          <Alert className={`mb-6 ${message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+            <AlertDescription className={message.type === 'error' ? 'text-red-800' : 'text-green-800'}>
+              {message.text}
+            </AlertDescription>
           </Alert>
         )}
 
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Person className="h-5 w-5" />
               Osobné údaje
-            </Typography>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
 
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <TextField
-                label="Meno"
-                value={formData.firstName}
-                onChange={e => handleInputChange('firstName', e.target.value)}
-                fullWidth
-                helperText="Vaše meno sa použije v protokoloch"
-              />
-              <TextField
-                label="Priezvisko"
-                value={formData.lastName}
-                onChange={e => handleInputChange('lastName', e.target.value)}
-                fullWidth
-                helperText="Vaše priezvisko sa použije v protokoloch"
-              />
-            </Box>
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1">
+                <Label htmlFor="firstName">Meno</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('firstName', e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Vaše meno sa použije v protokoloch
+                </p>
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="lastName">Priezvisko</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('lastName', e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Vaše priezvisko sa použije v protokoloch
+                </p>
+              </div>
+            </div>
 
             <Button
-              variant="contained"
-              startIcon={<Save />}
               onClick={handleSaveProfile}
               disabled={loading}
+              className="flex items-center gap-2"
             >
+              <Save className="h-4 w-4" />
               {loading ? 'Ukladám...' : 'Uložiť profil'}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              <Edit sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
               Môj podpis
-            </Typography>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <p className="text-sm text-muted-foreground mb-4">
               Váš podpis sa automaticky použije pri vytváraní protokolov ako
               zamestnanec.
-            </Typography>
+            </p>
 
             {state.user?.signatureTemplate && (
-              <Paper sx={{ p: 2, mb: 2, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+              <div className="p-4 mb-4 text-center bg-card border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">
                   Aktuálny podpis:
-                </Typography>
+                </p>
                 <img
                   src={state.user.signatureTemplate}
                   alt="Aktuálny podpis"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: 100,
-                    border: '1px solid #ddd',
-                    borderRadius: 4,
-                  }}
+                  className="max-w-full max-h-24 border border-border rounded"
                 />
-              </Paper>
+              </div>
             )}
 
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={() => setShowSignaturePad(true)}
               disabled={loading}
             >
@@ -297,40 +291,23 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         </Card>
 
         {/* Close button */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-          <Button variant="outlined" onClick={onClose} disabled={loading}>
+        <div className="flex justify-end mt-6">
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Zavrieť
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </DialogContent>
 
       {/* SignaturePad modal */}
       {showSignaturePad && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            p: 2,
-          }}
-        >
-          <Box
-            sx={{
-              backgroundColor: 'white',
-              borderRadius: 2,
-              maxWidth: 600,
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-            }}
-          >
+        <Dialog open={showSignaturePad} onOpenChange={setShowSignaturePad}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Podpis</DialogTitle>
+              <DialogDescription>
+                Vytvorte svoj podpis pre protokoly
+              </DialogDescription>
+            </DialogHeader>
             <SignaturePad
               onSave={handleSignatureSave}
               onCancel={() => setShowSignaturePad(false)}
@@ -341,9 +318,9 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
               signerRole="employee"
               location="Kancelária"
             />
-          </Box>
-        </Box>
+          </DialogContent>
+        </Dialog>
       )}
-    </Box>
+    </Dialog>
   );
 }

@@ -9,26 +9,18 @@
  */
 
 import {
-  BugReport as BugReportIcon,
-  Close as CloseIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Collapse,
-  IconButton,
-  Snackbar,
-  Stack,
-  Typography,
-  alpha,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  Bug as BugReportIcon,
+  X as CloseIcon,
+  ChevronDown as ExpandLessIcon,
+  ChevronUp as ExpandMoreIcon,
+  RefreshCw as RefreshIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -53,11 +45,9 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   context = {},
   onClose,
   onRetry,
-  autoHideDuration = 8000, // Longer for better UX
+  // autoHideDuration = 8000, // Longer for better UX
   position = 'top',
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [open, setOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -75,12 +65,12 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
 
   // Handle close
   const handleClose = (
-    event?: React.SyntheticEvent | Event,
-    reason?: string
+    _event?: React.SyntheticEvent,
+    _reason?: string
   ) => {
-    if (reason === 'clickaway') return;
+    if (_reason === 'clickaway') return;
     setOpen(false);
-    setTimeout(onClose, 300); // Wait for animation
+    window.setTimeout(onClose, 300); // Wait for animation
   };
 
   // Handle retry with enhanced feedback
@@ -91,7 +81,7 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
     try {
       await onRetry();
       setOpen(false);
-      setTimeout(onClose, 300);
+      window.setTimeout(onClose, 300);
     } catch (err) {
       console.error('Retry failed:', err);
       // Error handling už sa zvládne v parent komponente
@@ -110,282 +100,152 @@ export const EnhancedErrorToast: React.FC<EnhancedErrorToastProps> = ({
   const enhancedMessage = getEnhancedErrorMessage(error, context);
   const suggestions = getRecoverySuggestions(error);
 
-  // Determine toast positioning
-  const anchorOrigin =
-    position === 'top'
-      ? { vertical: 'top' as const, horizontal: 'right' as const }
-      : { vertical: 'bottom' as const, horizontal: 'center' as const };
+  if (!open) return null;
 
   return (
-    <Snackbar
-      open={open}
-      autoHideDuration={autoHideDuration}
-      onClose={handleClose}
-      anchorOrigin={anchorOrigin}
-      sx={{
-        // Better positioning for mobile
-        ...(isMobile &&
-          position === 'top' && {
-            top: 24,
-            left: 16,
-            right: 16,
-            transform: 'none !important',
-          }),
-        ...(isMobile &&
-          position === 'bottom' && {
-            bottom: 80, // Above mobile navigation
-            left: 16,
-            right: 16,
-            transform: 'none !important',
-          }),
-        // Desktop positioning
-        ...(!isMobile &&
-          position === 'top' && {
-            top: 24,
-            right: 24,
-          }),
-        zIndex: theme.zIndex.snackbar + 1,
-      }}
+    <div
+      className={cn(
+        'fixed z-50 max-w-md w-full',
+        position === 'top' 
+          ? 'top-6 right-6 md:right-6 md:left-auto' 
+          : 'bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6'
+      )}
     >
-      <Alert
-        severity={enhancedMessage.severity}
-        onClose={handleClose}
-        sx={{
-          width: '100%',
-          maxWidth: isMobile ? '100%' : 480,
-          borderRadius: 3,
-          boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
-          backdropFilter: 'blur(20px)',
-          backgroundColor: alpha(theme.palette.background.paper, 0.95),
-          border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-
-          '& .MuiAlert-message': {
-            width: '100%',
-            padding: 0,
-          },
-
-          '& .MuiAlert-action': {
-            alignItems: 'flex-start',
-            paddingTop: 1,
-          },
-
-          // Enhanced icon styling
-          '& .MuiAlert-icon': {
-            fontSize: 24,
-            marginTop: 0.5,
-          },
-        }}
-        action={
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <IconButton
-              size="small"
-              onClick={() => setShowDetails(!showDetails)}
-              sx={{
-                color: 'inherit',
-                opacity: 0.8,
-                '&:hover': { opacity: 1 },
-              }}
-            >
-              {showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={handleClose}
-              sx={{
-                color: 'inherit',
-                opacity: 0.8,
-                '&:hover': { opacity: 1 },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        }
+      <Alert 
+        variant={enhancedMessage.severity === 'error' ? 'destructive' : 'default'}
+        className="w-full backdrop-blur-md bg-background/95 border shadow-lg"
       >
-        <Box>
-          {/* Main error message */}
-          <Box sx={{ mb: showDetails ? 1.5 : 0 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                mb: 0.5,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-              }}
-            >
-              <span style={{ fontSize: 18 }}>{enhancedMessage.emoji}</span>
-              {enhancedMessage.title}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, lineHeight: 1.4 }}>
-              {enhancedMessage.message}
-            </Typography>
-          </Box>
+        <div className="flex items-start justify-between w-full">
+          <div className="flex-1 pr-2">
+            {/* Main error message */}
+            <div className={cn("mb-2", showDetails && "mb-4")}>
+              <AlertTitle className="flex items-center gap-2 text-base font-semibold mb-1">
+                <span className="text-lg">{enhancedMessage.emoji}</span>
+                {enhancedMessage.title}
+              </AlertTitle>
+              <AlertDescription className="text-sm opacity-90 leading-relaxed">
+                {enhancedMessage.message}
+              </AlertDescription>
+            </div>
 
-          {/* Connection status indicator */}
-          {enhancedMessage.category === 'network' && (
-            <Chip
-              size="small"
-              label={isOnline ? 'Online' : 'Offline'}
-              color={isOnline ? 'success' : 'error'}
-              sx={{
-                mb: showDetails ? 1 : 0,
-                fontSize: '0.7rem',
-              }}
-            />
-          )}
-
-          {/* Expandable details */}
-          <Collapse in={showDetails} unmountOnExit>
-            <Box sx={{ mt: 1.5 }}>
-              {/* Suggestion */}
-              <Typography
-                variant="body2"
-                sx={{
-                  mb: 1.5,
-                  padding: 1.5,
-                  backgroundColor: alpha(theme.palette.info.main, 0.1),
-                  borderRadius: 1.5,
-                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-                  fontSize: '0.875rem',
-                  lineHeight: 1.4,
-                }}
+            {/* Connection status indicator */}
+            {enhancedMessage.category === 'network' && (
+              <Badge
+                variant={isOnline ? 'default' : 'destructive'}
+                className={cn(
+                  "text-xs mb-2",
+                  isOnline ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                )}
               >
-                💡 <strong>Návrh:</strong> {enhancedMessage.suggestion}
-              </Typography>
+                {isOnline ? 'Online' : 'Offline'}
+              </Badge>
+            )}
 
-              {/* Recovery suggestions */}
-              {suggestions.length > 0 && (
-                <Box sx={{ mb: 1.5 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 600, mb: 1, display: 'block' }}
-                  >
-                    Možné riešenia:
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    {suggestions.map((suggestion, index) => (
-                      <Typography
-                        key={index}
-                        variant="caption"
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.5,
-                          opacity: 0.8,
-                          fontSize: '0.75rem',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 4,
-                            height: 4,
-                            borderRadius: '50%',
-                            backgroundColor: 'currentColor',
-                            flexShrink: 0,
-                          }}
-                        />
-                        {suggestion}
-                      </Typography>
-                    ))}
-                  </Stack>
-                </Box>
-              )}
+            {/* Expandable details */}
+            <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+              <CollapsibleContent className="mt-4 space-y-3">
+                {/* Suggestion */}
+                <Card className="p-3 bg-blue-50 border-blue-200">
+                  <p className="text-sm leading-relaxed">
+                    💡 <strong>Návrh:</strong> {enhancedMessage.suggestion}
+                  </p>
+                </Card>
 
-              {/* Action buttons */}
-              <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                {onRetry && enhancedMessage.actionLabel && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={handleRetry}
-                    disabled={isRetrying}
-                    startIcon={isRetrying ? undefined : <RefreshIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontSize: '0.75rem',
-                      minWidth: 120,
-                    }}
-                  >
-                    {isRetrying ? 'Skúšam...' : enhancedMessage.actionLabel}
-                  </Button>
+                {/* Recovery suggestions */}
+                {suggestions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold">Možné riešenia:</p>
+                    <div className="space-y-1">
+                      {suggestions.map((suggestion, index) => (
+                        <div key={index} className="flex items-center gap-2 text-xs opacity-80">
+                          <div className="w-1 h-1 bg-current rounded-full flex-shrink-0" />
+                          {suggestion}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
-                {enhancedMessage.category === 'unknown' && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleRefresh}
-                    startIcon={<RefreshIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontSize: '0.75rem',
-                    }}
-                  >
-                    Obnoviť stránku
-                  </Button>
-                )}
-              </Stack>
-
-              {/* Technical details toggle */}
-              <Button
-                size="small"
-                onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                startIcon={<BugReportIcon />}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.7rem',
-                  opacity: 0.7,
-                  '&:hover': { opacity: 1 },
-                }}
-              >
-                {showTechnicalDetails ? 'Skryť' : 'Zobraziť'} technické detaily
-              </Button>
-
-              <Collapse in={showTechnicalDetails} unmountOnExit>
-                <Box
-                  sx={{
-                    mt: 1,
-                    p: 1,
-                    backgroundColor: alpha(theme.palette.grey[500], 0.1),
-                    borderRadius: 1,
-                    fontFamily: 'monospace',
-                    fontSize: '0.7rem',
-                    wordBreak: 'break-all',
-                    opacity: 0.8,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}
-                  >
-                    Technické info:
-                  </Typography>
-                  <Typography variant="caption" component="div">
-                    Error: {error.technicalMessage}
-                  </Typography>
-                  {error.originalError && 'status' in error.originalError && (
-                    <Typography variant="caption" component="div">
-                      Status:{' '}
-                      {(error.originalError as { status: number }).status}
-                    </Typography>
+                {/* Action buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {onRetry && enhancedMessage.actionLabel && (
+                    <Button
+                      size="sm"
+                      onClick={handleRetry}
+                      disabled={isRetrying}
+                      className="flex items-center gap-1 text-xs min-w-24"
+                    >
+                      <RefreshIcon className={cn("h-3 w-3", isRetrying && "animate-spin")} />
+                      {isRetrying ? 'Skúšam...' : enhancedMessage.actionLabel}
+                    </Button>
                   )}
-                  <Typography variant="caption" component="div">
-                    Type: {error.errorType}
-                  </Typography>
-                  <Typography variant="caption" component="div">
-                    Retryable: {error.isRetryable ? 'Yes' : 'No'}
-                  </Typography>
-                </Box>
-              </Collapse>
-            </Box>
-          </Collapse>
-        </Box>
+
+                  {enhancedMessage.category === 'unknown' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRefresh}
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      <RefreshIcon className="h-3 w-3" />
+                      Obnoviť stránku
+                    </Button>
+                  )}
+                </div>
+
+                {/* Technical details toggle */}
+                <Collapsible open={showTechnicalDetails} onOpenChange={setShowTechnicalDetails}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs opacity-70 hover:opacity-100 p-0 h-auto"
+                    >
+                      <BugReportIcon className="h-3 w-3 mr-1" />
+                      {showTechnicalDetails ? 'Skryť' : 'Zobraziť'} technické detaily
+                    </Button>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent className="mt-2">
+                    <Card className="p-2 bg-muted/50">
+                      <div className="space-y-1 text-xs font-mono">
+                        <p className="font-semibold">Technické info:</p>
+                        <p>Error: {error.technicalMessage}</p>
+                        {error.originalError && 'status' in error.originalError && (
+                          <p>Status: {(error.originalError as { status: number }).status}</p>
+                        )}
+                        <p>Type: {error.errorType}</p>
+                        <p>Retryable: {error.isRetryable ? 'Yes' : 'No'}</p>
+                      </div>
+                    </Card>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDetails(!showDetails)}
+              className="h-6 w-6 p-0 opacity-80 hover:opacity-100"
+            >
+              {showDetails ? <ExpandLessIcon className="h-3 w-3" /> : <ExpandMoreIcon className="h-3 w-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="h-6 w-6 p-0 opacity-80 hover:opacity-100"
+            >
+              <CloseIcon className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
       </Alert>
-    </Snackbar>
+    </div>
   );
 };
 

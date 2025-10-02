@@ -1,21 +1,27 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
+// Lucide icons (replacing MUI icons)
 import {
-  Delete as DeleteIcon,
+  Trash2 as DeleteIcon,
   Edit as EditIcon,
-  Assignment as HandoverProtocolIcon,
+  FileText as HandoverProtocolIcon,
   Phone as PhoneIcon,
-  AssignmentReturn as ReturnProtocolIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
+  RotateCcw as ReturnProtocolIcon,
+  Eye as VisibilityIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
-  Box,
-  Chip,
-  IconButton,
   TableCell,
   TableRow,
+} from '@/components/ui/table';
+import {
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { formatTime } from '../../utils/formatters';
 import PriceDisplay from './components/PriceDisplay';
 
@@ -49,105 +55,75 @@ const RentalTableRow = memo<RentalTableRowProps>(
 
     return (
       <TableRow
-        hover
-        sx={{
-          backgroundColor: getRentalBackgroundColor(rental),
-          '&:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-          },
-        }}
+        className="hover:bg-muted/50"
+        style={{ backgroundColor: getRentalBackgroundColor(rental) }}
       >
         <TableCell>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip
-              label={priority}
-              size="small"
-              color={
-                priority <= 3 ? 'error' : priority <= 5 ? 'warning' : 'default'
-              }
-              sx={{ minWidth: 30 }}
-            />
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={priority <= 3 ? "destructive" : priority <= 5 ? "secondary" : "outline"}
+              className="min-w-[30px] justify-center"
+            >
+              {priority}
+            </Badge>
             {rental.vehicle ? (
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              <div>
+                <div className="text-sm font-medium">
                   {rental.vehicle.licensePlate}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </div>
+                <div className="text-xs text-muted-foreground">
                   {rental.vehicle.brand} {rental.vehicle.model}
-                </Typography>
+                </div>
                 {(rental.vehicleVin || rental.vehicle.vin) && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#888',
-                      fontSize: '0.65rem',
-                      fontFamily: 'monospace',
-                      display: 'block',
-                    }}
-                  >
+                  <div className="text-[10px] text-gray-500 font-mono">
                     VIN: {(rental.vehicleVin || rental.vehicle.vin)?.slice(-8)}
-                  </Typography>
+                  </div>
                 )}
-              </Box>
+              </div>
             ) : (
-              <Typography variant="body2" color="error">
+              <div className="text-sm text-destructive">
                 Bez vozidla
-              </Typography>
+              </div>
             )}
-          </Box>
+          </div>
         </TableCell>
 
         <TableCell>
-          <Typography variant="body2">
+          <div className="text-sm">
             {rental.vehicle?.company || 'N/A'}
-          </Typography>
+          </div>
         </TableCell>
 
         <TableCell>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <div>
+            <div className="text-sm font-medium">
               {rental.customerName}
-            </Typography>
+            </div>
             {(rental.customerPhone || rental.customer?.phone) && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  mt: 0.5,
-                }}
-              >
-                <PhoneIcon sx={{ fontSize: 14 }} />
-                <Typography variant="caption">
+              <div className="flex items-center gap-1 mt-1">
+                <PhoneIcon className="h-3.5 w-3.5" />
+                <span className="text-xs">
                   {rental.customerPhone || rental.customer?.phone}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
-          </Box>
+          </div>
         </TableCell>
 
         <TableCell>
-          <Typography variant="body2">
+          <div className="text-sm">
             {formatDate(rental.startDate)}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', fontSize: '0.7rem' }}
-          >
+          </div>
+          <div className="text-[10px] text-muted-foreground block">
             {formatTime(rental.startDate)}
-          </Typography>
+          </div>
         </TableCell>
 
         <TableCell>
-          <Typography variant="body2">{formatDate(rental.endDate)}</Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', fontSize: '0.7rem' }}
-          >
+          <div className="text-sm">{formatDate(rental.endDate)}</div>
+          <div className="text-[10px] text-muted-foreground block">
             {formatTime(rental.endDate)}
-          </Typography>
+          </div>
         </TableCell>
 
         <TableCell>
@@ -155,63 +131,121 @@ const RentalTableRow = memo<RentalTableRowProps>(
         </TableCell>
 
         <TableCell>
-          <Typography variant="body2">
+          <div className="text-sm">
             €{formatPrice(rental.commission)}
-          </Typography>
+          </div>
         </TableCell>
 
         <TableCell>
-          <Chip
-            label={rental.paid ? 'Zaplatené' : 'Nezaplatené'}
-            size="small"
-            color={rental.paid ? 'success' : 'error'}
-            variant={rental.paid ? 'filled' : 'outlined'}
-          />
+          <Badge
+            variant={rental.paid ? "default" : "destructive"}
+            className="text-xs"
+          >
+            {rental.paid ? 'Zaplatené' : 'Nezaplatené'}
+          </Badge>
         </TableCell>
 
         <TableCell>
-          <Chip
-            label={rental.confirmed ? 'Potvrdené' : 'Nepotvrdené'}
-            size="small"
-            color={rental.confirmed ? 'success' : 'warning'}
-            variant={rental.confirmed ? 'filled' : 'outlined'}
-          />
+          <Badge
+            variant={rental.confirmed ? "default" : "secondary"}
+            className="text-xs"
+          >
+            {rental.confirmed ? 'Potvrdené' : 'Nepotvrdené'}
+          </Badge>
         </TableCell>
 
         <TableCell>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Tooltip title="Detail">
-              <IconButton size="small" onClick={() => onShowDetail(rental)}>
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Upraviť">
-              <IconButton size="small" onClick={() => onEdit(rental)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Vymazať">
-              <IconButton size="small" onClick={() => onDelete(rental.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Protokol prevzatia">
-              <IconButton
-                size="small"
-                onClick={() => onProtocol(rental, 'handover')}
-              >
-                <HandoverProtocolIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Protokol vrátenia">
-              <IconButton
-                size="small"
-                onClick={() => onProtocol(rental, 'return')}
-              >
-                <ReturnProtocolIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <div className="flex gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onShowDetail(rental)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <VisibilityIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Detail</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(rental)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Upraviť</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(rental.id)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <DeleteIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Vymazať</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onProtocol(rental, 'handover')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <HandoverProtocolIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Protokol prevzatia</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onProtocol(rental, 'return')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ReturnProtocolIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Protokol vrátenia</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </TableCell>
       </TableRow>
     );

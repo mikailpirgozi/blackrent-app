@@ -1,13 +1,4 @@
-import {
-  CheckCircle as AvailableIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  DirectionsCar as CarIcon,
-  Build as MaintenanceIcon,
-  Business as BusinessIcon,
-  Home as HomeIcon,
-} from '@mui/icons-material';
-import React from 'react';
+import { UnifiedIcon } from '@/components/ui/UnifiedIcon';
 
 import type { VehicleStatus } from '../../types';
 
@@ -90,20 +81,20 @@ export const getStatusText = (status: VehicleStatus) => {
 export const getStatusIcon = (status: VehicleStatus) => {
   switch (status) {
     case 'available':
-      return <AvailableIcon fontSize="small" />;
+      return <UnifiedIcon name="check" fontSize="small" />;
     case 'rented':
-      return <CarIcon fontSize="small" />;
+      return <UnifiedIcon name="car" fontSize="small" />;
     case 'maintenance':
-      return <MaintenanceIcon fontSize="small" />;
+      return <UnifiedIcon name="maintenance" fontSize="small" />;
     case 'temporarily_removed':
-      return <InfoIcon fontSize="small" />;
+      return <UnifiedIcon name="info" fontSize="small" />;
     case 'removed':
-      return <ErrorIcon fontSize="small" />;
+      return <UnifiedIcon name="error" fontSize="small" />;
     case 'transferred':
-      return <BusinessIcon fontSize="small" />;
+      return <UnifiedIcon name="building" fontSize="small" />;
     case 'private':
-      return <HomeIcon fontSize="small" />;
+      return <UnifiedIcon name="home" fontSize="small" />;
     default:
-      return <CarIcon fontSize="small" />;
+      return <UnifiedIcon name="car" fontSize="small" />;
   }
 };

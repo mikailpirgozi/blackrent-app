@@ -1,43 +1,29 @@
 import {
-  Add as AddIcon,
-  Cancel as CancelIcon,
-  Business as CompanyIcon,
-  Delete as DeleteIcon,
+  Plus as AddIcon,
+  X as CancelIcon,
+  Building2 as CompanyIcon,
+  Trash2 as DeleteIcon,
   Edit as EditIcon,
   Euro as EuroIcon,
-  Event as EventIcon,
-  PlayArrow as GenerateIcon,
+  Calendar as EventIcon,
+  Play as GenerateIcon,
   Repeat as RepeatIcon,
   Save as SaveIcon,
-  DirectionsCar as VehicleIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Autocomplete,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  InputLabel,
-  List,
-  ListItem,
-  ListItemSecondaryAction,
-  MenuItem,
-  Select,
-  Switch,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+  Car as VehicleIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Separator } from '../ui/separator';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Switch } from '../ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Typography } from '../ui/typography';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
@@ -142,7 +128,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       description: '',
       amount: 0,
       category:
-        expenseCategories.length > 0 ? expenseCategories[0].name : 'other',
+        expenseCategories.length > 0 ? expenseCategories[0]!.name : 'other',
       company: '',
       vehicleId: '',
       note: '',
@@ -172,7 +158,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         return isNaN(date.getTime())
           ? new Date().toISOString().split('T')[0]
           : date.toISOString().split('T')[0];
-      } catch {
+      } catch (error) {
         return new Date().toISOString().split('T')[0];
       }
     })();
@@ -185,7 +171,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
             ? new Date(recurring.endDate)
             : recurring.endDate;
         return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
-      } catch {
+      } catch (error) {
         return '';
       }
     })();
@@ -196,11 +182,11 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       amount: recurring.amount,
       category: recurring.category,
       company: recurring.company,
-      vehicleId: recurring.vehicleId || '',
-      note: recurring.note || '',
+      vehicleId: recurring.vehicleId ?? '',
+      note: recurring.note ?? '',
       frequency: recurring.frequency,
       startDate: startDateStr,
-      endDate: endDateStr,
+      endDate: endDateStr || '',
       dayOfMonth: recurring.dayOfMonth,
       isActive: recurring.isActive,
     });
@@ -264,7 +250,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           onExpensesChanged?.();
 
           // Načítaj dáta s oneskorením
-          setTimeout(() => {
+          window.setTimeout(() => {
             loadData();
           }, 500);
         }
@@ -328,8 +314,8 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           vehicleId: formData.vehicleId || undefined,
           note: formData.note.trim() || undefined,
           frequency: formData.frequency,
-          startDate: new Date(formData.startDate),
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
+          startDate: new Date(formData.startDate || new Date()),
+          endDate: formData.endDate ? new Date(formData.endDate!) : undefined,
           dayOfMonth: formData.dayOfMonth,
           isActive: formData.isActive,
           updatedAt: new Date(),
@@ -369,8 +355,8 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           vehicleId: formData.vehicleId || undefined,
           note: formData.note.trim() || undefined,
           frequency: formData.frequency,
-          startDate: new Date(formData.startDate),
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
+          startDate: new Date(formData.startDate || new Date()),
+          endDate: formData.endDate ? new Date(formData.endDate!) : undefined,
           dayOfMonth: formData.dayOfMonth,
           isActive: formData.isActive,
         });
@@ -389,7 +375,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           setSuccess('Pravidelný náklad úspešne vytvorený');
 
           // Zatvor dialog až po úspešnom pridaní
-          setTimeout(() => {
+          window.setTimeout(() => {
             setFormOpen(false);
             resetForm();
           }, 100);
@@ -434,7 +420,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       if (isNaN(validDate.getTime())) {
         throw new Error('Invalid date');
       }
-    } catch {
+    } catch (error) {
       console.warn('Invalid date received:', date);
       return 'Neplatný dátum';
     }
@@ -455,95 +441,67 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          backgroundColor: '#f5f5f5',
-          borderBottom: '1px solid #e0e0e0',
-        }}
-      >
-        <RepeatIcon sx={{ color: '#1976d2' }} />
-        Pravidelné mesačné náklady
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 bg-muted/50 border-b pb-4">
+            <RepeatIcon className="h-5 w-5 text-primary" />
+            Pravidelné mesačné náklady
+          </DialogTitle>
+          <DialogDescription>
+            Spravujte pravidelné náklady, ktoré sa majú automaticky generovať v stanovených intervaloch.
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent sx={{ p: 3 }}>
-        {/* Error/Success alerts */}
+        <div className="p-6">
+          {/* Error/Success alerts */}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         {success && (
-          <Alert
-            severity="success"
-            sx={{ mb: 2 }}
-            onClose={() => setSuccess(null)}
-          >
-            {success}
+          <Alert className="mb-4">
+            <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
 
         {/* Header s tlačidlami */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <Typography variant="h3" className="font-semibold">
             Pravidelné náklady ({recurringExpenses.length})
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <div className="flex gap-2 flex-wrap">
             <Button
-              variant="outlined"
-              startIcon={<GenerateIcon />}
+              variant="outline"
               onClick={handleGenerateAll}
               disabled={loading}
-              sx={{
-                borderColor: '#4caf50',
-                color: '#4caf50',
-                '&:hover': {
-                  borderColor: '#388e3c',
-                  bgcolor: 'rgba(76, 175, 80, 0.04)',
-                },
-              }}
+              className="border-green-500 text-green-600 hover:border-green-700 hover:bg-green-50"
             >
+              <GenerateIcon className="h-4 w-4 mr-2" />
               Vygenerovať všetky splatné
             </Button>
             <Button
-              variant="contained"
-              startIcon={<AddIcon />}
+              variant="default"
               onClick={handleAddRecurring}
               disabled={loading}
             >
+              <AddIcon className="h-4 w-4 mr-2" />
               Pridať pravidelný náklad
             </Button>
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Loading */}
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center my-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
         )}
 
         {/* Zoznam pravidelných nákladov */}
-        <Box
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            borderRadius: 1,
-            border: '1px solid #e0e0e0',
-          }}
-        >
-          <List>
+        <div className="shadow-lg rounded-lg border border-border">
+          <div className="divide-y divide-border">
             {recurringExpenses.map((recurring, index) => {
               const category = expenseCategories.find(
                 c => c.name === recurring.category
@@ -557,181 +515,119 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
 
               return (
                 <React.Fragment key={recurring.id}>
-                  <ListItem
-                    sx={{
-                      py: 2,
-                      backgroundColor: isOverdue ? '#fff3e0' : 'transparent',
-                      '&:hover': {
-                        backgroundColor: isOverdue ? '#ffe0b2' : '#f5f5f5',
-                      },
-                    }}
+                  <div
+                    className={`py-4 px-4 ${
+                      isOverdue 
+                        ? 'bg-orange-50 hover:bg-orange-100' 
+                        : 'hover:bg-muted/50'
+                    } transition-colors`}
                   >
-                    <Box sx={{ flex: 1 }}>
+                    <div className="flex-1">
                       {/* Primary content */}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          mb: 1,
-                        }}
-                      >
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Typography variant="h3" className="font-semibold">
                           {recurring.name}
                         </Typography>
-                        <Chip
-                          label={category?.displayName || recurring.category}
-                          color={category?.color || 'primary'}
-                          size="small"
-                          sx={{ fontWeight: 600 }}
-                        />
-                        <Chip
-                          label={getFrequencyText(recurring.frequency)}
-                          variant="outlined"
-                          size="small"
-                        />
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-semibold"
+                        >
+                          {category?.displayName || recurring.category}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {getFrequencyText(recurring.frequency)}
+                        </Badge>
                         {!recurring.isActive && (
-                          <Chip
-                            label="Neaktívny"
-                            color="error"
-                            variant="outlined"
-                            size="small"
-                          />
+                          <Badge
+                            variant="destructive"
+                            className="text-xs"
+                          >
+                            Neaktívny
+                          </Badge>
                         )}
-                      </Box>
+                      </div>
 
                       {/* Secondary content */}
-                      <Box sx={{ mt: 1 }}>
+                      <div className="mt-2">
                         <Typography
                           variant="body1"
-                          sx={{ mb: 1, fontWeight: 500 }}
+                          className="mb-2 font-medium"
                         >
                           {recurring.description}
                         </Typography>
 
-                        <Grid
-                          container
-                          spacing={2}
-                          sx={{ fontSize: '0.875rem' }}
-                        >
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                              }}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <EuroIcon
+                              className="h-4 w-4 text-muted-foreground"
+                            />
+                            <Typography
+                              variant="body2"
+                              className="font-semibold text-primary"
                             >
-                              <EuroIcon
-                                fontSize="small"
-                                sx={{ color: 'text.secondary' }}
-                              />
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, color: '#1976d2' }}
-                              >
-                                {recurring.amount.toFixed(2)}€
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                              }}
+                              {recurring.amount.toFixed(2)}€
+                            </Typography>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CompanyIcon
+                              className="h-4 w-4 text-muted-foreground"
+                            />
+                            <Typography
+                              variant="body2"
+                              className="text-muted-foreground"
                             >
-                              <CompanyIcon
-                                fontSize="small"
-                                sx={{ color: 'text.secondary' }}
-                              />
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                {recurring.company}
-                              </Typography>
-                            </Box>
-                          </Grid>
+                              {recurring.company}
+                            </Typography>
+                          </div>
                           {vehicle && (
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <VehicleIcon
-                                  fontSize="small"
-                                  sx={{ color: 'text.secondary' }}
-                                />
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  {vehicle.brand} {vehicle.model}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          )}
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                              }}
-                            >
-                              <EventIcon
-                                fontSize="small"
-                                sx={{ color: 'text.secondary' }}
+                            <div className="flex items-center gap-1">
+                              <VehicleIcon
+                                className="h-4 w-4 text-muted-foreground"
                               />
                               <Typography
                                 variant="body2"
-                                color="text.secondary"
+                                className="text-muted-foreground"
                               >
-                                Ďalší:{' '}
-                                {getNextGenerationText(
-                                  recurring.nextGenerationDate
-                                )}
+                                {vehicle.brand} {vehicle.model}
                               </Typography>
-                            </Box>
-                          </Grid>
-                        </Grid>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <EventIcon
+                              className="h-4 w-4 text-muted-foreground"
+                            />
+                            <Typography
+                              variant="body2"
+                              className="text-muted-foreground"
+                            >
+                              Ďalší:{' '}
+                              {getNextGenerationText(
+                                recurring.nextGenerationDate
+                              )}
+                            </Typography>
+                          </div>
+                        </div>
 
                         {recurring.note && (
                           <Typography
                             variant="body2"
-                            sx={{
-                              mt: 1,
-                              fontStyle: 'italic',
-                              color: 'text.secondary',
-                              p: 1,
-                              backgroundColor: '#f5f5f5',
-                              borderRadius: 1,
-                            }}
+                            className="mt-1 italic text-muted-foreground p-2 bg-muted rounded"
                           >
                             {recurring.note}
                           </Typography>
                         )}
 
-                        <Box
-                          sx={{
-                            mt: 1,
-                            display: 'flex',
-                            gap: 1,
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <Typography variant="caption" color="text.secondary">
+                        <div className="mt-1 flex gap-1 flex-wrap">
+                          <Typography variant="caption" className="text-muted-foreground">
                             Vygenerované: {recurring.totalGenerated}x
                           </Typography>
                           {recurring.lastGeneratedDate && (
                             <Typography
                               variant="caption"
-                              color="text.secondary"
+                              className="text-muted-foreground"
                             >
                               | Posledný:{' '}
                               {(() => {
@@ -746,393 +642,407 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                                     : format(date, 'dd.MM.yyyy', {
                                         locale: sk,
                                       });
-                                } catch {
+                                } catch (error) {
                                   return 'Neplatný dátum';
                                 }
                               })()}
                             </Typography>
                           )}
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" className="text-muted-foreground">
                             | Každý {recurring.dayOfMonth}. deň v mesiaci
                           </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
+                        </div>
+                      </div>
+                    </div>
 
-                    <ListItemSecondaryAction>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    <div className="flex gap-1 flex-wrap">
+                      <TooltipProvider>
                         {recurring.isActive && (
-                          <Tooltip title="Vygenerovať teraz">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleGenerateNow(recurring)}
-                              disabled={loading}
-                              sx={{
-                                backgroundColor: '#e8f5e8',
-                                color: '#4caf50',
-                                '&:hover': { backgroundColor: '#c8e6c9' },
-                              }}
-                            >
-                              <GenerateIcon fontSize="small" />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleGenerateNow(recurring)}
+                                disabled={loading}
+                                className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                              >
+                                <GenerateIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Vygenerovať teraz</p>
+                            </TooltipContent>
                           </Tooltip>
                         )}
-                        <Tooltip title="Upraviť">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEditRecurring(recurring)}
-                            disabled={loading}
-                            sx={{
-                              backgroundColor: '#f5f5f5',
-                              '&:hover': { backgroundColor: '#e0e0e0' },
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditRecurring(recurring)}
+                              disabled={loading}
+                              className="bg-gray-50 hover:bg-gray-100"
+                            >
+                              <EditIcon className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Upraviť</p>
+                          </TooltipContent>
                         </Tooltip>
-                        <Tooltip title="Zmazať">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteRecurring(recurring)}
-                            disabled={loading}
-                            sx={{
-                              backgroundColor: '#ffebee',
-                              color: '#d32f2f',
-                              '&:hover': { backgroundColor: '#ffcdd2' },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteRecurring(recurring)}
+                              disabled={loading}
+                              className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                            >
+                              <DeleteIcon className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Zmazať</p>
+                          </TooltipContent>
                         </Tooltip>
-                      </Box>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                  {index < recurringExpenses.length - 1 && <Divider />}
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                  {index < recurringExpenses.length - 1 && <Separator />}
                 </React.Fragment>
               );
             })}
 
             {recurringExpenses.length === 0 && !loading && (
-              <ListItem>
-                <Box sx={{ width: '100%', textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    Žiadne pravidelné náklady nenájdené
-                  </Typography>
-                </Box>
-              </ListItem>
+              <div className="w-full text-center py-8">
+                <Typography variant="body1" className="text-muted-foreground">
+                  Žiadne pravidelné náklady nenájdené
+                </Typography>
+              </div>
             )}
-          </List>
-        </Box>
+          </div>
+        </div>
+
+        <DialogFooter className="p-6 bg-muted/50">
+          <Button onClick={onClose} variant="outline">
+            Zavrieť
+          </Button>
+        </DialogFooter>
+        </div>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
-        <Button onClick={onClose} variant="outlined">
-          Zavrieť
-        </Button>
-      </DialogActions>
-
       {/* Form Dialog */}
-      <Dialog
-        open={formOpen}
-        onClose={handleFormCancel}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <RepeatIcon />
-          {editingRecurring
-            ? 'Upraviť pravidelný náklad'
-            : 'Pridať pravidelný náklad'}
-        </DialogTitle>
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="max-w-2xl w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RepeatIcon className="h-5 w-5" />
+              {editingRecurring
+                ? 'Upraviť pravidelný náklad'
+                : 'Pridať pravidelný náklad'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingRecurring
+                ? 'Upravte nastavenia existujúceho pravidelného nákladu.'
+                : 'Vytvorte nový pravidelný náklad s definovanou frekvenciou a podmienkami.'}
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogContent sx={{ pt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Názov *"
+          <div className="pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Názov *</Label>
+              <Input
+                id="name"
                 value={formData.name}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({ ...prev, name: e.target.value }))
                 }
                 required
-                helperText="Názov pre identifikáciu (napr. 'Poistenie BMW X5')"
+                placeholder="Názov pre identifikáciu (napr. 'Poistenie BMW X5')"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Suma (€) *"
+            <div className="space-y-2">
+              <Label htmlFor="amount">Suma (€) *</Label>
+              <Input
+                id="amount"
                 type="number"
                 value={formData.amount || ''}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     amount: parseFloat(e.target.value) || 0,
                   }))
                 }
                 required
-                inputProps={{ min: 0, step: 0.01 }}
+                min={0}
+                step={0.01}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Popis nákladu *"
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="description">Popis nákladu *</Label>
+              <Input
+                id="description"
                 value={formData.description}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     description: e.target.value,
                   }))
                 }
                 required
-                helperText="Tento text sa použije v generovaných nákladoch"
+                placeholder="Tento text sa použije v generovaných nákladoch"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth required>
-                <InputLabel>Kategória</InputLabel>
-                <Select
-                  value={formData.category}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, category: e.target.value }))
-                  }
-                  label="Kategória"
-                >
+            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
+              <Label htmlFor="category">Kategória *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) =>
+                  setFormData(prev => ({ ...prev, category: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte kategóriu" />
+                </SelectTrigger>
+                <SelectContent>
                   {expenseCategories.map(category => (
-                    <MenuItem key={category.name} value={category.name}>
+                    <SelectItem key={category.name} value={category.name}>
                       {category.displayName}
-                    </MenuItem>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Grid item xs={12} sm={6} md={4}>
-              <Autocomplete
-                fullWidth
-                options={companies}
-                getOptionLabel={option => option.name}
-                value={companies.find(c => c.name === formData.company) || null}
-                onChange={(_, newValue) => {
-                  const newCompany = newValue?.name || '';
+            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
+              <Label htmlFor="company">Firma *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {formData.company || "Vyberte firmu..."}
+                    <CompanyIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Hľadať firmu..." />
+                    <CommandEmpty>Žiadne firmy nenájdené.</CommandEmpty>
+                    <CommandGroup>
+                      {companies.map((company) => (
+                        <CommandItem
+                          key={company.name}
+                          value={company.name}
+                          onSelect={(currentValue) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              company: currentValue,
+                              // Vymaž vybrané vozidlo ak sa zmenila firma
+                              vehicleId: prev.company === currentValue ? prev.vehicleId : '',
+                            }));
+                          }}
+                        >
+                          {company.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
+              <Label htmlFor="vehicle">Vozidlo</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                    disabled={!formData.company}
+                  >
+                    {(() => {
+                      const selectedVehicle = getVehiclesForCompany(formData.company).find(
+                        v => v.id === formData.vehicleId
+                      );
+                      return selectedVehicle
+                        ? `${selectedVehicle.brand} ${selectedVehicle.model} - ${selectedVehicle.licensePlate}`
+                        : 'Bez vozidla';
+                    })()}
+                    <VehicleIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Hľadať vozidlo..." />
+                    <CommandEmpty>
+                      {formData.company
+                        ? 'Žiadne vozidlá nenájdené pre túto firmu'
+                        : 'Najprv vyberte firmu'}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value=""
+                        onSelect={() =>
+                          setFormData(prev => ({
+                            ...prev,
+                            vehicleId: '',
+                          }))
+                        }
+                      >
+                        Bez vozidla
+                      </CommandItem>
+                      {getVehiclesForCompany(formData.company).map((vehicle) => (
+                        <CommandItem
+                          key={vehicle.id}
+                          value={vehicle.id}
+                          onSelect={() =>
+                            setFormData(prev => ({
+                              ...prev,
+                              vehicleId: vehicle.id,
+                            }))
+                          }
+                        >
+                          {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {formData.company && (
+                <p className="text-sm text-muted-foreground">
+                  Vozidlá pre firmu: {formData.company}
+                </p>
+              )}
+            </div>
+
+            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
+              <Label htmlFor="frequency">Frekvencia *</Label>
+              <Select
+                value={formData.frequency}
+                onValueChange={(value) =>
                   setFormData(prev => ({
                     ...prev,
-                    company: newCompany,
-                    // Vymaž vybrané vozidlo ak sa zmenila firma
-                    vehicleId:
-                      prev.company === newCompany ? prev.vehicleId : '',
-                  }));
-                }}
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Firma *"
-                    required
-                    placeholder="Začnite písať pre vyhľadanie firmy..."
-                  />
-                )}
-                noOptionsText="Žiadne firmy nenájdené"
-                filterOptions={(options, { inputValue }) => {
-                  const filtered = options.filter(option =>
-                    option.name.toLowerCase().includes(inputValue.toLowerCase())
-                  );
-                  return filtered;
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={4}>
-              <Autocomplete
-                fullWidth
-                options={[
-                  { id: '', brand: '', model: '', licensePlate: 'Bez vozidla' },
-                  ...getVehiclesForCompany(formData.company),
-                ]}
-                getOptionLabel={option =>
-                  option.id === ''
-                    ? 'Bez vozidla'
-                    : `${option.brand} ${option.model} - ${option.licensePlate}`
-                }
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                value={
-                  getVehiclesForCompany(formData.company).find(
-                    v => v.id === formData.vehicleId
-                  ) || {
-                    id: '',
-                    brand: '',
-                    model: '',
-                    licensePlate: 'Bez vozidla',
-                  }
-                }
-                onChange={(_, newValue) =>
-                  setFormData(prev => ({
-                    ...prev,
-                    vehicleId: newValue?.id || '',
+                    frequency: value as 'monthly' | 'quarterly' | 'yearly',
                   }))
                 }
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Vozidlo"
-                    placeholder="Začnite písať pre vyhľadanie vozidla..."
-                    helperText={
-                      formData.company
-                        ? `Vozidlá pre firmu: ${formData.company}`
-                        : 'Najprv vyberte firmu'
-                    }
-                  />
-                )}
-                noOptionsText={
-                  formData.company
-                    ? 'Žiadne vozidlá nenájdené pre túto firmu'
-                    : 'Najprv vyberte firmu'
-                }
-                disabled={!formData.company}
-                filterOptions={(options, { inputValue }) => {
-                  if (!inputValue) return options;
-                  const filtered = options.filter(option => {
-                    if (option.id === '') return true; // Vždy zobraz "Bez vozidla"
-                    const searchText =
-                      `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
-                    return searchText.includes(inputValue.toLowerCase());
-                  });
-                  return filtered;
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth required>
-                <InputLabel>Frekvencia</InputLabel>
-                <Select
-                  value={formData.frequency}
-                  onChange={e =>
-                    setFormData(prev => ({
-                      ...prev,
-                      frequency: e.target.value as
-                        | 'monthly'
-                        | 'quarterly'
-                        | 'yearly',
-                    }))
-                  }
-                  label="Frekvencia"
-                >
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte frekvenciu" />
+                </SelectTrigger>
+                <SelectContent>
                   {FREQUENCY_OPTIONS.map(option => (
-                    <MenuItem key={option.value} value={option.value}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
                         <span>{option.icon}</span>
                         {option.label}
-                      </Box>
-                    </MenuItem>
+                      </div>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                fullWidth
-                label="Začiatok platnosti"
+            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
+              <Label htmlFor="startDate">Začiatok platnosti *</Label>
+              <Input
+                id="startDate"
                 type="date"
                 value={formData.startDate}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({ ...prev, startDate: e.target.value }))
                 }
-                InputLabelProps={{ shrink: true }}
                 required
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                fullWidth
-                label="Koniec platnosti"
+            <div className="col-span-full sm:col-span-1 md:col-span-1 space-y-2">
+              <Label htmlFor="endDate">Koniec platnosti</Label>
+              <Input
+                id="endDate"
                 type="date"
                 value={formData.endDate}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({ ...prev, endDate: e.target.value }))
                 }
-                InputLabelProps={{ shrink: true }}
-                helperText="Voliteľné - nechajte prázdne pre nekonečne"
               />
-            </Grid>
+              <p className="text-sm text-muted-foreground">
+                Voliteľné - nechajte prázdne pre nekonečne
+              </p>
+            </div>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Deň v mesiaci"
+            <div className="col-span-full sm:col-span-1 space-y-2">
+              <Label htmlFor="dayOfMonth">Deň v mesiaci *</Label>
+              <Input
+                id="dayOfMonth"
                 type="number"
                 value={formData.dayOfMonth}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     dayOfMonth: parseInt(e.target.value) || 1,
                   }))
                 }
-                inputProps={{ min: 1, max: 28 }}
-                helperText="Deň kedy sa má vygenerovať náklad (1-28)"
+                min={1}
+                max={28}
                 required
               />
-            </Grid>
+              <p className="text-sm text-muted-foreground">
+                Deň kedy sa má vygenerovať náklad (1-28)
+              </p>
+            </div>
 
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        isActive: e.target.checked,
-                      }))
-                    }
-                  />
-                }
-                label="Aktívny"
-              />
-            </Grid>
+            <div className="col-span-full sm:col-span-1 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isActive"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) =>
+                    setFormData(prev => ({
+                      ...prev,
+                      isActive: checked,
+                    }))
+                  }
+                />
+                <Label htmlFor="isActive">Aktívny</Label>
+              </div>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Poznámka"
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="note">Poznámka</Label>
+              <Input
+                id="note"
                 value={formData.note}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({ ...prev, note: e.target.value }))
                 }
-                multiline
-                rows={2}
-                helperText="Voliteľná poznámka pre generované náklady"
+                placeholder="Voliteľná poznámka pre generované náklady"
               />
-            </Grid>
-          </Grid>
-        </DialogContent>
+            </div>
+          </div>
+          </div>
 
-        <DialogActions sx={{ p: 3, gap: 1 }}>
+        <DialogFooter className="p-6 gap-2">
           <Button
             onClick={handleFormCancel}
-            variant="outlined"
-            startIcon={<CancelIcon />}
+            variant="outline"
           >
+            <CancelIcon className="h-4 w-4 mr-2" />
             Zrušiť
           </Button>
           <Button
             onClick={handleFormSubmit}
-            variant="contained"
-            startIcon={<SaveIcon />}
+            variant="default"
             disabled={
               loading ||
               !formData.name.trim() ||
@@ -1142,9 +1052,11 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
               formData.amount <= 0
             }
           >
+            <SaveIcon className="h-4 w-4 mr-2" />
             {editingRecurring ? 'Aktualizovať' : 'Vytvoriť'}
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
     </Dialog>
   );

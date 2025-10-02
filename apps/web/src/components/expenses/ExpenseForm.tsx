@@ -1,13 +1,9 @@
-import {
-  Box,
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
@@ -18,7 +14,7 @@ import type { Expense, ExpenseCategory } from '../../types';
 
 interface ExpenseFormProps {
   expense?: Expense | null;
-  onSave: (expense: Expense) => void;
+  onSave: (_expense: Expense) => void;
   onCancel: () => void;
   categories?: ExpenseCategory[];
 }
@@ -106,205 +102,221 @@ export default function ExpenseForm({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 3,
-        }}
-      >
-        <TextField
-          fullWidth
-          label="Popis"
-          value={formData.description}
-          onChange={e => handleInputChange('description', e.target.value)}
-          required
-        />
-
-        <TextField
-          fullWidth
-          label="Suma (€) - voliteľné"
-          type="number"
-          value={formData.amount || ''}
-          onChange={e =>
-            handleInputChange(
-              'amount',
-              e.target.value ? parseFloat(e.target.value) : 0
-            )
-          }
-          placeholder="Zadajte sumu alebo nechajte prázdne"
-        />
-
-        <TextField
-          fullWidth
-          label="Dátum"
-          type="date"
-          value={
-            formData.date
-              ? new Date(formData.date).toISOString().split('T')[0]
-              : ''
-          }
-          onChange={e => handleInputChange('date', new Date(e.target.value))}
-          InputLabelProps={{ shrink: true }}
-          required
-        />
-
-        <FormControl fullWidth>
-          <InputLabel>Kategória</InputLabel>
-          <Select
-            value={formData.category}
-            onChange={e => handleInputChange('category', e.target.value)}
-            label="Kategória"
-            required
-          >
-            {categories.length > 0 ? (
-              categories.map(category => (
-                <MenuItem key={category.name} value={category.name}>
-                  {category.displayName}
-                </MenuItem>
-              ))
-            ) : (
-              // Fallback na základné kategórie ak sa nenačítali
-              <>
-                <MenuItem value="service">Servis</MenuItem>
-                <MenuItem value="insurance">Poistenie</MenuItem>
-                <MenuItem value="fuel">Palivo</MenuItem>
-                <MenuItem value="other">Iné</MenuItem>
-              </>
-            )}
-          </Select>
-        </FormControl>
-
-        {/* Firma - Select s možnosťou pridať */}
-        <FormControl fullWidth required>
-          <InputLabel>Firma</InputLabel>
-          <Select
-            value={formData.company || ''}
-            label="Firma"
-            onChange={e => handleInputChange('company', e.target.value)}
-            renderValue={selected => selected || 'Vyberte firmu'}
-          >
-            {Array.from(
-              new Set([
-                ...companies.map(c => c.name),
-                ...vehicles.map(v => v.company),
-                ...expenses.map(e => e.company),
-              ])
-            )
-              .filter(Boolean)
-              .sort((a, b) => a!.localeCompare(b!))
-              .map(company => (
-                <MenuItem key={company} value={company}>
-                  {company}
-                </MenuItem>
-              ))}
-            <MenuItem
-              value="__add_new__"
-              onClick={() => setAddingCompany(true)}
-            >
-              <em>+ Pridať novú firmu</em>
-            </MenuItem>
-          </Select>
-          {addingCompany && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <TextField
-                autoFocus
-                size="small"
-                label="Nová firma"
-                value={newCompanyName}
-                onChange={e => setNewCompanyName(e.target.value)}
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {expense ? 'Upraviť náklad' : 'Pridať nový náklad'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="description">Popis *</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('description', e.target.value)}
+                required
+                placeholder="Zadajte popis nákladu"
               />
-              <Button
-                variant="contained"
-                size="small"
-                disabled={!newCompanyName.trim()}
-                onClick={async () => {
-                  try {
-                    const id = uuidv4();
-                    await createCompany({
-                      id,
-                      name: newCompanyName.trim(),
-                      commissionRate: 20.0,
-                      isActive: true,
-                      createdAt: new Date(),
-                    });
-                    setFormData(prev => ({
-                      ...prev,
-                      company: newCompanyName.trim(),
-                    }));
-                    setNewCompanyName('');
-                    setAddingCompany(false);
-                  } catch (error) {
-                    console.error('Chyba pri vytváraní firmy:', error);
-                    alert('Chyba pri vytváraní firmy');
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Suma (€) - voliteľné</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={formData.amount || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange(
+                    'amount',
+                    e.target.value ? parseFloat(e.target.value) : 0
+                  )
+                }
+                placeholder="Zadajte sumu alebo nechajte prázdne"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Dátum *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={
+                  formData.date
+                    ? new Date(formData.date).toISOString().split('T')[0]
+                    : ''
+                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('date', new Date(e.target.value))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategória *</Label>
+              <Select
+                value={formData.category || ''}
+                onValueChange={(value: string) => handleInputChange('category', value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte kategóriu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.length > 0 ? (
+                    categories.map(category => (
+                      <SelectItem key={category.name} value={category.name}>
+                        {category.displayName}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    // Fallback na základné kategórie ak sa nenačítali
+                    <>
+                      <SelectItem value="service">Servis</SelectItem>
+                      <SelectItem value="insurance">Poistenie</SelectItem>
+                      <SelectItem value="fuel">Palivo</SelectItem>
+                      <SelectItem value="other">Iné</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company">Firma *</Label>
+              <Select
+                value={formData.company || ''}
+                onValueChange={(value: string) => {
+                  if (value === '__add_new__') {
+                    setAddingCompany(true);
+                  } else {
+                    handleInputChange('company', value);
                   }
                 }}
+                required
               >
-                Pridať
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => {
-                  setAddingCompany(false);
-                  setNewCompanyName('');
-                }}
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte firmu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from(
+                    new Set([
+                      ...companies.map(c => c.name),
+                      ...vehicles.map(v => v.company),
+                      ...expenses.map(e => e.company),
+                    ])
+                  )
+                    .filter(Boolean)
+                    .sort((a, b) => a!.localeCompare(b!))
+                    .map(company => (
+                      <SelectItem key={company} value={company!}>
+                        {company}
+                      </SelectItem>
+                    ))}
+                  <SelectItem value="__add_new__">
+                    <em>+ Pridať novú firmu</em>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {addingCompany && (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    autoFocus
+                    placeholder="Nová firma"
+                    value={newCompanyName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    disabled={!newCompanyName.trim()}
+                    onClick={async () => {
+                      try {
+                        const id = uuidv4();
+                        await createCompany({
+                          id,
+                          name: newCompanyName.trim(),
+                          commissionRate: 20.0,
+                          isActive: true,
+                          createdAt: new Date(),
+                        });
+                        setFormData(prev => ({
+                          ...prev,
+                          company: newCompanyName.trim(),
+                        }));
+                        setNewCompanyName('');
+                        setAddingCompany(false);
+                      } catch (error) {
+                        console.error('Chyba pri vytváraní firmy:', error);
+                        window.alert('Chyba pri vytváraní firmy');
+                      }
+                    }}
+                  >
+                    Pridať
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setAddingCompany(false);
+                      setNewCompanyName('');
+                    }}
+                  >
+                    Zrušiť
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vehicle">Vozidlo (voliteľné)</Label>
+              <Select
+                value={formData.vehicleId || ''}
+                onValueChange={(value: string) =>
+                  handleInputChange('vehicleId', value || undefined)
+                }
+                disabled={!formData.company}
               >
-                Zrušiť
-              </Button>
-            </Box>
-          )}
-        </FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-vehicle">
+                    {formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'}
+                  </SelectItem>
+                  {getVehiclesForCompany(formData.company || '').map(vehicle => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <FormControl fullWidth>
-          <InputLabel>Vozidlo (voliteľné)</InputLabel>
-          <Select
-            value={formData.vehicleId || ''}
-            onChange={e =>
-              handleInputChange('vehicleId', e.target.value || undefined)
-            }
-            label="Vozidlo (voliteľné)"
-            disabled={!formData.company}
-          >
-            <MenuItem value="">
-              {formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'}
-            </MenuItem>
-            {getVehiclesForCompany(formData.company || '').map(vehicle => (
-              <MenuItem key={vehicle.id} value={vehicle.id}>
-                {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            <div className="space-y-2">
+              <Label htmlFor="note">Poznámka (voliteľné)</Label>
+              <textarea
+                id="note"
+                className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.note || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('note', e.target.value)}
+                placeholder="Zadajte dodatočné informácie k nákladu..."
+                rows={3}
+              />
+            </div>
+          </div>
 
-        <TextField
-          fullWidth
-          label="Poznámka (voliteľné)"
-          value={formData.note || ''}
-          onChange={e => handleInputChange('note', e.target.value)}
-          multiline
-          rows={3}
-          placeholder="Zadajte dodatočné informácie k nákladu..."
-        />
-      </Box>
-
-      <Box
-        sx={{
-          gridColumn: '1 / -1',
-          display: 'flex',
-          gap: 2,
-          justifyContent: 'flex-end',
-          mt: 3,
-        }}
-      >
-        <Button variant="outlined" onClick={onCancel}>
-          Zrušiť
-        </Button>
-        <Button type="submit" variant="contained">
-          {expense ? 'Uložiť zmeny' : 'Pridať náklad'}
-        </Button>
-      </Box>
-    </Box>
+          <div className="col-span-full flex gap-2 justify-end mt-6">
+            <Button variant="outline" onClick={onCancel}>
+              Zrušiť
+            </Button>
+            <Button type="submit">
+              {expense ? 'Uložiť zmeny' : 'Pridať náklad'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

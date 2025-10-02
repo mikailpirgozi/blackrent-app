@@ -1,50 +1,43 @@
 import {
-  DirectionsCar as CarIcon,
-  ReportProblem as ClaimIcon,
-  Close as CloseIcon,
-  Assignment as DocumentIcon,
-  Euro as EuroIcon,
-  Event as EventIcon,
-  Security as InsuranceIcon,
-  LocationOn as LocationIcon,
-} from '@mui/icons-material';
+  Car,
+  AlertTriangle,
+  X,
+  FileText,
+  Euro,
+  Calendar,
+  Shield,
+  MapPin,
+  CalendarIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Autocomplete,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
   Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
 import { useInsurances } from '@/lib/react-query/hooks/useInsurances';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
-import type { InsuranceClaim } from '../../types';
+import { InsuranceClaim } from '../../types';
 import R2FileUpload from '../common/R2FileUpload';
-
-interface InsuranceClaimFormProps {
-  claim?: InsuranceClaim | null;
-  onSave: (claim: InsuranceClaim) => void;
-  onCancel: () => void;
-}
 
 // TODO: Implement incident type info
 // const getIncidentTypeInfo = (type: string) => {
@@ -83,7 +76,11 @@ export default function InsuranceClaimForm({
   claim,
   onSave,
   onCancel,
-}: InsuranceClaimFormProps) {
+}: {
+  claim?: InsuranceClaim | null;
+  onSave: (_claimData: InsuranceClaim) => void;
+  onCancel: () => void;
+}) {
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: insurances = [] } = useInsurances();
   const { data: vehicles = [] } = useVehicles();
@@ -166,39 +163,38 @@ export default function InsuranceClaimForm({
       return;
     }
 
-    const claimData: InsuranceClaim = {
+    const claimData = {
       id: claim?.id || uuidv4(),
       vehicleId: formData.vehicleId!,
-      insuranceId: formData.insuranceId,
+      insuranceId: formData.insuranceId || undefined,
       incidentDate: formData.incidentDate!,
       reportedDate: claim?.reportedDate || new Date(),
       description: formData.description!,
-      location: formData.location,
+      location: formData.location || undefined,
       incidentType: formData.incidentType! as
         | 'accident'
         | 'theft'
         | 'vandalism'
         | 'weather'
         | 'other',
-      estimatedDamage: formData.estimatedDamage,
-      deductible: formData.deductible,
-      payoutAmount: formData.payoutAmount,
+      estimatedDamage: formData.estimatedDamage || undefined,
+      deductible: formData.deductible || undefined,
+      payoutAmount: formData.payoutAmount || undefined,
       status: formData.status! as
         | 'reported'
         | 'investigating'
         | 'approved'
         | 'rejected'
         | 'closed',
-      claimNumber: formData.claimNumber,
-      filePaths: uploadedFiles,
-      policeReportNumber: formData.policeReportNumber,
-      otherPartyInfo: formData.otherPartyInfo,
-      notes: formData.notes,
+      claimNumber: formData.claimNumber || undefined,
+      filePaths: uploadedFiles || undefined,
+      policeReportNumber: formData.policeReportNumber || undefined,
+      otherPartyInfo: formData.otherPartyInfo || undefined,
+      notes: formData.notes || undefined,
       createdAt: claim?.createdAt || new Date(),
-      updatedAt: new Date(),
     };
 
-    onSave(claimData);
+    onSave(claimData as InsuranceClaim);
   };
 
   const handleFileUploadSuccess = (
@@ -220,404 +216,392 @@ export default function InsuranceClaimForm({
   const statusInfo = getStatusInfo(formData.status || 'reported');
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            pb: 1,
-          }}
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-6 w-6 text-red-600" />
+          <h2 className="text-xl font-semibold">
+            {claim ? 'Upraviť poistnú udalosť' : 'Pridať poistnú udalosť'}
+          </h2>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ClaimIcon sx={{ color: '#d32f2f' }} />
-            <Typography variant="h6">
-              {claim ? 'Upraviť poistnú udalosť' : 'Pridať poistnú udalosť'}
-            </Typography>
-          </Box>
-          <IconButton onClick={onCancel} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-        <DialogContent dividers sx={{ p: 3 }}>
-          {/* Basic Information */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+      {/* Basic Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            Základné informácie
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Vehicle Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="vehicle">Vozidlo *</Label>
+              <Select
+                value={formData.vehicleId || ''}
+                onValueChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    vehicleId: value,
+                    insuranceId: '',
+                  }));
+                }}
+                required
               >
-                <EventIcon sx={{ color: '#1976d2' }} />
-                Základné informácie
-              </Typography>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte vozidlo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableVehicles
+                    .slice()
+                    .sort((a, b) => {
+                      const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                      const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                      return aText.localeCompare(bText, 'sk', {
+                        sensitivity: 'base',
+                      });
+                    })
+                    .map(vehicle => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        <div className="flex items-center gap-2">
+                          <Car className="h-4 w-4 text-blue-600" />
+                          {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {errors.vehicleId && (
+                <p className="text-sm text-red-600">{errors.vehicleId}</p>
+              )}
+            </div>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ position: 'relative' }}>
-                    <Autocomplete
-                      fullWidth
-                      options={availableVehicles.slice().sort((a, b) => {
-                        const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
-                        const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
-                        return aText.localeCompare(bText, 'sk', {
-                          sensitivity: 'base',
-                        });
-                      })}
-                      getOptionLabel={vehicle =>
-                        `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
-                      }
-                      value={
-                        availableVehicles.find(
-                          v => v.id === formData.vehicleId
-                        ) || null
-                      }
-                      onChange={(_, newValue) =>
+            {/* Related Insurance */}
+            <div className="space-y-2">
+              <Label htmlFor="insurance">Súvisiaca poistka</Label>
+              <Select
+                value={formData.insuranceId || ''}
+                onValueChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    insuranceId: value,
+                  }));
+                }}
+                disabled={!formData.vehicleId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte poistku..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-insurance">Žiadna</SelectItem>
+                  {vehicleInsurances.map(insurance => (
+                    <SelectItem key={insurance.id} value={insurance.id}>
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-blue-600" />
+                        {insurance.company} - {insurance.policyNumber}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Incident Date */}
+            <div className="space-y-2">
+              <Label>Dátum a čas udalosti *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.incidentDate ? (
+                      format(new Date(formData.incidentDate), 'dd.MM.yyyy HH:mm', { locale: sk })
+                    ) : (
+                      <span>Vyberte dátum a čas</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.incidentDate ? new Date(formData.incidentDate) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const time = formData.incidentDate ? new Date(formData.incidentDate).toTimeString().slice(0, 5) : '00:00';
+                        const [hours, minutes] = time.split(':');
+                        const newDate = new Date(date);
+                        newDate.setHours(parseInt(hours || '0'), parseInt(minutes || '0'));
                         setFormData(prev => ({
                           ...prev,
-                          vehicleId: newValue?.id || '',
-                          insuranceId: '',
-                        }))
+                          incidentDate: newDate,
+                        }));
                       }
-                      renderInput={params => (
-                        <TextField
-                          {...params}
-                          label="Vozidlo *"
-                          required
-                          error={!!errors.vehicleId}
-                          placeholder="Začnite písať pre vyhľadanie vozidla..."
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <>
-                                <CarIcon
-                                  sx={{ fontSize: 16, color: '#1976d2', mr: 1 }}
-                                />
-                                {params.InputProps.startAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      renderOption={(props, vehicle) => (
-                        <Box component="li" {...props}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <CarIcon sx={{ fontSize: 16, color: '#1976d2' }} />
-                            {vehicle.brand} {vehicle.model} (
-                            {vehicle.licensePlate})
-                          </Box>
-                        </Box>
-                      )}
-                      noOptionsText="Žiadne vozidlá nenájdené"
-                      filterOptions={(options, { inputValue }) => {
-                        const filtered = options.filter(option => {
-                          const searchText =
-                            `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
-                          return searchText.includes(inputValue.toLowerCase());
-                        });
-                        return filtered;
+                    }}
+                    initialFocus
+                    locale={sk}
+                  />
+                  <div className="p-3 border-t">
+                    <Input
+                      type="time"
+                      value={formData.incidentDate ? new Date(formData.incidentDate).toTimeString().slice(0, 5) : '00:00'}
+                      onChange={(e) => {
+                        if (formData.incidentDate) {
+                          const [hours, minutes] = e.target.value.split(':');
+                          const newDate = new Date(formData.incidentDate);
+                          newDate.setHours(parseInt(hours || '0'), parseInt(minutes || '0'));
+                          setFormData(prev => ({
+                            ...prev,
+                            incidentDate: newDate,
+                          }));
+                        }
                       }}
                     />
-                    {errors.vehicleId && (
-                      <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ mt: 0.5, display: 'block' }}
-                      >
-                        {errors.vehicleId}
-                      </Typography>
-                    )}
-                  </Box>
-                </Grid>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {errors.incidentDate && (
+                <p className="text-sm text-red-600">{errors.incidentDate}</p>
+              )}
+            </div>
 
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Súvisiaca poistka</InputLabel>
-                    <Select
-                      value={formData.insuranceId || ''}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          insuranceId: e.target.value,
-                        }))
-                      }
-                      label="Súvisiaca poistka"
-                      disabled={!formData.vehicleId}
-                    >
-                      <MenuItem value="">Žiadna</MenuItem>
-                      {vehicleInsurances.map(insurance => (
-                        <MenuItem key={insurance.id} value={insurance.id}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <InsuranceIcon
-                              sx={{ fontSize: 16, color: '#1976d2' }}
-                            />
-                            {insurance.company} - {insurance.policyNumber}
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+            {/* Incident Type */}
+            <div className="space-y-2">
+              <Label htmlFor="incidentType">Typ udalosti *</Label>
+              <Select
+                value={formData.incidentType || 'accident'}
+                onValueChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    incidentType: value as
+                      | 'accident'
+                      | 'theft'
+                      | 'vandalism'
+                      | 'weather'
+                      | 'other',
+                  }));
+                }}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte typ udalosti..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="accident">
+                    <div className="flex items-center gap-2">
+                      <span>🚗</span>
+                      Nehoda
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="theft">
+                    <div className="flex items-center gap-2">
+                      <span>🔒</span>
+                      Krádež
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="vandalism">
+                    <div className="flex items-center gap-2">
+                      <span>🔨</span>
+                      Vandalizmus
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="weather">
+                    <div className="flex items-center gap-2">
+                      <span>⛈️</span>
+                      Poveternostná udalosť
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="other">
+                    <div className="flex items-center gap-2">
+                      <span>❓</span>
+                      Iné
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.incidentType && (
+                <p className="text-sm text-red-600">{errors.incidentType}</p>
+              )}
+            </div>
 
-                <Grid item xs={12} md={6}>
-                  <DateTimePicker
-                    label="Dátum a čas udalosti *"
-                    value={
-                      formData.incidentDate
-                        ? new Date(formData.incidentDate)
-                        : null
-                    }
-                    onChange={newValue =>
-                      setFormData(prev => ({
-                        ...prev,
-                        incidentDate: newValue || new Date(),
-                      }))
-                    }
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        error: !!errors.incidentDate,
-                        helperText: errors.incidentDate,
-                      },
-                    }}
-                  />
-                </Grid>
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Popis udalosti *</Label>
+              <Textarea
+                id="description"
+                value={formData.description || ''}
+                onChange={(e) =>
+                  setFormData(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Opíšte detailne čo sa stalo..."
+                rows={3}
+                className={errors.description ? 'border-red-500' : ''}
+              />
+              {errors.description && (
+                <p className="text-sm text-red-600">{errors.description}</p>
+              )}
+            </div>
 
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.incidentType}>
-                    <InputLabel>Typ udalosti *</InputLabel>
-                    <Select
-                      value={formData.incidentType || 'accident'}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          incidentType: e.target.value as
-                            | 'accident'
-                            | 'theft'
-                            | 'vandalism'
-                            | 'weather'
-                            | 'other',
-                        }))
-                      }
-                      label="Typ udalosti *"
-                    >
-                      <MenuItem value="accident">
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          🚗 Nehoda
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="theft">
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          🔒 Krádež
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="vandalism">
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          🔨 Vandalizmus
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="weather">
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          ⛈️ Poveternostná udalosť
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="other">
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          ❓ Iné
-                        </Box>
-                      </MenuItem>
-                    </Select>
-                    {errors.incidentType && (
-                      <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ mt: 0.5 }}
-                      >
-                        {errors.incidentType}
-                      </Typography>
-                    )}
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Popis udalosti *"
-                    multiline
-                    rows={3}
-                    value={formData.description || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    error={!!errors.description}
-                    helperText={errors.description}
-                    placeholder="Opíšte detailne čo sa stalo..."
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Miesto udalosti"
-                    value={formData.location || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        location: e.target.value,
-                      }))
-                    }
-                    placeholder="Ulica, mesto, GPS súradnice..."
-                    InputProps={{
-                      startAdornment: (
-                        <LocationIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+            {/* Location */}
+            <div className="space-y-2">
+              <Label htmlFor="location">Miesto udalosti</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="location"
+                  value={formData.location || ''}
+                  onChange={(e) =>
+                    setFormData(prev => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
+                  }
+                  placeholder="Ulica, mesto, GPS súradnice..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
           {/* Financial Information */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <EuroIcon sx={{ color: '#388e3c' }} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Euro className="h-5 w-5 text-green-600" />
                 Finančné údaje
-              </Typography>
-
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Odhad škody (€)"
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedDamage">Odhad škody (€)</Label>
+                  <Input
+                    id="estimatedDamage"
                     type="number"
                     value={formData.estimatedDamage || ''}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData(prev => ({
                         ...prev,
                         estimatedDamage: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    error={!!errors.estimatedDamage}
-                    helperText={errors.estimatedDamage}
-                    inputProps={{ min: 0, step: 0.01 }}
+                    min={0}
+                    step={0.01}
+                    className={errors.estimatedDamage ? 'border-red-500' : ''}
                   />
-                </Grid>
+                  {errors.estimatedDamage && (
+                    <p className="text-sm text-red-600">{errors.estimatedDamage}</p>
+                  )}
+                </div>
 
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Spoluúčasť (€)"
+                <div className="space-y-2">
+                  <Label htmlFor="deductible">Spoluúčasť (€)</Label>
+                  <Input
+                    id="deductible"
                     type="number"
                     value={formData.deductible || ''}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData(prev => ({
                         ...prev,
                         deductible: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    error={!!errors.deductible}
-                    helperText={errors.deductible}
-                    inputProps={{ min: 0, step: 0.01 }}
+                    min={0}
+                    step={0.01}
+                    className={errors.deductible ? 'border-red-500' : ''}
                   />
-                </Grid>
+                  {errors.deductible && (
+                    <p className="text-sm text-red-600">{errors.deductible}</p>
+                  )}
+                </div>
 
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Výplata poisťovne (€)"
+                <div className="space-y-2">
+                  <Label htmlFor="payoutAmount">Výplata poisťovne (€)</Label>
+                  <Input
+                    id="payoutAmount"
                     type="number"
                     value={formData.payoutAmount || ''}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData(prev => ({
                         ...prev,
                         payoutAmount: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    error={!!errors.payoutAmount}
-                    helperText={errors.payoutAmount}
-                    inputProps={{ min: 0, step: 0.01 }}
+                    min={0}
+                    step={0.01}
+                    className={errors.payoutAmount ? 'border-red-500' : ''}
                   />
-                </Grid>
-              </Grid>
+                  {errors.payoutAmount && (
+                    <p className="text-sm text-red-600">{errors.payoutAmount}</p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           {/* Status and Additional Info */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <DocumentIcon sx={{ color: '#f57c00' }} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-orange-600" />
                 Stav a dodatočné informácie
-              </Typography>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">Stav</Label>
+                  <Select
+                    value={formData.status || 'reported'}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        status: value as
+                          | 'reported'
+                          | 'investigating'
+                          | 'approved'
+                          | 'rejected'
+                          | 'closed',
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte stav..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="reported">Nahlásené</SelectItem>
+                      <SelectItem value="investigating">Vyšetruje sa</SelectItem>
+                      <SelectItem value="approved">Schválené</SelectItem>
+                      <SelectItem value="rejected">Zamietnuté</SelectItem>
+                      <SelectItem value="closed">Uzavreté</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Stav</InputLabel>
-                    <Select
-                      value={formData.status || 'reported'}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          status: e.target.value as
-                            | 'reported'
-                            | 'investigating'
-                            | 'approved'
-                            | 'rejected'
-                            | 'closed',
-                        }))
-                      }
-                      label="Stav"
-                    >
-                      <MenuItem value="reported">Nahlásené</MenuItem>
-                      <MenuItem value="investigating">Vyšetruje sa</MenuItem>
-                      <MenuItem value="approved">Schválené</MenuItem>
-                      <MenuItem value="rejected">Zamietnuté</MenuItem>
-                      <MenuItem value="closed">Uzavreté</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Číslo škodovej udalosti"
+                <div className="space-y-2">
+                  <Label htmlFor="claimNumber">Číslo škodovej udalosti</Label>
+                  <Input
+                    id="claimNumber"
                     value={formData.claimNumber || ''}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData(prev => ({
                         ...prev,
                         claimNumber: e.target.value,
@@ -625,14 +609,14 @@ export default function InsuranceClaimForm({
                     }
                     placeholder="Číslo z poisťovne..."
                   />
-                </Grid>
+                </div>
 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Číslo policajného protokolu"
+                <div className="space-y-2">
+                  <Label htmlFor="policeReportNumber">Číslo policajného protokolu</Label>
+                  <Input
+                    id="policeReportNumber"
                     value={formData.policeReportNumber || ''}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData(prev => ({
                         ...prev,
                         policeReportNumber: e.target.value,
@@ -640,141 +624,131 @@ export default function InsuranceClaimForm({
                     }
                     placeholder="Ak bol privolaný..."
                   />
-                </Grid>
+                </div>
 
-                <Grid item xs={12} md={6}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      mt: 1,
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      Aktuálny stav:
-                    </Typography>
-                    <Chip
-                      label={statusInfo.label}
-                      size="small"
-                      sx={{
+                <div className="space-y-2">
+                  <Label>Aktuálny stav</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Aktuálny stav:</span>
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold"
+                      style={{
                         backgroundColor: `${statusInfo.color}20`,
                         color: statusInfo.color,
-                        fontWeight: 600,
+                        borderColor: statusInfo.color,
                       }}
-                    />
-                  </Box>
-                </Grid>
+                    >
+                      {statusInfo.label}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Informácie o druhej strane"
-                    multiline
-                    rows={2}
-                    value={formData.otherPartyInfo || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        otherPartyInfo: e.target.value,
-                      }))
-                    }
-                    placeholder="Údaje o druhom účastníkovi nehody (meno, telefón, poistka...)..."
-                  />
-                </Grid>
+              <div className="space-y-2">
+                <Label htmlFor="otherPartyInfo">Informácie o druhej strane</Label>
+                <Textarea
+                  id="otherPartyInfo"
+                  value={formData.otherPartyInfo || ''}
+                  onChange={(e) =>
+                    setFormData(prev => ({
+                      ...prev,
+                      otherPartyInfo: e.target.value,
+                    }))
+                  }
+                  placeholder="Údaje o druhom účastníkovi nehody (meno, telefón, poistka...)..."
+                  rows={2}
+                />
+              </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Poznámky"
-                    multiline
-                    rows={2}
-                    value={formData.notes || ''}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, notes: e.target.value }))
-                    }
-                    placeholder="Ďalšie poznámky..."
-                  />
-                </Grid>
-              </Grid>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Poznámky</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes || ''}
+                  onChange={(e) =>
+                    setFormData(prev => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Ďalšie poznámky..."
+                  rows={2}
+                />
+              </div>
             </CardContent>
           </Card>
 
           {/* File Upload */}
           <Card>
-            <CardContent>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <DocumentIcon sx={{ color: '#7b1fa2' }} />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-600" />
                 Súbory a dokumenty
-              </Typography>
-
-              <Box sx={{ mb: 2 }}>
-                <R2FileUpload
-                  type="document"
-                  entityId={formData.vehicleId || 'temp'}
-                  onUploadSuccess={handleFileUploadSuccess}
-                  onUploadError={error => console.error('Upload error:', error)}
-                  acceptedTypes={[
-                    'image/jpeg',
-                    'image/png',
-                    'image/webp',
-                    'application/pdf',
-                  ]}
-                  maxSize={10}
-                  multiple={true}
-                  label="Nahrať súbory (fotky, dokumenty)"
-                />
-              </Box>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <R2FileUpload
+                type="document"
+                entityId={formData.vehicleId || 'temp'}
+                onUploadSuccess={handleFileUploadSuccess}
+                onUploadError={error => console.error('Upload error:', error)}
+                acceptedTypes={[
+                  'image/jpeg',
+                  'image/png',
+                  'image/webp',
+                  'application/pdf',
+                ]}
+                maxSize={10}
+                multiple={true}
+                label="Nahrať súbory (fotky, dokumenty)"
+              />
 
               {uploadedFiles.length > 0 && (
-                <Box>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 1 }}
-                  >
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
                     Nahrané súbory ({uploadedFiles.length}):
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {uploadedFiles.map((fileUrl, index) => (
-                      <Chip
+                      <Badge
                         key={index}
-                        label={`Súbor ${index + 1}`}
-                        onDelete={() => handleRemoveFile(fileUrl)}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-gray-100"
                         onClick={() => window.open(fileUrl, '_blank')}
-                        size="small"
-                        variant="outlined"
-                        sx={{ cursor: 'pointer' }}
-                      />
+                      >
+                        <span className="mr-2">Súbor {index + 1}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFile(fileUrl);
+                          }}
+                          className="ml-1 hover:text-red-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
                     ))}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
-        </DialogContent>
 
-        <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button onClick={onCancel} color="inherit">
-            Zrušiť
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-              },
-            }}
-          >
-            {claim ? 'Uložiť zmeny' : 'Vytvoriť udalosť'}
-          </Button>
-        </DialogActions>
-      </form>
-    </LocalizationProvider>
+          {/* Form Actions */}
+          <div className="flex justify-end gap-3 pt-6 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+            >
+              Zrušiť
+            </Button>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            >
+              {claim ? 'Uložiť zmeny' : 'Vytvoriť udalosť'}
+            </Button>
+          </div>
+        </form>
+    </div>
   );
 }

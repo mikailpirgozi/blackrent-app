@@ -1,15 +1,12 @@
-import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  Chip,
-  Collapse,
-  Grid,
-  IconButton,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Plus as AddIcon, Edit as EditIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
 import React, { useState } from 'react';
 
 import type { InvestorCardProps } from '../../../types/vehicle-types';
@@ -26,11 +23,11 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
-    firstName: investor.firstName || '',
-    lastName: investor.lastName || '',
-    email: investor.email || '',
-    phone: investor.phone || '',
-    notes: investor.notes || '',
+    firstName: (investor.firstName as string) || '',
+    lastName: (investor.lastName as string) || '',
+    email: (investor.email as string) || '',
+    phone: (investor.phone as string) || '',
+    notes: (investor.notes as string) || '',
   });
 
   const handleSaveInvestorData = async () => {
@@ -57,11 +54,11 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
         onShareUpdate(); // Refresh data
       } else {
         console.error('❌ Failed to save investor data:', result.error);
-        alert(`Chyba pri ukladaní: ${result.error}`);
+        console.error(`Chyba pri ukladaní: ${result.error}`);
       }
     } catch (error) {
       console.error('❌ Error saving investor data:', error);
-      alert('Chyba pri ukladaní údajov investora');
+      console.error('Chyba pri ukladaní údajov investora');
     }
   };
 
@@ -71,263 +68,225 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
   );
 
   return (
-    <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
+    <Card className="mb-4 border border-gray-200">
       {/* Header - Investor info */}
-      <Box
-        sx={{
-          p: 2,
-          bgcolor: 'grey.50',
-          cursor: 'pointer',
-          '&:hover': { bgcolor: 'grey.100' },
-        }}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Typography
-              variant="h6"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              👤 {investor.firstName as string} {investor.lastName as string}
-              <Chip
-                label={`${shares.length} firiem • ${totalOwnership.toFixed(1)}% celkom`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            </Typography>
-
-            <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {(investor.email as string) && (
-                <Typography variant="body2" color="text.secondary">
-                  📧 {investor.email as string}
-                </Typography>
-              )}
-              {(investor.phone as string) && (
-                <Typography variant="body2" color="text.secondary">
-                  📞 {investor.phone as string}
-                </Typography>
-              )}
-              {shares.length > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  🏢{' '}
-                  {shares
-                    .map(s => {
-                      const company = companies.find(c => c.id === s.companyId);
-                      return `${(company?.name as string) || 'Neznáma firma'} (${s.ownershipPercentage as number}%)`;
-                    })
-                    .join(', ')}
-                </Typography>
-              )}
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton
-              size="small"
-              onClick={e => {
-                e.stopPropagation();
-                setEditMode(!editMode);
-              }}
-              sx={{
-                bgcolor: editMode ? 'primary.main' : 'transparent',
-                color: editMode ? 'white' : 'primary.main',
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton size="small">{expanded ? '🔽' : '▶️'}</IconButton>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Edit Mode */}
-      <Collapse in={editMode}>
-        <Box
-          sx={{
-            p: 3,
-            bgcolor: 'background.paper',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            ✏️ Úprava spoluinvestora
-          </Typography>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Meno"
-                value={editData.firstName}
-                onChange={e =>
-                  setEditData(prev => ({ ...prev, firstName: e.target.value }))
-                }
-                size="small"
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Priezvisko"
-                value={editData.lastName}
-                onChange={e =>
-                  setEditData(prev => ({ ...prev, lastName: e.target.value }))
-                }
-                size="small"
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={editData.email}
-                onChange={e =>
-                  setEditData(prev => ({ ...prev, email: e.target.value }))
-                }
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Telefón"
-                value={editData.phone}
-                onChange={e =>
-                  setEditData(prev => ({ ...prev, phone: e.target.value }))
-                }
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Poznámky"
-                value={editData.notes}
-                onChange={e =>
-                  setEditData(prev => ({ ...prev, notes: e.target.value }))
-                }
-                size="small"
-                multiline
-                rows={2}
-              />
-            </Grid>
-          </Grid>
-
-          <Box
-            sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}
-          >
-            <Button
-              variant="outlined"
-              onClick={() => setEditMode(false)}
-              size="small"
-            >
-              Zrušiť
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSaveInvestorData}
-              size="small"
-            >
-              💾 Uložiť
-            </Button>
-          </Box>
-        </Box>
-      </Collapse>
-
-      {/* Podiely vo firmách - Rozbaliteľné */}
-      <Collapse in={expanded}>
-        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography
-            variant="subtitle1"
-            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            💼 Podiely vo firmách ({shares.length})
-          </Typography>
-
-          {shares.length > 0 ? (
-            shares.map(share => {
-              const company = companies.find(c => c.id === share.companyId);
-              return (
-                <Box
-                  key={share.id as string}
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    p: 2,
-                    mb: 1,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    bgcolor: 'background.paper',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
+      <Collapsible open={expanded} onOpenChange={setExpanded}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="bg-gray-50 cursor-pointer hover:bg-gray-100 p-4">
+            <div className="flex justify-between items-center">
+              <div className="flex-1">
+                <UnifiedTypography
+                  variant="h6"
+                  className="flex items-center gap-2"
                 >
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2">
-                      🏢 {(company?.name as string) || 'Neznáma firma'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      💰 Podiel: {share.ownershipPercentage as number}%
-                      {(share.investmentAmount as number) &&
-                        ` • Investícia: ${share.investmentAmount as number}€`}
-                      {(share.isPrimaryContact as boolean) &&
-                        ' • Primárny kontakt'}
-                    </Typography>
-                  </Box>
+                  👤 {investor.firstName as string} {investor.lastName as string}
+                  <Badge variant="outline" className="text-xs">
+                    {shares.length} firiem • {totalOwnership.toFixed(1)}% celkom
+                  </Badge>
+                </UnifiedTypography>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip
-                      label={`${share.ownershipPercentage as number}%`}
-                      color="primary"
-                      size="small"
-                      variant={
-                        (share.isPrimaryContact as boolean)
-                          ? 'filled'
-                          : 'outlined'
-                      }
-                    />
-                  </Box>
-                </Box>
-              );
-            })
-          ) : (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: 'center', py: 2 }}
-            >
-              Žiadne podiely vo firmách. Investor nie je priradený k žiadnej
-              firme.
-            </Typography>
-          )}
+                <div className="mt-2 flex gap-6 flex-wrap">
+                  {(investor.email as string) && (
+                    <UnifiedTypography variant="body2" className="text-gray-600">
+                      📧 {investor.email as string}
+                    </UnifiedTypography>
+                  )}
+                  {(investor.phone as string) && (
+                    <UnifiedTypography variant="body2" className="text-gray-600">
+                      📞 {investor.phone as string}
+                    </UnifiedTypography>
+                  )}
+                  {shares.length > 0 && (
+                    <UnifiedTypography variant="body2" className="text-gray-600">
+                      🏢{' '}
+                      {shares
+                        .map(s => {
+                          const company = companies.find(c => c.id === s.companyId);
+                          return `${(company?.name as string) || 'Neznáma firma'} (${s.ownershipPercentage as number}%)`;
+                        })
+                        .join(', ')}
+                    </UnifiedTypography>
+                  )}
+                </div>
+              </div>
 
-          {/* Tlačidlo pre pridanie nového podielu */}
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => onAssignShare(investor)}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={editMode ? "default" : "ghost"}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setEditMode(!editMode);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <EditIcon className="h-4 w-4" />
+                </Button>
+                <div className="text-sm">
+                  {expanded ? '🔽' : '▶️'}
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        {/* Edit Mode */}
+        {editMode && (
+          <CardContent className="bg-white border-t border-gray-200">
+            <UnifiedTypography variant="h6" className="mb-4">
+              ✏️ Úprava spoluinvestora
+            </UnifiedTypography>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="first-name">Meno *</Label>
+                <Input
+                  id="first-name"
+                  value={editData.firstName || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditData(prev => ({ ...prev, firstName: e.target.value }))
+                  }
+                  required
+                  placeholder="Meno"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="last-name">Priezvisko *</Label>
+                <Input
+                  id="last-name"
+                  value={editData.lastName || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditData(prev => ({ ...prev, lastName: e.target.value }))
+                  }
+                  required
+                  placeholder="Priezvisko"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editData.email || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditData(prev => ({ ...prev, email: e.target.value }))
+                  }
+                  placeholder="email@example.com"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="phone">Telefón</Label>
+                <Input
+                  id="phone"
+                  value={editData.phone || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditData(prev => ({ ...prev, phone: e.target.value }))
+                  }
+                  placeholder="+421 XXX XXX XXX"
+                />
+              </div>
+              
+              <div className="col-span-full">
+                <Label htmlFor="notes">Poznámky</Label>
+                <Textarea
+                  id="notes"
+                  value={editData.notes || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditData(prev => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Poznámky..."
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setEditMode(false)}
+                size="sm"
+              >
+                Zrušiť
+              </Button>
+              <Button
+                onClick={handleSaveInvestorData}
+                size="sm"
+              >
+                💾 Uložiť
+              </Button>
+            </div>
+          </CardContent>
+        )}
+
+        {/* Podiely vo firmách - Rozbaliteľné */}
+        <CollapsibleContent>
+          <CardContent className="border-t border-gray-200">
+            <UnifiedTypography
+              variant="subtitle1"
+              className="mb-4 flex items-center gap-2"
             >
-              🏢 Priradiť k firme
-            </Button>
-          </Box>
-        </Box>
-      </Collapse>
+              💼 Podiely vo firmách ({shares.length})
+            </UnifiedTypography>
+
+            {shares.length > 0 ? (
+              shares.map(share => {
+                const company = companies.find(c => c.id === share.companyId);
+                return (
+                  <div
+                    key={share.id as string}
+                    className="flex justify-between items-center p-4 mb-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50"
+                  >
+                    <div className="flex-1">
+                      <UnifiedTypography variant="subtitle2">
+                        🏢 {(company?.name as string) || 'Neznáma firma'}
+                      </UnifiedTypography>
+                      <UnifiedTypography variant="body2" className="text-gray-600 mt-1">
+                        💰 Podiel: {share.ownershipPercentage as number}%
+                        {(share.investmentAmount as number) &&
+                          ` • Investícia: ${share.investmentAmount as number}€`}
+                        {(share.isPrimaryContact as boolean) &&
+                          ' • Primárny kontakt'}
+                      </UnifiedTypography>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={(share.isPrimaryContact as boolean) ? 'default' : 'outline'}
+                      >
+                        {share.ownershipPercentage as number}%
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <UnifiedTypography
+                variant="body2"
+                className="text-gray-600 text-center py-4"
+              >
+                Žiadne podiely vo firmách. Investor nie je priradený k žiadnej
+                firme.
+              </UnifiedTypography>
+            )}
+
+            {/* Tlačidlo pre pridanie nového podielu */}
+            <div className="mt-4 text-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onAssignShare(investor)}
+                className="gap-2"
+              >
+                <AddIcon className="h-4 w-4" />
+                🏢 Priradiť k firme
+              </Button>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 };

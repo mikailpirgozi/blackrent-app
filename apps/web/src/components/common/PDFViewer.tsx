@@ -1,21 +1,9 @@
-import {
-  Close as CloseIcon,
-  Download as DownloadIcon,
-  OpenInNew as OpenInNewIcon,
-  PictureAsPdf as PDFIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Typography,
-} from '@mui/material';
+import { UnifiedIcon } from '../ui/UnifiedIcon';
+import { UnifiedButton } from '../ui/UnifiedButton';
+import { UnifiedDialog } from '../ui/UnifiedDialog';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
+import { Alert, AlertTitle } from '../ui/alert';
+import { Spinner } from '../ui/spinner';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
@@ -165,101 +153,80 @@ export default function PDFViewer({
     downloadPdfMutation.error;
 
   return (
-    <Dialog
+    <UnifiedDialog
       open={open}
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      PaperProps={{
-        sx: {
-          height: '90vh',
-          maxHeight: '90vh',
-        },
-      }}
+      className="h-[90vh] max-h-[90vh]"
     >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: 'primary.main',
-          color: 'white',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PDFIcon />
-          <Typography variant="h6">
+      <div className="flex justify-between items-center bg-primary text-white p-6">
+        <div className="flex items-center gap-2">
+          <UnifiedIcon name="fileText" size={24} className="text-white" />
+          <UnifiedTypography variant="h6" className="text-white">
             {title} - {protocolType === 'handover' ? 'Prevzatie' : 'Vrátenie'}{' '}
             vozidla
-          </Typography>
-        </Box>
-        <IconButton onClick={onClose} sx={{ color: 'white' }}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+          </UnifiedTypography>
+        </div>
+        <UnifiedButton
+          variant="ghost"
+          onClick={onClose}
+          className="text-white p-2"
+        >
+          <UnifiedIcon name="close" size={20} />
+        </UnifiedButton>
+      </div>
 
-      <DialogContent sx={{ p: 0, position: 'relative' }}>
+      <div className="p-0 relative flex-1">
         {loading && (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100%',
-              flexDirection: 'column',
-              gap: 2,
-            }}
-          >
-            <CircularProgress />
-            <Typography>Načítavam PDF...</Typography>
-          </Box>
+          <div className="flex justify-center items-center h-full flex-col gap-4">
+            <Spinner size={32} />
+            <UnifiedTypography>Načítavam PDF...</UnifiedTypography>
+          </div>
         )}
 
         {error && (
-          <Box sx={{ p: 2 }}>
-            <Alert severity="error">
-              {error instanceof Error
-                ? error.message
-                : 'Chyba pri načítaní PDF'}
+          <div className="p-4">
+            <Alert variant="destructive">
+              <AlertTitle>
+                {error instanceof Error
+                  ? error.message
+                  : 'Chyba pri načítaní PDF'}
+              </AlertTitle>
             </Alert>
-          </Box>
+          </div>
         )}
 
         {pdfUrl && !loading && (
           <iframe
             src={pdfUrl}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              minHeight: '500px',
-            }}
+            className="w-full h-full border-0 min-h-[500px]"
             title="PDF Viewer"
           />
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions sx={{ p: 2, backgroundColor: 'background.default' }}>
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
+      <div className="p-4 bg-background flex gap-2 justify-end">
+        <UnifiedButton
+          variant="outline"
+          startIcon={<UnifiedIcon name="download" size={20} />}
           onClick={handleDownload}
           disabled={loading || downloadPdfMutation.isPending}
         >
           {downloadPdfMutation.isPending ? 'Sťahujem...' : 'Stiahnuť PDF'}
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<OpenInNewIcon />}
+        </UnifiedButton>
+        <UnifiedButton
+          variant="outline"
+          startIcon={<UnifiedIcon name="externalLink" size={20} />}
           onClick={handleOpenInNewWindow}
           disabled={loading}
         >
           Otvoriť v novom okne
-        </Button>
-        <Button variant="contained" onClick={onClose}>
+        </UnifiedButton>
+        <UnifiedButton variant="default" onClick={onClose}>
           Zavrieť
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </UnifiedButton>
+      </div>
+    </UnifiedDialog>
   );
 }

@@ -8,12 +8,9 @@
  * - Mobile optimized
  */
 
-import {
-  Box,
-  CircularProgress,
-  LinearProgress,
-  Typography,
-} from '@mui/material';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
+import { Spinner } from '../ui/spinner';
+import { Progress } from '../ui/progress';
 import React from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
@@ -59,42 +56,34 @@ export const InfiniteScrollContainer = <T,>({
 }: InfiniteScrollContainerProps<T>) => {
   // 🔄 Loading component
   const LoadingComponent = () => (
-    <Box
-      sx={{
-        p: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 2,
-      }}
-    >
-      <CircularProgress size={24} />
-      <Typography variant="body2" color="text.secondary">
+    <div className="p-4 flex flex-col items-center gap-4">
+      <Spinner size={24} />
+      <UnifiedTypography variant="body2" color="textSecondary">
         {loadingMessage}
-      </Typography>
-    </Box>
+      </UnifiedTypography>
+    </div>
   );
 
   // ✅ End message component
   const EndComponent = () => (
-    <Box sx={{ p: 3, textAlign: 'center' }}>
-      <Typography
+    <div className="p-6 text-center">
+      <UnifiedTypography
         variant="body2"
-        color="text.secondary"
-        sx={{ fontWeight: 500 }}
+        color="textSecondary"
+        className="font-medium"
       >
         {endMessage}
-      </Typography>
+      </UnifiedTypography>
       {totalItems && (
-        <Typography
+        <UnifiedTypography
           variant="caption"
-          color="text.secondary"
-          sx={{ mt: 1, display: 'block' }}
+          color="textSecondary"
+          className="mt-2 block"
         >
           Zobrazených {items.length} z {totalItems} položiek
-        </Typography>
+        </UnifiedTypography>
       )}
-    </Box>
+    </div>
   );
 
   // 📊 Progress bar
@@ -102,68 +91,39 @@ export const InfiniteScrollContainer = <T,>({
     if (!showProgress || !totalItems) return null;
 
     return (
-      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 1,
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
+      <div className="p-4 border-b border-border">
+        <div className="flex justify-between items-center mb-2">
+          <UnifiedTypography variant="caption" color="textSecondary">
             Načítané: {items.length} / {totalItems}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </UnifiedTypography>
+          <UnifiedTypography variant="caption" color="textSecondary">
             {progress}%
-          </Typography>
-        </Box>
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: '#f0f0f0',
-            '& .MuiLinearProgress-bar': {
-              backgroundColor: '#1976d2',
-            },
-          }}
-        />
-      </Box>
+          </UnifiedTypography>
+        </div>
+        <Progress value={progress} className="h-1" />
+      </div>
     );
   };
 
   // 📱 Empty state
   if (items.length === 0 && !isLoading) {
     return (
-      <Box
-        sx={{
-          height,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 2,
-          color: 'text.secondary',
-        }}
+      <div 
+        className="flex items-center justify-center flex-col gap-4 text-muted-foreground"
+        style={{ height }}
       >
-        <Typography variant="h6">📋 {emptyMessage}</Typography>
-        <Typography variant="body2">
+        <UnifiedTypography variant="h6">📋 {emptyMessage}</UnifiedTypography>
+        <UnifiedTypography variant="body2">
           Skúste zmeniť filter alebo vyhľadávanie
-        </Typography>
-      </Box>
+        </UnifiedTypography>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        height,
-        border: '1px solid #e0e0e0',
-        borderRadius: 2,
-        overflow: 'hidden',
-      }}
+    <div 
+      className="border border-border rounded-lg overflow-hidden"
+      style={{ height }}
     >
       {/* Progress bar */}
       <ProgressBar />
@@ -189,21 +149,16 @@ export const InfiniteScrollContainer = <T,>({
         pullDownToRefreshThreshold={50}
       >
         {items.map((item, index) => (
-          <Box
+          <div
             key={(item as { id?: string | number }).id || index}
-            sx={{
-              minHeight: itemHeight,
-              marginBottom: 1,
-              '&:last-child': {
-                marginBottom: 0,
-              },
-            }}
+            className="mb-2 last:mb-0"
+            style={{ minHeight: itemHeight }}
           >
             {renderItem(item, index)}
-          </Box>
+          </div>
         ))}
       </InfiniteScroll>
-    </Box>
+    </div>
   );
 };
 

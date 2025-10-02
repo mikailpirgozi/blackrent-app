@@ -1,42 +1,45 @@
+import { useCallback, useEffect, useState } from 'react';
+
+// Lucide icons (replacing MUI icons)
 import {
-  Add as AddIcon,
-  Assignment as ContractIcon,
-  Delete as DeleteIcon,
-  // Download as DownloadIcon, // TODO: Implement download functionality
-  ExpandMore as ExpandMoreIcon,
-  // Description as DocumentIcon, // TODO: Implement document icons
+  Plus as AddIcon,
+  FileText as ContractIcon,
+  Trash2 as DeleteIcon,
   Receipt as InvoiceIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
+  Eye as ViewIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
 import {
   Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  // Divider, // TODO: Implement dividers
-  Alert,
-  Box,
-  Button,
-  Chip,
-  // Card, // TODO: Implement card layout
-  // CardContent, // TODO: Implement card content
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  List,
-  ListItem,
-  ListItemSecondaryAction,
-  ListItemText,
-  MenuItem,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
   Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+
+// Removed all MUI imports - fully migrated to shadcn/ui
 
 import type { CompanyDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
@@ -137,7 +140,7 @@ export default function CompanyDocumentManager({
   // Uloženie dokumentov
   const handleSaveDocuments = async () => {
     if (uploadedFiles.length === 0 || !uploadData.documentName.trim()) {
-      alert('Nahrajte súbory a zadajte názov dokumentu');
+      console.log('Nahrajte súbory a zadajte názov dokumentu');
       return;
     }
 
@@ -208,13 +211,13 @@ export default function CompanyDocumentManager({
         loadDocuments();
       } else {
         console.error('Some documents failed to save');
-        alert(
+        console.log(
           `Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`
         );
       }
     } catch (error) {
       console.error('Error saving document:', error);
-      alert('Chyba pri ukladaní dokumentov');
+      console.log('Chyba pri ukladaní dokumentov');
     }
   };
 
@@ -249,11 +252,11 @@ export default function CompanyDocumentManager({
         loadDocuments();
       } else {
         console.error('Error deleting document:', result.error);
-        alert(`Chyba pri mazaní: ${result.error}`);
+        console.log(`Chyba pri mazaní: ${result.error}`);
       }
     } catch (error) {
       console.error('Error deleting document:', error);
-      alert('Chyba pri mazaní dokumentu');
+      console.log('Chyba pri mazaní dokumentu');
     }
   };
 
@@ -295,56 +298,40 @@ export default function CompanyDocumentManager({
   };
 
   return (
-    <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-        >
+    <div className="mt-6 pt-4 border-t border-border">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
           📄 Dokumenty majiteľa
-        </Typography>
+        </h2>
         <Button
-          variant="outlined"
-          startIcon={<AddIcon />}
+          variant="outline"
           onClick={() => setUploadDialogOpen(true)}
-          size="small"
-          sx={{ borderRadius: 2 }}
+          size="sm"
+          className="gap-2"
         >
+          <AddIcon className="h-4 w-4" />
           Pridať dokument
         </Button>
-      </Box>
+      </div>
 
       {loading ? (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ textAlign: 'center', py: 2 }}
-        >
+        <p className="text-center py-4 text-muted-foreground text-sm">
           Načítavam dokumenty...
-        </Typography>
+        </p>
       ) : (
-        <Box>
+        <div>
           {/* ZMLUVY O SPOLUPRÁCI */}
-          <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <ContractIcon sx={{ color: '#1976d2' }} />
-                Zmluvy o spolupráci ({contracts.length})
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
+          <Accordion type="single" defaultValue="contracts" collapsible>
+            <AccordionItem value="contracts">
+              <AccordionTrigger className="text-left">
+                <div className="flex items-center gap-2">
+                  <ContractIcon className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium">Zmluvy o spolupráci ({contracts.length})</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
               {contracts.length > 0 ? (
-                <Box>
+                <div>
                   <BulkDownload
                     files={contracts.map(doc => ({
                       url: doc.filePath,
@@ -353,312 +340,293 @@ export default function CompanyDocumentManager({
                     zipFilename={`zmluvy_${companyName}_${new Date().toISOString().split('T')[0]}.zip`}
                     label="Stiahnuť všetky zmluvy"
                   />
-                  <List dense>
+                  <div className="space-y-2">
                     {contracts.map(contract => (
-                      <ListItem key={contract.id} divider>
-                        <ListItemText
-                          primary={contract.documentName}
-                          secondary={
-                            <Box>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
+                      <Card key={contract.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{contract.documentName}</h4>
+                              <div className="mt-1 space-y-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {contract.description}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Nahraný:{' '}
+                                  {new Date(
+                                    contract.createdAt
+                                  ).toLocaleDateString('sk-SK')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 ml-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  window.open(contract.filePath, '_blank')
+                                }
+                                title="Zobraziť dokument"
                               >
-                                {contract.description}
-                              </Typography>
-                              <br />
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
+                                <ViewIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDocument(contract.id)}
+                                title="Zmazať dokument"
+                                className="text-destructive hover:text-destructive"
                               >
-                                Nahraný:{' '}
-                                {new Date(
-                                  contract.createdAt
-                                ).toLocaleDateString('sk-SK')}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                        <ListItemSecondaryAction>
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              window.open(contract.filePath, '_blank')
-                            }
-                            title="Zobraziť dokument"
-                          >
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteDocument(contract.id)}
-                            title="Zmazať dokument"
-                            color="error"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
+                                <DeleteIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </List>
-                </Box>
+                  </div>
+                </div>
               ) : (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: 'center', py: 2 }}
-                >
+                <p className="text-center py-4 text-muted-foreground text-sm">
                   Žiadne zmluvy o spolupráci
-                </Typography>
+                </p>
               )}
-            </AccordionDetails>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
 
           {/* FAKTÚRY ROZDELENÉ PO MESIACOCH */}
-          <Accordion defaultExpanded sx={{ mt: 1 }}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <InvoiceIcon sx={{ color: '#4caf50' }} />
-                Faktúry ({invoices.length})
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
+          <Accordion type="single" defaultValue="invoices" collapsible className="mt-2">
+            <AccordionItem value="invoices">
+              <AccordionTrigger className="text-left">
+                <div className="flex items-center gap-2">
+                  <InvoiceIcon className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">Faktúry ({invoices.length})</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
               {Object.keys(invoicesByYear).length > 0 ? (
-                <Box>
+                <div>
                   {Object.entries(invoicesByYear)
                     .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie roky najprv
                     .map(([year, months]) => (
-                      <Box key={year} sx={{ mb: 2 }}>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ mb: 1, color: 'primary.main' }}
-                        >
+                      <div key={year} className="mb-4">
+                        <h3 className="text-sm font-medium text-primary mb-2">
                           📅 Rok {year}
-                        </Typography>
+                        </h3>
 
                         {Object.entries(months)
                           .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie mesiace najprv
                           .map(([month, monthInvoices]) => (
-                            <Box key={month} sx={{ ml: 2, mb: 1 }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ mb: 1, fontWeight: 600 }}
-                              >
+                            <div key={month} className="ml-4 mb-2">
+                              <h4 className="text-sm font-semibold mb-2">
                                 {getMonthName(parseInt(month))} (
                                 {monthInvoices.length})
-                              </Typography>
+                              </h4>
 
-                              <List dense sx={{ ml: 2 }}>
+                              <div className="ml-4 space-y-2">
                                 {monthInvoices.map(invoice => (
-                                  <ListItem key={invoice.id} divider>
-                                    <ListItemText
-                                      primary={invoice.documentName}
-                                      secondary={
-                                        <Box>
-                                          <Typography
-                                            variant="caption"
-                                            color="text.secondary"
+                                  <Card key={invoice.id}>
+                                    <CardContent className="p-3">
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                          <h5 className="font-medium text-sm">{invoice.documentName}</h5>
+                                          <div className="mt-1 space-y-1">
+                                            <p className="text-xs text-muted-foreground">
+                                              {invoice.description}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                              Nahraný:{' '}
+                                              {new Date(
+                                                invoice.createdAt
+                                              ).toLocaleDateString('sk-SK')}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 ml-2">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              window.open(
+                                                invoice.filePath,
+                                                '_blank'
+                                              )
+                                            }
+                                            title="Zobraziť faktúru"
                                           >
-                                            {invoice.description}
-                                          </Typography>
-                                          <br />
-                                          <Typography
-                                            variant="caption"
-                                            color="text.secondary"
+                                            <ViewIcon className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleDeleteDocument(invoice.id)
+                                            }
+                                            title="Zmazať faktúru"
+                                            className="text-destructive hover:text-destructive"
                                           >
-                                            Nahraný:{' '}
-                                            {new Date(
-                                              invoice.createdAt
-                                            ).toLocaleDateString('sk-SK')}
-                                          </Typography>
-                                        </Box>
-                                      }
-                                    />
-                                    <ListItemSecondaryAction>
-                                      <IconButton
-                                        size="small"
-                                        onClick={() =>
-                                          window.open(
-                                            invoice.filePath,
-                                            '_blank'
-                                          )
-                                        }
-                                        title="Zobraziť faktúru"
-                                      >
-                                        <ViewIcon fontSize="small" />
-                                      </IconButton>
-                                      <IconButton
-                                        size="small"
-                                        onClick={() =>
-                                          handleDeleteDocument(invoice.id)
-                                        }
-                                        title="Zmazať faktúru"
-                                        color="error"
-                                      >
-                                        <DeleteIcon fontSize="small" />
-                                      </IconButton>
-                                    </ListItemSecondaryAction>
-                                  </ListItem>
+                                            <DeleteIcon className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
                                 ))}
-                              </List>
-                            </Box>
+                              </div>
+                            </div>
                           ))}
-                      </Box>
+                      </div>
                     ))}
-                </Box>
+                </div>
               ) : (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: 'center', py: 2 }}
-                >
+                <p className="text-center py-4 text-muted-foreground text-sm">
                   Žiadne faktúry
-                </Typography>
+                </p>
               )}
-            </AccordionDetails>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
-        </Box>
+        </div>
       )}
 
       {/* UPLOAD DIALOG */}
-      <Dialog
-        open={uploadDialogOpen}
-        onClose={() => setUploadDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>📄 Pridať dokument pre {companyName}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Typ dokumentu</InputLabel>
-                <Select
-                  value={uploadData.documentType}
-                  onChange={e =>
-                    setUploadData(prev => ({
-                      ...prev,
-                      documentType: e.target.value as 'contract' | 'invoice',
-                    }))
-                  }
-                  label="Typ dokumentu"
-                >
-                  <MenuItem value="contract">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <ContractIcon fontSize="small" />
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>📄 Pridať dokument pre {companyName}</DialogTitle>
+            <DialogDescription>
+              Nahrajte nový dokument pre túto firmu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="documentType">Typ dokumentu</Label>
+              <Select
+                value={uploadData.documentType}
+                onValueChange={(value: 'contract' | 'invoice') =>
+                  setUploadData(prev => ({
+                    ...prev,
+                    documentType: value,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte typ dokumentu" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contract">
+                    <div className="flex items-center gap-2">
+                      <ContractIcon className="h-4 w-4" />
                       Zmluva o spolupráci
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="invoice">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <InvoiceIcon fontSize="small" />
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="invoice">
+                    <div className="flex items-center gap-2">
+                      <InvoiceIcon className="h-4 w-4" />
                       Faktúra
-                    </Box>
-                  </MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Názov dokumentu"
+            <div className="space-y-2">
+              <Label htmlFor="documentName">Názov dokumentu *</Label>
+              <Input
+                id="documentName"
                 value={uploadData.documentName}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setUploadData(prev => ({
                     ...prev,
                     documentName: e.target.value,
                   }))
                 }
-                size="small"
-                required
                 placeholder={
                   uploadData.documentType === 'contract'
                     ? 'napr. Zmluva o spolupráci 2024'
                     : 'napr. Faktúra január 2024'
                 }
+                required
               />
-            </Grid>
+            </div>
 
             {/* Pre faktúry - výber mesiaca a roku */}
             {uploadData.documentType === 'invoice' && (
-              <>
-                <Grid item xs={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Rok</InputLabel>
-                    <Select
-                      value={uploadData.documentYear}
-                      onChange={e =>
-                        setUploadData(prev => ({
-                          ...prev,
-                          documentYear: parseInt(e.target.value as string),
-                        }))
-                      }
-                      label="Rok"
-                    >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="documentYear">Rok</Label>
+                  <Select
+                    value={uploadData.documentYear?.toString() || ''}
+                    onValueChange={(value) =>
+                      setUploadData(prev => ({
+                        ...prev,
+                        documentYear: parseInt(value),
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte rok" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {Array.from(
                         { length: 5 },
                         (_, i) => new Date().getFullYear() - i
                       ).map(year => (
-                        <MenuItem key={year} value={year}>
+                        <SelectItem key={year} value={year.toString()}>
                           {year}
-                        </MenuItem>
+                        </SelectItem>
                       ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Mesiac</InputLabel>
-                    <Select
-                      value={uploadData.documentMonth}
-                      onChange={e =>
-                        setUploadData(prev => ({
-                          ...prev,
-                          documentMonth: parseInt(e.target.value as string),
-                        }))
-                      }
-                      label="Mesiac"
-                    >
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="documentMonth">Mesiac</Label>
+                  <Select
+                    value={uploadData.documentMonth?.toString() || ''}
+                    onValueChange={(value) =>
+                      setUploadData(prev => ({
+                        ...prev,
+                        documentMonth: parseInt(value),
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte mesiac" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(
                         month => (
-                          <MenuItem key={month} value={month}>
+                          <SelectItem key={month} value={month.toString()}>
                             {getMonthName(month)}
-                          </MenuItem>
+                          </SelectItem>
                         )
                       )}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             )}
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Popis (nepovinné)"
+            <div className="space-y-2">
+              <Label htmlFor="description">Popis (nepovinné)</Label>
+              <Textarea
+                id="description"
                 value={uploadData.description}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setUploadData(prev => ({
                     ...prev,
                     description: e.target.value,
                   }))
                 }
-                size="small"
-                multiline
                 rows={2}
                 placeholder="Dodatočné informácie o dokumente..."
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Nahrať súbor:
-                </Typography>
+            <div className="space-y-2">
+              <Label>Nahrať súbor:</Label>
+              <div>
                 <R2FileUpload
                   type="company-document"
                   entityId={companyId.toString()}
@@ -676,55 +644,57 @@ export default function CompanyDocumentManager({
                 />
 
                 {uploadedFiles.length > 0 && (
-                  <Alert severity="success" sx={{ mt: 1 }}>
-                    ✅ {uploadedFiles.length} súborov úspešne nahraných a
-                    pripravených na uloženie
-                    <Box sx={{ mt: 1 }}>
-                      {uploadedFiles.map((file, index) => (
-                        <Chip
-                          key={index}
-                          label={file.filename}
-                          size="small"
-                          variant="outlined"
-                          sx={{ mr: 1, mb: 1 }}
-                          onDelete={() =>
-                            setUploadedFiles(prev =>
-                              prev.filter((_, i) => i !== index)
-                            )
-                          }
-                        />
-                      ))}
-                    </Box>
+                  <Alert className="mt-2">
+                    <AlertDescription>
+                      ✅ {uploadedFiles.length} súborov úspešne nahraných a
+                      pripravených na uloženie
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {uploadedFiles.map((file, index) => (
+                          <Badge 
+                            key={index} 
+                            variant="secondary"
+                            className="cursor-pointer"
+                            onClick={() =>
+                              setUploadedFiles(prev =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
+                          >
+                            {file.filename} ×
+                          </Badge>
+                        ))}
+                      </div>
+                    </AlertDescription>
                   </Alert>
                 )}
-              </Box>
-            </Grid>
-          </Grid>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUploadDialogOpen(false);
+                setUploadedFiles([]);
+              }}
+            >
+              Zrušiť
+            </Button>
+            <Button
+              onClick={handleSaveDocuments}
+              disabled={
+                uploadedFiles.length === 0 || !uploadData.documentName.trim()
+              }
+            >
+              💾 Uložiť{' '}
+              {uploadedFiles.length > 1
+                ? `${uploadedFiles.length} súborov`
+                : 'dokument'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setUploadDialogOpen(false);
-              setUploadedFiles([]);
-            }}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveDocuments}
-            disabled={
-              uploadedFiles.length === 0 || !uploadData.documentName.trim()
-            }
-          >
-            💾 Uložiť{' '}
-            {uploadedFiles.length > 1
-              ? `${uploadedFiles.length} súborov`
-              : 'dokument'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 }

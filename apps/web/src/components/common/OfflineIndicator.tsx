@@ -3,47 +3,62 @@
 
 import {
   CloudOff as CloudOffIcon,
-  ExpandLess as CollapseIcon,
-  ExpandMore as ExpandIcon,
+  ChevronUp as CollapseIcon,
+  ChevronDown as ExpandIcon,
   WifiOff as OfflineIcon,
   Wifi as OnlineIcon,
-  Refresh as RefreshIcon,
-  Schedule as ScheduleIcon,
-  Sync as SyncIcon,
-} from '@mui/icons-material';
+  RefreshCw as RefreshIcon,
+  Clock as ScheduleIcon,
+  RotateCcw as SyncIcon,
+} from 'lucide-react';
 import {
   Alert,
-  Box,
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
   Button,
-  Collapse,
-  IconButton,
-  LinearProgress,
-  Paper,
-  // Fade,
-  Slide,
+} from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
+import {
+  Progress,
+} from '@/components/ui/progress';
+import {
+  Card,
+  CardContent,
+} from '@/components/ui/card';
+import {
   Typography,
-  alpha,
-  useTheme,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+} from '@/components/ui/typography';
+import { useEffect, useState } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { usePWA } from '../../hooks/usePWA';
 
-interface OfflineIndicatorProps {
-  position?: 'top' | 'bottom';
-  showDetails?: boolean;
-  autoHide?: boolean;
-  hideDelay?: number;
+// Global type definitions for browser APIs
+declare global {
+  interface _ServiceWorkerRegistration {
+    sync?: {
+      register: (_tag: string) => Promise<void>;
+    };
+  }
 }
 
-export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
+// interface OfflineIndicatorProps {
+//   position?: 'top' | 'bottom';
+//   showDetails?: boolean;
+//   autoHide?: boolean;
+//   hideDelay?: number;
+// }
+
+export const OfflineIndicator = ({
   position = 'top',
   showDetails = false,
   autoHide = false,
   hideDelay = 5000,
 }) => {
-  const theme = useTheme();
   const { isOnline, networkQuality, wasOffline, reconnectedAt } =
     useNetworkStatus();
   const { isOffline: pwaOffline } = usePWA();
@@ -59,19 +74,20 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
     if (!isOnline || pwaOffline) {
       setShowIndicator(true);
     } else if (autoHide && hideDelay > 0) {
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setShowIndicator(false);
       }, hideDelay);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     } else {
       setShowIndicator(false);
     }
+    return undefined;
   }, [isOnline, pwaOffline, autoHide, hideDelay]);
 
   // Listen for service worker messages about pending actions
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      const handleMessage = (event: MessageEvent) => {
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+      const handleMessage = (event: any) => {
         const { type, payload } = event.data;
 
         switch (type) {
@@ -85,11 +101,14 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
         }
       };
 
-      navigator.serviceWorker.addEventListener('message', handleMessage);
+      window.navigator.serviceWorker.addEventListener('message', handleMessage);
       return () => {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
+        if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+          window.navigator.serviceWorker.removeEventListener('message', handleMessage);
+        }
       };
     }
+    return undefined;
   }, []);
 
   const handleRetry = async () => {
@@ -104,22 +123,18 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
       if (response.ok) {
         // Connection restored, trigger sync if available
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.ready;
+        if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+          const registration = await window.navigator.serviceWorker.ready;
           // Background sync (if supported)
           if ('sync' in registration) {
-            (
-              registration as ServiceWorkerRegistration & {
-                sync?: { register: (tag: string) => Promise<void> };
-              }
-            ).sync?.register('blackrent-sync');
+            (registration as any).sync.register('blackrent-sync');
           }
         }
       }
     } catch (error) {
       console.log('Retry failed:', error);
     } finally {
-      setTimeout(() => setIsRetrying(false), 1000);
+      window.setTimeout(() => setIsRetrying(false), 1000);
     }
   };
 
@@ -135,60 +150,21 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   const showReconnected = isOnline && wasOffline && reconnectedAt;
 
   return (
-    <Slide direction={position === 'top' ? 'down' : 'up'} in={showIndicator}>
-      <Box
-        sx={{
-          position: 'fixed',
-          [position]: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1300,
-          p: 1,
-        }}
-      >
-        <Paper
-          elevation={8}
-          sx={{
-            background: isOffline
-              ? `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.9)}, ${alpha(theme.palette.error.dark, 0.9)})`
-              : `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.9)}, ${alpha(theme.palette.success.dark, 0.9)})`,
-            color: 'white',
-            mx: 'auto',
-            maxWidth: 600,
-            borderRadius: 2,
-            overflow: 'hidden',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
+    <div className={`fixed ${position === 'top' ? 'top-0' : 'bottom-0'} left-0 right-0 z-50 p-2 transition-all duration-300 ${showIndicator ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+      <Card className={`mx-auto max-w-2xl overflow-hidden backdrop-blur-sm ${isOffline ? 'bg-red-600/90 border-red-700' : 'bg-green-600/90 border-green-700'}`}>
+        <CardContent className="p-0">
           {/* Main Status Bar */}
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-            p={2}
-            sx={{
-              cursor: showDetails ? 'pointer' : 'default',
-            }}
+          <div 
+            className={`flex items-center justify-between p-4 ${showDetails ? 'cursor-pointer' : ''}`}
             onClick={showDetails ? handleToggleExpanded : undefined}
           >
-            <Box display="flex" alignItems="center" gap={2}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  animation: isOffline ? 'pulse 2s infinite' : undefined,
-                }}
-              >
-                {isOffline ? <OfflineIcon /> : <OnlineIcon />}
-              </Box>
+            <div className="flex items-center gap-4">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full bg-white/20 ${isOffline ? 'animate-pulse' : ''}`}>
+                {isOffline ? <OfflineIcon size={20} className="text-white" /> : <OnlineIcon size={20} className="text-white" />}
+              </div>
 
-              <Box>
-                <Typography variant="subtitle1" fontWeight={600}>
+              <div>
+                <Typography variant="h6" className="font-semibold text-white">
                   {isOffline
                     ? 'Aplikácia je offline'
                     : showReconnected
@@ -196,219 +172,145 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                       : 'Pripojené'}
                 </Typography>
 
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" className="text-white/90">
                   {isOffline
                     ? 'Niektoré funkcie sú obmedzené'
                     : `Kvalita siete: ${networkQuality}`}
                 </Typography>
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Box display="flex" alignItems="center" gap={1}>
+            <div className="flex items-center gap-2">
               {pendingActions > 0 && (
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={0.5}
-                  sx={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    borderRadius: 1,
-                    px: 1,
-                    py: 0.5,
-                  }}
-                >
-                  <ScheduleIcon fontSize="small" />
-                  <Typography variant="body2">
+                <div className="flex items-center gap-1 bg-white/20 rounded px-2 py-1">
+                  <ScheduleIcon size={16} className="text-white" />
+                  <Typography variant="body2" className="text-white">
                     {pendingActions} čakajúcich
                   </Typography>
-                </Box>
+                </div>
               )}
 
               {isOffline && (
-                <IconButton
-                  color="inherit"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleRetry}
                   disabled={isRetrying}
-                  size="small"
+                  className="text-white hover:bg-white/20"
                 >
-                  <RefreshIcon
-                    sx={{
-                      animation: isRetrying
-                        ? 'spin 1s linear infinite'
-                        : undefined,
-                    }}
+                  <RefreshIcon 
+                    size={16} 
+                    className={isRetrying ? 'animate-spin' : ''} 
                   />
-                </IconButton>
+                </Button>
               )}
 
               {showDetails && (
-                <IconButton
-                  color="inherit"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleToggleExpanded}
-                  size="small"
+                  className="text-white hover:bg-white/20"
                 >
-                  {expanded ? <CollapseIcon /> : <ExpandIcon />}
-                </IconButton>
+                  {expanded ? <CollapseIcon size={16} /> : <ExpandIcon size={16} />}
+                </Button>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Progress bar for retrying */}
           {isRetrying && (
-            <LinearProgress
-              sx={{
-                '& .MuiLinearProgress-bar': {
-                  background: 'rgba(255, 255, 255, 0.7)',
-                },
-              }}
-            />
+            <Progress className="h-1 bg-white/20" />
           )}
 
           {/* Expanded Details */}
           {showDetails && (
-            <Collapse in={expanded}>
-              <Box
-                sx={{
-                  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                  p: 2,
-                  background: 'rgba(0, 0, 0, 0.1)',
-                }}
-              >
-                <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
-                  {/* Network Status */}
-                  <Box
-                    sx={{
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: 1,
-                      p: 1.5,
-                      flex: '1 1 200px',
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <CloudOffIcon fontSize="small" />
-                      <Typography variant="subtitle2">Sieť</Typography>
-                    </Box>
-                    <Typography variant="body2">
-                      Status: {isOffline ? 'Offline' : 'Online'}
-                    </Typography>
-                    {!isOffline && (
-                      <Typography variant="body2">
-                        Kvalita: {networkQuality}
+            <Collapsible open={expanded} onOpenChange={setExpanded}>
+              <CollapsibleContent>
+                <div className="border-t border-white/20 p-4 bg-black/10">
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    {/* Network Status */}
+                    <div className="bg-white/10 rounded p-3 flex-1 min-w-[200px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CloudOffIcon size={16} className="text-white" />
+                        <Typography variant="subtitle2" className="text-white">Sieť</Typography>
+                      </div>
+                      <Typography variant="body2" className="text-white">
+                        Status: {isOffline ? 'Offline' : 'Online'}
                       </Typography>
-                    )}
-                  </Box>
+                      {!isOffline && (
+                        <Typography variant="body2" className="text-white">
+                          Kvalita: {networkQuality}
+                        </Typography>
+                      )}
+                    </div>
 
-                  {/* Pending Actions */}
-                  <Box
-                    sx={{
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: 1,
-                      p: 1.5,
-                      flex: '1 1 200px',
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <ScheduleIcon fontSize="small" />
-                      <Typography variant="subtitle2">Akcie</Typography>
-                    </Box>
-                    <Typography variant="body2">
-                      Čakajúce: {pendingActions}
-                    </Typography>
-                    {lastSync && (
-                      <Typography variant="body2">
-                        Posledný sync: {lastSync.toLocaleTimeString()}
+                    {/* Pending Actions */}
+                    <div className="bg-white/10 rounded p-3 flex-1 min-w-[200px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ScheduleIcon size={16} className="text-white" />
+                        <Typography variant="subtitle2" className="text-white">Akcie</Typography>
+                      </div>
+                      <Typography variant="body2" className="text-white">
+                        Čakajúce: {pendingActions}
                       </Typography>
-                    )}
-                  </Box>
-                </Box>
+                      {lastSync && (
+                        <Typography variant="body2" className="text-white">
+                          Posledný sync: {lastSync.toLocaleTimeString()}
+                        </Typography>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Action Buttons */}
-                <Box display="flex" gap={1} flexWrap="wrap">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<RefreshIcon />}
-                    onClick={handleRetry}
-                    disabled={isRetrying}
-                    sx={{
-                      color: 'white',
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                      '&:hover': {
-                        borderColor: 'white',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                      },
-                    }}
-                  >
-                    {isRetrying ? 'Skúšam...' : 'Skúsiť znovu'}
-                  </Button>
-
-                  {pendingActions > 0 && isOnline && (
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 flex-wrap">
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<SyncIcon />}
-                      onClick={async () => {
-                        if ('serviceWorker' in navigator) {
-                          const registration =
-                            await navigator.serviceWorker.ready;
-                          // Background sync (if supported)
-                          if ('sync' in registration) {
-                            (
-                              registration as ServiceWorkerRegistration & {
-                                sync?: {
-                                  register: (tag: string) => Promise<void>;
-                                };
-                              }
-                            ).sync?.register('blackrent-sync');
-                          }
-                        }
-                      }}
-                      sx={{
-                        color: 'white',
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
-                        '&:hover': {
-                          borderColor: 'white',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                        },
-                      }}
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRetry}
+                      disabled={isRetrying}
+                      className="text-white border-white/50 hover:border-white hover:bg-white/10"
                     >
-                      Synchronizovať
+                      <RefreshIcon size={16} className="mr-2" />
+                      {isRetrying ? 'Skúšam...' : 'Skúsiť znovu'}
                     </Button>
-                  )}
-                </Box>
 
-                <Alert
-                  severity={isOffline ? 'warning' : 'success'}
-                  sx={{
-                    mt: 2,
-                    '& .MuiAlert-root': {
-                      color: 'inherit',
-                    },
-                  }}
-                >
-                  {isOffline
-                    ? 'Vaše akcie budú synchronizované po obnovení pripojenia.'
-                    : 'Všetko funguje správne. Akcie sa synchronizujú automaticky.'}
-                </Alert>
-              </Box>
-            </Collapse>
+                    {pendingActions > 0 && isOnline && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+                            const registration =
+                              await window.navigator.serviceWorker.ready;
+                            // Background sync (if supported)
+                            if ('sync' in registration) {
+                              (registration as any).sync.register('blackrent-sync');
+                            }
+                          }
+                        }}
+                        className="text-white border-white/50 hover:border-white hover:bg-white/10"
+                      >
+                        <SyncIcon size={16} className="mr-2" />
+                        Synchronizovať
+                      </Button>
+                    )}
+                  </div>
+
+                  <Alert className={`mt-4 ${isOffline ? 'bg-yellow-600/20 border-yellow-500' : 'bg-green-600/20 border-green-500'}`}>
+                    <AlertDescription className="text-white">
+                      {isOffline
+                        ? 'Vaše akcie budú synchronizované po obnovení pripojenia.'
+                        : 'Všetko funguje správne. Akcie sa synchronizujú automaticky.'}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
-        </Paper>
-
-        {/* Global Styles for Animations */}
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-          
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </Box>
-    </Slide>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

@@ -1,12 +1,7 @@
-import type { Theme } from '@mui/material/styles';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-
-import { darkTheme } from '../theme/darkTheme';
-import { theme as lightTheme } from '../theme/theme';
 
 interface ThemeContextType {
   isDarkMode: boolean;
-  theme: Theme;
   toggleTheme: () => void;
 }
 
@@ -38,9 +33,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   };
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getInitialDarkMode);
-  const [currentTheme, setCurrentTheme] = useState<Theme>(
-    isDarkMode ? darkTheme : lightTheme
-  );
+  // const [currentTheme, setCurrentTheme] = useState<Theme>(
+  //   isDarkMode ? darkTheme : lightTheme
+  // ); // Removed - using shadcn/ui theme system
 
   const toggleTheme = () => {
     setIsDarkMode(prev => {
@@ -52,17 +47,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Update theme when isDarkMode changes
   useEffect(() => {
-    setCurrentTheme(isDarkMode ? darkTheme : lightTheme);
+    // setCurrentTheme(isDarkMode ? darkTheme : lightTheme); // Removed - using shadcn/ui theme system
 
-    // Update document class for CSS-in-JS components
+    // Update document class for shadcn/ui theme system
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
-      document.body.style.backgroundColor = '#0f172a';
-      document.body.style.color = '#ffffff';
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      document.body.style.backgroundColor = '#ffffff';
-      document.body.style.color = '#1f2937';
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -84,7 +77,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const value: ThemeContextType = {
     isDarkMode,
-    theme: currentTheme,
+    // theme: currentTheme, // Removed - using shadcn/ui theme system
     toggleTheme,
   };
 

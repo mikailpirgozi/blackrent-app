@@ -54,7 +54,7 @@ export const createMemoizedHandlers = <T>(
   );
   return Object.keys(handlers).reduce(
     (memo, key) => {
-      memo[key] = handlers[key]; // Vráti originálne handlery bez memoization
+      memo[key] = handlers[key]!; // Vráti originálne handlery bez memoization
       return memo;
     },
     {} as Record<string, (item: T) => void>

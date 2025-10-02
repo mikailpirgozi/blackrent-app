@@ -131,7 +131,7 @@ export const preloadCriticalImages = (imageUrls: string[]): void => {
  */
 export class ImageLazyLoader {
   private observer: IntersectionObserver | null = null;
-  private imageQueue: Set<HTMLImageElement> = new Set();
+  // private imageQueue: Set<HTMLImageElement> = new Set();
   private loadedImages: Set<string> = new Set();
 
   constructor(

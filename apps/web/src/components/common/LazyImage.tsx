@@ -4,20 +4,15 @@
  * Optimalizovaný image komponent s lazy loading a placeholder support
  */
 
-import {
-  Error as ErrorIcon,
-  Image as ImageIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Fade,
-  IconButton,
-  Skeleton,
-  Typography,
-  useTheme,
-} from '@mui/material';
 import React, { forwardRef, memo } from 'react';
+import { Button } from '../ui/button';
+import { Skeleton } from '../ui/skeleton';
+import {
+  AlertCircle,
+  Image as ImageIcon,
+  RefreshCw,
+  Loader2,
+} from 'lucide-react';
 
 import { useLazyImage, useProgressiveImage } from '../../hooks/useLazyImage';
 
@@ -69,8 +64,6 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
     },
     ref
   ) => {
-    const theme = useTheme();
-
     // Always call both hooks to avoid conditional hook calls
     const progressiveImageHook = useProgressiveImage(
       lowQualitySrc || src,
@@ -79,8 +72,8 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
         threshold,
         rootMargin,
         retryAttempts,
-        onLoad,
-        onError,
+        ...(onLoad && { onLoad }),
+        ...(onError && { onError }),
       }
     );
 
@@ -88,8 +81,8 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
       threshold,
       rootMargin,
       retryAttempts,
-      onLoad,
-      onError,
+      ...(onLoad && { onLoad }),
+      ...(onError && { onError }),
     });
 
     // Use progressive loading if low quality src is provided
@@ -114,7 +107,7 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
       borderRadius,
       overflow: 'hidden',
       position: 'relative' as const,
-      backgroundColor: placeholderColor || theme.palette.grey[100],
+      backgroundColor: placeholderColor || '#f5f5f5',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -132,52 +125,35 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
         case 'skeleton':
           return (
             <Skeleton
-              variant="rectangular"
-              width="100%"
-              height="100%"
-              animation="wave"
-              sx={{ borderRadius }}
+              className="w-full h-full"
+              style={{ borderRadius }}
             />
           );
 
         case 'icon':
           return (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1,
-                color: 'text.disabled',
-              }}
-            >
-              <ImageIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <ImageIcon className="h-12 w-12 opacity-50" />
+              <p className="text-xs opacity-70">
                 {isLoading ? 'Načítava...' : 'Obrázok'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           );
 
         case 'blur':
           return (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
+            <div
+              className="absolute inset-0 opacity-30 blur-sm"
+              style={{
                 background: `linear-gradient(45deg, 
-                ${theme.palette.grey[200]} 25%, 
+                #e5e5e5 25%, 
                 transparent 25%, 
                 transparent 75%, 
-                ${theme.palette.grey[200]} 75%, 
-                ${theme.palette.grey[200]}
+                #e5e5e5 75%, 
+                #e5e5e5
               )`,
                 backgroundSize: '20px 20px',
                 backgroundPosition: '0 0, 10px 10px',
-                filter: 'blur(1px)',
-                opacity: 0.3,
               }}
             />
           );
@@ -189,37 +165,21 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
 
     // Render error state
     const renderError = () => (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 1,
-          color: 'error.main',
-          p: 2,
-        }}
-      >
-        <ErrorIcon sx={{ fontSize: 32 }} />
-        <Typography variant="caption" align="center" sx={{ opacity: 0.8 }}>
+      <div className="flex flex-col items-center gap-2 text-red-500 p-4">
+        <AlertCircle className="h-8 w-8" />
+        <p className="text-xs text-center opacity-80">
           Obrázok sa nepodarilo načítať
-        </Typography>
+        </p>
         {showRetry && (
-          <IconButton
-            size="small"
+          <Button
+            size="sm"
             onClick={retry}
-            sx={{
-              mt: 0.5,
-              backgroundColor: 'error.main',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'error.dark',
-              },
-            }}
+            className="mt-1 bg-red-500 text-white hover:bg-red-600 h-8 w-8 p-0"
           >
-            <RefreshIcon fontSize="small" />
-          </IconButton>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         )}
-      </Box>
+      </div>
     );
 
     // Combine refs
@@ -238,7 +198,7 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
     };
 
     return (
-      <Box className={className} sx={containerStyles} onClick={onClick}>
+      <div className={className} style={containerStyles} onClick={onClick}>
         {/* Placeholder/Loading state */}
         {!loadedSrc && !hasError && renderPlaceholder()}
 
@@ -247,90 +207,43 @@ const LazyImage = forwardRef<HTMLImageElement, LazyImageProps>(
 
         {/* Loaded image */}
         {loadedSrc && !hasError && (
-          <Fade
-            in={true}
-            timeout={fadeInDuration}
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-            }}
+          <div
+            className="w-full h-full absolute top-0 left-0 transition-opacity duration-300"
+            style={{ animation: `fadeIn ${fadeInDuration}ms ease-out` }}
           >
             <img
               ref={combinedRef}
               src={loadedSrc}
               alt={alt}
+              className="w-full h-full transition-all duration-300"
               style={{
-                width: '100%',
-                height: '100%',
                 objectFit,
-                transition: `filter ${fadeInDuration}ms ease-out`,
                 filter: isHighQuality ? 'none' : 'blur(2px)',
               }}
               loading="lazy" // Native lazy loading as fallback
               onLoad={onLoad}
               onError={onError}
             />
-          </Fade>
+          </div>
         )}
 
         {/* Loading indicator overlay */}
         {isLoading && isInView && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              borderRadius: 1,
-              p: 0.5,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-            }}
-          >
-            <Box
-              sx={{
-                width: 12,
-                height: 12,
-                borderRadius: '50%',
-                border: '2px solid transparent',
-                borderTop: '2px solid white',
-                animation: 'spin 1s linear infinite',
-                '@keyframes spin': {
-                  '0%': { transform: 'rotate(0deg)' },
-                  '100%': { transform: 'rotate(360deg)' },
-                },
-              }}
-            />
-            <Typography variant="caption" sx={{ color: 'white', fontSize: 10 }}>
+          <div className="absolute top-2 right-2 bg-black/60 rounded p-1 flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin text-white" />
+            <p className="text-white text-[10px]">
               {isProgressive && !isHighQuality ? 'HD' : 'Načítava'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* Progressive quality indicator */}
         {isProgressive && loadedSrc && !isHighQuality && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              backgroundColor: 'rgba(255,165,0,0.8)',
-              color: 'white',
-              px: 1,
-              py: 0.5,
-              borderRadius: 1,
-              fontSize: 10,
-              fontWeight: 600,
-            }}
-          >
+          <div className="absolute bottom-2 left-2 bg-orange-500/80 text-white px-2 py-1 rounded text-[10px] font-semibold">
             Optimalizuje sa...
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
     );
   }
 );

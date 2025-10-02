@@ -9,8 +9,8 @@
  * - Memory efficient
  */
 
-import { Box, Skeleton } from '@mui/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Skeleton } from '../ui/skeleton';
 
 interface OptimizedImageProps {
   src: string;
@@ -127,9 +127,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const optimizedSrc = getOptimizedUrl(src);
 
   return (
-    <Box
+    <div
       ref={containerRef}
-      sx={{
+      style={{
         position: 'relative',
         width,
         height,
@@ -142,16 +142,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {/* 🔄 Loading skeleton */}
       {!isLoaded && !hasError && (
         <Skeleton
-          variant="rectangular"
-          width="100%"
-          height="100%"
-          animation="wave"
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            zIndex: 1,
-          }}
+          className="absolute top-0 left-0 z-[1] w-full h-full"
         />
       )}
 
@@ -181,26 +172,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
       {/* ❌ Error fallback */}
       {hasError && (
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#f5f5f5',
-            color: '#999',
-            fontSize: '0.875rem',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            zIndex: 3,
-          }}
+        <div
+          className="absolute top-0 left-0 z-[3] w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-sm"
         >
           📷 Obrázok sa nepodarilo načítať
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

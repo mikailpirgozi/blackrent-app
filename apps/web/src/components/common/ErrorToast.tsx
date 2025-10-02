@@ -9,21 +9,19 @@
  */
 
 import {
-  Close as CloseIcon,
+  X as CloseIcon,
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
+  RotateCcw as RefreshIcon,
+} from 'lucide-react';
 import {
   Alert,
-  Snackbar,
-  Box,
+  AlertDescription,
+  Button,
+  Progress,
+  Badge,
   Typography,
-  IconButton,
-  LinearProgress,
-  Chip,
-} from '@mui/material';
+} from '@/components/ui';
 import React, { useState, useEffect } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -40,11 +38,11 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   error,
   onClose,
   onRetry,
-  autoHideDuration = 6000,
+  // autoHideDuration = 6000,
 }) => {
   const [open, setOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
-  const { isOnline, networkQuality, wasOffline } = useNetworkStatus();
+  const { isOnline, networkQuality } = useNetworkStatus();
 
   // Show toast when error appears
   useEffect(() => {
@@ -54,13 +52,9 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   }, [error]);
 
   // Handle close
-  const handleClose = (
-    event?: React.SyntheticEvent | Event,
-    reason?: string
-  ) => {
-    if (reason === 'clickaway') return;
+  const handleClose = () => {
     setOpen(false);
-    setTimeout(onClose, 300); // Wait for animation
+    window.setTimeout(onClose, 300); // Wait for animation
   };
 
   // Handle retry
@@ -71,7 +65,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
     try {
       await onRetry();
       setOpen(false);
-      setTimeout(onClose, 300);
+      window.setTimeout(onClose, 300);
     } catch (err) {
       console.error('Retry failed:', err);
     } finally {
@@ -79,151 +73,103 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
     }
   };
 
-  // Get alert severity based on error type
-  const getSeverity = () => {
-    if (!error) return 'info';
+  // Get alert classes based on error type
+  const getAlertClasses = () => {
+    if (!error) return 'bg-blue-900/50 border-blue-700';
 
     switch (error.errorType) {
       case 'connection':
-        return 'warning';
+        return 'bg-yellow-900/50 border-yellow-700';
       case 'server':
-        return 'error';
+        return 'bg-red-900/50 border-red-700';
       case 'timeout':
-        return 'warning';
+        return 'bg-yellow-900/50 border-yellow-700';
       default:
-        return 'error';
+        return 'bg-red-900/50 border-red-700';
     }
   };
 
   // Get connection icon
   const getConnectionIcon = () => {
-    if (!isOnline) return <WifiOffIcon fontSize="small" />;
+    if (!isOnline) return <WifiOffIcon size={16} />;
 
     switch (networkQuality) {
       case 'slow':
-        return <WifiIcon fontSize="small" sx={{ color: 'orange' }} />;
+        return <WifiIcon size={16} className="text-orange-400" />;
       case 'medium':
-        return <WifiIcon fontSize="small" sx={{ color: 'green' }} />;
+        return <WifiIcon size={16} className="text-green-400" />;
       case 'fast':
-        return <WifiIcon fontSize="small" sx={{ color: 'blue' }} />;
+        return <WifiIcon size={16} className="text-blue-400" />;
       default:
-        return <WifiIcon fontSize="small" />;
+        return <WifiIcon size={16} />;
     }
   };
 
   if (!error) return null;
 
   return (
-    <Snackbar
-      open={open}
-      autoHideDuration={error.isRetryable ? null : autoHideDuration}
-      onClose={handleClose}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-    >
-      <Alert
-        severity={getSeverity()}
-        variant="filled"
-        onClose={handleClose}
-        sx={{
-          minWidth: 300,
-          maxWidth: 500,
-          '& .MuiAlert-message': {
-            width: '100%',
-          },
-        }}
-        action={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <div className={`fixed top-4 right-4 z-50 transition-all duration-300 ${open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+      <Alert className={`min-w-[300px] max-w-[500px] ${getAlertClasses()}`}>
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            {getConnectionIcon()}
+          </div>
+          <div className="flex-1">
+            <AlertDescription className="text-white">
+              {error.message}
+            </AlertDescription>
+            
+            {/* Error details */}
+            {error.technicalMessage && (
+              <Typography variant="body2" className="text-white/80 mt-1 text-sm">
+                {error.technicalMessage}
+              </Typography>
+            )}
+
+            {/* Progress bar for retrying */}
+            {isRetrying && (
+              <Progress className="mt-2 h-1" />
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
             {/* Connection status */}
-            <Chip
-              icon={getConnectionIcon()}
-              label={isOnline ? networkQuality : 'offline'}
-              size="small"
-              variant="outlined"
-              sx={{
-                bgcolor: 'rgba(255,255,255,0.1)',
-                color: 'inherit',
-                borderColor: 'rgba(255,255,255,0.3)',
-              }}
-            />
+            <Badge
+              variant="outline"
+              className="bg-white/10 text-white border-white/30 text-xs"
+            >
+              {getConnectionIcon()}
+              {isOnline ? networkQuality : 'offline'}
+            </Badge>
 
             {/* Retry button */}
             {error.isRetryable && onRetry && (
-              <IconButton
-                size="small"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleRetry}
                 disabled={isRetrying || !isOnline}
-                sx={{ color: 'inherit' }}
+                className="text-white hover:bg-white/10"
               >
-                <RefreshIcon
-                  fontSize="small"
-                  sx={{
-                    animation: isRetrying ? 'spin 1s linear infinite' : 'none',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' },
-                    },
-                  }}
+                <RefreshIcon 
+                  size={16} 
+                  className={isRetrying ? 'animate-spin' : ''}
                 />
-              </IconButton>
+              </Button>
             )}
 
-            <IconButton
-              size="small"
+            {/* Close button */}
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleClose}
-              sx={{ color: 'inherit' }}
+              className="text-white hover:bg-white/10"
             >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        }
-      >
-        <Box>
-          <Typography variant="body2" fontWeight="medium">
-            {error.userMessage}
-          </Typography>
-
-          {/* Progress bar for retrying */}
-          {isRetrying && (
-            <Box sx={{ mt: 1 }}>
-              <LinearProgress
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: 'rgba(255,255,255,0.8)',
-                  },
-                }}
-              />
-              <Typography variant="caption" sx={{ mt: 0.5, opacity: 0.8 }}>
-                Skúšam znova...
-              </Typography>
-            </Box>
-          )}
-
-          {/* Network status indicator */}
-          {wasOffline && isOnline && (
-            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleIcon fontSize="small" />
-              <Typography variant="caption">Pripojenie obnovené</Typography>
-            </Box>
-          )}
-
-          {/* Technical details (development mode) */}
-          {process.env.NODE_ENV === 'development' && (
-            <Typography
-              variant="caption"
-              sx={{
-                mt: 1,
-                display: 'block',
-                opacity: 0.7,
-                fontFamily: 'monospace',
-                fontSize: '0.7rem',
-              }}
-            >
-              {error.technicalMessage}
-            </Typography>
-          )}
-        </Box>
+              <CloseIcon size={16} />
+            </Button>
+          </div>
+        </div>
       </Alert>
-    </Snackbar>
+    </div>
   );
 };

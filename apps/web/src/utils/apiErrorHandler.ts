@@ -306,7 +306,7 @@ export const createApiErrorHandler = (
   logError?: (error: ApiError, context?: ErrorContext) => void
 ): ApiErrorHandlerConfig => ({
   showUserError,
-  logError,
+  logError: logError ?? (() => {}),
   onRetryAttempt: (attempt, maxRetries) => {
     console.log(`🔄 API retry attempt ${attempt}/${maxRetries}`);
   },

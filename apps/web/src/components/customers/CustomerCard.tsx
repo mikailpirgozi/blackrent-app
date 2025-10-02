@@ -6,13 +6,20 @@
 
 import {
   Edit as EditIcon,
-  Delete as DeleteIcon,
+  Trash2 as DeleteIcon,
   Phone as PhoneIcon,
-  Email as EmailIcon,
-  // Business as BusinessIcon, // TODO: Implement business icon
-} from '@mui/icons-material';
-import { Box, Typography, Chip, IconButton, Tooltip } from '@mui/material';
-import React, { memo, useCallback } from 'react';
+  Mail as EmailIcon,
+  // Building as BusinessIcon, // TODO: Implement business icon
+} from 'lucide-react';
+import { memo, useCallback } from 'react';
+import { Typography } from '../ui/typography';
+import { Badge } from '../ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
 
 import type { Customer } from '../../types';
 
@@ -48,185 +55,126 @@ const CustomerCard = memo<CustomerCardProps>(
     const rentalCount = getCustomerRentalCount(customer.id);
 
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          borderBottom:
-            index < totalCustomers - 1 ? '1px solid #e0e0e0' : 'none',
-          '&:hover': { backgroundColor: '#f8f9fa' },
-          minHeight: 80,
-          cursor: 'pointer',
-        }}
+      <div
+        className={`flex min-h-[80px] cursor-pointer hover:bg-[#f8f9fa] ${
+          index < totalCustomers - 1 ? 'border-b border-[#e0e0e0]' : ''
+        }`}
         onClick={handleEdit}
       >
         {/* Customer Info - sticky left */}
-        <Box
-          sx={{
-            width: { xs: 140, sm: 160 },
-            maxWidth: { xs: 140, sm: 160 },
-            p: { xs: 1, sm: 1.5 },
-            borderRight: '2px solid #e0e0e0',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            backgroundColor: '#ffffff',
-            position: 'sticky',
-            left: 0,
-            zIndex: 10,
-            overflow: 'hidden',
-          }}
+        <div
+          className="w-[140px] sm:w-[160px] max-w-[140px] sm:max-w-[160px] p-2 sm:p-3 border-r-2 border-[#e0e0e0] flex flex-col justify-center bg-white sticky left-0 z-10 overflow-hidden"
         >
           <Typography
             variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              fontSize: { xs: '0.75rem', sm: '0.8rem' },
-              color: '#1976d2',
-              lineHeight: 1.2,
-              wordWrap: 'break-word',
-              mb: { xs: 0.25, sm: 0.5 },
-            }}
+            className="font-semibold text-[0.75rem] sm:text-[0.8rem] text-[#1976d2] leading-tight break-words mb-0.5 sm:mb-1"
           >
             {customer.name}
           </Typography>
           <Typography
             variant="caption"
-            sx={{
-              color: 'text.secondary',
-              fontSize: { xs: '0.65rem', sm: '0.7rem' },
-              lineHeight: 1.1,
-            }}
+            className="text-muted-foreground text-[0.65rem] sm:text-[0.7rem] leading-tight"
           >
             {customer.email
               ? customer.email.substring(0, 20) +
                 (customer.email.length > 20 ? '...' : '')
               : 'Bez emailu'}
           </Typography>
-        </Box>
+        </div>
 
         {/* Contact Info */}
-        <Box
-          sx={{
-            flex: 1,
-            p: { xs: 1, sm: 1.5 },
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
+        <div
+          className="flex-1 p-2 sm:p-3 flex flex-col justify-center overflow-hidden"
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          <div className="flex items-center gap-2 mb-1">
             {customer.phone && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-1">
                 <PhoneIcon
-                  sx={{ fontSize: { xs: 14, sm: 16 }, color: 'text.secondary' }}
+                  className="text-[14px] sm:text-[16px] text-muted-foreground"
                 />
                 <Typography
                   variant="body2"
-                  sx={{
-                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    color: 'text.primary',
-                  }}
+                  className="text-[0.7rem] sm:text-[0.75rem] text-foreground"
                 >
                   {customer.phone}
                 </Typography>
-              </Box>
+              </div>
             )}
             {customer.email && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-1">
                 <EmailIcon
-                  sx={{ fontSize: { xs: 14, sm: 16 }, color: 'text.secondary' }}
+                  className="text-[14px] sm:text-[16px] text-muted-foreground"
                 />
                 <Typography
                   variant="body2"
-                  sx={{
-                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    color: 'text.primary',
-                    maxWidth: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="text-[0.7rem] sm:text-[0.75rem] text-foreground max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
                 >
                   {customer.email}
                 </Typography>
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* Company field removed - not in Customer type */}
-        </Box>
+        </div>
 
         {/* Rental Count */}
-        <Box
-          sx={{
-            width: { xs: 60, sm: 80 },
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRight: '1px solid #e0e0e0',
-          }}
+        <div
+          className="w-[60px] sm:w-[80px] flex items-center justify-center border-r border-[#e0e0e0]"
         >
-          <Chip
-            label={rentalCount}
-            size="small"
-            sx={{
-              height: 24,
-              fontSize: { xs: '0.7rem', sm: '0.75rem' },
-              bgcolor: rentalCount > 0 ? '#e3f2fd' : '#f5f5f5',
-              color: rentalCount > 0 ? '#1976d2' : '#666',
-              fontWeight: 600,
-              minWidth: { xs: 28, sm: 32 },
-            }}
-          />
-        </Box>
+          <Badge
+            className={`h-6 text-[0.7rem] sm:text-[0.75rem] font-semibold min-w-[28px] sm:min-w-[32px] ${
+              rentalCount > 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'
+            }`}
+            variant={rentalCount > 0 ? 'secondary' : 'outline'}
+          >
+            {rentalCount}
+          </Badge>
+        </div>
 
         {/* Actions */}
-        <Box
-          sx={{
-            width: { xs: 80, sm: 100 },
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.5,
-          }}
+        <div
+          className="w-[80px] sm:w-[100px] flex items-center justify-center gap-1"
         >
-          <Tooltip title="Upraviť zákazníka">
-            <IconButton
-              size="small"
+          <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+            <button
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#1976d2] hover:bg-blue-50 rounded-full transition-colors"
               onClick={e => {
                 e.stopPropagation();
                 handleEdit();
               }}
-              sx={{
-                width: { xs: 32, sm: 36 },
-                height: { xs: 32, sm: 36 },
-                color: '#1976d2',
-                '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
-              }}
             >
-              <EditIcon fontSize="small" />
-            </IconButton>
+              <EditIcon className="text-[20px]" />
+            </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Upraviť zákazníka</p>
+            </TooltipContent>
           </Tooltip>
-          <Tooltip title="Zmazať zákazníka">
-            <IconButton
-              size="small"
+          </TooltipProvider>
+          
+          <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+            <button
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#d32f2f] hover:bg-red-50 rounded-full transition-colors"
               onClick={e => {
                 e.stopPropagation();
                 handleDelete();
               }}
-              sx={{
-                width: { xs: 32, sm: 36 },
-                height: { xs: 32, sm: 36 },
-                color: '#d32f2f',
-                '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.08)' },
-              }}
             >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+              <DeleteIcon className="text-[20px]" />
+            </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Zmazať zákazníka</p>
+            </TooltipContent>
           </Tooltip>
-        </Box>
-      </Box>
+          </TooltipProvider>
+        </div>
+      </div>
     );
   }
 );

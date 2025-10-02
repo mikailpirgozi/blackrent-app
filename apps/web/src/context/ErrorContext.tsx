@@ -148,6 +148,8 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({
           message: '✅ Pripojenie obnovené!',
           category: 'network',
           severity: 'info',
+          details: 'Pripojenie k internetu bolo úspešne obnovené.',
+          context: { timestamp: new Date().toISOString() },
           retry: false,
         });
       }
@@ -160,6 +162,7 @@ export const ErrorProvider: React.FC<ErrorProviderProps> = ({
         category: 'network',
         severity: 'warning',
         details: 'Niektoré funkcie môžu byť obmedzené.',
+        context: { timestamp: new Date().toISOString() },
         retry: false,
       });
     };

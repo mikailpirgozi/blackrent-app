@@ -1,18 +1,13 @@
 import {
-  Business as BusinessIcon,
+  Building2 as BusinessIcon,
   Edit as EditIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  Chip,
-  Collapse,
-  Grid,
-  IconButton,
-  TextField,
-  Typography,
-} from '@mui/material';
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import React, { useCallback, useEffect, useState } from 'react';
 
 // import { Vehicle, VehicleStatus } from '../../../types'; // Nepoužívané
@@ -50,28 +45,37 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
     }>
   >([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
-  const [editData, setEditData] = useState({
-    name: company.name || '',
-    ownerName: company.ownerName || '',
-    personalIban: company.personalIban || '',
-    businessIban: company.businessIban || '',
-    contactEmail: company.contactEmail || '',
-    contactPhone: company.contactPhone || '',
-    defaultCommissionRate: company.defaultCommissionRate || 20,
-    protocolDisplayName: company.protocolDisplayName || '',
+  const [editData, setEditData] = useState<{
+    name: string;
+    ownerName: string;
+    personalIban: string;
+    businessIban: string;
+    contactEmail: string;
+    contactPhone: string;
+    defaultCommissionRate: number;
+    protocolDisplayName: string;
+  }>({
+    name: String(company.name || ''),
+    ownerName: String(company.ownerName || ''),
+    personalIban: String(company.personalIban || ''),
+    businessIban: String(company.businessIban || ''),
+    contactEmail: String(company.contactEmail || ''),
+    contactPhone: String(company.contactPhone || ''),
+    defaultCommissionRate: Number(company.defaultCommissionRate) || 20,
+    protocolDisplayName: String(company.protocolDisplayName || ''),
   });
 
   // 🔄 Aktualizuj editData keď sa company data zmenia
   useEffect(() => {
     setEditData({
-      name: company.name || '',
-      ownerName: company.ownerName || '',
-      personalIban: company.personalIban || '',
-      businessIban: company.businessIban || '',
-      contactEmail: company.contactEmail || '',
-      contactPhone: company.contactPhone || '',
-      defaultCommissionRate: company.defaultCommissionRate || 20,
-      protocolDisplayName: company.protocolDisplayName || '',
+      name: String(company.name || ''),
+      ownerName: String(company.ownerName || ''),
+      personalIban: String(company.personalIban || ''),
+      businessIban: String(company.businessIban || ''),
+      contactEmail: String(company.contactEmail || ''),
+      contactPhone: String(company.contactPhone || ''),
+      defaultCommissionRate: Number(company.defaultCommissionRate) || 20,
+      protocolDisplayName: String(company.protocolDisplayName || ''),
     });
   }, [company]);
 
@@ -135,291 +139,250 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
         }
       } else {
         console.error('❌ Failed to save owner data:', result.error);
-        alert(`Chyba pri ukladaní: ${result.error}`);
+        // TODO: Replace with proper toast notification
+        window.alert(`Chyba pri ukladaní: ${result.error}`);
       }
     } catch (error) {
       console.error('❌ Error saving owner data:', error);
-      alert('Chyba pri ukladaní údajov majiteľa');
+      // TODO: Replace with proper toast notification
+      window.alert('Chyba pri ukladaní údajov majiteľa');
     }
   };
 
   return (
-    <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
+    <Card className="mb-2 border border-border">
       {/* Header - Majiteľ info */}
-      <Box
-        sx={{
-          p: 2,
-          bgcolor: 'grey.50',
-          cursor: 'pointer',
-          '&:hover': { bgcolor: 'grey.100' },
-        }}
+      <div
+        className="p-4 bg-gray-50 cursor-pointer hover:bg-gray-100"
         onClick={() => setExpanded(!expanded)}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Typography
-              variant="h6"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <BusinessIcon color="primary" />
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <BusinessIcon className="h-5 w-5 text-primary" />
               {String(company.name)}
-              <Chip
-                label={`${vehicles.length} vozidiel`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            </Typography>
+              <Badge
+                variant="outline"
+                className="text-xs"
+              >
+                {vehicles.length} vozidiel
+              </Badge>
+            </h3>
 
             {/* Základné info o majiteľovi */}
-            <Box sx={{ mt: 1, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <div className="mt-2 flex gap-6 flex-wrap">
               {(company.ownerName as string) && (
-                <Typography variant="body2" color="text.secondary">
+                <p className="text-sm text-muted-foreground">
                   👤 {String(company.ownerName)}
-                </Typography>
+                </p>
               )}
               {(company.contactEmail as string) && (
-                <Typography variant="body2" color="text.secondary">
+                <p className="text-sm text-muted-foreground">
                   📧 {String(company.contactEmail)}
-                </Typography>
+                </p>
               )}
               {(company.contactPhone as string) && (
-                <Typography variant="body2" color="text.secondary">
+                <p className="text-sm text-muted-foreground">
                   📞 {String(company.contactPhone)}
-                </Typography>
+                </p>
               )}
-              <Typography variant="body2" color="text.secondary">
+              <p className="text-sm text-muted-foreground">
                 💰 Provízia: {String(company.defaultCommissionRate) || '20'}%
-              </Typography>
+              </p>
               {(company.protocolDisplayName as string) && (
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'warning.main', fontWeight: 'medium' }}
-                >
+                <p className="text-sm text-yellow-600 font-medium">
                   📄 Fakturačná firma: {String(company.protocolDisplayName)}
-                </Typography>
+                </p>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton
-              size="small"
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={e => {
                 e.stopPropagation();
                 setEditMode(!editMode);
               }}
-              sx={{
-                bgcolor: editMode ? 'primary.main' : 'transparent',
-                color: editMode ? 'white' : 'primary.main',
-              }}
+              className={`${editMode ? 'bg-primary text-primary-foreground' : 'bg-transparent text-primary'}`}
             >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton size="small">{expanded ? '🔽' : '▶️'}</IconButton>
-          </Box>
-        </Box>
-      </Box>
+              <EditIcon className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              {expanded ? '🔽' : '▶️'}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Edit Mode - Rozšírené informácie */}
-      <Collapse in={editMode}>
-        <Box
-          sx={{
-            p: 3,
-            bgcolor: 'background.paper',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            ✏️ Úprava informácií majiteľa
-          </Typography>
+      <Collapsible open={editMode}>
+        <CollapsibleContent>
+          <div className="p-6 bg-background border-t border-border">
+            <h4 className="text-lg font-semibold mb-4">
+              ✏️ Úprava informácií majiteľa
+            </h4>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Názov firmy/s.r.o."
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label htmlFor="company-name">Názov firmy/s.r.o.</Label>
+              <Input
+                id="company-name"
                 value={editData.name}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({ ...prev, name: e.target.value }))
                 }
-                size="small"
+                className="bg-primary/10"
                 required
-                sx={{ bgcolor: 'primary.50' }}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Meno a priezvisko majiteľa"
+            </div>
+            <div>
+              <Label htmlFor="owner-name">Meno a priezvisko majiteľa</Label>
+              <Input
+                id="owner-name"
                 value={editData.ownerName}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({ ...prev, ownerName: e.target.value }))
                 }
-                size="small"
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Kontaktný email"
+            </div>
+            <div>
+              <Label htmlFor="contact-email">Kontaktný email</Label>
+              <Input
+                id="contact-email"
                 type="email"
                 value={editData.contactEmail}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     contactEmail: e.target.value,
                   }))
                 }
-                size="small"
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Kontaktný telefón"
+            </div>
+            <div>
+              <Label htmlFor="contact-phone">Kontaktný telefón</Label>
+              <Input
+                id="contact-phone"
                 value={editData.contactPhone}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     contactPhone: e.target.value,
                   }))
                 }
-                size="small"
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Default provízia (%)"
+            </div>
+            <div>
+              <Label htmlFor="commission-rate">Default provízia (%)</Label>
+              <Input
+                id="commission-rate"
                 type="number"
                 value={editData.defaultCommissionRate}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     defaultCommissionRate: parseFloat(e.target.value) || 20,
                   }))
                 }
-                size="small"
-                inputProps={{ min: 0, max: 100, step: 0.1 }}
+                min={0}
+                max={100}
+                step={0.1}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Súkromný IBAN"
+            </div>
+            <div>
+              <Label htmlFor="personal-iban">Súkromný IBAN</Label>
+              <Input
+                id="personal-iban"
                 value={editData.personalIban}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     personalIban: e.target.value,
                   }))
                 }
-                size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Firemný IBAN"
+            </div>
+            <div>
+              <Label htmlFor="business-iban">Firemný IBAN</Label>
+              <Input
+                id="business-iban"
                 value={editData.businessIban}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     businessIban: e.target.value,
                   }))
                 }
-                size="small"
                 placeholder="SK89 0000 0000 0000 0000 0000"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Fakturačná firma (pre protokoly)"
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="protocol-name">Fakturačná firma (pre protokoly)</Label>
+              <Input
+                id="protocol-name"
                 value={editData.protocolDisplayName}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditData(prev => ({
                     ...prev,
                     protocolDisplayName: e.target.value,
                   }))
                 }
-                size="small"
                 placeholder="Napr. P2 invest s.r.o."
-                helperText="Názov firmy ktorý sa zobrazí na protokoloch namiesto interného názvu"
-                sx={{ bgcolor: 'warning.50' }}
+                className="bg-yellow-50"
               />
-            </Grid>
-          </Grid>
+              <p className="text-xs text-muted-foreground mt-1">
+                Názov firmy ktorý sa zobrazí na protokoloch namiesto interného názvu
+              </p>
+            </div>
+            </div>
 
-          <Box
-            sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}
-          >
-            <Button
-              variant="outlined"
-              onClick={() => setEditMode(false)}
-              size="small"
-            >
-              Zrušiť
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSaveOwnerData}
-              size="small"
-            >
-              💾 Uložiť
-            </Button>
-          </Box>
-        </Box>
-      </Collapse>
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setEditMode(false)}
+                size="sm"
+              >
+                Zrušiť
+              </Button>
+              <Button
+                variant="default"
+                onClick={handleSaveOwnerData}
+                size="sm"
+              >
+                💾 Uložiť
+              </Button>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Vozidlá majiteľa - Rozbaliteľné */}
-      <Collapse in={expanded}>
-        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography
-            variant="subtitle1"
-            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            🚗 Vozidlá majiteľa ({vehicles.length})
-          </Typography>
+      <Collapsible open={expanded}>
+        <CollapsibleContent>
+          <div className="p-4 border-t border-border">
+            <h5 className="text-base font-medium mb-4 flex items-center gap-2">
+              🚗 Vozidlá majiteľa ({vehicles.length})
+            </h5>
 
           {vehicles.map(vehicle => (
-            <Box
+            <div
               key={vehicle.id}
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 2,
-                mb: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                },
-              }}
+              className="flex justify-between items-center p-4 mb-2 border border-border rounded-md bg-background hover:bg-muted/50"
             >
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle2">
+              <div className="flex-1">
+                <h6 className="text-sm font-semibold">
                   {vehicle.brand} {vehicle.model}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </h6>
+                <p className="text-sm text-muted-foreground">
                   ŠPZ: {vehicle.licensePlate}
                   {vehicle.year && ` • Rok: ${vehicle.year}`}
-                </Typography>
+                </p>
 
                 {/* Individuálna provízia vozidla */}
-                <Typography variant="caption" color="text.secondary">
+                <p className="text-xs text-muted-foreground">
                   Provízia:{' '}
                   {vehicle.commission?.value ||
                     Number(company.defaultCommissionRate) ||
@@ -427,21 +390,23 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
                   %
                   {vehicle.commission?.value !==
                     Number(company.defaultCommissionRate) && (
-                    <Chip
-                      label="Vlastná"
-                      size="small"
-                      sx={{ ml: 1, height: 16 }}
-                    />
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 h-4 text-xs"
+                    >
+                      Vlastná
+                    </Badge>
                   )}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Chip
-                  label={getStatusText(vehicle.status)}
-                  color={getStatusColor(vehicle.status)}
-                  size="small"
-                />
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={getStatusColor(vehicle.status) === 'success' ? 'default' : 'secondary'}
+                  className="text-xs"
+                >
+                  {getStatusText(vehicle.status)}
+                </Badge>
 
                 {/* Quick actions */}
                 <Can
@@ -451,122 +416,90 @@ const OwnerCard: React.FC<OwnerCardProps> = ({
                     resourceCompanyId: vehicle.ownerCompanyId,
                   }}
                 >
-                  <IconButton
-                    size="small"
+                  <Button
+                    size="sm"
                     onClick={e => {
                       e.stopPropagation();
                       onVehicleEdit(vehicle);
                     }}
-                    sx={{
-                      bgcolor: '#2196f3',
-                      color: 'white',
-                      width: 28,
-                      height: 28,
-                      '&:hover': { bgcolor: '#1976d2' },
-                    }}
+                    className="w-7 h-7 p-0 bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
+                    <EditIcon className="h-3 w-3" />
+                  </Button>
                 </Can>
-              </Box>
-            </Box>
+              </div>
+            </div>
           ))}
 
           {/* Spoluinvestori firmy */}
-          <Box
-            sx={{
-              mt: 3,
-              pt: 2,
-              borderTop: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-            >
+          <div className="mt-6 pt-4 border-t border-border">
+            <h6 className="text-base font-medium mb-4 flex items-center gap-2">
               🤝 Spoluinvestori firmy
-            </Typography>
+            </h6>
 
             {loadingInvestors ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <div className="flex justify-center py-4">
                 <EnhancedLoading
                   variant="page"
                   showMessage={true}
                   message="Načítavam investorov..."
                 />
-              </Box>
+              </div>
             ) : companyInvestors.length > 0 ? (
               companyInvestors.map(share => (
-                <Box
+                <div
                   key={String(share.id)}
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    p: 2,
-                    mb: 1,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    bgcolor: 'primary.50',
-                    '&:hover': {
-                      bgcolor: 'primary.100',
-                    },
-                  }}
+                  className="flex justify-between items-center p-4 mb-2 border border-border rounded-md bg-primary/5 hover:bg-primary/10"
                 >
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2">
+                  <div className="flex-1">
+                    <h6 className="text-sm font-semibold">
                       👤 {share.investor?.firstName || ''}{' '}
                       {share.investor?.lastName || ''}
                       {share.isPrimaryContact && (
-                        <Chip
-                          label="Primárny kontakt"
-                          size="small"
-                          color="primary"
-                          sx={{ ml: 1 }}
-                        />
+                        <Badge
+                          variant="default"
+                          className="ml-2 text-xs"
+                        >
+                          Primárny kontakt
+                        </Badge>
                       )}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h6>
+                    <p className="text-sm text-muted-foreground">
                       {share.investor?.email && `📧 ${share.investor.email}`}
                       {share.investor?.phone && ` • 📞 ${share.investor.phone}`}
-                    </Typography>
+                    </p>
                     {share.investmentAmount && (
-                      <Typography variant="caption" color="text.secondary">
+                      <p className="text-xs text-muted-foreground">
                         💰 Investícia: {share.investmentAmount}€
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
+                  </div>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip
-                      label={`${share.ownershipPercentage || 0}%`}
-                      color="primary"
-                      size="small"
-                      variant={share.isPrimaryContact ? 'filled' : 'outlined'}
-                    />
-                  </Box>
-                </Box>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={share.isPrimaryContact ? 'default' : 'outline'}
+                      className="text-xs"
+                    >
+                      {share.ownershipPercentage || 0}%
+                    </Badge>
+                  </div>
+                </div>
               ))
             ) : (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ textAlign: 'center', py: 2 }}
-              >
+              <p className="text-sm text-muted-foreground text-center py-4">
                 Žiadni spoluinvestori pre túto firmu.
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {/* 📄 NOVÉ: Dokumenty majiteľa */}
           <CompanyDocumentManager
             companyId={String(company.id)}
             companyName={String(company.name)}
           />
-        </Box>
-      </Collapse>
+        </div>
+      </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 };

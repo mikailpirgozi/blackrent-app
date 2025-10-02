@@ -57,14 +57,14 @@ interface UseRentalFiltersProps {
 interface UseRentalFiltersReturn {
   // Search state
   searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  setSearchQuery: (_query: string) => void;
   debouncedSearchQuery: string;
 
   // Filter state
   showFilters: boolean;
-  setShowFilters: (show: boolean) => void;
+  setShowFilters: (_show: boolean) => void;
   advancedFilters: FilterState;
-  setAdvancedFilters: (filters: FilterState) => void;
+  setAdvancedFilters: (_filters: FilterState) => void;
 
   // Filtered data
   filteredRentals: Rental[];
@@ -78,7 +78,7 @@ interface UseRentalFiltersReturn {
   uniqueInsuranceTypes: string[];
 
   // Quick filter handlers
-  handleQuickFilter: (filterType: string) => void;
+  handleQuickFilter: (_filterType: string) => void;
   resetFilters: () => void;
 }
 
@@ -136,11 +136,11 @@ export const useRentalFilters = ({
 
   // Debounce search query
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
   // ⚡ OPTIMIZED: Memoized vehicle lookup map for performance
@@ -459,7 +459,7 @@ export const useRentalFilters = ({
       case 'tomorrowReturns': {
         // Zajtra vrátenie - prenájmy ktoré sa zajtra končia
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        quickFilters.dateTo = tomorrowStr;
+        quickFilters.dateTo = tomorrowStr || '';
         quickFilters.timeFilter = 'tomorrowReturns';
         break;
       }

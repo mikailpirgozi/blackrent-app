@@ -38,8 +38,8 @@ export class StorageManager {
       const cookies = document.cookie.split(';');
 
       for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.indexOf(cookieName) === 0) {
+        const cookie = cookies[i]?.trim();
+        if (cookie?.indexOf(cookieName) === 0) {
           return decodeURIComponent(cookie.substring(cookieName.length));
         }
       }

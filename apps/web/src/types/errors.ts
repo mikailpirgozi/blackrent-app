@@ -13,14 +13,14 @@ export type ErrorCategory =
 export interface AppError {
   id: string;
   message: string;
-  details?: string;
+  details: string | undefined;
   severity: ErrorSeverity;
   category: ErrorCategory;
   timestamp: Date;
   stack?: string;
   retry?: boolean;
   dismissed?: boolean;
-  context?: Record<string, unknown>;
+  context: Record<string, unknown> | undefined;
 }
 
 export interface ErrorContext {

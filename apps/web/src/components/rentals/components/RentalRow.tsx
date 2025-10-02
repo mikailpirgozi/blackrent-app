@@ -1,8 +1,10 @@
 import {
-  DirectionsCar as CarIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
-import { Box, Chip, Grid, IconButton, Paper, Typography } from '@mui/material';
+  Car,
+  Edit,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 // import { useApp } from '../../../context/AppContext'; // Migrated to React Query
 import { useVehicles } from '../../../lib/react-query/hooks/useVehicles';
@@ -23,132 +25,125 @@ export function RentalRow({ rental, onEdit }: RentalRowProps) {
   const vehicle = vehicles.find(v => v.id === rental.vehicleId);
 
   // Status color mapping
-  const getStatusColor = (
+  const getStatusVariant = (
     status: string | undefined
-  ): 'success' | 'default' | 'warning' | 'error' => {
+  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
       case 'active':
-        return 'success';
+        return 'default';
       case 'completed':
-        return 'default';
+        return 'secondary';
       case 'pending':
-        return 'warning';
+        return 'outline';
       case 'cancelled':
-        return 'error';
+        return 'destructive';
       default:
-        return 'default';
+        return 'secondary';
     }
   };
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        '&:hover': {
-          backgroundColor: 'action.hover',
-          boxShadow: 1,
-        },
-        transition: 'all 0.2s ease-in-out',
-        cursor: 'pointer',
-      }}
+    <Card
+      className="p-4 hover:bg-muted/50 hover:shadow-md transition-all duration-200 cursor-pointer border"
       onClick={() => onEdit(rental)}
     >
-      <Grid container spacing={2} alignItems="center">
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
         {/* Vehicle info */}
-        <Grid item xs={12} sm={3}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <CarIcon color="action" fontSize="small" />
-            <Box>
-              <Typography variant="subtitle2" fontWeight="medium">
+        <div className="sm:col-span-3">
+          <div className="flex items-center gap-2">
+            <Car className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">
                 {vehicle
                   ? `${vehicle.brand} ${vehicle.model}`
                   : 'Neznáme vozidlo'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </p>
+              <p className="text-xs text-muted-foreground">
                 {vehicle?.licensePlate || 'Bez ŠPZ'}
-              </Typography>
-            </Box>
-          </Box>
-        </Grid>
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Customer */}
-        <Grid item xs={12} sm={2}>
-          <Typography variant="body2" noWrap>
+        <div className="sm:col-span-2">
+          <p className="text-sm truncate">
             {rental.customerName || 'Neznámy zákazník'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </p>
+          <p className="text-xs text-muted-foreground">
             Zákazník
-          </Typography>
-        </Grid>
+          </p>
+        </div>
 
         {/* Date range */}
-        <Grid item xs={12} sm={2}>
-          <Typography variant="body2" noWrap>
+        <div className="sm:col-span-2">
+          <p className="text-sm truncate">
             {formatDate(rental.startDate)}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
             - {formatDate(rental.endDate)}
-          </Typography>
-        </Grid>
+          </p>
+        </div>
 
         {/* Price */}
-        <Grid item xs={12} sm={1.5}>
-          <Typography variant="body2" fontWeight="medium">
+        <div className="sm:col-span-2">
+          <p className="text-sm font-medium">
             {formatCurrency(rental.totalPrice)}
-          </Typography>
+          </p>
           {rental.paymentMethod && (
-            <Typography variant="caption" color="text.secondary">
+            <p className="text-xs text-muted-foreground">
               {rental.paymentMethod}
-            </Typography>
+            </p>
           )}
-        </Grid>
+        </div>
 
         {/* Status */}
-        <Grid item xs={12} sm={1.5}>
-          <Box display="flex" flexDirection="column" gap={0.5}>
-            <Chip
-              label={rental.status}
-              size="small"
-              color={getStatusColor(rental.status)}
-              variant="outlined"
-            />
+        <div className="sm:col-span-2">
+          <div className="flex flex-col gap-1">
+            <Badge
+              variant={getStatusVariant(rental.status)}
+              className="text-xs w-fit"
+            >
+              {rental.status}
+            </Badge>
             {rental.isFlexible && (
-              <Chip
-                label="Flexibilný"
-                size="small"
-                color="info"
-                variant="outlined"
-              />
+              <Badge
+                variant="outline"
+                className="text-xs w-fit"
+              >
+                Flexibilný
+              </Badge>
             )}
-          </Box>
-        </Grid>
+          </div>
+        </div>
 
         {/* Company */}
-        <Grid item xs={12} sm={1.5}>
-          <Typography variant="body2" noWrap>
+        <div className="sm:col-span-1">
+          <p className="text-sm truncate">
             {vehicle?.company || 'N/A'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </p>
+          <p className="text-xs text-muted-foreground">
             Firma
-          </Typography>
-        </Grid>
+          </p>
+        </div>
 
         {/* Actions */}
-        <Grid item xs={12} sm={0.5}>
-          <Box display="flex" justifyContent="flex-end">
-            <IconButton
-              size="small"
+        <div className="sm:col-span-1">
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={e => {
                 e.stopPropagation();
                 onEdit(rental);
               }}
+              className="h-8 w-8 p-0"
             >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Grid>
-      </Grid>
-    </Paper>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }

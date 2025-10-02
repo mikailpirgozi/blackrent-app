@@ -3,7 +3,7 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import { Chip } from '@mui/material';
+import { Badge } from '@/components/ui/badge';
 import React from 'react';
 
 import { getStatusColor, getStatusLabel } from '../utils/email-formatters';
@@ -11,19 +11,27 @@ import { getStatusColor, getStatusLabel } from '../utils/email-formatters';
 interface StatusChipProps {
   status: string;
   actionTaken?: string;
-  size?: 'small' | 'medium';
 }
 
 export const StatusChip: React.FC<StatusChipProps> = ({
   status,
   actionTaken,
-  size = 'small',
 }) => {
+  const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    'primary': 'default',
+    'secondary': 'secondary',
+    'error': 'destructive',
+    'warning': 'secondary',
+    'success': 'default',
+    'default': 'outline',
+  };
+  
+  const color = getStatusColor(status, actionTaken);
+  const variant = variantMap[color] || 'default';
+  
   return (
-    <Chip
-      label={getStatusLabel(status, actionTaken)}
-      color={getStatusColor(status, actionTaken)}
-      size={size}
-    />
+    <Badge variant={variant}>
+      {getStatusLabel(status, actionTaken)}
+    </Badge>
   );
 };

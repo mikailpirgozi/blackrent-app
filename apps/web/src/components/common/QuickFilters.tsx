@@ -5,18 +5,22 @@
  */
 
 import {
-  Clear as ClearIcon,
-  FilterList as FilterIcon,
-} from '@mui/icons-material';
+  X as ClearIcon,
+  Filter as FilterIcon,
+} from 'lucide-react';
 import {
-  Box,
-  Chip,
-  Stack,
+  Badge,
+} from '@/components/ui/badge';
+import {
   Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+} from '@/components/ui/typography';
+import { useMobile } from '@/hooks/use-mobile';
 import React, { memo } from 'react';
 
 import type { QuickFilter } from '../../hooks/useEnhancedSearch';
@@ -38,8 +42,7 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
   compact = false,
   maxVisible,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMobile();
 
   if (!filters || filters.length === 0) {
     return null;
@@ -57,115 +60,97 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
     }
   };
 
+  const getFilterColorClasses = (color: string, isActive: boolean) => {
+    if (!isActive) return '';
+    
+    switch (color) {
+      case 'success':
+        return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
+      case 'warning':
+        return 'bg-yellow-600 text-white border-yellow-600 hover:bg-yellow-700';
+      case 'error':
+        return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
+      case 'info':
+        return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
+      case 'primary':
+        return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
+      case 'secondary':
+        return 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700';
+      default:
+        return 'bg-gray-600 text-white border-gray-600 hover:bg-gray-700';
+    }
+  };
+
   return (
-    <Box sx={{ mb: compact ? 1 : 2 }}>
+    <div className={compact ? 'mb-1' : 'mb-2'}>
       {showTitle && (
         <Typography
           variant={compact ? 'caption' : 'body2'}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 1,
-            color: 'text.secondary',
-            fontWeight: 600,
-          }}
+          className="flex items-center mb-1 text-gray-600 font-semibold"
         >
-          <FilterIcon sx={{ fontSize: 16, mr: 0.5 }} />
+          <FilterIcon size={16} className="mr-1" />
           Rýchle filtre:
         </Typography>
       )}
 
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
-      >
+      <div className="flex flex-wrap gap-2">
         {visibleFilters.map(filter => (
-          <Tooltip
-            key={filter.id}
-            title={filter.count ? `${filter.count} výsledkov` : filter.label}
-            placement="top"
-          >
-            <Chip
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {filter.label}
-                  {filter.count && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: '0.7rem',
-                        opacity: 0.8,
-                        fontWeight: 600,
-                      }}
-                    >
-                      ({filter.count})
-                    </Typography>
+          <TooltipProvider key={filter.id}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant={activeFilter === filter.id ? 'default' : 'outline'}
+                  className={`
+                    cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md
+                    ${activeFilter === filter.id 
+                      ? getFilterColorClasses(filter.color, true)
+                      : getFilterColorClasses(filter.color, false)
+                    }
+                    ${filter.count && filter.count > 10 ? 'relative' : ''}
+                  `}
+                  onClick={() => handleFilterClick(filter.id)}
+                >
+                  <div className="flex items-center gap-1">
+                    {filter.label}
+                    {filter.count && (
+                      <span className="text-xs opacity-80 font-semibold">
+                        ({filter.count})
+                      </span>
+                    )}
+                    {activeFilter === filter.id && (
+                      <ClearIcon 
+                        size={12} 
+                        className="ml-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onFilterSelect(null);
+                        }}
+                      />
+                    )}
+                  </div>
+                  {filter.count && filter.count > 10 && activeFilter !== filter.id && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full"></div>
                   )}
-                </Box>
-              }
-              size={compact || isMobile ? 'small' : 'medium'}
-              color={activeFilter === filter.id ? filter.color : 'default'}
-              variant={activeFilter === filter.id ? 'filled' : 'outlined'}
-              onClick={() => handleFilterClick(filter.id)}
-              onDelete={
-                activeFilter === filter.id
-                  ? () => onFilterSelect(null)
-                  : undefined
-              }
-              deleteIcon={<ClearIcon />}
-              sx={{
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-1px)',
-                  boxShadow: theme.shadows[2],
-                  borderColor:
-                    activeFilter === filter.id
-                      ? theme.palette[filter.color].main
-                      : theme.palette.primary.main,
-                },
-                '&:active': {
-                  transform: 'translateY(0px)',
-                },
-                // Highlight popular filters
-                ...(filter.count &&
-                  filter.count > 10 && {
-                    position: 'relative',
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      top: -2,
-                      right: -2,
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      backgroundColor: theme.palette.warning.main,
-                      display: activeFilter !== filter.id ? 'block' : 'none',
-                    },
-                  }),
-              }}
-            />
-          </Tooltip>
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                {filter.count ? `${filter.count} výsledkov` : filter.label}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
 
         {/* Show more indicator */}
         {maxVisible && isMobile && filters.length > maxVisible && (
-          <Chip
-            label={`+${filters.length - maxVisible}`}
-            size="small"
-            variant="outlined"
-            sx={{
-              opacity: 0.6,
-              cursor: 'default',
-            }}
-          />
+          <Badge
+            variant="outline"
+            className="opacity-60 cursor-default text-xs"
+          >
+            +{filters.length - maxVisible}
+          </Badge>
         )}
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 };
 

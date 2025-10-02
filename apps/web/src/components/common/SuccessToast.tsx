@@ -10,21 +10,21 @@
 
 import {
   CheckCircle as CheckCircleIcon,
-  Close as CloseIcon,
-  CloudDone as CloudDoneIcon,
-  Refresh as RefreshIcon,
-  Speed as SpeedIcon,
-} from '@mui/icons-material';
+  X as CloseIcon,
+  CloudCheck as CloudDoneIcon,
+  RefreshCw as RefreshIcon,
+  Zap as SpeedIcon,
+} from 'lucide-react';
 import {
   Alert,
-  Box,
-  Chip,
-  Fade,
-  IconButton,
-  Slide,
-  Snackbar,
-  Typography,
-} from '@mui/material';
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
+  Button,
+} from '@/components/ui/button';
 import React, { useEffect, useState } from 'react';
 
 interface SuccessToastProps {
@@ -51,12 +51,21 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
   useEffect(() => {
     if (message) {
       setOpen(true);
+      
+      // Auto-hide after duration
+      const timer = setTimeout(() => {
+        setOpen(false);
+        setTimeout(onClose, 300); // Wait for animation
+      }, autoHideDuration);
+      
+      return () => clearTimeout(timer);
     }
-  }, [message]);
+    return undefined;
+  }, [message, autoHideDuration, onClose]);
 
   // Handle close
   const handleClose = (
-    event?: React.SyntheticEvent | Event,
+    _event?: React.SyntheticEvent | Event,
     reason?: string
   ) => {
     if (reason === 'clickaway') return;
@@ -66,7 +75,7 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
 
   // Get icon based on type
   const getIcon = () => {
-    const iconProps = { fontSize: 'small' as const };
+    const iconProps = { size: 16 };
 
     switch (icon) {
       case 'speed':
@@ -83,87 +92,51 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
   if (!message) return null;
 
   return (
-    <Snackbar
-      open={open}
-      autoHideDuration={autoHideDuration}
-      onClose={handleClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      TransitionComponent={Slide}
-    >
-      <Alert
-        severity="success"
-        variant="filled"
-        onClose={handleClose}
-        icon={getIcon()}
-        sx={{
-          minWidth: 280,
-          maxWidth: 400,
-          '& .MuiAlert-message': {
-            width: '100%',
-          },
-          '& .MuiAlert-icon': {
-            animation: 'pulse 1.5s ease-in-out',
-            '@keyframes pulse': {
-              '0%': { transform: 'scale(1)' },
-              '50%': { transform: 'scale(1.1)' },
-              '100%': { transform: 'scale(1)' },
-            },
-          },
-        }}
-        action={
-          <IconButton
-            size="small"
+    <div className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ${open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+      <Alert className="min-w-[280px] max-w-[400px] bg-green-600 text-white border-green-700">
+        <div className="flex items-start gap-3">
+          <div className="animate-pulse">
+            {getIcon()}
+          </div>
+          <div className="flex-1">
+            <AlertDescription className="text-white font-medium">
+              {message}
+            </AlertDescription>
+
+            {/* Stats display */}
+            {showStats && (
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {showStats.count !== undefined && (
+                  <Badge
+                    variant="outline"
+                    className="bg-white/10 text-white border-white/30 text-xs"
+                  >
+                    {showStats.count} záznamov
+                  </Badge>
+                )}
+
+                {showStats.duration !== undefined && (
+                  <Badge
+                    variant="outline"
+                    className="bg-white/10 text-white border-white/30 text-xs flex items-center gap-1"
+                  >
+                    <SpeedIcon size={12} />
+                    {showStats.duration}ms
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClose}
-            sx={{ color: 'inherit' }}
+            className="text-white hover:bg-white/10 h-6 w-6 p-0"
           >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-      >
-        <Box>
-          <Typography variant="body2" fontWeight="medium">
-            {message}
-          </Typography>
-
-          {/* Stats display */}
-          {showStats && (
-            <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {showStats.count !== undefined && (
-                <Fade in timeout={800}>
-                  <Chip
-                    size="small"
-                    label={`${showStats.count} záznamov`}
-                    variant="outlined"
-                    sx={{
-                      bgcolor: 'rgba(255,255,255,0.1)',
-                      color: 'inherit',
-                      borderColor: 'rgba(255,255,255,0.3)',
-                      fontSize: '0.7rem',
-                    }}
-                  />
-                </Fade>
-              )}
-
-              {showStats.duration !== undefined && (
-                <Fade in timeout={1000}>
-                  <Chip
-                    size="small"
-                    label={`${showStats.duration}ms`}
-                    variant="outlined"
-                    icon={<SpeedIcon fontSize="small" />}
-                    sx={{
-                      bgcolor: 'rgba(255,255,255,0.1)',
-                      color: 'inherit',
-                      borderColor: 'rgba(255,255,255,0.3)',
-                      fontSize: '0.7rem',
-                    }}
-                  />
-                </Fade>
-              )}
-            </Box>
-          )}
-        </Box>
+            <CloseIcon size={14} />
+          </Button>
+        </div>
       </Alert>
-    </Snackbar>
+    </div>
   );
 };

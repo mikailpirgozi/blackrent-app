@@ -1,15 +1,11 @@
 import {
-  KeyboardArrowDown as KeyboardArrowDownIcon,
-  EmojiEvents as TrophyIcon,
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-} from '@mui/material';
+  ChevronDown as KeyboardArrowDownIcon,
+  Trophy as TrophyIcon,
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Typography } from '@/components/ui/typography';
 import React from 'react';
 
 interface TopListCardProps {
@@ -33,71 +29,53 @@ const TopListCard: React.FC<TopListCardProps> = ({
   renderItem,
   emptyMessage = 'Žiadne dáta',
 }) => (
-  <Card
-    sx={{
-      height: 'fit-content',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      transition: 'all 0.2s ease',
-      '&:hover': {
-        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-      },
-    }}
-  >
-    <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+  <Card className="h-fit shadow-sm transition-all duration-200 hover:shadow-md">
+    <CardContent className="p-6">
+      <div className="flex items-center gap-4 mb-6">
         <Avatar
-          sx={{
-            bgcolor: 'transparent',
-            background: gradient,
-            width: 48,
-            height: 48,
-          }}
+          className="w-12 h-12"
+          style={{ background: gradient }}
         >
-          {icon}
+          <AvatarFallback className="text-white">
+            {icon}
+          </AvatarFallback>
         </Avatar>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
+        <div className="flex-1">
+          <Typography variant="h6" className="font-bold text-blue-600">
             {title}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" className="text-muted-foreground">
             Top {Math.min(showCount, data.length)} z {data.length}
           </Typography>
-        </Box>
-        <TrophyIcon sx={{ color: '#ffd700', fontSize: 28 }} />
-      </Box>
+        </div>
+        <TrophyIcon className="text-yellow-500 w-7 h-7" />
+      </div>
 
       {data.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="body1" color="text.secondary">
+        <div className="text-center py-8">
+          <Typography variant="body1" className="text-muted-foreground">
             {emptyMessage}
           </Typography>
-        </Box>
+        </div>
       ) : (
         <>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <div className="flex flex-col gap-3">
             {data
               .slice(0, showCount)
               .map((item, index) => renderItem(item, index))}
-          </Box>
+          </div>
 
           {showCount < data.length && (
-            <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <div className="mt-6 text-center">
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={onLoadMore}
-                startIcon={<KeyboardArrowDownIcon />}
-                sx={{
-                  borderColor: '#667eea',
-                  color: '#667eea',
-                  '&:hover': {
-                    borderColor: '#5a6fd8',
-                    backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                  },
-                }}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 hover:border-blue-700"
               >
+                <KeyboardArrowDownIcon className="w-4 h-4 mr-2" />
                 Zobraziť ďalších {Math.min(10, data.length - showCount)}
               </Button>
-            </Box>
+            </div>
           )}
         </>
       )}

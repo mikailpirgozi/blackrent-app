@@ -5,6 +5,13 @@
 
 /// <reference types="vite/client" />
 
+// Extend Window interface for environment logging
+declare global {
+  interface Window {
+    __ENV_LOGGED__?: boolean;
+  }
+}
+
 export const env = {
   // API konfigurácia
   API_URL: import.meta.env.VITE_API_URL as string,
@@ -23,8 +30,8 @@ export const env = {
 // Type safety helper
 export type EnvKeys = keyof typeof env;
 
-// Debug log pre development
-if (env.DEV) {
+// Debug log pre development - len raz pri načítaní
+if (env.DEV && !window.__ENV_LOGGED__) {
   console.log('🔧 Environment variables loaded:', {
     API_URL: env.API_URL,
     USE_WORKER_PROXY: env.USE_WORKER_PROXY,
@@ -32,4 +39,5 @@ if (env.DEV) {
     DEBUG: env.DEBUG,
     MODE: env.MODE,
   });
+  window.__ENV_LOGGED__ = true;
 }

@@ -5,55 +5,47 @@
  */
 
 import {
-  Business as BusinessIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
+  Building2 as BusinessIcon,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
   Euro as EuroIcon,
   Percent as PercentIcon,
-  Person as PersonIcon,
+  User as PersonIcon,
   Receipt as ReceiptIcon,
-  Refresh as RefreshIcon,
-  Assessment as StatsIcon,
+  RefreshCw as RefreshIcon,
+  BarChart3 as StatsIcon,
   TrendingUp as TrendIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Typography,
-  useTheme,
-} from '@mui/material';
+} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Typography } from '@/components/ui/typography';
 import React, { memo, useMemo } from 'react';
 
 import CollapsibleSection from './CollapsibleSection';
 import ResponsiveChart from './ResponsiveChart';
 import StatisticsCard from './StatisticsCard';
 
-interface ChartDataItem extends Record<string, unknown> {
+type ChartDataItem = {
   name: string;
   revenue: number;
   rentals?: number;
   commission?: number;
   utilization?: number;
-}
+};
 
-interface StatisticsMobileProps {
+type StatisticsMobileProps = {
   stats: Record<string, unknown>; // Statistics data from parent component
   timeRange: 'month' | 'year' | 'all';
-  onTimeRangeChange: (range: 'month' | 'year' | 'all') => void;
+  onTimeRangeChange: (_range: 'month' | 'year' | 'all') => void;
   filterYear: number;
   filterMonth: number;
-  onFilterYearChange: (year: number) => void;
-  onFilterMonthChange: (month: number) => void;
+  onFilterYearChange: (_year: number) => void;
+  onFilterMonthChange: (_month: number) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
-}
+};
 
 const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
   stats,
@@ -66,7 +58,6 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
   onRefresh,
   isLoading = false,
 }) => {
-  const theme = useTheme();
 
   // State pre expanded sections
   const expandedSections = useMemo(
@@ -210,96 +201,101 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
 
   if (!stats) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Alert severity="info">📊 Načítavajú sa štatistiky...</Alert>
-      </Box>
+      <div className="p-6 text-center">
+        <Alert>
+          <AlertDescription>📊 Načítavajú sa štatistiky...</AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-4">
       <>
         {/* Header with filters */}
-        <Box sx={{ mb: 3 }}>
+        <div className="mb-6">
           <Typography
             variant="h5"
-            sx={{ fontWeight: 600, mb: 2, textAlign: 'center' }}
+            className="font-semibold mb-4 text-center"
           >
             📊 Štatistiky
           </Typography>
 
           {/* Time Range and Filters */}
-          <Stack direction="column" spacing={2}>
+          <div className="space-y-4">
             {/* Time Range Selector */}
-            <FormControl size="small" fullWidth>
-              <InputLabel>Časové obdobie</InputLabel>
-              <Select
-                value={timeRange}
-                label="Časové obdobie"
-                onChange={e =>
-                  onTimeRangeChange(e.target.value as 'month' | 'year' | 'all')
-                }
-              >
-                <MenuItem value="month">Mesiac</MenuItem>
-                <MenuItem value="year">Rok</MenuItem>
-                <MenuItem value="all">Celkovo</MenuItem>
-              </Select>
-            </FormControl>
+            <Select
+              value={timeRange}
+              onValueChange={(value: 'month' | 'year' | 'all') =>
+                onTimeRangeChange(value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Časové obdobie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Mesiac</SelectItem>
+                <SelectItem value="year">Rok</SelectItem>
+                <SelectItem value="all">Celkovo</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Year/Month filters */}
             {timeRange !== 'all' && (
-              <Stack direction="row" spacing={1}>
-                <FormControl size="small" sx={{ flex: 1 }}>
-                  <InputLabel>Rok</InputLabel>
-                  <Select
-                    value={filterYear}
-                    label="Rok"
-                    onChange={e => onFilterYearChange(Number(e.target.value))}
-                  >
+              <div className="flex gap-2">
+                <Select
+                  value={filterYear.toString()}
+                  onValueChange={(value) => onFilterYearChange(Number(value))}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Rok" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {availableYears.map(year => (
-                      <MenuItem key={year} value={year}>
+                      <SelectItem key={year} value={year.toString()}>
                         {year}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
+                  </SelectContent>
+                </Select>
 
                 {timeRange === 'month' && (
-                  <FormControl size="small" sx={{ flex: 1 }}>
-                    <InputLabel>Mesiac</InputLabel>
-                    <Select
-                      value={filterMonth}
-                      label="Mesiac"
-                      onChange={e =>
-                        onFilterMonthChange(Number(e.target.value))
-                      }
-                    >
+                  <Select
+                    value={filterMonth.toString()}
+                    onValueChange={(value) =>
+                      onFilterMonthChange(Number(value))
+                    }
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Mesiac" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {months.map((month, index) => (
-                        <MenuItem key={index} value={index}>
+                        <SelectItem key={index} value={index.toString()}>
                           {month}
-                        </MenuItem>
+                        </SelectItem>
                       ))}
-                    </Select>
-                  </FormControl>
+                    </SelectContent>
+                  </Select>
                 )}
-              </Stack>
+              </div>
             )}
 
             {/* Refresh button */}
             {onRefresh && (
               <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
+                variant="outline"
                 onClick={onRefresh}
                 disabled={isLoading}
-                size="small"
-                fullWidth
+                size="sm"
+                className="w-full"
               >
+                <RefreshIcon className="h-4 w-4 mr-2" />
                 {isLoading ? 'Načítavam...' : 'Obnoviť'}
               </Button>
             )}
-          </Stack>
-        </Box>
+          </div>
+        </div>
 
         {/* Overview Cards */}
         <CollapsibleSection
@@ -310,89 +306,73 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           badge={6}
           compact
         >
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <StatisticsCard
-                title="Celkový príjem"
-                value={`€${stats.totalRevenuePeriod?.toLocaleString() || 0}`}
-                icon={<EuroIcon />}
-                color="success"
-                trend={
-                  stats.revenueTrend && typeof stats.revenueTrend === 'number'
-                    ? {
-                        value: stats.revenueTrend as number,
-                        period: 'vs minulý mesiac',
-                        isPositive: (stats.revenueTrend as number) > 0,
-                      }
-                    : undefined
+          <div className="grid grid-cols-2 gap-4">
+            <StatisticsCard
+              title="Celkový príjem"
+              value={`€${stats.totalRevenuePeriod?.toLocaleString() || 0}`}
+              icon={<EuroIcon />}
+              color="success"
+              {...(stats.revenueTrend && typeof stats.revenueTrend === 'number' ? {
+                trend: {
+                  value: stats.revenueTrend as number,
+                  period: 'vs minulý mesiac',
+                  isPositive: (stats.revenueTrend as number) > 0,
                 }
-                compact
-              />
-            </Grid>
+              } : {})}
+              compact
+            />
 
-            <Grid item xs={6}>
-              <StatisticsCard
-                title="Provízie"
-                value={`€${stats.totalCommissionPeriod?.toLocaleString() || 0}`}
-                icon={<PercentIcon />}
-                color="secondary"
-                compact
-              />
-            </Grid>
+            <StatisticsCard
+              title="Provízie"
+              value={`€${stats.totalCommissionPeriod?.toLocaleString() || 0}`}
+              icon={<PercentIcon />}
+              color="secondary"
+              compact
+            />
 
-            <Grid item xs={6}>
-              <StatisticsCard
-                title="Prenájmy"
-                value={(derivedTotals.totalRentals || 0).toLocaleString()}
-                icon={<ReceiptIcon />}
-                color="primary"
-                trend={
-                  stats.rentalsTrend && typeof stats.rentalsTrend === 'number'
-                    ? {
-                        value: stats.rentalsTrend as number,
-                        period: 'vs minulý mesiac',
-                        isPositive: (stats.rentalsTrend as number) > 0,
-                      }
-                    : undefined
+            <StatisticsCard
+              title="Prenájmy"
+              value={(derivedTotals.totalRentals || 0).toLocaleString()}
+              icon={<ReceiptIcon />}
+              color="primary"
+              {...(stats.rentalsTrend && typeof stats.rentalsTrend === 'number' ? {
+                trend: {
+                  value: stats.rentalsTrend as number,
+                  period: 'vs minulý mesiac',
+                  isPositive: (stats.rentalsTrend as number) > 0,
                 }
-                compact
-              />
-            </Grid>
+              } : {})}
+              compact
+            />
 
-            <Grid item xs={6}>
-              <StatisticsCard
-                title="Náklady BH"
-                value={`€${stats.blackHoldingExpenses?.toLocaleString() || 0}`}
-                icon={<BusinessIcon />}
-                color="error"
-                compact
-              />
-            </Grid>
+            <StatisticsCard
+              title="Náklady BH"
+              value={`€${stats.blackHoldingExpenses?.toLocaleString() || 0}`}
+              icon={<BusinessIcon />}
+              color="error"
+              compact
+            />
 
-            <Grid item xs={6}>
-              <StatisticsCard
-                title="Aktívne vozidlá"
-                value={(derivedTotals.activeVehicles || 0).toLocaleString()}
-                icon={<CarIcon />}
-                color="info"
-                compact
-              />
-            </Grid>
+            <StatisticsCard
+              title="Aktívne vozidlá"
+              value={(derivedTotals.activeVehicles || 0).toLocaleString()}
+              icon={<CarIcon />}
+              color="info"
+              compact
+            />
 
-            <Grid item xs={6}>
-              <StatisticsCard
-                title="Zákazníci"
-                value={(derivedTotals.totalCustomers || 0).toLocaleString()}
-                icon={<PersonIcon />}
-                color="warning"
-                compact
-              />
-            </Grid>
-          </Grid>
+            <StatisticsCard
+              title="Zákazníci"
+              value={(derivedTotals.totalCustomers || 0).toLocaleString()}
+              icon={<PersonIcon />}
+              color="warning"
+              compact
+            />
+          </div>
         </CollapsibleSection>
 
         {/* Revenue Chart */}
-        <Box sx={{ mt: 2 }}>
+        <div className="mt-4">
           <CollapsibleSection
             title="Mesačné príjmy"
             icon={<TrendIcon />}
@@ -408,23 +388,23 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               series={[
                 {
                   key: 'revenue',
-                  color: theme.palette.success.main,
+                  color: '#10b981',
                   name: 'Príjem',
                 },
                 {
                   key: 'commission',
-                  color: theme.palette.warning.main,
+                  color: '#f59e0b',
                   name: 'Provízia',
                 },
               ]}
               showGrid={false}
             />
           </CollapsibleSection>
-        </Box>
+        </div>
 
         {/* Vehicle Performance */}
         {chartData.vehicleStats.length > 0 ? (
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-4">
             <CollapsibleSection
               title="Najlepšie vozidlá"
               icon={<CarIcon />}
@@ -440,24 +420,22 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
                 xAxisKey="name"
                 dataKey="revenue"
                 showGrid={false}
-                colors={[String(theme.palette.primary.main || '#1976d2')]}
+                colors={['#3b82f6']}
               />
             </CollapsibleSection>
-          </Box>
+          </div>
         ) : null}
 
         {/* Top Customers */}
-        <Box sx={{ mt: 2 }}>
+        <div className="mt-4">
           <CollapsibleSection
             title="Top zákazníci"
             icon={<PersonIcon />}
             color="warning"
             defaultExpanded={expandedSections.has('customers')}
-            badge={
-              chartData.topCustomers.length > 0
-                ? chartData.topCustomers.length
-                : undefined
-            }
+            {...(chartData.topCustomers.length > 0 ? {
+              badge: chartData.topCustomers.length
+            } : {})}
             compact
           >
             <ResponsiveChart
@@ -467,10 +445,10 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               xAxisKey="name"
               dataKey="revenue"
               showGrid={false}
-              colors={[theme.palette.warning.main || '#ed6c02']}
+              colors={['#f59e0b']}
             />
           </CollapsibleSection>
-        </Box>
+        </div>
 
         {/* Companies Performance */}
         {(() => {
@@ -499,7 +477,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
           if (companiesArray.length === 0) return null;
 
           return (
-            <Box sx={{ mt: 2 }}>
+            <div className="mt-4">
               <CollapsibleSection
                 title="Výkon firiem"
                 icon={<BusinessIcon />}
@@ -508,28 +486,27 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
                 badge={companiesArray.length}
                 compact={true}
               >
-                <Grid container spacing={2}>
+                <div className="space-y-4">
                   {companiesArray.slice(0, 3).map((company, index) => (
-                    <Grid item xs={12} key={index}>
-                      <StatisticsCard
-                        title={company.companyName}
-                        value={`€${company.totalRevenue.toLocaleString()}`}
-                        subtitle={`${company.totalRentals} prenájmov`}
-                        icon={<BusinessIcon />}
-                        color="info"
-                        compact
-                      />
-                    </Grid>
+                    <StatisticsCard
+                      key={index}
+                      title={company.companyName}
+                      value={`€${company.totalRevenue.toLocaleString()}`}
+                      subtitle={`${company.totalRentals} prenájmov`}
+                      icon={<BusinessIcon />}
+                      color="info"
+                      compact
+                    />
                   ))}
-                </Grid>
+                </div>
               </CollapsibleSection>
-            </Box>
+            </div>
           );
         })()}
 
         {/* Monthly Calendar View */}
         {timeRange === 'month' && (
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-4">
             <CollapsibleSection
               title="Mesačný kalendár"
               icon={<CalendarIcon />}
@@ -537,13 +514,13 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               defaultExpanded={false}
               compact
             >
-              <Box sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
+              <div className="p-4 text-center">
+                <Typography variant="body2" className="text-muted-foreground">
                   🗓️ Kalendárne zobrazenie bude implementované v ďalšej verzii
                 </Typography>
-              </Box>
+              </div>
             </CollapsibleSection>
-          </Box>
+          </div>
         )}
 
         {/* Employee Performance */}
@@ -553,7 +530,7 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
             .activeEmployees === 'number' &&
           ((stats.employeeStats as Record<string, unknown>)
             .activeEmployees as number) > 0 && (
-            <Box sx={{ mt: 2 }}>
+            <div className="mt-4">
               <CollapsibleSection
                 title="Výkon zamestnancov"
                 icon={<PersonIcon />}
@@ -565,48 +542,40 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
                 }
                 compact
               >
-                <Grid container spacing={2}>
+                <div className="space-y-4">
                   {(
                     (stats.employeeStats as Record<string, unknown>)
                       .topEmployeesByProtocols as Record<string, unknown>[]
                   )
                     .slice(0, 3)
                     .map((employee: Record<string, unknown>, index: number) => (
-                      <Grid item xs={12} key={index}>
-                        <StatisticsCard
-                          title={
-                            (employee.employeeName as string) ||
-                            'Neznámy zamestnanec'
-                          }
-                          value={`${employee.totalProtocols} protokolov`}
-                          subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
-                          icon={<PersonIcon />}
-                          color={
-                            index === 0
-                              ? 'success'
-                              : index === 1
-                                ? 'warning'
-                                : 'info'
-                          }
-                          compact
-                        />
-                      </Grid>
+                      <StatisticsCard
+                        key={index}
+                        title={
+                          (employee.employeeName as string) ||
+                          'Neznámy zamestnanec'
+                        }
+                        value={`${employee.totalProtocols} protokolov`}
+                        subtitle={`${employee.handoverCount} odovzdaní • ${employee.returnCount} prebraní • €${employee.totalRevenue?.toLocaleString() || 0}`}
+                        icon={<PersonIcon />}
+                        color={
+                          index === 0
+                            ? 'success'
+                            : index === 1
+                              ? 'warning'
+                              : 'info'
+                        }
+                        compact
+                      />
                     ))}
-                </Grid>
+                </div>
 
                 {/* Summary stats */}
-                <Box
-                  sx={{
-                    mt: 2,
-                    p: 2,
-                    bgcolor: 'background.paper',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                <div className="mt-4 p-4 bg-card rounded-lg">
+                  <Typography variant="body2" className="font-semibold mb-2">
                     📊 Celkové štatistiky protokolov
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block' }}>
+                  <Typography variant="caption" className="block">
                     {String(
                       (stats.employeeStats as Record<string, unknown>)
                         .totalProtocols || 0
@@ -623,18 +592,18 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
                     )}{' '}
                     prebraní
                   </Typography>
-                </Box>
+                </div>
               </CollapsibleSection>
-            </Box>
+            </div>
           )}
 
         {/* Performance Summary */}
-        <Box sx={{ mt: 2, mb: 3 }}>
-          <Alert severity="info" sx={{ borderRadius: 3 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        <div className="mt-4 mb-6">
+          <Alert>
+            <Typography variant="body2" className="font-semibold">
               📈 Súhrn výkonu
             </Typography>
-            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" className="block mt-1">
               {timeRange === 'month'
                 ? `${months[filterMonth]} ${filterYear}`
                 : timeRange === 'year'
@@ -648,9 +617,9 @@ const StatisticsMobile: React.FC<StatisticsMobileProps> = ({
               náklady BH
             </Typography>
           </Alert>
-        </Box>
+        </div>
       </>
-    </Box>
+    </div>
   );
 };
 

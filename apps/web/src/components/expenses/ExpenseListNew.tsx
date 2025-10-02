@@ -1,42 +1,33 @@
 import {
-  Add as AddIcon,
-  Business as CompanyIcon,
-  DateRange as DateIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
+  Plus as AddIcon,
+  Building as CompanyIcon,
+  Calendar as DateIcon,
+  Trash2 as DeleteIcon,
+  Edit2 as EditIcon,
   Euro as EuroIcon,
-  FilterList as FilterListIcon,
-  LocalGasStation as FuelIcon,
-  Security as InsuranceIcon,
-  Category as OtherIcon,
+  Filter as FilterListIcon,
+  Fuel as FuelIcon,
+  Shield as InsuranceIcon,
+  Tag as OtherIcon,
   Receipt as ReceiptIcon,
   Repeat as RepeatIcon,
   Search as SearchIcon,
-  Build as ServiceIcon,
+  Wrench as ServiceIcon,
   Settings as SettingsIcon,
-  DirectionsCar as VehicleIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  Divider,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  Car as VehicleIcon,
+  LayoutGrid,
+  List,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { saveAs } from 'file-saver';
 import * as Papa from 'papaparse';
@@ -57,6 +48,7 @@ import { textContains } from '../../utils/textNormalization';
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ExpenseForm from './ExpenseForm';
 import RecurringExpenseManager from './RecurringExpenseManager';
+import PremiumExpenseCard from './PremiumExpenseCard';
 
 // Helper funkcie pre dynamické kategórie
 const getCategoryIcon = (
@@ -64,18 +56,18 @@ const getCategoryIcon = (
   categories: ExpenseCategory[]
 ) => {
   const category = categories.find(c => c.name === categoryName);
-  if (!category) return <ReceiptIcon fontSize="small" />;
+  if (!category) return <ReceiptIcon className="h-4 w-4" />;
 
-  // Mapovanie ikon na Material UI komponenty
+  // Mapovanie ikon na Lucide komponenty
   const iconMap: Record<string, React.ReactElement> = {
-    local_gas_station: <FuelIcon fontSize="small" />,
-    build: <ServiceIcon fontSize="small" />,
-    security: <InsuranceIcon fontSize="small" />,
-    category: <OtherIcon fontSize="small" />,
-    receipt: <ReceiptIcon fontSize="small" />,
+    local_gas_station: <FuelIcon className="h-4 w-4" />,
+    build: <ServiceIcon className="h-4 w-4" />,
+    security: <InsuranceIcon className="h-4 w-4" />,
+    category: <OtherIcon className="h-4 w-4" />,
+    receipt: <ReceiptIcon className="h-4 w-4" />,
   };
 
-  return iconMap[category.icon] || <ReceiptIcon fontSize="small" />;
+  return iconMap[category.icon] || <ReceiptIcon className="h-4 w-4" />;
 };
 
 const getCategoryText = (
@@ -86,13 +78,6 @@ const getCategoryText = (
   return category?.displayName || categoryName;
 };
 
-const getCategoryColor = (
-  categoryName: string,
-  categories: ExpenseCategory[]
-): 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' => {
-  const category = categories.find(c => c.name === categoryName);
-  return category?.color || 'primary';
-};
 
 const ExpenseListNew: React.FC = () => {
   // ✅ MIGRATED: React Query hooks instead of AppContext
@@ -114,14 +99,25 @@ const ExpenseListNew: React.FC = () => {
   const deleteExpense = async (id: string) => {
     return deleteExpenseMutation.mutateAsync(id);
   };
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+  // Custom hook for mobile detection using Tailwind breakpoints
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Get data from React Query hooks
   const filteredExpenses = getFilteredExpenses();
   const vehicles = getFilteredVehicles();
 
   // States
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
   const [companyFilter, setCompanyFilter] = useState('');
@@ -173,9 +169,9 @@ const ExpenseListNew: React.FC = () => {
       const matchesCategory =
         categoryFilter === 'all' || expense.category === categoryFilter;
       const matchesCompany =
-        !companyFilter || expense.company === companyFilter;
+        !companyFilter || companyFilter === 'all-companies' || expense.company === companyFilter;
       const matchesVehicle =
-        !vehicleFilter || expense.vehicleId === vehicleFilter;
+        !vehicleFilter || vehicleFilter === 'all-vehicles' || expense.vehicleId === vehicleFilter;
 
       return (
         matchesSearch && matchesCategory && matchesCompany && matchesVehicle
@@ -210,7 +206,7 @@ const ExpenseListNew: React.FC = () => {
     // Spočítaj sumy pre každú kategóriu
     finalFilteredExpenses.forEach((expense: Expense) => {
       if (totals[expense.category] !== undefined) {
-        totals[expense.category] += expense.amount;
+        totals[expense.category]! += expense.amount;
       }
     });
 
@@ -407,7 +403,7 @@ const ExpenseListNew: React.FC = () => {
               // Formát MM/YYYY sa zmení na 01.MM.YYYY
               if (/^\d{1,2}\/\d{4}$/.test(dateStr)) {
                 const [month, year] = dateStr.split('/');
-                parsedDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                parsedDate = new Date(parseInt(year!), parseInt(month!) - 1, 1);
               } else {
                 // Štandardné parsovanie dátumu
                 const tempDate = new Date(dateStr);
@@ -525,332 +521,298 @@ const ExpenseListNew: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 } }}>
+    <div className="p-2 md:p-6">
       {/* Header */}
-      <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <Card className="mb-6 shadow-lg">
         <CardContent>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 2,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <ReceiptIcon sx={{ color: '#1976d2', fontSize: 28 }} />
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: '#1976d2' }}
-              >
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <ReceiptIcon className="h-7 w-7 text-blue-600" />
+              <h4 className="text-3xl font-bold text-blue-600">
                 Náklady
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              </h4>
+            </div>
+            <div className="flex gap-2 flex-wrap">
               <Button
-                variant="contained"
-                startIcon={<AddIcon />}
                 onClick={handleAddExpense}
-                sx={{ minWidth: 120 }}
+                className="min-w-[120px]"
               >
+                <AddIcon className="h-4 w-4 mr-2" />
                 Pridať
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<RepeatIcon />}
+                variant="outline"
                 onClick={() => setRecurringManagerOpen(true)}
-                sx={{
-                  borderColor: '#4caf50',
-                  color: '#4caf50',
-                  '&:hover': {
-                    borderColor: '#388e3c',
-                    bgcolor: 'rgba(76, 175, 80, 0.04)',
-                  },
-                }}
+                className="border-green-500 text-green-500 hover:border-green-700 hover:bg-green-50"
               >
+                <RepeatIcon className="h-4 w-4 mr-2" />
                 Pravidelné náklady
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<SettingsIcon />}
+                variant="outline"
                 onClick={() => setCategoriesManagerOpen(true)}
-                sx={{
-                  borderColor: '#1976d2',
-                  color: '#1976d2',
-                  '&:hover': {
-                    borderColor: '#1565c0',
-                    bgcolor: 'rgba(25, 118, 210, 0.04)',
-                  },
-                }}
+                className="border-blue-600 text-blue-600 hover:border-blue-700 hover:bg-blue-50"
               >
+                <SettingsIcon className="h-4 w-4 mr-2" />
                 Spravovať kategórie
               </Button>
               {/* CSV tlačidlá - len na desktope */}
               {!isMobile && (
                 <>
                   <Button
-                    variant="outlined"
+                    variant="outline"
                     onClick={handleExportCSV}
                     disabled={finalFilteredExpenses.length === 0}
                   >
                     📊 Export CSV
                   </Button>
 
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    sx={{
-                      borderColor: '#1976d2',
-                      color: '#1976d2',
-                      '&:hover': {
-                        borderColor: '#1565c0',
-                        bgcolor: 'rgba(25, 118, 210, 0.04)',
-                      },
-                    }}
-                  >
-                    📥 Import CSV
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      className="border-blue-600 text-blue-600 hover:border-blue-700 hover:bg-blue-50"
+                      onClick={() => document.getElementById('csv-import')?.click()}
+                    >
+                      📥 Import CSV
+                    </Button>
                     <input
+                      id="csv-import"
                       type="file"
                       accept=".csv"
                       onChange={handleImportCSV}
-                      style={{ display: 'none' }}
+                      className="hidden"
                     />
-                  </Button>
+                  </div>
                 </>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Search and Filters */}
-      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      <Card className="mb-6 shadow-md">
         <CardContent>
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 2,
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <TextField
-              placeholder="Hľadať náklady..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                ),
-              }}
-              sx={{ minWidth: 250, flexGrow: 1 }}
-            />
+          <div className="flex gap-4 items-center flex-wrap">
+            <div className="relative min-w-[250px] flex-grow">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Hľadať náklady..."
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
             <Button
-              variant={showFilters ? 'contained' : 'outlined'}
-              startIcon={<FilterListIcon />}
+              variant={showFilters ? 'default' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
             >
+              <FilterListIcon className="h-4 w-4 mr-2" />
               Filtre
             </Button>
 
-            {(categoryFilter !== 'all' || companyFilter || vehicleFilter) && (
-              <Button variant="text" onClick={clearFilters}>
+            {(categoryFilter !== 'all' || (companyFilter && companyFilter !== 'all-companies') || (vehicleFilter && vehicleFilter !== 'all-vehicles')) && (
+              <Button variant="ghost" onClick={clearFilters}>
                 Vymazať filtre
               </Button>
             )}
-          </Box>
+          </div>
 
           {showFilters && (
-            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Kategória</InputLabel>
-                    <Select
-                      value={categoryFilter}
-                      onChange={e => setCategoryFilter(e.target.value)}
-                      label="Kategória"
-                    >
-                      <MenuItem value="all">Všetky kategórie</MenuItem>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="category-select">Kategória</Label>
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky kategórie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Všetky kategórie</SelectItem>
                       {expenseCategories.map(category => (
-                        <MenuItem key={category.name} value={category.name}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
+                        <SelectItem key={category.name} value={category.name}>
+                          <div className="flex items-center gap-2">
                             {getCategoryIcon(category.name, expenseCategories)}
                             {getCategoryText(category.name, expenseCategories)}
-                          </Box>
-                        </MenuItem>
+                          </div>
+                        </SelectItem>
                       ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Firma</InputLabel>
-                    <Select
-                      value={companyFilter}
-                      onChange={e => setCompanyFilter(e.target.value)}
-                      label="Firma"
-                    >
-                      <MenuItem value="">Všetky firmy</MenuItem>
+                <div>
+                  <Label htmlFor="company-select">Firma</Label>
+                  <Select
+                    value={companyFilter}
+                    onValueChange={setCompanyFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky firmy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-companies">Všetky firmy</SelectItem>
                       {uniqueCompanies.map((company: string) => (
-                        <MenuItem key={company} value={company}>
+                        <SelectItem key={company} value={company}>
                           {company}
-                        </MenuItem>
+                        </SelectItem>
                       ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Vozidlo</InputLabel>
-                    <Select
-                      value={vehicleFilter}
-                      onChange={e => setVehicleFilter(e.target.value)}
-                      label="Vozidlo"
-                    >
-                      <MenuItem value="">Všetky vozidlá</MenuItem>
+                <div>
+                  <Label htmlFor="vehicle-select">Vozidlo</Label>
+                  <Select
+                    value={vehicleFilter}
+                    onValueChange={setVehicleFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky vozidlá" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-vehicles">Všetky vozidlá</SelectItem>
                       {vehicles.map((vehicle: Vehicle) => (
-                        <MenuItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.brand} {vehicle.model} -{' '}
-                          {vehicle.licensePlate}
-                        </MenuItem>
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                        </SelectItem>
                       ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Box>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Statistics Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Celkom
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {finalFilteredExpenses.length}
-                  </Typography>
-                </Box>
-                <ReceiptIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Total Count Card */}
+        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h6 className="text-lg font-semibold mb-1">Celkom</h6>
+                <h4 className="text-3xl font-bold">
+                  {finalFilteredExpenses.length}
+                </h4>
+              </div>
+              <ReceiptIcon className="h-10 w-10 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Suma
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {totalAmount.toFixed(2)}€
-                  </Typography>
-                </Box>
-                <EuroIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Total Amount Card */}
+        <Card className="bg-gradient-to-br from-pink-400 via-purple-500 to-red-500 text-white shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h6 className="text-lg font-semibold mb-1">Suma</h6>
+                <h4 className="text-3xl font-bold">
+                  {totalAmount.toFixed(2)}€
+                </h4>
+              </div>
+              <EuroIcon className="h-10 w-10 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Dynamické karty pre top 2 kategórie */}
+        {/* Dynamic Category Cards */}
         {expenseCategories.slice(0, 2).map((category, index) => (
-          <Grid item xs={12} sm={6} md={3} key={category.name}>
-            <Card
-              sx={{
-                background:
-                  index === 0
-                    ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                    : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              }}
-            >
-              <CardContent>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      {category.displayName}
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {(categoryTotals[category.name] || 0).toFixed(2)}€
-                    </Typography>
-                  </Box>
+          <Card 
+            key={category.name}
+            className={`text-white shadow-lg ${
+              index === 0 
+                ? 'bg-gradient-to-br from-blue-400 to-cyan-400' 
+                : 'bg-gradient-to-br from-pink-400 to-yellow-400'
+            }`}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h6 className="text-lg font-semibold mb-1">
+                    {category.displayName}
+                  </h6>
+                  <h4 className="text-3xl font-bold">
+                    {(categoryTotals[category.name] || 0).toFixed(2)}€
+                  </h4>
+                </div>
+                <div className="opacity-80">
                   {getCategoryIcon(category.name, expenseCategories)}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         ))}
-      </Grid>
+      </div>
 
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center my-6">
+          <Spinner />
+        </div>
       )}
 
+      {/* View Mode Toggle - Desktop Only */}
+      {!isMobile && (
+        <div className="mb-6 flex justify-end animate-fade-in">
+          <div className="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="gap-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="gap-2"
+            >
+              <List className="h-4 w-4" />
+              List
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Grid View - Premium Cards (Desktop Only) */}
+      {!isMobile && viewMode === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+          {finalFilteredExpenses.map((expense) => (
+            <PremiumExpenseCard
+              key={expense.id}
+              expense={expense}
+              onEdit={handleEditExpense}
+              onDelete={(id) => {
+                const exp = finalFilteredExpenses.find(e => e.id === id);
+                if (exp) handleDeleteExpense(exp);
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* List View & Mobile - Original Table */}
+      {(isMobile || viewMode === 'list') && (
+      <>
       {/* Mobile Layout */}
       {isMobile ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-2">
           {finalFilteredExpenses.length === 0 ? (
-            <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                <ReceiptIcon
-                  sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }}
-                />
-                <Typography variant="h6" color="text.secondary">
+            <Card className="shadow-md">
+              <CardContent className="text-center py-8">
+                <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h6 className="text-lg text-gray-500">
                   Žiadne náklady nenájdené
-                </Typography>
+                </h6>
               </CardContent>
             </Card>
           ) : (
@@ -862,242 +824,124 @@ const ExpenseListNew: React.FC = () => {
               return (
                 <Card
                   key={expense.id}
-                  sx={{
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    borderRadius: 2,
-                    '&:hover': {
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                      transform: 'translateY(-2px)',
-                    },
-                    transition: 'all 0.2s ease',
-                  }}
+                  className="shadow-md rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        mb: 2,
-                      }}
-                    >
-                      <Box sx={{ flexGrow: 1, mr: 2 }}>
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            fontWeight: 600,
-                            mb: 0.5,
-                            wordWrap: 'break-word',
-                          }}
-                        >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-grow mr-4">
+                        <h6 className="text-lg font-semibold mb-2 break-words">
                           {expense.description}
-                        </Typography>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            mb: 1,
-                          }}
-                        >
-                          <Chip
-                            icon={getCategoryIcon(
-                              expense.category,
-                              expenseCategories
-                            )}
-                            label={getCategoryText(
-                              expense.category,
-                              expenseCategories
-                            )}
-                            color={getCategoryColor(
-                              expense.category,
-                              expenseCategories
-                            )}
-                            size="small"
-                            sx={{ fontWeight: 600 }}
-                          />
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: 700,
-                              color: '#1976d2',
-                            }}
+                        </h6>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge 
+                            variant="secondary" 
+                            className="flex items-center gap-1 font-semibold"
                           >
+                            {getCategoryIcon(expense.category, expenseCategories)}
+                            {getCategoryText(expense.category, expenseCategories)}
+                          </Badge>
+                          <span className="text-lg font-bold text-blue-600">
                             {expense.amount.toFixed(2)}€
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </span>
+                        </div>
+                      </div>
 
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditExpense(expense)}
-                          sx={{
-                            backgroundColor: '#f5f5f5',
-                            '&:hover': { backgroundColor: '#e0e0e0' },
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteExpense(expense)}
-                          sx={{
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' },
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Box>
+                      <div className="flex gap-1">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditExpense(expense)}
+                                className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
+                              >
+                                <EditIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Upraviť</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteExpense(expense)}
+                                className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
+                              >
+                                <DeleteIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Zmazať</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
 
-                    <Divider sx={{ my: 1 }} />
+                    <Separator className="my-2" />
 
-                    <Grid container spacing={1} sx={{ fontSize: '0.875rem' }}>
-                      <Grid item xs={6}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                          }}
-                        >
-                          <DateIcon
-                            fontSize="small"
-                            sx={{ color: 'text.secondary' }}
-                          />
-                          <Typography variant="body2" color="text.secondary">
-                            {format(new Date(expense.date), 'dd.MM.yyyy')}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                          }}
-                        >
-                          <CompanyIcon
-                            fontSize="small"
-                            sx={{ color: 'text.secondary' }}
-                          />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            noWrap
-                          >
-                            {expense.company}
-                          </Typography>
-                        </Box>
-                      </Grid>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-1">
+                        <DateIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">
+                          {format(new Date(expense.date), 'dd.MM.yyyy')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <CompanyIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 truncate">
+                          {expense.company}
+                        </span>
+                      </div>
                       {vehicle && (
-                        <Grid item xs={12}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                            }}
-                          >
-                            <VehicleIcon
-                              fontSize="small"
-                              sx={{ color: 'text.secondary' }}
-                            />
-                            <Typography variant="body2" color="text.secondary">
-                              {vehicle.brand} {vehicle.model} -{' '}
-                              {vehicle.licensePlate}
-                            </Typography>
-                          </Box>
-                        </Grid>
+                        <div className="col-span-2 flex items-center gap-1">
+                          <VehicleIcon className="h-4 w-4 text-gray-500" />
+                          <span className="text-gray-600">
+                            {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                          </span>
+                        </div>
                       )}
                       {expense.note && (
-                        <Grid item xs={12}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontStyle: 'italic',
-                              color: 'text.secondary',
-                              mt: 1,
-                              p: 1,
-                              backgroundColor: '#f5f5f5',
-                              borderRadius: 1,
-                            }}
-                          >
+                        <div className="col-span-2">
+                          <p className="text-sm italic text-gray-600 mt-2 p-2 bg-gray-50 rounded">
                             {expense.note}
-                          </Typography>
-                        </Grid>
+                          </p>
+                        </div>
                       )}
-                    </Grid>
+                    </div>
                   </CardContent>
                 </Card>
               );
             })
           )}
-        </Box>
+        </div>
       ) : (
         /* Desktop Layout */
-        <Card sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <Box
-            sx={{
-              position: 'sticky',
-              top: 0,
-              backgroundColor: 'white',
-              zIndex: 1,
-              borderBottom: '2px solid #f0f0f0',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 120px',
-                gap: 2,
-                p: 2,
-                fontWeight: 600,
-                color: '#1976d2',
-                backgroundColor: '#f8f9fa',
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Popis
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Kategória
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Suma
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Dátum
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Firma
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Vozidlo
-              </Typography>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 700, textAlign: 'center' }}
-              >
-                Akcie
-              </Typography>
-            </Box>
-          </Box>
+        <Card className="shadow-lg">
+          {/* Table Header */}
+          <div className="sticky top-0 bg-white z-10 border-b-2 border-gray-200">
+            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 font-semibold text-blue-600 bg-gray-50">
+              <div className="font-bold">Popis</div>
+              <div className="font-bold">Kategória</div>
+              <div className="font-bold">Suma</div>
+              <div className="font-bold">Dátum</div>
+              <div className="font-bold">Firma</div>
+              <div className="font-bold">Vozidlo</div>
+              <div className="font-bold text-center">Akcie</div>
+            </div>
+          </div>
 
-          <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
+          {/* Table Body */}
+          <div className="max-h-[600px] overflow-auto">
             {finalFilteredExpenses.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <ReceiptIcon
-                  sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }}
-                />
-                <Typography variant="h6" color="text.secondary">
+              <div className="text-center py-16">
+                <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h6 className="text-lg text-gray-500">
                   Žiadne náklady nenájdené
-                </Typography>
-              </Box>
+                </h6>
+              </div>
             ) : (
               finalFilteredExpenses.map((expense: Expense, index: number) => {
                 const vehicle = expense.vehicleId
@@ -1105,153 +949,118 @@ const ExpenseListNew: React.FC = () => {
                   : null;
 
                 return (
-                  <Box
+                  <div
                     key={expense.id}
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 120px',
-                      gap: 2,
-                      p: 2,
-                      borderBottom: '1px solid #e0e0e0',
-                      backgroundColor: index % 2 === 0 ? '#fafafa' : 'white',
-                      '&:hover': {
-                        backgroundColor: '#f0f7ff',
-                        cursor: 'pointer',
-                      },
-                      transition: 'background-color 0.2s ease',
-                    }}
+                    className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 border-b border-gray-200 hover:bg-blue-50 hover:cursor-pointer transition-colors duration-200 ${
+                      index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                    }`}
                   >
-                    <Box>
-                      <Typography
-                        variant="body1"
-                        sx={{ fontWeight: 600, mb: 0.5 }}
-                      >
+                    {/* Description Column */}
+                    <div>
+                      <div className="font-semibold mb-1">
                         {expense.description}
-                      </Typography>
+                      </div>
                       {expense.note && (
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'text.secondary',
-                            fontStyle: 'italic',
-                          }}
-                        >
+                        <div className="text-sm text-gray-500 italic">
                           {expense.note}
-                        </Typography>
+                        </div>
                       )}
-                    </Box>
+                    </div>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Chip
-                        icon={getCategoryIcon(
-                          expense.category,
-                          expenseCategories
-                        )}
-                        label={getCategoryText(
-                          expense.category,
-                          expenseCategories
-                        )}
-                        color={getCategoryColor(
-                          expense.category,
-                          expenseCategories
-                        )}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    </Box>
+                    {/* Category Column */}
+                    <div className="flex items-center">
+                      <Badge 
+                        variant="secondary" 
+                        className="flex items-center gap-1 font-semibold"
+                      >
+                        {getCategoryIcon(expense.category, expenseCategories)}
+                        {getCategoryText(expense.category, expenseCategories)}
+                      </Badge>
+                    </div>
 
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontWeight: 700,
-                        color: '#1976d2',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
+                    {/* Amount Column */}
+                    <div className="flex items-center font-bold text-blue-600">
                       {expense.amount.toFixed(2)}€
-                    </Typography>
+                    </div>
 
-                    <Typography
-                      variant="body2"
-                      sx={{ display: 'flex', alignItems: 'center' }}
-                    >
+                    {/* Date Column */}
+                    <div className="flex items-center text-sm">
                       {format(new Date(expense.date), 'dd.MM.yyyy')}
-                    </Typography>
+                    </div>
 
-                    <Typography
-                      variant="body2"
-                      sx={{ display: 'flex', alignItems: 'center' }}
-                      noWrap
-                    >
+                    {/* Company Column */}
+                    <div className="flex items-center text-sm truncate">
                       {expense.company}
-                    </Typography>
+                    </div>
 
-                    <Typography
-                      variant="body2"
-                      sx={{ display: 'flex', alignItems: 'center' }}
-                      noWrap
-                    >
+                    {/* Vehicle Column */}
+                    <div className="flex items-center text-sm truncate">
                       {vehicle
                         ? `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`
                         : '-'}
-                    </Typography>
+                    </div>
 
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        gap: 0.5,
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Tooltip title="Upraviť">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditExpense(expense)}
-                          sx={{
-                            backgroundColor: '#f5f5f5',
-                            '&:hover': { backgroundColor: '#e0e0e0' },
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Zmazať">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteExpense(expense)}
-                          sx={{
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' },
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </Box>
+                    {/* Actions Column */}
+                    <div className="flex gap-1 justify-center">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditExpense(expense)}
+                              className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
+                            >
+                              <EditIcon className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Upraviť</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteExpense(expense)}
+                              className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
+                            >
+                              <DeleteIcon className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Zmazať</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
                 );
               })
             )}
-          </Box>
+          </div>
         </Card>
+      )}
+      </>
       )}
 
       {/* Form Dialog */}
-      <Dialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isMobile}
-      >
-        <ExpenseForm
-          expense={editingExpense}
-          onSave={handleFormSubmit}
-          onCancel={() => setFormOpen(false)}
-          categories={expenseCategories}
-        />
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className={`${isMobile ? 'h-full max-w-full overflow-y-auto' : 'max-w-4xl'} w-full`}>
+          <DialogHeader>
+            <DialogTitle>
+              {editingExpense ? 'Upraviť výdavok' : 'Nový výdavok'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingExpense ? 'Upravte údaje o výdavku' : 'Pridajte nový výdavok do systému'}
+            </DialogDescription>
+          </DialogHeader>
+          <ExpenseForm
+            expense={editingExpense}
+            onSave={handleFormSubmit}
+            onCancel={() => setFormOpen(false)}
+            categories={expenseCategories}
+          />
+        </DialogContent>
       </Dialog>
 
       {/* Categories Manager Dialog */}
@@ -1270,7 +1079,7 @@ const ExpenseListNew: React.FC = () => {
           window.location.reload();
         }}
       />
-    </Box>
+    </div>
   );
 };
 

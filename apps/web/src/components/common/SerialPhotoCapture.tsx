@@ -1,30 +1,47 @@
 import {
-  Close,
-  Delete,
-  PhotoCamera,
-  Preview,
+  X as Close,
+  Trash2 as Delete,
+  Camera as PhotoCamera,
+  Eye as Preview,
   Save,
-  VideoCall,
-} from '@mui/icons-material';
+  Video as VideoCall,
+} from 'lucide-react';
 import {
-  Box,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
+} from '@/components/ui/dialog';
+import {
+  Button,
+} from '@/components/ui/button';
+import {
+  Label,
+} from '@/components/ui/label';
+import {
   Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Switch,
-  TextField,
-  Typography,
-} from '@mui/material';
-import Alert from '@mui/material/Alert';
+} from '@/components/ui/switch';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
+  Progress,
+} from '@/components/ui/progress';
+import {
+  Alert,
+  AlertDescription,
+} from '@/components/ui/alert';
+import { Typography } from '@/components/ui/typography';
+import { Textarea } from '@/components/ui/textarea';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getApiBaseUrl } from '../../utils/apiUrl';
@@ -37,11 +54,9 @@ import {
   preserveQualityForGallery,
 } from '../../utils/imageLint';
 
-// import { Grid } from '@mui/material';
-
 import { logger } from '../../utils/logger';
 import { compressVideo } from '../../utils/videoCompression';
-import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
+import { Card } from '@/components/ui/card';
 
 import NativeCamera from './NativeCamera';
 
@@ -476,20 +491,20 @@ export default function SerialPhotoCapture({
             id: uuidv4(),
             file: processedFile,
             type: isVideo ? 'video' : 'image',
-            mediaType,
+            mediaType: mediaType || 'vehicle',
             description: '',
             preview: originalUrl ? getProxyUrl(originalUrl) : url, // Použij proxy URL pre R2 obrázky
             timestamp: new Date(),
-            compressed,
-            originalSize,
+            compressed: compressed || false,
+            originalSize: originalSize ?? 0,
             compressedSize,
             compressionRatio:
               originalSize > 0
                 ? ((originalSize - compressedSize) / originalSize) * 100
                 : 0,
             // 🌟 NOVÉ: URL pre rôzne kvality
-            originalUrl: originalUrl,
-            compressedUrl: compressedUrl,
+            originalUrl: originalUrl ?? '',
+            compressedUrl: compressedUrl ?? '',
           };
 
           newMedia.push(media);
@@ -613,7 +628,7 @@ export default function SerialPhotoCapture({
         id: uuidv4(),
         file: file,
         type: 'image',
-        mediaType: allowedTypes[0], // Default type
+        mediaType: allowedTypes[0] || 'vehicle', // Default type
         description: '',
         preview: originalUrl ? getProxyUrl(originalUrl) : preview, // Použij proxy URL pre R2 obrázky
         timestamp: new Date(),
@@ -622,8 +637,8 @@ export default function SerialPhotoCapture({
         compressedSize: imageBlob.size,
         compressionRatio: 0,
         // 🌟 NOVÉ: URL pre rôzne kvality
-        originalUrl: originalUrl,
-        compressedUrl: compressedUrl,
+        originalUrl: originalUrl ?? '',
+        compressedUrl: compressedUrl ?? '',
       };
 
       // URL sa už nastavili počas uploadu vyššie
@@ -797,7 +812,7 @@ export default function SerialPhotoCapture({
           compressedUrl: protocolImage.compressedUrl?.substring(0, 80) + '...',
         });
 
-        images.push(protocolImage);
+        images.push(protocolImage as any);
       } else {
         videos.push({
           id: media.id,
@@ -805,9 +820,9 @@ export default function SerialPhotoCapture({
           type: media.mediaType,
           description: media.description,
           timestamp: media.timestamp,
-          compressed: media.compressed,
-          originalSize: media.originalSize,
-          compressedSize: media.compressedSize,
+          compressed: media.compressed ?? false,
+          originalSize: media.originalSize ?? 0,
+          compressedSize: media.compressedSize ?? 0,
         });
       }
     }
@@ -842,146 +857,126 @@ export default function SerialPhotoCapture({
 
   return (
     <>
-      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          {title}
-          <IconButton onClick={handleClose} color="inherit">
-            <Close />
-          </IconButton>
-        </DialogTitle>
+      <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              {title}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClose}
+                className="h-6 w-6"
+              >
+                <Close className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              Zachyťte fotografie pre {title.toLowerCase()}
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogContent>
           {/* Action buttons */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 2,
-              mb: 3,
-              flexWrap: 'wrap',
-              alignItems: 'center',
-            }}
-          >
-            <PrimaryButton
-              startIcon={<PhotoCamera />}
+          <div className="flex gap-4 mb-6 flex-wrap items-center">
+            <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={processing}
-              sx={{
-                fontSize: '1.1rem',
-                py: 1.5,
-                px: 3,
-                '&:hover': {
-                  transform: 'scale(1.02)',
-                  transition: 'transform 0.1s',
-                },
-              }}
+              className="text-lg py-3 px-6 hover:scale-105 transition-transform"
             >
+              <PhotoCamera className="h-5 w-5 mr-2" />
               📸 Kvalitné fotky
-            </PrimaryButton>
+            </Button>
 
-            <PrimaryButton
-              startIcon={<VideoCall />}
+            <Button
               onClick={() => videoInputRef.current?.click()}
               disabled={processing}
+              className="text-lg py-3 px-6 hover:scale-105 transition-transform"
             >
-              Pridať video
-            </PrimaryButton>
+              <VideoCall className="h-5 w-5 mr-2" />
+              🎥 Pridať video
+            </Button>
 
-            <SecondaryButton
-              startIcon={<PhotoCamera />}
+            <Button
+              variant="outline"
               onClick={() => setNativeCameraOpen(true)}
               disabled={processing}
-              sx={{
-                borderColor: 'orange.main',
-                color: 'orange.main',
-                '&:hover': {
-                  borderColor: 'orange.dark',
-                  backgroundColor: 'orange.50',
-                },
-              }}
+              className="border-orange-500 text-orange-500 hover:bg-orange-50 hover:border-orange-600"
             >
+              <PhotoCamera className="h-5 w-5 mr-2" />
               ⚡ Rýchle fotky
-            </SecondaryButton>
+            </Button>
 
             {/* 🎯 NOVÉ: Výber kvality */}
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Kvalita</InputLabel>
+            <div className="min-w-[140px]">
+              <Label htmlFor="quality-select">Kvalita</Label>
               <Select
                 value={selectedQuality}
-                onChange={e =>
-                  setSelectedQuality(e.target.value as typeof selectedQuality)
+                onValueChange={(value) =>
+                  setSelectedQuality(value as typeof selectedQuality)
                 }
-                label="Kvalita"
               >
-                <MenuItem value="mobile">
-                  📱 Mobilná ({webPEnabled ? '500KB' : '800KB'})
-                </MenuItem>
-                <MenuItem value="protocol">
-                  🏢 Protokol ({webPEnabled ? '1MB' : '1.5MB'})
-                </MenuItem>
-                <MenuItem value="highQuality">
-                  🔍 Vysoká ({webPEnabled ? '2MB' : '3MB'})
-                </MenuItem>
-                <MenuItem value="archive">
-                  💾 Archív ({webPEnabled ? '3.5MB' : '5MB'})
-                </MenuItem>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte kvalitu" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mobile">
+                    📱 Mobilná ({webPEnabled ? '500KB' : '800KB'})
+                  </SelectItem>
+                  <SelectItem value="protocol">
+                    🏢 Protokol ({webPEnabled ? '1MB' : '1.5MB'})
+                  </SelectItem>
+                  <SelectItem value="highQuality">
+                    🔍 Vysoká ({webPEnabled ? '2MB' : '3MB'})
+                  </SelectItem>
+                  <SelectItem value="archive">
+                    💾 Archív ({webPEnabled ? '3.5MB' : '5MB'})
+                  </SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
 
             {/* 🌟 NOVÉ: WebP toggle */}
             {webPSupported !== null && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={webPEnabled && webPSupported}
-                    onChange={e => setWebPEnabled(e.target.checked)}
-                    disabled={!webPSupported}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">
-                      WebP {webPSupported ? '✅' : '❌'}
-                    </Typography>
-                    {webPEnabled && webPSupported && (
-                      <Chip
-                        label="30% MENŠIE"
-                        size="small"
-                        color="success"
-                        variant="filled"
-                      />
-                    )}
-                  </Box>
-                }
-                sx={{ ml: 1 }}
-              />
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={webPEnabled && webPSupported}
+                  onCheckedChange={(checked) => setWebPEnabled(checked)}
+                  disabled={!webPSupported}
+                />
+                <Label htmlFor="webp-toggle" className="flex items-center gap-2">
+                  <Typography variant="body2">
+                    WebP {webPSupported ? '✅' : '❌'}
+                  </Typography>
+                  {webPEnabled && webPSupported && (
+                    <Badge variant="default" className="h-5">
+                      30% MENŠIE
+                    </Badge>
+                  )}
+                </Label>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* 💡 NOVÉ: Smart Tips pre rýchle fotenie */}
-          <Alert severity="info" sx={{ mb: 2, bgcolor: 'blue.50' }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong>⚡ Rýchle fotenie:</strong>
-            </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2 }}>
-              <li>
-                <kbd>Space</kbd> alebo <kbd>⌘R</kbd> = Rýchle fotky cez
-                prehliadač
-              </li>
-              <li>
-                <kbd>⌘K</kbd> = Kvalitné fotky z galérie/fotoaparátu
-              </li>
-              <li>
-                <strong>Tip:</strong> Pre škody použiť kvalitné, pre celkové
-                zábery rýchle
-              </li>
-            </Box>
+          <Alert className="mb-4">
+            <AlertDescription>
+              <Typography variant="body2" className="mb-2">
+                <strong>⚡ Rýchle fotenie:</strong>
+              </Typography>
+              <ul className="m-0 pl-4 space-y-1">
+                <li>
+                  <kbd className="px-2 py-1 bg-muted rounded">Space</kbd> alebo <kbd className="px-2 py-1 bg-muted rounded">⌘R</kbd> = Rýchle fotky cez
+                  prehliadač
+                </li>
+                <li>
+                  <kbd className="px-2 py-1 bg-muted rounded">⌘K</kbd> = Kvalitné fotky z galérie/fotoaparátu
+                </li>
+                <li>
+                  <strong>Tip:</strong> Pre škody použiť kvalitné, pre celkové
+                  zábery rýchle
+                </li>
+              </ul>
+            </AlertDescription>
           </Alert>
 
           {/* File inputs */}
@@ -1005,91 +1000,80 @@ export default function SerialPhotoCapture({
 
           {/* Progress indicators */}
           {(processing || uploadingToR2) && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+            <div className="mb-2">
+              <Typography variant="body2" className="text-muted-foreground mb-2">
                 {uploadingToR2
                   ? 'Uploadujem na R2...'
                   : 'Spracovávam súbory...'}
               </Typography>
-              <LinearProgress
-                variant="determinate"
+              <Progress
                 value={uploadingToR2 ? uploadProgress : progress}
-                sx={{ height: 8, borderRadius: 4 }}
+                className="h-2 rounded"
               />
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: 'block' }}
+                className="text-muted-foreground mt-1 block"
               >
                 {uploadingToR2
                   ? uploadProgress.toFixed(0)
                   : progress.toFixed(0)}
                 %
               </Typography>
-            </Box>
+            </div>
           )}
 
           {/* Stats */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              mb: 2,
-              flexWrap: 'wrap',
-              alignItems: 'center',
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex gap-1 mb-2 flex-wrap items-center">
+            <Typography variant="body2" className="text-muted-foreground">
               Limity: {maxImages} fotiek, {maxVideos} videí
             </Typography>
             {capturedMedia.length > 0 && (
               <>
-                <Chip
-                  label={`${capturedMedia.filter(m => m.type === 'image').length}/${maxImages} fotiek`}
-                  size="small"
-                  color={
+                <Badge
+                  variant={
                     capturedMedia.filter(m => m.type === 'image').length >=
                     maxImages
-                      ? 'error'
+                      ? 'destructive'
                       : 'default'
                   }
-                />
-                <Chip
-                  label={`${capturedMedia.filter(m => m.type === 'video').length}/${maxVideos} videí`}
-                  size="small"
-                  color={
+                  className="text-xs"
+                >
+                  {capturedMedia.filter(m => m.type === 'image').length}/{maxImages} fotiek
+                </Badge>
+                <Badge
+                  variant={
                     capturedMedia.filter(m => m.type === 'video').length >=
                     maxVideos
-                      ? 'error'
+                      ? 'destructive'
                       : 'default'
                   }
-                />
-                <Chip
-                  label={`${(totalSize / 1024 / 1024).toFixed(1)} MB`}
-                  size="small"
-                />
+                  className="text-xs"
+                >
+                  {capturedMedia.filter(m => m.type === 'video').length}/{maxVideos} videí
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-xs"
+                >
+                  {(totalSize / 1024 / 1024).toFixed(1)} MB
+                </Badge>
                 {compressionRatio > 0 && (
-                  <Chip
-                    label={`${compressionRatio.toFixed(1)}% komprimované`}
-                    size="small"
-                    color="success"
-                  />
+                  <Badge
+                    variant="secondary"
+                    className="text-xs"
+                  >
+                    {compressionRatio.toFixed(1)}% komprimované
+                  </Badge>
                 )}
               </>
             )}
-          </Box>
+          </div>
 
           {/* Media grid */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: 2,
-            }}
-          >
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
             {capturedMedia.map(media => (
-              <DefaultCard key={media.id}>
-                <Box sx={{ position: 'relative', mb: 2 }}>
+              <Card key={media.id}>
+                <div className="relative mb-2">
                   {media.type === 'image' ? (
                     <img
                       src={media.preview || media.originalUrl}
@@ -1111,72 +1095,53 @@ export default function SerialPhotoCapture({
                       }}
                     />
                   ) : (
-                    <Box
-                      sx={{
-                        width: '100%',
-                        height: 150,
+                    <div
+                      className="w-full h-[150px] bg-cover bg-center flex items-center justify-center"
+                      style={{
                         backgroundImage: `url(${media.preview || media.originalUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
                       }}
                     >
-                      <VideoCall sx={{ fontSize: 40, color: 'text.primary' }} />
-                    </Box>
+                      <VideoCall className="text-4xl text-foreground" />
+                    </div>
                   )}
 
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 5,
-                      right: 5,
-                      display: 'flex',
-                      gap: 1,
-                    }}
-                  >
-                    <IconButton
-                      size="small"
+                  <div className="absolute top-1 right-1 flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
                       onClick={() => setPreviewMedia(media)}
-                      sx={{
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        color: 'text.primary',
-                      }}
+                      className="bg-black/50 text-foreground hover:bg-black/70"
                     >
-                      <Preview />
-                    </IconButton>
-                    <IconButton
-                      size="small"
+                      <Preview className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
                       onClick={() => handleDeleteMedia(media.id)}
-                      sx={{
-                        backgroundColor: 'rgba(255,0,0,0.5)',
-                        color: 'text.primary',
-                      }}
+                      className="bg-red-500/50 text-foreground hover:bg-red-500/70"
                     >
-                      <Delete />
-                    </IconButton>
-                  </Box>
+                      <Delete className="h-4 w-4" />
+                    </Button>
+                  </div>
 
                   {media.compressed && (
-                    <Chip
-                      label="Komprimované"
-                      size="small"
-                      color="success"
-                      sx={{ position: 'absolute', bottom: 5, left: 5 }}
-                    />
+                    <Badge
+                      variant="secondary"
+                      className="absolute bottom-1 left-1 text-xs"
+                    >
+                      Komprimované
+                    </Badge>
                   )}
-                </Box>
+                </div>
 
-                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                  <InputLabel>Typ</InputLabel>
+                <div className="space-y-2 mb-2">
+                  <Label htmlFor={`media-type-${media.id}`}>Typ</Label>
                   <Select
                     value={media.mediaType}
-                    label="Typ"
-                    onChange={e =>
+                    onValueChange={(value) =>
                       handleMediaTypeChange(
                         media.id,
-                        e.target.value as
+                        value as
                           | 'vehicle'
                           | 'damage'
                           | 'document'
@@ -1185,38 +1150,44 @@ export default function SerialPhotoCapture({
                       )
                     }
                   >
-                    {allowedTypes.map(type => (
-                      <MenuItem key={type} value={type}>
-                        {type === 'vehicle' && 'Vozidlo'}
-                        {type === 'damage' && 'Poškodenie'}
-                        {type === 'document' && 'Doklady'}
-                        {type === 'fuel' && 'Palivo'}
-                        {type === 'odometer' && 'Tachometer'}
-                      </MenuItem>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte typ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allowedTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type === 'vehicle' && 'Vozidlo'}
+                          {type === 'damage' && 'Poškodenie'}
+                          {type === 'document' && 'Doklady'}
+                          {type === 'fuel' && 'Palivo'}
+                          {type === 'odometer' && 'Tachometer'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
+                </div>
 
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Popis"
-                  value={media.description}
-                  onChange={e =>
-                    handleDescriptionChange(media.id, e.target.value)
-                  }
-                  multiline
-                  rows={2}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor={`description-${media.id}`}>Popis</Label>
+                  <Textarea
+                    id={`description-${media.id}`}
+                    value={media.description}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleDescriptionChange(media.id, e.target.value)
+                    }
+                    rows={2}
+                    placeholder="Zadajte popis..."
+                  />
+                </div>
 
                 <Typography
                   variant="caption"
-                  sx={{ color: 'text.secondary', mt: 1, display: 'block' }}
+                  className="text-muted-foreground mt-1 block"
                 >
                   {media.compressed ? (
                     <>
                       {(media.compressedSize! / 1024 / 1024).toFixed(2)} MB
-                      <span style={{ color: 'success.main' }}>
+                      <span className="text-green-600">
                         ({media.compressionRatio!.toFixed(1)}% komprimované)
                       </span>
                     </>
@@ -1224,41 +1195,42 @@ export default function SerialPhotoCapture({
                     `${(media.file.size / 1024 / 1024).toFixed(2)} MB`
                   )}
                 </Typography>
-              </DefaultCard>
+              </Card>
             ))}
-          </Box>
+          </div>
         </DialogContent>
 
-        <DialogActions>
-          <SecondaryButton onClick={handleClose}>Zrušiť</SecondaryButton>
-          <PrimaryButton
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>Zrušiť</Button>
+          <Button
             onClick={handleSave}
-            startIcon={<Save />}
             disabled={capturedMedia.length === 0 || processing}
-            loading={processing}
-            loadingText="Ukladám..."
           >
+            <Save className="mr-2 h-4 w-4" />
             Uložiť ({capturedMedia.length})
-          </PrimaryButton>
-        </DialogActions>
+          </Button>
+        </DialogFooter>
       </Dialog>
 
       {/* Preview Dialog */}
       <Dialog
         open={!!previewMedia}
-        onClose={() => setPreviewMedia(null)}
-        maxWidth="md"
-        fullWidth
+        onOpenChange={() => setPreviewMedia(null)}
       >
-        <DialogTitle>Náhľad</DialogTitle>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Náhľad</DialogTitle>
+            <DialogDescription>
+              Náhľad vybranej fotografie
+            </DialogDescription>
+          </DialogHeader>
           {previewMedia && (
-            <Box sx={{ textAlign: 'center' }}>
+            <div className="text-center">
               {previewMedia.type === 'image' ? (
                 <img
                   src={previewMedia.preview || previewMedia.originalUrl}
                   alt={previewMedia.description}
-                  style={{ maxWidth: '100%', maxHeight: '70vh' }}
+                  className="max-w-full max-h-[70vh]"
                   onError={e => {
                     console.error(
                       '❌ Preview modal image failed to load:',
@@ -1281,21 +1253,21 @@ export default function SerialPhotoCapture({
                 <video
                   src={previewMedia.originalUrl || previewMedia.preview}
                   controls
-                  style={{ maxWidth: '100%', maxHeight: '70vh' }}
+                  className="max-w-full max-h-[70vh]"
                 />
               )}
 
-              <Typography variant="body2" color="text.primary" sx={{ mt: 2 }}>
+              <Typography variant="body2" className="text-foreground mt-2">
                 {previewMedia.description || 'Bez popisu'}
               </Typography>
-            </Box>
+            </div>
           )}
         </DialogContent>
-        <DialogActions>
-          <SecondaryButton onClick={() => setPreviewMedia(null)}>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPreviewMedia(null)}>
             Zatvoriť
-          </SecondaryButton>
-        </DialogActions>
+          </Button>
+        </DialogFooter>
       </Dialog>
 
       {/* Native Camera Component */}

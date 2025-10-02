@@ -34,7 +34,7 @@ export function formatDate(date: string | Date): string {
     const year = dateObj.getFullYear();
 
     return `${day}.${month}.${year}`;
-  } catch {
+  } catch (error) {
     return 'N/A';
   }
 }
@@ -94,7 +94,7 @@ export function formatDateTime(date: string | Date): string {
     }
 
     return 'N/A';
-  } catch {
+  } catch (error) {
     return 'N/A';
   }
 }
@@ -136,7 +136,7 @@ export function formatTime(date: string | Date): string {
     const minute = String(dateObj.getMinutes()).padStart(2, '0');
 
     return `${hour}:${minute}`;
-  } catch {
+  } catch (error) {
     return 'N/A';
   }
 }
@@ -185,12 +185,12 @@ export function formatDuration(
         if (match) {
           const [, year, month, day, hour, minute, second] = match;
           return new Date(
-            parseInt(year),
-            parseInt(month) - 1,
-            parseInt(day),
-            parseInt(hour),
-            parseInt(minute),
-            parseInt(second)
+            parseInt(year!),
+            parseInt(month!) - 1,
+            parseInt(day!),
+            parseInt(hour!),
+            parseInt(minute!),
+            parseInt(second!)
           );
         }
         // ISO format - use UTC time
@@ -213,7 +213,7 @@ export function formatDuration(
     if (diffDays === 1) return '1 deň';
     if (diffDays < 5) return `${diffDays} dni`;
     return `${diffDays} dní`;
-  } catch {
+  } catch (error) {
     return 'N/A';
   }
 }
@@ -289,12 +289,12 @@ export function parseTimezoneFreeDateString(
     const [, year, month, day, hour, minute, second] = match;
     // Vytvor Date objekt s explicitnými hodnotami - bez timezone konverzie
     return new Date(
-      parseInt(year),
-      parseInt(month) - 1, // Mesiace sú 0-indexed
-      parseInt(day),
-      parseInt(hour),
-      parseInt(minute),
-      parseInt(second)
+      parseInt(year!),
+      parseInt(month!) - 1, // Mesiace sú 0-indexed
+      parseInt(day!),
+      parseInt(hour!),
+      parseInt(minute!),
+      parseInt(second!)
     );
   }
 

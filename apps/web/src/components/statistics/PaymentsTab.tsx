@@ -1,18 +1,19 @@
-import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
+import { CheckCircle as CheckCircleIcon } from 'lucide-react';
 import {
-  Box,
   Card,
   CardContent,
-  Chip,
-  Grid,
+} from '@/components/ui/card';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Typography,
-} from '@mui/material';
+} from '@/components/ui/table';
 import React from 'react';
 
 interface PaymentMethodData {
@@ -42,42 +43,31 @@ interface PaymentsTabProps {
 
 const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} lg={8}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2">
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+            <h3 className="text-lg font-bold text-[#667eea] mb-4">
               Štatistiky platieb
-            </Typography>
-            <TableContainer>
+            </h3>
+            <div className="overflow-auto">
               <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-bold">
                       Spôsob platby
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
                       Počet
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
                       Príjmy
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
                       Podiel
-                    </TableCell>
+                    </TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {Object.entries(stats.paymentMethodStats)
                     .sort(([, a], [, b]) => b.revenue - a.revenue)
@@ -87,145 +77,82 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({ stats }) => {
                       return (
                         <TableRow
                           key={method}
-                          sx={{
-                            '&:hover': {
-                              backgroundColor: '#f8f9fa',
-                            },
-                            transition: 'background-color 0.2s ease',
-                          }}
+                          className="hover:bg-gray-50 transition-colors"
                         >
                           <TableCell>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
-                            >
-                              <Chip
-                                label={method}
-                                size="small"
-                                sx={{
-                                  backgroundColor: '#667eea',
-                                  color: 'white',
-                                  fontWeight: 600,
-                                }}
-                              />
-                            </Box>
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-[#667eea] text-white font-semibold">
+                                {method}
+                              </Badge>
+                            </div>
                           </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" fontWeight="bold">
+                          <TableCell className="text-right">
+                            <span className="text-sm font-bold">
                               {data.count}
-                            </Typography>
+                            </span>
                           </TableCell>
-                          <TableCell align="right">
-                            <Typography
-                              variant="body2"
-                              fontWeight="bold"
-                              sx={{ color: '#11998e' }}
-                            >
+                          <TableCell className="text-right">
+                            <span className="text-sm font-bold text-[#11998e]">
                               {data.revenue.toLocaleString()} €
-                            </Typography>
+                            </span>
                           </TableCell>
-                          <TableCell align="right">
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              fontWeight="bold"
-                            >
+                          <TableCell className="text-right">
+                            <span className="text-sm text-muted-foreground font-bold">
                               {percentage.toFixed(1)}%
-                            </Typography>
+                            </span>
                           </TableCell>
                         </TableRow>
                       );
                     })}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
 
-      <Grid item xs={12} lg={4}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
+      <div className="lg:col-span-1">
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+            <h3 className="text-lg font-bold text-[#667eea] mb-4">
               Nezaplatené prenájmy
-            </Typography>
+            </h3>
             {stats.unpaidRentals.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <CheckCircleIcon
-                  sx={{ fontSize: 48, color: 'success.main', mb: 2 }}
-                />
-                <Typography
-                  variant="body1"
-                  color="success.main"
-                  gutterBottom
-                  fontWeight="bold"
-                >
+              <div className="text-center py-8">
+                <CheckCircleIcon className="h-12 w-12 text-green-500 mb-4 mx-auto" />
+                <p className="text-base text-green-500 mb-4 font-bold">
                   Všetky prenájmy sú zaplatené!
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="flex flex-col gap-4">
                 {stats.unpaidRentals.slice(0, 5).map((rental: UnpaidRental) => (
-                  <Box
+                  <div
                     key={rental.id}
-                    sx={{
-                      p: 2,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      backgroundColor: '#fff3e0',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        transform: 'translateY(-2px)',
-                      },
-                    }}
+                    className="p-4 border border-border rounded-lg bg-orange-50 transition-all hover:shadow-md hover:-translate-y-1"
                   >
-                    <Typography variant="body2" fontWeight="bold">
+                    <p className="text-sm font-bold">
                       {rental.customerName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </p>
+                    <p className="text-xs text-muted-foreground">
                       {rental.vehicle?.brand} {rental.vehicle?.model}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="error.main"
-                      fontWeight="bold"
-                    >
+                    </p>
+                    <p className="text-sm text-destructive font-bold">
                       {rental.totalPrice?.toLocaleString()} €
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 ))}
                 {stats.unpaidRentals.length > 5 && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    textAlign="center"
-                    fontWeight="bold"
-                  >
+                  <p className="text-sm text-muted-foreground text-center font-bold">
                     + {stats.unpaidRentals.length - 5} ďalších
-                  </Typography>
+                  </p>
                 )}
-              </Box>
+              </div>
             )}
           </CardContent>
         </Card>
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 };
 

@@ -1,38 +1,26 @@
 import {
-  DirectionsCar as CarIcon,
+  Car as CarIcon,
   TrendingDown as DecreaseIcon,
-  Assignment as EKIcon,
+  FileText as EKIcon,
   TrendingUp as IncreaseIcon,
-  Security as InsuranceIcon,
-  Build as STKIcon,
-  Remove as SameIcon,
-} from '@mui/icons-material';
-import {
-  Timeline,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineItem,
-  TimelineOppositeContent,
-  TimelineSeparator,
-} from '@mui/lab';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  Shield as InsuranceIcon,
+  Wrench as STKIcon,
+  Minus as SameIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
 import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useCallback, useEffect, useState } from 'react';
@@ -65,51 +53,51 @@ const getDocumentTypeInfo = (type: string) => {
     case 'insurance_kasko':
       return {
         label: 'Kasko poistka',
-        icon: <InsuranceIcon sx={{ fontSize: 20 }} />,
-        color: '#2196f3',
+        icon: <InsuranceIcon className="h-5 w-5" />,
+        color: 'bg-blue-500',
       };
     case 'stk':
       return {
         label: 'STK',
-        icon: <STKIcon sx={{ fontSize: 20 }} />,
-        color: '#388e3c',
+        icon: <STKIcon className="h-5 w-5" />,
+        color: 'bg-green-500',
       };
     case 'ek':
       return {
         label: 'EK',
-        icon: <EKIcon sx={{ fontSize: 20 }} />,
-        color: '#f57c00',
+        icon: <EKIcon className="h-5 w-5" />,
+        color: 'bg-orange-500',
       };
     default:
       return {
         label: 'Dokument',
-        icon: <CarIcon sx={{ fontSize: 20 }} />,
-        color: '#666',
+        icon: <CarIcon className="h-5 w-5" />,
+        color: 'bg-gray-500',
       };
   }
 };
 
 const getKmTrend = (currentKm: number, previousKm?: number) => {
   if (!previousKm)
-    return { icon: <SameIcon />, color: '#666', text: 'Prvý záznam' };
+    return { icon: <SameIcon className="h-4 w-4" />, color: 'text-gray-500', text: 'Prvý záznam' };
 
   const diff = currentKm - previousKm;
   if (diff > 0) {
     return {
-      icon: <IncreaseIcon />,
-      color: '#4caf50',
+      icon: <IncreaseIcon className="h-4 w-4" />,
+      color: 'text-green-500',
       text: `+${diff.toLocaleString()} km`,
     };
   } else if (diff < 0) {
     return {
-      icon: <DecreaseIcon />,
-      color: '#f44336',
+      icon: <DecreaseIcon className="h-4 w-4" />,
+      color: 'text-red-500',
       text: `${diff.toLocaleString()} km`,
     };
   } else {
     return {
-      icon: <SameIcon />,
-      color: '#666',
+      icon: <SameIcon className="h-4 w-4" />,
+      color: 'text-gray-500',
       text: 'Bez zmeny',
     };
   }
@@ -120,8 +108,7 @@ export default function VehicleKmHistory({
   onClose,
   vehicle,
 }: VehicleKmHistoryProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(false);
   // const { state } = useApp(); // Migrated to React Query
 
   // React Query hooks for server state
@@ -130,6 +117,14 @@ export default function VehicleKmHistory({
 
   const [kmHistory, setKmHistory] = useState<KmHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Check mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const loadKmHistory = useCallback(async () => {
     if (!vehicle) return;
@@ -202,7 +197,7 @@ export default function VehicleKmHistory({
         return dateB.getTime() - dateA.getTime(); // Najnovšie prvé
       });
 
-      setKmHistory(sortedHistory);
+      setKmHistory(sortedHistory as KmHistoryEntry[]);
     } catch (error) {
       console.error('Chyba pri načítavaní histórie km:', error);
     } finally {
@@ -219,254 +214,185 @@ export default function VehicleKmHistory({
   if (!vehicle) return null;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      fullScreen={isMobile}
-    >
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CarIcon />
-          <Box>
-            <Typography variant="h6">História stavu kilometrov</Typography>
-            <Typography variant="subtitle2" color="text.secondary">
-              {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
-            </Typography>
-          </Box>
-        </Box>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className={isMobile ? "w-full h-full max-w-none rounded-none overflow-y-auto" : "max-w-4xl w-full"}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CarIcon className="h-6 w-6" />
+            História stavu kilometrov
+          </DialogTitle>
+          <DialogDescription>
+            {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : kmHistory.length === 0 ? (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography variant="body2">
-              Žiadna história kilometrov nie je k dispozícii pre toto vozidlo.
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 1, display: 'block' }}
-            >
-              História sa vytvára automaticky pri pridávaní STK, EK alebo Kasko
-              poistky s uvedeným stavom kilometrov.
-            </Typography>
-          </Alert>
-        ) : (
-          <>
-            <Alert severity="success" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                📊 Nájdených {kmHistory.length} záznamov o stave kilometrov
-              </Typography>
+        <div className="mt-4">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : kmHistory.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p>Žiadna história kilometrov nie je k dispozícii pre toto vozidlo.</p>
+                  <p className="text-sm text-muted-foreground">
+                    História sa vytvára automaticky pri pridávaní STK, EK alebo Kasko
+                    poistky s uvedeným stavom kilometrov.
+                  </p>
+                </div>
+              </AlertDescription>
             </Alert>
+          ) : (
+            <>
+              <Alert className="mb-4">
+                <AlertDescription>
+                  📊 Nájdených {kmHistory.length} záznamov o stave kilometrov
+                </AlertDescription>
+              </Alert>
 
-            <Timeline position={isMobile ? 'right' : 'alternate'}>
-              {kmHistory.map((entry, index) => {
-                const typeInfo = getDocumentTypeInfo(entry.documentType);
-                const previousEntry = kmHistory[index + 1];
-                const trend = getKmTrend(entry.kmState, previousEntry?.kmState);
-                const entryDate =
-                  typeof entry.date === 'string'
-                    ? parseISO(entry.date)
-                    : entry.date;
+              <div className="space-y-4">
+                {kmHistory.map((entry, index) => {
+                  const typeInfo = getDocumentTypeInfo(entry.documentType);
+                  const previousEntry = kmHistory[index + 1];
+                  const trend = getKmTrend(entry.kmState, previousEntry?.kmState);
+                  const entryDate =
+                    typeof entry.date === 'string'
+                      ? parseISO(entry.date)
+                      : entry.date;
 
-                return (
-                  <TimelineItem key={entry.id}>
-                    {!isMobile && (
-                      <TimelineOppositeContent
-                        sx={{ m: 'auto 0' }}
-                        align="right"
-                        variant="body2"
-                        color="text.secondary"
-                      >
-                        {format(entryDate, 'dd.MM.yyyy', { locale: sk })}
-                      </TimelineOppositeContent>
-                    )}
+                  return (
+                    <div key={entry.id} className="flex gap-4">
+                      {/* Date column for desktop */}
+                      {!isMobile && (
+                        <div className="w-32 text-right text-sm text-muted-foreground pt-3">
+                          {format(entryDate, 'dd.MM.yyyy', { locale: sk })}
+                        </div>
+                      )}
 
-                    <TimelineSeparator>
-                      <TimelineDot
-                        sx={{ bgcolor: typeInfo.color, color: 'white' }}
-                      >
-                        {typeInfo.icon}
-                      </TimelineDot>
-                      {index < kmHistory.length - 1 && <TimelineConnector />}
-                    </TimelineSeparator>
+                      {/* Timeline dot and connector */}
+                      <div className="flex flex-col items-center">
+                        <div className={`w-10 h-10 rounded-full ${typeInfo.color} text-white flex items-center justify-center`}>
+                          {typeInfo.icon}
+                        </div>
+                        {index < kmHistory.length - 1 && (
+                          <div className="w-0.5 h-8 bg-border mt-2"></div>
+                        )}
+                      </div>
 
-                    <TimelineContent sx={{ py: '12px', px: 2 }}>
-                      <Card variant="outlined">
-                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              mb: 1,
-                            }}
-                          >
-                            <Box>
-                              <Typography
-                                variant="h6"
-                                component="div"
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                }}
-                              >
-                                {typeInfo.label}
-                                <Chip
-                                  label={`${entry.kmState.toLocaleString()} km`}
-                                  color="primary"
-                                  size="small"
-                                />
-                              </Typography>
-                              {isMobile && (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {format(entryDate, 'dd.MM.yyyy', {
-                                    locale: sk,
-                                  })}
-                                </Typography>
+                      {/* Content */}
+                      <div className="flex-1 pb-4">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <UnifiedTypography variant="h6">
+                                    {typeInfo.label}
+                                  </UnifiedTypography>
+                                  <Badge variant="default">
+                                    {entry.kmState.toLocaleString()} km
+                                  </Badge>
+                                </div>
+                                {isMobile && (
+                                  <UnifiedTypography variant="caption" className="text-muted-foreground">
+                                    {format(entryDate, 'dd.MM.yyyy', {
+                                      locale: sk,
+                                    })}
+                                  </UnifiedTypography>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <div className={trend.color}>
+                                  {trend.icon}
+                                </div>
+                                <UnifiedTypography variant="caption" className={trend.color}>
+                                  {trend.text}
+                                </UnifiedTypography>
+                              </div>
+                            </div>
+
+                            <Separator className="my-2" />
+
+                            <div className="space-y-1">
+                              {entry.policyNumber && (
+                                <UnifiedTypography variant="body2" className="text-muted-foreground">
+                                  <strong>Číslo poistky:</strong> {entry.policyNumber}
+                                </UnifiedTypography>
                               )}
-                            </Box>
+                              {entry.documentNumber && (
+                                <UnifiedTypography variant="body2" className="text-muted-foreground">
+                                  <strong>Číslo dokumentu:</strong> {entry.documentNumber}
+                                </UnifiedTypography>
+                              )}
+                              {entry.company && (
+                                <UnifiedTypography variant="body2" className="text-muted-foreground">
+                                  <strong>Spoločnosť:</strong> {entry.company}
+                                </UnifiedTypography>
+                              )}
+                              {entry.notes && (
+                                <UnifiedTypography variant="body2" className="text-muted-foreground">
+                                  <strong>Poznámka:</strong> {entry.notes}
+                                </UnifiedTypography>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  color: trend.color,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                }}
-                              >
-                                {trend.icon}
-                              </Box>
-                              <Typography
-                                variant="caption"
-                                sx={{ color: trend.color }}
-                              >
-                                {trend.text}
-                              </Typography>
-                            </Box>
-                          </Box>
+              {/* Štatistiky */}
+              {kmHistory.length > 1 && (
+                <Card className="mt-6">
+                  <CardContent className="p-6">
+                    <UnifiedTypography variant="h6" className="mb-4">
+                      📈 Štatistiky
+                    </UnifiedTypography>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <UnifiedTypography variant="h4" className="text-primary">
+                          {kmHistory[0]?.kmState.toLocaleString() ?? '0'}
+                        </UnifiedTypography>
+                        <UnifiedTypography variant="caption" className="text-muted-foreground">
+                          Aktuálny stav km
+                        </UnifiedTypography>
+                      </div>
+                      <div className="text-center">
+                        <UnifiedTypography variant="h4" className="text-green-600">
+                          +
+                          {(
+                            (kmHistory[0]?.kmState ?? 0) -
+                            (kmHistory[kmHistory.length - 1]?.kmState ?? 0)
+                          ).toLocaleString()}
+                        </UnifiedTypography>
+                        <UnifiedTypography variant="caption" className="text-muted-foreground">
+                          Celkový nárast km
+                        </UnifiedTypography>
+                      </div>
+                      <div className="text-center">
+                        <UnifiedTypography variant="h4" className="text-blue-600">
+                          {kmHistory.length}
+                        </UnifiedTypography>
+                        <UnifiedTypography variant="caption" className="text-muted-foreground">
+                          Počet záznamov
+                        </UnifiedTypography>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </div>
 
-                          <Divider sx={{ my: 1 }} />
-
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 0.5,
-                            }}
-                          >
-                            {entry.policyNumber && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                <strong>Číslo poistky:</strong>{' '}
-                                {entry.policyNumber}
-                              </Typography>
-                            )}
-                            {entry.documentNumber && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                <strong>Číslo dokumentu:</strong>{' '}
-                                {entry.documentNumber}
-                              </Typography>
-                            )}
-                            {entry.company && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                <strong>Spoločnosť:</strong> {entry.company}
-                              </Typography>
-                            )}
-                            {entry.notes && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                <strong>Poznámka:</strong> {entry.notes}
-                              </Typography>
-                            )}
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </TimelineContent>
-                  </TimelineItem>
-                );
-              })}
-            </Timeline>
-
-            {/* Štatistiky */}
-            {kmHistory.length > 1 && (
-              <Card sx={{ mt: 3, bgcolor: 'background.paper' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    📈 Štatistiky
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" color="primary">
-                        {kmHistory[0].kmState.toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Aktuálny stav km
-                      </Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" color="success.main">
-                        +
-                        {(
-                          kmHistory[0].kmState -
-                          kmHistory[kmHistory.length - 1].kmState
-                        ).toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Celkový nárast km
-                      </Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" color="info.main">
-                        {kmHistory.length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Počet záznamov
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        )}
+        <DialogFooter>
+          <Button onClick={onClose}>Zavrieť</Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose}>Zavrieť</Button>
-      </DialogActions>
     </Dialog>
   );
 }

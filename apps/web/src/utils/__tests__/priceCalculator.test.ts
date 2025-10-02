@@ -92,6 +92,7 @@ describe('priceCalculator', () => {
         extraKmCharge: 0,
         finalPrice: 100,
         hasDiscount: false,
+        discountPercentage: 0,
       };
 
       const result = formatPriceWithDiscount(priceBreakdown);

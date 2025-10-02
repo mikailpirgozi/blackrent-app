@@ -40,7 +40,7 @@ export function useCreateInsurer() {
 
       return { previousInsurers };
     },
-    onError: (err, newInsurer, context) => {
+    onError: (_err, _newInsurer, context) => {
       if (context?.previousInsurers) {
         queryClient.setQueryData(
           queryKeys.insurers.list(),
@@ -48,7 +48,7 @@ export function useCreateInsurer() {
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurer-created', { detail: variables })
@@ -90,7 +90,7 @@ export function useDeleteInsurer() {
 
       return { previousInsurers };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousInsurers) {
         queryClient.setQueryData(
           queryKeys.insurers.list(),
@@ -98,7 +98,7 @@ export function useDeleteInsurer() {
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurer-deleted', { detail: { id: variables } })

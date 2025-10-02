@@ -1,29 +1,20 @@
-import { Box, CssBaseline } from '@mui/material';
-import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// MUI imports removed - using shadcn/ui theme system
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { sk } from 'date-fns/locale';
 import React, { Suspense, lazy } from 'react';
 import { queryClient } from './lib/react-query/queryClient';
 import { useWebSocketInvalidation } from './lib/react-query/websocket-integration';
 import './styles/custom-font.css'; // Aeonik font
 
-// Performance optimization imports
-// import { initializeWebVitalsOptimizations } from './utils/webVitalsOptimizations';
-// import { initializeMemoryOptimization } from './utils/memoryOptimizer';
-// import { initializeMobileOptimizations } from './utils/mobileOptimization';
-// import { initializeMobileStabilizer } from './utils/mobileStabilizer';
-// import { initializeMobilePerformance } from './utils/mobilePerformance';
-// 🔄 MOBILE CLEANUP: mobileLogger removed
-// import { initializeMobileLogger } from './utils/mobileLogger';
+// shadcn/ui providers
+import { TooltipProvider } from '@/components/ui/tooltip';
+
+// Performance optimization imports - removed unused imports
 
 import LoginForm from './components/auth/LoginForm';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ErrorToastContainer from './components/common/ErrorToastContainer';
-// import PWAInstallPrompt from './components/common/PWAInstallPrompt';
-// import PWAStatus from './components/common/PWAStatus';
+// PWA components removed - not used
 import Layout from './components/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { EnhancedLoading } from './components/common/EnhancedLoading';
@@ -31,7 +22,6 @@ import OfflineIndicator from './components/common/OfflineIndicator';
 
 // Lazy imports pre code splitting a lepšie performance
 import {
-  Navigate,
   Route,
   BrowserRouter as Router,
   Routes,
@@ -41,13 +31,13 @@ import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
 import { ErrorProvider } from './context/ErrorContext';
 import { PermissionsProvider } from './context/PermissionsContext';
-import { ThemeProvider, useThemeMode } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { initializeCriticalResources } from './utils/criticalResources';
 import { logger } from './utils/smartLogger';
 
+const PremiumDashboard = lazy(() => import('./components/dashboard/PremiumDashboard'));
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalList'));
-// const ImapEmailMonitoring = lazy(() => import('./components/admin/ImapEmailMonitoring'));
 const EmailManagementDashboard = lazy(
   () => import('./components/email-management/EmailManagementLayout')
 );
@@ -56,9 +46,7 @@ const CustomerList = lazy(
   () => import('./components/customers/CustomerListNew')
 );
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
-const InsuranceList = lazy(
-  () => import('./components/insurances/InsuranceList')
-);
+import InsuranceList from './components/insurances/InsuranceList';
 const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(
   () => import('./components/users/IntegratedUserManagement')
@@ -67,7 +55,6 @@ const UserManagement = lazy(
 const SettlementList = lazy(
   () => import('./components/settlements/SettlementListNew')
 );
-// OLD: const AvailabilityPage = lazy(() => import('./pages/AvailabilityPageNew')); // REMOVED - replaced by Smart version
 const SmartAvailabilityPage = lazy(
   () => import('./pages/SmartAvailabilityPage')
 );
@@ -88,23 +75,9 @@ const WebSocketIntegrationWrapper: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { theme } = useThemeMode();
 
   // Initialize performance optimizations
   React.useEffect(() => {
-    // DEV: Vyčisti všetky cache pri štarte pre rýchly development
-    if (process.env.NODE_ENV === 'development') {
-      // Vyčisti React Query cache
-      queryClient.clear();
-      
-      // Vyčisti browser cache
-      if ('caches' in window) {
-        caches.keys().then(names => {
-          names.forEach(name => caches.delete(name));
-        });
-      }
-    }
-    
     // Initialize critical resources only
     logger.info('Initializing critical resources...', undefined, 'performance');
 
@@ -121,14 +94,13 @@ const AppContent: React.FC = () => {
   }, []);
 
   return (
-    <MuiThemeProvider theme={theme}>
-      <CssBaseline />
+    <div className="min-h-screen bg-background text-foreground">
       <ErrorProvider>
         <QueryClientProvider client={queryClient}>
-          <ErrorToastContainer />
-          {/* PWA Install moved to sidebar - no auto-popup */}
-          <OfflineIndicator position="top" showDetails={true} />
-          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
+          <TooltipProvider>
+            <ErrorToastContainer />
+            {/* PWA Install moved to sidebar - no auto-popup */}
+            <OfflineIndicator position="top" showDetails={true} />
             <AuthProvider>
               <PermissionsProvider>
                 <AppProvider>
@@ -139,21 +111,33 @@ const AppContent: React.FC = () => {
                       v7_relativeSplatPath: true,
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minHeight: '100vh',
-                      }}
-                    >
-                      <Routes>
+                  <div className="flex flex-col min-h-screen">
+                    <Routes>
                         <Route path="/login" element={<LoginForm />} />
                         <Route
                           path="/"
                           element={
                             <ProtectedRoute>
                               <Layout>
-                                <Navigate to="/rentals" replace />
+                                <ErrorBoundary level="page" maxRetries={3}>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <PremiumDashboard />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/dashboard"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary level="page" maxRetries={3}>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <PremiumDashboard />
+                                  </Suspense>
+                                </ErrorBoundary>
                               </Layout>
                             </ProtectedRoute>
                           }
@@ -295,18 +279,6 @@ const AppContent: React.FC = () => {
                           }
                         />
 
-                        {/* OLD AVAILABILITY - REMOVED (was memory monster with 28,997 DOM elements)
-                    <Route path="/availability" element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoader />}>
-                              <AvailabilityPage />
-                            </Suspense>
-                          </ErrorBoundary>
-                        </Layout>
-                      </ProtectedRoute>
-                    } /> */}
 
                         {/* NEW SMART AVAILABILITY - Optimized replacement */}
                         <Route
@@ -339,33 +311,20 @@ const AppContent: React.FC = () => {
                           }
                         />
 
-                        {/* DEAKTIVOVANÉ - Transfer vlastníctva sa nepoužíva */}
-                        {/* <Route path="/admin/vehicle-ownership" element={
-                      <ProtectedRoute allowedRoles={['admin']}>
-                        <Layout>
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoader />}>
-                              <VehicleOwnershipTransfer />
-                            </Suspense>
-                          </ErrorBoundary>
-                        </Layout>
-                      </ProtectedRoute>
-                    } /> */}
                       </Routes>
-                    </Box>
+                  </div>
                   </Router>
                 </AppProvider>
               </PermissionsProvider>
             </AuthProvider>
-          </LocalizationProvider>
-
-          {/* React Query DevTools - len v development */}
-          {import.meta.env.DEV && (
-            <ReactQueryDevtools initialIsOpen={false} position="bottom" />
-          )}
+            {/* React Query DevTools - len v development */}
+            {import.meta.env.DEV && (
+              <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+            )}
+          </TooltipProvider>
         </QueryClientProvider>
       </ErrorProvider>
-    </MuiThemeProvider>
+    </div>
   );
 };
 

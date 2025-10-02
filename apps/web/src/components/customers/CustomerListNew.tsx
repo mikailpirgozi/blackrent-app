@@ -1,39 +1,31 @@
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
+  Trash2 as DeleteIcon,
   Download as DownloadIcon,
-  Edit as EditIcon,
-  Email as EmailIcon,
-  FilterList as FilterListIcon,
+  Edit2 as EditIcon,
+  Mail as EmailIcon,
+  Filter as FilterListIcon,
   History as HistoryIcon,
   Phone as PhoneIcon,
   Search as SearchIcon,
   Upload as UploadIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Checkbox,
-  Chip,
-  CircularProgress,
-  Collapse,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControlLabel,
-  FormGroup,
-  Grid,
-  IconButton,
-  TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  LayoutGrid,
+  List,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { format } from 'date-fns';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
@@ -50,12 +42,13 @@ import {
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Customer, Rental } from '../../types';
 import { textContains } from '../../utils/textNormalization';
-import { DefaultCard, PrimaryButton, SecondaryButton } from '../ui';
+// Removed duplicate import - using shadcn/ui imports from above
 
 import CustomerForm from './CustomerForm';
 import CustomerRentalHistory from './CustomerRentalHistory';
+import PremiumCustomerCard from './PremiumCustomerCard';
 
-const CustomerListNew = () => {
+export default function CustomerListNew() {
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: customers = [] } = useCustomers();
   const { data: rentals = [] } = useRentals();
@@ -78,10 +71,17 @@ const CustomerListNew = () => {
   const updateRental = async (rental: Rental) => {
     return updateRentalMutation.mutateAsync(rental);
   };
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // States
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -146,14 +146,14 @@ const CustomerListNew = () => {
       const filename = `zakaznici-${new Date().toISOString().split('T')[0]}.csv`;
       saveAs(blob, filename);
 
-      alert('CSV export úspešný');
+      window.alert('CSV export úspešný');
     } catch (error) {
       console.error('CSV export error:', error);
-      alert('Chyba pri CSV exporte');
+      window.alert('Chyba pri CSV exporte');
     }
   };
 
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportCSV = (event: React.ChangeEvent<any>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -171,15 +171,15 @@ const CustomerListNew = () => {
           };
 
           if (result.success) {
-            alert(result.message);
+            window.alert(result.message);
             // Refresh customer list - force reload
             window.location.reload();
           } else {
-            alert(result.error || 'Chyba pri importe');
+            window.alert(result.error || 'Chyba pri importe');
           }
         } catch (error) {
           console.error('CSV import error:', error);
-          alert('Chyba pri CSV importe');
+          window.alert('Chyba pri CSV importe');
         }
       },
       header: false,
@@ -225,7 +225,7 @@ const CustomerListNew = () => {
       );
 
       if (newCustomerNames.length === 0) {
-        alert('Všetci zákazníci z prenájmov už existujú v zozname zákazníkov.');
+        window.alert('Všetci zákazníci z prenájmov už existujú v zozname zákazníkov.');
         return;
       }
 
@@ -259,12 +259,12 @@ const CustomerListNew = () => {
         }
       }
 
-      alert(
+      window.alert(
         `Pridaných ${newCustomers.length} zákazníkov z existujúcich prenájmov a prepojených s prenájmi.`
       );
     } catch (error) {
       console.error('Chyba pri importe zákazníkov:', error);
-      alert('Chyba pri importe zákazníkov');
+      window.alert('Chyba pri importe zákazníkov');
     } finally {
       setLoading(false);
     }
@@ -284,18 +284,18 @@ const CustomerListNew = () => {
         }
       }
 
-      // Name filter
-      if (filterName && !textContains(customer.name, filterName)) {
+      // Name filter (ignore default "all-names" value)
+      if (filterName && filterName !== 'all-names' && !textContains(customer.name, filterName)) {
         return false;
       }
 
-      // Email filter
-      if (filterEmail && !textContains(customer.email, filterEmail)) {
+      // Email filter (ignore default "all-emails" value)
+      if (filterEmail && filterEmail !== 'all-emails' && !textContains(customer.email, filterEmail)) {
         return false;
       }
 
-      // Phone filter
-      if (filterPhone && !textContains(customer.phone, filterPhone)) {
+      // Phone filter (ignore default "all-phones" value)
+      if (filterPhone && filterPhone !== 'all-phones' && !textContains(customer.phone, filterPhone)) {
         return false;
       }
 
@@ -329,7 +329,7 @@ const CustomerListNew = () => {
     setIsLoadingMore(true);
 
     // Simulate loading delay for better UX
-    setTimeout(() => {
+    window.setTimeout(() => {
       setDisplayedCustomers(prev =>
         Math.min(prev + 20, filteredCustomers.length)
       );
@@ -352,17 +352,17 @@ const CustomerListNew = () => {
   ]);
 
   // Infinite scroll event handler
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+  // const handleScroll = useCallback(
+  //   (e: React.UIEvent<HTMLDivElement>) => {
+  //     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
-      // Load more when user scrolls to 80% of the content
-      if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-        loadMoreCustomers();
-      }
-    },
-    [loadMoreCustomers]
-  );
+  //     // Load more when user scrolls to 80% of the content
+  //     if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+  //       loadMoreCustomers();
+  //     }
+  //   },
+  //   [loadMoreCustomers]
+  // );
 
   // Get customers to display (limited by infinite scroll)
   const customersToDisplay = useMemo(() => {
@@ -376,977 +376,656 @@ const CustomerListNew = () => {
     return rentals.filter(rental => rental.customerId === customerId).length;
   };
 
+  // Generate unique options for dropdown filters
+  const uniqueNames = useMemo(() => {
+    return Array.from(new Set(customers.map(c => c.name).filter(Boolean))).sort();
+  }, [customers]);
+
+  const uniqueEmails = useMemo(() => {
+    return Array.from(new Set(customers.map(c => c.email).filter(Boolean))).sort();
+  }, [customers]);
+
+  const uniquePhones = useMemo(() => {
+    return Array.from(new Set(customers.map(c => c.phone).filter(Boolean))).sort();
+  }, [customers]);
+
   return (
-    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+    <div className="p-2 sm:p-4 md:p-6">
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 2, sm: 0 },
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: '#1976d2',
-            fontSize: { xs: '1.5rem', sm: '2rem' },
-          }}
-        >
+      <div className="flex justify-between items-center mb-6 flex-col sm:flex-row gap-4 sm:gap-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">
           👥 Databáza zákazníkov
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <SecondaryButton
-            startIcon={<UploadIcon />}
+        </h1>
+        <div className="flex gap-2 flex-wrap">
+          <Button
             onClick={handleImportExistingCustomers}
-            size="small"
+            size="sm"
+            variant="outline"
             disabled={loading}
           >
+            <UploadIcon className="h-4 w-4 mr-2" />
             Import z prenájmov
-          </SecondaryButton>
+          </Button>
           {/* CSV tlačidlá - len na desktope */}
           {!isMobile && (
             <>
-              <SecondaryButton
-                startIcon={<DownloadIcon />}
+              <Button
                 onClick={handleExportCSV}
-                size="small"
+                size="sm"
+                variant="outline"
               >
+                <DownloadIcon className="h-4 w-4 mr-2" />
                 📊 Export CSV
-              </SecondaryButton>
+              </Button>
 
-              <SecondaryButton
-                component="label"
-                startIcon={<UploadIcon />}
-                size="small"
-                sx={{
-                  borderColor: '#1976d2',
-                  color: '#1976d2',
-                  '&:hover': {
-                    borderColor: '#1565c0',
-                    bgcolor: 'rgba(25, 118, 210, 0.04)',
-                  },
-                }}
-              >
-                📥 Import CSV
+              <label className="inline-block">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-600 text-blue-600 hover:border-blue-700 hover:bg-blue-50"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const input = e.currentTarget.parentElement?.querySelector('input');
+                    if (input) input.click();
+                  }}
+                >
+                  📥 Import CSV
+                </Button>
                 <input
                   type="file"
                   accept=".csv"
                   onChange={handleImportCSV}
-                  style={{ display: 'none' }}
+                  className="hidden"
                 />
-              </SecondaryButton>
+              </label>
             </>
           )}
 
-          <PrimaryButton
-            startIcon={<AddIcon />}
+          <Button
+           
             onClick={() => setOpenDialog(true)}
-            sx={{ px: 3, py: 1 }}
+           
           >
             Nový zákazník
-          </PrimaryButton>
-        </Box>
-      </Box>
+          </Button>
+        </div>
+      </div>
 
       {/* Search and Filters */}
-      <DefaultCard sx={{ mb: 3 }}>
+      <Card className="p-4">
         {/* Search Bar */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-          <TextField
-            fullWidth
-            placeholder="Hľadať zákazníkov..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
-            }}
-            sx={{ flex: 1 }}
-          />
-          <IconButton
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              className="w-full pl-10"
+              placeholder="Hľadať zákazníkov..."
+              value={searchQuery}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={`h-10 w-10 p-0 ${filtersOpen ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             onClick={() => setFiltersOpen(!filtersOpen)}
-            sx={{
-              bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
-              color: filtersOpen ? 'white' : '#666',
-              '&:hover': {
-                bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
-              },
-            }}
           >
-            <FilterListIcon />
-          </IconButton>
-        </Box>
+            <FilterListIcon className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Filters */}
-        <Collapse in={filtersOpen}>
-          <Divider sx={{ mb: 2 }} />
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Filter meno"
-                value={filterName}
-                onChange={e => setFilterName(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Filter email"
-                value={filterEmail}
-                onChange={e => setFilterEmail(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Filter telefón"
-                value={filterPhone}
-                onChange={e => setFilterPhone(e.target.value)}
-              />
-            </Grid>
-          </Grid>
+        <Collapsible open={filtersOpen}>
+          <CollapsibleContent>
+            <Separator className="mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Filter meno</Label>
+                <Select
+                  value={filterName}
+                  onValueChange={setFilterName}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky mená" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-names">Všetky mená</SelectItem>
+                    {uniqueNames.map(name => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Filter email</Label>
+                <Select
+                  value={filterEmail}
+                  onValueChange={setFilterEmail}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky emaily" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-emails">Všetky emaily</SelectItem>
+                    {uniqueEmails.map(email => (
+                      <SelectItem key={email} value={email}>
+                        {email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Filter telefón</Label>
+                <Select
+                  value={filterPhone}
+                  onValueChange={setFilterPhone}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky telefóny" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-phones">Všetky telefóny</SelectItem>
+                    {uniquePhones.map(phone => (
+                      <SelectItem key={phone} value={phone}>
+                        {phone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-          {/* Contact Info Checkboxes */}
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, color: '#666' }}>
-              Zobraziť zákazníkov:
-            </Typography>
-            <FormGroup row>
-              <FormControlLabel
-                control={
+            {/* Contact Info Checkboxes */}
+            <div className="mt-4 pb-2">
+              <p className="text-sm font-medium mb-3">
+                Zobraziť zákazníkov:
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex items-center space-x-2">
                   <Checkbox
+                    id="show-with-email"
                     checked={showWithEmail}
-                    onChange={e => setShowWithEmail(e.target.checked)}
+                    onCheckedChange={(checked) => setShowWithEmail(checked as boolean)}
                   />
-                }
-                label="S emailom"
-              />
-              <FormControlLabel
-                control={
+                  <Label htmlFor="show-with-email" className="text-sm font-normal cursor-pointer">
+                    S emailom
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
                   <Checkbox
+                    id="show-without-email"
                     checked={showWithoutEmail}
-                    onChange={e => setShowWithoutEmail(e.target.checked)}
+                    onCheckedChange={(checked) => setShowWithoutEmail(checked as boolean)}
                   />
-                }
-                label="Bez emailu"
-              />
-              <FormControlLabel
-                control={
+                  <Label htmlFor="show-without-email" className="text-sm font-normal cursor-pointer">
+                    Bez emailu
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
                   <Checkbox
+                    id="show-with-phone"
                     checked={showWithPhone}
-                    onChange={e => setShowWithPhone(e.target.checked)}
+                    onCheckedChange={(checked) => setShowWithPhone(checked as boolean)}
                   />
-                }
-                label="S telefónom"
-              />
-              <FormControlLabel
-                control={
+                  <Label htmlFor="show-with-phone" className="text-sm font-normal cursor-pointer">
+                    S telefónom
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
                   <Checkbox
+                    id="show-without-phone"
                     checked={showWithoutPhone}
-                    onChange={e => setShowWithoutPhone(e.target.checked)}
+                    onCheckedChange={(checked) => setShowWithoutPhone(checked as boolean)}
                   />
-                }
-                label="Bez telefónu"
-              />
-            </FormGroup>
-          </Box>
-        </Collapse>
-      </DefaultCard>
+                  <Label htmlFor="show-without-phone" className="text-sm font-normal cursor-pointer">
+                    Bez telefónu
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
 
       {/* Results Count */}
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography variant="body2" color="text.secondary">
+      <div className="my-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
           Zobrazených {customersToDisplay.length} z {filteredCustomers.length}{' '}
           zákazníkov
           {filteredCustomers.length !== customers.length &&
             ` (filtrovaných z ${customers.length})`}
-        </Typography>
+        </p>
         {isLoadingMore && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={16} />
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex items-center gap-2">
+            <Spinner size={16} />
+            <p className="text-sm text-muted-foreground">
               Načítavam ďalších...
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-        {loading && <CircularProgress size={16} />}
-      </Box>
+        {loading && <Spinner size={16} />}
+      </div>
 
+      {/* View Mode Toggle - Desktop Only */}
+      {!isMobile && (
+        <div className="mb-6 flex justify-end animate-fade-in">
+          <div className="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="gap-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="gap-2"
+            >
+              <List className="h-4 w-4" />
+              List
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Grid View - Premium Cards (Desktop Only) */}
+      {!isMobile && viewMode === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
+          {customersToDisplay.map((customer) => {
+            const customerRentals = rentals.filter(r => r.customerId === customer.id);
+            const totalSpent = customerRentals.reduce((sum, r) => sum + (r.totalPrice || 0), 0);
+            const lastRental = customerRentals.length > 0 
+              ? new Date(Math.max(...customerRentals.map(r => new Date(r.startDate).getTime())))
+              : undefined;
+
+            const enrichedCustomer: Customer & {
+              rentalCount?: number | undefined;
+              totalSpent?: number | undefined;
+              lastRentalDate?: Date | undefined;
+            } = {
+              ...customer,
+              rentalCount: customerRentals.length || undefined,
+              totalSpent: totalSpent || undefined,
+              lastRentalDate: lastRental,
+            };
+
+            return (
+              <PremiumCustomerCard
+                key={customer.id}
+                customer={enrichedCustomer}
+                onEdit={handleEdit}
+                onViewHistory={(customer) => {
+                  setSelectedCustomerForHistory(customer);
+                  // Open history dialog
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* List View & Mobile - Original Table */}
+      {(isMobile || viewMode === 'list') && (
+      <>
       {/* Customer List */}
       {isMobile ? (
         /* MOBILE CARDS VIEW */
-        <DefaultCard
-          padding="none"
-          sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)' }}
-        >
-          <Box
-            sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-            onScroll={handleScroll}
-          >
+        <Card className="p-0">
+          <div className="">
             {customersToDisplay.map((customer, index) => (
-              <Box
+              <div
                 key={customer.id}
-                sx={{
-                  display: 'flex',
-                  borderBottom:
-                    index < customersToDisplay.length - 1
-                      ? '1px solid #e0e0e0'
-                      : 'none',
-                  '&:hover': { backgroundColor: '#f8f9fa' },
-                  minHeight: 80,
-                  cursor: 'pointer',
-                }}
+                className={`flex hover:bg-gray-50 min-h-[80px] cursor-pointer ${
+                  index < customersToDisplay.length - 1 ? 'border-b border-gray-300' : ''
+                }`}
                 onClick={() => handleEdit(customer)}
               >
                 {/* Customer Info - sticky left */}
-                <Box
-                  sx={{
-                    width: { xs: 140, sm: 160 },
-                    maxWidth: { xs: 140, sm: 160 },
-                    p: { xs: 1, sm: 1.5 },
-                    borderRight: '2px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    backgroundColor: '#ffffff',
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 10,
-                    overflow: 'hidden',
-                  }}
+                <div
+                  className="w-[140px] sm:w-[160px] max-w-[140px] sm:max-w-[160px] p-2 sm:p-3 border-r-2 border-gray-300 flex flex-col justify-center bg-white sticky left-0 z-10 overflow-hidden"
                 >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                      color: '#1976d2',
-                      lineHeight: 1.2,
-                      wordWrap: 'break-word',
-                      mb: { xs: 0.25, sm: 0.5 },
-                    }}
-                  >
+                  <p>
                     {customer.name}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#666',
-                      fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                      mb: { xs: 0.25, sm: 0.5 },
-                      fontWeight: 600,
-                    }}
-                  >
+                  </p>
+                  <span className="text-xs text-muted-foreground">
                     {getCustomerRentalCount(customer.id)} prenájmov
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={format(new Date(customer.createdAt), 'dd.MM.yyyy')}
-                    sx={{
-                      height: { xs: 18, sm: 20 },
-                      fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                      bgcolor: '#e3f2fd',
-                      color: '#1976d2',
-                      fontWeight: 700,
-                      minWidth: 'auto',
-                      maxWidth: '100%',
-                      overflow: 'hidden',
-                    }}
-                  />
-                </Box>
+                  </span>
+                  <Badge
+                    className="h-[18px] sm:h-[20px] text-[0.55rem] sm:text-[0.6rem] bg-blue-50 text-blue-700 font-bold min-w-min max-w-full overflow-hidden"
+                  >
+                    {format(new Date(customer.createdAt), 'dd.MM.yyyy')}
+                  </Badge>
+                </div>
 
                 {/* Customer Details - scrollable right */}
-                <Box
-                  sx={{
-                    flex: 1,
-                    p: { xs: 1, sm: 1.5 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    overflow: 'hidden',
-                    minWidth: 0,
-                  }}
+                <div
+                  className="flex-1 p-2 sm:p-3 flex flex-col justify-between overflow-hidden min-w-0"
                 >
-                  <Box sx={{ overflow: 'hidden' }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                        color: '#333',
-                        mb: { xs: 0.25, sm: 0.5 },
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                  <div className="">
+                    <p>
                       📧 {customer.email || 'Nezadané'}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: '#666',
-                        fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                        display: 'block',
-                        mb: { xs: 0.25, sm: 0.5 },
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                    </p>
+                    <span className="text-xs text-muted-foreground">
                       📱 {customer.phone || 'Nezadané'}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   {/* Mobile Action Buttons */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: { xs: 0.5, sm: 0.75 },
-                      mt: { xs: 1, sm: 1.5 },
-                      justifyContent: 'flex-start',
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                  <div className="flex gap-1 sm:gap-2 mt-2 sm:mt-3 justify-start flex-wrap">
                     {/* Edit Button */}
-                    <IconButton
-                      size="small"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-9 w-9 sm:h-8 sm:w-8 p-0 bg-blue-500 text-white hover:bg-blue-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       title="Upraviť zákazníka"
                       onClick={e => {
                         e.stopPropagation();
                         handleEdit(customer);
                       }}
-                      sx={{
-                        bgcolor: '#2196f3',
-                        color: 'white',
-                        width: { xs: 36, sm: 32 },
-                        height: { xs: 36, sm: 32 },
-                        '&:hover': {
-                          bgcolor: '#1976d2',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
+                      <EditIcon className="h-4 w-4" />
+                    </Button>
 
                     {/* History Button */}
-                    <IconButton
-                      size="small"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-9 w-9 sm:h-8 sm:w-8 p-0 bg-purple-600 text-white hover:bg-purple-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       title="História prenájmov"
                       onClick={e => {
                         e.stopPropagation();
                         handleShowHistory(customer);
                       }}
-                      sx={{
-                        bgcolor: '#9c27b0',
-                        color: 'white',
-                        width: { xs: 36, sm: 32 },
-                        height: { xs: 36, sm: 32 },
-                        '&:hover': {
-                          bgcolor: '#7b1fa2',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(156,39,176,0.4)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <HistoryIcon fontSize="small" />
-                    </IconButton>
+                      <HistoryIcon className="h-4 w-4" />
+                    </Button>
 
                     {/* Phone Button */}
                     {customer.phone && (
-                      <IconButton
-                        size="small"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 sm:h-8 sm:w-8 p-0 bg-green-500 text-white hover:bg-green-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                         title="Zavolať"
                         onClick={e => {
                           e.stopPropagation();
                           handleCall(customer.phone);
                         }}
-                        sx={{
-                          bgcolor: '#4caf50',
-                          color: 'white',
-                          width: { xs: 36, sm: 32 },
-                          height: { xs: 36, sm: 32 },
-                          '&:hover': {
-                            bgcolor: '#388e3c',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
                       >
-                        <PhoneIcon fontSize="small" />
-                      </IconButton>
+                        <PhoneIcon className="h-4 w-4" />
+                      </Button>
                     )}
 
                     {/* Email Button */}
                     {customer.email && (
-                      <IconButton
-                        size="small"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 sm:h-8 sm:w-8 p-0 bg-orange-500 text-white hover:bg-orange-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                         title="Poslať email"
                         onClick={e => {
                           e.stopPropagation();
                           handleEmail(customer.email);
                         }}
-                        sx={{
-                          bgcolor: '#ff9800',
-                          color: 'white',
-                          width: { xs: 36, sm: 32 },
-                          height: { xs: 36, sm: 32 },
-                          '&:hover': {
-                            bgcolor: '#f57c00',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(255,152,0,0.4)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
                       >
-                        <EmailIcon fontSize="small" />
-                      </IconButton>
+                        <EmailIcon className="h-4 w-4" />
+                      </Button>
                     )}
 
                     {/* Delete Button */}
-                    <IconButton
-                      size="small"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-9 w-9 sm:h-8 sm:w-8 p-0 bg-red-500 text-white hover:bg-red-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       title="Zmazať zákazníka"
                       onClick={e => {
                         e.stopPropagation();
                         handleDelete(customer.id);
                       }}
-                      sx={{
-                        bgcolor: '#f44336',
-                        color: 'white',
-                        width: { xs: 36, sm: 32 },
-                        height: { xs: 36, sm: 32 },
-                        '&:hover': {
-                          bgcolor: '#d32f2f',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </Box>
-              </Box>
+                      <DeleteIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             ))}
 
             {/* 🚀 INFINITE SCROLL: Load More Button */}
             {hasMore && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  p: 3,
-                  borderTop: '1px solid #e0e0e0',
-                }}
-              >
+              <div className="p-4 flex justify-center border-t border-gray-300">
                 <Button
-                  variant="outlined"
+                  variant="outline"
                   onClick={loadMoreCustomers}
                   disabled={isLoadingMore}
-                  sx={{
-                    minWidth: 200,
-                    py: 1.5,
-                    borderRadius: 3,
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                  }}
+                  className="w-full"
                 >
                   {isLoadingMore
                     ? 'Načítavam...'
                     : `Načítať ďalších (${filteredCustomers.length - displayedCustomers} zostáva)`}
                 </Button>
-              </Box>
+              </div>
             )}
-          </Box>
-        </DefaultCard>
+          </div>
+        </Card>
       ) : (
         /* DESKTOP TABLE VIEW */
-        <DefaultCard
-          padding="none"
-          sx={{ overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.1)' }}
-        >
+        <Card className="p-0">
           {/* Desktop Header */}
-          <Box
-            sx={{
-              display: 'flex',
-              bgcolor: '#f8f9fa',
-              borderBottom: '2px solid #e0e0e0',
-              position: 'sticky',
-              top: 0,
-              zIndex: 100,
-              minHeight: 56,
-            }}
-          >
+          <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1fr_2fr] gap-4 p-4 border-b-2 border-gray-300 bg-gray-50 font-semibold">
             {/* Zákazník column */}
-            <Box
-              sx={{
-                width: 200,
-                minWidth: 200,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: '#333' }}
-              >
+            <div className="flex items-center">
+              <p className="text-sm">
                 👤 Zákazník
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Email column */}
-            <Box
-              sx={{
-                width: 220,
-                minWidth: 220,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: '#333' }}
-              >
+            <div className="flex items-center">
+              <p className="text-sm">
                 📧 Email
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Telefón column */}
-            <Box
-              sx={{
-                width: 140,
-                minWidth: 140,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: '#333' }}
-              >
+            <div className="flex items-center">
+              <p className="text-sm">
                 📱 Telefón
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Prenájmy column */}
-            <Box
-              sx={{
-                width: 120,
-                minWidth: 120,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: '#333' }}
-              >
+            <div className="flex items-center justify-center">
+              <p className="text-sm">
                 🚗 Prenájmy
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Vytvorený column */}
-            <Box
-              sx={{
-                width: 140,
-                minWidth: 140,
-                p: 2,
-                borderRight: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: '#333' }}
-              >
+            <div className="flex items-center">
+              <p className="text-sm">
                 📅 Vytvorený
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Akcie column */}
-            <Box
-              sx={{
-                width: 180,
-                minWidth: 180,
-                p: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: '#333' }}
-              >
+            <div className="flex items-center justify-center">
+              <p className="text-sm">
                 ⚡ Akcie
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Desktop Customer Rows */}
-          <Box
-            sx={{ maxHeight: '70vh', overflowY: 'auto' }}
-            onScroll={handleScroll}
-          >
-            {customersToDisplay.map((customer, index) => (
-              <Box
+          <div className="divide-y divide-gray-200">
+            {customersToDisplay.map((customer) => (
+              <div
                 key={customer.id}
-                sx={{
-                  display: 'flex',
-                  borderBottom:
-                    index < customersToDisplay.length - 1
-                      ? '1px solid #e0e0e0'
-                      : 'none',
-                  '&:hover': { backgroundColor: '#f8f9fa' },
-                  minHeight: 72,
-                  cursor: 'pointer',
-                }}
+                className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1fr_2fr] gap-4 p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => handleEdit(customer)}
               >
                 {/* Zákazník column */}
-                <Box
-                  sx={{
-                    width: 200,
-                    minWidth: 200,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      color: '#1976d2',
-                      mb: 0.5,
-                    }}
-                  >
+                <div className="flex flex-col justify-center">
+                  <p className="font-medium text-sm">
                     {customer.name}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#666',
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  </p>
+                  <span className="text-xs text-muted-foreground">
                     ID: {customer.id.slice(0, 8)}...
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
 
                 {/* Email column */}
-                <Box
-                  sx={{
-                    width: 220,
-                    minWidth: 220,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: customer.email ? '#333' : '#999',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      fontStyle: customer.email ? 'normal' : 'italic',
-                    }}
-                  >
+                <div className="flex items-center">
+                  <p className="text-sm text-muted-foreground">
                     {customer.email || 'Nezadané'}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
 
                 {/* Telefón column */}
-                <Box
-                  sx={{
-                    width: 140,
-                    minWidth: 140,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: customer.phone ? '#333' : '#999',
-                      fontFamily: customer.phone ? 'monospace' : 'inherit',
-                      fontStyle: customer.phone ? 'normal' : 'italic',
-                    }}
-                  >
+                <div className="flex items-center">
+                  <p className="text-sm text-muted-foreground">
                     {customer.phone || 'Nezadané'}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
 
                 {/* Prenájmy column */}
-                <Box
-                  sx={{
-                    width: 120,
-                    minWidth: 120,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Chip
-                    size="small"
-                    label={getCustomerRentalCount(customer.id)}
-                    sx={{
-                      height: 24,
-                      fontSize: '0.7rem',
-                      bgcolor:
-                        getCustomerRentalCount(customer.id) > 0
-                          ? '#4caf50'
-                          : '#e0e0e0',
-                      color:
-                        getCustomerRentalCount(customer.id) > 0
-                          ? 'white'
-                          : '#666',
-                      fontWeight: 700,
-                      minWidth: 40,
-                    }}
-                  />
-                </Box>
+                <div className="flex items-center justify-center">
+                  <Badge
+                    className="text-sm"
+                  >
+                    {getCustomerRentalCount(customer.id)}
+                  </Badge>
+                </div>
 
                 {/* Vytvorený column */}
-                <Box
-                  sx={{
-                    width: 140,
-                    minWidth: 140,
-                    p: 2,
-                    borderRight: '1px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: '#666',
-                      fontSize: '0.8rem',
-                    }}
-                  >
+                <div className="flex items-center">
+                  <p className="text-sm text-muted-foreground">
                     {format(new Date(customer.createdAt), 'dd.MM.yyyy')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
 
                 {/* Akcie column */}
-                <Box
-                  sx={{
-                    width: 180,
-                    minWidth: 180,
-                    p: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 0.5,
-                  }}
-                >
+                <div className="flex items-center justify-center gap-1">
                   {/* Edit Button */}
-                  <IconButton
-                    size="small"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0 bg-blue-500 text-white hover:bg-blue-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                     title="Upraviť zákazníka"
                     onClick={e => {
                       e.stopPropagation();
                       handleEdit(customer);
                     }}
-                    sx={{
-                      bgcolor: '#2196f3',
-                      color: 'white',
-                      width: 28,
-                      height: 28,
-                      '&:hover': {
-                        bgcolor: '#1976d2',
-                        transform: 'scale(1.1)',
-                        boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
-                      },
-                      transition: 'all 0.2s ease',
-                    }}
                   >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
+                    <EditIcon className="h-4 w-4" />
+                  </Button>
 
                   {/* History Button */}
-                  <IconButton
-                    size="small"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0 bg-purple-600 text-white hover:bg-purple-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                     title="História prenájmov"
                     onClick={e => {
                       e.stopPropagation();
                       handleShowHistory(customer);
                     }}
-                    sx={{
-                      bgcolor: '#9c27b0',
-                      color: 'white',
-                      width: 28,
-                      height: 28,
-                      '&:hover': {
-                        bgcolor: '#7b1fa2',
-                        transform: 'scale(1.1)',
-                        boxShadow: '0 4px 12px rgba(156,39,176,0.4)',
-                      },
-                      transition: 'all 0.2s ease',
-                    }}
                   >
-                    <HistoryIcon fontSize="small" />
-                  </IconButton>
+                    <HistoryIcon className="h-4 w-4" />
+                  </Button>
 
                   {/* Phone Button */}
                   {customer.phone && (
-                    <IconButton
-                      size="small"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 w-7 p-0 bg-green-500 text-white hover:bg-green-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       title="Zavolať"
                       onClick={e => {
                         e.stopPropagation();
                         handleCall(customer.phone);
                       }}
-                      sx={{
-                        bgcolor: '#4caf50',
-                        color: 'white',
-                        width: 28,
-                        height: 28,
-                        '&:hover': {
-                          bgcolor: '#388e3c',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <PhoneIcon fontSize="small" />
-                    </IconButton>
+                      <PhoneIcon className="h-4 w-4" />
+                    </Button>
                   )}
 
                   {/* Email Button */}
                   {customer.email && (
-                    <IconButton
-                      size="small"
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 w-7 p-0 bg-orange-500 text-white hover:bg-orange-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       title="Poslať email"
                       onClick={e => {
                         e.stopPropagation();
                         handleEmail(customer.email);
                       }}
-                      sx={{
-                        bgcolor: '#ff9800',
-                        color: 'white',
-                        width: 28,
-                        height: 28,
-                        '&:hover': {
-                          bgcolor: '#f57c00',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(255,152,0,0.4)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <EmailIcon fontSize="small" />
-                    </IconButton>
+                      <EmailIcon className="h-4 w-4" />
+                    </Button>
                   )}
 
                   {/* Delete Button */}
-                  <IconButton
-                    size="small"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0 bg-red-500 text-white hover:bg-red-700 hover:scale-110 transition-all duration-200 hover:shadow-lg"
                     title="Zmazať zákazníka"
                     onClick={e => {
                       e.stopPropagation();
                       handleDelete(customer.id);
                     }}
-                    sx={{
-                      bgcolor: '#f44336',
-                      color: 'white',
-                      width: 28,
-                      height: 28,
-                      '&:hover': {
-                        bgcolor: '#d32f2f',
-                        transform: 'scale(1.1)',
-                        boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
-                      },
-                      transition: 'all 0.2s ease',
-                    }}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
+                    <DeleteIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             ))}
 
             {/* 🚀 INFINITE SCROLL: Load More Button */}
             {hasMore && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  p: 3,
-                  borderTop: '1px solid #e0e0e0',
-                }}
-              >
+              <div className="p-4 flex justify-center border-t border-gray-300">
                 <Button
-                  variant="outlined"
+                  variant="outline"
                   onClick={loadMoreCustomers}
                   disabled={isLoadingMore}
-                  sx={{
-                    minWidth: 200,
-                    py: 1.5,
-                    borderRadius: 3,
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                  }}
+                  className="w-full sm:w-auto min-w-[200px]"
                 >
                   {isLoadingMore
                     ? 'Načítavam...'
                     : `Načítať ďalších (${filteredCustomers.length - displayedCustomers} zostáva)`}
                 </Button>
-              </Box>
+              </div>
             )}
-          </Box>
-        </DefaultCard>
+          </div>
+        </Card>
+      )}
+      </>
       )}
 
       {/* Customer Form Dialog */}
       <Dialog
         open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isMobile}
+        onOpenChange={(open) => !open && handleCloseDialog()}
       >
-        <DialogTitle>
-          {editingCustomer ? 'Upraviť zákazníka' : 'Nový zákazník'}
-        </DialogTitle>
-        <DialogContent>
+        <DialogContent className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-4xl'}`}>
+          <DialogHeader>
+            <DialogTitle>
+              {editingCustomer ? 'Upraviť zákazníka' : 'Nový zákazník'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCustomer 
+                ? 'Upravte informácie o zákazníkovi.' 
+                : 'Pridajte nového zákazníka do databázy.'}
+            </DialogDescription>
+          </DialogHeader>
           <CustomerForm
             customer={editingCustomer}
             onSave={handleSubmit}
@@ -1365,9 +1044,6 @@ const CustomerListNew = () => {
           onClose={() => setSelectedCustomerForHistory(null)}
         />
       )}
-    </Box>
+    </div>
   );
-};
-
-// Export with memo for performance optimization
-export default memo(CustomerListNew);
+}

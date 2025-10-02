@@ -1,13 +1,7 @@
-import { Person as PersonIcon } from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Grid,
-  Typography,
-} from '@mui/material';
+import { User } from 'lucide-react';
 import React from 'react';
+import { Card, CardContent } from '../ui/card';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 
 interface CompanyData {
   count: number;
@@ -25,85 +19,52 @@ interface CompaniesTabProps {
 
 const CompaniesTab: React.FC<CompaniesTabProps> = ({ stats }) => {
   return (
-    <Grid container spacing={3}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {Object.entries(stats.companyStats)
         .sort(([, a], [, b]) => b.revenue - a.revenue)
         .map(([company, data]) => (
-          <Grid item xs={12} md={6} lg={4} key={company}>
-            <Card
-              sx={{
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                  transform: 'translateY(-4px)',
-                },
-              }}
-            >
-              <CardContent>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}
-                >
-                  <Avatar sx={{ bgcolor: '#667eea' }}>
-                    <PersonIcon />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      {company}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {data.count} prenájmov
-                    </Typography>
-                  </Box>
-                </Box>
+          <Card
+            key={company}
+            className="shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-1"
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar className="bg-blue-500">
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-bold">
+                    {company}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {data.count} prenájmov
+                  </p>
+                </div>
+              </div>
 
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1,
-                    p: 1.5,
-                    borderRadius: 1,
-                    backgroundColor: '#f8f9fa',
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Príjmy:
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    fontWeight="bold"
-                    sx={{ color: '#11998e' }}
-                  >
-                    {data.revenue.toLocaleString()} €
-                  </Typography>
-                </Box>
+              <div className="flex justify-between items-center mb-2 p-3 rounded-md bg-muted/50">
+                <span className="text-sm font-semibold">
+                  Príjmy:
+                </span>
+                <span className="text-sm font-bold text-green-600">
+                  {data.revenue.toLocaleString()} €
+                </span>
+              </div>
 
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    p: 1.5,
-                    borderRadius: 1,
-                    backgroundColor: '#fff3e0',
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Provízia:
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="warning.main"
-                    fontWeight="bold"
-                  >
-                    {data.commission.toLocaleString()} €
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+              <div className="flex justify-between items-center p-3 rounded-md bg-orange-50">
+                <span className="text-sm font-semibold">
+                  Provízia:
+                </span>
+                <span className="text-sm font-bold text-orange-600">
+                  {data.commission.toLocaleString()} €
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         ))}
-    </Grid>
+    </div>
   );
 };
 

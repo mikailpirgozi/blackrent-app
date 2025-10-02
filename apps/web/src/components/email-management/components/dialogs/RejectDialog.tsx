@@ -3,18 +3,37 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
+// shadcn/ui components
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Typography,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import React from 'react';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+
+import { useState, useEffect } from 'react';
+
+// Custom useMediaQuery hook
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+
+  return matches;
+}
 
 interface RejectDialogProps {
   open: boolean;
@@ -33,83 +52,70 @@ export const RejectDialog: React.FC<RejectDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const theme = useTheme();
-  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery('(max-width: 640px)');
+  const isExtraSmall = useMediaQuery('(max-width: 400px)');
 
   return (
-    <Dialog
-      open={open}
-      onClose={onCancel}
-      fullScreen={isExtraSmall}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          margin: isExtraSmall ? 0 : isSmallMobile ? 1 : 2,
-          borderRadius: isExtraSmall ? 0 : undefined,
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          fontSize: isExtraSmall ? '1.1rem' : undefined,
-          p: isExtraSmall ? 2 : undefined,
-        }}
-      >
-        <Typography variant={isExtraSmall ? 'h6' : 'h5'} component="span">
-          {isRental
-            ? isExtraSmall
-              ? 'Zamietnuť'
-              : 'Zamietnuť prenájom'
-            : isExtraSmall
-              ? 'Zamietnuť'
-              : 'Zamietnuť email'}
-        </Typography>
-      </DialogTitle>
-      <DialogContent sx={{ p: isExtraSmall ? 2 : undefined }}>
-        <TextField
-          fullWidth
-          multiline
-          rows={isExtraSmall ? 2 : 3}
-          label={isExtraSmall ? 'Dôvod' : 'Dôvod zamietnutia'}
-          value={reason}
-          onChange={e => onReasonChange(e.target.value)}
-          margin="normal"
-          size={isExtraSmall ? 'small' : 'medium'}
-          sx={{
-            '& .MuiInputLabel-root': {
-              fontSize: isExtraSmall ? '0.875rem' : undefined,
-            },
-            '& .MuiInputBase-input': {
-              fontSize: isExtraSmall ? '0.875rem' : undefined,
-            },
-          }}
-        />
+    <Dialog open={open} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className={`sm:max-w-md ${
+        isExtraSmall 
+          ? 'h-full w-full max-w-none rounded-none' 
+          : isMobile 
+            ? 'm-2' 
+            : 'm-4'
+      }`}>
+        <DialogHeader>
+          <DialogTitle className={isExtraSmall ? 'text-lg' : 'text-xl'}>
+            {isRental
+              ? isExtraSmall
+                ? 'Zamietnuť'
+                : 'Zamietnuť prenájom'
+              : isExtraSmall
+                ? 'Zamietnuť'
+                : 'Zamietnuť email'}
+          </DialogTitle>
+          <DialogDescription>
+            {isRental
+              ? 'Zadajte dôvod zamietnutia prenájmu'
+              : 'Zadajte dôvod zamietnutia emailu'}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className={`space-y-4 ${isExtraSmall ? 'p-4' : 'py-4'}`}>
+          <div className="space-y-2">
+            <Label htmlFor="reason" className={isExtraSmall ? 'text-sm' : ''}>
+              {isExtraSmall ? 'Dôvod' : 'Dôvod zamietnutia'}
+            </Label>
+            <Textarea
+              id="reason"
+              value={reason}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onReasonChange(e.target.value)}
+              rows={isExtraSmall ? 2 : 3}
+              className={isExtraSmall ? 'text-sm' : ''}
+              placeholder="Zadajte dôvod zamietnutia..."
+            />
+          </div>
+        </div>
+        
+        <DialogFooter className={`gap-2 ${isExtraSmall ? 'p-4' : ''}`}>
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            size={isExtraSmall ? 'sm' : 'default'}
+            className={isExtraSmall ? 'text-sm' : ''}
+          >
+            Zrušiť
+          </Button>
+          <Button
+            onClick={onConfirm}
+            variant="destructive"
+            size={isExtraSmall ? 'sm' : 'default'}
+            className={isExtraSmall ? 'text-sm' : ''}
+          >
+            Zamietnuť
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions
-        sx={{
-          p: isExtraSmall ? 2 : undefined,
-          gap: isExtraSmall ? 1 : undefined,
-        }}
-      >
-        <Button
-          onClick={onCancel}
-          size={isExtraSmall ? 'small' : 'medium'}
-          sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-        >
-          {isExtraSmall ? 'Zrušiť' : 'Zrušiť'}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          color="error"
-          variant="contained"
-          size={isExtraSmall ? 'small' : 'medium'}
-          sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-        >
-          {isExtraSmall ? 'Zamietnuť' : 'Zamietnuť'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

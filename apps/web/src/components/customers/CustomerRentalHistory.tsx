@@ -1,35 +1,44 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+// Lucide icons (replacing MUI icons)
 import {
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
   CheckCircle as CheckCircleIcon,
-  Close as CloseIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
+  X as CloseIcon,
+  Eye as VisibilityIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Divider,
-  Grid,
-  IconButton,
-  Paper,
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+} from '@/components/ui/table';
+
+// Tailwind CSS utility for responsive design
+import { cn } from '@/lib/utils';
+
+// shadcn/ui components (additional imports)
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Custom hook for responsive design
+import { useMediaQuery } from '../../hooks/use-media-query';
+
 import { format, isAfter, isBefore } from 'date-fns';
 import { sk } from 'date-fns/locale';
 
@@ -78,10 +87,9 @@ export default function CustomerRentalHistory({
   rentals,
   vehicles,
 }: CustomerRentalHistoryProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isTablet = useMediaQuery('(max-width: 1024px)');
+  const isSmallScreen = useMediaQuery('(max-width: 640px)');
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
 
   // Filtrujeme prenájmy pre tohto zákazníka
@@ -124,75 +132,39 @@ export default function CustomerRentalHistory({
 
   return (
     <>
-      <Dialog
-        open={open}
-        onClose={onClose}
-        maxWidth="lg"
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            backgroundColor: 'background.paper',
-            minHeight: isMobile ? '100vh' : 'auto',
-            maxHeight: isMobile ? '100vh' : '90vh',
-            borderRadius: isMobile ? 0 : 2,
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            pb: 1,
-            backgroundColor: 'primary.main',
-            color: 'white',
-            '& .MuiTypography-root': {
-              color: 'white',
-            },
-          }}
-        >
-          <Box>
-            <Typography
-              variant={isSmallScreen ? 'h6' : isMobile ? 'h5' : 'h4'}
-              component="h2"
-              sx={{ color: 'white', fontWeight: 'bold' }}
-            >
-              História prenájmov - {customer.name}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
-            >
-              {customerRentals.length} prenájmov celkovo
-            </Typography>
-          </Box>
-          <IconButton onClick={onClose} sx={{ color: 'white' }}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className={`${isMobile ? 'h-screen max-h-screen' : 'max-w-4xl max-h-[90vh]'} overflow-hidden`}>
+        <DialogHeader className="bg-primary text-primary-foreground p-4 -m-6 mb-4">
+          <DialogTitle className="flex justify-between items-center text-white">
+            <div>
+              <h2 className={`text-white font-bold ${isSmallScreen ? 'text-lg' : isMobile ? 'text-xl' : 'text-2xl'}`}>
+                História prenájmov - {customer.name}
+              </h2>
+              <DialogDescription className="text-white/80 text-sm">
+                {customerRentals.length} prenájmov celkovo
+              </DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+              <CloseIcon className="h-4 w-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
 
-        <DialogContent sx={{ p: 0, backgroundColor: 'background.default' }}>
+        <div className="p-0 bg-background">
           {customerRentals.length === 0 ? (
-            <Box
-              sx={{
-                p: 3,
-                textAlign: 'center',
-                backgroundColor: 'background.paper',
-              }}
-            >
-              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
+            <div className="p-6 text-center bg-card">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 Žiadne prenájmy
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              </h3>
+              <p className="text-sm text-muted-foreground">
                 Tento zákazník zatiaľ nemá žiadne prenájmy.
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Box>
+            <div>
               {/* Mobilné zobrazenie - karty */}
               {isMobile ? (
-                <Box sx={{ p: isSmallScreen ? 1 : 2 }}>
+                <div className={cn("p-4", isSmallScreen && "p-2")}>
                   {customerRentals.map(rental => {
                     const status = getRentalStatus(rental);
                     // Safe date conversion
@@ -209,73 +181,43 @@ export default function CustomerRentalHistory({
                     return (
                       <Card
                         key={rental.id}
-                        sx={{
-                          mb: 2,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          backgroundColor: 'background.paper',
-                          '&:hover': {
-                            boxShadow: 3,
-                            transform: 'translateY(-1px)',
-                            transition: 'all 0.2s ease-in-out',
-                          },
-                        }}
+                        className="mb-4 border border-border bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ease-in-out"
                       >
-                        <CardContent sx={{ p: 2 }}>
+                        <CardContent className="p-4">
                           {/* Hlavička karty */}
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              mb: 1.5,
-                            }}
+                          <div
+                            className="flex justify-between items-start mb-3"
                           >
-                            <Box sx={{ flex: 1 }}>
-                              <Typography
-                                variant="h6"
-                                fontWeight="bold"
-                                sx={{ color: 'text.primary', mb: 0.5 }}
+                            <div className="flex-1">
+                              <h3
+                                className="text-lg font-bold text-foreground mb-1"
                               >
                                 {getVehicleInfo(rental)}
-                              </Typography>
-                              <Chip
-                                label={status.label}
-                                color={status.color}
-                                size="small"
-                                sx={{ mb: 1 }}
-                              />
-                            </Box>
-                            <IconButton
-                              size="small"
+                              </h3>
+                              <Badge
+                                variant={status.color === 'success' ? 'default' : status.color === 'warning' ? 'secondary' : 'destructive'}
+                                className="mb-2"
+                              >
+                                {status.label}
+                              </Badge>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleViewRentalDetail(rental)}
-                              sx={{
-                                color: 'white',
-                                bgcolor: 'primary.main',
-                                '&:hover': { bgcolor: 'primary.dark' },
-                              }}
+                              className="text-white bg-primary hover:bg-primary/90 p-2"
                             >
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
+                              <VisibilityIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
 
                           {/* Dátumy */}
-                          <Box sx={{ mb: 1.5 }}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                mb: 0.5,
-                              }}
-                            >
+                          <div className="mb-3">
+                            <div className="flex items-center gap-2 mb-1">
                               <CalendarIcon
-                                sx={{ color: 'text.secondary', fontSize: 16 }}
+                                className="text-muted-foreground w-4 h-4"
                               />
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.primary' }}
-                              >
+                              <p className="text-sm text-foreground">
                                 {format(
                                   new Date(rental.startDate),
                                   'dd.MM.yyyy',
@@ -287,169 +229,100 @@ export default function CustomerRentalHistory({
                                   'dd.MM.yyyy',
                                   { locale: sk }
                                 )}
-                              </Typography>
-                            </Box>
-                            <Typography
-                              variant="body2"
-                              sx={{ color: 'text.secondary' }}
-                            >
+                              </p>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
                               {days} dní •{' '}
                               {format(
                                 new Date(rental.createdAt),
                                 'dd.MM.yyyy',
                                 { locale: sk }
                               )}
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
 
                           {/* Cena a platba */}
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <Box>
-                              <Typography
-                                variant="h6"
-                                sx={{
-                                  color: 'text.primary',
-                                  fontWeight: 'bold',
-                                }}
-                              >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="text-lg font-bold text-foreground">
                                 {rental.totalPrice.toFixed(2)} €
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary' }}
-                              >
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
                                 {getPaymentMethodText(rental.paymentMethod)}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ textAlign: 'right' }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary' }}
-                              >
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-muted-foreground">
                                 Provízia: {rental.commission.toFixed(2)} €
-                              </Typography>
+                              </p>
                               {rental.paid ? (
-                                <Chip
-                                  label="Zaplatené"
-                                  color="success"
-                                  size="small"
-                                  icon={<CheckCircleIcon />}
-                                />
+                                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                  <CheckCircleIcon className="w-3 h-3 mr-1" />
+                                  Zaplatené
+                                </Badge>
                               ) : (
-                                <Chip
-                                  label="Nezaplatené"
-                                  color="warning"
-                                  size="small"
-                                />
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                                  Nezaplatené
+                                </Badge>
                               )}
-                            </Box>
-                          </Box>
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     );
                   })}
-                </Box>
+                </div>
               ) : (
                 /* Desktop zobrazenie - tabuľka */
-                <TableContainer
-                  component={Paper}
-                  sx={{
-                    maxHeight: isTablet ? 500 : 600,
-                    backgroundColor: 'background.paper',
-                    borderRadius: isTablet ? 1 : 2,
-                  }}
-                >
-                  <Table stickyHeader>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: 'primary.main' }}>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                <ScrollArea className={cn(
+                  "border rounded-lg bg-card",
+                  isTablet ? "max-h-[500px]" : "max-h-[600px]"
+                )}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-primary hover:bg-primary">
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Vozidlo
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Dátumy
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Dní
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Cena
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Provízia
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Platba
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Stav
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'white',
-                            borderBottom: '2px solid',
-                            borderColor: 'primary.dark',
-                          }}
+                        </TableHead>
+                        <TableHead
+                          className="font-bold text-white border-b-2 border-primary-foreground"
                         >
                           Akcie
-                        </TableCell>
+                        </TableHead>
                       </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                       {customerRentals.map(rental => {
                         const status = getRentalStatus(rental);
@@ -467,345 +340,211 @@ export default function CustomerRentalHistory({
                         return (
                           <TableRow
                             key={rental.id}
-                            sx={{
-                              backgroundColor: 'background.paper',
-                              '&:hover': {
-                                backgroundColor: 'action.hover',
-                                cursor: 'pointer',
-                              },
-                              '&:nth-of-type(even)': {
-                                backgroundColor: 'action.hover',
-                              },
-                            }}
+                            className="bg-card hover:bg-muted cursor-pointer even:bg-muted/50"
                           >
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                }}
-                              >
+                              <div className="flex items-center gap-2">
                                 <CarIcon
-                                  sx={{ color: 'text.secondary', fontSize: 20 }}
+                                  className="text-muted-foreground w-5 h-5"
                                 />
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    color: 'text.primary',
-                                    fontWeight: 'medium',
-                                  }}
-                                >
+                                <p className="text-sm font-medium text-foreground">
                                   {getVehicleInfo(rental)}
-                                </Typography>
-                              </Box>
+                                </p>
+                              </div>
                             </TableCell>
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.primary' }}
-                              >
+                              <p className="text-sm text-foreground">
                                 {format(
                                   new Date(rental.startDate),
                                   'dd.MM.yyyy',
                                   { locale: sk }
                                 )}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary' }}
-                              >
+                              </p>
+                              <p className="text-sm text-muted-foreground">
                                 {format(
                                   new Date(rental.endDate),
                                   'dd.MM.yyyy',
                                   { locale: sk }
                                 )}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.primary' }}
-                              >
+                              <p className="text-sm text-foreground">
                                 {days}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: 'text.primary',
-                                  fontWeight: 'bold',
-                                }}
-                              >
+                              <p className="text-sm font-bold text-foreground">
                                 {rental.totalPrice.toFixed(2)} €
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary' }}
-                              >
+                              <p className="text-sm text-muted-foreground">
                                 {rental.commission.toFixed(2)} €
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ color: 'text.primary' }}
-                                >
+                              <div>
+                                <p className="text-sm text-foreground">
                                   {getPaymentMethodText(rental.paymentMethod)}
-                                </Typography>
+                                </p>
                                 {rental.paid ? (
-                                  <Chip
-                                    label="Zaplatené"
-                                    color="success"
-                                    size="small"
-                                    icon={<CheckCircleIcon />}
-                                  />
+                                  <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                    <CheckCircleIcon className="w-3 h-3 mr-1" />
+                                    Zaplatené
+                                  </Badge>
                                 ) : (
-                                  <Chip
-                                    label="Nezaplatené"
-                                    color="warning"
-                                    size="small"
-                                  />
+                                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                                    Nezaplatené
+                                  </Badge>
                                 )}
-                              </Box>
+                              </div>
                             </TableCell>
                             <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
+                              className="border-b border-border"
                             >
-                              <Chip
-                                label={status.label}
-                                color={status.color}
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell
-                              sx={{
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                              }}
-                            >
-                              <IconButton
-                                size="small"
-                                onClick={() => handleViewRentalDetail(rental)}
-                                sx={{ color: 'primary.main' }}
+                              <Badge 
+                                variant={status.color === 'success' ? 'default' : status.color === 'warning' ? 'secondary' : 'destructive'}
+                                className={cn(
+                                  status.color === 'success' && "bg-green-100 text-green-800 hover:bg-green-100",
+                                  status.color === 'warning' && "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+                                  status.color === 'error' && "bg-red-100 text-red-800 hover:bg-red-100"
+                                )}
                               >
-                                <VisibilityIcon fontSize="small" />
-                              </IconButton>
+                                {status.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell
+                              className="border-b border-border"
+                            >
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleViewRentalDetail(rental)}
+                                className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                              >
+                                <VisibilityIcon className="w-4 h-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </ScrollArea>
               )}
-            </Box>
+            </div>
           )}
+        </div>
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            p: 2,
-            backgroundColor: 'background.paper',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Button onClick={onClose} variant="outlined" sx={{ minWidth: 100 }}>
+        <DialogFooter className="p-4 bg-card border-t border-border">
+          <Button onClick={onClose} variant="outline" className="min-w-[100px]">
             Zavrieť
           </Button>
-        </DialogActions>
+        </DialogFooter>
       </Dialog>
 
       {/* Detail prenájmu */}
       {selectedRental && (
         <Dialog
           open={!!selectedRental}
-          onClose={handleCloseRentalDetail}
-          maxWidth="md"
-          fullWidth
-          fullScreen={isMobile}
-          PaperProps={{
-            sx: {
-              backgroundColor: 'background.paper',
-              minHeight: isMobile ? '100vh' : 'auto',
-              maxHeight: isMobile ? '100vh' : '90vh',
-              borderRadius: isMobile ? 0 : 2,
-            },
-          }}
+          onOpenChange={(open) => !open && handleCloseRentalDetail()}
         >
-          <DialogTitle
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              pb: 1,
-              backgroundColor: 'primary.main',
-              color: 'white',
-              '& .MuiTypography-root': {
-                color: 'white',
-              },
-            }}
-          >
-            <Typography
-              variant={isSmallScreen ? 'h6' : isMobile ? 'h5' : 'h4'}
-              sx={{ color: 'white', fontWeight: 'bold' }}
-            >
-              Detail prenájmu
-            </Typography>
-            <IconButton
-              onClick={handleCloseRentalDetail}
-              sx={{ color: 'white' }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-
-          <DialogContent sx={{ backgroundColor: 'background.default' }}>
-            <Box
-              sx={{
-                mb: 3,
-                p: 2,
-                backgroundColor: 'background.paper',
-                borderRadius: 1,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1 }}
+          <DialogHeader className="bg-primary text-primary-foreground p-4 -m-6 mb-4">
+            <DialogTitle className="flex justify-between items-center text-white">
+              <span>Detail prenájmu</span>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleCloseRentalDetail}
+                className="text-white hover:bg-white/20"
               >
-                {getVehicleInfo(selectedRental)}
-              </Typography>
-              <Chip
-                label={getRentalStatus(selectedRental).label}
-                color={getRentalStatus(selectedRental).color}
-                sx={{ mb: 2 }}
-              />
-            </Box>
+                <CloseIcon className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
 
-            <Grid container spacing={isSmallScreen ? 1 : 2}>
-              <Grid item xs={12} md={6}>
+          <div className="bg-background">
+            <DialogHeader>
+              <DialogTitle>Detail prenájmu</DialogTitle>
+              <DialogDescription>
+                Zobrazenie detailných informácií o vybranom prenájme
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mb-6 p-4 bg-card rounded-lg">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {getVehicleInfo(selectedRental)}
+              </h3>
+              <Badge 
+                variant={getRentalStatus(selectedRental).color === 'success' ? 'default' : getRentalStatus(selectedRental).color === 'warning' ? 'secondary' : 'destructive'}
+                className={cn(
+                  "mb-4",
+                  getRentalStatus(selectedRental).color === 'success' && "bg-green-100 text-green-800 hover:bg-green-100",
+                  getRentalStatus(selectedRental).color === 'warning' && "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+                  getRentalStatus(selectedRental).color === 'error' && "bg-red-100 text-red-800 hover:bg-red-100"
+                )}
+              >
+                {getRentalStatus(selectedRental).label}
+              </Badge>
+            </div>
+
+            <div className={cn(
+              "grid grid-cols-1 md:grid-cols-2",
+              isSmallScreen ? "gap-2" : "gap-4"
+            )}>
+              <div>
                 <Card
-                  sx={{ backgroundColor: 'background.paper', height: '100%' }}
+                  className="bg-card h-full"
                 >
                   <CardContent>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}
-                    >
+                    <h4 className="text-base font-bold text-foreground mb-4">
                       Základné informácie
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                    </h4>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Začiatok:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground">
                           {format(
                             new Date(selectedRental.startDate),
                             'dd.MM.yyyy HH:mm',
                             { locale: sk }
                           )}
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                        </p>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Koniec:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground">
                           {format(
                             new Date(selectedRental.endDate),
                             'dd.MM.yyyy HH:mm',
                             { locale: sk }
                           )}
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                        </p>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Dní:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary', fontWeight: 'bold' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground font-bold">
                           {(() => {
                             // Safe date conversion
                             const startDate =
@@ -818,210 +557,114 @@ export default function CustomerRentalHistory({
                                 : new Date(selectedRental.endDate);
                             return calculateRentalDays(startDate, endDate);
                           })()}
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                        </p>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Vytvorený:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground">
                           {format(
                             new Date(selectedRental.createdAt),
                             'dd.MM.yyyy HH:mm',
                             { locale: sk }
                           )}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div>
                 <Card
-                  sx={{ backgroundColor: 'background.paper', height: '100%' }}
+                  className="bg-card h-full"
                 >
                   <CardContent>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}
-                    >
+                    <h4 className="text-base font-bold text-foreground mb-4">
                       Finančné informácie
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                    </h4>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Celková cena:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'text.primary',
-                            fontWeight: 'bold',
-                            fontSize: '1.1rem',
-                          }}
-                        >
+                        </p>
+                        <p className="text-base font-bold text-foreground">
                           {selectedRental.totalPrice.toFixed(2)} €
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                        </p>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Provízia:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground">
                           {selectedRental.commission.toFixed(2)} €
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                        </p>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Spôsob platby:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground">
                           {getPaymentMethodText(selectedRental.paymentMethod)}
-                        </Typography>
-                      </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 'medium' }}
-                        >
+                        </p>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground font-medium">
                           Stav platby:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.primary' }}
-                        >
+                        </p>
+                        <p className="text-sm text-foreground">
                           {selectedRental.paid ? 'Zaplatené' : 'Nezaplatené'}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {selectedRental.notes && (
-              <Grid item xs={12}>
-                <Card sx={{ backgroundColor: 'background.paper', mt: 2 }}>
-                  <CardContent>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}
-                    >
-                      Poznámky
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'text.secondary', lineHeight: 1.6 }}
-                    >
-                      {selectedRental.notes}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+              <Card className="bg-card mt-4">
+                <CardContent>
+                  <h4 className="text-base font-bold text-foreground mb-4">
+                    Poznámky
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {selectedRental.notes}
+                  </p>
+                </CardContent>
+              </Card>
             )}
 
             {selectedRental.discount && (
-              <Grid item xs={12}>
-                <Card sx={{ backgroundColor: 'background.paper', mt: 2 }}>
-                  <CardContent>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}
-                    >
-                      Zľava
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      {selectedRental.discount.type === 'percentage'
-                        ? `${selectedRental.discount.value}%`
-                        : `${selectedRental.discount.value} €`}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+              <Card className="bg-card mt-4">
+                <CardContent>
+                  <h4 className="text-base font-bold text-foreground mb-4">
+                    Zľava
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRental.discount.type === 'percentage'
+                      ? `${selectedRental.discount.value}%`
+                      : `${selectedRental.discount.value} €`}
+                  </p>
+                </CardContent>
+              </Card>
             )}
-          </DialogContent>
+          </div>
 
-          <DialogActions
-            sx={{
-              p: 2,
-              backgroundColor: 'background.paper',
-              borderTop: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
+          <DialogFooter className="p-4 bg-card border-t border-border">
             <Button
               onClick={handleCloseRentalDetail}
-              variant="outlined"
-              sx={{ minWidth: 100 }}
+              variant="outline"
+              className="min-w-[100px]"
             >
               Zavrieť
             </Button>
-          </DialogActions>
+          </DialogFooter>
         </Dialog>
       )}
     </>

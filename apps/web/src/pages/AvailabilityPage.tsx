@@ -1,22 +1,22 @@
-import { Box, Container, Typography } from '@mui/material';
+import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
 import React from 'react';
 
 import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
 
 const AvailabilityPage: React.FC = () => {
   return (
-    <Container maxWidth="xl">
-      <Box py={3}>
-        <Typography variant="h4" gutterBottom>
+    <div className="max-w-7xl mx-auto">
+      <div className="py-6">
+        <UnifiedTypography variant="h4" className="mb-4">
           📅 Prehľad Dostupnosti Áut
-        </Typography>
-        <Typography variant="body1" color="textSecondary" paragraph>
+        </UnifiedTypography>
+        <UnifiedTypography variant="body1" className="text-gray-600 mb-4">
           Kalendárny prehľad dostupnosti všetkých vozidiel v systéme
-        </Typography>
+        </UnifiedTypography>
 
         <AvailabilityCalendar />
-      </Box>
-    </Container>
+      </div>
+    </div>
   );
 };
 

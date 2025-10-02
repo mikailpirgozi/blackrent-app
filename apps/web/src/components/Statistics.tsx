@@ -3,57 +3,30 @@ import { useAllProtocols } from '@/lib/react-query/hooks/useProtocols';
 import { useRentals } from '@/lib/react-query/hooks/useRentals';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import {
-  AccountBalance as AccountBalanceIcon,
-  Assessment as AssessmentIcon,
-  Business as BusinessIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
+  Building2 as AccountBalanceIcon,
+  BarChart3 as AssessmentIcon,
+  Building as BusinessIcon,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
   CheckCircle as CheckCircleIcon,
   CreditCard as CreditCardIcon,
-  Dashboard as DashboardIcon,
+  LayoutDashboard as DashboardIcon,
   Euro as EuroIcon,
-  AttachMoney as MoneyIcon,
-  Payment as PaymentIcon,
+  DollarSign as MoneyIcon,
+  CreditCard as PaymentIcon,
   Percent as PercentIcon,
-  Person as PersonIcon,
-  Refresh as RefreshIcon,
-  ShowChart as ShowChartIcon,
-  Speed as SpeedIcon,
+  User as PersonIcon,
+  RefreshCw as RefreshIcon,
+  TrendingUp as ShowChartIcon,
+  Gauge as SpeedIcon,
   Star as StarIcon,
-  AccessTime as TimeIcon,
+  Clock as TimeIcon,
   TrendingDown as TrendingDownIcon,
   TrendingUp as TrendingUpIcon,
-  EmojiEvents as TrophyIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Divider,
-  FormControl,
-  Grid,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
-  Select,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  Trophy as TrophyIcon,
+  AlertTriangle as WarningIcon,
+  ChevronDown as KeyboardArrowDownIcon,
+} from 'lucide-react';
 import {
   differenceInDays,
   endOfMonth,
@@ -67,7 +40,15 @@ import {
   subMonths,
 } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useMemo, useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+
+// Throttling properties for window object
+interface ThrottlingWindow extends globalThis.Window {
+  lastStatsLog?: number;
+  lastPerfLog?: number;
+  lastVehiclesLog?: number;
+  lastCustomersLog?: number;
+}
 import {
   Area,
   AreaChart,
@@ -88,6 +69,18 @@ import {
 import { logger } from '../utils/smartLogger';
 import StatisticsMobile from './statistics/StatisticsMobile';
 
+// shadcn/ui imports - postupná migrácia z MUI
+import { Button as ShadcnButton } from '@/components/ui/button';
+import { Card as ShadcnCard, CardContent as ShadcnCardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table as ShadcnTable, TableBody as ShadcnTableBody, TableCell as ShadcnTableCell, TableHead as ShadcnTableHead, TableHeader as ShadcnTableHeader, TableRow as ShadcnTableRow } from '@/components/ui/table';
+import { Tabs as ShadcnTabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Alert as ShadcnAlert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+
 // Type definitions
 interface VehicleStatistic extends Record<string, unknown> {
   vehicle: {
@@ -106,7 +99,7 @@ interface VehicleStatistic extends Record<string, unknown> {
 
 interface CustomerStatistic extends Record<string, unknown> {
   customerName: string;
-  customer?: Record<string, unknown>;
+  customer: Record<string, unknown> | undefined;
   totalRevenue: number;
   rentalCount: number;
   totalDaysRented: number;
@@ -125,26 +118,6 @@ interface EmployeeStatistic extends Record<string, unknown> {
   uniqueRentals: number;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`stats-tabpanel-${index}`}
-      aria-labelledby={`stats-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
 
 const COLORS = [
   '#667eea',
@@ -162,8 +135,7 @@ const Statistics: React.FC = () => {
   const { data: protocols = [] } = useAllProtocols();
   const { data: vehicles = [] } = useVehicles();
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = window.innerWidth < 768;
 
   // Loading state
   // const isLoading =
@@ -188,8 +160,27 @@ const Statistics: React.FC = () => {
   const [showCustomersByRevenue, setShowCustomersByRevenue] = useState(10);
   const [showCustomersByDays, setShowCustomersByDays] = useState(10);
 
-  // Reálne dáta z aplikácie s novými metrikami
-  const stats = useMemo(() => {
+  // Debounced statistics calculation
+  const debounceTimeoutRef = useRef<number>();
+  const [debouncedStats, setDebouncedStats] = useState<any>(null);
+
+  const calculateStats = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      window.clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = window.setTimeout(() => {
+      const newStats = computeStatistics();
+      setDebouncedStats(newStats);
+    }, 300); // 300ms debounce
+  }, [rentals, expenses, protocols, vehicles, selectedYear, selectedMonth, timeRange, filterYear, filterMonth]);
+
+  // Trigger calculation when dependencies change
+  React.useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
+
+  const computeStatistics = useCallback(() => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
@@ -210,13 +201,17 @@ const Statistics: React.FC = () => {
       filterEndDate = new Date();
     }
 
-    logger.debug('Statistics filter period', {
-      timeRange,
-      filterYear,
-      filterMonth,
-      filterStartDate: format(filterStartDate, 'yyyy-MM-dd'),
-      filterEndDate: format(filterEndDate, 'yyyy-MM-dd'),
-    });
+    // Throttled logging - len raz za 5 sekúnd
+    if (!(window as ThrottlingWindow).lastStatsLog || Date.now() - (window as ThrottlingWindow).lastStatsLog! > 5000) {
+      logger.debug('Statistics filter period', {
+        timeRange,
+        filterYear,
+        filterMonth,
+        filterStartDate: format(filterStartDate, 'yyyy-MM-dd'),
+        filterEndDate: format(filterEndDate, 'yyyy-MM-dd'),
+      });
+      (window as ThrottlingWindow).lastStatsLog = Date.now();
+    }
 
     // Filtrované prenájmy pre vybrané obdobie
     const filteredRentals = rentals.filter(rental => {
@@ -235,15 +230,19 @@ const Statistics: React.FC = () => {
       return isInPeriod && isBlackHolding;
     });
 
-    logger.performance('Statistics data processed', {
-      rentals: filteredRentals.length,
-      expenses: filteredExpenses.length,
-      totalExpenseAmount: filteredExpenses.reduce(
-        (sum, exp) => sum + exp.amount,
-        0
-      ),
-      timeRange,
-    });
+    // Throttled performance logging
+    if (!(window as ThrottlingWindow).lastPerfLog || Date.now() - (window as ThrottlingWindow).lastPerfLog! > 5000) {
+      logger.performance('Statistics data processed', {
+        rentals: filteredRentals.length,
+        expenses: filteredExpenses.length,
+        totalExpenseAmount: filteredExpenses.reduce(
+          (sum, exp) => sum + exp.amount,
+          0
+        ),
+        timeRange,
+      });
+      (window as ThrottlingWindow).lastPerfLog = Date.now();
+    }
 
     // NOVÉ METRIKY
     // 1. Celkové tržby za obdobie
@@ -341,19 +340,22 @@ const Statistics: React.FC = () => {
           };
         }
 
-        acc[customerId].totalRevenue += rental.totalPrice || 0;
-        acc[customerId].rentalCount += 1;
+        const customer = acc[customerId];
+        if (customer) {
+          customer.totalRevenue += rental.totalPrice || 0;
+          customer.rentalCount += 1;
 
-        const rentalDays =
-          differenceInDays(
-            new Date(rental.endDate),
-            new Date(rental.startDate)
-          ) + 1;
-        acc[customerId].totalDaysRented += rentalDays;
+          const rentalDays =
+            differenceInDays(
+              new Date(rental.endDate),
+              new Date(rental.startDate)
+            ) + 1;
+          customer.totalDaysRented += rentalDays;
 
-        // Aktualizácia posledného prenájmu
-        if (new Date(rental.startDate) > acc[customerId].lastRentalDate) {
-          acc[customerId].lastRentalDate = new Date(rental.startDate);
+          // Aktualizácia posledného prenájmu
+          if (new Date(rental.startDate) > customer.lastRentalDate) {
+            customer.lastRentalDate = new Date(rental.startDate);
+          }
         }
 
         return acc;
@@ -376,7 +378,7 @@ const Statistics: React.FC = () => {
       vehicleStats.length > 0
         ? vehicleStats.reduce(
             (prev, current) =>
-              prev.utilizationPercentage > current.utilizationPercentage
+              prev && current && prev.utilizationPercentage > current.utilizationPercentage
                 ? prev
                 : current,
             vehicleStats[0]
@@ -387,7 +389,7 @@ const Statistics: React.FC = () => {
       vehicleStats.length > 0
         ? vehicleStats.reduce(
             (prev, current) =>
-              prev.totalRevenue > current.totalRevenue ? prev : current,
+              prev && current && prev.totalRevenue > current.totalRevenue ? prev : current,
             vehicleStats[0]
           )
         : null;
@@ -396,7 +398,7 @@ const Statistics: React.FC = () => {
       vehicleStats.length > 0
         ? vehicleStats.reduce(
             (prev, current) =>
-              prev.rentalCount > current.rentalCount ? prev : current,
+              prev && current && prev.rentalCount > current.rentalCount ? prev : current,
             vehicleStats[0]
           )
         : null;
@@ -406,7 +408,7 @@ const Statistics: React.FC = () => {
       customerStatsArray.length > 0
         ? customerStatsArray.reduce(
             (prev, current) =>
-              prev.rentalCount > current.rentalCount ? prev : current,
+              prev && current && prev.rentalCount > current.rentalCount ? prev : current,
             customerStatsArray[0]
           )
         : null;
@@ -415,7 +417,7 @@ const Statistics: React.FC = () => {
       customerStatsArray.length > 0
         ? customerStatsArray.reduce(
             (prev, current) =>
-              prev.totalRevenue > current.totalRevenue ? prev : current,
+              prev && current && prev.totalRevenue > current.totalRevenue ? prev : current,
             customerStatsArray[0]
           )
         : null;
@@ -424,7 +426,7 @@ const Statistics: React.FC = () => {
       customerStatsArray.length > 0
         ? customerStatsArray.reduce(
             (prev, current) =>
-              prev.totalDaysRented > current.totalDaysRented ? prev : current,
+              prev && current && prev.totalDaysRented > current.totalDaysRented ? prev : current,
             customerStatsArray[0]
           )
         : null;
@@ -514,8 +516,11 @@ const Statistics: React.FC = () => {
         if (!acc[method]) {
           acc[method] = { count: 0, revenue: 0 };
         }
-        acc[method].count++;
-        acc[method].revenue += rental.totalPrice || 0;
+        const paymentMethod = acc[method];
+        if (paymentMethod) {
+          paymentMethod.count++;
+          paymentMethod.revenue += rental.totalPrice || 0;
+        }
         return acc;
       },
       {} as Record<string, { count: number; revenue: number }>
@@ -528,9 +533,12 @@ const Statistics: React.FC = () => {
         if (!acc[company]) {
           acc[company] = { count: 0, revenue: 0, commission: 0 };
         }
-        acc[company].count++;
-        acc[company].revenue += rental.totalPrice || 0;
-        acc[company].commission += rental.commission || 0;
+        const companyData = acc[company];
+        if (companyData) {
+          companyData.count++;
+          companyData.revenue += rental.totalPrice || 0;
+          companyData.commission += rental.commission || 0;
+        }
         return acc;
       },
       {} as Record<
@@ -587,78 +595,98 @@ const Statistics: React.FC = () => {
         const sorted = [...vehicleStats].sort(
           (a, b) => b.utilizationPercentage - a.utilizationPercentage
         );
-        logger.debug(
-          'Vehicles by utilization (top 3)',
-          sorted.slice(0, 3).map(v => ({
-            vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
-            utilization: v.utilizationPercentage.toFixed(1) + '%',
-          }))
-        );
+        // Throttled logging pre vozidlá
+        if (!(window as ThrottlingWindow).lastVehiclesLog || Date.now() - (window as ThrottlingWindow).lastVehiclesLog! > 5000) {
+          logger.debug(
+            'Vehicles by utilization (top 3)',
+            sorted.slice(0, 3).map(v => ({
+              vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
+              utilization: v.utilizationPercentage.toFixed(1) + '%',
+            }))
+          );
+          (window as ThrottlingWindow).lastVehiclesLog = Date.now();
+        }
         return sorted;
       })(),
       vehiclesByRevenue: (() => {
         const sorted = [...vehicleStats].sort(
           (a, b) => b.totalRevenue - a.totalRevenue
         );
-        logger.debug(
-          'Vehicles by revenue (top 3)',
-          sorted.slice(0, 3).map(v => ({
-            vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
-            revenue: v.totalRevenue + '€',
-          }))
-        );
+        // Throttled logging pre vozidlá
+        if (!(window as ThrottlingWindow).lastVehiclesLog || Date.now() - (window as ThrottlingWindow).lastVehiclesLog! > 5000) {
+          logger.debug(
+            'Vehicles by revenue (top 3)',
+            sorted.slice(0, 3).map(v => ({
+              vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
+              revenue: v.totalRevenue + '€',
+            }))
+          );
+        }
         return sorted;
       })(),
       vehiclesByRentals: (() => {
         const sorted = [...vehicleStats].sort(
           (a, b) => b.rentalCount - a.rentalCount
         );
-        logger.debug(
-          'Vehicles by rentals (top 3)',
-          sorted.slice(0, 3).map(v => ({
-            vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
-            rentals: v.rentalCount + 'x',
-          }))
-        );
+        // Throttled logging pre vozidlá
+        if (!(window as ThrottlingWindow).lastVehiclesLog || Date.now() - (window as ThrottlingWindow).lastVehiclesLog! > 5000) {
+          logger.debug(
+            'Vehicles by rentals (top 3)',
+            sorted.slice(0, 3).map(v => ({
+              vehicle: `${v.vehicle.brand} ${v.vehicle.model}`,
+              rentals: v.rentalCount + 'x',
+            }))
+          );
+        }
         return sorted;
       })(),
       customersByRentals: (() => {
         const sorted = [...customerStatsArray].sort(
           (a, b) => b.rentalCount - a.rentalCount
         );
-        logger.debug(
-          'Customers by rentals (top 3)',
-          sorted.slice(0, 3).map(c => ({
-            customer: c.customerName,
-            rentals: c.rentalCount + 'x',
-          }))
-        );
+        // Throttled logging pre zákazníkov
+        if (!(window as ThrottlingWindow).lastCustomersLog || Date.now() - (window as ThrottlingWindow).lastCustomersLog! > 5000) {
+          logger.debug(
+            'Customers by rentals (top 3)',
+            sorted.slice(0, 3).map(c => ({
+              customer: c.customerName,
+              rentals: c.rentalCount + 'x',
+            }))
+          );
+          (window as ThrottlingWindow).lastCustomersLog = Date.now();
+        }
         return sorted;
       })(),
       customersByRevenue: (() => {
         const sorted = [...customerStatsArray].sort(
           (a, b) => b.totalRevenue - a.totalRevenue
         );
-        logger.debug(
-          'Customers by revenue (top 3)',
-          sorted.slice(0, 3).map(c => ({
-            customer: c.customerName,
-            revenue: c.totalRevenue + '€',
-          }))
-        );
+        // Throttled logging pre zákazníkov
+        if (!(window as ThrottlingWindow).lastCustomersLog || Date.now() - (window as ThrottlingWindow).lastCustomersLog! > 5000) {
+          logger.debug(
+            'Customers by revenue (top 3)',
+            sorted.slice(0, 3).map(c => ({
+              customer: c.customerName,
+              revenue: c.totalRevenue + '€',
+            }))
+          );
+        }
         return sorted;
       })(),
       customersByDays: (() => {
         const sorted = [...customerStatsArray].sort(
           (a, b) => b.totalDaysRented - a.totalDaysRented
         );
-        logger.debug(
-          'Customers by days (top 3)',
-          sorted.slice(0, 3).map(c => ({
-            customer: c.customerName,
-            days: c.totalDaysRented + ' dní',
-          }))
-        );
+        // Throttled logging pre zákazníkov
+        if (!(window as ThrottlingWindow).lastCustomersLog || Date.now() - (window as ThrottlingWindow).lastCustomersLog! > 5000) {
+          logger.debug(
+            'Customers by days (top 3)',
+            sorted.slice(0, 3).map(c => ({
+              customer: c.customerName,
+              days: c.totalDaysRented + ' dní',
+            }))
+          );
+        }
         return sorted;
       })(),
 
@@ -755,17 +783,22 @@ const Statistics: React.FC = () => {
               rentalPrice = protocol.rentalData.totalPrice;
             }
 
-            if (protocol.type === 'handover') {
-              acc[employeeName].handoverCount++;
-              acc[employeeName].handoverRevenue += rentalPrice;
-            } else {
-              acc[employeeName].returnCount++;
-              acc[employeeName].returnRevenue += rentalPrice;
+            const employee = acc[employeeName];
+            if (employee) {
+              if (protocol.type === 'handover') {
+                employee.handoverCount++;
+                employee.handoverRevenue += rentalPrice;
+              } else {
+                employee.returnCount++;
+                employee.returnRevenue += rentalPrice;
+              }
             }
 
-            acc[employeeName].totalProtocols++;
-            acc[employeeName].totalRevenue += rentalPrice;
-            acc[employeeName].rentals.add(protocol.rentalId);
+            if (employee) {
+              employee.totalProtocols++;
+              employee.totalRevenue += rentalPrice;
+              employee.rentals.add(protocol.rentalId);
+            }
 
             return acc;
           },
@@ -838,21 +871,23 @@ const Statistics: React.FC = () => {
         };
       })(),
     };
-  }, [
-    rentals,
-    expenses,
-    protocols,
-    vehicles,
-    selectedYear,
-    selectedMonth,
-    timeRange,
-    filterYear,
-    filterMonth,
-  ]);
+  }, [rentals, expenses, protocols, vehicles, selectedYear, selectedMonth, timeRange, filterYear, filterMonth]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+  // Use debounced stats or fallback to empty object
+  const stats = debouncedStats || {};
+  
+  // Loading state
+  if (!debouncedStats) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Načítavam štatistiky...</p>
+        </div>
+      </div>
+    );
+  }
+
 
   // const toggleMonthExpansion = (monthKey: string) => {
   //   setExpandedMonth(expandedMonth === monthKey ? null : monthKey);
@@ -870,21 +905,23 @@ const Statistics: React.FC = () => {
   }) => {
     if (active && payload && payload.length) {
       return (
-        <Card sx={{ p: 2, boxShadow: 3 }}>
-          <Typography variant="body2" fontWeight="bold" gutterBottom>
-            {label}
-          </Typography>
-          {payload.map(
-            (
-              entry: { color: string; value: number; name: string },
-              index: number
-            ) => (
-              <Typography key={index} variant="body2" color={entry.color}>
-                {entry.name}: {entry.value.toLocaleString()} €
-              </Typography>
-            )
-          )}
-        </Card>
+        <ShadcnCard className="p-4 shadow-lg">
+          <ShadcnCardContent className="p-0">
+            <p className="text-sm font-bold mb-2">
+              {label}
+            </p>
+            {payload.map(
+              (
+                entry: { color: string; value: number; name: string },
+                index: number
+              ) => (
+                <p key={index} className="text-sm" style={{ color: entry.color }}>
+                  {entry.name}: {entry.value.toLocaleString()} €
+                </p>
+              )
+            )}
+          </ShadcnCardContent>
+        </ShadcnCard>
       );
     }
     return null;
@@ -906,69 +943,50 @@ const Statistics: React.FC = () => {
     gradient: string;
     trend?: { value: number; isPositive: boolean };
   }) => (
-    <Card
-      sx={{
-        height: '100%',
-        background: gradient,
-        color: 'white',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-          transform: 'translateY(-4px)',
-        },
-      }}
+    <ShadcnCard
+      className="h-full text-white shadow-lg transition-all duration-200 hover:shadow-2xl hover:-translate-y-1"
+      style={{ background: gradient }}
     >
-      <CardContent>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 2,
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 600, mb: 1, opacity: 0.9 }}
-            >
-              {title.toUpperCase()}
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+      <ShadcnCardContent>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h6 className="text-lg font-semibold mb-2 opacity-90 uppercase">
+              {title}
+            </h6>
+            <h4 className="text-3xl font-bold">
               {typeof value === 'number' ? value.toLocaleString() : value}
-            </Typography>
+            </h4>
             {subtitle && (
-              <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+              <p className="text-sm opacity-80 mt-1">
                 {subtitle}
-              </Typography>
+              </p>
             )}
-          </Box>
-          <Box sx={{ opacity: 0.8 }}>
+          </div>
+          <div className="opacity-80">
             {React.cloneElement(icon as React.ReactElement, {
-              sx: { fontSize: 40 },
+              className: "h-10 w-10",
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {trend && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+          <div className="flex items-center gap-1 mt-2">
             {trend.isPositive ? (
-              <TrendingUpIcon sx={{ fontSize: 16 }} />
+              <TrendingUpIcon className="h-4 w-4" />
             ) : (
-              <TrendingDownIcon sx={{ fontSize: 16 }} />
+              <TrendingDownIcon className="h-4 w-4" />
             )}
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            <span className="text-sm font-semibold">
               {trend.isPositive ? '+' : ''}
               {trend.value}%
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+            </span>
+            <span className="text-sm opacity-80">
               vs. predch. obdobie
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </ShadcnCardContent>
+    </ShadcnCard>
   );
 
   // Komponenta pre TOP štatistiky
@@ -989,34 +1007,20 @@ const Statistics: React.FC = () => {
     gradient: string;
     percentage?: number;
   }) => (
-    <Card
-      sx={{
-        height: '100%',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-          transform: 'translateY(-4px)',
-        },
-      }}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: 'transparent',
-              background: gradient,
-              width: 56,
-              height: 56,
-            }}
+    <ShadcnCard className="h-full shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
+      <ShadcnCardContent>
+        <div className="flex items-center gap-4 mb-4">
+          <div 
+            className="w-14 h-14 rounded-full flex items-center justify-center text-white"
+            style={{ background: gradient }}
           >
             {icon}
-          </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
+          </div>
+          <div className="flex-1">
+            <h6 className="text-lg font-bold text-blue-500">
               {title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            </h6>
+            <p className="text-sm text-gray-600">
               {data && typeof data === 'object'
                 ? 'vehicle' in data &&
                   data.vehicle &&
@@ -1028,55 +1032,38 @@ const Statistics: React.FC = () => {
                     ? data.customerName
                     : 'N/A'
                 : 'N/A'}
-            </Typography>
-          </Box>
-          <TrophyIcon sx={{ color: '#ffd700', fontSize: 32 }} />
-        </Box>
+            </p>
+          </div>
+          <TrophyIcon className="h-8 w-8 text-yellow-500" />
+        </div>
 
-        <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 700, color: '#667eea', mb: 0.5 }}
-          >
+        <div className="mb-4">
+          <h4 className="text-3xl font-bold text-blue-500 mb-1">
             {primaryValue}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </h4>
+          <p className="text-sm text-gray-600">
             {secondaryValue}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {percentage !== undefined && (
-          <Box sx={{ mt: 2 }}>
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}
-            >
-              <Typography variant="body2" color="text.secondary">
+          <div className="mt-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm text-gray-600">
                 Vyťaženosť
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, color: '#667eea' }}
-              >
+              </span>
+              <span className="text-sm font-semibold text-blue-500">
                 {percentage.toFixed(1)}%
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(percentage, 100)}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: '#e0e0e0',
-                '& .MuiLinearProgress-bar': {
-                  background: gradient,
-                  borderRadius: 4,
-                },
-              }}
+              </span>
+            </div>
+            <Progress 
+              value={Math.min(percentage, 100)} 
+              className="h-2 bg-gray-200"
             />
-          </Box>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </ShadcnCardContent>
+    </ShadcnCard>
   );
 
   // Nový komponent pre Top 10+ zoznamy
@@ -1097,81 +1084,61 @@ const Statistics: React.FC = () => {
     showCount: number;
     onLoadMore: () => void;
     renderItem: (
-      item: Record<string, unknown>,
-      index: number
+      _item: Record<string, unknown>,
+      _index: number
     ) => React.ReactNode;
     emptyMessage?: string;
   }) => (
-    <Card
-      sx={{
-        height: 'fit-content',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-        },
-      }}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Avatar
-            sx={{
-              bgcolor: 'transparent',
-              background: gradient,
-              width: 48,
-              height: 48,
-            }}
+    <ShadcnCard className="h-fit shadow-md transition-all duration-200 hover:shadow-lg">
+      <ShadcnCardContent>
+        <div className="flex items-center gap-4 mb-6">
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white"
+            style={{ background: gradient }}
           >
             {icon}
-          </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#667eea' }}>
+          </div>
+          <div className="flex-1">
+            <h6 className="text-lg font-bold text-blue-500">
               {title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            </h6>
+            <p className="text-sm text-gray-600">
               Top {Math.min(showCount, data.length)} z {data.length}
-            </Typography>
-          </Box>
-          <TrophyIcon sx={{ color: '#ffd700', fontSize: 28 }} />
-        </Box>
+            </p>
+          </div>
+          <TrophyIcon className="h-6 w-6 text-yellow-500" />
+        </div>
 
         {data.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" color="text.secondary">
+          <div className="text-center py-8">
+            <p className="text-base text-gray-600">
               {emptyMessage}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
           <>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex flex-col gap-3">
               {data
                 .slice(0, showCount)
                 .map((item, index) => renderItem(item, index))}
-            </Box>
+            </div>
 
             {showCount < data.length && (
-              <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Button
-                  variant="outlined"
+              <div className="mt-6 text-center">
+                <ShadcnButton
+                  variant="outline"
                   onClick={onLoadMore}
-                  startIcon={<KeyboardArrowDownIcon />}
-                  sx={{
-                    borderColor: '#667eea',
-                    color: '#667eea',
-                    '&:hover': {
-                      borderColor: '#5a6fd8',
-                      backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                    },
-                  }}
+                  className="border-blue-500 text-blue-500 hover:border-blue-600 hover:bg-blue-50"
                 >
+                  <KeyboardArrowDownIcon className="mr-2 h-4 w-4" />
                   Zobraziť ďalších {Math.min(10, data.length - showCount)}
-                </Button>
-              </Box>
+                </ShadcnButton>
+              </div>
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+      </ShadcnCardContent>
+    </ShadcnCard>
   );
 
   // Pomocná funkcia pre formátovanie obdobia
@@ -1209,362 +1176,213 @@ const Statistics: React.FC = () => {
 
   // Desktop view
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       {/* Modern Header */}
-      <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <CardContent
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            position: 'relative',
-          }}
+      <ShadcnCard className="mb-6 shadow-xl">
+        <ShadcnCardContent
+          className="bg-gradient-to-br from-blue-500 to-purple-600 text-white relative p-6"
         >
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <DashboardIcon sx={{ fontSize: 32 }} />
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <DashboardIcon className="h-8 w-8" />
+              <div>
+                <h4 className="text-3xl font-bold mb-1">
                   Štatistiky & Dashboard
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                </h4>
+                <p className="text-base opacity-90">
                   Prehľad výkonnosti a obchodných trendov
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
 
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel
-                  sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}
-                >
-                  Obdobie
-                </InputLabel>
-                <Select
-                  value={timeRange}
-                  onChange={e =>
-                    setTimeRange(e.target.value as 'month' | 'year' | 'all')
-                  }
-                  label="Obdobie"
-                  sx={{
-                    color: 'white',
-                    '.MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(255,255,255,0.3)',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(255,255,255,0.5)',
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'white',
-                    },
-                    '.MuiSvgIcon-root': {
-                      color: 'white',
-                    },
-                  }}
-                >
-                  <MenuItem value="month">Mesiac</MenuItem>
-                  <MenuItem value="year">Rok</MenuItem>
-                  <MenuItem value="all">Celá doba</MenuItem>
-                </Select>
-              </FormControl>
+            <div className="flex gap-2 items-center">
+              <div className="min-w-[120px]">
+                <Label className="text-white text-sm mb-2 block">Obdobie</Label>
+                <ShadcnSelect value={timeRange} onValueChange={(value: 'month' | 'year' | 'all') => setTimeRange(value)}>
+                  <SelectTrigger className="text-white border-white/30 hover:border-white/50 focus:border-white bg-transparent">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="month">Mesiac</SelectItem>
+                    <SelectItem value="year">Rok</SelectItem>
+                    <SelectItem value="all">Celá doba</SelectItem>
+                  </SelectContent>
+                </ShadcnSelect>
+              </div>
 
               {timeRange === 'month' && (
-                <FormControl size="small" sx={{ minWidth: 140 }}>
-                  <InputLabel
-                    sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}
-                  >
-                    Mesiac
-                  </InputLabel>
-                  <Select
-                    value={filterMonth}
-                    onChange={e => setFilterMonth(e.target.value as number)}
-                    label="Mesiac"
-                    sx={{
-                      color: 'white',
-                      '.MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255,255,255,0.3)',
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255,255,255,0.5)',
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'white',
-                      },
-                      '.MuiSvgIcon-root': {
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <MenuItem key={i} value={i}>
-                        {format(new Date(2023, i), 'MMMM', { locale: sk })}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <div className="min-w-[140px]">
+                  <Label className="text-white text-sm mb-2 block">Mesiac</Label>
+                  <ShadcnSelect value={filterMonth.toString()} onValueChange={(value) => setFilterMonth(Number(value))}>
+                    <SelectTrigger className="text-white border-white/30 hover:border-white/50 focus:border-white bg-transparent">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          {format(new Date(2023, i), 'MMMM', { locale: sk })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </ShadcnSelect>
+                </div>
               )}
 
               {(timeRange === 'month' || timeRange === 'year') && (
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <InputLabel
-                    sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}
-                  >
-                    Rok
-                  </InputLabel>
-                  <Select
-                    value={filterYear}
-                    onChange={e => setFilterYear(e.target.value as number)}
-                    label="Rok"
-                    sx={{
-                      color: 'white',
-                      '.MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255,255,255,0.3)',
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255,255,255,0.5)',
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'white',
-                      },
-                      '.MuiSvgIcon-root': {
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    {Array.from({ length: 5 }, (_, i) => {
-                      const year = new Date().getFullYear() - 2 + i;
-                      return (
-                        <MenuItem key={year} value={year}>
-                          {year}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
+                <div className="min-w-[100px]">
+                  <Label className="text-white text-sm mb-2 block">Rok</Label>
+                  <ShadcnSelect value={filterYear.toString()} onValueChange={(value) => setFilterYear(Number(value))}>
+                    <SelectTrigger className="text-white border-white/30 hover:border-white/50 focus:border-white bg-transparent">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const year = new Date().getFullYear() - 2 + i;
+                        return (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </ShadcnSelect>
+                </div>
               )}
 
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                size="small"
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                  },
-                }}
+              <ShadcnButton
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30"
               >
+                <RefreshIcon className="mr-2 h-4 w-4" />
                 Obnoviť
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+              </ShadcnButton>
+            </div>
+          </div>
+        </ShadcnCardContent>
+      </ShadcnCard>
 
       {/* Info karta s vybraným obdobím */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+      <ShadcnAlert className="mb-6">
+        <AlertTitle className="font-semibold">
           📊 Zobrazujú sa dáta za obdobie: <strong>{formatPeriod()}</strong>
-        </Typography>
-        <Typography variant="body2">
-          Prenájmy: {stats.filteredRentals.length} • Náklady Black Holding:{' '}
-          {stats.filteredExpenses.length}
-        </Typography>
-      </Alert>
+        </AlertTitle>
+        <AlertDescription>
+          Prenájmy: {stats?.filteredRentals?.length || 0} • Náklady Black Holding:{' '}
+          {stats?.filteredExpenses?.length || 0}
+        </AlertDescription>
+      </ShadcnAlert>
 
       {/* NOVÉ štatistické karty pre vybrané obdobie */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Tržby za obdobie"
-            value={`${stats.totalRevenuePeriod.toLocaleString()} €`}
-            subtitle={formatPeriod()}
-            icon={<CreditCardIcon />}
-            gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-          />
-        </Grid>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-6">
+        <StatCard
+          title="Tržby za obdobie"
+          value={`${stats?.totalRevenuePeriod?.toLocaleString() || '0'} €`}
+          subtitle={formatPeriod()}
+          icon={<CreditCardIcon />}
+          gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        />
 
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Náklady Black Holding"
-            value={`${stats.blackHoldingExpenses.toLocaleString()} €`}
-            subtitle={formatPeriod()}
-            icon={<AccountBalanceIcon />}
-            gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
-          />
-        </Grid>
+        <StatCard
+          title="Náklady Black Holding"
+          value={`${stats?.blackHoldingExpenses?.toLocaleString() || '0'} €`}
+          subtitle={formatPeriod()}
+          icon={<AccountBalanceIcon />}
+          gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
+        />
 
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Provízie za obdobie"
-            value={`${stats.totalCommissionPeriod.toLocaleString()} €`}
-            subtitle={formatPeriod()}
-            icon={<PercentIcon />}
-            gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-          />
-        </Grid>
-      </Grid>
+        <StatCard
+          title="Provízie za obdobie"
+          value={`${stats?.totalCommissionPeriod?.toLocaleString() || '0'} €`}
+          subtitle={formatPeriod()}
+          icon={<PercentIcon />}
+          gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+        />
+      </div>
 
       {/* Existujúce kľúčové metriky */}
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, mb: 2, color: '#667eea' }}
-      >
+      <h5 className="text-xl font-bold mb-4 text-blue-500">
         Všeobecné štatistiky
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Celkové príjmy"
-            value={`${stats.totalRevenue.toLocaleString()} €`}
-            subtitle="Všetky časy"
-            icon={<EuroIcon />}
-            gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
-            trend={{ value: 12.5, isPositive: true }}
-          />
-        </Grid>
+      </h5>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <StatCard
+          title="Celkové príjmy"
+          value={`${stats?.totalRevenue?.toLocaleString() || '0'} €`}
+          subtitle="Všetky časy"
+          icon={<EuroIcon />}
+          gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+          trend={{ value: 12.5, isPositive: true }}
+        />
 
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Aktívne prenájmy"
-            value={stats.activeRentals.length}
-            subtitle="Momentálne aktívne"
-            icon={<CarIcon />}
-            gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-          />
-        </Grid>
+        <StatCard
+          title="Aktívne prenájmy"
+          value={stats?.activeRentals?.length || 0}
+          subtitle="Momentálne aktívne"
+          icon={<CarIcon />}
+          gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        />
 
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Dnešné vrátenia"
-            value={stats.todayReturns.length}
-            subtitle="Vrátenia dnes"
-            icon={<CalendarIcon />}
-            gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
-          />
-        </Grid>
+        <StatCard
+          title="Dnešné vrátenia"
+          value={stats?.todayReturns?.length || 0}
+          subtitle="Vrátenia dnes"
+          icon={<CalendarIcon />}
+          gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
+        />
 
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Nezaplatené"
-            value={stats.unpaidRentals.length}
-            subtitle="Čakajú na platbu"
-            icon={<WarningIcon />}
-            gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
-          />
-        </Grid>
-      </Grid>
+        <StatCard
+          title="Nezaplatené"
+          value={stats?.unpaidRentals?.length || 0}
+          subtitle="Čakajú na platbu"
+          icon={<WarningIcon />}
+          gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
+        />
+      </div>
 
       {/* Modernizované Tabs */}
-      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Box
-          sx={{
-            borderBottom: 1,
-            borderColor: 'divider',
-            background: 'linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%)',
-          }}
-        >
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            aria-label="statistics tabs"
-            sx={{
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '1rem',
-                minHeight: 64,
-                '&.Mui-selected': {
-                  color: '#667eea',
-                },
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#667eea',
-                height: 3,
-              },
-            }}
-          >
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AssessmentIcon />
-                  Prehľad
-                </Box>
-              }
-            />
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ShowChartIcon />
-                  Grafy
-                </Box>
-              }
-            />
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BusinessIcon />
-                  Firmy
-                </Box>
-              }
-            />
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PaymentIcon />
-                  Platby
-                </Box>
-              }
-            />
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TrophyIcon />
-                  Top štatistiky
-                </Box>
-              }
-            />
-            <Tab
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon />
-                  Zamestnanci
-                </Box>
-              }
-            />
-          </Tabs>
-        </Box>
+      <ShadcnCard className="mb-6 shadow-md">
+        <ShadcnTabs value={tabValue.toString()} onValueChange={(value) => setTabValue(Number(value))} className="w-full">
+          <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+            <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-gray-50 to-gray-100">
+              <TabsTrigger value="0" className="flex items-center gap-2 text-base font-semibold min-h-16 data-[state=active]:text-blue-500">
+                <AssessmentIcon className="h-5 w-5" />
+                Prehľad
+              </TabsTrigger>
+              <TabsTrigger value="1" className="flex items-center gap-2 text-base font-semibold min-h-16 data-[state=active]:text-blue-500">
+                <ShowChartIcon className="h-5 w-5" />
+                Grafy
+              </TabsTrigger>
+              <TabsTrigger value="2" className="flex items-center gap-2 text-base font-semibold min-h-16 data-[state=active]:text-blue-500">
+                <BusinessIcon className="h-5 w-5" />
+                Firmy
+              </TabsTrigger>
+              <TabsTrigger value="3" className="flex items-center gap-2 text-base font-semibold min-h-16 data-[state=active]:text-blue-500">
+                <PaymentIcon className="h-5 w-5" />
+                Platby
+              </TabsTrigger>
+              <TabsTrigger value="4" className="flex items-center gap-2 text-base font-semibold min-h-16 data-[state=active]:text-blue-500">
+                <TrophyIcon className="h-5 w-5" />
+                Top štatistiky
+              </TabsTrigger>
+              <TabsTrigger value="5" className="flex items-center gap-2 text-base font-semibold min-h-16 data-[state=active]:text-blue-500">
+                <PersonIcon className="h-5 w-5" />
+                Zamestnanci
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
         {/* Tab 1: Prehľad */}
-        <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3}>
+        <TabsContent value="0" className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Mesiačný trend */}
-            <Grid item xs={12} lg={8}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="lg:col-span-8">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Mesiačný trend príjmov
-                  </Typography>
+                  </h6>
                   <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={stats.monthlyData}>
+                    <AreaChart data={stats?.monthlyData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -1599,259 +1417,146 @@ const Statistics: React.FC = () => {
                       </defs>
                     </AreaChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
 
             {/* Rýchle štatistiky */}
-            <Grid item xs={12} lg={4}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="lg:col-span-4">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Rýchle štatistiky
-                  </Typography>
-                  <Box
-                    sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        p: 2,
-                        borderRadius: 1,
-                        backgroundColor: '#f8f9fa',
-                      }}
+                  </h6>
+                  <div className="flex flex-col gap-4">
+                    <div
+                      className="flex justify-between items-center p-4 rounded bg-gray-50"
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <span className="text-sm font-semibold">
                         Priemerná cena
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#11998e' }}
-                      >
-                        {stats.avgRentalPrice.toFixed(2)} €
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        p: 2,
-                        borderRadius: 1,
-                        backgroundColor: '#f8f9fa',
-                      }}
+                      </span>
+                      <span className="text-lg font-bold text-teal-600">
+                        {stats?.avgRentalPrice?.toFixed(2) || '0.00'} €
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div
+                      className="flex justify-between items-center p-4 rounded bg-gray-50"
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <span className="text-sm font-semibold">
                         Priemerná dĺžka
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        sx={{ color: '#667eea' }}
-                      >
-                        {stats.avgRentalDuration.toFixed(1)} dní
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        p: 2,
-                        borderRadius: 1,
-                        backgroundColor: '#f8f9fa',
-                      }}
+                      </span>
+                      <span className="text-lg font-bold text-blue-500">
+                        {stats?.avgRentalDuration?.toFixed(1) || '0.0'} dní
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div
+                      className="flex justify-between items-center p-4 rounded bg-gray-50"
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <span className="text-sm font-semibold">
                         Celková provízia
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        color="warning.main"
-                      >
-                        {stats.totalCommission.toLocaleString()} €
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        p: 2,
-                        borderRadius: 1,
-                        backgroundColor: '#f8f9fa',
-                      }}
+                      </span>
+                      <span className="text-lg font-bold text-orange-500">
+                        {stats?.totalCommission?.toLocaleString() || '0'} €
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div
+                      className="flex justify-between items-center p-4 rounded bg-gray-50"
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <span className="text-sm font-semibold">
                         Zajtrajšie vrátenia
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        fontWeight="bold"
-                        color="info.main"
-                      >
-                        {stats.tomorrowReturns.length}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                      </span>
+                      <span className="text-lg font-bold text-blue-600">
+                        {stats?.tomorrowReturns?.length || 0}
+                      </span>
+                    </div>
+                  </div>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
 
             {/* Top firmy */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="col-span-12">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Top firmy podľa príjmov
-                  </Typography>
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                          <TableCell sx={{ fontWeight: 700 }}>Firma</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  </h6>
+                  <div className="overflow-x-auto">
+                    <ShadcnTable>
+                      <ShadcnTableHeader>
+                        <ShadcnTableRow className="bg-gray-50">
+                          <ShadcnTableHead className="font-bold">Firma</ShadcnTableHead>
+                          <ShadcnTableHead className="text-right font-bold">
                             Počet prenájmov
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          </ShadcnTableHead>
+                          <ShadcnTableHead className="text-right font-bold">
                             Príjmy
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          </ShadcnTableHead>
+                          <ShadcnTableHead className="text-right font-bold">
                             Provízia
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {Object.entries(stats.companyStats)
-                          .sort(([, a], [, b]) => b.revenue - a.revenue)
+                          </ShadcnTableHead>
+                        </ShadcnTableRow>
+                      </ShadcnTableHeader>
+                      <ShadcnTableBody>
+                        {Object.entries(stats?.companyStats || {})
+                          .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
                           .slice(0, 5)
                           .map(([company, data]) => (
-                            <TableRow
+                            <ShadcnTableRow
                               key={company}
-                              sx={{
-                                '&:hover': {
-                                  backgroundColor: '#f8f9fa',
-                                },
-                                transition: 'background-color 0.2s ease',
-                              }}
+                              className="hover:bg-gray-50 transition-colors duration-200"
                             >
-                              <TableCell>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1,
-                                  }}
-                                >
-                                  <Avatar
-                                    sx={{
-                                      width: 32,
-                                      height: 32,
-                                      bgcolor: '#667eea',
-                                    }}
-                                  >
-                                    <PersonIcon fontSize="small" />
-                                  </Avatar>
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight="medium"
-                                  >
+                              <ShadcnTableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <PersonIcon className="h-4 w-4 text-white" />
+                                  </div>
+                                  <span className="text-sm font-medium">
                                     {company}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Chip
-                                  label={data.count}
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: '#667eea',
-                                    color: 'white',
-                                    fontWeight: 600,
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography
-                                  variant="body2"
-                                  fontWeight="bold"
-                                  sx={{ color: '#11998e' }}
-                                >
-                                  {data.revenue.toLocaleString()} €
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography
-                                  variant="body2"
-                                  color="warning.main"
-                                  fontWeight="bold"
-                                >
-                                  {data.commission.toLocaleString()} €
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
+                                  </span>
+                                </div>
+                              </ShadcnTableCell>
+                              <ShadcnTableCell className="text-right">
+                                <Badge className="bg-blue-500 text-white font-semibold">
+                                  {(data as any).count}
+                                </Badge>
+                              </ShadcnTableCell>
+                              <ShadcnTableCell className="text-right">
+                                <span className="text-sm font-bold text-teal-600">
+                                  {(data as any).revenue.toLocaleString()} €
+                                </span>
+                              </ShadcnTableCell>
+                              <ShadcnTableCell className="text-right">
+                                <span className="text-sm font-bold text-orange-500">
+                                  {(data as any).commission.toLocaleString()} €
+                                </span>
+                              </ShadcnTableCell>
+                            </ShadcnTableRow>
                           ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+                      </ShadcnTableBody>
+                    </ShadcnTable>
+                  </div>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Tab 2: Grafy */}
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
+        <TabsContent value="1" className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Stĺpcový graf - mesiačné prenájmy */}
-            <Grid item xs={12} lg={6}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="lg:col-span-6">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Počet prenájmov podľa mesiacov
-                  </Typography>
+                  </h6>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={stats.monthlyData}>
+                    <BarChart data={stats?.monthlyData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -1864,35 +1569,24 @@ const Statistics: React.FC = () => {
                       />
                     </BarChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
 
             {/* Koláčový graf - spôsoby platby */}
-            <Grid item xs={12} lg={6}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="lg:col-span-6">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Rozdelenie podľa spôsobu platby
-                  </Typography>
+                  </h6>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={Object.entries(stats.paymentMethodStats).map(
+                        data={Object.entries(stats?.paymentMethodStats || {}).map(
                           ([method, data]) => ({
                             name: method,
-                            value: data.count,
+                            value: (data as any).count,
                           })
                         )}
                         cx="50%"
@@ -1905,8 +1599,8 @@ const Statistics: React.FC = () => {
                         fill="#667eea"
                         dataKey="value"
                       >
-                        {Object.entries(stats.paymentMethodStats).map(
-                          (entry, index) => (
+                        {Object.entries(stats?.paymentMethodStats || {}).map(
+                          (_entry, index) => (
                             <Cell
                               key={`cell-${index}`}
                               fill={COLORS[index % COLORS.length]}
@@ -1917,30 +1611,19 @@ const Statistics: React.FC = () => {
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
 
             {/* Línový graf - trend príjmov vs provízií */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="col-span-12">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Trend príjmov vs provízií
-                  </Typography>
+                  </h6>
                   <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={stats.monthlyData}>
+                    <LineChart data={stats?.monthlyData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -1964,548 +1647,370 @@ const Statistics: React.FC = () => {
                       />
                     </LineChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Tab 3: Firmy */}
-        <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            {Object.entries(stats.companyStats)
-              .sort(([, a], [, b]) => b.revenue - a.revenue)
+        <TabsContent value="2" className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Object.entries(stats?.companyStats || {})
+              .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
               .map(([company, data]) => (
-                <Grid item xs={12} md={6} lg={4} key={company}>
-                  <Card
-                    sx={{
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                        transform: 'translateY(-4px)',
-                      },
-                    }}
-                  >
-                    <CardContent>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          mb: 2,
-                        }}
-                      >
-                        <Avatar sx={{ bgcolor: '#667eea' }}>
-                          <PersonIcon />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="h6" fontWeight="bold">
+                <div key={company}>
+                  <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
+                    <ShadcnCardContent>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                          <PersonIcon className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <h6 className="text-lg font-bold">
                             {company}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {data.count} prenájmov
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </h6>
+                          <span className="text-sm text-gray-600">
+                            {(data as any).count} prenájmov
+                          </span>
+                        </div>
+                      </div>
 
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          mb: 1,
-                          p: 1.5,
-                          borderRadius: 1,
-                          backgroundColor: '#f8f9fa',
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <div className="flex justify-between mb-2 p-3 rounded bg-gray-50">
+                        <span className="text-sm font-semibold">
                           Príjmy:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          fontWeight="bold"
-                          sx={{ color: '#11998e' }}
-                        >
-                          {data.revenue.toLocaleString()} €
-                        </Typography>
-                      </Box>
+                        </span>
+                        <span className="text-sm font-bold text-teal-600">
+                          {(data as any).revenue.toLocaleString()} €
+                        </span>
+                      </div>
 
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          p: 1.5,
-                          borderRadius: 1,
-                          backgroundColor: '#fff3e0',
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <div className="flex justify-between p-3 rounded bg-orange-50">
+                        <span className="text-sm font-semibold">
                           Provízia:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="warning.main"
-                          fontWeight="bold"
-                        >
-                          {data.commission.toLocaleString()} €
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                        </span>
+                        <span className="text-sm font-bold text-orange-600">
+                          {(data as any).commission.toLocaleString()} €
+                        </span>
+                      </div>
+                    </ShadcnCardContent>
+                  </ShadcnCard>
+                </div>
               ))}
-          </Grid>
-        </TabPanel>
+          </div>
+        </TabsContent>
 
         {/* Tab 4: Platby */}
-        <TabPanel value={tabValue} index={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} lg={8}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+        <TabsContent value="3" className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Štatistiky platieb
-                  </Typography>
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                          <TableCell sx={{ fontWeight: 700 }}>
+                  </h6>
+                  <div className="overflow-x-auto">
+                    <ShadcnTable>
+                      <ShadcnTableHeader>
+                        <ShadcnTableRow className="bg-gray-50">
+                          <ShadcnTableHead className="font-bold">
                             Spôsob platby
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          </ShadcnTableHead>
+                          <ShadcnTableHead className="text-right font-bold">
                             Počet
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          </ShadcnTableHead>
+                          <ShadcnTableHead className="text-right font-bold">
                             Príjmy
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          </ShadcnTableHead>
+                          <ShadcnTableHead className="text-right font-bold">
                             Podiel
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {Object.entries(stats.paymentMethodStats)
-                          .sort(([, a], [, b]) => b.revenue - a.revenue)
+                          </ShadcnTableHead>
+                        </ShadcnTableRow>
+                      </ShadcnTableHeader>
+                      <ShadcnTableBody>
+                        {Object.entries(stats?.paymentMethodStats || {})
+                          .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
                           .map(([method, data]) => {
                             const percentage =
-                              (data.revenue / stats.totalRevenue) * 100;
+                              ((data as any).revenue / (stats?.totalRevenue || 1)) * 100;
                             return (
-                              <TableRow
+                              <ShadcnTableRow
                                 key={method}
-                                sx={{
-                                  '&:hover': {
-                                    backgroundColor: '#f8f9fa',
-                                  },
-                                  transition: 'background-color 0.2s ease',
-                                }}
+                                className="hover:bg-gray-50 transition-colors duration-200"
                               >
-                                <TableCell>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 1,
-                                    }}
-                                  >
-                                    <Chip
-                                      label={method}
-                                      size="small"
-                                      sx={{
-                                        backgroundColor: '#667eea',
-                                        color: 'white',
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Box>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Typography variant="body2" fontWeight="bold">
-                                    {data.count}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight="bold"
-                                    sx={{ color: '#11998e' }}
-                                  >
-                                    {data.revenue.toLocaleString()} €
-                                  </Typography>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    fontWeight="bold"
-                                  >
+                                <ShadcnTableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-blue-500 text-white font-semibold">
+                                      {method}
+                                    </Badge>
+                                  </div>
+                                </ShadcnTableCell>
+                                <ShadcnTableCell className="text-right">
+                                  <span className="text-sm font-bold">
+                                    {(data as any).count}
+                                  </span>
+                                </ShadcnTableCell>
+                                <ShadcnTableCell className="text-right">
+                                  <span className="text-sm font-bold text-teal-600">
+                                    {(data as any).revenue.toLocaleString()} €
+                                  </span>
+                                </ShadcnTableCell>
+                                <ShadcnTableCell className="text-right">
+                                  <span className="text-sm font-bold text-gray-600">
                                     {percentage.toFixed(1)}%
-                                  </Typography>
-                                </TableCell>
-                              </TableRow>
+                                  </span>
+                                </ShadcnTableCell>
+                              </ShadcnTableRow>
                             );
                           })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </Grid>
+                      </ShadcnTableBody>
+                    </ShadcnTable>
+                  </div>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
 
-            <Grid item xs={12} lg={4}>
-              <Card
-                sx={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 700, color: '#667eea' }}
-                  >
+            <div className="lg:col-span-4">
+              <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-lg">
+                <ShadcnCardContent>
+                  <h6 className="text-lg font-bold mb-2 text-blue-500">
                     Nezaplatené prenájmy
-                  </Typography>
-                  {stats.unpaidRentals.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <CheckCircleIcon
-                        sx={{ fontSize: 48, color: 'success.main', mb: 2 }}
-                      />
-                      <Typography
-                        variant="body1"
-                        color="success.main"
-                        gutterBottom
-                        fontWeight="bold"
-                      >
+                  </h6>
+                  {stats?.unpaidRentals?.length === 0 ? (
+                    <div className="text-center py-8">
+                      <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
+                      <p className="text-lg font-bold text-green-600 mb-2">
                         Všetky prenájmy sú zaplatené!
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   ) : (
-                    <Box
-                      sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-                    >
-                      {stats.unpaidRentals.slice(0, 5).map(rental => (
-                        <Box
+                    <div className="flex flex-col gap-4">
+                      {stats?.unpaidRentals?.slice(0, 5).map((rental: any) => (
+                        <div
                           key={rental.id}
-                          sx={{
-                            p: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 2,
-                            backgroundColor: '#fff3e0',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                              transform: 'translateY(-2px)',
-                            },
-                          }}
+                          className="p-4 border border-gray-200 rounded-lg bg-orange-50 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                         >
-                          <Typography variant="body2" fontWeight="bold">
+                          <p className="text-sm font-bold">
                             {rental.customerName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          </p>
+                          <p className="text-xs text-gray-600">
                             {rental.vehicle?.brand} {rental.vehicle?.model}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="error.main"
-                            fontWeight="bold"
-                          >
+                          </p>
+                          <p className="text-sm font-bold text-red-600">
                             {rental.totalPrice?.toLocaleString()} €
-                          </Typography>
-                        </Box>
+                          </p>
+                        </div>
                       ))}
-                      {stats.unpaidRentals.length > 5 && (
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          textAlign="center"
-                          fontWeight="bold"
-                        >
-                          + {stats.unpaidRentals.length - 5} ďalších
-                        </Typography>
+                      {stats?.unpaidRentals?.length && stats.unpaidRentals.length > 5 && (
+                        <p className="text-sm text-gray-600 text-center font-bold">
+                          + {stats?.unpaidRentals?.length ? stats.unpaidRentals.length - 5 : 0} ďalších
+                        </p>
                       )}
-                    </Box>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Tab 5: NOVÝ - Top štatistiky */}
-        <TabPanel value={tabValue} index={4}>
-          <Grid container spacing={3}>
+        <TabsContent value="4" className="p-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Úvodný prehľad */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  mb: 3,
-                  background:
-                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            <div>
+              <ShadcnCard
+                className="mb-6 text-white shadow-xl"
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
               >
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <TrophyIcon sx={{ fontSize: 40 }} />
-                    <Box>
-                      <Typography
-                        variant="h4"
-                        sx={{ fontWeight: 700, mb: 0.5 }}
-                      >
+                <ShadcnCardContent>
+                  <div className="flex items-center gap-4">
+                    <TrophyIcon className="h-12 w-12" />
+                    <div>
+                      <h4 className="text-3xl font-bold mb-2">
                         TOP Štatistiky
-                      </Typography>
-                      <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      </h4>
+                      <p className="text-lg opacity-90">
                         Najlepšie výkony za obdobie: {formatPeriod()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                      </p>
+                    </div>
+                  </div>
+                </ShadcnCardContent>
+              </ShadcnCard>
+            </div>
 
             {/* 🏆 NAJLEPŠIE VÝKONY - Prehľadové karty */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  color: '#667eea',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <StarIcon />
+            <div>
+              <h5 className="text-2xl font-bold mb-4 text-blue-500 flex items-center gap-2">
+                <StarIcon className="h-5 w-5" />
                 🏆 Najlepšie výkony
-              </Typography>
-            </Grid>
+              </h5>
+            </div>
 
             {/* Top výkony v 3 kartách */}
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najvyťaženejšie auto"
-                icon={<SpeedIcon />}
-                data={
-                  (stats.topVehicleByUtilization as Record<string, unknown>) ||
-                  {}
-                }
-                primaryValue={
-                  stats.topVehicleByUtilization
-                    ? `${stats.topVehicleByUtilization.utilizationPercentage.toFixed(1)}%`
-                    : 'N/A'
-                }
-                secondaryValue={
-                  stats.topVehicleByUtilization
-                    ? `${stats.topVehicleByUtilization.totalDaysRented} dní prenájmu`
-                    : ''
-                }
-                gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                percentage={
-                  stats.topVehicleByUtilization?.utilizationPercentage
-                }
-              />
-            </Grid>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <TopStatCard
+                  title="Najvyťaženejšie auto"
+                  icon={<SpeedIcon className="h-6 w-6" />}
+                  data={
+                    (stats?.topVehicleByUtilization as Record<string, unknown>) ||
+                    {}
+                  }
+                  primaryValue={
+                    stats?.topVehicleByUtilization
+                      ? `${stats.topVehicleByUtilization.utilizationPercentage.toFixed(1)}%`
+                      : 'N/A'
+                  }
+                  secondaryValue={
+                    stats?.topVehicleByUtilization
+                      ? `${stats.topVehicleByUtilization.totalDaysRented} dní prenájmu`
+                      : ''
+                  }
+                  gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                  percentage={
+                    stats?.topVehicleByUtilization?.utilizationPercentage
+                  }
+                />
+              </div>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najvýnosnejšie auto"
-                icon={<EuroIcon />}
-                data={
-                  (stats.topVehicleByRevenue as Record<string, unknown>) || {}
-                }
-                primaryValue={
-                  stats.topVehicleByRevenue
-                    ? `${stats.topVehicleByRevenue.totalRevenue.toLocaleString()} €`
-                    : 'N/A'
-                }
-                secondaryValue={
-                  stats.topVehicleByRevenue
-                    ? `${stats.topVehicleByRevenue.rentalCount} prenájmov`
-                    : ''
-                }
-                gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
-              />
-            </Grid>
+              <div>
+                <TopStatCard
+                  title="Najvýnosnejšie auto"
+                  icon={<EuroIcon className="h-6 w-6" />}
+                  data={
+                    (stats.topVehicleByRevenue as Record<string, unknown>) || {}
+                  }
+                  primaryValue={
+                    stats.topVehicleByRevenue
+                      ? `${stats.topVehicleByRevenue.totalRevenue.toLocaleString()} €`
+                      : 'N/A'
+                  }
+                  secondaryValue={
+                    stats.topVehicleByRevenue
+                      ? `${stats.topVehicleByRevenue.rentalCount} prenájmov`
+                      : ''
+                  }
+                  gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+                />
+              </div>
 
-            <Grid item xs={12} md={4}>
-              <TopStatCard
-                title="Najaktívnejší zákazník"
-                icon={<PersonIcon />}
-                data={
-                  (stats.topCustomerByRentals as Record<string, unknown>) || {}
-                }
-                primaryValue={
-                  stats.topCustomerByRentals
-                    ? `${stats.topCustomerByRentals.rentalCount}x`
-                    : 'N/A'
-                }
-                secondaryValue={
-                  stats.topCustomerByRentals
-                    ? `${stats.topCustomerByRentals.totalRevenue.toLocaleString()} € celkom`
-                    : ''
-                }
-                gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
-              />
-            </Grid>
+              <div>
+                <TopStatCard
+                  title="Najaktívnejší zákazník"
+                  icon={<PersonIcon className="h-6 w-6" />}
+                  data={
+                    (stats.topCustomerByRentals as Record<string, unknown>) || {}
+                  }
+                  primaryValue={
+                    stats.topCustomerByRentals
+                      ? `${stats.topCustomerByRentals.rentalCount}x`
+                      : 'N/A'
+                  }
+                  secondaryValue={
+                    stats.topCustomerByRentals
+                      ? `${stats.topCustomerByRentals.totalRevenue.toLocaleString()} € celkom`
+                      : ''
+                  }
+                  gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
+                />
+              </div>
+            </div>
 
             {/* Divider */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-            </Grid>
+            <div>
+              <Separator className="my-4" />
+            </div>
 
             {/* 🚗 TOP AUTÁ - Detailné rebríčky */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  color: '#667eea',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <CarIcon />
+            <div>
+              <h5 className="text-2xl font-bold mb-4 text-blue-500 flex items-center gap-2">
+                <CarIcon className="h-5 w-5" />
                 🚗 TOP Autá - Detailné rebríčky
-              </Typography>
-            </Grid>
+              </h5>
+            </div>
 
-            <Grid item xs={12} lg={4}>
-              <TopListCard
-                title="Najvyťaženejšie autá"
-                icon={<SpeedIcon />}
-                gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                data={stats.vehiclesByUtilization as Record<string, unknown>[]}
-                showCount={showVehiclesByUtilization}
-                onLoadMore={() =>
-                  setShowVehiclesByUtilization(prev => prev + 10)
-                }
-                renderItem={(vehicleData, index) => {
-                  const vehicle = vehicleData as VehicleStatistic;
-                  return (
-                    <Box
-                      key={vehicle.vehicle?.id || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor:
-                          index < 3 ? 'rgba(102, 126, 234, 0.04)' : '#f8f9fa',
-                        border:
-                          index === 0
-                            ? '2px solid #ffd700'
-                            : '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background:
-                            index < 3
-                              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                              : '#bdbdbd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                        }}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div>
+                <TopListCard
+                  title="Najvyťaženejšie autá"
+                  icon={<SpeedIcon />}
+                  gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                  data={stats.vehiclesByUtilization as Record<string, unknown>[]}
+                  showCount={showVehiclesByUtilization}
+                  onLoadMore={() =>
+                    setShowVehiclesByUtilization(prev => prev + 10)
+                  }
+                  renderItem={(vehicleData, index) => {
+                    const vehicle = vehicleData as VehicleStatistic;
+                    return (
+                      <div
+                        key={vehicle.vehicle?.id || index}
+                        className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                          index < 3 ? 'bg-blue-50' : 'bg-gray-50'
+                        } ${
+                          index === 0 ? 'border-2 border-yellow-400' : 'border border-gray-200'
+                        }`}
                       >
-                        {index + 1}
-                      </Box>
-
-                      <Avatar
-                        sx={{ width: 40, height: 40, bgcolor: '#667eea' }}
-                      >
-                        <CarIcon fontSize="small" />
-                      </Avatar>
-
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {vehicle.vehicle?.brand || 'N/A'}{' '}
-                          {vehicle.vehicle?.model || ''}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
-                          {vehicle.totalDaysRented || 0} dní
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ textAlign: 'right', minWidth: 80 }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          sx={{
-                            color:
-                              (vehicle.utilizationPercentage || 0) > 70
-                                ? '#4caf50'
-                                : (vehicle.utilizationPercentage || 0) > 40
-                                  ? '#ff9800'
-                                  : '#f44336',
-                          }}
+                        <div
+                          className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                            index < 3 ? 'bg-blue-500' : 'bg-gray-400'
+                          }`}
                         >
-                          {(vehicle.utilizationPercentage || 0).toFixed(1)}%
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                          {index + 1}
+                        </div>
+
+                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                          <CarIcon className="h-4 w-4 text-white" />
+                        </div>
+
+                        <div className="flex-1">
+                          <p className="text-sm font-bold">
+                            {vehicle.vehicle?.brand || 'N/A'}{' '}
+                            {vehicle.vehicle?.model || ''}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
+                            {vehicle.totalDaysRented || 0} dní
+                          </p>
+                        </div>
+
+                        <div className="text-right min-w-20">
+                          <p
+                            className={`text-lg font-bold ${
+                              (vehicle.utilizationPercentage || 0) > 70
+                                ? 'text-green-500'
+                                : (vehicle.utilizationPercentage || 0) > 40
+                                  ? 'text-orange-500'
+                                  : 'text-red-500'
+                            }`}
+                          >
+                            {(vehicle.utilizationPercentage || 0).toFixed(1)}%
+                          </p>
+                        <Progress 
                           value={Math.min(
                             vehicle.utilizationPercentage || 0,
                             100
                           )}
-                          sx={{
-                            height: 6,
-                            borderRadius: 3,
-                            backgroundColor: '#e0e0e0',
-                            '& .MuiLinearProgress-bar': {
-                              background:
-                                (vehicle.utilizationPercentage || 0) > 70
-                                  ? '#4caf50'
-                                  : (vehicle.utilizationPercentage || 0) > 40
-                                    ? '#ff9800'
-                                    : '#f44336',
-                              borderRadius: 3,
-                            },
-                          }}
+                          className={`h-1.5 ${
+                            (vehicle.utilizationPercentage || 0) > 70
+                              ? 'bg-green-500'
+                              : (vehicle.utilizationPercentage || 0) > 40
+                                ? 'bg-orange-500'
+                                : 'bg-red-500'
+                          }`}
                         />
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   );
                 }}
                 emptyMessage="Žiadne autá v tomto období"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} lg={4}>
+            <div>
               <TopListCard
                 title="Najvýnosnejšie autá"
                 icon={<EuroIcon />}
@@ -2516,85 +2021,54 @@ const Statistics: React.FC = () => {
                 renderItem={(vehicleData, index) => {
                   const vehicle = vehicleData as VehicleStatistic;
                   return (
-                    <Box
+                    <div
                       key={vehicle.vehicle?.id || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor:
-                          index < 3 ? 'rgba(17, 153, 142, 0.04)' : '#f8f9fa',
-                        border:
-                          index === 0
-                            ? '2px solid #ffd700'
-                            : '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        },
-                      }}
+                      className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                        index < 3 ? 'bg-teal-50' : 'bg-gray-50'
+                      } ${
+                        index === 0 ? 'border-2 border-yellow-400' : 'border border-gray-200'
+                      }`}
                     >
-                      <Box
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background:
-                            index < 3
-                              ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
-                              : '#bdbdbd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                        }}
+                      <div
+                        className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          index < 3 ? 'bg-teal-500' : 'bg-gray-400'
+                        }`}
                       >
                         {index + 1}
-                      </Box>
+                      </div>
 
-                      <Avatar
-                        sx={{ width: 40, height: 40, bgcolor: '#11998e' }}
-                      >
-                        <CarIcon fontSize="small" />
-                      </Avatar>
+                      <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center">
+                        <CarIcon className="h-4 w-4 text-white" />
+                      </div>
 
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">
                           {vehicle.vehicle?.brand || 'N/A'}{' '}
                           {vehicle.vehicle?.model || ''}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
                           {vehicle.rentalCount || 0} prenájmov
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
 
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          sx={{ color: '#11998e' }}
-                        >
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-teal-600">
                           {(vehicle.totalRevenue || 0).toLocaleString()} €
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {(vehicle.avgRevenuePerRental || 0).toFixed(0)}{' '}
                           €/prenájom
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   );
                 }}
                 emptyMessage="Žiadne autá v tomto období"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} lg={4}>
+            <div>
               <TopListCard
                 title="Najčastejšie prenajímané"
                 icon={<CarIcon />}
@@ -2605,108 +2079,67 @@ const Statistics: React.FC = () => {
                 renderItem={(vehicleData, index) => {
                   const vehicle = vehicleData as VehicleStatistic;
                   return (
-                    <Box
+                    <div
                       key={vehicle.vehicle?.id || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor:
-                          index < 3 ? 'rgba(240, 147, 251, 0.04)' : '#f8f9fa',
-                        border:
-                          index === 0
-                            ? '2px solid #ffd700'
-                            : '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        },
-                      }}
+                      className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                        index < 3 ? 'bg-pink-50' : 'bg-gray-50'
+                      } ${
+                        index === 0 ? 'border-2 border-yellow-400' : 'border border-gray-200'
+                      }`}
                     >
-                      <Box
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background:
-                            index < 3
-                              ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                              : '#bdbdbd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                        }}
+                      <div
+                        className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          index < 3 ? 'bg-pink-500' : 'bg-gray-400'
+                        }`}
                       >
                         {index + 1}
-                      </Box>
+                      </div>
 
-                      <Avatar
-                        sx={{ width: 40, height: 40, bgcolor: '#f093fb' }}
-                      >
-                        <CarIcon fontSize="small" />
-                      </Avatar>
+                      <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center">
+                        <CarIcon className="h-4 w-4 text-white" />
+                      </div>
 
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">
                           {vehicle.vehicle?.brand || 'N/A'}{' '}
                           {vehicle.vehicle?.model || ''}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {vehicle.vehicle?.licensePlate || 'N/A'} •{' '}
                           {vehicle.totalDaysRented || 0} dní celkom
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
 
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          sx={{ color: '#f093fb' }}
-                        >
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-pink-500">
                           {vehicle.rentalCount || 0}x
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {(vehicle.totalRevenue || 0).toLocaleString()} €
                           celkom
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   );
                 }}
                 emptyMessage="Žiadne autá v tomto období"
               />
-            </Grid>
+            </div>
 
             {/* Divider */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-            </Grid>
+            <div>
+              <Separator className="my-4" />
+            </div>
 
             {/* 👥 TOP ZÁKAZNÍCI - Detailné rebríčky */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  color: '#667eea',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <PersonIcon />
+            <div>
+              <h5 className="text-2xl font-bold mb-4 text-blue-500 flex items-center gap-2">
+                <PersonIcon className="h-5 w-5" />
                 👥 TOP Zákazníci - Detailné rebríčky
-              </Typography>
-            </Grid>
+              </h5>
+            </div>
 
-            <Grid item xs={12} lg={4}>
+            <div>
               <TopListCard
                 title="Najaktívnejší zákazníci"
                 icon={<StarIcon />}
@@ -2717,84 +2150,53 @@ const Statistics: React.FC = () => {
                 renderItem={(customerData, index) => {
                   const customer = customerData as CustomerStatistic;
                   return (
-                    <Box
+                    <div
                       key={customer.customerName || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor:
-                          index < 3 ? 'rgba(255, 154, 158, 0.04)' : '#f8f9fa',
-                        border:
-                          index === 0
-                            ? '2px solid #ffd700'
-                            : '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        },
-                      }}
+                      className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                        index < 3 ? 'bg-pink-50' : 'bg-gray-50'
+                      } ${
+                        index === 0 ? 'border-2 border-yellow-400' : 'border border-gray-200'
+                      }`}
                     >
-                      <Box
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background:
-                            index < 3
-                              ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
-                              : '#bdbdbd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                        }}
+                      <div
+                        className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          index < 3 ? 'bg-pink-500' : 'bg-gray-400'
+                        }`}
                       >
                         {index + 1}
-                      </Box>
+                      </div>
 
-                      <Avatar
-                        sx={{ width: 40, height: 40, bgcolor: '#ff9a9e' }}
-                      >
-                        <PersonIcon fontSize="small" />
-                      </Avatar>
+                      <div className="w-10 h-10 rounded-full bg-pink-400 flex items-center justify-center">
+                        <PersonIcon className="h-4 w-4 text-white" />
+                      </div>
 
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">
                           {customer.customerName || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {customer.totalDaysRented || 0} dní celkom • Priemer:{' '}
                           {(customer.avgRentalDuration || 0).toFixed(1)} dní
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
 
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          sx={{ color: '#ff9a9e' }}
-                        >
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-pink-500">
                           {customer.rentalCount || 0}x
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {(customer.totalRevenue || 0).toLocaleString()} €
                           celkom
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   );
                 }}
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} lg={4}>
+            <div>
               <TopListCard
                 title="Najziskovejší zákazníci"
                 icon={<MoneyIcon />}
@@ -2805,87 +2207,56 @@ const Statistics: React.FC = () => {
                 renderItem={(customerData, index) => {
                   const customer = customerData as CustomerStatistic;
                   return (
-                    <Box
+                    <div
                       key={customer.customerName || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor:
-                          index < 3 ? 'rgba(255, 107, 107, 0.04)' : '#f8f9fa',
-                        border:
-                          index === 0
-                            ? '2px solid #ffd700'
-                            : '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        },
-                      }}
+                      className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                        index < 3 ? 'bg-red-50' : 'bg-gray-50'
+                      } ${
+                        index === 0 ? 'border-2 border-yellow-400' : 'border border-gray-200'
+                      }`}
                     >
-                      <Box
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background:
-                            index < 3
-                              ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)'
-                              : '#bdbdbd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                        }}
+                      <div
+                        className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          index < 3 ? 'bg-red-500' : 'bg-gray-400'
+                        }`}
                       >
                         {index + 1}
-                      </Box>
+                      </div>
 
-                      <Avatar
-                        sx={{ width: 40, height: 40, bgcolor: '#ff6b6b' }}
-                      >
-                        <PersonIcon fontSize="small" />
-                      </Avatar>
+                      <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                        <PersonIcon className="h-4 w-4 text-white" />
+                      </div>
 
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">
                           {customer.customerName || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {customer.rentalCount || 0} prenájmov •{' '}
                           {customer.totalDaysRented || 0} dní
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
 
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          sx={{ color: '#ff6b6b' }}
-                        >
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-red-500">
                           {(customer.totalRevenue || 0).toLocaleString()} €
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {(
                             (customer.totalRevenue || 0) /
                             (customer.rentalCount || 1)
                           ).toFixed(0)}{' '}
                           €/prenájom
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   );
                 }}
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} lg={4}>
+            <div>
               <TopListCard
                 title="Najdlhodobejší zákazníci"
                 icon={<TimeIcon />}
@@ -2896,223 +2267,151 @@ const Statistics: React.FC = () => {
                 renderItem={(customerData, index) => {
                   const customer = customerData as CustomerStatistic;
                   return (
-                    <Box
+                    <div
                       key={customer.customerName || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        borderRadius: 2,
-                        backgroundColor:
-                          index < 3 ? 'rgba(79, 172, 254, 0.04)' : '#f8f9fa',
-                        border:
-                          index === 0
-                            ? '2px solid #ffd700'
-                            : '1px solid #e0e0e0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        },
-                      }}
+                      className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                        index < 3 ? 'bg-blue-50' : 'bg-gray-50'
+                      } ${
+                        index === 0 ? 'border-2 border-yellow-400' : 'border border-gray-200'
+                      }`}
                     >
-                      <Box
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background:
-                            index < 3
-                              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                              : '#bdbdbd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                        }}
+                      <div
+                        className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          index < 3 ? 'bg-blue-500' : 'bg-gray-400'
+                        }`}
                       >
                         {index + 1}
-                      </Box>
+                      </div>
 
-                      <Avatar
-                        sx={{ width: 40, height: 40, bgcolor: '#4facfe' }}
-                      >
-                        <PersonIcon fontSize="small" />
-                      </Avatar>
+                      <div className="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center">
+                        <PersonIcon className="h-4 w-4 text-white" />
+                      </div>
 
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">
                           {customer.customerName || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           {customer.rentalCount || 0} prenájmov •{' '}
                           {(customer.totalRevenue || 0).toLocaleString()} €
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
 
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight="bold"
-                          sx={{ color: '#4facfe' }}
-                        >
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-blue-500">
                           {customer.totalDaysRented || 0} dní
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-gray-600">
                           Priemer:{' '}
                           {(customer.avgRentalDuration || 0).toFixed(1)}{' '}
                           dní/prenájom
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   );
                 }}
                 emptyMessage="Žiadni zákazníci v tomto období"
               />
-            </Grid>
-          </Grid>
-        </TabPanel>
+            </div>
+          </div>
+          </div>
+        </TabsContent>
 
         {/* Tab 6: Zamestnanci */}
-        <TabPanel value={tabValue} index={5}>
-          <Grid container spacing={3}>
+        <TabsContent value="5" className="p-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Header */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  color: '#667eea',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <PersonIcon />
+            <div>
+              <h5 className="text-2xl font-bold mb-4 text-blue-500 flex items-center gap-2">
+                <PersonIcon className="h-5 w-5" />
                 Výkon zamestnancov za obdobie: {formatPeriod()}
-              </Typography>
-            </Grid>
+              </h5>
+            </div>
 
             {/* Employee Statistics Cards */}
             {stats.employeeStats && stats.employeeStats.activeEmployees > 0 ? (
               <>
                 {/* Summary Stats */}
-                <Grid item xs={12}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card
-                        sx={{
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                          background:
-                            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          color: 'white',
+                <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <ShadcnCard
+                        className="shadow-md text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         }}
                       >
-                        <CardContent sx={{ textAlign: 'center' }}>
-                          <Typography
-                            variant="h4"
-                            sx={{ fontWeight: 700, mb: 1 }}
-                          >
+                        <ShadcnCardContent className="text-center">
+                          <h4 className="text-3xl font-bold mb-2">
                             {stats.employeeStats.totalProtocols}
-                          </Typography>
-                          <Typography variant="body2">
+                          </h4>
+                          <p className="text-sm">
                             Celkovo protokolov
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card
-                        sx={{
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                          background:
-                            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                          color: 'white',
+                          </p>
+                        </ShadcnCardContent>
+                      </ShadcnCard>
+                    </div>
+                    <div>
+                      <ShadcnCard
+                        className="shadow-md text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                         }}
                       >
-                        <CardContent sx={{ textAlign: 'center' }}>
-                          <Typography
-                            variant="h4"
-                            sx={{ fontWeight: 700, mb: 1 }}
-                          >
+                        <ShadcnCardContent className="text-center">
+                          <h4 className="text-3xl font-bold mb-2">
                             {stats.employeeStats.totalHandovers}
-                          </Typography>
-                          <Typography variant="body2">Odovzdaní</Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card
-                        sx={{
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                          background:
-                            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                          color: 'white',
+                          </h4>
+                          <p className="text-sm">Odovzdaní</p>
+                        </ShadcnCardContent>
+                      </ShadcnCard>
+                    </div>
+                    <div >
+                      <ShadcnCard
+                        className="shadow-md text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
                         }}
                       >
-                        <CardContent sx={{ textAlign: 'center' }}>
-                          <Typography
-                            variant="h4"
-                            sx={{ fontWeight: 700, mb: 1 }}
-                          >
+                        <ShadcnCardContent className="text-center">
+                          <h4 className="text-3xl font-bold mb-2">
                             {stats.employeeStats.totalReturns}
-                          </Typography>
-                          <Typography variant="body2">Prebraní</Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card
-                        sx={{
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                          background:
-                            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                          color: 'white',
+                          </h4>
+                          <p className="text-sm">Prebraní</p>
+                        </ShadcnCardContent>
+                      </ShadcnCard>
+                    </div>
+                    <div >
+                      <ShadcnCard
+                        className="shadow-md text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
                         }}
                       >
-                        <CardContent sx={{ textAlign: 'center' }}>
-                          <Typography
-                            variant="h4"
-                            sx={{ fontWeight: 700, mb: 1 }}
-                          >
+                        <ShadcnCardContent className="text-center">
+                          <h4 className="text-3xl font-bold mb-2">
                             {stats.employeeStats.activeEmployees}
-                          </Typography>
-                          <Typography variant="body2">
+                          </h4>
+                          <p className="text-sm">
                             Aktívnych zamestnancov
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
-                </Grid>
+                          </p>
+                        </ShadcnCardContent>
+                      </ShadcnCard>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Top Employees by Protocols */}
-                <Grid item xs={12} lg={6}>
-                  <Card
-                    sx={{
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      height: '100%',
-                    }}
+                <div>
+                  <ShadcnCard
+                    className="shadow-md h-full"
                   >
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          mb: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}
-                      >
-                        <TrophyIcon />
+                    <ShadcnCardContent>
+                      <h6 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <TrophyIcon className="h-5 w-5" />
                         Top zamestnanci (protokoly)
-                      </Typography>
-                      <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                      </h6>
+                      <div className="max-h-96 overflow-y-auto">
                         {stats.employeeStats.topEmployeesByProtocols
                           .slice(0, 10)
                           .map(
@@ -3123,108 +2422,63 @@ const Statistics: React.FC = () => {
                               const employee =
                                 employeeData as EmployeeStatistic;
                               return (
-                                <Box
+                                <div
                                   key={employee.employeeName || index}
-                                  sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    p: 2,
-                                    mb: 1,
-                                    bgcolor:
-                                      index < 3
-                                        ? 'rgba(102, 126, 234, 0.1)'
-                                        : 'background.paper',
-                                    borderRadius: 2,
-                                    border:
-                                      index < 3
-                                        ? '1px solid rgba(102, 126, 234, 0.2)'
-                                        : '1px solid rgba(0,0,0,0.1)',
-                                  }}
+                                  className={`flex justify-between items-center p-4 mb-2 rounded-lg border ${
+                                    index < 3
+                                      ? 'bg-blue-50 border-blue-200'
+                                      : 'bg-white border-gray-200'
+                                  }`}
                                 >
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 2,
-                                    }}
+                                  <div
+                                    className="flex items-center gap-4"
                                   >
-                                    <Box
-                                      sx={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '50%',
-                                        bgcolor:
-                                          index === 0
-                                            ? '#FFD700'
-                                            : index === 1
-                                              ? '#C0C0C0'
-                                              : index === 2
-                                                ? '#CD7F32'
-                                                : '#667eea',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white',
-                                        fontWeight: 700,
-                                      }}
+                                    <div
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                                        index === 0
+                                          ? 'bg-yellow-500'
+                                          : index === 1
+                                            ? 'bg-gray-400'
+                                            : index === 2
+                                              ? 'bg-yellow-600'
+                                              : 'bg-blue-500'
+                                      }`}
                                     >
                                       {index + 1}
-                                    </Box>
-                                    <Box>
-                                      <Typography
-                                        variant="body1"
-                                        sx={{ fontWeight: 600 }}
-                                      >
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-semibold">
                                         {employee.employeeName || 'N/A'}
-                                      </Typography>
-                                      <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                      >
+                                      </p>
+                                      <p className="text-xs text-gray-600">
                                         {employee.handoverCount || 0} odovzdaní
                                         • {employee.returnCount || 0} prebraní
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                  <Typography
-                                    variant="h6"
-                                    sx={{ fontWeight: 700, color: '#667eea' }}
-                                  >
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="text-lg font-bold text-blue-500">
                                     {employee.totalProtocols || 0}
-                                  </Typography>
-                                </Box>
+                                  </span>
+                                </div>
                               );
                             }
                           )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      </div>
+                    </ShadcnCardContent>
+                  </ShadcnCard>
+                </div>
 
                 {/* Top Employees by Revenue */}
-                <Grid item xs={12} lg={6}>
-                  <Card
-                    sx={{
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      height: '100%',
-                    }}
+                <div>
+                  <ShadcnCard
+                    className="shadow-md h-full"
                   >
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          mb: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}
-                      >
-                        <EuroIcon />
+                    <ShadcnCardContent>
+                      <h6 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <EuroIcon className="h-5 w-5" />
                         Top zamestnanci (tržby)
-                      </Typography>
-                      <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                      </h6>
+                      <div className="max-h-96 overflow-y-auto">
                         {stats.employeeStats.topEmployeesByRevenue
                           .slice(0, 10)
                           .map(
@@ -3235,145 +2489,90 @@ const Statistics: React.FC = () => {
                               const employee =
                                 employeeData as EmployeeStatistic;
                               return (
-                                <Box
+                                <div
                                   key={employee.employeeName || index}
-                                  sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    p: 2,
-                                    mb: 1,
-                                    bgcolor:
-                                      index < 3
-                                        ? 'rgba(76, 175, 80, 0.1)'
-                                        : 'background.paper',
-                                    borderRadius: 2,
-                                    border:
-                                      index < 3
-                                        ? '1px solid rgba(76, 175, 80, 0.2)'
-                                        : '1px solid rgba(0,0,0,0.1)',
-                                  }}
+                                  className={`flex justify-between items-center p-4 mb-2 rounded-lg border ${
+                                    index < 3
+                                      ? 'bg-green-50 border-green-200'
+                                      : 'bg-white border-gray-200'
+                                  }`}
                                 >
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 2,
-                                    }}
+                                  <div
+                                    className="flex items-center gap-4"
                                   >
-                                    <Box
-                                      sx={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '50%',
-                                        bgcolor:
-                                          index === 0
-                                            ? '#FFD700'
-                                            : index === 1
-                                              ? '#C0C0C0'
-                                              : index === 2
-                                                ? '#CD7F32'
-                                                : '#4CAF50',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white',
-                                        fontWeight: 700,
-                                      }}
+                                    <div
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                                        index === 0
+                                          ? 'bg-yellow-500'
+                                          : index === 1
+                                            ? 'bg-gray-400'
+                                            : index === 2
+                                              ? 'bg-yellow-600'
+                                              : 'bg-green-500'
+                                      }`}
                                     >
                                       {index + 1}
-                                    </Box>
-                                    <Box>
-                                      <Typography
-                                        variant="body1"
-                                        sx={{ fontWeight: 600 }}
-                                      >
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-semibold">
                                         {employee.employeeName || 'N/A'}
-                                      </Typography>
-                                      <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                      >
+                                      </p>
+                                      <p className="text-xs text-gray-600">
                                         {employee.totalProtocols || 0}{' '}
                                         protokolov
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                  <Typography
-                                    variant="h6"
-                                    sx={{ fontWeight: 700, color: '#4CAF50' }}
-                                  >
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="text-lg font-bold text-green-500">
                                     €
                                     {(
                                       employee.totalRevenue || 0
                                     ).toLocaleString()}
-                                  </Typography>
-                                </Box>
+                                  </span>
+                                </div>
                               );
                             }
                           )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      </div>
+                    </ShadcnCardContent>
+                  </ShadcnCard>
+                </div>
 
                 {/* Detailed Employee Table */}
-                <Grid item xs={12}>
-                  <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          mb: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}
-                      >
-                        <AssessmentIcon />
+                <div>
+                  <ShadcnCard className="shadow-md">
+                    <ShadcnCardContent>
+                      <h6 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <AssessmentIcon className="h-5 w-5" />
                         Detailné štatistiky zamestnancov
-                      </Typography>
-                      <TableContainer>
-                        <Table>
-                          <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                Zamestnanec
-                              </TableCell>
-                              <TableCell
-                                align="center"
-                                sx={{ fontWeight: 600 }}
-                              >
-                                Protokoly
-                              </TableCell>
-                              <TableCell
-                                align="center"
-                                sx={{ fontWeight: 600 }}
-                              >
-                                Odovzdania
-                              </TableCell>
-                              <TableCell
-                                align="center"
-                                sx={{ fontWeight: 600 }}
-                              >
-                                Prebrania
-                              </TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                Tržby
-                              </TableCell>
-                              <TableCell
-                                align="center"
-                                sx={{ fontWeight: 600 }}
-                              >
-                                Prenájmy
-                              </TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
+                      </h6>
+                      <ShadcnTable>
+                        <ShadcnTableHeader>
+                          <ShadcnTableRow>
+                            <ShadcnTableHead className="font-semibold">
+                              Zamestnanec
+                            </ShadcnTableHead>
+                            <ShadcnTableHead className="text-center font-semibold">
+                              Protokoly
+                            </ShadcnTableHead>
+                            <ShadcnTableHead className="text-center font-semibold">
+                              Odovzdania
+                            </ShadcnTableHead>
+                            <ShadcnTableHead className="text-center font-semibold">
+                              Prebrania
+                            </ShadcnTableHead>
+                            <ShadcnTableHead className="text-right font-semibold">
+                              Tržby
+                            </ShadcnTableHead>
+                            <ShadcnTableHead className="text-center font-semibold">
+                              Prenájmy
+                            </ShadcnTableHead>
+                          </ShadcnTableRow>
+                        </ShadcnTableHeader>
+                        <ShadcnTableBody>
                             {stats.employeeStats.allEmployees
                               .sort(
-                                (a, b) =>
+                                (a: any, b: any) =>
                                   (b.totalProtocols || 0) -
                                   (a.totalProtocols || 0)
                               )
@@ -3385,110 +2584,80 @@ const Statistics: React.FC = () => {
                                   const employee =
                                     employeeData as EmployeeStatistic;
                                   return (
-                                    <TableRow
+                                    <ShadcnTableRow
                                       key={employee.employeeName || index}
-                                      sx={{
-                                        '&:nth-of-type(odd)': {
-                                          backgroundColor:
-                                            'rgba(0, 0, 0, 0.04)',
-                                        },
-                                      }}
+                                      className="odd:bg-gray-50"
                                     >
-                                      <TableCell>
-                                        <Box
-                                          sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 1,
-                                          }}
+                                      <ShadcnTableCell>
+                                        <div
+                                          className="flex items-center gap-2"
                                         >
-                                          <PersonIcon color="primary" />
-                                          <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 600 }}
-                                          >
+                                          <PersonIcon className="h-4 w-4 text-blue-600" />
+                                          <span className="text-sm font-semibold">
                                             {employee.employeeName || 'N/A'}
-                                          </Typography>
-                                        </Box>
-                                      </TableCell>
-                                      <TableCell align="center">
-                                        <Chip
-                                          label={employee.totalProtocols || 0}
-                                          color="primary"
-                                          size="small"
-                                        />
-                                      </TableCell>
-                                      <TableCell align="center">
-                                        <Chip
-                                          label={employee.handoverCount || 0}
-                                          color="secondary"
-                                          size="small"
-                                        />
-                                      </TableCell>
-                                      <TableCell align="center">
-                                        <Chip
-                                          label={employee.returnCount || 0}
-                                          color="info"
-                                          size="small"
-                                        />
-                                      </TableCell>
-                                      <TableCell align="right">
-                                        <Typography
-                                          variant="body2"
-                                          sx={{
-                                            fontWeight: 600,
-                                            color: '#4CAF50',
-                                          }}
-                                        >
+                                          </span>
+                                        </div>
+                                      </ShadcnTableCell>
+                                      <ShadcnTableCell className="text-center">
+                                        <Badge className="bg-blue-500 text-white">
+                                          {employee.totalProtocols || 0}
+                                        </Badge>
+                                      </ShadcnTableCell>
+                                      <ShadcnTableCell className="text-center">
+                                        <Badge className="bg-purple-500 text-white">
+                                          {employee.handoverCount || 0}
+                                        </Badge>
+                                      </ShadcnTableCell>
+                                      <ShadcnTableCell className="text-center">
+                                        <Badge className="bg-cyan-500 text-white">
+                                          {employee.returnCount || 0}
+                                        </Badge>
+                                      </ShadcnTableCell>
+                                      <ShadcnTableCell className="text-right">
+                                        <span className="text-sm font-semibold text-green-500">
                                           €
                                           {(
                                             employee.totalRevenue || 0
                                           ).toLocaleString()}
-                                        </Typography>
-                                      </TableCell>
-                                      <TableCell align="center">
-                                        <Typography variant="body2">
+                                        </span>
+                                      </ShadcnTableCell>
+                                      <ShadcnTableCell className="text-center">
+                                        <p className="text-sm">
                                           {employee.uniqueRentals || 0}
-                                        </Typography>
-                                      </TableCell>
-                                    </TableRow>
+                                        </p>
+                                      </ShadcnTableCell>
+                                    </ShadcnTableRow>
                                   );
                                 }
                               )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                        </ShadcnTableBody>
+                      </ShadcnTable>
+                    </ShadcnCardContent>
+                  </ShadcnCard>
+                </div>
               </>
             ) : (
-              <Grid item xs={12}>
-                <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                    <PersonIcon
-                      sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
-                    />
-                    <Typography
-                      variant="h6"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
+              <div>
+                <ShadcnCard className="shadow-md">
+                  <ShadcnCardContent className="text-center py-8">
+                    <PersonIcon className="h-16 w-16 text-gray-600 mb-4" />
+                    <p className="text-lg font-bold text-gray-600 mb-2">
                       Žiadne protokoly za vybrané obdobie
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </p>
+                    <p className="text-sm text-gray-600">
                       V tomto období neboli vytvorené žiadne protokoly
                       odovzdávania alebo preberania vozidiel.
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+                    </p>
+                  </ShadcnCardContent>
+                </ShadcnCard>
+              </div>
             )}
-          </Grid>
-        </TabPanel>
-      </Card>
-    </Box>
-  );
+          </div>
+        </TabsContent>
+      </ShadcnTabs>
+    </ShadcnCard>
+</div>
+);
 };
 
 export default Statistics;

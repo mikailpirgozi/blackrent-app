@@ -2,7 +2,6 @@
  * 🧪 REACT COMPONENT TESTS: UnifiedButton
  */
 
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -13,10 +12,9 @@ import {
   SecondaryButton,
 } from '../ui/UnifiedButton';
 
-// Helper pre testovanie s MUI theme
+// Helper pre testovanie s shadcn/ui theme
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const theme = createTheme();
-  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+  return <div className="min-h-screen bg-background text-foreground">{children}</div>;
 };
 
 describe('UnifiedButton', () => {
@@ -40,29 +38,31 @@ describe('UnifiedButton', () => {
       );
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('MuiButton-contained');
+      expect(button).toHaveClass('bg-blue-600');
     });
 
     it('should render with different variants', () => {
       render(
         <TestWrapper>
-          <UnifiedButton variant="outlined">Outlined Button</UnifiedButton>
+          <UnifiedButton variant="outline">Outlined Button</UnifiedButton>
         </TestWrapper>
       );
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('MuiButton-outlined');
+      expect(button).toHaveClass('border-2');
+      expect(button).toHaveClass('text-blue-600');
     });
 
     it('should render with different sizes', () => {
       render(
         <TestWrapper>
-          <UnifiedButton size="large">Large Button</UnifiedButton>
+          <UnifiedButton className="h-12 px-8 text-base">Large Button</UnifiedButton>
         </TestWrapper>
       );
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('MuiButton-sizeLarge');
+      expect(button).toHaveClass('h-11');
+      expect(button).toHaveClass('text-base');
     });
   });
 
@@ -143,15 +143,15 @@ describe('UnifiedButton', () => {
       expect(screen.getByText('Načítavam...')).toBeInTheDocument();
     });
 
-    it('should show CircularProgress when loading', () => {
+    it('should show Spinner when loading', () => {
       render(
         <TestWrapper>
           <UnifiedButton loading>Save Button</UnifiedButton>
         </TestWrapper>
       );
 
-      // MUI CircularProgress má role="progressbar"
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // shadcn Spinner má role="status"
+      expect(screen.getByRole('status')).toBeInTheDocument();
     });
   });
 
@@ -164,7 +164,7 @@ describe('UnifiedButton', () => {
       );
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('MuiButton-contained');
+      expect(button).toHaveClass('bg-blue-600');
       expect(screen.getByText('Primary')).toBeInTheDocument();
     });
 
@@ -176,7 +176,8 @@ describe('UnifiedButton', () => {
       );
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('MuiButton-outlined');
+      expect(button).toHaveClass('border-2');
+      expect(button).toHaveClass('text-pink-600');
       expect(screen.getByText('Secondary')).toBeInTheDocument();
     });
   });
@@ -206,7 +207,7 @@ describe('UnifiedButton', () => {
       );
 
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('MuiButton-fullWidth');
+      expect(button).toHaveClass('w-full');
     });
   });
 });

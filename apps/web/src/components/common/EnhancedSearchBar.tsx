@@ -10,49 +10,40 @@
  */
 
 import {
-  Clear as ClearIcon,
-  FilterList as FilterIcon,
-  History as HistoryIcon,
-  Search as SearchIcon,
-  TrendingUp as SuggestionIcon,
-} from '@mui/icons-material';
+  X,
+  Filter,
+  History,
+  Search,
+  TrendingUp,
+  Loader2,
+} from 'lucide-react';
 import {
   Badge,
-  Box,
-  Chip,
-  CircularProgress,
-  Divider,
-  Fade,
-  IconButton,
-  InputAdornment,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Paper,
-  Stack,
-  TextField,
+  Button,
+  Input,
+  Separator,
   Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui';
 import React, { memo, useEffect, useRef } from 'react';
 
 import type {
   QuickFilter,
   SearchSuggestion,
 } from '../../hooks/useEnhancedSearch';
+
 import { useEnhancedSearch } from '../../hooks/useEnhancedSearch';
 
 interface EnhancedSearchBarProps {
   // Search function
   onSearch: (
-    query: string,
-    quickFilter?: string
+    _query: string,
+    _quickFilter?: string
   ) => Promise<Record<string, unknown>[]> | Record<string, unknown>[];
   suggestionFunction?: (
-    query: string
+    _query: string
   ) => Promise<SearchSuggestion[]> | SearchSuggestion[];
 
   // Search options
@@ -79,9 +70,9 @@ interface EnhancedSearchBarProps {
   showPerformanceStats?: boolean;
 
   // Event handlers
-  onQueryChange?: (query: string) => void;
-  onResultsChange?: (results: Record<string, unknown>[]) => void;
-  onQuickFilterChange?: (filterId: string | null) => void;
+  onQueryChange?: (_query: string) => void;
+  onResultsChange?: (_results: Record<string, unknown>[]) => void;
+  onQuickFilterChange?: (_filterId: string | null) => void;
 }
 
 const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
@@ -97,7 +88,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   placeholder = 'Hľadať...',
   size = 'medium',
   fullWidth = true,
-  variant = 'outlined',
+  // variant = 'outlined',
   quickFilters = [],
   autoFocus = false,
   showResultCount = true,
@@ -106,8 +97,8 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   onResultsChange,
   onQuickFilterChange,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Mobile detection using window width
+  // const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Search hook
   const {
@@ -126,21 +117,21 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
     searchStats,
   } = useEnhancedSearch({
     searchFunction: onSearch,
-    suggestionFunction,
-    debounceDelay,
-    minQueryLength,
-    maxSuggestions,
-    maxHistory,
-    storageKey,
-    enableHistory,
-    enableSuggestions,
+    ...(suggestionFunction && { suggestionFunction }),
+    debounceDelay: debounceDelay ?? 300,
+    minQueryLength: minQueryLength ?? 2,
+    maxSuggestions: maxSuggestions ?? 10,
+    maxHistory: maxHistory ?? 20,
+    storageKey: storageKey ?? 'search-history',
+    enableHistory: enableHistory ?? true,
+    enableSuggestions: enableSuggestions ?? true,
     placeholder,
     quickFilters,
   });
 
   // Local state
-  const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<any>(null);
+  const suggestionsRef = useRef<any>(null);
 
   // Notify parent of changes
   useEffect(() => {
@@ -156,7 +147,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   }, [activeQuickFilter, onQuickFilterChange]);
 
   // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: any) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
 
@@ -174,7 +165,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
 
   // Handle input blur (with delay for suggestion clicks)
   const handleInputBlur = () => {
-    setTimeout(() => {
+    window.setTimeout(() => {
       setShowSuggestions(false);
     }, 200);
   };
@@ -227,181 +218,99 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   };
 
   return (
-    <Box sx={{ position: 'relative', width: fullWidth ? '100%' : 'auto' }}>
+    <div className={`relative ${fullWidth ? 'w-full' : 'w-auto'}`}>
       {/* Quick Filters */}
       {quickFilters.length > 0 && (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            mb: 2,
-            flexWrap: 'wrap',
-            gap: 1,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              alignSelf: 'center',
-              color: 'text.secondary',
-              whiteSpace: 'nowrap',
-              minWidth: 'fit-content',
-            }}
-          >
-            <FilterIcon
-              sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }}
-            />
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap">
+            <Filter className="h-3.5 w-3.5 mr-1" />
             Rýchle filtre:
-          </Typography>
+          </div>
 
           {quickFilters.map(filter => (
-            <Chip
+            <Badge
               key={filter.id}
-              label={filter.label}
-              size={isMobile ? 'small' : 'medium'}
-              color={activeQuickFilter === filter.id ? filter.color : 'default'}
-              variant={activeQuickFilter === filter.id ? 'filled' : 'outlined'}
+              variant={activeQuickFilter === filter.id ? 'default' : 'outline'}
+              className={`cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                activeQuickFilter === filter.id 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-background border-border'
+              }`}
               onClick={() => handleQuickFilterSelect(filter.id)}
-              sx={{
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateY(-1px)',
-                  boxShadow: theme.shadows[2],
-                },
-              }}
-            />
+            >
+              {filter.label}
+            </Badge>
           ))}
-        </Stack>
+        </div>
       )}
 
       {/* Search Input */}
-      <TextField
-        ref={inputRef}
-        fullWidth={fullWidth}
-        size={size}
-        variant={variant}
-        placeholder={placeholder}
-        value={query}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
-        onBlur={handleInputBlur}
-        onKeyDown={handleKeyDown}
-        autoFocus={autoFocus}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              {isSearching ? (
-                <CircularProgress size={20} />
-              ) : (
-                <SearchIcon sx={{ color: 'text.secondary' }} />
-              )}
-            </InputAdornment>
-          ),
-          endAdornment: query && (
-            <InputAdornment position="end">
-              <Tooltip title="Vymazať">
-                <IconButton
-                  size="small"
-                  onClick={handleClear}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: `${theme.palette.error.main}15`,
-                    },
-                  }}
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            className={`pl-10 ${query ? 'pr-10' : ''} ${size === 'small' ? 'h-8' : 'h-10'}`}
+            placeholder={placeholder}
+            value={query}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            onKeyDown={handleKeyDown}
+            autoFocus={autoFocus}
+          />
+          {isSearching && (
+            <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+          )}
+          {query && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-destructive/10"
+                    onClick={handleClear}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Vymazať</p>
+                </TooltipContent>
               </Tooltip>
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: theme.palette.primary.main,
-              },
-            },
-            '&.Mui-focused': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderWidth: 2,
-              },
-            },
-          },
-        }}
-      />
+            </TooltipProvider>
+          )}
+        </div>
+      </div>
 
       {/* Search Info */}
       {getSearchInfo() && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            color: 'text.secondary',
-            textAlign: 'right',
-          }}
-        >
+        <p className="text-xs text-muted-foreground text-right mt-1">
           {getSearchInfo()}
-        </Typography>
+        </p>
       )}
 
       {/* Suggestions Dropdown */}
-      <Fade
-        in={
-          showSuggestions &&
-          (suggestions.length > 0 || searchHistory.length > 0)
-        }
-        timeout={200}
-      >
-        <Paper
+      {showSuggestions && (suggestions.length > 0 || searchHistory.length > 0) && (
+        <div
           ref={suggestionsRef}
-          sx={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: theme.zIndex.modal,
-            maxHeight: isMobile ? '60vh' : '400px',
-            overflow: 'auto',
-            mt: 0.5,
-            boxShadow: theme.shadows[8],
-            borderRadius: 2,
-            border: `1px solid ${theme.palette.divider}`,
-          }}
+          className="absolute top-full left-0 right-0 z-50 max-h-96 overflow-auto mt-1 bg-background border border-border rounded-lg shadow-lg"
         >
-          <List dense disablePadding>
+          <div className="py-1">
             {/* Search History */}
             {searchHistory.length > 0 && !query && (
               <>
-                <ListItem
-                  sx={{
-                    py: 1,
-                    backgroundColor: theme.palette.background.default,
-                  }}
-                >
-                  <ListItemIcon>
-                    <HistoryIcon
-                      fontSize="small"
-                      sx={{ color: 'text.secondary' }}
-                    />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: 600, color: 'text.secondary' }}
-                      >
-                        Posledné vyhľadávania
-                      </Typography>
-                    }
-                  />
-                </ListItem>
+                <div className="px-3 py-2 bg-muted/50">
+                  <div className="flex items-center text-xs font-semibold text-muted-foreground">
+                    <History className="h-3 w-3 mr-2" />
+                    Posledné vyhľadávania
+                  </div>
+                </div>
                 {searchHistory.slice(0, 5).map((historyItem, index) => (
-                  <ListItem
+                  <div
                     key={`history-${index}`}
-                    button
+                    className="flex items-center px-3 py-2 hover:bg-muted cursor-pointer"
                     onClick={() =>
                       handleSuggestionSelect({
                         id: `history-${index}`,
@@ -409,87 +318,55 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
                         type: 'recent',
                       })
                     }
-                    sx={{
-                      py: 1,
-                      '&:hover': {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
                   >
-                    <ListItemIcon>
-                      <HistoryIcon
-                        fontSize="small"
-                        sx={{ color: 'text.disabled' }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText primary={historyItem} />
-                  </ListItem>
+                    <History className="h-4 w-4 mr-3 text-muted-foreground" />
+                    <span className="text-sm">{historyItem}</span>
+                  </div>
                 ))}
-                <Divider />
+                <Separator />
               </>
             )}
 
             {/* Suggestions */}
             {suggestions.map(suggestion => (
-              <ListItem
+              <div
                 key={suggestion.id}
-                button
+                className="flex items-center px-3 py-2 hover:bg-muted cursor-pointer"
                 onClick={() => handleSuggestionSelect(suggestion)}
-                sx={{
-                  py: 1,
-                  '&:hover': {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                }}
               >
-                <ListItemIcon>
-                  {suggestion.type === 'recent' ? (
-                    <HistoryIcon
-                      fontSize="small"
-                      sx={{ color: 'text.disabled' }}
-                    />
-                  ) : (
-                    <SuggestionIcon
-                      fontSize="small"
-                      sx={{ color: theme.palette.primary.main }}
-                    />
-                  )}
-                </ListItemIcon>
+                {suggestion.type === 'recent' ? (
+                  <History className="h-4 w-4 mr-3 text-muted-foreground" />
+                ) : (
+                  <TrendingUp className="h-4 w-4 mr-3 text-primary" />
+                )}
 
-                <ListItemText
-                  primary={suggestion.text}
-                  secondary={suggestion.category}
-                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{suggestion.text}</div>
+                  {suggestion.category && (
+                    <div className="text-xs text-muted-foreground">{suggestion.category}</div>
+                  )}
+                </div>
 
                 {suggestion.count && (
-                  <Badge
-                    badgeContent={suggestion.count}
-                    color="primary"
-                    sx={{ mr: 1 }}
-                  />
+                  <Badge variant="secondary" className="ml-2">
+                    {suggestion.count}
+                  </Badge>
                 )}
-              </ListItem>
+              </div>
             ))}
 
             {/* No suggestions */}
             {query && suggestions.length === 0 && (
-              <ListItem sx={{ py: 2 }}>
-                <ListItemText
-                  primary={
-                    <Typography
-                      variant="body2"
-                      sx={{ textAlign: 'center', color: 'text.secondary' }}
-                    >
-                      Žiadne návrhy pre "{query}"
-                    </Typography>
-                  }
-                />
-              </ListItem>
+              <div className="px-3 py-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Žiadne návrhy pre "{query}"
+                </p>
+              </div>
             )}
-          </List>
-        </Paper>
-      </Fade>
-    </Box>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

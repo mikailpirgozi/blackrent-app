@@ -167,6 +167,7 @@ export function useInfiniteVehicles(
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [filters, initialLoad, loadVehicles]);
 
   // Search term changes - trigger new search
@@ -182,6 +183,7 @@ export function useInfiniteVehicles(
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [searchTerm, initialLoad, loadVehicles]);
 
   // Debug logging

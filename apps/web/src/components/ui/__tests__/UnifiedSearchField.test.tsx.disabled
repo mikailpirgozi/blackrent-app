@@ -1,0 +1,206 @@
+/**
+ * 🧪 UNIFIED SEARCH FIELD TESTS
+ */
+
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { UnifiedSearchField, type SearchSuggestion } from '../UnifiedSearchField';
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+});
+
+describe('UnifiedSearchField', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorageMock.getItem.mockReturnValue(null);
+  });
+
+  it('renders with basic props', () => {
+    render(<UnifiedSearchField placeholder="Test search" />);
+    
+    expect(screen.getByPlaceholderText('Test search')).toBeInTheDocument();
+  });
+
+  it('renders with label', () => {
+    render(<UnifiedSearchField label="Search Label" />);
+    
+    expect(screen.getByText('Search Label')).toBeInTheDocument();
+  });
+
+  it('calls onChange when typing', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    
+    render(<UnifiedSearchField onValueChange={handleChange} />);
+    
+    const input = screen.getByRole('textbox');
+    await user.type(input, 'test');
+    
+    expect(handleChange).toHaveBeenCalledWith('test');
+  });
+
+  it('calls onSearch with debounce', async () => {
+    const handleSearch = jest.fn();
+    
+    render(
+      <UnifiedSearchField 
+        onSearch={handleSearch} 
+        debounceDelay={100}
+      />
+    );
+    
+    const input = screen.getByRole('textbox');
+    await userEvent.type(input, 'test');
+    
+    // Should not call immediately
+    expect(handleSearch).not.toHaveBeenCalled();
+    
+    // Should call after debounce delay
+    await waitFor(() => {
+      expect(handleSearch).toHaveBeenCalledWith('test');
+    }, { timeout: 200 });
+  });
+
+  it('shows suggestions when provided', async () => {
+    const suggestions: SearchSuggestion[] = [
+      { id: '1', label: 'Test Suggestion 1', value: 'test1' },
+      { id: '2', label: 'Test Suggestion 2', value: 'test2' },
+    ];
+    
+    render(
+      <UnifiedSearchField 
+        suggestions={suggestions}
+        value="test"
+      />
+    );
+    
+    const input = screen.getByRole('textbox');
+    fireEvent.focus(input);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Test Suggestion 1')).toBeInTheDocument();
+      expect(screen.getByText('Test Suggestion 2')).toBeInTheDocument();
+    });
+  });
+
+  it('handles suggestion selection', async () => {
+    const user = userEvent.setup();
+    const handleSuggestionSelect = jest.fn();
+    const suggestions: SearchSuggestion[] = [
+      { id: '1', label: 'Test Suggestion', value: 'test' },
+    ];
+    
+    render(
+      <UnifiedSearchField 
+        suggestions={suggestions}
+        onSuggestionSelect={handleSuggestionSelect}
+        value="t"
+      />
+    );
+    
+    const input = screen.getByRole('textbox');
+    fireEvent.focus(input);
+    
+    await waitFor(() => {
+      const suggestion = screen.getByText('Test Suggestion');
+      expect(suggestion).toBeInTheDocument();
+    });
+    
+    const suggestion = screen.getByText('Test Suggestion');
+    await user.click(suggestion);
+    
+    expect(handleSuggestionSelect).toHaveBeenCalledWith(suggestions[0]);
+  });
+
+  it('shows clear button when has value', () => {
+    render(<UnifiedSearchField value="test" showClearButton />);
+    
+    expect(screen.getByRole('button')).toBeInTheDocument();
+  });
+
+  it('clears value when clear button clicked', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    
+    render(
+      <UnifiedSearchField 
+        value="test" 
+        onValueChange={handleChange}
+        showClearButton 
+      />
+    );
+    
+    const clearButton = screen.getByRole('button');
+    await user.click(clearButton);
+    
+    expect(handleChange).toHaveBeenCalledWith('');
+  });
+
+  it('shows loading state', () => {
+    render(<UnifiedSearchField loading />);
+    
+    // Should show loading spinner
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+  });
+
+  it('respects disabled state', () => {
+    render(<UnifiedSearchField disabled />);
+    
+    const input = screen.getByRole('textbox');
+    expect(input).toBeDisabled();
+  });
+
+  it('saves and loads search history', async () => {
+    const user = userEvent.setup();
+    const mockHistory = JSON.stringify([
+      { id: '1', query: 'previous search', timestamp: Date.now() }
+    ]);
+    
+    localStorageMock.getItem.mockReturnValue(mockHistory);
+    
+    render(
+      <UnifiedSearchField 
+        enableHistory
+        historyStorageKey="test_history"
+      />
+    );
+    
+    const input = screen.getByRole('textbox');
+    fireEvent.focus(input);
+    
+    await waitFor(() => {
+      expect(screen.getByText('previous search')).toBeInTheDocument();
+    });
+  });
+
+  it('handles different sizes', () => {
+    const { rerender } = render(<UnifiedSearchField size="sm" />);
+    let input = screen.getByRole('textbox');
+    expect(input).toHaveClass('h-8');
+    
+    rerender(<UnifiedSearchField size="lg" />);
+    input = screen.getByRole('textbox');
+    expect(input).toHaveClass('h-11');
+  });
+
+  it('supports MUI InputProps compatibility', () => {
+    const startAdornment = <span data-testid="start">Start</span>;
+    
+    render(
+      <UnifiedSearchField 
+        InputProps={{ startAdornment }}
+      />
+    );
+    
+    expect(screen.getByTestId('start')).toBeInTheDocument();
+  });
+});

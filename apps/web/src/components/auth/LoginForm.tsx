@@ -1,18 +1,11 @@
-import {
-  AccountCircle as AccountIcon,
-  LockOutlined as LockIcon,
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  Checkbox,
-  Container,
-  Divider,
-  FormControlLabel,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { User, Lock, Mail, KeyRound, Sparkles, Shield } from 'lucide-react';
+import { Card, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import { Separator } from '../ui/separator';
+import { Typography } from '../ui/typography';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,7 +13,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useAuthError } from '../../hooks/useEnhancedError';
 import type { LoginCredentials } from '../../types';
 import { EnhancedErrorToast } from '../common/EnhancedErrorToast';
-import { DefaultCard, PrimaryButton, SecondaryButton, StatusChip } from '../ui';
 
 interface LoginFormProps {
   onLoginSuccess?: () => void;
@@ -70,7 +62,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     if (success) {
       onLoginSuccess?.();
       // 🚀 DIRECT navigation to /rentals to bypass root redirect timing issue
-      setTimeout(() => {
+      window.setTimeout(() => {
         navigate('/rentals');
       }, 100);
     }
@@ -83,6 +75,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       role: 'Administrátor',
       desc: 'Všetky práva',
       password: 'admin123',
+      icon: Shield,
+      color: 'from-violet-500 to-purple-600',
     },
     {
       username: 'employee',
@@ -90,6 +84,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       role: 'Zamestnanec',
       desc: 'Obmedzené práva',
       password: 'employee123',
+      icon: User,
+      color: 'from-blue-500 to-cyan-600',
     },
     {
       username: 'company1',
@@ -97,6 +93,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       role: 'Firma',
       desc: 'Iba vlastné dáta',
       password: 'company123',
+      icon: Mail,
+      color: 'from-emerald-500 to-teal-600',
     },
   ];
 
@@ -110,7 +108,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       if (success) {
         onLoginSuccess?.();
         // 🚀 DIRECT navigation to /rentals to bypass root redirect timing issue
-        setTimeout(() => {
+        window.setTimeout(() => {
           navigate('/rentals');
         }, 100);
       }
@@ -118,190 +116,219 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
-      >
-        <DefaultCard
-          sx={{ width: '100%', maxWidth: 400, mt: 4 }}
-          padding="large"
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              mb: 3,
-            }}
-          >
-            <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
-              <LockIcon />
-            </Avatar>
-            <Typography
-              component="h1"
-              variant="h4"
-              color="text.primary"
-              sx={{ fontWeight: 'bold' }}
-            >
+    <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 animate-gradient" />
+      
+      {/* Animated orbs */}
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+
+      {/* Content */}
+      <div className="relative flex items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-md">
+          {/* Logo and title section */}
+          <div className="text-center mb-8 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg shadow-blue-500/50">
+              <Lock className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
               BlackRent
-            </Typography>
-            <Typography variant="h6" sx={{ color: 'text.secondary', mt: 1 }}>
-              Prihlásenie do systému
-            </Typography>
-          </Box>
+            </h1>
+            <p className="text-blue-200 text-sm flex items-center justify-center gap-1">
+              <Sparkles className="h-4 w-4" />
+              Systém správy prenájmu vozidiel
+            </p>
+          </div>
 
-          {/* Error handling sa teraz zobrazuje cez EnhancedErrorToast */}
+          {/* Main login card */}
+          <Card className="border-0 shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl animate-slide-up">
+            <CardContent className="p-8">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
+                  Vitajte späť
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 text-sm">
+                  Prihláste sa do svojho účtu
+                </p>
+              </div>
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="username"
-              label="Používateľské meno"
-              name="username"
-              autoComplete="username"
-              autoFocus
-              value={credentials.username}
-              onChange={handleChange}
-              disabled={state.isLoading}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Heslo"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={credentials.password}
-              onChange={handleChange}
-              disabled={state.isLoading}
-              sx={{ mb: 2 }}
-            />
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Username field */}
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="username" 
+                    className="text-sm font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    Používateľské meno
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input
+                      id="username"
+                      name="username"
+                      type="text"
+                      autoComplete="username"
+                      autoFocus
+                      value={credentials.username}
+                      onChange={handleChange}
+                      disabled={state.isLoading}
+                      required
+                      className="pl-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 transition-all"
+                      placeholder="Zadajte používateľské meno"
+                    />
+                  </div>
+                </div>
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  name="rememberMe"
-                  color="primary"
-                />
-              }
-              label={
-                <Typography color="text.primary" sx={{ fontWeight: 'bold' }}>
-                  Zapamätať si prihlásenie
-                </Typography>
-              }
-              sx={{ mb: 2 }}
-            />
+                {/* Password field */}
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="password" 
+                    className="text-sm font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    Heslo
+                  </Label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={credentials.password}
+                      onChange={handleChange}
+                      disabled={state.isLoading}
+                      required
+                      className="pl-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 transition-all"
+                      placeholder="Zadajte heslo"
+                    />
+                  </div>
+                </div>
 
-            <PrimaryButton
-              type="submit"
-              fullWidth
-              sx={{
-                mb: 2,
-                py: 1.5,
-                fontSize: '1.1rem',
-              }}
-              disabled={state.isLoading}
-              loading={state.isLoading}
-              loadingText="Prihlasuje sa..."
-            >
-              Prihlásiť sa
-            </PrimaryButton>
-          </Box>
+                {/* Remember me */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rememberMe"
+                      checked={rememberMe}
+                      onCheckedChange={(checked: boolean) => setRememberMe(checked)}
+                      name="rememberMe"
+                      className="border-slate-300 dark:border-slate-600"
+                    />
+                    <Label 
+                      htmlFor="rememberMe" 
+                      className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer"
+                    >
+                      Zapamätať si ma
+                    </Label>
+                  </div>
+                </div>
 
-          <Divider sx={{ my: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              alebo
-            </Typography>
-          </Divider>
-
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <SecondaryButton onClick={() => setShowDemo(!showDemo)}>
-              {showDemo ? 'Skryť demo účty' : 'Ukázať demo účty'}
-            </SecondaryButton>
-          </Box>
-
-          {showDemo && (
-            <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="body2"
-                sx={{ mb: 2, color: 'text.secondary', textAlign: 'center' }}
-              >
-                Demo účty (kliknite na účet alebo zadajte údaje manuálne):
-              </Typography>
-              {demoAccounts.map(account => (
-                <Paper
-                  key={account.username}
-                  sx={{
-                    p: 2,
-                    mb: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    bgcolor: 'background.paper',
-                    cursor: 'pointer',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                  onClick={() => handleDemoLogin(account.username)}
+                {/* Submit button */}
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg shadow-blue-500/50 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/60 disabled:opacity-50"
+                  disabled={state.isLoading}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <AccountIcon color="primary" />
-                    <Box>
-                      <Typography
-                        variant="body1"
-                        color="text.primary"
-                        sx={{ fontWeight: 'bold' }}
-                      >
-                        {account.label}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {account.desc}
-                      </Typography>
-                      <Typography variant="caption" color="primary">
-                        {account.username} / {account.password}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <StatusChip
-                    label={account.role}
-                    size="small"
-                    chipColor="primary"
-                  />
-                </Paper>
-              ))}
-            </Box>
-          )}
-        </DefaultCard>
+                  {state.isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Prihlasuje sa...
+                    </span>
+                  ) : (
+                    'Prihlásiť sa'
+                  )}
+                </Button>
+              </form>
 
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            © 2024 BlackRent - Systém správy prenájmu vozidiel
-          </Typography>
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">
+                    Alebo
+                  </span>
+                </div>
+              </div>
 
-          {/* Malá nápoveda o funkcii zapamätania */}
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mt: 1, display: 'block' }}
-          >
-            {rememberMe
-              ? 'Prihlásenie zostane aktívne aj po zatvorení prehliadača'
-              : 'Prihlásenie sa ukončí po zatvorení prehliadača'}
-          </Typography>
-        </Box>
-      </Box>
+              {/* Demo accounts toggle */}
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowDemo(!showDemo)}
+                  className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                >
+                  {showDemo ? 'Skryť demo účty' : 'Ukázať demo účty'}
+                </Button>
+              </div>
+
+              {/* Demo accounts */}
+              {showDemo && (
+                <div className="mt-6 space-y-3 animate-slide-down">
+                  <Typography
+                    variant="body2"
+                    className="mb-3 text-slate-600 dark:text-slate-400 text-center text-sm"
+                  >
+                    Demo účty pre rýchle prihlásenie:
+                  </Typography>
+                  <div className="space-y-2">
+                    {demoAccounts.map((account) => {
+                      const Icon = account.icon;
+                      return (
+                        <div
+                          key={account.username}
+                          className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-blue-500/50"
+                          onClick={() => handleDemoLogin(account.username)}
+                        >
+                          {/* Gradient hover effect */}
+                          <div className={`absolute inset-0 bg-gradient-to-r ${account.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
+                          
+                          <div className="relative flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg bg-gradient-to-br ${account.color}`}>
+                                <Icon className="h-5 w-5 text-white" />
+                              </div>
+                              <div>
+                                <div className="font-semibold text-slate-900 dark:text-white">
+                                  {account.label}
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  {account.desc}
+                                </div>
+                                <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-mono">
+                                  {account.username} / {account.password}
+                                </div>
+                              </div>
+                            </div>
+                            <span className={`px-3 py-1 text-xs font-medium bg-gradient-to-r ${account.color} text-white rounded-full`}>
+                              {account.role}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="mt-8 text-center space-y-2 animate-fade-in">
+            <p className="text-sm text-blue-200">
+              © 2024 BlackRent. Všetky práva vyhradené.
+            </p>
+            {rememberMe && (
+              <p className="text-xs text-blue-300/80">
+                Prihlásenie zostane aktívne aj po zatvorení prehliadača
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Enhanced Error Toast */}
       <EnhancedErrorToast
@@ -310,6 +337,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         onClose={clearError}
         position="top"
       />
-    </Container>
+    </div>
   );
 }

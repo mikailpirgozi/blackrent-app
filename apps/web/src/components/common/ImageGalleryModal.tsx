@@ -1,25 +1,22 @@
-import {
-  Close,
-  NavigateBefore,
-  NavigateNext,
-  Download,
-  ZoomIn,
-  ZoomOut,
-  Fullscreen,
-  FullscreenExit,
-} from '@mui/icons-material';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
-  IconButton,
-  Typography,
-  Box,
-  Chip,
-  Button,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import React, { useState, useRef, useEffect } from 'react';
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Minimize,
+} from 'lucide-react';
 
 import type { ProtocolImage, ProtocolVideo } from '../../types';
 
@@ -38,8 +35,6 @@ export default function ImageGalleryModal({
   videos,
   title = 'Galéria médií',
 }: ImageGalleryModalProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -56,11 +51,11 @@ export default function ImageGalleryModal({
 
   // Touch gestures pre mobile
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    setTouchStart(e.targetTouches[0]?.clientX ?? null);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    setTouchEnd(e.targetTouches[0]?.clientX ?? null);
   };
 
   const handleTouchEnd = () => {
@@ -163,290 +158,211 @@ export default function ImageGalleryModal({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
-      maxWidth={false}
-      fullWidth
-      fullScreen={isFullscreen}
-      PaperProps={{
-        sx: {
-          backgroundColor: 'rgba(0, 0, 0, 0.95)',
-          color: 'white',
-          minHeight: isFullscreen ? '100vh' : '80vh',
-        },
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          onClose();
+        }
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          p: 2,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <Typography variant="h6" sx={{ color: 'white' }}>
-          {title} ({currentIndex + 1} / {allMedia.length})
-        </Typography>
+      <DialogContent className={`bg-black/95 text-white p-0 max-w-none w-full ${
+        isFullscreen ? 'h-screen' : 'min-h-[80vh]'
+      }`}>
+        {/* Header */}
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-white/10 p-4">
+          <DialogTitle className="text-lg font-semibold text-white">
+            {title} ({currentIndex + 1} / {allMedia.length})
+          </DialogTitle>
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip
-            label={currentMedia.type}
-            size="small"
-            sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-          />
-          <IconButton onClick={toggleFullscreen} sx={{ color: 'white' }}>
-            {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
-          </IconButton>
-          <IconButton onClick={onClose} sx={{ color: 'white' }}>
-            <Close />
-          </IconButton>
-        </Box>
-      </Box>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="secondary"
+              className="bg-white/10 text-white"
+            >
+              {currentMedia.type}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="text-white hover:bg-white/10"
+            >
+              {isFullscreen ? (
+                <Minimize className="h-5 w-5" />
+              ) : (
+                <Maximize className="h-5 w-5" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-white hover:bg-white/10"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      {/* Content */}
-      <DialogContent
-        sx={{
-          p: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: isFullscreen ? 'calc(100vh - 120px)' : '60vh',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-        ref={containerRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Navigation arrows */}
-        {!isMobile && (
-          <>
-            <IconButton
+        {/* Content */}
+        <div
+          className={`flex flex-col items-center justify-center relative overflow-hidden ${
+            isFullscreen ? 'h-[calc(100vh-120px)]' : 'min-h-[60vh]'
+          }`}
+          ref={containerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Navigation arrows */}
+          <div className="hidden md:block">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handlePrevious}
               disabled={currentIndex === 0}
-              sx={{
-                position: 'absolute',
-                left: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                '&.Mui-disabled': { opacity: 0.3 },
-              }}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70 disabled:opacity-30"
             >
-              <NavigateBefore />
-            </IconButton>
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
 
-            <IconButton
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleNext}
               disabled={currentIndex === allMedia.length - 1}
-              sx={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                '&.Mui-disabled': { opacity: 0.3 },
-              }}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70 disabled:opacity-30"
             >
-              <NavigateNext />
-            </IconButton>
-          </>
-        )}
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          </div>
 
-        {/* Media content */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            transform: `scale(${zoom})`,
-            transition: 'transform 0.2s ease-in-out',
-          }}
-        >
-          {currentMedia.url.includes('video') ? (
-            <video
-              ref={videoRef}
-              src={currentMedia.url}
-              controls
-              autoPlay
-              loop
-              muted
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-              }}
-            />
-          ) : (
-            <img
-              ref={imageRef}
-              src={currentMedia.url}
-              alt={`${currentMedia.type} - ${currentMedia.description}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                userSelect: 'none',
-              }}
-            />
-          )}
-        </Box>
-
-        {/* Media info */}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 16,
-            left: 16,
-            right: 16,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            borderRadius: 1,
-            p: 2,
-          }}
-        >
-          <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
-            {currentMedia.description ||
-              `${currentMedia.type} - ${new Date(currentMedia.timestamp).toLocaleString('sk-SK')}`}
-          </Typography>
-
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip
-              label={`${currentMedia.type}`}
-              size="small"
-              sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-              }}
-            />
-            {currentMedia.compressed && (
-              <Chip
-                label="Komprimované"
-                size="small"
-                sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
+          {/* Media content */}
+          <div
+            className="flex flex-col items-center justify-center w-full h-full transition-transform duration-200 ease-in-out"
+            style={{ transform: `scale(${zoom})` }}
+          >
+            {currentMedia.url.includes('video') ? (
+              <video
+                ref={videoRef}
+                src={currentMedia.url}
+                controls
+                autoPlay
+                loop
+                muted
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <img
+                ref={imageRef}
+                src={currentMedia.url}
+                alt={`${currentMedia.type} - ${currentMedia.description}`}
+                className="max-w-full max-h-full object-contain select-none"
               />
             )}
-            {currentMedia.originalSize && currentMedia.compressedSize && (
-              <Chip
-                label={`${Math.round(((currentMedia.originalSize - currentMedia.compressedSize) / currentMedia.originalSize) * 100)}% úspora`}
-                size="small"
-                sx={{ backgroundColor: 'rgba(0, 255, 0, 0.2)', color: 'white' }}
-              />
-            )}
-          </Box>
-        </Box>
-      </DialogContent>
+          </div>
 
-      {/* Controls */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 2,
-          p: 2,
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <Button
-          variant="outlined"
-          startIcon={<ZoomOut />}
-          onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
-          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-        >
-          Zmenšiť
-        </Button>
+          {/* Media info */}
+          <div className="absolute bottom-4 left-4 right-4 bg-black/70 rounded-lg p-4">
+            <p className="text-white text-sm mb-2">
+              {currentMedia.description ||
+                `${currentMedia.type} - ${new Date(currentMedia.timestamp).toLocaleString('sk-SK')}`}
+            </p>
 
-        <Button
-          variant="outlined"
-          onClick={resetZoom}
-          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-        >
-          {Math.round(zoom * 100)}%
-        </Button>
-
-        <Button
-          variant="outlined"
-          startIcon={<ZoomIn />}
-          onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
-          sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.3)' }}
-        >
-          Zväčšiť
-        </Button>
-
-        <Button
-          variant="contained"
-          startIcon={<Download />}
-          onClick={handleDownload}
-          sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-        >
-          Stiahnuť
-        </Button>
-      </Box>
-
-      {/* Thumbnail navigation */}
-      {allMedia.length > 1 && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            p: 2,
-            overflowX: 'auto',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          {allMedia.map((media, index) => (
-            <Box
-              key={media.id}
-              onClick={() => setCurrentIndex(index)}
-              sx={{
-                width: 60,
-                height: 60,
-                borderRadius: 1,
-                overflow: 'hidden',
-                cursor: 'pointer',
-                border:
-                  index === currentIndex
-                    ? '2px solid white'
-                    : '2px solid transparent',
-                opacity: index === currentIndex ? 1 : 0.7,
-                '&:hover': { opacity: 1 },
-                flexShrink: 0,
-              }}
-            >
-              {media.url.includes('video') ? (
-                <video
-                  src={media.url}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <img
-                  src={media.url}
-                  alt={`Thumbnail ${index + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
+            <div className="flex gap-2 flex-wrap">
+              <Badge
+                variant="secondary"
+                className="bg-white/20 text-white"
+              >
+                {currentMedia.type}
+              </Badge>
+              {currentMedia.compressed && (
+                <Badge
+                  variant="secondary"
+                  className="bg-green-500/20 text-white"
+                >
+                  Komprimované
+                </Badge>
               )}
-            </Box>
-          ))}
-        </Box>
-      )}
+              {currentMedia.originalSize && currentMedia.compressedSize && (
+                <Badge
+                  variant="secondary"
+                  className="bg-green-500/20 text-white"
+                >
+                  {Math.round(((currentMedia.originalSize - currentMedia.compressedSize) / currentMedia.originalSize) * 100)}% úspora
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex justify-center items-center gap-4 p-4 border-t border-white/10">
+          <Button
+            variant="outline"
+            onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
+            className="text-white border-white/30 hover:bg-white/10"
+          >
+            <ZoomOut className="h-4 w-4 mr-2" />
+            Zmenšiť
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={resetZoom}
+            className="text-white border-white/30 hover:bg-white/10"
+          >
+            {Math.round(zoom * 100)}%
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
+            className="text-white border-white/30 hover:bg-white/10"
+          >
+            <ZoomIn className="h-4 w-4 mr-2" />
+            Zväčšiť
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={handleDownload}
+            className="bg-white/10 text-white hover:bg-white/20"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Stiahnuť
+          </Button>
+        </div>
+
+        {/* Thumbnail navigation */}
+        {allMedia.length > 1 && (
+          <div className="flex gap-2 p-4 overflow-x-auto border-t border-white/10">
+            {allMedia.map((media, index) => (
+              <div
+                key={media.id}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-15 h-15 rounded-lg overflow-hidden cursor-pointer flex-shrink-0 transition-opacity hover:opacity-100 ${
+                  index === currentIndex
+                    ? 'border-2 border-white opacity-100'
+                    : 'border-2 border-transparent opacity-70'
+                }`}
+              >
+                {media.url.includes('video') ? (
+                  <video
+                    src={media.url}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={media.url}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

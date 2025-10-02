@@ -296,11 +296,11 @@ export const createVehicleLookup = (vehicles: unknown[]): VehicleLookup => {
     };
     if (vehicleData?.id) {
       lookup[vehicleData.id] = {
-        brand: vehicleData.brand,
-        model: vehicleData.model,
-        licensePlate: vehicleData.licensePlate,
-        company: vehicleData.company,
-        category: vehicleData.category,
+        brand: vehicleData.brand ?? '',
+        model: vehicleData.model ?? '',
+        licensePlate: vehicleData.licensePlate ?? '',
+        company: vehicleData.company ?? '',
+        category: vehicleData.category ?? '',
       };
     }
   });

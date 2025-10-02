@@ -206,9 +206,18 @@ export class EnhancedPDFGenerator {
 
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
+      
+      if (!image) {
+        console.warn('⚠️ Image is undefined, skipping');
+        continue;
+      }
 
       try {
         // Načítanie thumbnailu (800px) priamo do PDF
+        if (!image.thumbnail) {
+          console.warn('⚠️ Image thumbnail is missing, skipping image');
+          continue;
+        }
         const imageData = await this.loadImageData(image.thumbnail);
 
         // Výpočet rozmerov
@@ -253,7 +262,7 @@ export class EnhancedPDFGenerator {
           imagesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error processing image:', image.filename, error);
+        console.error('❌ Error processing image:', image.filename || 'unknown', error);
         // Pridaj placeholder pre chybný obrázok
         const placeholder = this.createImagePlaceholder(
           maxWidth,

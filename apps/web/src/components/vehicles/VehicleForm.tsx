@@ -1,29 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Assignment as DocumentIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Dialog,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Radio,
-  RadioGroup,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
+  Plus as AddIcon,
+  Trash2 as DeleteIcon,
+  FileText as DocumentIcon,
+  Edit2 as EditIcon,
+} from 'lucide-react';
+import { UnifiedButton as Button } from '@/components/ui/UnifiedButton';
+import { Card, CardContent } from '@/components/ui/card';
+import { UnifiedBadge as Badge } from '@/components/ui/UnifiedBadge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -54,7 +44,8 @@ import TechnicalCertificateUpload from './TechnicalCertificateUpload';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
-  onSave: (vehicle: Vehicle) => void;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+  onSave: (..._args: any[]) => void;
   onCancel: () => void;
 }
 
@@ -144,9 +135,9 @@ export default function VehicleForm({
               type: 'percentage',
               value: selectedCompany.defaultCommissionRate || 20,
             };
-            console.log(
-              `💰 Auto-set commission to ${selectedCompany.defaultCommissionRate}% for company ${selectedCompany.name}`
-            );
+            // console.log(
+            //   `💰 Auto-set commission to ${selectedCompany.defaultCommissionRate}% for company ${selectedCompany.name}`
+            // );
           }
         }
       }
@@ -161,7 +152,13 @@ export default function VehicleForm({
     value: string | number
   ) => {
     const newPricing = [...(formData.pricing || [])];
-    newPricing[index] = { ...newPricing[index], [field]: value };
+    newPricing[index] = { 
+      id: newPricing[index]?.id || uuidv4(),
+      minDays: newPricing[index]?.minDays || 1,
+      maxDays: newPricing[index]?.maxDays || 30,
+      pricePerDay: newPricing[index]?.pricePerDay || 0,
+      [field]: value 
+    };
     setFormData(prev => ({ ...prev, pricing: newPricing }));
   };
 
@@ -176,7 +173,7 @@ export default function VehicleForm({
       brand: formData.brand || '',
       model: formData.model || '',
       licensePlate: formData.licensePlate || '',
-      vin: formData.vin || undefined, // 🆔 VIN číslo
+      vin: formData.vin || '', // 🆔 VIN číslo
       company: formData.company || '',
       pricing: formData.pricing || [],
       commission: formData.commission || { type: 'percentage', value: 20 },
@@ -196,7 +193,7 @@ export default function VehicleForm({
   // Helper funkcie pre dokumenty - prepojené s UnifiedDocumentForm
   const handleAddDocument = () => {
     if (!formData.id) {
-      alert('Najprv uložte vozidlo, potom môžete pridávať dokumenty.');
+      // alert('Najprv uložte vozidlo, potom môžete pridávať dokumenty.');
       return;
     }
 
@@ -225,14 +222,14 @@ export default function VehicleForm({
   };
 
   const handleDeleteDocument = async (id: string) => {
-    if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
+    // if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
       try {
         await deleteVehicleDocument(id);
         setVehicleDocuments(prev => prev.filter(doc => doc.id !== id));
       } catch (error) {
         console.error('Chyba pri mazaní dokumentu:', error);
       }
-    }
+    // }
   };
 
   const handleUnifiedDocumentSave = async (data: UnifiedDocumentData) => {
@@ -276,7 +273,7 @@ export default function VehicleForm({
       setUnifiedDocumentData(null);
     } catch (error) {
       console.error('Chyba pri ukladaní dokumentu:', error);
-      alert('Chyba pri ukladaní dokumentu');
+      // alert('Chyba pri ukladaní dokumentu');
     }
   };
 
@@ -325,154 +322,168 @@ export default function VehicleForm({
       setAddingCompany(false);
     } catch (error) {
       console.error('Chyba pri vytváraní firmy:', error);
-      alert('Chyba pri vytváraní firmy');
+      // alert('Chyba pri vytváraní firmy');
     }
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 3,
-        }}
-      >
-        <TextField
-          fullWidth
-          label="Značka"
-          value={formData.brand}
-          onChange={e => handleInputChange('brand', e.target.value)}
-          required
-        />
-        <TextField
-          fullWidth
-          label="Model"
-          value={formData.model}
-          onChange={e => handleInputChange('model', e.target.value)}
-          required
-        />
-        <TextField
-          fullWidth
-          label="ŠPZ"
-          value={formData.licensePlate}
-          onChange={e => handleInputChange('licensePlate', e.target.value)}
-          required
-        />
-        <TextField
-          fullWidth
-          label="VIN číslo"
-          value={formData.vin || ''}
-          onChange={e => handleInputChange('vin', e.target.value)}
-          placeholder="Zadajte VIN číslo vozidla"
-          helperText="17-miestny identifikačný kód vozidla"
-        />
+    <form onSubmit={handleSubmit} className="mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label htmlFor="brand">Značka *</Label>
+          <Input
+            id="brand"
+            value={formData.brand}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('brand', e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="model">Model *</Label>
+          <Input
+            id="model"
+            value={formData.model}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('model', e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="licensePlate">ŠPZ *</Label>
+          <Input
+            id="licensePlate"
+            value={formData.licensePlate}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('licensePlate', e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="vin">VIN číslo</Label>
+          <Input
+            id="vin"
+            value={formData.vin || ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('vin', e.target.value)}
+            placeholder="Zadajte VIN číslo vozidla"
+          />
+          <p className="text-sm text-muted-foreground mt-1">
+            17-miestny identifikačný kód vozidla
+          </p>
+        </div>
         {/* Firma/Autopožičovňa - Select s rozšírenými informáciami */}
-        <FormControl fullWidth required>
-          <InputLabel>Firma/Autopožičovňa</InputLabel>
+        <div>
+          <Label htmlFor="company">Firma/Autopožičovňa *</Label>
           <Select
             value={formData.ownerCompanyId || ''}
-            label="Firma/Autopožičovňa"
-            onChange={e => {
-              const companyId = e.target.value;
+            onValueChange={(value: string) => {
+              if (value === '__add_new__') {
+                setAddingCompany(true);
+                return;
+              }
+              if (value === '__placeholder__') {
+                return; // Ignoruj placeholder
+              }
               const selectedCompany = activeCompanies.find(
-                c => c.id === companyId
+                c => c.id === value
               );
               if (selectedCompany) {
                 handleInputChange('company', selectedCompany.name);
-                handleInputChange('ownerCompanyId', companyId);
+                handleInputChange('ownerCompanyId', value);
               }
             }}
-            renderValue={selected => {
-              const company = activeCompanies.find(c => c.id === selected);
-              return company ? company.name : 'Vyberte firmu';
-            }}
           >
-            <MenuItem value="">
-              <em>Vyberte firmu...</em>
-            </MenuItem>
-            {activeCompanies.map(company => (
-              <MenuItem key={company.id} value={company.id}>
-                <Box>
-                  <Typography variant="body2">{company.name}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {company.ownerName && `👤 ${company.ownerName} • `}
-                    💰 Default provízia: {company.defaultCommissionRate || 20}%
-                    {!company.isActive && ' • NEAKTÍVNA'}
-                  </Typography>
-                </Box>
-              </MenuItem>
-            ))}
-            <MenuItem
-              value="__add_new__"
-              onClick={() => setAddingCompany(true)}
-            >
-              <em>+ Pridať novú firmu</em>
-            </MenuItem>
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte firmu..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__placeholder__">
+                <em>Vyberte firmu...</em>
+              </SelectItem>
+              {activeCompanies.map(company => (
+                <SelectItem key={company.id} value={company.id}>
+                  <div>
+                    <div className="font-medium">{company.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {company.ownerName && `👤 ${company.ownerName} • `}
+                      💰 Default provízia: {company.defaultCommissionRate || 20}%
+                      {!company.isActive && ' • NEAKTÍVNA'}
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+              <SelectItem value="__add_new__">
+                <em>+ Pridať novú firmu</em>
+              </SelectItem>
+            </SelectContent>
           </Select>
           {addingCompany && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <TextField
+            <div className="flex gap-2 mt-2">
+              <Input
                 autoFocus
-                fullWidth
-                size="small"
-                label="Názov novej firmy"
                 value={newCompanyName}
-                onChange={e => setNewCompanyName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
                 onKeyPress={e => {
                   if (e.key === 'Enter') {
                     handleAddCompany();
                   }
                 }}
+                placeholder="Názov novej firmy"
+                className="flex-1"
               />
-              <Button size="small" onClick={handleAddCompany}>
-                <AddIcon />
+              <Button size="sm" onClick={handleAddCompany}>
+                <AddIcon className="h-4 w-4" />
               </Button>
-              <Button size="small" onClick={() => setAddingCompany(false)}>
+              <Button size="sm" variant="outline" onClick={() => setAddingCompany(false)}>
                 Zrušiť
               </Button>
-            </Box>
+            </div>
           )}
-        </FormControl>
+        </div>
 
         {/* 🚗 CATEGORY SELECT - Kategória vozidla */}
-        <FormControl fullWidth>
-          <InputLabel>Kategória vozidla</InputLabel>
+        <div>
+          <Label htmlFor="category">Kategória vozidla</Label>
           <Select
             value={formData.category || 'stredna-trieda'}
-            onChange={e =>
-              handleInputChange('category', e.target.value as VehicleCategory)
+            onValueChange={(value: string) =>
+              handleInputChange('category', value as VehicleCategory)
             }
-            label="Kategória vozidla"
           >
-            <MenuItem value="nizka-trieda">🚗 Nízka trieda</MenuItem>
-            <MenuItem value="stredna-trieda">🚙 Stredná trieda</MenuItem>
-            <MenuItem value="vyssia-stredna">🚘 Vyššia stredná trieda</MenuItem>
-            <MenuItem value="luxusne">💎 Luxusné vozidlá</MenuItem>
-            <MenuItem value="sportove">🏎️ Športové vozidlá</MenuItem>
-            <MenuItem value="suv">🚜 SUV</MenuItem>
-            <MenuItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne vozidlá</MenuItem>
-            <MenuItem value="dodavky">📦 Dodávky</MenuItem>
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte kategóriu..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nizka-trieda">🚗 Nízka trieda</SelectItem>
+              <SelectItem value="stredna-trieda">🚙 Stredná trieda</SelectItem>
+              <SelectItem value="vyssia-stredna">🚘 Vyššia stredná trieda</SelectItem>
+              <SelectItem value="luxusne">💎 Luxusné vozidlá</SelectItem>
+              <SelectItem value="sportove">🏎️ Športové vozidlá</SelectItem>
+              <SelectItem value="suv">🚜 SUV</SelectItem>
+              <SelectItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne vozidlá</SelectItem>
+              <SelectItem value="dodavky">📦 Dodávky</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
-        <FormControl fullWidth>
-          <InputLabel>Stav</InputLabel>
+        </div>
+        <div>
+          <Label htmlFor="status">Stav</Label>
           <Select
-            value={formData.status}
-            onChange={e => handleInputChange('status', e.target.value)}
-            label="Stav"
+            value={formData.status ?? 'available'}
+            onValueChange={(value: string) => handleInputChange('status', value)}
           >
-            <MenuItem value="available">Dostupné</MenuItem>
-            <MenuItem value="rented">Prenajaté</MenuItem>
-            <MenuItem value="maintenance">Údržba</MenuItem>
-            <MenuItem value="temporarily_removed">Dočasne vyradené</MenuItem>
-            <MenuItem value="removed">Vyradené</MenuItem>
-            <MenuItem value="transferred">Prepisané</MenuItem>
-            <MenuItem value="private">🏠 Súkromné</MenuItem>
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte status..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="available">Dostupné</SelectItem>
+              <SelectItem value="rented">Prenajaté</SelectItem>
+              <SelectItem value="maintenance">Údržba</SelectItem>
+              <SelectItem value="temporarily_removed">Dočasne vyradené</SelectItem>
+              <SelectItem value="removed">Vyradené</SelectItem>
+              <SelectItem value="transferred">Prepisané</SelectItem>
+              <SelectItem value="private">🏠 Súkromné</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
-        <FormControl component="fieldset">
-          <Typography variant="subtitle1" gutterBottom>
+        </div>
+        <div>
+          <Label className="flex items-center gap-2">
             Provízia
             {formData.ownerCompanyId &&
               (() => {
@@ -484,90 +495,84 @@ export default function VehicleForm({
                   formData.commission?.value ===
                     selectedCompany.defaultCommissionRate;
                 return (
-                  <Chip
-                    label={
+                  <Badge
+                    variant={isUsingDefault ? 'default' : 'secondary'}
+                    className="ml-2"
+                  >
+                    {
                       isUsingDefault
                         ? `Default (${selectedCompany.defaultCommissionRate}%)`
                         : 'Vlastná hodnota'
                     }
-                    size="small"
-                    color={isUsingDefault ? 'primary' : 'secondary'}
-                    sx={{ ml: 1 }}
-                  />
+                  </Badge>
                 );
               })()}
-          </Typography>
+          </Label>
           <RadioGroup
-            row
-            value={formData.commission?.type}
-            onChange={e =>
+            value={formData.commission?.type ?? 'percentage'}
+            onValueChange={(value: string) =>
               handleInputChange('commission', {
                 ...formData.commission,
-                type: e.target.value as 'percentage' | 'fixed',
+                type: value as 'percentage' | 'fixed',
               })
             }
+            className="flex flex-row gap-4 mt-2"
           >
-            <FormControlLabel
-              value="percentage"
-              control={<Radio />}
-              label="Percentá"
-            />
-            <FormControlLabel
-              value="fixed"
-              control={<Radio />}
-              label="Fixná suma"
-            />
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="percentage" id="percentage" />
+              <Label htmlFor="percentage">Percentá</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="fixed" id="fixed" />
+              <Label htmlFor="fixed">Fixná suma</Label>
+            </div>
           </RadioGroup>
-          <TextField
-            fullWidth
-            label={
-              formData.commission?.type === 'percentage'
-                ? 'Percentá (%)'
-                : 'Suma (€)'
-            }
-            type="number"
-            value={formData.commission?.value}
-            onChange={e =>
-              handleInputChange('commission', {
-                ...formData.commission,
-                value: parseFloat(e.target.value),
-              })
-            }
-            sx={{ mt: 1 }}
-            helperText={
-              formData.ownerCompanyId &&
+          <div className="mt-4">
+            <Label htmlFor="commission-value">
+              {
+                formData.commission?.type === 'percentage'
+                  ? 'Percentá (%)'
+                  : 'Suma (€)'
+              }
+            </Label>
+            <Input
+              id="commission-value"
+              type="number"
+              value={formData.commission?.value || ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleInputChange('commission', {
+                  ...formData.commission,
+                  value: parseFloat(e.target.value),
+                })
+              }
+            />
+            {formData.ownerCompanyId &&
               (() => {
                 const selectedCompany = activeCompanies.find(
                   c => c.id === formData.ownerCompanyId
                 );
-                return selectedCompany
-                  ? `Default provízia firmy: ${selectedCompany.defaultCommissionRate || 20}%`
-                  : '';
-              })()
-            }
-          />
-        </FormControl>
+                return selectedCompany ? (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Default provízia firmy: {selectedCompany.defaultCommissionRate || 20}%
+                  </p>
+                ) : null;
+              })()}
+          </div>
+        </div>
 
-        <Box sx={{ gridColumn: '1 / -1' }}>
+        <div className="col-span-full">
           <Card>
             <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h6">Cenotvorba</Typography>
-              </Box>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Cenotvorba</h3>
+              </div>
               {formData.pricing?.map((tier, index) => (
-                <Box
+                <div
                   key={tier.id}
-                  sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}
+                  className="flex gap-4 mb-4 items-center"
                 >
-                  <TextField
-                    label={(() => {
+                  <Label className="w-24 text-sm">
+                    {(() => {
                       switch (index) {
                         case 0:
                           return '0-1 dni';
@@ -587,222 +592,205 @@ export default function VehicleForm({
                           return '';
                       }
                     })()}
+                  </Label>
+                  <Input
                     type="number"
                     value={tier.pricePerDay}
-                    onChange={e =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       handlePricingChange(
                         index,
                         'pricePerDay',
                         parseFloat(e.target.value)
                       )
                     }
-                    sx={{ width: 150 }}
+                    className="w-[150px]"
                   />
-                </Box>
+                </div>
               ))}
 
               {/* 🚗 NOVÉ: Extra kilometer rate */}
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <TextField
-                  label="Cena za extra km (€/km)"
-                  type="number"
-                  value={formData.extraKilometerRate || 0.3}
-                  onChange={e =>
-                    handleInputChange(
-                      'extraKilometerRate',
-                      parseFloat(e.target.value) || 0.3
-                    )
-                  }
-                  sx={{ width: 200 }}
-                  inputProps={{
-                    step: 0.01,
-                    min: 0,
-                    max: 10,
-                  }}
-                  helperText="Cena za každý kilometer nad povolený limit"
-                />
-              </Box>
+              <Separator className="my-4" />
+              <div className="flex gap-4 items-center">
+                <div>
+                  <Label htmlFor="extra-km">Cena za extra km (€/km)</Label>
+                  <Input
+                    id="extra-km"
+                    type="number"
+                    value={formData.extraKilometerRate || 0.3}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleInputChange(
+                        'extraKilometerRate',
+                        parseFloat(e.target.value) || 0.3
+                      )
+                    }
+                    className="w-[200px]"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Cena za každý kilometer nad povolený limit
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Box>
+        </div>
 
         {/* Evidencia platnosti */}
         {formData.id && (
-          <Box sx={{ gridColumn: '1 / -1' }}>
+          <div className="col-span-full">
             <Card>
               <CardContent>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 2,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <DocumentIcon />
-                    <Typography variant="h6">Evidencia platnosti</Typography>
-                  </Box>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <DocumentIcon className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold">Evidencia platnosti</h3>
+                  </div>
                   <Button
-                    startIcon={<AddIcon />}
-                    variant="outlined"
+                    variant="outline"
                     onClick={handleAddDocument}
                   >
+                    <AddIcon className="h-4 w-4 mr-2" />
                     Pridať dokument
                   </Button>
-                </Box>
+                </div>
 
-                <Grid container spacing={2}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {vehicleDocuments.map(doc => {
                     const expiryStatus = getExpiryStatus(doc.validTo);
                     return (
-                      <Grid item xs={12} sm={6} md={4} key={doc.id}>
+                      <div key={doc.id}>
                         <Card
-                          sx={{
-                            border: `1px solid ${
-                              expiryStatus.status === 'expired'
-                                ? '#f44336'
-                                : expiryStatus.status === 'expiring'
-                                  ? '#ff9800'
-                                  : '#e0e0e0'
-                            }`,
-                            '&:hover': { boxShadow: 2 },
-                          }}
+                          className={`border hover:shadow-md ${
+                            expiryStatus.status === 'expired'
+                              ? 'border-red-500'
+                              : expiryStatus.status === 'expiring'
+                                ? 'border-orange-500'
+                                : 'border-gray-200'
+                          }`}
                         >
-                          <CardContent sx={{ p: 2 }}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                mb: 1,
-                              }}
-                            >
-                              <Typography
-                                variant="subtitle1"
-                                sx={{ fontWeight: 600 }}
-                              >
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <p className="font-semibold">
                                 {getDocumentTypeLabel(doc.documentType)}
-                              </Typography>
-                              <Chip
-                                label={expiryStatus.text}
-                                color={
-                                  expiryStatus.color as
-                                    | 'error'
-                                    | 'warning'
-                                    | 'success'
+                              </p>
+                              <Badge
+                                variant={
+                                  expiryStatus.status === 'expired'
+                                    ? 'destructive'
+                                    : expiryStatus.status === 'expiring'
+                                      ? 'secondary'
+                                      : 'default'
                                 }
-                                size="small"
-                              />
-                            </Box>
+                                className="text-xs"
+                              >
+                                {expiryStatus.text}
+                              </Badge>
+                            </div>
 
                             {doc.documentNumber && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ mb: 1 }}
-                              >
+                              <p className="text-sm text-muted-foreground mb-2">
                                 Číslo: {doc.documentNumber}
-                              </Typography>
+                              </p>
                             )}
 
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ mb: 1 }}
-                            >
+                            <p className="text-sm text-muted-foreground mb-2">
                               Platné do:{' '}
                               {new Date(doc.validTo).toLocaleDateString()}
-                            </Typography>
+                            </p>
 
                             {doc.price && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ mb: 1 }}
-                              >
+                              <p className="text-sm text-muted-foreground mb-2">
                                 Cena: {doc.price.toFixed(2)} €
-                              </Typography>
+                              </p>
                             )}
 
-                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                              <IconButton
-                                size="small"
+                            <div className="flex gap-2 mt-4">
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => handleEditDocument(doc)}
-                                color="primary"
+                                className="h-8 w-8 p-0"
                               >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
+                                <EditIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => handleDeleteDocument(doc.id)}
-                                color="error"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
+                                <DeleteIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
-                      </Grid>
+                      </div>
                     );
                   })}
 
                   {vehicleDocuments.length === 0 && (
-                    <Grid item xs={12}>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ textAlign: 'center', py: 2 }}
-                      >
+                    <div className="col-span-12">
+                      <p className="text-sm text-muted-foreground text-center py-4">
                         Žiadne dokumenty evidované. Kliknite na "Pridať
                         dokument" pre pridanie STK, EK alebo dialničnej známky.
-                      </Typography>
-                    </Grid>
+                      </p>
+                    </div>
                   )}
-                </Grid>
+                </div>
               </CardContent>
             </Card>
-          </Box>
+          </div>
         )}
 
-        <Box
-          sx={{
-            gridColumn: '1 / -1',
-            display: 'flex',
-            gap: 2,
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Button variant="outlined" onClick={onCancel}>
+        <div className="col-span-full flex gap-4 justify-end">
+          <Button variant="outline" onClick={onCancel}>
             Zrušiť
           </Button>
-          <Button type="submit" variant="contained">
+          <Button type="submit">
             {vehicle ? 'Uložiť zmeny' : 'Pridať vozidlo'}
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* UnifiedDocumentForm pre STK/EK/Dialničné dokumenty */}
       <Dialog
         open={showUnifiedDocumentForm}
-        onClose={() => {
-          setShowUnifiedDocumentForm(false);
-          setUnifiedDocumentData(null);
-        }}
-        maxWidth="lg"
-        fullWidth
-      >
-        <UnifiedDocumentForm
-          document={unifiedDocumentData}
-          onSave={document =>
-            handleUnifiedDocumentSave(document as UnifiedDocumentData)
-          }
-          onCancel={() => {
+        onOpenChange={(open) => {
+          if (!open) {
             setShowUnifiedDocumentForm(false);
             setUnifiedDocumentData(null);
-          }}
-        />
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {unifiedDocumentData?.id ? 'Upraviť' : 'Pridať'} dokument
+            </DialogTitle>
+            <DialogDescription>
+              Pridajte alebo upravte dokument pre vozidlo
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (unifiedDocumentData) {
+              handleUnifiedDocumentSave(unifiedDocumentData as UnifiedDocumentData);
+            }
+          }}>
+            <UnifiedDocumentForm
+              document={unifiedDocumentData}
+              onSave={document =>
+                handleUnifiedDocumentSave(document as UnifiedDocumentData)
+              }
+              onCancel={() => {
+                setShowUnifiedDocumentForm(false);
+                setUnifiedDocumentData(null);
+              }}
+            />
+          </form>
+        </DialogContent>
       </Dialog>
 
       {/* 📄 NOVÉ: Technický preukaz vozidla */}
@@ -812,6 +800,6 @@ export default function VehicleForm({
           vehicleName={`${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
         />
       )}
-    </Box>
+    </form>
   );
 }

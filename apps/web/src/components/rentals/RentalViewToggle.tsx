@@ -1,21 +1,22 @@
+// Lucide icons (replacing MUI icons)
 import {
-  ViewList as ViewListIcon,
-  ViewModule as ViewModuleIcon,
-  ViewComfy as ViewComfyIcon,
-  GridView as GridViewIcon,
-  ViewColumn as ViewColumnIcon,
-  ViewAgenda as ViewAgendaIcon,
-} from '@mui/icons-material';
+  List as ViewListIcon,
+  Grid3X3 as ViewModuleIcon,
+  Layout as ViewComfyIcon,
+  Grid as GridViewIcon,
+  Columns as ViewColumnIcon,
+  ListOrdered as ViewAgendaIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
-  Box,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
-  useMediaQuery,
-  useTheme,
-  Typography,
-  Chip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import React from 'react';
 
 export type ViewMode =
@@ -41,8 +42,15 @@ const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
   filteredCount,
   showCounts = true,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+  
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const viewModes = [
     {
@@ -91,95 +99,54 @@ const RentalViewToggle: React.FC<RentalViewToggleProps> = ({
   const availableModes = isMobile ? mobileViewModes : viewModes;
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: { xs: 1, md: 2 },
-        flexWrap: 'wrap',
-      }}
-    >
+    <div className="flex items-center gap-2 md:gap-4 flex-wrap">
       {/* Počty */}
       {showCounts && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}
-          >
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
             Zobrazených:
-          </Typography>
-          <Chip
-            label={`${filteredCount} z ${totalCount}`}
-            size="small"
-            color={filteredCount < totalCount ? 'primary' : 'default'}
-            variant={filteredCount < totalCount ? 'filled' : 'outlined'}
-            sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}
-          />
-        </Box>
+          </span>
+          <Badge 
+            variant={filteredCount < totalCount ? "default" : "outline"}
+            className="text-xs"
+          >
+            {filteredCount} z {totalCount}
+          </Badge>
+        </div>
       )}
 
       {/* Prepínače zobrazenia */}
-      <ToggleButtonGroup
-        value={viewMode}
-        exclusive
-        onChange={(_, newMode) => {
-          if (newMode !== null) {
-            onViewModeChange(newMode);
-          }
-        }}
-        size="small"
-        sx={{
-          '& .MuiToggleButton-root': {
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            px: { xs: 1, md: 2 },
-            py: { xs: 0.5, md: 1 },
-            minWidth: { xs: 40, md: 'auto' },
-            height: { xs: 40, md: 'auto' },
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              transform: 'translateY(-1px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            },
-            '&.Mui-selected': {
-              bgcolor: 'primary.main',
-              color: 'white',
-              borderColor: 'primary.main',
-              '&:hover': {
-                bgcolor: 'primary.dark',
-              },
-            },
-          },
-        }}
-      >
+      <div className="flex gap-1">
         {availableModes.map(mode => (
-          <Tooltip key={mode.value} title={mode.description} placement="top">
-            <ToggleButton value={mode.value}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: { xs: 0, md: 1 },
-                  flexDirection: isMobile ? 'column' : 'row',
-                }}
-              >
-                <Box sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
-                  {mode.icon}
-                </Box>
-                {!isMobile && (
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {mode.label}
-                  </Typography>
-                )}
-              </Box>
-            </ToggleButton>
-          </Tooltip>
+          <TooltipProvider key={mode.value}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === mode.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onViewModeChange(mode.value)}
+                  className={`flex items-center gap-1 px-2 py-1 h-8 ${
+                    isMobile ? 'flex-col' : 'flex-row'
+                  }`}
+                >
+                  <span className={`${isMobile ? 'text-lg' : 'text-sm'}`}>
+                    {mode.icon}
+                  </span>
+                  {!isMobile && (
+                    <span className="text-sm font-medium">
+                      {mode.label}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{mode.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ))}
-      </ToggleButtonGroup>
-    </Box>
+      </div>
+    </div>
   );
 };
 

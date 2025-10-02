@@ -24,9 +24,8 @@ window.addEventListener('error', event => {
 });
 
 // Initialize performance monitoring
-// DOČASNE VYPNUTÉ - spôsobuje page reload a blokuje HMR
-// if (import.meta.env.MODE === 'development') {
-//   import('./utils/webVitals').then(({ reportWebVitals }) => {
-//     reportWebVitals(); // Silent monitoring
-//   });
-// }
+if (import.meta.env.MODE === 'development') {
+  import('./utils/webVitals').then(({ reportWebVitals }) => {
+    reportWebVitals(); // Silent monitoring
+  });
+}

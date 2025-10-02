@@ -122,62 +122,62 @@ export function calculateNextRentalPeriod(
 export function createClonedRental(
   original: Rental,
   cloneResult: CloneResult
-): Partial<Rental> {
+): Omit<Rental, 'id'> & { id?: string } {
   return {
     // Nové dátumy
     startDate: cloneResult.newStartDate,
     endDate: cloneResult.newEndDate,
 
     // Zachované údaje o zákazníkovi
-    customerId: original.customerId,
-    customer: original.customer,
+    ...(original.customerId !== undefined && { customerId: original.customerId }),
+    ...(original.customer !== undefined && { customer: original.customer }),
     customerName: original.customerName,
-    customerEmail: original.customerEmail,
-    customerPhone: original.customerPhone,
-    customerAddress: original.customerAddress,
+    ...(original.customerEmail !== undefined && { customerEmail: original.customerEmail }),
+    ...(original.customerPhone !== undefined && { customerPhone: original.customerPhone }),
+    customerAddress: original.customerAddress ?? '',
 
     // Zachované údaje o vozidle
-    vehicleId: original.vehicleId,
-    vehicle: original.vehicle,
-    vehicleVin: original.vehicleVin,
-    vehicleCode: original.vehicleCode,
-    vehicleName: original.vehicleName,
+    ...(original.vehicleId !== undefined && { vehicleId: original.vehicleId }),
+    ...(original.vehicle !== undefined && { vehicle: original.vehicle }),
+    ...(original.vehicleVin !== undefined && { vehicleVin: original.vehicleVin }),
+    ...(original.vehicleCode !== undefined && { vehicleCode: original.vehicleCode }),
+    ...(original.vehicleName !== undefined && { vehicleName: original.vehicleName }),
 
     // Zachované cenové údaje
     totalPrice: original.totalPrice,
     commission: original.commission,
-    discount: original.discount,
-    customCommission: original.customCommission,
-    extraKmCharge: original.extraKmCharge,
-    extraKilometerRate: original.extraKilometerRate,
+    ...(original.discount !== undefined && { discount: original.discount }),
+    ...(original.customCommission !== undefined && { customCommission: original.customCommission }),
+    ...(original.extraKmCharge !== undefined && { extraKmCharge: original.extraKmCharge }),
+    extraKilometerRate: original.extraKilometerRate ?? 0,
 
     // Zachované podmienky prenájmu
-    deposit: original.deposit,
-    allowedKilometers: original.allowedKilometers,
-    dailyKilometers: original.dailyKilometers,
-    returnConditions: original.returnConditions,
+    ...(original.deposit !== undefined && { deposit: original.deposit }),
+    ...(original.allowedKilometers !== undefined && { allowedKilometers: original.allowedKilometers }),
+    ...(original.dailyKilometers !== undefined && { dailyKilometers: original.dailyKilometers }),
+    ...(original.returnConditions !== undefined && { returnConditions: original.returnConditions }),
 
     // Zachované lokácie a nastavenia
-    handoverPlace: original.handoverPlace,
-    pickupLocation: original.pickupLocation,
-    returnLocation: original.returnLocation,
+    ...(original.handoverPlace !== undefined && { handoverPlace: original.handoverPlace }),
+    ...(original.pickupLocation !== undefined && { pickupLocation: original.pickupLocation }),
+    ...(original.returnLocation !== undefined && { returnLocation: original.returnLocation }),
     paymentMethod: original.paymentMethod,
 
     // Zachované flexibilné nastavenia
-    isFlexible: original.isFlexible,
-    flexibleEndDate: original.flexibleEndDate,
+    ...(original.isFlexible !== undefined && { isFlexible: original.isFlexible }),
+    ...(original.flexibleEndDate !== undefined && { flexibleEndDate: original.flexibleEndDate }),
 
     // Zachované firemné údaje
-    company: original.company,
+    ...(original.company !== undefined && { company: original.company }),
 
     // Zachované poznámky a dodatočné info
-    notes: original.notes,
+    ...(original.notes !== undefined && { notes: original.notes }),
     sourceType: original.sourceType || 'manual',
 
     // 🆕 DOPLNENÉ: Ďalšie dôležité údaje ktoré sa majú kopírovať
-    reservationTime: original.reservationTime, // Čas rezervácie
-    isPrivateRental: original.isPrivateRental, // Súkromný prenájom
-    orderNumber: original.orderNumber, // Číslo objednávky - KOPÍRUJ
+    ...(original.reservationTime !== undefined && { reservationTime: original.reservationTime }), // Čas rezervácie
+    ...(original.isPrivateRental !== undefined && { isPrivateRental: original.isPrivateRental }), // Súkromný prenájom
+    orderNumber: original.orderNumber ?? '', // Číslo objednávky - KOPÍRUJ
 
     // RESETOVANÉ STATUSY A PROTOKOLY
     status: 'pending' as const,
@@ -186,27 +186,27 @@ export function createClonedRental(
     approvalStatus: 'pending' as const,
 
     // Resetované protokoly
-    handoverProtocolId: undefined,
-    returnProtocolId: undefined,
+    handoverProtocolId: '',
+    returnProtocolId: '',
 
     // Resetované merania a náklady (budú sa vyplňovať nové)
-    fuelLevel: undefined,
-    odometer: undefined,
-    returnFuelLevel: undefined,
-    returnOdometer: undefined,
-    actualKilometers: undefined,
-    fuelRefillCost: undefined,
-    damageCost: undefined,
-    additionalCosts: undefined,
-    finalPrice: undefined,
+    fuelLevel: 0,
+    odometer: 0,
+    returnFuelLevel: 0,
+    returnOdometer: 0,
+    actualKilometers: 0,
+    fuelRefillCost: 0,
+    damageCost: 0,
+    additionalCosts: 0,
+    finalPrice: 0,
 
     // Resetované platby a história
     payments: [],
     history: [],
 
     // Nové ID bude vygenerované pri uložení
-    id: undefined,
-    createdAt: undefined,
+    // id: '', // Vynecháme úplne pre exactOptionalPropertyTypes
+    createdAt: new Date(),
     // orderNumber sa kopíruje z originálneho prenájmu (riadok 180)
   };
 }

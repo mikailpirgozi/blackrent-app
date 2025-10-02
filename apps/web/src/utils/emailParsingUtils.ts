@@ -43,7 +43,7 @@ export function parseEmailText(text: string): ParsedEmailData {
   // Parsovanie čísla objednávky
   const orderNumberMatch = text.match(/Číslo objednávky\s+([A-Z]+\d+)/i);
   if (orderNumberMatch) {
-    data.orderNumber = orderNumberMatch[1];
+    data.orderNumber = orderNumberMatch[1]!!;
   }
 
   // Parsovanie dátumu objednávky
@@ -51,55 +51,55 @@ export function parseEmailText(text: string): ParsedEmailData {
     /Objednávka prijatá\s+(\d{2}\.\d{2}\.\d{4})/
   );
   if (orderDateMatch) {
-    data.orderDate = orderDateMatch[1];
+    data.orderDate = orderDateMatch[1]!!;
   }
 
   // Parsovanie spôsobu úhrady
   const paymentMethodMatch = text.match(/Spôsob úhrady\s+(.+)/);
   if (paymentMethodMatch) {
-    data.paymentMethod = paymentMethodMatch[1].trim();
+    data.paymentMethod = paymentMethodMatch[1]!!.trim();
   }
 
   // Parsovanie odoberateľa (zákazníka)
   const customerMatch = text.match(/Odoberateľ\s+(.+)/);
   if (customerMatch) {
-    data.customerName = customerMatch[1].trim();
+    data.customerName = customerMatch[1]!.trim();
   }
 
   // Parsovanie emailu
   const emailMatch = text.match(/E-mail\s+(.+)/);
   if (emailMatch) {
-    data.customerEmail = emailMatch[1].trim();
+    data.customerEmail = emailMatch[1]!.trim();
   }
 
   // Parsovanie telefónu
   const phoneMatch = text.match(/Telefon\s+(.+)/);
   if (phoneMatch) {
-    data.customerPhone = phoneMatch[1].trim();
+    data.customerPhone = phoneMatch[1]!.trim();
   }
 
   // Parsovanie kontaktnej adresy
   const addressMatch = text.match(/Kontaktná adresa\s+(.+)/);
   if (addressMatch) {
-    data.customerAddress = addressMatch[1].trim();
+    data.customerAddress = addressMatch[1]!.trim();
   }
 
   // Parsovanie miesta vyzdvihnutia
   const pickupMatch = text.match(/Miesto vyzdvihnutia\s+(.+)/);
   if (pickupMatch) {
-    data.handoverLocation = pickupMatch[1].trim();
+    data.handoverLocation = pickupMatch[1]!.trim();
   }
 
   // Parsovanie miesta odovzdania (ak je iné)
   const dropoffMatch = text.match(/Miesto odovzdania\s+(.+)/);
-  if (dropoffMatch && dropoffMatch[1].trim() !== data.handoverLocation) {
-    data.handoverLocation = dropoffMatch[1].trim(); // Použije miesto odovzdania ak je iné
+  if (dropoffMatch && dropoffMatch[1]!.trim() !== data.handoverLocation) {
+    data.handoverLocation = dropoffMatch[1]!.trim(); // Použije miesto odovzdania ak je iné
   }
 
   // Parsovanie času rezervácie (komplex formát)
   const reservationTimeMatch = text.match(/Čas rezervácie\s+(.+)/);
   if (reservationTimeMatch) {
-    const timeStr = reservationTimeMatch[1].trim();
+    const timeStr = reservationTimeMatch[1]!.trim();
 
     // Pattern: "DD.MM.YYYY HH:MM:SS - DD.MM.YYYY HH:MM:SS"
     const dateRangePattern =
@@ -108,8 +108,8 @@ export function parseEmailText(text: string): ParsedEmailData {
 
     if (dateRangeMatch) {
       // ZACHOVAJ PRESNÝ FORMÁT - konvertuj DD.MM.YYYY na YYYY-MM-DD pre PostgreSQL
-      const startDay = dateRangeMatch[1].split('.').reverse().join('-');
-      const endDay = dateRangeMatch[3].split('.').reverse().join('-');
+      const startDay = dateRangeMatch[1]!.split('.').reverse().join('-');
+      const endDay = dateRangeMatch[3]!.split('.').reverse().join('-');
       data.handoverDate = `${startDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[2]}`;
       data.returnDate = `${endDay.replace(/(\d{4})-(\d{1,2})-(\d{1,2})/, (_, y, m, d) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)} ${dateRangeMatch[4]}`;
     } else {
@@ -120,7 +120,7 @@ export function parseEmailText(text: string): ParsedEmailData {
 
       if (isoDateRangeMatch) {
         // ZACHOVAJ PRESNÝ ČAS BEZ TIMEZONE KONVERZIE
-        data.handoverDate = `${isoDateRangeMatch[1]} ${isoDateRangeMatch[2]}`;
+        data.handoverDate = `${isoDateRangeMatch[1]!} ${isoDateRangeMatch[2]}`;
         data.returnDate = `${isoDateRangeMatch[3]} ${isoDateRangeMatch[4]}`;
       }
     }
@@ -129,11 +129,11 @@ export function parseEmailText(text: string): ParsedEmailData {
   // Parsovanie vozidla (komplexné)
   const vehicleMatch = text.match(/(?:Vozidlo|Vehicle|Auto)\s+([^\n]+)/i);
   if (vehicleMatch) {
-    logger.debug('🚗 Parsing vehicle line:', vehicleMatch[1]);
+    logger.debug('🚗 Parsing vehicle line:', vehicleMatch[1]!);
 
     // Ak obsahuje tabuľkový formát
-    if (vehicleMatch[1].includes('Cena') || vehicleMatch[1].includes('Spolu')) {
-      const parts = vehicleMatch[1].split(/\s+/).filter(part => part.trim());
+    if (vehicleMatch[1]!.includes('Cena') || vehicleMatch[1]!.includes('Spolu')) {
+      const parts = vehicleMatch[1]!.split(/\s+/).filter(part => part.trim());
       logger.debug('🔍 Vehicle parts (table format):', parts);
 
       // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
@@ -144,17 +144,17 @@ export function parseEmailText(text: string): ParsedEmailData {
         '🔍 SPZ index:',
         spzIndex,
         'SPZ:',
-        spzIndex >= 0 ? parts[spzIndex] : 'not found'
+        spzIndex >= 0 ? parts[spzIndex]! : 'not found'
       );
 
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ
         data.vehicleName = parts.slice(0, spzIndex).join(' ');
-        data.vehicleCode = parts[spzIndex];
+        data.vehicleCode = parts[spzIndex]!;
 
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1]
+          const priceStr = parts[spzIndex + 1]!
             .replace(',', '.')
             .replace('€', '')
             .trim();
@@ -170,7 +170,7 @@ export function parseEmailText(text: string): ParsedEmailData {
         logger.debug('❌ Could not find SPZ in vehicle line');
       }
     } else {
-      const vehicleLine = vehicleMatch[1].trim();
+      const vehicleLine = vehicleMatch[1]!.trim();
       logger.debug('🔍 Parsing vehicle line:', vehicleLine);
 
       const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
@@ -184,17 +184,17 @@ export function parseEmailText(text: string): ParsedEmailData {
         '🔍 SPZ index:',
         spzIndex,
         'SPZ:',
-        spzIndex >= 0 ? parts[spzIndex] : 'not found'
+        spzIndex >= 0 ? parts[spzIndex]! : 'not found'
       );
 
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ
         data.vehicleName = parts.slice(0, spzIndex).join(' ');
-        data.vehicleCode = parts[spzIndex];
+        data.vehicleCode = parts[spzIndex]!;
 
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1]
+          const priceStr = parts[spzIndex + 1]!
             .replace(',', '.')
             .replace('€', '')
             .trim();
@@ -220,7 +220,7 @@ export function parseEmailText(text: string): ParsedEmailData {
   logger.debug('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
 
   if (specificKmMatch) {
-    data.dailyKilometers = parseInt(specificKmMatch[1]);
+    data.dailyKilometers = parseInt(specificKmMatch[1]!);
     logger.debug(
       `🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`
     );
@@ -239,7 +239,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     );
 
     if (explicitDailyKmMatch) {
-      data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);
+      data.dailyKilometers = parseInt(explicitDailyKmMatch[1]!);
       logger.debug(
         `🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`
       );
@@ -256,7 +256,7 @@ export function parseEmailText(text: string): ParsedEmailData {
       logger.debug('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
 
       if (generalKmMatch) {
-        data.dailyKilometers = parseInt(generalKmMatch[1]);
+        data.dailyKilometers = parseInt(generalKmMatch[1]!);
         logger.debug(
           `🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`
         );
@@ -272,7 +272,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     text.match(/Extra\s+km[:\s]+([\d,]+)\s*€/i) ||
     text.match(/Nadlimitn[ý]\s+km[:\s]+([\d,]+)\s*€/i);
   if (extraKmMatch) {
-    const extraKmStr = extraKmMatch[1].replace(',', '.');
+    const extraKmStr = extraKmMatch[1]!.replace(',', '.');
     data.extraKilometerRate = parseFloat(extraKmStr);
   }
 
@@ -282,7 +282,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     text.match(/Fuel[:\s]+(\d+)%/i) ||
     text.match(/Nádrž[:\s]+(\d+)%/i);
   if (fuelMatch) {
-    data.fuelLevel = parseInt(fuelMatch[1]);
+    data.fuelLevel = parseInt(fuelMatch[1]!);
   }
 
   // Parsovanie stavu tachometra
@@ -291,7 +291,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     text.match(/Kilometrov[:\s]+([\d\s]+)\s*km/i) ||
     text.match(/Stav[:\s]+([\d\s]+)\s*km/i);
   if (odometerMatch) {
-    const odometerStr = odometerMatch[1].replace(/\s/g, '');
+    const odometerStr = odometerMatch[1]!.replace(/\s/g, '');
     data.startOdometer = parseInt(odometerStr);
   }
 
@@ -300,7 +300,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     text.match(/Podmienky\s+vrátenia[:\s]+([^.]+)/i) ||
     text.match(/Return\s+conditions[:\s]+([^.]+)/i);
   if (conditionsMatch) {
-    data.returnConditions = conditionsMatch[1].trim();
+    data.returnConditions = conditionsMatch[1]!.trim();
   }
 
   // Parsovanie poznámok
@@ -309,7 +309,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     text.match(/Notes[:\s]+([^.]+)/i) ||
     text.match(/Dodatočné\s+informácie[:\s]+([^.]+)/i);
   if (notesMatch) {
-    data.notes = notesMatch[1].trim();
+    data.notes = notesMatch[1]!.trim();
   }
 
   // Parsovanie informácií o poistení
@@ -317,7 +317,7 @@ export function parseEmailText(text: string): ParsedEmailData {
     text.match(/Poistenie[:\s]+([^.]+)/i) ||
     text.match(/Insurance[:\s]+([^.]+)/i);
   if (insuranceMatch) {
-    data.insuranceInfo = insuranceMatch[1].trim();
+    data.insuranceInfo = insuranceMatch[1]!.trim();
   }
 
   return data;

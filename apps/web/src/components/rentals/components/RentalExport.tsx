@@ -1,8 +1,10 @@
+// Lucide icons (replacing MUI icons)
 import {
-  FileUpload as DownloadIcon,
-  FileDownload as ExportIcon,
-} from '@mui/icons-material';
-import { Box, Button } from '@mui/material';
+  Upload as DownloadIcon,
+  Download as ExportIcon,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import React, { useCallback, useRef } from 'react';
@@ -658,7 +660,15 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 // Vytvor prenájmy jeden po druhom namiesto batch importu
                 for (const rental of batchRentals) {
                   try {
-                    const createdRental = await apiService.createRental(rental);
+                    const createdRental = await apiService.createRental({
+                      ...rental,
+                      vehicle: rental.vehicle ?? {} as Vehicle,
+                      customer: rental.customer ?? {} as Customer,
+                      vehicleId: rental.vehicleId || '',
+                      customerId: rental.customerId || '',
+                      discount: rental.discount ?? { type: 'percentage' as const, value: 0 },
+                      customCommission: rental.customCommission ?? { type: 'percentage' as const, value: 0 },
+                    });
                     imported.push(createdRental);
                   } catch (error) {
                     logger.error('Failed to create rental', {
@@ -701,47 +711,24 @@ export const RentalExport: React.FC<RentalExportProps> = ({
   );
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: { xs: 1, md: 2 },
-        mb: 3,
-        mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
-        flexWrap: 'wrap',
-        alignItems: 'center',
-      }}
-    >
+    <div className="flex gap-2 md:gap-4 mb-6 mx-2 md:mx-0 flex-wrap items-center">
       {/* Export CSV */}
       <Button
-        variant="outlined"
-        startIcon={<ExportIcon />}
+        variant="outline"
         onClick={() => exportRentalsToCSV(filteredRentals)}
-        sx={{
-          minWidth: { xs: 'auto', md: '120px' },
-          fontSize: { xs: '0.8rem', md: '0.875rem' },
-          px: { xs: 2, md: 3 },
-          py: { xs: 1, md: 1.5 },
-          borderRadius: 2,
-          display: { xs: 'none', md: 'inline-flex' }, // Skryté na mobile
-        }}
+        className="min-w-[120px] text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 rounded-lg hidden md:inline-flex"
       >
+        <ExportIcon className="w-4 h-4 mr-2" />
         Export CSV
       </Button>
 
       {/* Import CSV */}
       <Button
-        variant="outlined"
-        startIcon={<DownloadIcon />}
+        variant="outline"
         onClick={() => fileInputRef.current?.click()}
-        sx={{
-          minWidth: { xs: 'auto', md: '120px' },
-          fontSize: { xs: '0.8rem', md: '0.875rem' },
-          px: { xs: 2, md: 3 },
-          py: { xs: 1, md: 1.5 },
-          borderRadius: 2,
-          display: { xs: 'none', md: 'inline-flex' }, // Skryté na mobile
-        }}
+        className="min-w-[120px] text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 rounded-lg hidden md:inline-flex"
       >
+        <DownloadIcon className="w-4 h-4 mr-2" />
         Import CSV
       </Button>
       <input
@@ -751,6 +738,6 @@ export const RentalExport: React.FC<RentalExportProps> = ({
         onChange={handleImportCSV}
         ref={fileInputRef}
       />
-    </Box>
+    </div>
   );
 };

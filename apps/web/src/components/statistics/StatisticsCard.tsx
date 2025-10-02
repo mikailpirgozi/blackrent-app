@@ -5,19 +5,15 @@
  */
 
 import {
-  Remove as StableIcon,
+  Minus as StableIcon,
   TrendingDown as TrendingDownIcon,
   TrendingUp as TrendingUpIcon,
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Typography,
-  useTheme,
-} from '@mui/material';
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Typography } from '@/components/ui/typography';
+import { cn } from '@/lib/utils';
 import React, { memo } from 'react';
 
 interface StatisticsCardProps {
@@ -45,22 +41,19 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
   compact = false,
   onClick,
 }) => {
-  const theme = useTheme();
-  // const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Nepoužívané
-
   // Get color based on theme
-  const getColor = (colorName: string) => {
+  const getColorClasses = (colorName: string) => {
     const colors: Record<string, string> = {
-      primary: theme.palette.primary.main,
-      success: theme.palette.success.main,
-      warning: theme.palette.warning.main,
-      error: theme.palette.error.main,
-      info: theme.palette.info.main,
+      primary: 'text-blue-600 bg-blue-50 border-blue-200',
+      success: 'text-green-600 bg-green-50 border-green-200',
+      warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+      error: 'text-red-600 bg-red-50 border-red-200',
+      info: 'text-cyan-600 bg-cyan-50 border-cyan-200',
     };
-    return colors[colorName] || colorName;
+    return colors[colorName] || colors.primary;
   };
 
-  const cardColor = getColor(color);
+  const colorClasses = getColorClasses(color);
 
   // Get trend icon and color
   const getTrendDisplay = () => {
@@ -71,95 +64,58 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
     const absValue = Math.abs(trend.value);
 
     let trendIcon;
-    let trendColor;
+    let trendColorClasses;
 
     if (absValue === 0) {
-      trendIcon = <StableIcon fontSize="small" />;
-      trendColor = theme.palette.text.secondary;
+      trendIcon = <StableIcon className="h-3 w-3" />;
+      trendColorClasses = 'bg-gray-100 text-gray-600';
     } else if (isPositive) {
-      trendIcon = <TrendingUpIcon fontSize="small" />;
-      trendColor = theme.palette.success.main;
+      trendIcon = <TrendingUpIcon className="h-3 w-3" />;
+      trendColorClasses = 'bg-green-100 text-green-600';
     } else {
-      trendIcon = <TrendingDownIcon fontSize="small" />;
-      trendColor = theme.palette.error.main;
+      trendIcon = <TrendingDownIcon className="h-3 w-3" />;
+      trendColorClasses = 'bg-red-100 text-red-600';
     }
 
     return (
-      <Chip
-        size="small"
-        icon={trendIcon}
-        label={`${absValue > 0 ? (isPositive ? '+' : '-') : ''}${absValue.toFixed(1)}%`}
-        sx={{
-          backgroundColor: `${trendColor}20`,
-          color: trendColor,
-          fontSize: '0.7rem',
-          height: 20,
-          '& .MuiChip-icon': {
-            color: trendColor,
-            fontSize: 12,
-          },
-        }}
-      />
+      <Badge
+        variant="secondary"
+        className={cn(
+          'flex items-center gap-1 px-2 py-1 text-xs font-medium',
+          trendColorClasses
+        )}
+      >
+        {trendIcon}
+        {`${absValue > 0 ? (isPositive ? '+' : '-') : ''}${absValue.toFixed(1)}%`}
+      </Badge>
     );
   };
 
   return (
     <Card
-      sx={{
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'all 0.2s ease-in-out',
-        borderRadius: compact ? 2 : 3,
-        height: '100%',
-        background: compact
-          ? `linear-gradient(135deg, ${cardColor}08 0%, ${cardColor}15 100%)`
-          : theme.palette.background.paper,
-        border: `1px solid ${cardColor}20`,
-        '&:hover': onClick
-          ? {
-              transform: 'translateY(-2px)',
-              boxShadow: theme.shadows[6],
-              borderColor: `${cardColor}40`,
-            }
-          : {},
-      }}
+      className={cn(
+        'h-full transition-all duration-200',
+        onClick && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg',
+        compact ? 'rounded-lg' : 'rounded-xl',
+        colorClasses
+      )}
       onClick={onClick}
     >
-      <CardContent
-        sx={{
-          p: compact ? 2 : 3,
-          '&:last-child': { pb: compact ? 2 : 3 },
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: compact ? 1.5 : 2,
-          }}
-        >
+      <CardContent className={cn('p-4', compact ? 'p-3' : 'p-6')}>
+        <div className={cn('flex items-start gap-3', compact ? 'gap-2' : 'gap-4')}>
           {/* Icon */}
-          <Avatar
-            sx={{
-              backgroundColor: `${cardColor}15`,
-              color: cardColor,
-              width: compact ? 40 : 48,
-              height: compact ? 40 : 48,
-            }}
-          >
-            {icon}
+          <Avatar className={cn('flex-shrink-0', compact ? 'h-8 w-8' : 'h-12 w-12')}>
+            <AvatarFallback className={cn('text-sm font-medium', compact ? 'text-xs' : 'text-sm')}>
+              {icon}
+            </AvatarFallback>
           </Avatar>
 
           {/* Content */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+          <div className="flex-1 min-w-0">
             {/* Title */}
             <Typography
-              variant={compact ? 'body2' : 'subtitle2'}
-              sx={{
-                color: 'text.secondary',
-                fontWeight: 500,
-                mb: 0.5,
-                lineHeight: 1.2,
-              }}
+              variant={compact ? 'body2' : 'body2'}
+              className="text-muted-foreground font-medium mb-1 leading-tight"
             >
               {title}
             </Typography>
@@ -167,12 +123,7 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
             {/* Value */}
             <Typography
               variant={compact ? 'h6' : 'h5'}
-              sx={{
-                fontWeight: 700,
-                color: 'text.primary',
-                lineHeight: 1.1,
-                mb: subtitle || trend ? 0.5 : 0,
-              }}
+              className="font-bold text-foreground leading-tight mb-1"
             >
               {typeof value === 'number' && value % 1 === 0
                 ? value.toLocaleString('sk-SK')
@@ -182,12 +133,8 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
             {/* Subtitle */}
             {subtitle && (
               <Typography
-                variant="caption"
-                sx={{
-                  color: 'text.secondary',
-                  display: 'block',
-                  mb: trend ? 0.5 : 0,
-                }}
+                variant="body2"
+                className="text-muted-foreground block mb-1"
               >
                 {subtitle}
               </Typography>
@@ -195,22 +142,15 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({
 
             {/* Trend */}
             {trend && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mt: 0.5,
-                }}
-              >
+              <div className="flex items-center justify-between mt-1">
                 {getTrendDisplay()}
-                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                <Typography variant="body2" className="text-muted-foreground">
                   vs {trend.period}
                 </Typography>
-              </Box>
+              </div>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

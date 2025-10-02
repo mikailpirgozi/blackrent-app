@@ -1,14 +1,16 @@
+// shadcn/ui components
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Box,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 import React, { useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
@@ -78,7 +80,7 @@ export default function ChangePasswordForm({
       } else {
         setError(data.message || 'Chyba pri zmene hesla');
       }
-    } catch {
+    } catch (error: unknown) {
       setError('Chyba pri zmene hesla');
     } finally {
       setLoading(false);
@@ -95,62 +97,82 @@ export default function ChangePasswordForm({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Zmeniť heslo</DialogTitle>
-      <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {error && <Alert severity="error">{error}</Alert>}
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Zmeniť heslo</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             {success && (
-              <Alert severity="success">Heslo bolo úspešne zmenené</Alert>
+              <Alert>
+                <AlertDescription>Heslo bolo úspešne zmenené</AlertDescription>
+              </Alert>
             )}
 
-            <TextField
-              label="Aktuálne heslo"
-              type="password"
-              fullWidth
-              value={currentPassword}
-              onChange={e => setCurrentPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Aktuálne heslo</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
 
-            <TextField
-              label="Nové heslo"
-              type="password"
-              fullWidth
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              disabled={loading}
-              required
-              helperText="Minimálne 6 znakov"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nové heslo</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+              <p className="text-sm text-muted-foreground">Minimálne 6 znakov</p>
+            </div>
 
-            <TextField
-              label="Potvrdiť nové heslo"
-              type="password"
-              fullWidth
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} disabled={loading}>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Potvrdiť nové heslo</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+          </div>
+        </form>
+        <DialogFooter>
+          <Button onClick={handleClose} disabled={loading} variant="outline">
             Zrušiť
           </Button>
           <Button
             type="submit"
-            variant="contained"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
+            onClick={handleSubmit}
           >
-            {loading ? 'Menenie...' : 'Zmeniť heslo'}
+            {loading ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Menenie...
+              </>
+            ) : (
+              'Zmeniť heslo'
+            )}
           </Button>
-        </DialogActions>
-      </form>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

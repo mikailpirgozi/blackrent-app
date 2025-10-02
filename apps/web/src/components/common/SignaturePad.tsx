@@ -1,6 +1,10 @@
-import { Clear as ClearIcon, Save as SaveIcon } from '@mui/icons-material';
-import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { X as ClearIcon, Save as SaveIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
@@ -65,8 +69,8 @@ export default function SignaturePad({
     let clientX, clientY;
 
     if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
+      clientX = e.touches[0]?.clientX || 0;
+      clientY = e.touches[0]?.clientY || 0;
     } else {
       clientX = e.clientX;
       clientY = e.clientY;
@@ -89,8 +93,8 @@ export default function SignaturePad({
     let clientX, clientY;
 
     if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
+      clientX = e.touches[0]?.clientX || 0;
+      clientY = e.touches[0]?.clientY || 0;
     } else {
       clientX = e.clientX;
       clientY = e.clientY;
@@ -173,7 +177,7 @@ export default function SignaturePad({
       signerRole,
       timestamp: new Date(),
       location,
-      ipAddress: undefined, // Môžeme pridať neskôr ak potrebujeme
+      // ipAddress: undefined, // Môžeme pridať neskôr ak potrebujeme
     };
 
     onSave(signatureData);
@@ -202,84 +206,75 @@ export default function SignaturePad({
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <div className="p-4">
+      <h3 className="text-lg font-semibold mb-4">
         Elektronický podpis s časovou pečiatkou
-      </Typography>
+      </h3>
 
       {/* Editable signer name */}
-      <TextField
-        label="Meno podpisujúceho"
-        value={editableSignerName}
-        onChange={e => setEditableSignerName(e.target.value)}
-        fullWidth
-        sx={{ mb: 2 }}
-        helperText={
-          signerRole === 'customer'
-            ? 'Meno zákazníka z prenájmu (môžete upraviť ak je potrebné)'
-            : 'Meno zamestnanca'
-        }
-        placeholder={
-          signerRole === 'customer'
-            ? 'Zadajte meno zákazníka...'
-            : 'Zadajte meno zamestnanca...'
-        }
-      />
-
-      <Paper
-        elevation={3}
-        sx={{
-          border: '2px dashed #ccc',
-          borderRadius: 1,
-          p: 2,
-          mb: 2,
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{
-            width: '100%',
-            height: 200,
-            border: '1px solid #ddd',
-            borderRadius: 4,
-            cursor: 'crosshair',
-            touchAction: 'none', // Dôležité pre touch devices
-          }}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
+      <div className="mb-4">
+        <Label htmlFor="signer-name" className="text-sm font-medium mb-2 block">
+          Meno podpisujúceho
+        </Label>
+        <Input
+          id="signer-name"
+          value={editableSignerName}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditableSignerName(e.target.value)}
+          className="w-full"
+          placeholder={
+            signerRole === 'customer'
+              ? 'Zadajte meno zákazníka...'
+              : 'Zadajte meno zamestnanca...'
+          }
         />
-      </Paper>
+        <p className="text-xs text-muted-foreground mt-1">
+          {signerRole === 'customer'
+            ? 'Meno zákazníka z prenájmu (môžete upraviť ak je potrebné)'
+            : 'Meno zamestnanca'}
+        </p>
+      </div>
 
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2,
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
+      <Card className="border-2 border-dashed border-gray-300 mb-4">
+        <CardContent className="p-4">
+          <canvas
+            ref={canvasRef}
+            style={{
+              width: '100%',
+              height: 200,
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              cursor: 'crosshair',
+              touchAction: 'none', // Dôležité pre touch devices
+            }}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-2 justify-center flex-wrap">
         {/* Template buttons for employees */}
         {signerRole === 'employee' && (
           <>
             {state.user?.signatureTemplate && (
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={loadSignatureTemplate}
-                color="secondary"
+                className="border-purple-500 text-purple-500 hover:bg-purple-50"
               >
                 Načítať môj podpis
               </Button>
             )}
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={handleSaveAsTemplate}
               disabled={!hasSignature}
-              color="info"
+              className="border-blue-500 text-blue-500 hover:bg-blue-50"
             >
               Uložiť ako môj podpis
             </Button>
@@ -287,25 +282,27 @@ export default function SignaturePad({
         )}
 
         <Button
-          variant="outlined"
-          startIcon={<ClearIcon />}
+          variant="outline"
           onClick={clearCanvas}
           disabled={!hasSignature}
+          className="flex items-center gap-2"
         >
+          <ClearIcon className="w-4 h-4" />
           Vymazať
         </Button>
-        <Button variant="outlined" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Zrušiť
         </Button>
         <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
+          variant="default"
           onClick={handleSave}
           disabled={!hasSignature || !editableSignerName.trim()}
+          className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
         >
+          <SaveIcon className="w-4 h-4" />
           Uložiť podpis s pečiatkou
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

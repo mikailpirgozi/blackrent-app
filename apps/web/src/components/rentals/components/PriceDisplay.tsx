@@ -1,15 +1,28 @@
+// Lucide icons (replacing MUI icons)
 import {
-  LocalOffer as DiscountIcon,
+  Tag as DiscountIcon,
   Euro as EuroIcon,
-  Add as PlusIcon,
+  Plus as PlusIcon,
   TrendingDown as SavingsIcon,
-} from '@mui/icons-material';
-import { Box, Chip, Fade, Grow, Typography } from '@mui/material';
+} from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import type { Rental } from '../../../types';
 import {
   calculatePriceBreakdown,
   formatPriceWithDiscount,
 } from '../../../utils/priceCalculator';
+
+// Helper function for consistent price formatting
+const formatPrice = (amount: number): string => {
+  return new Intl.NumberFormat('sk-SK', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 interface PriceDisplayProps {
   rental: Rental;
@@ -31,586 +44,206 @@ export default function PriceDisplay({
 
   if (variant === 'compact') {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 0.75,
-          width: '100%',
-          p: 1,
-        }}
-      >
+      <div className="flex flex-col items-center gap-1 w-full p-1">
         {priceBreakdown.hasDiscount ? (
-          <Fade in timeout={300}>
-            <Box sx={{ width: '100%' }}>
-              {/* Pôvodná cena a zľava - na jednom riadku */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  mb: 0.5,
-                }}
+          <div className="w-full">
+            {/* Pôvodná cena a zľava - na jednom riadku */}
+            <div className="flex items-center justify-between w-full mb-1">
+              <span className="text-[10px] line-through text-muted-foreground opacity-80">
+                {formatPrice(priceBreakdown.originalPrice)}
+              </span>
+              <Badge 
+                variant="destructive"
+                className="h-[14px] text-[0.5rem] font-bold bg-red-500 text-white border-none px-1"
               >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    textDecoration: 'line-through',
-                    color: '#9e9e9e',
-                    fontSize: '0.75rem',
-                    fontWeight: 400,
-                    opacity: 0.8,
-                  }}
-                >
-                  {priceBreakdown.originalPrice.toFixed(2)}€
-                </Typography>
-                <Chip
-                  icon={<DiscountIcon sx={{ fontSize: '10px !important' }} />}
-                  label={`-${priceBreakdown.discountPercentage}%`}
-                  size="small"
-                  sx={{
-                    height: 18,
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(45deg, #ff4444, #ff6b6b)',
-                    color: 'white',
-                    border: 'none',
-                    '& .MuiChip-icon': {
-                      color: 'white',
-                    },
-                    '& .MuiChip-label': {
-                      px: 0.5,
-                    },
-                  }}
-                />
-              </Box>
+                -{priceBreakdown.discountPercentage}%
+              </Badge>
+            </div>
 
-              {/* Zľavnená cena - hlavná, centrovaná */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.5,
-                  mb: 0.5,
-                }}
-              >
-                <EuroIcon
-                  sx={{
-                    fontSize: 18,
-                    color: '#2e7d32',
-                  }}
-                />
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontSize: '1.3rem',
-                    fontWeight: 800,
-                    background: 'linear-gradient(45deg, #2e7d32, #4caf50)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {priceBreakdown.finalPrice.toFixed(2)}€
-                </Typography>
-              </Box>
+            {/* Zľavnená cena - hlavná, centrovaná */}
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <span className="text-sm font-bold text-green-600 leading-tight">
+                {formatPrice(priceBreakdown.finalPrice)}
+              </span>
+            </div>
 
-              {/* Zľava info - centrované */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.5,
-                  p: 0.5,
-                  borderRadius: 1,
-                  background: 'rgba(46, 125, 50, 0.1)',
-                  width: '100%',
-                }}
-              >
-                <SavingsIcon sx={{ fontSize: 12, color: '#2e7d32' }} />
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontSize: '0.7rem',
-                    color: '#2e7d32',
-                    fontWeight: 700,
-                  }}
-                >
-                  Zľava {priceBreakdown.discountAmount.toFixed(2)}€
-                </Typography>
-              </Box>
-            </Box>
-          </Fade>
+            {/* Zľava info - centrované */}
+            <div className="flex items-center justify-center gap-1 p-1 rounded bg-green-50 w-full">
+              <span className="text-[10px] text-green-700 font-medium">
+                Zľava {formatPrice(priceBreakdown.discountAmount)}
+              </span>
+            </div>
+          </div>
         ) : (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 0.5,
-              width: '100%',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <EuroIcon
-                sx={{
-                  fontSize: 20,
-                  color: '#2e7d32',
-                }}
-              />
-              <Typography
-                variant="h6"
-                sx={{
-                  fontSize: '1.4rem',
-                  fontWeight: 800,
-                  background: 'linear-gradient(45deg, #2e7d32, #4caf50)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  lineHeight: 1.2,
-                }}
-              >
-                {priceBreakdown.finalPrice.toFixed(2)}€
-              </Typography>
-            </Box>
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: '0.7rem',
-                color: '#666',
-                fontWeight: 500,
-              }}
-            >
+          <div className="flex flex-col items-center gap-1 w-full">
+            <div className="flex items-center justify-center">
+              <span className="text-sm font-bold text-green-600 leading-tight">
+                {formatPrice(priceBreakdown.finalPrice)}
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground font-medium">
               Základná cena
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
 
         {/* Extra km poplatky - kompaktne a centrované */}
         {showExtraKm && priceBreakdown.extraKmCharge > 0 && (
-          <Grow in timeout={400}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0.5,
-                p: 0.5,
-                borderRadius: 1,
-                background: 'rgba(255, 152, 0, 0.1)',
-                width: '100%',
-              }}
-            >
-              <PlusIcon sx={{ fontSize: 12, color: '#ff9800' }} />
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.7rem',
-                  color: '#ff9800',
-                  fontWeight: 600,
-                }}
-              >
-                +{priceBreakdown.extraKmCharge.toFixed(2)}€ km
-              </Typography>
-            </Box>
-          </Grow>
+          <div className="flex items-center justify-center gap-1 p-1 rounded bg-orange-50 w-full">
+            <span className="text-[10px] text-orange-500 font-medium">
+              +{formatPrice(priceBreakdown.extraKmCharge)} km
+            </span>
+          </div>
         )}
-      </Box>
+      </div>
     );
   }
 
   // Mobilný variant - optimalizovaný pre malé obrazovky
   if (variant === 'mobile') {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          p: 1.5,
-          borderRadius: 2,
-          background: priceBreakdown.hasDiscount
-            ? 'linear-gradient(135deg, #fff3e0 0%, #e8f5e8 100%)'
-            : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-          border: '1px solid',
-          borderColor: priceBreakdown.hasDiscount ? '#e8f5e8' : '#f0f0f0',
-          position: 'relative',
-        }}
-      >
+      <div className={cn(
+        "flex flex-col gap-4 p-6 rounded-lg border relative",
+        priceBreakdown.hasDiscount
+          ? "bg-gradient-to-br from-orange-50 to-green-50 border-green-200"
+          : "bg-gradient-to-br from-gray-50 to-white border-gray-200"
+      )}>
         {priceBreakdown.hasDiscount ? (
-          <Fade in timeout={300}>
-            <Box>
-              {/* Discount badge pre mobil */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  mb: 1,
-                }}
+          <div className="animate-in fade-in duration-300">
+            {/* Discount badge pre mobil */}
+            <div className="flex justify-between items-flex-start mb-4">
+              <div>
+                <span className="text-sm line-through text-muted-foreground font-normal block">
+                  {formatPrice(priceBreakdown.originalPrice)}
+                </span>
+              </div>
+              <Badge 
+                variant="destructive"
+                className="h-5 text-xs font-bold bg-gradient-to-r from-red-500 to-red-400 text-white border-none"
               >
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      textDecoration: 'line-through',
-                      color: '#9e9e9e',
-                      fontSize: '0.8rem',
-                      fontWeight: 400,
-                      display: 'block',
-                    }}
-                  >
-                    {priceBreakdown.originalPrice.toFixed(2)}€
-                  </Typography>
-                </Box>
-                <Chip
-                  icon={<DiscountIcon sx={{ fontSize: '14px !important' }} />}
-                  label={`-${priceBreakdown.discountPercentage}%`}
-                  size="small"
-                  sx={{
-                    height: 20,
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(45deg, #ff4444, #ff6b6b)',
-                    color: 'white',
-                    border: 'none',
-                    '& .MuiChip-icon': {
-                      color: 'white',
-                    },
-                  }}
-                />
-              </Box>
+                <DiscountIcon className="w-3.5 h-3.5 mr-1" />
+                -{priceBreakdown.discountPercentage}%
+              </Badge>
+            </div>
 
-              {/* Hlavná cena pre mobil */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mb: 1,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <EuroIcon
-                    sx={{
-                      fontSize: 20,
-                      color: '#2e7d32',
-                    }}
-                  />
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      fontSize: '1.5rem',
-                      fontWeight: 800,
-                      background: 'linear-gradient(45deg, #2e7d32, #4caf50)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {priceBreakdown.finalPrice.toFixed(2)}€
-                  </Typography>
-                </Box>
-              </Box>
+            {/* Hlavná cena pre mobil */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <EuroIcon className="w-5 h-5 text-green-700" />
+                <span className="text-2xl font-extrabold bg-gradient-to-r from-green-700 to-green-500 bg-clip-text text-transparent leading-tight">
+                  {formatPrice(priceBreakdown.finalPrice)}
+                </span>
+              </div>
+            </div>
 
-              {/* Ušetrené pre mobil */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.5,
-                  p: 0.75,
-                  borderRadius: 1,
-                  background: 'rgba(46, 125, 50, 0.1)',
-                }}
-              >
-                <SavingsIcon sx={{ fontSize: 14, color: '#2e7d32' }} />
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontSize: '0.75rem',
-                    color: '#2e7d32',
-                    fontWeight: 700,
-                  }}
-                >
-                  Zľava {priceBreakdown.discountAmount.toFixed(2)}€
-                </Typography>
-              </Box>
-            </Box>
-          </Fade>
+            {/* Ušetrené pre mobil */}
+            <div className="flex items-center justify-center gap-2 p-3 rounded bg-green-50">
+              <SavingsIcon className="w-3.5 h-3.5 text-green-700" />
+              <span className="text-sm text-green-700 font-bold">
+                Zľava {formatPrice(priceBreakdown.discountAmount)}
+              </span>
+            </div>
+          </div>
         ) : (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 0.5,
-            }}
-          >
-            <EuroIcon
-              sx={{
-                fontSize: 20,
-                color: '#2e7d32',
-              }}
-            />
-            <Typography
-              variant="h5"
-              sx={{
-                fontSize: '1.5rem',
-                fontWeight: 800,
-                color: '#2e7d32',
-                lineHeight: 1.2,
-              }}
-            >
-              {priceBreakdown.finalPrice.toFixed(2)}€
-            </Typography>
-          </Box>
+          <div className="flex items-center justify-center gap-2">
+            <EuroIcon className="w-5 h-5 text-green-700" />
+            <span className="text-2xl font-extrabold text-green-700 leading-tight">
+              {formatPrice(priceBreakdown.finalPrice)}
+            </span>
+          </div>
         )}
 
         {/* Extra poplatky pre mobil */}
         {showExtraKm && priceBreakdown.extraKmCharge > 0 && (
-          <Grow in timeout={400}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0.5,
-                p: 0.5,
-                borderRadius: 1,
-                background: 'rgba(255, 152, 0, 0.1)',
-              }}
-            >
-              <PlusIcon sx={{ fontSize: 12, color: '#ff9800' }} />
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.7rem',
-                  color: '#ff9800',
-                  fontWeight: 600,
-                }}
-              >
-                +{priceBreakdown.extraKmCharge.toFixed(2)}€ km
-              </Typography>
-            </Box>
-          </Grow>
+          <div className="flex items-center justify-center gap-2 p-2 rounded bg-orange-50 animate-in slide-in-from-bottom duration-400">
+            <PlusIcon className="w-3 h-3 text-orange-500" />
+            <span className="text-xs text-orange-500 font-semibold">
+              +{formatPrice(priceBreakdown.extraKmCharge)} km
+            </span>
+          </div>
         )}
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        mb: 2,
-        p: 2,
-        borderRadius: 2,
-        background: priceBreakdown.hasDiscount
-          ? 'linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%)'
-          : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-        border: '1px solid',
-        borderColor: priceBreakdown.hasDiscount ? '#e8f5e8' : '#f0f0f0',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
+    <div className={cn(
+      "mb-8 p-8 rounded-lg border relative overflow-hidden",
+      priceBreakdown.hasDiscount
+        ? "bg-gradient-to-br from-gray-50 to-green-50 border-green-200"
+        : "bg-gradient-to-br from-gray-50 to-white border-gray-200"
+    )}>
       {/* Discount badge - absolútne pozicionovaný */}
       {priceBreakdown.hasDiscount && (
-        <Grow in timeout={500}>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -8,
-              right: -8,
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              background: 'linear-gradient(45deg, #ff4444, #ff6b6b)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transform: 'rotate(15deg)',
-              boxShadow: '0 4px 12px rgba(255, 68, 68, 0.3)',
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'white',
-                fontWeight: 800,
-                fontSize: '0.7rem',
-                transform: 'rotate(-15deg)',
-              }}
-            >
-              -{priceBreakdown.discountPercentage}%
-            </Typography>
-          </Box>
-        </Grow>
+        <div className="absolute -top-2 -right-2 w-15 h-15 rounded-full bg-gradient-to-r from-red-500 to-red-400 flex items-center justify-center rotate-12 shadow-lg animate-in zoom-in duration-500">
+          <span className="text-white font-extrabold text-xs -rotate-12">
+            -{priceBreakdown.discountPercentage}%
+          </span>
+        </div>
       )}
 
       {/* Hlavná cena */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-        <Box
-          sx={{
-            p: 1,
-            borderRadius: '50%',
-            background: 'linear-gradient(45deg, #2e7d32, #4caf50)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minWidth: 40,
-            height: 40,
-          }}
-        >
-          <EuroIcon sx={{ color: 'white', fontSize: 20 }} />
-        </Box>
+      <div className="flex items-flex-start gap-8 mb-8">
+        <div className="p-4 rounded-full bg-gradient-to-r from-green-700 to-green-500 flex items-center justify-center min-w-[40px] h-10">
+          <EuroIcon className="text-white w-5 h-5" />
+        </div>
 
-        <Box sx={{ flex: 1 }}>
+        <div className="flex-1">
           {priceBreakdown.hasDiscount ? (
-            <Fade in timeout={300}>
-              <Box>
-                {/* Pôvodná cena */}
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}
-                >
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      textDecoration: 'line-through',
-                      color: '#9e9e9e',
-                      fontSize: '1.1rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Pôvodná cena: {priceBreakdown.originalPrice.toFixed(2)}€
-                  </Typography>
-                </Box>
+            <div className="animate-in fade-in duration-300">
+              {/* Pôvodná cena */}
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-lg line-through text-muted-foreground font-medium">
+                  Pôvodná cena: {formatPrice(priceBreakdown.originalPrice)}
+                </span>
+              </div>
 
-                {/* Zľavnená cena */}
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontSize: '2rem',
-                    fontWeight: 800,
-                    background: 'linear-gradient(45deg, #2e7d32, #4caf50)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    lineHeight: 1.2,
-                    mb: 1,
-                  }}
-                >
-                  {priceBreakdown.finalPrice.toFixed(2)}€
-                </Typography>
+              {/* Zľavnená cena */}
+              <h2 className="text-4xl font-extrabold bg-gradient-to-r from-green-700 to-green-500 bg-clip-text text-transparent leading-tight mb-4">
+                {formatPrice(priceBreakdown.finalPrice)}
+              </h2>
 
-                {/* Ušetrené */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    p: 1,
-                    borderRadius: 1,
-                    background: 'rgba(46, 125, 50, 0.1)',
-                  }}
+              {/* Ušetrené */}
+              <div className="flex items-center gap-4 p-4 rounded bg-green-50">
+                <SavingsIcon className="text-green-700 w-[18px] h-[18px]" />
+                <span className="text-green-700 font-bold text-base">
+                  Zľava: {formatPrice(priceBreakdown.discountAmount)}
+                </span>
+                <Badge 
+                  variant="default"
+                  className="bg-gradient-to-r from-green-700 to-green-500 text-white font-semibold"
                 >
-                  <SavingsIcon sx={{ color: '#2e7d32', fontSize: 18 }} />
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      color: '#2e7d32',
-                      fontWeight: 700,
-                      fontSize: '1rem',
-                    }}
-                  >
-                    Zľava: {priceBreakdown.discountAmount.toFixed(2)}€
-                  </Typography>
-                  <Chip
-                    label={priceFormat.discountText}
-                    size="small"
-                    sx={{
-                      background: 'linear-gradient(45deg, #2e7d32, #4caf50)',
-                      color: 'white',
-                      fontWeight: 600,
-                    }}
-                  />
-                </Box>
-              </Box>
-            </Fade>
+                  {priceFormat.discountText}
+                </Badge>
+              </div>
+            </div>
           ) : (
-            <Typography
-              variant="h4"
-              sx={{
-                fontSize: '2rem',
-                fontWeight: 800,
-                color: '#2e7d32',
-                lineHeight: 1.2,
-              }}
-            >
-              {priceBreakdown.finalPrice.toFixed(2)}€
-            </Typography>
+            <h2 className="text-4xl font-extrabold text-green-700 leading-tight">
+              {formatPrice(priceBreakdown.finalPrice)}
+            </h2>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Extra poplatky */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="flex flex-col gap-4">
         {showExtraKm && priceBreakdown.extraKmCharge > 0 && (
-          <Grow in timeout={400}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                borderRadius: 1,
-                background: 'rgba(255, 152, 0, 0.1)',
-              }}
-            >
-              <PlusIcon sx={{ color: '#ff9800', fontSize: 16 }} />
-              <Typography
-                variant="body2"
-                sx={{
-                  color: '#ff9800',
-                  fontWeight: 600,
-                }}
-              >
-                Extra km: +{priceBreakdown.extraKmCharge.toFixed(2)}€
-              </Typography>
-            </Box>
-          </Grow>
+          <div className="flex items-center gap-4 p-4 rounded bg-orange-50 animate-in slide-in-from-bottom duration-400">
+            <PlusIcon className="text-orange-500 w-4 h-4" />
+            <span className="text-orange-500 font-semibold">
+              Extra km: +{formatPrice(priceBreakdown.extraKmCharge)}
+            </span>
+          </div>
         )}
 
         {rental.commission && rental.commission > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              p: 1,
-              borderRadius: 1,
-              background: 'rgba(158, 158, 158, 0.1)',
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                color: '#666',
-                fontWeight: 500,
-              }}
-            >
-              Provízia: {rental.commission.toFixed(2)}€
-            </Typography>
-          </Box>
+          <div className="flex items-center gap-4 p-4 rounded bg-gray-50">
+            <span className="text-muted-foreground font-medium">
+              Provízia: {formatPrice(rental.commission)}
+            </span>
+          </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

@@ -5,24 +5,18 @@
  */
 
 import {
-  Delete as DeleteIcon,
+  Trash2 as DeleteIcon,
   Edit as EditIcon,
-  PhotoLibrary as GalleryIcon,
-  DirectionsCar as HandoverIcon,
-  PictureAsPdf as PDFIcon,
-  CarRental as ReturnIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  IconButton,
-  Stack,
-  TableCell,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+  Images as GalleryIcon,
+  Car as HandoverIcon,
+  FileText as PDFIcon,
+  RotateCcw as ReturnIcon,
+  Eye as VisibilityIcon,
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { TableCell, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import React, { memo, useCallback } from 'react';
 import { formatDate } from '../../utils/formatters';
 
@@ -96,162 +90,197 @@ const OptimizedRentalRow: React.FC<OptimizedRentalRowProps> = ({
   };
 
   return (
-    <TableRow
-      hover
-      sx={{
-        '&:hover': {
-          backgroundColor: 'action.hover',
-        },
-      }}
-    >
+    <TableRow className="hover:bg-muted/50 transition-colors">
       {/* Customer */}
-      <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            sx={{
-              width: 32,
-              height: 32,
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              bgcolor: 'primary.main',
-            }}
-          >
-            {getCustomerInitials(rental.customerName || '')}
+      <TableCell className="p-1">
+        <div className="flex items-center gap-2">
+          <Avatar className="w-7 h-7 text-xs font-semibold">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getCustomerInitials(rental.customerName || '')}
+            </AvatarFallback>
           </Avatar>
-          <Box>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, lineHeight: 1.2 }}
-            >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight truncate">
               {rental.customerName || 'Nezadané'}
-            </Typography>
+            </p>
             {(rental.customerPhone || rental.customer?.phone) && (
-              <Typography
-                variant="caption"
-                sx={{ color: 'text.secondary', lineHeight: 1 }}
-              >
+              <p className="text-xs text-muted-foreground leading-none truncate">
                 {rental.customerPhone || rental.customer?.phone}
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       </TableCell>
 
       {/* Vehicle */}
-      <TableCell>
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+      <TableCell className="p-1">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-tight truncate">
             {vehicle.brand} {vehicle.model}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
             {vehicle.licensePlate}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </TableCell>
 
       {/* Dates */}
-      <TableCell>
-        <Box>
-          <Typography variant="body2" sx={{ lineHeight: 1.2 }}>
+      <TableCell className="p-1">
+        <div className="min-w-0">
+          <p className="text-sm leading-tight whitespace-nowrap">
             {startDate}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          </p>
+          <p className="text-xs text-muted-foreground whitespace-nowrap">
             → {endDate}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </TableCell>
 
       {/* Status */}
-      <TableCell>
+      <TableCell className="p-1">
         <RentalStatusChip status={rental.status || 'pending'} />
       </TableCell>
 
       {/* Company */}
-      <TableCell>
-        <Typography variant="body2" sx={{ lineHeight: 1.2 }}>
+      <TableCell className="p-1">
+        <p className="text-sm leading-tight truncate">
           {vehicle.company || 'Nezadané'}
-        </Typography>
+        </p>
       </TableCell>
 
       {/* Price */}
-      <TableCell align="right">
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          €{rental.totalPrice?.toFixed(2) || '0.00'}
-        </Typography>
+      <TableCell className="text-right p-1">
+        <span className="text-sm font-semibold text-green-600 whitespace-nowrap">
+          {rental.totalPrice 
+            ? new Intl.NumberFormat('sk-SK', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }).format(rental.totalPrice)
+            : '0,00 €'
+          }
+        </span>
       </TableCell>
 
       {/* Protocols */}
-      <TableCell>
-        <Stack direction="row" spacing={0.5}>
-          {hasHandoverProtocol && (
-            <Tooltip title="Odovzdávací protokol">
-              <IconButton size="small" onClick={handleViewPDF}>
-                <PDFIcon fontSize="small" color="success" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {hasReturnProtocol && (
-            <Tooltip title="Preberací protokol">
-              <IconButton size="small" onClick={handleViewPDF}>
-                <PDFIcon fontSize="small" color="info" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {!hasHandoverProtocol && !hasReturnProtocol && (
-            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-              Žiadne
-            </Typography>
-          )}
-        </Stack>
+      <TableCell className="p-1">
+        <TooltipProvider>
+          <div className="flex gap-0.5">
+            {hasHandoverProtocol && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleViewPDF}>
+                    <PDFIcon className="h-3 w-3 text-green-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Odovzdávací protokol</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {hasReturnProtocol && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleViewPDF}>
+                    <PDFIcon className="h-3 w-3 text-blue-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Preberací protokol</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {!hasHandoverProtocol && !hasReturnProtocol && (
+              <span className="text-xs text-muted-foreground">
+                —
+              </span>
+            )}
+          </div>
+        </TooltipProvider>
       </TableCell>
 
       {/* Actions */}
-      <TableCell>
-        <Stack direction="row" spacing={0.5}>
-          <Tooltip title="Zobraziť">
-            <IconButton size="small" onClick={handleView}>
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+      <TableCell className="p-1">
+        <TooltipProvider>
+          <div className="flex gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleView}>
+                  <VisibilityIcon className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Zobraziť</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Tooltip title="Upraviť">
-            <IconButton size="small" onClick={handleEdit}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleEdit}>
+                  <EditIcon className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Upraviť</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Tooltip title="Odovzdať">
-            <IconButton
-              size="small"
-              onClick={handleHandover}
-              color={hasHandoverProtocol ? 'success' : 'default'}
-            >
-              <HandoverIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`h-6 w-6 p-0 ${hasHandoverProtocol ? "text-green-600" : ""}`}
+                  onClick={handleHandover}
+                >
+                  <HandoverIcon className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Odovzdať</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Tooltip title="Prevziať">
-            <IconButton
-              size="small"
-              onClick={handleReturn}
-              color={hasReturnProtocol ? 'info' : 'default'}
-            >
-              <ReturnIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`h-6 w-6 p-0 ${hasReturnProtocol ? "text-blue-600" : ""}`}
+                  onClick={handleReturn}
+                >
+                  <ReturnIcon className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Prevziať</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Tooltip title="Galéria">
-            <IconButton size="small" onClick={handleViewGallery}>
-              <GalleryIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleViewGallery}>
+                  <GalleryIcon className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Galéria</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Tooltip title="Zmazať">
-            <IconButton size="small" onClick={handleDelete} color="error">
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-600 hover:text-red-700" onClick={handleDelete}>
+                  <DeleteIcon className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Zmazať</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </TableCell>
     </TableRow>
   );

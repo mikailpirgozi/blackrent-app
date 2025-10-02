@@ -145,7 +145,7 @@ export function useGenerateProtocolPdf() {
         })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.protocolPdf.detail(
           variables.protocolId,
@@ -261,7 +261,7 @@ export function useBulkGeneratePdfs() {
         })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       // Invalidate all affected queries
       variables.forEach(variable => {
         queryClient.invalidateQueries({
@@ -293,7 +293,7 @@ export function useDeleteProtocolPdf() {
       protocolId: string;
       type: 'handover' | 'return';
     }) => apiService.deleteProtocolPdf(protocolId, type),
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Remove from cache
       queryClient.removeQueries({
         queryKey: queryKeys.protocolPdf.detail(

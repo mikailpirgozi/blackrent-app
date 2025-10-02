@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import React from 'react';
 
 import { apiService } from '../../../services/api';
-import { SecondaryButton } from '../../ui';
+import { Button } from '@/components/ui/button';
 
 interface VehicleImportExportProps {
   loading: boolean;
@@ -152,7 +152,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
             const commissionValue =
               fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
                 ? parseFloat(
-                    fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
+                    (fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']) ?? '20'
                   )
                 : 20;
 
@@ -189,7 +189,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
           );
 
           // Použij batch import namiesto CSV importu
-          const result = await apiService.batchImportVehicles(batchVehicles);
+          const result = await apiService.batchImportVehicles(batchVehicles as any[]);
 
           console.log('📥 CSV Import result:', result);
 
@@ -250,30 +250,32 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
   }
 
   return (
-    <>
-      <SecondaryButton onClick={handleExportCSV}>📊 Export CSV</SecondaryButton>
-
-      <SecondaryButton
-        component="label"
-        disabled={loading}
-        sx={{
-          color: '#388e3c',
-          borderColor: '#388e3c',
-          '&:hover': {
-            borderColor: '#2e7d32',
-            backgroundColor: 'rgba(56, 142, 60, 0.04)',
-          },
-        }}
+    <div className="flex gap-2">
+      <Button 
+        variant="outline" 
+        onClick={handleExportCSV}
+        className="text-blue-600 border-blue-600 hover:bg-blue-50 hover:border-blue-700"
       >
-        📥 Import CSV
-        <input
-          type="file"
-          accept=".csv"
-          onChange={handleImportCSV}
-          style={{ display: 'none' }}
-        />
-      </SecondaryButton>
-    </>
+        📊 Export CSV
+      </Button>
+
+      <Button
+        variant="outline"
+        disabled={loading}
+        className="text-green-600 border-green-600 hover:bg-green-50 hover:border-green-700"
+        asChild
+      >
+        <label>
+          📥 Import CSV
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
+        </label>
+      </Button>
+    </div>
   );
 };
 

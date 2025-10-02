@@ -5,36 +5,22 @@
  */
 
 import {
-  Clear as ClearIcon,
-  Memory as MemoryIcon,
-  Refresh as RefreshIcon,
-  Speed as SpeedIcon,
-  Storage as StorageIcon,
-  Timeline as TimelineIcon,
+  Trash2 as ClearIcon,
+  Cpu as MemoryIcon,
+  RefreshCw as RefreshIcon,
+  Gauge as SpeedIcon,
+  Database as StorageIcon,
+  BarChart3 as TimelineIcon,
   TrendingUp as TrendingUpIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Grid,
-  IconButton,
-  LinearProgress,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import React, { memo, useEffect, useState } from 'react';
+} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { memo, useEffect, useState } from 'react';
 
 // 🔄 PHASE 2: UnifiedCache removed - migrating to React Query
 
@@ -126,9 +112,10 @@ const CacheMonitoring: React.FC = () => {
     return 'error';
   };
 
-  const formatMemoryUsage = (usage: string) => {
-    const match = usage.match(/(\d+(?:\.\d+)?)/);
-    const value = match ? parseFloat(match[1]) : 0;
+  const formatMemoryUsage = (usage: string | undefined) => {
+    if (!usage) return 'normal';
+    const match = usage?.match(/(\d+(?:\.\d+)?)/);
+    const value = match && match[1] ? parseFloat(match[1]) : 0;
 
     if (value > 1000) return 'warning';
     if (value > 2000) return 'error';
@@ -137,305 +124,239 @@ const CacheMonitoring: React.FC = () => {
 
   if (!stats) {
     return (
-      <Box sx={{ p: 3 }}>
-        <LinearProgress />
-        <Typography sx={{ mt: 2 }}>Načítavam cache štatistiky...</Typography>
-      </Box>
+      <div className="p-6">
+        <Progress className="mb-4" />
+        <p className="text-sm text-muted-foreground">Načítavam cache štatistiky...</p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 3 }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <MemoryIcon color="primary" />
-          Cache Monitoring
-        </Typography>
+    <TooltipProvider>
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-semibold flex items-center gap-2">
+            <MemoryIcon className="h-8 w-8 text-primary" />
+            Cache Monitoring
+          </h1>
 
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant={autoRefresh ? 'contained' : 'outlined'}
-            size="small"
-            onClick={() => setAutoRefresh(!autoRefresh)}
-          >
-            Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
-          </Button>
-
-          <Tooltip title="Obnoviť štatistiky">
-            <IconButton onClick={loadStats} disabled={loading}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Vymazať cache">
-            <IconButton onClick={handleClearCache} color="error">
-              <ClearIcon />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Stack>
-
-      {/* Last Refresh Info */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          Posledná aktualizácia: {lastRefresh.toLocaleString()}
-          {autoRefresh && ' • Auto-refresh je zapnutý (30s interval)'}
-        </Typography>
-      </Alert>
-
-      {/* Overview Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <StorageIcon color="primary" />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Cache Entries
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {stats.size}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <SpeedIcon color="primary" />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Hit Rate
-                  </Typography>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {stats.hitRate.toFixed(1)}%
-                    </Typography>
-                    <Chip
-                      size="small"
-                      color={formatHitRate(stats.hitRate)}
-                      label={
-                        stats.hitRate >= 80
-                          ? 'Excellent'
-                          : stats.hitRate >= 60
-                            ? 'Good'
-                            : 'Poor'
-                      }
-                    />
-                  </Stack>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <TrendingUpIcon color="primary" />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Requests
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {stats.totalRequests}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {stats.hits} hits • {stats.misses} misses
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <MemoryIcon color="primary" />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Memory Usage
-                  </Typography>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {stats.memoryUsage}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      color={formatMemoryUsage(stats.memoryUsage)}
-                    />
-                  </Stack>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Hit Rate Progress */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography
-            variant="h6"
-            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <TimelineIcon />
-            Cache Performance
-          </Typography>
-
-          <Box sx={{ mb: 2 }}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              sx={{ mb: 1 }}
+          <div className="flex gap-2">
+            <Button
+              variant={autoRefresh ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
             >
-              <Typography variant="body2">Hit Rate</Typography>
-              <Typography variant="body2">
-                {stats.hitRate.toFixed(1)}%
-              </Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={stats.hitRate}
-              color={formatHitRate(stats.hitRate)}
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-          </Box>
+              Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+            </Button>
 
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Typography variant="body2" color="textSecondary">
-                Cache Hits
-              </Typography>
-              <Typography variant="h6" color="success.main">
-                {stats.hits}
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="body2" color="textSecondary">
-                Cache Misses
-              </Typography>
-              <Typography variant="h6" color="error.main">
-                {stats.misses}
-              </Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={loadStats} disabled={loading}>
+                  <RefreshIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Obnoviť štatistiky</TooltipContent>
+            </Tooltip>
 
-      {/* Top Cache Entries */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Most Accessed Cache Entries
-          </Typography>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleClearCache} className="text-destructive">
+                  <ClearIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Vymazať cache</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
 
-          {stats.topHits && stats.topHits.length > 0 ? (
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Cache Key</TableCell>
-                    <TableCell align="right">Hits</TableCell>
-                    <TableCell align="right">Hit Rate</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {stats.topHits.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontFamily: 'monospace' }}
-                        >
-                          {item.key.length > 50
-                            ? `${item.key.substring(0, 50)}...`
-                            : item.key}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          size="small"
-                          label={item.hits}
-                          color="primary"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        {stats.totalRequests > 0 ? (
-                          <Typography variant="body2">
-                            {((item.hits / stats.totalRequests) * 100).toFixed(
-                              1
-                            )}
-                            %
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="textSecondary">
-                            -
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Alert severity="info">
-              Žiadne cache entries nenájdené. Cache je prázdny alebo ešte nebol
-              použitý.
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+        {/* Last Refresh Info */}
+        <Alert className="mb-6">
+          <AlertDescription>
+            Posledná aktualizácia: {lastRefresh.toLocaleString()}
+            {autoRefresh && ' • Auto-refresh je zapnutý (30s interval)'}
+          </AlertDescription>
+        </Alert>
 
-      {/* Cache Age Info */}
-      {stats.oldestEntry && stats.newestEntry && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Cache Timeline
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="textSecondary">
-                  Oldest Entry
-                </Typography>
-                <Typography variant="body1">{stats.oldestEntry}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="textSecondary">
-                  Newest Entry
-                </Typography>
-                <Typography variant="body1">{stats.newestEntry}</Typography>
-              </Grid>
-            </Grid>
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <StorageIcon className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Cache Entries</p>
+                  <p className="text-3xl font-semibold">{stats.size}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <SpeedIcon className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Hit Rate</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-3xl font-semibold">{stats.hitRate.toFixed(1)}%</p>
+                    <Badge
+                      variant={formatHitRate(stats.hitRate) === 'success' ? 'default' : 
+                               formatHitRate(stats.hitRate) === 'warning' ? 'secondary' : 'destructive'}
+                      className="text-xs"
+                    >
+                      {stats.hitRate >= 80 ? 'Excellent' : stats.hitRate >= 60 ? 'Good' : 'Poor'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <TrendingUpIcon className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Requests</p>
+                  <p className="text-3xl font-semibold">{stats.totalRequests}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.hits} hits • {stats.misses} misses
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <MemoryIcon className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Memory Usage</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-3xl font-semibold">{stats.memoryUsage}</p>
+                    <Badge
+                      variant={formatMemoryUsage(stats.memoryUsage) === 'success' ? 'default' : 
+                               formatMemoryUsage(stats.memoryUsage) === 'warning' ? 'secondary' : 'destructive'}
+                      className="text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Hit Rate Progress */}
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <TimelineIcon className="h-5 w-5" />
+              Cache Performance
+            </h3>
+
+            <div className="mb-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm">Hit Rate</span>
+                <span className="text-sm font-medium">{stats.hitRate.toFixed(1)}%</span>
+              </div>
+              <Progress 
+                value={stats.hitRate} 
+                className="h-2"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Cache Hits</p>
+                <p className="text-xl font-semibold text-green-600">{stats.hits}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Cache Misses</p>
+                <p className="text-xl font-semibold text-red-600">{stats.misses}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      )}
-    </Box>
+
+        {/* Top Cache Entries */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              Most Accessed Cache Entries
+            </h3>
+
+            {stats.topHits && stats.topHits.length > 0 ? (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cache Key</TableHead>
+                      <TableHead className="text-right">Hits</TableHead>
+                      <TableHead className="text-right">Hit Rate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stats.topHits.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <code className="text-sm font-mono">
+                            {item.key.length > 50
+                              ? `${item.key.substring(0, 50)}...`
+                              : item.key}
+                          </code>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline" className="text-xs">
+                            {item.hits}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {stats.totalRequests > 0 ? (
+                            <span className="text-sm">
+                              {((item.hits / stats.totalRequests) * 100).toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <Alert>
+                <AlertDescription>
+                  Žiadne cache entries nenájdené. Cache je prázdny alebo ešte nebol
+                  použitý.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Cache Age Info */}
+        {stats.oldestEntry && stats.newestEntry && (
+          <Card className="mt-6">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Cache Timeline</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Oldest Entry</p>
+                  <p className="text-sm">{stats.oldestEntry}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Newest Entry</p>
+                  <p className="text-sm">{stats.newestEntry}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 

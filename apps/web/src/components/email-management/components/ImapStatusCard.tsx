@@ -3,18 +3,12 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import {
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Box,
-  Chip,
-  Alert,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import React from 'react';
+import { UnifiedCard } from '../../ui/UnifiedCard';
+import { UnifiedTypography } from '../../ui/UnifiedTypography';
+import { UnifiedChip } from '../../ui/UnifiedChip';
+import { Alert, AlertTitle } from '../../ui/alert';
+import { cn } from '../../../lib/utils';
+import React, { useState, useEffect } from 'react';
 
 import type { ImapStatus } from '../types/email-types';
 
@@ -25,108 +19,125 @@ interface ImapStatusCardProps {
 export const ImapStatusCard: React.FC<ImapStatusCardProps> = ({
   imapStatus,
 }) => {
-  const theme = useTheme();
-  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Media queries using window.innerWidth
+  const [isExtraSmall, setIsExtraSmall] = useState(false);
+  const [isSmallMobile, setIsSmallMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsExtraSmall(window.innerWidth < 400);
+      setIsSmallMobile(window.innerWidth < 640); // sm breakpoint
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   if (!imapStatus) return null;
 
   return (
-    <Card sx={{ mb: 3 }}>
-      <CardContent sx={{ p: isExtraSmall ? 2 : 3 }}>
-        <Typography
+    <UnifiedCard variant="default" className="mb-6">
+      <div className={cn(
+        "p-4",
+        isExtraSmall ? "p-3" : "p-6"
+      )}>
+        <UnifiedTypography
           variant={isSmallMobile ? 'subtitle1' : 'h6'}
-          gutterBottom
-          sx={{
-            fontSize: isExtraSmall ? '1rem' : undefined,
-            textAlign: isSmallMobile ? 'center' : 'left',
-          }}
+          className={cn(
+            "mb-4",
+            isExtraSmall ? "text-base" : undefined,
+            isSmallMobile ? "text-center" : "text-left"
+          )}
         >
           📧 IMAP Konfigurácia
-        </Typography>
-        <Grid container spacing={isSmallMobile ? 2 : 2}>
-          <Grid item xs={12} sm={6} md={4}>
-            <Box
-              display="flex"
-              alignItems="center"
-              gap={1}
-              justifyContent={isSmallMobile ? 'center' : 'flex-start'}
-              flexDirection={isExtraSmall ? 'column' : 'row'}
+        </UnifiedTypography>
+        <div className={cn(
+          "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4",
+          isSmallMobile ? "gap-4" : "gap-4"
+        )}>
+          <div className={cn(
+            "flex items-center gap-2",
+            isSmallMobile ? "justify-center" : "justify-start",
+            isExtraSmall ? "flex-col" : "flex-row"
+          )}>
+            <UnifiedTypography
+              variant="body2"
+              color="textSecondary"
+              className={cn(
+                isExtraSmall ? "text-sm" : undefined
+              )}
             >
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-              >
-                Status:
-              </Typography>
-              <Chip
-                label={
-                  imapStatus.enabled
-                    ? imapStatus.running
-                      ? 'Beží'
-                      : 'Zastavený'
-                    : 'Vypnutý'
-                }
-                color={
-                  imapStatus.enabled
-                    ? imapStatus.running
-                      ? 'success'
-                      : 'warning'
-                    : 'default'
-                }
-                size={isExtraSmall ? 'small' : 'small'}
-                sx={{ fontSize: isExtraSmall ? '0.75rem' : undefined }}
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Box textAlign={isSmallMobile ? 'center' : 'left'}>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  wordBreak: 'break-word',
-                }}
-              >
-                Server:{' '}
-                <strong>{imapStatus.config?.host || 'Nekonfigurovaný'}</strong>
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={12} md={4}>
-            <Box textAlign={isSmallMobile ? 'center' : 'left'}>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  wordBreak: 'break-word',
-                }}
-              >
-                Používateľ:{' '}
-                <strong>{imapStatus.config?.user || 'Nekonfigurovaný'}</strong>
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
+              Status:
+            </UnifiedTypography>
+            <UnifiedChip
+              label={
+                imapStatus.enabled
+                  ? imapStatus.running
+                    ? 'Beží'
+                    : 'Zastavený'
+                  : 'Vypnutý'
+              }
+              variant={
+                imapStatus.enabled
+                  ? imapStatus.running
+                    ? 'default'
+                    : 'status'
+                  : 'compact'
+              }
+              size={isExtraSmall ? 'small' : 'small'}
+              className={cn(
+                isExtraSmall ? "text-xs" : undefined
+              )}
+            />
+          </div>
+          <div className={cn(
+            isSmallMobile ? "text-center" : "text-left"
+          )}>
+            <UnifiedTypography
+              variant="body2"
+              color="textSecondary"
+              className={cn(
+                "break-words",
+                isExtraSmall ? "text-sm" : undefined
+              )}
+            >
+              Server:{' '}
+              <strong>{imapStatus.config?.host || 'Nekonfigurovaný'}</strong>
+            </UnifiedTypography>
+          </div>
+          <div className={cn(
+            isSmallMobile ? "text-center" : "text-left"
+          )}>
+            <UnifiedTypography
+              variant="body2"
+              color="textSecondary"
+              className={cn(
+                "break-words",
+                isExtraSmall ? "text-sm" : undefined
+              )}
+            >
+              Používateľ:{' '}
+              <strong>{imapStatus.config?.user || 'Nekonfigurovaný'}</strong>
+            </UnifiedTypography>
+          </div>
+        </div>
         {!imapStatus.enabled && (
-          <Alert
-            severity="info"
-            sx={{
-              mt: 2,
-              fontSize: isExtraSmall ? '0.875rem' : undefined,
-              '& .MuiAlert-message': {
-                fontSize: isExtraSmall ? '0.875rem' : undefined,
-              },
-            }}
-          >
-            IMAP monitoring je vypnutý. Skontrolujte konfiguráciu v backend/.env
-            súbore.
+          <Alert className="mt-4">
+            <AlertTitle>
+              <UnifiedTypography
+                variant="body2"
+                className={cn(
+                  isExtraSmall ? "text-sm" : undefined
+                )}
+              >
+                IMAP monitoring je vypnutý. Skontrolujte konfiguráciu v backend/.env
+                súbore.
+              </UnifiedTypography>
+            </AlertTitle>
           </Alert>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </UnifiedCard>
   );
 };

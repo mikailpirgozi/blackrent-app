@@ -94,7 +94,7 @@ export function useArchiveEmail() {
 
       return { previousEmails };
     },
-    onError: (err, emailId, context) => {
+    onError: (_err, _emailId, context) => {
       if (context?.previousEmails) {
         queryClient.setQueryData(
           queryKeys.emailManagement.lists(),
@@ -102,10 +102,10 @@ export function useArchiveEmail() {
         );
       }
     },
-    onSuccess: (data, emailId) => {
+    onSuccess: (_data, emailId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
-        new CustomEvent('email-archived', { detail: { id: emailId, data } })
+        new CustomEvent('email-archived', { detail: { id: emailId, data: _data } })
       );
     },
     onSettled: () => {
@@ -142,7 +142,7 @@ export function useRejectEmail() {
 
       return { previousEmails };
     },
-    onError: (err, emailId, context) => {
+    onError: (_err, _emailId, context) => {
       if (context?.previousEmails) {
         queryClient.setQueryData(
           queryKeys.emailManagement.lists(),
@@ -150,10 +150,10 @@ export function useRejectEmail() {
         );
       }
     },
-    onSuccess: (data, emailId) => {
+    onSuccess: (_data, emailId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
-        new CustomEvent('email-rejected', { detail: { id: emailId, data } })
+        new CustomEvent('email-rejected', { detail: { id: emailId, data: _data } })
       );
     },
     onSettled: () => {
@@ -190,7 +190,7 @@ export function useProcessEmail() {
 
       return { previousEmails };
     },
-    onError: (err, emailId, context) => {
+    onError: (_err, _emailId, context) => {
       if (context?.previousEmails) {
         queryClient.setQueryData(
           queryKeys.emailManagement.lists(),
@@ -198,10 +198,10 @@ export function useProcessEmail() {
         );
       }
     },
-    onSuccess: (data, emailId) => {
+    onSuccess: (_data, emailId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
-        new CustomEvent('email-processed', { detail: { id: emailId, data } })
+        new CustomEvent('email-processed', { detail: { id: emailId, data: _data } })
       );
     },
     onSettled: () => {
@@ -222,11 +222,11 @@ export function useBulkArchiveEmails() {
 
   return useMutation({
     mutationFn: (ids: string[]) => apiService.bulkArchiveEmails(ids),
-    onSuccess: (data, emailIds) => {
+    onSuccess: (_data, emailIds) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('emails-bulk-archived', {
-          detail: { ids: emailIds, data },
+          detail: { ids: emailIds, data: _data },
         })
       );
     },
@@ -243,11 +243,11 @@ export function useBulkRejectEmails() {
 
   return useMutation({
     mutationFn: (ids: string[]) => apiService.bulkRejectEmails(ids),
-    onSuccess: (data, emailIds) => {
+    onSuccess: (_data, emailIds) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('emails-bulk-rejected', {
-          detail: { ids: emailIds, data },
+          detail: { ids: emailIds, data: _data },
         })
       );
     },
@@ -264,11 +264,11 @@ export function useBulkProcessEmails() {
 
   return useMutation({
     mutationFn: (ids: string[]) => apiService.bulkProcessEmails(ids),
-    onSuccess: (data, emailIds) => {
+    onSuccess: (_data, emailIds) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('emails-bulk-processed', {
-          detail: { ids: emailIds, data },
+          detail: { ids: emailIds, data: _data },
         })
       );
     },

@@ -100,12 +100,12 @@ export const useAuthError = () => {
 
 export const useApiError = (entity?: string) => {
   return useEnhancedError({
-    context: { entity, location: 'api' },
+    context: { ...(entity && { entity }), location: 'api' },
   });
 };
 
 export const useFormError = (entity?: string) => {
   return useEnhancedError({
-    context: { action: 'save', entity, location: 'form' },
+    context: { action: 'save', ...(entity && { entity }), location: 'form' },
   });
 };

@@ -18,7 +18,7 @@ interface PerformanceMetrics {
 }
 
 class MemoryOptimizer {
-  private memoryCheckInterval: NodeJS.Timeout | null = null;
+  private memoryCheckInterval: ReturnType<typeof setInterval> | null = null;
   private memoryHistory: MemoryStats[] = [];
   private activeListeners = new Map<string, Set<EventListener>>();
   private weakRefs = new Set<WeakRef<Record<string, unknown>>>();
@@ -48,7 +48,7 @@ class MemoryOptimizer {
           this.logMemoryStats(memoryStats);
         }
       }
-    }, intervalMs) as unknown as NodeJS.Timeout;
+    }, intervalMs);
   }
 
   stopMemoryMonitoring(): void {
@@ -87,14 +87,14 @@ class MemoryOptimizer {
     const recentStats = this.memoryHistory.slice(-5);
     const growthTrend = recentStats.every((stats, index) => {
       if (index === 0) return true;
-      return stats.usedJSHeapSize > recentStats[index - 1].usedJSHeapSize;
+      return stats.usedJSHeapSize > (recentStats[index - 1]?.usedJSHeapSize ?? 0);
     });
 
     const averageGrowth =
       recentStats.reduce((acc, stats, index) => {
         if (index === 0) return 0;
         return (
-          acc + (stats.usedJSHeapSize - recentStats[index - 1].usedJSHeapSize)
+          acc + (stats.usedJSHeapSize - (recentStats[index - 1]?.usedJSHeapSize ?? 0))
         );
       }, 0) /
       (recentStats.length - 1);

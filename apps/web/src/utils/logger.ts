@@ -1,50 +1,82 @@
 /**
- * 🚀 CENTRÁLNY LOGGER SYSTÉM
+ * 🚀 OPTIMALIZOVANÝ LOGGER SYSTÉM
  *
- * Umožňuje kontrolovať úroveň logovania podľa prostredia
- * - Development: Všetky logy
- * - Production: Len dôležité logy
+ * Znížené logovanie pre lepší performance a čistšiu konzolu
+ * - Development: Len kritické logy
+ * - Production: Len chyby
  */
+
+import { env } from '@/lib/env';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// Throttling pre periodické logy
+const throttledLogs = new Map<string, number>();
+const THROTTLE_INTERVAL = 5000; // 5 sekúnd
+
+function shouldThrottle(key: string): boolean {
+  const now = Date.now();
+  const lastLog = throttledLogs.get(key);
+  
+  if (!lastLog || now - lastLog > THROTTLE_INTERVAL) {
+    throttledLogs.set(key, now);
+    return false;
+  }
+  return true;
+}
+
 export const logger = {
-  // 🐛 Debug logy - len v development
+  // 🐛 Debug logy - len kritické v development
   debug: (...args: unknown[]) => {
-    if (isDevelopment) {
-      // eslint-disable-next-line no-console
+    if (isDevelopment && env.DEBUG) {
+      // Throttle debug logy
+      const key = args[0] as string;
+      if (shouldThrottle(key)) return;
+      
       console.log(...args);
     }
   },
 
-  // ℹ️ Info logy - vždy
+  // ℹ️ Info logy - len dôležité
   info: (...args: unknown[]) => {
-    // eslint-disable-next-line no-console
-    console.log(...args);
+    if (isDevelopment && env.DEBUG) {
+      // Throttle info logy
+      const key = args[0] as string;
+      if (shouldThrottle(key)) return;
+      
+      console.log(...args);
+    }
   },
 
-  // ⚠️ Warning logy - vždy
+  // ⚠️ Warning logy - vždy (dôležité)
   warn: (...args: unknown[]) => {
-    // eslint-disable-next-line no-console
     console.warn(...args);
   },
 
-  // 🚨 Error logy - vždy
+  // 🚨 Error logy - vždy (kritické)
   error: (...args: unknown[]) => {
-    // eslint-disable-next-line no-console
     console.error(...args);
   },
 
-  // 📊 Performance logy - vždy (dôležité pre monitoring)
+  // 📊 Performance logy - len v development, throttled
   perf: (...args: unknown[]) => {
-    // eslint-disable-next-line no-console
-    console.log(...args);
+    if (isDevelopment) {
+      const key = args[0] as string;
+      if (shouldThrottle(key)) return;
+      
+      console.log(...args);
+    }
   },
 
-  // 🔐 Auth logy - vždy (dôležité pre security debugging)
+  // 🔐 Auth logy - len kritické auth operácie
   auth: (...args: unknown[]) => {
-    // eslint-disable-next-line no-console
-    console.log(...args);
+    if (isDevelopment && env.DEBUG) {
+      // Throttle auth logy
+      const key = args[0] as string;
+      if (shouldThrottle(key)) return;
+      
+      console.log(...args);
+    }
   },
 };
 

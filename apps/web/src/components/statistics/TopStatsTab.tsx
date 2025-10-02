@@ -1,24 +1,23 @@
+// Lucide icons (replacing MUI icons)
 import {
-  DirectionsCar as CarIcon,
+  Car as CarIcon,
   Euro as EuroIcon,
-  AttachMoney as MoneyIcon,
-  Person as PersonIcon,
-  Speed as SpeedIcon,
+  DollarSign as MoneyIcon,
+  User as PersonIcon,
+  Gauge as SpeedIcon,
   Star as StarIcon,
-  AccessTime as TimeIcon,
-  EmojiEvents as TrophyIcon,
-} from '@mui/icons-material';
-import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Divider,
-  Grid,
-  LinearProgress,
-  Typography,
-} from '@mui/material';
+  Clock as TimeIcon,
+  Trophy as TrophyIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import React from 'react';
+
+// shadcn/ui components (additional imports)
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 import TopListCard from './TopListCard';
 import TopStatCard from './TopStatCard';
@@ -57,53 +56,37 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
   setShowCustomersByDays,
 }) => {
   return (
-    <Grid container spacing={3}>
+    <div className="grid grid-cols-1 gap-6">
       {/* Úvodný prehľad */}
-      <Grid item xs={12}>
-        <Card
-          sx={{
-            mb: 3,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          }}
-        >
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TrophyIcon sx={{ fontSize: 40 }} />
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+      <div className="col-span-1">
+        <Card className="mb-6 bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <TrophyIcon className="h-10 w-10" />
+              <div>
+                <h2 className="text-2xl font-bold mb-2">
                   TOP Štatistiky
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                </h2>
+                <p className="text-white/90">
                   Najlepšie výkony za obdobie: {formatPeriod()}
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
 
       {/* 🏆 NAJLEPŠIE VÝKONY - Prehľadové karty */}
-      <Grid item xs={12}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 700,
-            mb: 3,
-            color: '#667eea',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <StarIcon />
+      <div className="col-span-1">
+        <h3 className="text-xl font-bold mb-6 text-blue-500 flex items-center gap-2">
+          <StarIcon className="h-5 w-5" />
           🏆 Najlepšie výkony
-        </Typography>
-      </Grid>
+        </h3>
+      </div>
 
       {/* Top výkony v 3 kartách */}
-      <Grid item xs={12} md={4}>
+      <div className="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
         <TopStatCard
           title="Najvyťaženejšie auto"
           icon={<SpeedIcon />}
@@ -124,9 +107,9 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
               ?.utilizationPercentage as number
           }
         />
-      </Grid>
+        </div>
 
-      <Grid item xs={12} md={4}>
+        <div>
         <TopStatCard
           title="Najvýnosnejšie auto"
           icon={<EuroIcon />}
@@ -143,9 +126,9 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           }
           gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
         />
-      </Grid>
+        </div>
 
-      <Grid item xs={12} md={4}>
+        <div>
         <TopStatCard
           title="Najaktívnejší zákazník"
           icon={<PersonIcon />}
@@ -162,33 +145,24 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           }
           gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
         />
-      </Grid>
+        </div>
+      </div>
 
       {/* Divider */}
-      <Grid item xs={12}>
-        <Divider sx={{ my: 2 }} />
-      </Grid>
+      
+        <Separator className="my-4" />
+      
 
       {/* 🚗 TOP AUTÁ - Detailné rebríčky */}
-      <Grid item xs={12}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 700,
-            mb: 3,
-            color: '#667eea',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <CarIcon />
+      
+        <h3 className="text-xl font-bold text-blue-500 mb-6 flex items-center gap-2">
+          <CarIcon className="h-5 w-5" />
           🚗 TOP Autá - Detailné rebríčky
-        </Typography>
-      </Grid>
+        </h3>
+      
 
       {/* Najvyťaženejšie autá */}
-      <Grid item xs={12} lg={4}>
+      
         <TopListCard
           title="Najvyťaženejšie autá"
           icon={<SpeedIcon />}
@@ -197,7 +171,7 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           showCount={showVehiclesByUtilization}
           onLoadMore={() => setShowVehiclesByUtilization(prev => prev + 10)}
           renderItem={(vehicle, index) => (
-            <Box
+            <div
               key={
                 (
                   (vehicle as Record<string, unknown>).vehicle as Record<
@@ -206,48 +180,32 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   >
                 ).id as string
               }
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  index < 3 ? 'rgba(102, 126, 234, 0.04)' : '#f8f9fa',
-                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                },
-              }}
+              className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                index < 3 
+                  ? 'bg-blue-50/40 border border-gray-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              } ${
+                index === 0 ? 'border-2 border-yellow-400' : ''
+              }`}
             >
-              <Box
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background:
-                    index < 3
-                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                      : '#bdbdbd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
+              <div
+                className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  index < 3
+                    ? 'bg-gradient-to-br from-blue-500 to-purple-600'
+                    : 'bg-gray-400'
+                }`}
               >
                 {index + 1}
-              </Box>
+              </div>
 
-              <Avatar sx={{ width: 40, height: 40, bgcolor: '#667eea' }}>
-                <CarIcon fontSize="small" />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback className="bg-blue-500 text-white">
+                  <CarIcon className="w-4 h-4" />
+                </AvatarFallback>
               </Avatar>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
+              <div className="flex-1">
+                <p className="text-sm font-bold">
                   {
                     (
                       (vehicle as Record<string, unknown>).vehicle as Record<
@@ -264,8 +222,8 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       >
                     ).model as string
                   }
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {
                     (
                       (vehicle as Record<string, unknown>).vehicle as Record<
@@ -280,63 +238,52 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       .totalDaysRented as number
                   }{' '}
                   dní
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ textAlign: 'right', minWidth: 80 }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{
-                    color:
-                      ((vehicle as Record<string, unknown>)
-                        .utilizationPercentage as number) > 70
-                        ? '#4caf50'
-                        : ((vehicle as Record<string, unknown>)
-                              .utilizationPercentage as number) > 40
-                          ? '#ff9800'
-                          : '#f44336',
-                  }}
+              <div className="text-right min-w-20">
+                <p
+                  className={`text-lg font-bold ${
+                    ((vehicle as Record<string, unknown>)
+                      .utilizationPercentage as number) > 70
+                      ? 'text-green-600'
+                      : ((vehicle as Record<string, unknown>)
+                            .utilizationPercentage as number) > 40
+                        ? 'text-orange-500'
+                        : 'text-red-500'
+                  }`}
                 >
                   {(
                     (vehicle as Record<string, unknown>)
                       .utilizationPercentage as number
                   ).toFixed(1)}
                   %
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
+                </p>
+                <Progress
                   value={Math.min(
                     (vehicle as Record<string, unknown>)
                       .utilizationPercentage as number,
                     100
                   )}
-                  sx={{
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: '#e0e0e0',
-                    '& .MuiLinearProgress-bar': {
-                      background:
-                        ((vehicle as Record<string, unknown>)
-                          .utilizationPercentage as number) > 70
-                          ? '#4caf50'
-                          : ((vehicle as Record<string, unknown>)
-                                .utilizationPercentage as number) > 40
-                            ? '#ff9800'
-                            : '#f44336',
-                      borderRadius: 3,
-                    },
-                  }}
+                  className={`h-1.5 rounded-full ${
+                    ((vehicle as Record<string, unknown>)
+                      .utilizationPercentage as number) > 70
+                      ? '[&>div]:bg-green-500'
+                      : ((vehicle as Record<string, unknown>)
+                            .utilizationPercentage as number) > 40
+                        ? '[&>div]:bg-orange-500'
+                        : '[&>div]:bg-red-500'
+                  }`}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
           emptyMessage="Žiadne autá v tomto období"
         />
-      </Grid>
+      
 
       {/* Najvýnosnejšie autá */}
-      <Grid item xs={12} lg={4}>
+      
         <TopListCard
           title="Najvýnosnejšie autá"
           icon={<EuroIcon />}
@@ -345,7 +292,7 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           showCount={showVehiclesByRevenue}
           onLoadMore={() => setShowVehiclesByRevenue(prev => prev + 10)}
           renderItem={(vehicle, index) => (
-            <Box
+            <div
               key={
                 (
                   (vehicle as Record<string, unknown>).vehicle as Record<
@@ -354,48 +301,32 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   >
                 ).id as string
               }
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  index < 3 ? 'rgba(17, 153, 142, 0.04)' : '#f8f9fa',
-                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                },
-              }}
+              className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                index < 3 
+                  ? 'bg-teal-50/40 border border-gray-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              } ${
+                index === 0 ? 'border-2 border-yellow-400' : ''
+              }`}
             >
-              <Box
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background:
-                    index < 3
-                      ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
-                      : '#bdbdbd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
+              <div
+                className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  index < 3
+                    ? 'bg-gradient-to-br from-teal-600 to-green-500'
+                    : 'bg-gray-400'
+                }`}
               >
                 {index + 1}
-              </Box>
+              </div>
 
-              <Avatar sx={{ width: 40, height: 40, bgcolor: '#11998e' }}>
-                <CarIcon fontSize="small" />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback className="bg-teal-600 text-white">
+                  <CarIcon className="w-4 h-4" />
+                </AvatarFallback>
               </Avatar>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
+              <div className="flex-1">
+                <p className="text-sm font-bold">
                   {
                     (
                       (vehicle as Record<string, unknown>).vehicle as Record<
@@ -412,8 +343,8 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       >
                     ).model as string
                   }
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {
                     (
                       (vehicle as Record<string, unknown>).vehicle as Record<
@@ -424,36 +355,32 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   }{' '}
                   • {(vehicle as Record<string, unknown>).rentalCount as number}{' '}
                   prenájmov
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#11998e' }}
-                >
+              <div className="text-right">
+                <p className="text-lg font-bold text-teal-600">
                   {(
                     (vehicle as Record<string, unknown>).totalRevenue as number
                   ).toLocaleString()}{' '}
                   €
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {(
                     (vehicle as Record<string, unknown>)
                       .avgRevenuePerRental as number
                   ).toFixed(0)}{' '}
                   €/prenájom
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
           )}
           emptyMessage="Žiadne autá v tomto období"
         />
-      </Grid>
+      
 
       {/* Najčastejšie prenajímané */}
-      <Grid item xs={12} lg={4}>
+      
         <TopListCard
           title="Najčastejšie prenajímané"
           icon={<CarIcon />}
@@ -462,7 +389,7 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           showCount={showVehiclesByRentals}
           onLoadMore={() => setShowVehiclesByRentals(prev => prev + 10)}
           renderItem={(vehicle, index) => (
-            <Box
+            <div
               key={
                 (
                   (vehicle as Record<string, unknown>).vehicle as Record<
@@ -471,48 +398,32 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                   >
                 ).id as string
               }
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  index < 3 ? 'rgba(240, 147, 251, 0.04)' : '#f8f9fa',
-                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                },
-              }}
+              className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                index < 3 
+                  ? 'bg-pink-50/40 border border-gray-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              } ${
+                index === 0 ? 'border-2 border-yellow-400' : ''
+              }`}
             >
-              <Box
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background:
-                    index < 3
-                      ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                      : '#bdbdbd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
+              <div
+                className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  index < 3
+                    ? 'bg-gradient-to-br from-pink-400 to-red-500'
+                    : 'bg-gray-400'
+                }`}
               >
                 {index + 1}
-              </Box>
+              </div>
 
-              <Avatar sx={{ width: 40, height: 40, bgcolor: '#f093fb' }}>
-                <CarIcon fontSize="small" />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback className="bg-pink-400 text-white">
+                  <CarIcon className="w-4 h-4" />
+                </AvatarFallback>
               </Avatar>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
+              <div className="flex-1">
+                <p className="text-sm font-bold">
                   {
                     (
                       (vehicle as Record<string, unknown>).vehicle as Record<
@@ -529,8 +440,8 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       >
                     ).model as string
                   }
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {
                     (
                       (vehicle as Record<string, unknown>).vehicle as Record<
@@ -545,55 +456,41 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       .totalDaysRented as number
                   }{' '}
                   dní celkom
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#f093fb' }}
-                >
+              <div className="text-right">
+                <p className="text-lg font-bold text-pink-400">
                   {(vehicle as Record<string, unknown>).rentalCount as number}x
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {(
                     (vehicle as Record<string, unknown>).totalRevenue as number
                   ).toLocaleString()}{' '}
                   € celkom
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
           )}
           emptyMessage="Žiadne autá v tomto období"
         />
-      </Grid>
+      
 
       {/* Divider */}
-      <Grid item xs={12}>
-        <Divider sx={{ my: 2 }} />
-      </Grid>
+      
+        <Separator className="my-4" />
+      
 
       {/* 👥 TOP ZÁKAZNÍCI - Detailné rebríčky */}
-      <Grid item xs={12}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 700,
-            mb: 3,
-            color: '#667eea',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <PersonIcon />
+      
+        <h3 className="text-xl font-bold text-blue-500 mb-6 flex items-center gap-2">
+          <PersonIcon className="h-5 w-5" />
           👥 TOP Zákazníci - Detailné rebríčky
-        </Typography>
-      </Grid>
+        </h3>
+      
 
       {/* Najaktívnejší zákazníci */}
-      <Grid item xs={12} lg={4}>
+      
         <TopListCard
           title="Najaktívnejší zákazníci"
           icon={<StarIcon />}
@@ -602,53 +499,37 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           showCount={showCustomersByRentals}
           onLoadMore={() => setShowCustomersByRentals(prev => prev + 10)}
           renderItem={(customer, index) => (
-            <Box
+            <div
               key={(customer as Record<string, unknown>).customerName as string}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  index < 3 ? 'rgba(255, 154, 158, 0.04)' : '#f8f9fa',
-                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                },
-              }}
+              className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                index < 3 
+                  ? 'bg-pink-50/40 border border-gray-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              } ${
+                index === 0 ? 'border-2 border-yellow-400' : ''
+              }`}
             >
-              <Box
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background:
-                    index < 3
-                      ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
-                      : '#bdbdbd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
+              <div
+                className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  index < 3
+                    ? 'bg-gradient-to-br from-pink-300 to-pink-100'
+                    : 'bg-gray-400'
+                }`}
               >
                 {index + 1}
-              </Box>
+              </div>
 
-              <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff9a9e' }}>
-                <PersonIcon fontSize="small" />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback className="bg-pink-300 text-white">
+                  <PersonIcon className="w-4 h-4" />
+                </AvatarFallback>
               </Avatar>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
+              <div className="flex-1">
+                <p className="text-sm font-bold">
                   {(customer as Record<string, unknown>).customerName as string}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {
                     (customer as Record<string, unknown>)
                       .totalDaysRented as number
@@ -659,32 +540,28 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       .avgRentalDuration as number
                   ).toFixed(1)}{' '}
                   dní
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#ff9a9e' }}
-                >
+              <div className="text-right">
+                <p className="text-lg font-bold text-pink-300">
                   {(customer as Record<string, unknown>).rentalCount as number}x
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {(
                     (customer as Record<string, unknown>).totalRevenue as number
                   ).toLocaleString()}{' '}
                   € celkom
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
           )}
           emptyMessage="Žiadni zákazníci v tomto období"
         />
-      </Grid>
+      
 
       {/* Najziskovejší zákazníci */}
-      <Grid item xs={12} lg={4}>
+      
         <TopListCard
           title="Najziskovejší zákazníci"
           icon={<MoneyIcon />}
@@ -693,53 +570,37 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           showCount={showCustomersByRevenue}
           onLoadMore={() => setShowCustomersByRevenue(prev => prev + 10)}
           renderItem={(customer, index) => (
-            <Box
+            <div
               key={(customer as Record<string, unknown>).customerName as string}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  index < 3 ? 'rgba(255, 107, 107, 0.04)' : '#f8f9fa',
-                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                },
-              }}
+              className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                index < 3 
+                  ? 'bg-red-50/40 border border-gray-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              } ${
+                index === 0 ? 'border-2 border-yellow-400' : ''
+              }`}
             >
-              <Box
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background:
-                    index < 3
-                      ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)'
-                      : '#bdbdbd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
+              <div
+                className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  index < 3
+                    ? 'bg-gradient-to-br from-red-400 to-red-600'
+                    : 'bg-gray-400'
+                }`}
               >
                 {index + 1}
-              </Box>
+              </div>
 
-              <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff6b6b' }}>
-                <PersonIcon fontSize="small" />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback className="bg-red-400 text-white">
+                  <PersonIcon className="w-4 h-4" />
+                </AvatarFallback>
               </Avatar>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
+              <div className="flex-1">
+                <p className="text-sm font-bold">
                   {(customer as Record<string, unknown>).customerName as string}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {(customer as Record<string, unknown>).rentalCount as number}{' '}
                   prenájmov •{' '}
                   {
@@ -747,21 +608,17 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       .totalDaysRented as number
                   }{' '}
                   dní
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#ff6b6b' }}
-                >
+              <div className="text-right">
+                <p className="text-lg font-bold text-red-400">
                   {(
                     (customer as Record<string, unknown>).totalRevenue as number
                   ).toLocaleString()}{' '}
                   €
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {(
                     ((customer as Record<string, unknown>)
                       .totalRevenue as number) /
@@ -769,16 +626,16 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
                       .rentalCount as number)
                   ).toFixed(0)}{' '}
                   €/prenájom
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
           )}
           emptyMessage="Žiadni zákazníci v tomto období"
         />
-      </Grid>
+      
 
       {/* Najdlhodobejší zákazníci */}
-      <Grid item xs={12} lg={4}>
+      <div>
         <TopListCard
           title="Najdlhodobejší zákazníci"
           icon={<TimeIcon />}
@@ -787,89 +644,69 @@ const TopStatsTab: React.FC<TopStatsTabProps> = ({
           showCount={showCustomersByDays}
           onLoadMore={() => setShowCustomersByDays(prev => prev + 10)}
           renderItem={(customer, index) => (
-            <Box
+            <div
               key={(customer as Record<string, unknown>).customerName as string}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  index < 3 ? 'rgba(79, 172, 254, 0.04)' : '#f8f9fa',
-                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                },
-              }}
+              className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:translate-x-1 hover:shadow-md ${
+                index < 3 
+                  ? 'bg-blue-50/40 border border-gray-200' 
+                  : 'bg-gray-50 border border-gray-200'
+              } ${
+                index === 0 ? 'border-2 border-yellow-400' : ''
+              }`}
             >
-              <Box
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background:
-                    index < 3
-                      ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                      : '#bdbdbd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                }}
+              <div
+                className={`min-w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  index < 3
+                    ? 'bg-gradient-to-br from-blue-400 to-cyan-400'
+                    : 'bg-gray-400'
+                }`}
               >
                 {index + 1}
-              </Box>
+              </div>
 
-              <Avatar sx={{ width: 40, height: 40, bgcolor: '#4facfe' }}>
-                <PersonIcon fontSize="small" />
+              <Avatar className="w-10 h-10">
+                <AvatarFallback className="bg-blue-400 text-white">
+                  <PersonIcon className="w-4 h-4" />
+                </AvatarFallback>
               </Avatar>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
+              <div className="flex-1">
+                <p className="text-sm font-bold">
                   {(customer as Record<string, unknown>).customerName as string}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   {(customer as Record<string, unknown>).rentalCount as number}{' '}
                   prenájmov •{' '}
                   {(
                     (customer as Record<string, unknown>).totalRevenue as number
                   ).toLocaleString()}{' '}
                   €
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#4facfe' }}
-                >
+              <div className="text-right">
+                <p className="text-lg font-bold text-blue-400">
                   {
                     (customer as Record<string, unknown>)
                       .totalDaysRented as number
                   }{' '}
                   dní
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </p>
+                <p className="text-xs text-muted-foreground">
                   Priemer:{' '}
                   {(
                     (customer as Record<string, unknown>)
                       .avgRentalDuration as number
                   ).toFixed(1)}{' '}
                   dní/prenájom
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
           )}
           emptyMessage="Žiadni zákazníci v tomto období"
         />
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 };
 

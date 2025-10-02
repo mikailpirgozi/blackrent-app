@@ -1,25 +1,22 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
+import { Alert, AlertDescription } from '../ui/alert';
 import {
   CheckCircle,
-  Close,
-  FlashOff,
-  FlashOn,
-  FlipCameraIos,
-  PhotoCamera,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  LinearProgress,
-  Typography,
-} from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
+  X,
+  FlashlightOff,
+  Flashlight,
+  RotateCcw,
+  Camera,
+} from 'lucide-react';
 
 import { isWebPSupported } from '../../utils/imageLint';
 import { logger } from '../../utils/logger';
@@ -175,7 +172,7 @@ export default function NativeCamera({
 
           // Kontrola flash podpory
           const videoTrack = stream.getVideoTracks()[0];
-          const capabilities = videoTrack.getCapabilities?.();
+          const capabilities = videoTrack?.getCapabilities?.();
           const flashSupported =
             capabilities &&
             'torch' in capabilities &&
@@ -188,7 +185,7 @@ export default function NativeCamera({
             stream,
             isInitializing: false,
             facingMode,
-            flashSupported,
+            flashSupported: flashSupported ?? false,
             error: null,
           }));
 
@@ -280,6 +277,7 @@ export default function NativeCamera({
 
     try {
       const videoTrack = streamRef.current.getVideoTracks()[0];
+      if (!videoTrack) return;
       await videoTrack.applyConstraints({
         advanced: [
           { torch: !cameraState.flashEnabled } as Record<string, unknown>,
@@ -412,315 +410,186 @@ export default function NativeCamera({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      fullScreen // Pre mobilné zariadenia
-      PaperProps={{
-        sx: {
-          bgcolor: 'black',
-          color: 'white',
-          height: '100vh',
-          margin: 0,
-        },
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          onClose();
+        }
       }}
     >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          bgcolor: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          py: 1,
-          position: 'relative',
-          zIndex: 10,
-        }}
-      >
-        <Typography component="span" variant="h6" sx={{ color: 'white' }}>
-          {title}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {webPSupported !== null && (
-            <Chip
-              label={webPSupported ? 'WebP ✅' : 'JPEG'}
-              size="small"
-              color={webPSupported ? 'success' : 'default'}
-              sx={{
-                color: 'white',
-                borderColor: 'white',
-                bgcolor: webPSupported
-                  ? 'rgba(76, 175, 80, 0.3)'
-                  : 'rgba(255, 255, 255, 0.1)',
-              }}
-              variant="outlined"
-            />
-          )}
-          <Chip
-            label={`${currentPhotoCount + photosInSession}/${maxPhotos}`}
-            size="small"
-            color="primary"
-            sx={{ color: 'white', borderColor: 'white' }}
-            variant="outlined"
-          />
-          <IconButton
-            onClick={onClose}
-            sx={{
-              color: 'white',
-              bgcolor: 'rgba(255,255,255,0.1)',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.2)',
-              },
-              ml: 1,
-            }}
-          >
-            <Close />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent
-        sx={{ p: 0, bgcolor: 'black', position: 'relative', flex: 1 }}
-      >
-        {cameraState.error ? (
-          <Box sx={{ p: 3 }}>
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {cameraState.error}
-            </Alert>
-            <Button variant="contained" onClick={() => initCamera()}>
-              Skúsiť znovu
+      <DialogContent className="bg-black text-white p-0 max-w-none w-screen h-screen">
+        <DialogHeader className="flex flex-row items-center justify-between bg-black/80 text-white py-2 px-4 relative z-10">
+          <DialogTitle className="text-lg font-semibold text-white">
+            {title}
+          </DialogTitle>
+          <div className="flex items-center gap-2">
+            {webPSupported !== null && (
+              <Badge
+                variant="outline"
+                className={`text-white border-white ${
+                  webPSupported
+                    ? 'bg-green-500/30 text-green-100'
+                    : 'bg-white/10 text-white'
+                }`}
+              >
+                {webPSupported ? 'WebP ✅' : 'JPEG'}
+              </Badge>
+            )}
+            <Badge
+              variant="outline"
+              className="text-white border-white bg-blue-500/30"
+            >
+              {currentPhotoCount + photosInSession}/{maxPhotos}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-white bg-white/10 hover:bg-white/20 ml-2"
+            >
+              <X className="h-5 w-5" />
             </Button>
-          </Box>
-        ) : cameraState.isInitializing ? (
-          <Box
-            sx={{
-              p: 3,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              minHeight: '300px',
-            }}
-          >
-            <Typography
-              variant="body1"
-              sx={{ color: 'white', mb: 2, textAlign: 'center' }}
-            >
-              Spúšťam kameru...
-            </Typography>
-            <LinearProgress sx={{ width: '100%', maxWidth: '300px' }} />
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'rgba(255,255,255,0.7)',
-                mt: 2,
-                textAlign: 'center',
-              }}
-            >
-              Povoľte prístup ku kamere v prehliadači
-            </Typography>
-          </Box>
-        ) : (
-          <>
-            {/* Video preview - LIVE CAMERA FEED */}
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '400px',
-              }}
-            >
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                onCanPlay={() => logger.debug('✅ Video can play')}
-                onError={e => console.error('❌ Video error:', e)}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
+          </div>
+        </DialogHeader>
 
-              {/* Canvas for capture (hidden) */}
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
+        <div className="p-0 bg-black relative flex-1">
+          {cameraState.error ? (
+            <div className="p-6">
+              <Alert className="mb-4">
+                <AlertDescription>{cameraState.error}</AlertDescription>
+              </Alert>
+              <Button onClick={() => initCamera()}>
+                Skúsiť znovu
+              </Button>
+            </div>
+          ) : cameraState.isInitializing ? (
+            <div className="p-6 flex flex-col items-center justify-center h-full min-h-[300px]">
+              <p className="text-white mb-4 text-center">
+                Spúšťam kameru...
+              </p>
+              <Progress className="w-full max-w-[300px]" />
+              <p className="text-white/70 mt-4 text-center text-sm">
+                Povoľte prístup ku kamere v prehliadači
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Video preview - LIVE CAMERA FEED */}
+              <div className="relative w-full h-full flex items-center justify-center min-h-[400px]">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  onCanPlay={() => logger.debug('✅ Video can play')}
+                  onError={e => console.error('❌ Video error:', e)}
+                  className="w-full h-full object-cover"
+                />
 
-              {/* Camera controls overlay */}
-              {cameraState.stream && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    bgcolor: 'rgba(0,0,0,0.6)',
-                    borderRadius: 6,
-                    p: 2,
-                  }}
-                >
-                  {/* Flash toggle */}
-                  {cameraState.flashSupported && (
-                    <IconButton
-                      onClick={toggleFlash}
-                      sx={{
-                        color: cameraState.flashEnabled ? 'yellow' : 'white',
-                        bgcolor: cameraState.flashEnabled
-                          ? 'rgba(255,255,0,0.2)'
-                          : 'transparent',
-                      }}
-                    >
-                      {cameraState.flashEnabled ? <FlashOn /> : <FlashOff />}
-                    </IconButton>
-                  )}
+                {/* Canvas for capture (hidden) */}
+                <canvas ref={canvasRef} className="hidden" />
 
-                  {/* 📸 CAPTURE BUTTON - KĽÚČOVÉ TLAČIDLO! */}
-                  <IconButton
-                    onClick={capturePhoto}
-                    disabled={capturing}
-                    sx={{
-                      bgcolor: capturing ? 'green' : 'white',
-                      color: capturing ? 'white' : 'black',
-                      width: 70,
-                      height: 70,
-                      '&:hover': {
-                        bgcolor: capturing ? 'green' : 'rgba(255,255,255,0.8)',
-                      },
-                      border: '3px solid white',
-                    }}
-                  >
-                    {capturing ? (
-                      <CheckCircle />
-                    ) : (
-                      <PhotoCamera sx={{ fontSize: 30 }} />
+                {/* Camera controls overlay */}
+                {cameraState.stream && (
+                  <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex items-center gap-6 bg-black/60 rounded-lg p-4">
+                    {/* Flash toggle */}
+                    {cameraState.flashSupported && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleFlash}
+                        className={`${
+                          cameraState.flashEnabled
+                            ? 'text-yellow-400 bg-yellow-400/20'
+                            : 'text-white'
+                        }`}
+                      >
+                        {cameraState.flashEnabled ? (
+                          <Flashlight className="h-6 w-6" />
+                        ) : (
+                          <FlashlightOff className="h-6 w-6" />
+                        )}
+                      </Button>
                     )}
-                  </IconButton>
 
-                  {/* Camera switch */}
-                  <IconButton onClick={switchCamera} sx={{ color: 'white' }}>
-                    <FlipCameraIos />
-                  </IconButton>
-                </Box>
-              )}
+                    {/* 📸 CAPTURE BUTTON - KĽÚČOVÉ TLAČIDLO! */}
+                    <Button
+                      onClick={capturePhoto}
+                      disabled={capturing}
+                      className={`w-[70px] h-[70px] rounded-full border-3 border-white ${
+                        capturing
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white text-black hover:bg-white/80'
+                      }`}
+                    >
+                      {capturing ? (
+                        <CheckCircle className="h-8 w-8" />
+                      ) : (
+                        <Camera className="h-8 w-8" />
+                      )}
+                    </Button>
 
-              {/* Instructions */}
-              {cameraState.stream && photosInSession === 0 && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    bgcolor: 'rgba(0,0,0,0.7)',
-                    color: 'white',
-                    px: 2,
-                    py: 1,
-                    borderRadius: 2,
-                    textAlign: 'center',
-                  }}
-                >
-                  <Typography variant="body2">
-                    Kliknite na 📸 alebo stlačte medzerník na odfotenie
-                  </Typography>
-                </Box>
-              )}
+                    {/* Camera switch */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={switchCamera}
+                      className="text-white"
+                    >
+                      <RotateCcw className="h-6 w-6" />
+                    </Button>
+                  </div>
+                )}
 
-              {/* Success indicator */}
-              {photosInSession > 0 && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 20,
-                    right: 20,
-                    bgcolor: 'rgba(76, 175, 80, 0.9)',
-                    color: 'white',
-                    px: 2,
-                    py: 1,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
-                >
-                  <CheckCircle sx={{ fontSize: 20 }} />
-                  <Typography variant="body2">
-                    {photosInSession} fotiek zachytených
-                  </Typography>
-                </Box>
-              )}
+                {/* Instructions */}
+                {cameraState.stream && photosInSession === 0 && (
+                  <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg text-center">
+                    <p className="text-sm">
+                      Kliknite na 📸 alebo stlačte medzerník na odfotenie
+                    </p>
+                  </div>
+                )}
 
-              {/* 💾 FLOATING SAVE BUTTON - Hlavné tlačidlo na uloženie */}
-              {photosInSession > 0 && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 80, // Pod success indikátorom
-                    right: 20,
-                    zIndex: 1000,
-                  }}
-                >
-                  <Button
-                    onClick={onClose}
-                    variant="contained"
-                    size="large"
-                    startIcon={<CheckCircle />}
-                    sx={{
-                      bgcolor: '#4CAF50', // Zelená farba
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                      px: 3,
-                      py: 1.5,
-                      borderRadius: 3,
-                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)',
-                      '&:hover': {
-                        bgcolor: '#45a049',
-                        boxShadow: '0 6px 16px rgba(76, 175, 80, 0.6)',
-                      },
-                      '&:active': {
-                        transform: 'scale(0.98)',
-                      },
-                      transition: 'all 0.2s ease',
-                      minWidth: '160px',
-                    }}
-                  >
-                    Uložiť fotky ({photosInSession})
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </>
+                {/* Success indicator */}
+                {photosInSession > 0 && (
+                  <div className="absolute top-5 right-5 bg-green-500/90 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    <p className="text-sm">
+                      {photosInSession} fotiek zachytených
+                    </p>
+                  </div>
+                )}
+
+                {/* 💾 FLOATING SAVE BUTTON - Hlavné tlačidlo na uloženie */}
+                {photosInSession > 0 && (
+                  <div className="absolute top-20 right-5 z-[1000]">
+                    <Button
+                      onClick={onClose}
+                      size="lg"
+                      className="bg-green-500 text-white font-bold text-base px-6 py-3 rounded-xl shadow-lg shadow-green-500/40 hover:bg-green-600 hover:shadow-green-500/60 active:scale-95 transition-all duration-200 min-w-[160px]"
+                    >
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Uložiť fotky ({photosInSession})
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        {photosInSession > 0 && (
+          <div className="bg-black/80 text-white flex justify-center py-2">
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              className="text-white/70 text-sm"
+            >
+              ✓ Dokončiť ({photosInSession} fotiek)
+            </Button>
+          </div>
         )}
       </DialogContent>
-
-      <DialogActions
-        sx={{
-          bgcolor: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          justifyContent: 'center',
-          py: 1,
-          display: photosInSession > 0 ? 'flex' : 'none', // Skryť ak nie sú žiadne fotky
-        }}
-      >
-        <Button
-          onClick={onClose}
-          sx={{
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: '14px',
-          }}
-        >
-          ✓ Dokončiť ({photosInSession} fotiek)
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

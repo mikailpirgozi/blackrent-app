@@ -3,6 +3,7 @@
 
 import { getAPI_BASE_URL } from './api';
 
+// Web API types for TypeScript
 interface PushSubscriptionData {
   endpoint: string;
   keys: {
@@ -45,9 +46,80 @@ interface PushNotificationPreferences {
   quiet_hours_end: string;
 }
 
+// Web API type definitions
+type NotificationPermission = 'default' | 'granted' | 'denied';
+
+interface NotificationOptions {
+  body?: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+  requireInteraction?: boolean;
+  silent?: boolean;
+  vibrate?: number[];
+  actions?: NotificationAction[];
+}
+
+interface _Notification {
+  onclick: ((_event: any) => void) | null;
+  close(): void;
+}
+
+interface PushSubscription {
+  endpoint: string;
+  getKey(_name: 'p256dh' | 'auth'): ArrayBuffer | null;
+  toJSON(): PushSubscriptionData;
+  unsubscribe(): Promise<boolean>;
+}
+
+interface PushSubscriptionOptions {
+  userVisibleOnly: boolean;
+  applicationServerKey: ArrayBuffer | Uint8Array;
+}
+
+interface PushManager {
+  getSubscription(): Promise<PushSubscription | null>;
+  subscribe(_options: PushSubscriptionOptions): Promise<PushSubscription>;
+}
+
+interface ServiceWorkerRegistration {
+  pushManager: PushManager;
+}
+
+interface ServiceWorkerContainer {
+  ready: Promise<ServiceWorkerRegistration>;
+}
+
+interface Navigator {
+  serviceWorker: ServiceWorkerContainer;
+  userAgent: string;
+}
+
+// interface _Location {
+//   href: string;
+// }
+
+// Window interface removed as it's not used
+
+interface _URLSearchParams {
+  append(_name: string, _value: string): void;
+}
+
+// Global declarations
+declare const navigator: Navigator;
+declare const Notification: {
+  permission: NotificationPermission;
+  requestPermission(): Promise<NotificationPermission>;
+  new(_title: string, _options?: NotificationOptions): _Notification;
+};
+declare const URLSearchParams: {
+  new(): _URLSearchParams;
+};
+
 class PushNotificationService {
   private vapidPublicKey: string | null = null;
-  private subscription: PushSubscription | null = null;
+  // private subscription: PushSubscription | null = null;
   private registration: ServiceWorkerRegistration | null = null;
 
   // Initialize push notifications
@@ -139,7 +211,7 @@ class PushNotificationService {
         });
       }
 
-      this.subscription = subscription;
+      // this.subscription = subscription;
 
       // Send subscription to server
       const success = await this.sendSubscriptionToServer(subscription);
@@ -174,7 +246,7 @@ class PushNotificationService {
         if (unsubscribed) {
           // Remove from server
           await this.removeSubscriptionFromServer(subscription);
-          this.subscription = null;
+          // this.subscription = null;
           console.log('✅ Successfully unsubscribed from push notifications');
           return true;
         }
@@ -244,7 +316,7 @@ class PushNotificationService {
     isSupported: boolean;
     isSubscribed: boolean;
     permission: NotificationPermission;
-    subscription?: PushSubscription;
+    subscription: PushSubscription | null;
   }> {
     const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
 
@@ -253,6 +325,7 @@ class PushNotificationService {
         isSupported: false,
         isSubscribed: false,
         permission: 'denied',
+        subscription: null,
       };
     }
 
@@ -268,7 +341,7 @@ class PushNotificationService {
       isSupported,
       isSubscribed: !!subscription,
       permission,
-      subscription: subscription || undefined,
+      subscription: subscription || null,
     };
   }
 
@@ -350,17 +423,14 @@ class PushNotificationService {
         body: payload.body,
         icon: payload.icon || '/logo192.png',
         badge: payload.badge || '/favicon.ico',
-        // image: payload.image, // Not supported in all browsers
-        tag: payload.tag,
-        data: payload.data,
+        ...(payload.tag && { tag: payload.tag }),
+        ...(payload.data && { data: payload.data }),
         requireInteraction: payload.requireInteraction || false,
         silent: payload.silent || false,
-        // vibrate: payload.vibrate || [200, 100, 200], // Not supported in all browsers
-        // timestamp: Date.now(), // Not supported in all browsers
       });
 
       // Handle click event
-      notification.onclick = event => {
+      notification.onclick = (event: any) => {
         event.preventDefault();
 
         const data = payload.data || {};
@@ -416,7 +486,7 @@ class PushNotificationService {
   }
 
   // Utility function to convert VAPID key
-  private urlBase64ToUint8Array(base64String: string): BufferSource {
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
       .replace(/-/g, '+')

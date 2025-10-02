@@ -1,30 +1,43 @@
 import {
-  BugReport as BugIcon,
-  Clear as ClearIcon,
-  Close as CloseIcon,
+  Bug as BugIcon,
+  Trash2 as ClearIcon,
+  X as CloseIcon,
   Download as DownloadIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  Memory as MemoryIcon,
-  Refresh as RefreshIcon,
-  Speed as SpeedIcon,
-} from '@mui/icons-material';
+  ChevronUp as ExpandLessIcon,
+  ChevronDown as ExpandMoreIcon,
+  Cpu as MemoryIcon,
+  RefreshCw as RefreshIcon,
+  Zap as SpeedIcon,
+} from 'lucide-react';
 import {
   Alert,
-  Box,
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
   Button,
-  Chip,
-  Collapse,
+} from '@/components/ui/button';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
+  Collapsible,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
+import {
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Divider,
-  IconButton,
-  Stack,
+} from '@/components/ui/dialog';
+import {
+  Separator,
+} from '@/components/ui/separator';
+import {
   Typography,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+} from '@/components/ui/typography';
+import { useEffect, useState } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger, LogEntry } from '../../utils/mobileLogger';
 
@@ -38,7 +51,7 @@ interface LogEntry {
   stackTrace?: string; // Added missing property
 }
 
-const MobileDebugPanel: React.FC = () => {
+const MobileDebugPanel = () => {
   const [open, setOpen] = useState(false);
   const [logs] = useState<LogEntry[]>([]);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
@@ -61,9 +74,10 @@ const MobileDebugPanel: React.FC = () => {
     if (open && mobileLogger) {
       refreshLogs();
       // Auto-refresh every 2 seconds when panel is open
-      const interval = setInterval(refreshLogs, 2000);
-      return () => clearInterval(interval);
+      const interval = window.setInterval(refreshLogs, 2000);
+      return () => window.clearInterval(interval);
     }
+    return undefined;
   }, [open, mobileLogger]);
 
   // Only show on mobile
@@ -85,17 +99,17 @@ const MobileDebugPanel: React.FC = () => {
   const getLevelColor = (level: LogEntry['level']) => {
     switch (level) {
       case 'DEBUG':
-        return 'default';
+        return 'bg-gray-100 text-gray-800 border-gray-300';
       case 'INFO':
-        return 'info';
+        return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'WARN':
-        return 'warning';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'ERROR':
-        return 'error';
+        return 'bg-red-100 text-red-800 border-red-300';
       case 'CRITICAL':
-        return 'error';
+        return 'bg-red-100 text-red-800 border-red-300';
       default:
-        return 'default';
+        return 'bg-gray-100 text-gray-800 border-gray-300';
     }
   };
 
@@ -128,131 +142,76 @@ const MobileDebugPanel: React.FC = () => {
   return (
     <>
       {/* Floating Debug Button */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 20,
-          right: 20,
-          zIndex: 9999,
-          opacity: 0.8,
-          '&:hover': { opacity: 1 },
-        }}
-      >
+      <div className="fixed bottom-5 right-5 z-50 opacity-80 hover:opacity-100">
         <Button
-          variant="contained"
-          color="secondary"
-          size="small"
+          variant="default"
+          size="sm"
           onClick={() => setOpen(true)}
-          startIcon={<BugIcon />}
-          sx={{
-            borderRadius: '20px',
-            background: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)',
-            color: 'white',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-            '&:hover': {
-              background: 'linear-gradient(45deg, #FF5252, #26C6DA)',
-            },
-          }}
+          className="rounded-full bg-gradient-to-r from-pink-500 to-cyan-400 text-white font-bold shadow-lg hover:from-pink-600 hover:to-cyan-500"
         >
+          <BugIcon size={16} className="mr-2" />
           Debug
         </Button>
-      </Box>
+      </div>
 
       {/* Debug Panel Dialog */}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isMobile}
-        sx={{
-          '& .MuiDialog-paper': {
-            backgroundColor: '#1a1a1a',
-            color: '#ffffff',
-            height: isMobile ? '100vh' : '80vh',
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: '#2d2d2d',
-            borderBottom: '1px solid #444',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BugIcon />
-            <Typography variant="h6">📱 Mobile Debug Panel</Typography>
-          </Box>
-          <IconButton onClick={() => setOpen(false)} sx={{ color: 'white' }}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className={`max-w-4xl w-full ${isMobile ? 'h-screen max-h-screen' : 'max-h-[80vh]'} bg-gray-900 text-white border-gray-700`}>
+          <DialogHeader className="bg-gray-800 border-b border-gray-600">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BugIcon size={20} />
+                <Typography variant="h6">📱 Mobile Debug Panel</Typography>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)} className="text-white hover:bg-gray-700">
+                <CloseIcon size={16} />
+              </Button>
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Diagnostické informácie pre mobilné zariadenia
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogContent sx={{ p: 2, overflow: 'auto' }}>
-          {/* Stats Section */}
-          {stats && (
-            <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <SpeedIcon /> Štatistiky
+        <div className="p-2 overflow-auto">
+            {/* Stats Section */}
+            {stats && (
+              <div className="mb-6">
+                <Typography variant="h6" className="mb-3 flex items-center gap-2">
+                  <SpeedIcon size={20} /> Štatistiky
+                </Typography>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="text-white border-gray-600">
+                    📝 Celkom: {String(stats.totalLogs)}
+                  </Badge>
+                  <Badge variant="outline" className="text-orange-400 border-gray-600">
+                    ⚠️ Warnings: {String(stats.warningCount)}
+                  </Badge>
+                  <Badge variant="outline" className="text-red-400 border-gray-600">
+                    ❌ Errors: {String(stats.errorCount)}
+                  </Badge>
+                  <Badge variant="outline" className="text-blue-400 border-gray-600">
+                    🕐 Recent: {String(stats.recentLogs)}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
+            {/* Memory Info */}
+            <div className="mb-6">
+              <Typography variant="h6" className="mb-3 flex items-center gap-2">
+                <MemoryIcon size={20} /> Pamäť
               </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Chip
-                  label={`📝 Celkom: ${stats.totalLogs}`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ color: 'white', borderColor: '#666' }}
-                />
-                <Chip
-                  label={`⚠️ Warnings: ${stats.warningCount}`}
-                  size="small"
-                  variant="outlined"
-                  color="warning"
-                />
-                <Chip
-                  label={`❌ Errors: ${stats.errorCount}`}
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                />
-                <Chip
-                  label={`🕐 Recent: ${stats.recentLogs}`}
-                  size="small"
-                  variant="outlined"
-                  color="info"
-                />
-              </Stack>
-            </Box>
-          )}
-
-          {/* Memory Info */}
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <MemoryIcon /> Pamäť
-            </Typography>
             {(
-              performance as Performance & {
+              window.performance as any & {
                 memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
               }
             ).memory ? (
-              <Alert
-                severity="info"
-                sx={{ backgroundColor: '#1e3a5f', color: 'white' }}
-              >
-                <Typography variant="body2">
+              <Alert className="bg-blue-900/50 border-blue-700">
+                <AlertDescription className="text-white">
                   Použitá:{' '}
                   {Math.round(
                     (
-                      performance as Performance & {
+                      window.performance as any & {
                         memory: {
                           usedJSHeapSize: number;
                           jsHeapSizeLimit: number;
@@ -265,7 +224,7 @@ const MobileDebugPanel: React.FC = () => {
                   MB / Limit:{' '}
                   {Math.round(
                     (
-                      performance as Performance & {
+                      window.performance as any & {
                         memory: {
                           usedJSHeapSize: number;
                           jsHeapSizeLimit: number;
@@ -276,186 +235,143 @@ const MobileDebugPanel: React.FC = () => {
                       1024
                   )}{' '}
                   MB
-                </Typography>
+                </AlertDescription>
               </Alert>
             ) : (
-              <Alert
-                severity="warning"
-                sx={{ backgroundColor: '#5f4e1e', color: 'white' }}
-              >
-                Memory API nie je dostupné
+              <Alert className="bg-yellow-900/50 border-yellow-700">
+                <AlertDescription className="text-white">
+                  Memory API nie je dostupné
+                </AlertDescription>
               </Alert>
             )}
-          </Box>
+            </div>
 
-          <Divider sx={{ my: 2, borderColor: '#444' }} />
+          <Separator className="my-4 border-gray-600" />
 
           {/* Logs Section */}
-          <Typography variant="h6" sx={{ mb: 2 }}>
+          <Typography variant="h6" className="mb-3">
             📋 Posledné logy ({logs.length})
           </Typography>
 
           {logs.length === 0 ? (
-            <Alert
-              severity="info"
-              sx={{ backgroundColor: '#1e3a5f', color: 'white' }}
-            >
-              Žiadne logy k dispozícii
+            <Alert className="bg-blue-900/50 border-blue-700">
+              <AlertDescription className="text-white">
+                Žiadne logy k dispozícii
+              </AlertDescription>
             </Alert>
           ) : (
-            <Box sx={{ maxHeight: '400px', overflow: 'auto' }}>
+            <div className="max-h-96 overflow-auto">
               {logs.map((log, index) => (
-                <Box key={index} sx={{ mb: 1 }}>
-                  <Box
-                    sx={{
-                      p: 1,
-                      backgroundColor: '#2d2d2d',
-                      borderRadius: 1,
-                      border:
-                        log.level === 'ERROR' || log.level === 'CRITICAL'
-                          ? '1px solid #f44336'
-                          : '1px solid #444',
-                      cursor: 'pointer',
-                    }}
+                <div key={index} className="mb-2">
+                  <div
+                    className={`p-3 rounded cursor-pointer ${
+                      log.level === 'ERROR' || log.level === 'CRITICAL'
+                        ? 'bg-red-900/50 border border-red-700'
+                        : 'bg-gray-800 border border-gray-600'
+                    }`}
                     onClick={() =>
                       setExpandedLog(expandedLog === index ? null : index)
                     }
                   >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mb: 0.5,
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ color: '#888' }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Typography variant="caption" className="text-gray-400">
                         {formatTime(log.timestamp)}
                       </Typography>
-                      <Chip
-                        label={`${getLevelEmoji(log.level)} ${log.level}`}
-                        size="small"
-                        color={getLevelColor(log.level)}
-                        sx={{ minWidth: 'auto' }}
-                      />
-                      <Chip
-                        label={log.category}
-                        size="small"
-                        variant="outlined"
-                        sx={{ color: '#ccc', borderColor: '#666' }}
-                      />
+                      <Badge
+                        className={`${getLevelColor(log.level)} text-white font-bold`}
+                      >
+                        {getLevelEmoji(log.level)} {log.level}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="text-gray-300 border-gray-600"
+                      >
+                        {log.category}
+                      </Badge>
                       {expandedLog === index ? (
-                        <ExpandLessIcon />
+                        <ExpandLessIcon size={16} />
                       ) : (
-                        <ExpandMoreIcon />
+                        <ExpandMoreIcon size={16} />
                       )}
-                    </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    </div>
+                    <Typography variant="body2" className="font-medium">
                       {log.message}
                     </Typography>
-                  </Box>
+                  </div>
 
-                  <Collapse in={expandedLog === index}>
-                    <Box
-                      sx={{
-                        mt: 1,
-                        p: 2,
-                        backgroundColor: '#1a1a1a',
-                        borderRadius: 1,
-                      }}
-                    >
-                      {log.data && (
-                        <Box sx={{ mb: 2 }}>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: '#888', fontWeight: 'bold' }}
-                          >
-                            Data:
-                          </Typography>
-                          <Box
-                            component="pre"
-                            sx={{
-                              fontSize: '0.75rem',
-                              color: '#4fc3f7',
-                              backgroundColor: '#0d1421',
-                              p: 1,
-                              borderRadius: 1,
-                              overflow: 'auto',
-                              maxHeight: '200px',
-                            }}
-                          >
-                            {JSON.stringify(log.data, null, 2)}
-                          </Box>
-                        </Box>
-                      )}
+                  <Collapsible open={expandedLog === index}>
+                    <CollapsibleContent>
+                      <div className="mt-2 p-4 bg-gray-900 rounded">
+                        {log.data && (
+                          <div className="mb-3">
+                            <Typography
+                              variant="caption"
+                              className="text-gray-400 font-bold"
+                            >
+                              Data:
+                            </Typography>
+                            <pre
+                              className="text-xs text-blue-300 bg-gray-800 p-2 rounded overflow-auto max-h-48"
+                            >
+                              {JSON.stringify(log.data, null, 2)}
+                            </pre>
+                          </div>
+                        )}
 
-                      {log.stackTrace && (
-                        <Box>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: '#888', fontWeight: 'bold' }}
-                          >
-                            Stack Trace:
-                          </Typography>
-                          <Box
-                            component="pre"
-                            sx={{
-                              fontSize: '0.7rem',
-                              color: '#ff9800',
-                              backgroundColor: '#0d1421',
-                              p: 1,
-                              borderRadius: 1,
-                              overflow: 'auto',
-                              maxHeight: '150px',
-                            }}
-                          >
-                            {log.stackTrace}
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-                  </Collapse>
-                </Box>
+                        {log.stackTrace && (
+                          <div>
+                            <Typography
+                              variant="caption"
+                              className="text-gray-400 font-bold"
+                            >
+                              Stack Trace:
+                            </Typography>
+                            <pre
+                              className="text-xs text-orange-400 bg-gray-800 p-2 rounded overflow-auto max-h-36"
+                            >
+                              {log.stackTrace}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
+        </div>
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            backgroundColor: '#2d2d2d',
-            borderTop: '1px solid #444',
-            gap: 1,
-          }}
-        >
+        <DialogFooter className="bg-gray-800 border-t border-gray-600 p-4 flex gap-2">
           <Button
-            startIcon={<RefreshIcon />}
             onClick={refreshLogs}
-            variant="outlined"
-            size="small"
-            sx={{ color: 'white', borderColor: '#666' }}
+            variant="outline"
+            size="sm"
+            className="text-white border-gray-600 hover:bg-gray-700"
           >
+            <RefreshIcon className="w-4 h-4 mr-2" />
             Refresh
           </Button>
           <Button
-            startIcon={<DownloadIcon />}
             onClick={handleDownloadLogs}
-            variant="outlined"
-            size="small"
-            sx={{ color: 'white', borderColor: '#666' }}
+            variant="outline"
+            size="sm"
+            className="text-white border-gray-600 hover:bg-gray-700"
           >
+            <DownloadIcon className="w-4 h-4 mr-2" />
             Download
           </Button>
           <Button
-            startIcon={<ClearIcon />}
             onClick={handleClearLogs}
-            variant="outlined"
-            color="warning"
-            size="small"
+            variant="outline"
+            size="sm"
+            className="text-orange-400 border-orange-600 hover:bg-orange-900"
           >
+            <ClearIcon className="w-4 h-4 mr-2" />
             Clear
           </Button>
-        </DialogActions>
+        </DialogFooter>
       </Dialog>
     </>
   );

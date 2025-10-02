@@ -1,13 +1,6 @@
-import {
-  Box,
-  Card,
-  CardContent,
-  Divider,
-  Grid,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { isAfter, isBefore, isToday, isTomorrow } from 'date-fns';
 import React, { useMemo } from 'react';
 
@@ -50,13 +43,6 @@ interface MetricData {
   clickable: boolean;
 }
 
-interface ThemePalette {
-  error: { main: string };
-  warning: { main: string };
-  success: { main: string };
-  info: { main: string };
-  primary: { main: string };
-}
 
 const RentalDashboard: React.FC<RentalDashboardProps> = ({
   rentals,
@@ -64,8 +50,6 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
   isLoading = false,
   onQuickFilter,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // 📊 Vypočítaj kľúčové metriky
   const stats: DashboardStats = useMemo(() => {
@@ -235,164 +219,113 @@ const RentalDashboard: React.FC<RentalDashboardProps> = ({
 
   if (isLoading) {
     return (
-      <Card sx={{ mb: 3, p: 2 }}>
-        <Typography variant="h6" color="text.secondary">
-          Načítavam dashboard...
-        </Typography>
+      <Card className="mb-6 p-4">
+        <CardContent>
+          <h6 className="text-lg font-semibold text-muted-foreground">
+            Načítavam dashboard...
+          </h6>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card
-      sx={{
-        mb: 3,
-        backgroundColor: 'background.paper',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-        border: '1px solid rgba(0,0,0,0.06)',
-        borderRadius: 3,
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+    <Card className="mb-6 bg-background shadow-lg border border-border rounded-lg">
+      <CardContent className="p-4 md:p-6">
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
-          <Typography
-            variant="h5"
-            fontWeight="600"
-            sx={{
-              color: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-primary flex items-center gap-2">
             📊 Dashboard prenájmov
-          </Typography>
+          </h2>
 
-          <Typography variant="body2" color="text.secondary">
+          <p className="text-sm text-muted-foreground">
             Celkom: <strong>{stats.total}</strong> prenájmov
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* 📊 ULTRA KOMPAKTNÝ DASHBOARD - všetko v jednom riadku */}
-        <Grid container spacing={0.25}>
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-1">
           {allMetrics.map((metric, index) => (
-            <Grid item xs={4} sm={3} md={2} lg={1.33} xl={1.2} key={index}>
+            <div key={index}>
               <Card
                 onClick={() =>
                   handleMetricClick(metric.filterType, metric.value)
                 }
-                sx={{
-                  background: metric.urgent
-                    ? `linear-gradient(135deg, ${(theme.palette as ThemePalette)[metric.color].main}15 0%, ${(theme.palette as ThemePalette)[metric.color].main}25 100%)`
-                    : `linear-gradient(135deg, ${(theme.palette as ThemePalette)[metric.color].main}10 0%, ${(theme.palette as ThemePalette)[metric.color].main}20 100%)`,
-                  border: `1px solid ${(theme.palette as ThemePalette)[metric.color].main}30`,
-                  borderRadius: 1,
-                  transition: 'all 0.2s ease',
-                  cursor: metric.clickable ? 'pointer' : 'default',
-                  minHeight: 60,
-                  '&:hover': metric.clickable
-                    ? {
-                        transform: 'translateY(-1px)',
-                        boxShadow: `0 4px 15px ${(theme.palette as ThemePalette)[metric.color].main}30`,
-                      }
-                    : {},
-                }}
+                className={cn(
+                  "min-h-[60px] rounded border transition-all duration-200",
+                  metric.clickable ? "cursor-pointer hover:-translate-y-0.5" : "cursor-default",
+                  // Color-based styling - zachovávam všetky farby a gradienty
+                  metric.color === 'success' && (metric.urgent 
+                    ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300 hover:shadow-lg hover:shadow-green-200" 
+                    : "bg-gradient-to-br from-green-25 to-green-50 border-green-200 hover:shadow-md hover:shadow-green-100"),
+                  metric.color === 'warning' && (metric.urgent 
+                    ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300 hover:shadow-lg hover:shadow-yellow-200" 
+                    : "bg-gradient-to-br from-yellow-25 to-yellow-50 border-yellow-200 hover:shadow-md hover:shadow-yellow-100"),
+                  metric.color === 'error' && (metric.urgent 
+                    ? "bg-gradient-to-br from-red-50 to-red-100 border-red-300 hover:shadow-lg hover:shadow-red-200" 
+                    : "bg-gradient-to-br from-red-25 to-red-50 border-red-200 hover:shadow-md hover:shadow-red-100"),
+                  metric.color === 'info' && (metric.urgent 
+                    ? "bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-300 hover:shadow-lg hover:shadow-cyan-200" 
+                    : "bg-gradient-to-br from-cyan-25 to-cyan-50 border-cyan-200 hover:shadow-md hover:shadow-cyan-100")
+                )}
               >
-                <CardContent
-                  sx={{
-                    textAlign: 'center',
-                    py: 0.25,
-                    px: 0.25,
-                    '&:last-child': { pb: 0.25 },
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    fontWeight="700"
-                    sx={{
-                      color: `${metric.color}.main`,
-                      fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-                      lineHeight: 1.1,
-                    }}
-                  >
+                <CardContent className="text-center py-1 px-1 last:pb-1">
+                  <h6 className={cn(
+                    "font-bold leading-tight",
+                    "text-sm sm:text-base md:text-lg", // responsive font sizes zachované
+                    // Color-based text colors - zachovávam všetky farby
+                    metric.color === 'success' && "text-green-600", 
+                    metric.color === 'warning' && "text-yellow-600",
+                    metric.color === 'error' && "text-red-600",
+                    metric.color === 'info' && "text-cyan-600"
+                  )}>
                     {metric.value}
-                  </Typography>
+                  </h6>
 
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: 'text.secondary',
-                      fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' },
-                      display: 'block',
-                      lineHeight: 1,
-                      mt: 0.1,
-                    }}
-                  >
+                  <span className="text-muted-foreground text-[0.55rem] sm:text-[0.6rem] md:text-[0.65rem] block leading-none mt-0.5">
                     {metric.label}
-                  </Typography>
+                  </span>
 
                   {metric.clickable && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: `${metric.color}.main`,
-                        fontSize: { xs: '0.5rem', sm: '0.55rem' },
-                        mt: 0.1,
-                      }}
-                    >
+                    <span className={cn(
+                      "text-[0.5rem] sm:text-[0.55rem] mt-0.5",
+                      // Color-based text colors - zachovávam všetky farby
+                      metric.color === 'success' && "text-green-600", 
+                      metric.color === 'warning' && "text-yellow-600",
+                      metric.color === 'error' && "text-red-600",
+                      metric.color === 'info' && "text-cyan-600"
+                    )}>
                       👆
-                    </Typography>
+                    </span>
                   )}
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
 
         {/* 💰 FINANČNÝ PREHĽAD - len reálne dáta */}
-        {!isMobile && stats.totalRevenue > 0 && (
+        {stats.totalRevenue > 0 && (
           <>
-            <Divider sx={{ my: 2 }} />
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 4,
-              }}
-            >
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="600"
-                  sx={{ color: 'success.main' }}
-                >
+            <Separator className="my-4" />
+            <div className="flex justify-center gap-16">
+              <div className="text-center">
+                <h6 className="text-lg font-semibold text-green-600">
                   {stats.totalRevenue.toLocaleString('sk-SK')}€
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </h6>
+                <span className="text-xs text-muted-foreground">
                   Celkové tržby
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="600"
-                  sx={{ color: 'info.main' }}
-                >
+                </span>
+              </div>
+              <div className="text-center">
+                <h6 className="text-lg font-semibold text-cyan-600">
                   {Math.round(stats.avgDailyRevenue).toLocaleString('sk-SK')}€
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </h6>
+                <span className="text-xs text-muted-foreground">
                   Priemerná cena
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
           </>
         )}
       </CardContent>

@@ -1,38 +1,23 @@
 import {
-  Add as AddIcon,
-  Cancel as CancelIcon,
-  Category as CategoryIcon,
-  Delete as DeleteIcon,
-  DragIndicator as DragIcon,
+  Plus as AddIcon,
+  X as CancelIcon,
+  Tag as CategoryIcon,
+  Trash2 as DeleteIcon,
+  GripVertical as DragIcon,
   Edit as EditIcon,
   Save as SaveIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  List,
-  ListItem,
-  ListItemSecondaryAction,
-  ListItemText,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import React, { Fragment, useEffect, useState } from 'react';
+} from 'lucide-react';
+// shadcn/ui components
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
+import { useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
 import type { ExpenseCategory } from '../../types';
@@ -241,299 +226,216 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          backgroundColor: '#f5f5f5',
-          borderBottom: '1px solid #e0e0e0',
-        }}
-      >
-        <CategoryIcon sx={{ color: '#1976d2' }} />
-        Správa kategórií nákladov
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 3 }}>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 bg-gray-50 border-b border-gray-200 -m-6 mb-6 p-6">
+            <CategoryIcon className="h-5 w-5 text-blue-600" />
+            Správa kategórií nákladov
+          </DialogTitle>
+        </DialogHeader>
         {/* Error/Success alerts */}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         {success && (
-          <Alert
-            severity="success"
-            sx={{ mb: 2 }}
-            onClose={() => setSuccess(null)}
-          >
-            {success}
+          <Alert className="mb-4">
+            <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
 
         {/* Header s tlačidlom pridať */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-semibold">
             Existujúce kategórie ({categories.length})
-          </Typography>
+          </h3>
           <Button
-            variant="contained"
-            startIcon={<AddIcon />}
             onClick={handleAddCategory}
             disabled={loading}
+            className="flex items-center gap-2"
           >
+            <AddIcon className="h-4 w-4" />
             Pridať kategóriu
           </Button>
-        </Box>
+        </div>
 
         {/* Loading */}
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center my-6">
+            <Spinner />
+          </div>
         )}
 
         {/* Zoznam kategórií */}
-        <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <List>
-            {categories.map((category, index) => (
-              <Fragment key={category.id}>
-                <ListItem
-                  sx={{
-                    py: 2,
-                    '&:hover': { backgroundColor: '#f5f5f5' },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      mr: 2,
-                    }}
-                  >
-                    <DragIcon
-                      sx={{ color: 'text.secondary', cursor: 'grab' }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        minWidth: 30,
-                        textAlign: 'center',
-                        fontWeight: 600,
-                        color: 'text.secondary',
-                      }}
-                    >
-                      {category.sortOrder}
-                    </Typography>
-                  </Box>
+        <Card className="shadow-md">
+          <div className="divide-y">
+            {categories.map((category) => (
+              <div key={category.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2">
+                      <DragIcon className="h-4 w-4 text-gray-500 cursor-grab" />
+                      <span className="min-w-[30px] text-center font-semibold text-gray-500 text-sm">
+                        {category.sortOrder}
+                      </span>
+                    </div>
 
-                  <ListItemText
-                    primary={
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <Chip
-                          label={category.displayName}
-                          color={category.color}
-                          size="small"
-                          sx={{ fontWeight: 600 }}
-                        />
-                        {category.isDefault && (
-                          <Chip
-                            label="Základná"
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontSize: '0.75rem' }}
-                          />
-                        )}
-                      </Box>
-                    }
-                    secondary={
-                      <Box sx={{ mt: 0.5 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          ID: {category.name} | Ikona: {category.icon}
-                        </Typography>
-                        {category.description && (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mt: 0.5 }}
-                          >
-                            {category.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-
-                  <ListItemSecondaryAction>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditCategory(category)}
-                        disabled={loading}
-                        sx={{
-                          backgroundColor: '#f5f5f5',
-                          '&:hover': { backgroundColor: '#e0e0e0' },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      {!category.isDefault && (
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteCategory(category)}
-                          disabled={loading}
-                          sx={{
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            '&:hover': { backgroundColor: '#ffcdd2' },
-                          }}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge 
+                          variant={category.color === 'primary' ? 'default' : 'secondary'}
+                          className="font-semibold"
                         >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                          {category.displayName}
+                        </Badge>
+                        {category.isDefault && (
+                          <Badge variant="outline" className="text-xs">
+                            Základná
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        ID: {category.name} | Ikona: {category.icon}
+                      </div>
+                      {category.description && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          {category.description}
+                        </div>
                       )}
-                    </Box>
-                  </ListItemSecondaryAction>
-                </ListItem>
-                {index < categories.length - 1 && <Divider />}
-              </Fragment>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEditCategory(category)}
+                      disabled={loading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <EditIcon className="h-4 w-4" />
+                    </Button>
+                    {!category.isDefault && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteCategory(category)}
+                        disabled={loading}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <DeleteIcon className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
 
             {categories.length === 0 && !loading && (
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography
-                      variant="body1"
-                      color="text.secondary"
-                      sx={{ textAlign: 'center', py: 2 }}
-                    >
-                      Žiadne kategórie nenájdené
-                    </Typography>
-                  }
-                />
-              </ListItem>
+              <div className="p-8 text-center text-gray-500">
+                Žiadne kategórie nenájdené
+              </div>
             )}
-          </List>
+          </div>
         </Card>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
-        <Button onClick={onClose} variant="outlined">
+      <DialogFooter className="bg-gray-50 border-t border-gray-200 -m-6 mt-6 p-6">
+        <Button onClick={onClose} variant="outline">
           Zavrieť
         </Button>
-      </DialogActions>
+      </DialogFooter>
 
       {/* Form Dialog */}
-      <Dialog
-        open={formOpen}
-        onClose={handleFormCancel}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <CategoryIcon />
-          {editingCategory ? 'Upraviť kategóriu' : 'Pridať kategóriu'}
-        </DialogTitle>
-
-        <DialogContent sx={{ pt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Zobrazovaný názov *"
+      <Dialog open={formOpen} onOpenChange={(open) => !open && handleFormCancel()}>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CategoryIcon className="h-5 w-5" />
+              {editingCategory ? 'Upraviť kategóriu' : 'Pridať kategóriu'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Zobrazovaný názov *</Label>
+              <Input
+                id="displayName"
                 value={formData.displayName}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     displayName: e.target.value,
                     name: e.target.value.toLowerCase().replace(/\s+/g, '_'),
                   }))
                 }
+                placeholder="Názov ktorý sa zobrazí v aplikácii"
                 required
-                helperText="Názov ktorý sa zobrazí v aplikácii"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Systémový názov"
+            <div className="space-y-2">
+              <Label htmlFor="name">Systémový názov</Label>
+              <Input
+                id="name"
                 value={formData.name}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({ ...prev, name: e.target.value }))
                 }
-                helperText="Automaticky generovaný z zobrazovaného názvu"
+                placeholder="Automaticky generovaný z zobrazovaného názvu"
                 disabled={!!editingCategory} // Nemožno meniť pri úprave
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Popis"
+            <div className="space-y-2">
+              <Label htmlFor="description">Popis</Label>
+              <Input
+                id="description"
                 value={formData.description}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     description: e.target.value,
                   }))
                 }
-                multiline
-                rows={2}
-                helperText="Voliteľný popis kategórie"
+                placeholder="Voliteľný popis kategórie"
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Ikona</InputLabel>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="icon">Ikona</Label>
                 <Select
                   value={formData.icon}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, icon: e.target.value }))
+                  onValueChange={(value) =>
+                    setFormData(prev => ({ ...prev, icon: value }))
                   }
-                  label="Ikona"
                 >
-                  {AVAILABLE_ICONS.map(icon => (
-                    <MenuItem key={icon.value} value={icon.value}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <span>{icon.icon}</span>
-                        {icon.label}
-                      </Box>
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte ikonu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_ICONS.map(icon => (
+                      <SelectItem key={icon.value} value={icon.value}>
+                        <div className="flex items-center gap-2">
+                          <span>{icon.icon}</span>
+                          {icon.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
+              </div>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Farba</InputLabel>
+              <div className="space-y-2">
+                <Label htmlFor="color">Farba</Label>
                 <Select
                   value={formData.color}
-                  onChange={e =>
+                  onValueChange={(value) =>
                     setFormData(prev => ({
                       ...prev,
-                      color: e.target.value as
+                      color: value as
                         | 'primary'
                         | 'secondary'
                         | 'success'
@@ -542,86 +444,75 @@ const ExpenseCategoryManager: React.FC<ExpenseCategoryManagerProps> = ({
                         | 'info',
                     }))
                   }
-                  label="Farba"
                 >
-                  {AVAILABLE_COLORS.map(color => (
-                    <MenuItem key={color.value} value={color.value}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            backgroundColor: color.color,
-                          }}
-                        />
-                        {color.label}
-                      </Box>
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte farbu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_COLORS.map(color => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: color.color }}
+                          />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
+              </div>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Poradie"
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Poradie</Label>
+              <Input
+                id="sortOrder"
                 type="number"
                 value={formData.sortOrder}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     sortOrder: parseInt(e.target.value) || 0,
                   }))
                 }
-                helperText="Poradie zobrazovania v zoznamoch"
+                placeholder="Poradie zobrazovania v zoznamoch"
               />
-            </Grid>
+            </div>
 
             {/* Náhľad */}
-            <Grid item xs={12}>
-              <Box
-                sx={{
-                  p: 2,
-                  backgroundColor: '#f5f5f5',
-                  borderRadius: 1,
-                  border: '1px solid #e0e0e0',
-                }}
-              >
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                  Náhľad:
-                </Typography>
-                <Chip
-                  label={formData.displayName || 'Názov kategórie'}
-                  color={formData.color}
-                  size="medium"
-                  sx={{ fontWeight: 600 }}
-                />
-              </Box>
-            </Grid>
-          </Grid>
+            <div className="space-y-2">
+              <Label>Náhľad:</Label>
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-sm font-semibold mb-2">Náhľad:</div>
+                <Badge 
+                  variant={formData.color === 'primary' ? 'default' : 'secondary'}
+                  className="font-semibold"
+                >
+                  {formData.displayName || 'Názov kategórie'}
+                </Badge>
+              </div>
+            </div>
+          </div>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, gap: 1 }}>
+        <DialogFooter className="gap-2">
           <Button
             onClick={handleFormCancel}
-            variant="outlined"
-            startIcon={<CancelIcon />}
+            variant="outline"
           >
+            <CancelIcon className="h-4 w-4 mr-2" />
             Zrušiť
           </Button>
           <Button
             onClick={handleFormSubmit}
-            variant="contained"
-            startIcon={<SaveIcon />}
             disabled={loading || !formData.displayName.trim()}
           >
+            <SaveIcon className="h-4 w-4 mr-2" />
             {editingCategory ? 'Aktualizovať' : 'Vytvoriť'}
           </Button>
-        </DialogActions>
+        </DialogFooter>
       </Dialog>
     </Dialog>
   );

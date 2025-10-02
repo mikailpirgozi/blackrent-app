@@ -1,30 +1,29 @@
 import {
-  DirectionsCar,
-  LocationOn,
-  Person,
-  PhotoCamera,
-  Receipt,
-  Save,
-  SpeedOutlined,
-} from '@mui/icons-material';
+  Car as DirectionsCar,
+  MapPin as LocationOn,
+  User as Person,
+  Camera as PhotoCamera,
+  Receipt as Receipt,
+  Save as Save,
+  Gauge as SpeedOutlined,
+} from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Divider,
-  FormControl,
-  Grid,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
   Select,
-  TextField,
-  Typography,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -54,26 +53,27 @@ interface HandoverProtocolFormProps {
   open: boolean;
   onClose: () => void;
   rental: Rental;
-  onSave: (protocol: HandoverProtocol) => void;
+  onSave: (_protocol: HandoverProtocol) => void;
 }
 
 // 🚀 OPTIMALIZÁCIA: Signature display component
 const SignatureDisplay = memo<{
   signature: ProtocolSignature;
-  onRemove: (id: string) => void;
+  onRemove: (_id: string) => void;
 }>(({ signature, onRemove }) => {
   const handleRemove = useCallback(() => {
     onRemove(signature.id);
   }, [signature.id, onRemove]);
 
   return (
-    <Chip
+    <Badge
       key={signature.id}
-      label={`${signature.signerName} (${signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'})`}
-      onDelete={handleRemove}
-      color={signature.signerRole === 'customer' ? 'primary' : 'secondary'}
-      sx={{ mr: 1, mb: 1 }}
-    />
+      variant={signature.signerRole === 'customer' ? 'default' : 'secondary'}
+      className="mr-2 mb-2 cursor-pointer hover:opacity-80"
+      onClick={handleRemove}
+    >
+      {signature.signerName} ({signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'})
+    </Badge>
   );
 });
 
@@ -344,7 +344,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           rentalData: {
             orderNumber: rental.orderNumber || '',
             vehicle: rental.vehicle || ({} as Vehicle),
-            vehicleVin: rental.vehicleVin || rental.vehicle?.vin || undefined, // 🆔 VIN číslo
+            vehicleVin: rental.vehicleVin || rental.vehicle?.vin || '', // 🆔 VIN číslo
             customer: {
               id: rental.customerId || '',
               name: rental.customerName || '',
@@ -373,9 +373,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             currency: 'EUR',
             allowedKilometers: rental.allowedKilometers || 0,
             extraKilometerRate: rental.extraKilometerRate || 0.5,
-            pickupLocation: rental.pickupLocation || rental.handoverPlace,
-            returnLocation: rental.returnLocation,
-            returnConditions: rental.returnConditions,
+            pickupLocation: rental.pickupLocation || rental.handoverPlace || '',
+            returnLocation: rental.returnLocation || '',
+            returnConditions: rental.returnConditions || '',
           },
           pdfUrl: '',
           emailSent: false,
@@ -411,8 +411,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
-              originalUrl: img.originalUrl, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
-              compressedUrl: img.compressedUrl, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
+              originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -435,8 +435,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
-              originalUrl: img.originalUrl, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
-              compressedUrl: img.compressedUrl, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
+              originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -448,8 +448,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
-              originalUrl: img.originalUrl, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
-              compressedUrl: img.compressedUrl, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
+              originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -523,7 +523,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         // 🎯 BACKGROUND PDF DOWNLOAD - na pozadí (neblokuje UI)
         if (pdfProxyUrl) {
-          setTimeout(async () => {
+          window.setTimeout(async () => {
             try {
               logger.debug('📄 Background PDF download starting...');
               const pdfResponse = await fetch(`${apiBaseUrl}${pdfProxyUrl}`, {
@@ -533,14 +533,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               });
               if (pdfResponse.ok) {
                 const pdfBlob = await pdfResponse.blob();
-                const url = URL.createObjectURL(pdfBlob);
+                const url = window.URL.createObjectURL(pdfBlob);
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = `odovzdavaci_protokol_${currentVehicle?.licensePlate || 'vozidlo'}_${new Date().toISOString().split('T')[0]}.pdf`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+                window.URL.revokeObjectURL(url);
                 logger.debug('✅ Background PDF download completed');
               }
             } catch (pdfError) {
@@ -558,14 +558,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // Return result for email status handling - React Query returns protocol directly
         return {
           protocol: protocolData || null,
-          email:
-            emailInfo || (result && 'email' in result)
-              ? (result.email as {
-                  sent: boolean;
-                  recipient?: string;
-                  error?: string;
-                })
-              : undefined,
+          email: emailInfo || (result && 'email' in result)
+            ? (result.email as {
+                sent: boolean;
+                recipient?: string;
+                error?: string;
+              })
+            : { sent: false, error: 'Email information not available' },
         };
       } catch (error) {
         console.error('Error saving protocol:', error);
@@ -629,7 +628,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           });
 
           // Wait with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+          await new Promise(resolve => window.setTimeout(resolve, 2000 * attempt));
         }
       }
 
@@ -675,7 +674,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         }
 
         // Počkáme 4 sekundy pred zatvorením aby užívateľ videl email status
-        setTimeout(() => {
+        window.setTimeout(() => {
           logger.debug('✅ Email status zobrazený, zatváram modal');
           onClose();
         }, 4000);
@@ -711,9 +710,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         });
 
         // Kontrola memory
-        if ('memory' in performance) {
+        if ('memory' in window.performance) {
           const memInfo = (
-            performance as {
+            window.performance as {
               memory: {
                 usedJSHeapSize: number;
                 totalJSHeapSize: number;
@@ -733,11 +732,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           logger.debug('📱 Protocol form unmounted');
         };
       }
+      
+      return undefined; // Explicit return for non-mobile case
     }, [open, rental?.id, formData]);
 
     // 🔧 MOBILE ERROR BOUNDARY: Catch any rendering errors
     React.useEffect(() => {
-      const handleError = (event: ErrorEvent) => {
+      const handleError = (event: any) => {
         const isMobile = window.matchMedia('(max-width: 900px)').matches;
         if (isMobile) {
           console.error(
@@ -772,38 +773,29 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
     }
 
     return (
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '100%',
-        }}
+      <div
+        className="w-full max-w-full"
       >
         {/* Email Status */}
         {(loading || emailStatus?.status === 'pending') && (
-          <Box sx={{ mb: 2 }}>
-            <LinearProgress />
-            <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+          <div className="mb-2">
+            <Progress value={undefined} className="w-full" />
+            <p className="mt-1 text-center text-sm text-muted-foreground">
               {loading ? '⚡ Ukladám protokol...' : emailStatus?.message}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {emailStatus && emailStatus.status !== 'pending' && (
           <Alert
-            severity={
+            variant={
               emailStatus.status === 'success'
-                ? 'success'
+                ? 'default'
                 : emailStatus.status === 'warning'
-                  ? 'warning'
-                  : 'error'
+                  ? 'default'
+                  : 'destructive'
             }
-            sx={{
-              mb: 2,
-              position: 'sticky',
-              top: 0,
-              zIndex: 1000,
-              animation: 'fadeIn 0.3s ease-in',
-            }}
+            className="mb-2 sticky top-0 z-[1000] animate-in fade-in duration-300"
           >
             {emailStatus.message}
           </Alert>
@@ -811,503 +803,430 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         {/* Retry Status */}
         {retryCount > 0 && (
-          <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <div className="mt-2 mb-2 text-center">
+            <p className="mb-1 text-sm text-muted-foreground">
               Pokus {retryCount + 1}/{MAX_RETRIES}
-            </Typography>
+            </p>
             {isRetrying && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                }}
+              <div
+                className="flex items-center justify-center gap-1"
               >
-                <CircularProgress size={16} />
-                <Typography variant="body2">Opakujem...</Typography>
-              </Box>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <p className="text-sm">Opakujem...</p>
+              </div>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Vehicle Info Header */}
-        <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="h6"
-            color="text.primary"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
+        <div className="mb-3">
+          <h3 className="flex items-center gap-1 text-lg font-semibold text-foreground">
             <DirectionsCar />
             {currentVehicle?.licensePlate || 'Vozidlo'} -{' '}
             {currentVehicle?.brand} {currentVehicle?.model}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </h3>
+          <p className="text-sm text-muted-foreground">
             Zákazník: {rental.customer?.name || rental.customerName}
-          </Typography>
+          </p>
           {(rental.vehicleVin || currentVehicle?.vin) && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: '#888',
-                fontFamily: 'monospace',
-                display: 'block',
-              }}
-            >
+            <p className="text-xs text-gray-500 font-mono block">
               VIN: {rental.vehicleVin || currentVehicle?.vin}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
         {loading && (
-          <Box sx={{ mb: 2 }}>
-            <LinearProgress />
-            <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+          <div className="mb-2">
+            <Progress value={undefined} className="w-full" />
+            <p className="mt-1 text-center text-sm text-muted-foreground">
               ⚡ Rýchle ukladanie protokolu...
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* Informácie o objednávke */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-              <Receipt sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <Receipt className="mr-1 inline-block" />
               Informácie o objednávke
-            </Typography>
+            </h3>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">        
+                <p className="text-sm font-medium text-muted-foreground">
                   Číslo objednávky
-                </Typography>
-                <Chip
-                  label={rental.orderNumber || 'Neuvedené'}
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontWeight: 'bold' }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+                <Badge
+                  variant="outline"
+                  className="font-bold"
+                >
+                  {rental.orderNumber || 'Neuvedené'}
+                </Badge>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Dátum začiatku
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.primary"
-                  sx={{ fontWeight: 'medium' }}
-                >
+                </p>
+                <p className="text-foreground font-medium">
                   {formatDate(rental.startDate)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Dátum konca
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.primary"
-                  sx={{ fontWeight: 'medium' }}
-                >
+                </p>
+                <p className="text-foreground font-medium">
                   {formatDate(rental.endDate)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Celková cena
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="success.main"
-                  sx={{ fontWeight: 'bold' }}
-                >
+                </p>
+                <p className="text-green-600 font-bold">
                   {formatCurrency(rental.totalPrice)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Depozit
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="warning.main"
-                  sx={{ fontWeight: 'medium' }}
-                >
+                </p>
+                <p className="text-yellow-600 font-medium">
                   {formatCurrency(rental.deposit || 0)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Povolené kilometry
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.primary"
-                  sx={{ fontWeight: 'medium' }}
-                >
+                </p>
+                <p className="text-foreground font-medium">
                   {rental.allowedKilometers
                     ? `${rental.allowedKilometers} km`
                     : 'Neobmedzené'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Cena za extra km
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.primary"
-                  sx={{ fontWeight: 'medium' }}
-                >
+                </p>
+                <p className="text-foreground font-medium">
                   {formatCurrency(rental.extraKilometerRate || 0.5)} / km
-                </Typography>
-              </Grid>
+                </p>
+              </div>
               {(rental.pickupLocation || rental.handoverPlace) && (
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <div className="col-span-1 sm:col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Miesto prevzatia
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    color="text.primary"
-                    sx={{ fontWeight: 'medium' }}
-                  >
+                  </p>
+                  <p className="text-foreground font-medium">
                     {rental.pickupLocation || rental.handoverPlace}
-                  </Typography>
-                </Grid>
+                  </p>
+                </div>
               )}
               {rental.returnLocation && (
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <div className="col-span-1 sm:col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Miesto vrátenia
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    color="text.primary"
-                    sx={{ fontWeight: 'medium' }}
-                  >
+                  </p>
+                  <p className="text-foreground font-medium">
                     {rental.returnLocation}
-                  </Typography>
-                </Grid>
+                  </p>
+                </div>
               )}
-            </Grid>
+            </div>
           </CardContent>
         </Card>
 
         {/* Informácie o zákazníkovi */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-              <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <Person className="mr-1 inline-block" />
               Informácie o zákazníkovi
-            </Typography>
+            </h3>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Meno
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.primary"
-                  sx={{ fontWeight: 'bold' }}
-                >
+                </p>
+                <p className="text-foreground font-bold">
                   {rental.customer?.name || rental.customerName || 'Neuvedené'}
-                </Typography>
-              </Grid>
+                </p>
+              </div>
               {(rental.customer?.email || rental.customerEmail) && (
-                <Grid item xs={12} sm={6} md={4}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Email
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    color="text.primary"
-                    sx={{ fontWeight: 'medium' }}
-                  >
+                  </p>
+                  <p className="text-foreground font-medium">
                     {rental.customer?.email || rental.customerEmail}
-                  </Typography>
-                </Grid>
+                  </p>
+                </div>
               )}
               {(rental.customer?.phone || rental.customerPhone) && (
-                <Grid item xs={12} sm={6} md={4}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Telefón
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    color="text.primary"
-                    sx={{ fontWeight: 'medium' }}
-                  >
+                  </p>
+                  <p className="text-foreground font-medium">
                     {rental.customer?.phone || rental.customerPhone}
-                  </Typography>
-                </Grid>
+                  </p>
+                </div>
               )}
               {rental.customerAddress && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <div className="col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Adresa
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    color="text.primary"
-                    sx={{ fontWeight: 'medium' }}
-                  >
+                  </p>
+                  <p className="text-foreground font-medium">
                     {rental.customerAddress}
-                  </Typography>
-                </Grid>
+                  </p>
+                </div>
               )}
-            </Grid>
+            </div>
           </CardContent>
         </Card>
 
         {/* Informácie o vozidle a majiteľovi */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-              <DirectionsCar sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <DirectionsCar className="mr-1 inline-block" />
               Informácie o vozidle
-            </Typography>
+            </h3>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Značka a model
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="text.primary"
-                  sx={{ fontWeight: 'bold' }}
-                >
+                </p>
+                <p className="text-foreground font-bold">
                   {currentVehicle?.brand} {currentVehicle?.model}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">
+                </p>
+              </div>
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   ŠPZ
-                </Typography>
-                <Chip
-                  label={
-                    currentVehicle?.licensePlate ||
+                </p>
+                <Badge
+                  variant="outline"
+                  className="font-bold"
+                >
+                  {currentVehicle?.licensePlate ||
                     rental.vehicleCode ||
-                    'Neuvedené'
-                  }
-                  color="secondary"
-                  variant="outlined"
-                  sx={{ fontWeight: 'bold' }}
-                />
-              </Grid>
+                    'Neuvedené'}
+                </Badge>
+              </div>
               {(rental.vehicleVin || currentVehicle?.vin) && (
-                <Grid item xs={12} sm={6} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
                     VIN číslo
-                  </Typography>
-                  <Chip
-                    label={
-                      rental.vehicleVin || currentVehicle?.vin || 'Neuvedené'
-                    }
-                    color="default"
-                    variant="outlined"
-                    sx={{
-                      fontWeight: 'bold',
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                    }}
-                  />
-                </Grid>
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className="font-bold font-mono text-xs"
+                  >
+                    {rental.vehicleVin || currentVehicle?.vin || 'Neuvedené'}
+                  </Badge>
+                </div>
               )}
-              <Grid item xs={12} sm={6} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Stav vozidla
-                </Typography>
-                <Chip
-                  label={currentVehicle?.status || 'available'}
-                  color={
+                </p>
+                <Badge
+                  variant="outline"
+                  className={
                     currentVehicle?.status === 'available'
-                      ? 'success'
-                      : 'warning'
+                      ? 'text-green-600'
+                      : 'text-yellow-600'
                   }
-                  variant="outlined"
-                />
-              </Grid>
-            </Grid>
+                >
+                  {currentVehicle?.status || 'available'}
+                </Badge>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Divider sx={{ my: 3 }} />
+        <Separator className="my-3" />
 
         {/* Základné informácie protokolu */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-              <LocationOn sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <LocationOn className="mr-1 inline-block" />
               Údaje protokolu
-            </Typography>
+            </h3>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: 2,
-              }}
+            <div
+              className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-2"
             >
-              <TextField
-                label="Miesto prevzatia *"
-                value={formData.location}
-                onChange={e => handleInputChange('location', e.target.value)}
-                fullWidth
-                required
-                placeholder="Zadajte presné miesto prevzatia vozidla"
-              />
-              <TextField
-                label="Poznámky k protokolu"
-                value={formData.notes}
-                onChange={e => handleInputChange('notes', e.target.value)}
-                fullWidth
-                multiline
-                rows={2}
-                placeholder="Dodatočné poznámky k odovzdávaniu vozidla"
-              />
-            </Box>
+              <div className="space-y-2">
+                <Label htmlFor="location">Miesto prevzatia *</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  placeholder="Zadajte presné miesto prevzatia vozidla"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Poznámky k protokolu</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  className="min-h-[60px]"
+                  rows={2}
+                  placeholder="Dodatočné poznámky k odovzdávaniu vozidla"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Stav vozidla */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-              <SpeedOutlined sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <SpeedOutlined className="mr-1 inline-block" />
               Stav vozidla pri odovzdaní
-            </Typography>
+            </h3>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 2,
-              }}
+            <div
+              className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2"
             >
-              <TextField
-                label="Stav tachometra (km) *"
-                type="number"
-                value={formData.odometer || ''}
-                onChange={e => {
-                  const value = e.target.value;
-                  if (value === '') {
-                    handleInputChange('odometer', undefined);
-                  } else {
-                    const numValue = parseInt(value, 10);
-                    if (!isNaN(numValue) && numValue >= 0) {
-                      handleInputChange('odometer', numValue);
+              <div className="space-y-2">
+                <Label htmlFor="odometer">Stav tachometra (km) *</Label>
+                <Input
+                  id="odometer"
+                  type="number"
+                  value={formData.odometer || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      handleInputChange('odometer', undefined);
+                    } else {
+                      const numValue = parseInt(value, 10);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        handleInputChange('odometer', numValue);
+                      }
                     }
+                  }}
+                  required
+                  placeholder="Zadajte stav tachometra"
+                />
+                <p className="text-sm text-muted-foreground">Aktuálny stav kilometrov na vozidle</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fuelLevel">Úroveň paliva (%) *</Label>
+                <Input
+                  id="fuelLevel"
+                  type="number"
+                  value={formData.fuelLevel}
+                  onChange={(e) =>
+                    handleInputChange(
+                      'fuelLevel',
+                      parseInt(e.target.value) || 100
+                    )
                   }
-                }}
-                fullWidth
-                required
-                helperText="Aktuálny stav kilometrov na vozidle"
-              />
-              <TextField
-                label="Úroveň paliva (%) *"
-                type="number"
-                value={formData.fuelLevel}
-                onChange={e =>
-                  handleInputChange(
-                    'fuelLevel',
-                    parseInt(e.target.value) || 100
-                  )
-                }
-                inputProps={{ min: 0, max: 100 }}
-                fullWidth
-                required
-                helperText="Percentuálna úroveň paliva v nádrži"
-              />
-              <FormControl fullWidth required>
-                <InputLabel>Spôsob úhrady depozitu *</InputLabel>
+                  min={0}
+                  max={100}
+                  required
+                  placeholder="Zadajte úroveň paliva"
+                />
+                <p className="text-sm text-muted-foreground">Percentuálna úroveň paliva v nádrži</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="depositPaymentMethod">Spôsob úhrady depozitu *</Label>
                 <Select
                   value={formData.depositPaymentMethod}
-                  onChange={e =>
-                    handleInputChange('depositPaymentMethod', e.target.value)
+                  onValueChange={(value) =>
+                    handleInputChange('depositPaymentMethod', value)
                   }
-                  label="Spôsob úhrady depozitu *"
                 >
-                  <MenuItem value="cash">Hotovosť</MenuItem>
-                  <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
-                  <MenuItem value="card">Kartová zábezpeka</MenuItem>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte spôsob úhrady" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Hotovosť</SelectItem>
+                    <SelectItem value="bank_transfer">Bankový prevod</SelectItem>
+                    <SelectItem value="card">Kartová zábezpeka</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Box>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Fotky */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-              <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <PhotoCamera className="mr-1 inline-block" />
               Fotodokumentácia
-            </Typography>
+            </h3>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 2,
-              }}
+            <div
+              className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2"
             >
               <Button
-                variant="outlined"
-                startIcon={<PhotoCamera />}
+                variant="outline"
                 onClick={() => handlePhotoCapture('vehicle')}
-                size="large"
+                size="lg"
               >
+                    <PhotoCamera className="mr-2 h-4 w-4" />
                 Fotky vozidla ({formData.vehicleImages.length})
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<PhotoCamera />}
+                variant="outline"
                 onClick={() => handlePhotoCapture('document')}
-                size="large"
+                size="lg"
               >
                 Dokumenty ({formData.documentImages.length})
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<PhotoCamera />}
+                variant="outline"
                 onClick={() => handlePhotoCapture('damage')}
-                size="large"
+                size="lg"
               >
+                <PhotoCamera className="mr-2 h-4 w-4" />
                 Poškodenia ({formData.damageImages.length})
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<PhotoCamera />}
+                variant="outline"
                 onClick={() => handlePhotoCapture('odometer')}
-                size="large"
+                size="lg"
               >
+                <PhotoCamera className="mr-2 h-4 w-4" />
                 Fotka km ({formData.odometerImages.length})
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<PhotoCamera />}
+                variant="outline"
                 onClick={() => handlePhotoCapture('fuel')}
-                size="large"
+                size="lg"
               >
+                <PhotoCamera className="mr-2 h-4 w-4" />
                 Fotka paliva ({formData.fuelImages.length})
               </Button>
-            </Box>
+            </div>
           </CardContent>
         </Card>
 
         {/* ✍️ ELEKTRONICKÉ PODPISY */}
-        <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+        <Card className="mb-3">
           <CardContent>
-            <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
               ✍️ Elektronické podpisy s časovou pečiatkou
-            </Typography>
+            </h3>
 
             {/* Existujúce podpisy */}
             {formData.signatures.length > 0 && (
-              <Box sx={{ mb: 2 }}>
+              <div className="mb-2">
                 {formData.signatures.map(signature => (
                   <SignatureDisplay
                     key={signature.id}
@@ -1315,30 +1234,28 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                     onRemove={handleRemoveSignature}
                   />
                 ))}
-              </Box>
+              </div>
             )}
 
             {/* Tlačidlá pre pridanie podpisov */}
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               <Button
-                variant="outlined"
                 onClick={() =>
                   handleAddSignature(
                     rental.customer?.name || rental.customerName || 'Zákazník',
                     'customer'
                   )
                 }
-                startIcon={<Person />}
-                color={
+                variant={
                   formData.signatures.find(sig => sig.signerRole === 'customer')
-                    ? 'success'
-                    : 'primary'
+                    ? 'default'
+                    : 'outline'
                 }
               >
+                <Person className="mr-2 h-4 w-4" />
                 Podpis zákazníka *
               </Button>
               <Button
-                variant="outlined"
                 onClick={() =>
                   handleAddSignature(
                     `${state.user?.firstName || ''} ${state.user?.lastName || ''}`.trim() ||
@@ -1346,48 +1263,42 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                     'employee'
                   )
                 }
-                startIcon={<Person />}
-                color={
+                variant={
                   formData.signatures.find(sig => sig.signerRole === 'employee')
-                    ? 'success'
-                    : 'primary'
+                    ? 'default'
+                    : 'outline'
                 }
               >
+                <Person className="mr-2 h-4 w-4" />
                 Podpis zamestnanca *
               </Button>
-            </Box>
+            </div>
 
             {/* Indikátor povinných podpisov */}
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
+            <div className="mt-2">
+              <p className="text-sm text-muted-foreground">
                 * Povinné polia - musia byť vyplnené pred uložením protokolu
-              </Typography>
-            </Box>
+              </p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Tlačidlá */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 2,
-            justifyContent: 'flex-end',
-            mt: 3,
-            mb: 2,
-          }}
+        <div
+          className="flex gap-2 justify-end mt-3 mb-2"
         >
-          <Button variant="outlined" onClick={onClose} disabled={loading}>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Zrušiť
           </Button>
           <Button
-            variant="contained"
-            startIcon={<Save />}
+            variant="default"
             onClick={handleSave}
             disabled={loading}
           >
+            <Save className="mr-2 h-4 w-4" />
             {loading ? 'Ukladám...' : 'Uložiť a generovať PDF'}
           </Button>
-        </Box>
+        </div>
 
         {/* Photo capture modal */}
         {activePhotoCapture && (
@@ -1429,30 +1340,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         {/* SignaturePad modal */}
         {showSignaturePad && currentSigner && (
-          <Box
-            sx={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              p: 2,
-            }}
+          <div
+            className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[9999] p-2"
           >
-            <Box
-              sx={{
-                backgroundColor: 'white',
-                borderRadius: 2,
-                maxWidth: 600,
-                width: '100%',
-                maxHeight: '90vh',
-                overflow: 'auto',
-              }}
+            <div
+              className="bg-white rounded-lg max-w-[600px] w-full max-h-[90vh] overflow-auto"
             >
               <SignaturePad
                 onSave={handleSignatureSave}
@@ -1461,10 +1353,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 signerRole={currentSigner.role}
                 location={formData.location}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
-      </Box>
+      </div>
     );
   }
 );

@@ -4,13 +4,9 @@
  * Optimalizovaný komponent pre zobrazenie vehicle obrázkov s lazy loading
  */
 
-import {
-  DirectionsCar as CarIcon,
-  PhotoCamera as PhotoIcon,
-  LocalShipping as TruckIcon,
-} from '@mui/icons-material';
-import { Box, Typography } from '@mui/material';
 import React, { memo, useCallback, useState } from 'react';
+
+import { cn } from '@/lib/utils';
 
 import {
   ImagePerformanceMonitor,
@@ -84,13 +80,26 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
 
   // Get vehicle type icon
   const getVehicleTypeIcon = () => {
+    const iconClass = "w-5 h-5";
     switch (vehicleType) {
       case 'truck':
-        return <TruckIcon />;
+        return (
+          <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+          </svg>
+        );
       case 'motorcycle':
-        return <CarIcon />; // Could add motorcycle icon
+        return (
+          <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l.95-.95c.39-.39.39-1.02 0-1.41L9.41 9.03c-.39-.39-1.02-.39-1.41 0L5.03 12H5c-1.66 0-3-1.34-3-3s1.34-3 3-3c1.66 0 3 1.34 3 3 0 .35-.07.69-.18 1H9.5c.28-.72.9-1.25 1.66-1.42L13.5 9.5h1.91l2.09 2.09c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41L19.44 9.03z"/>
+          </svg>
+        );
       default:
-        return <CarIcon />;
+        return (
+          <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+          </svg>
+        );
     }
   };
 
@@ -114,43 +123,36 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
 
   // Custom placeholder for vehicles
   const vehiclePlaceholder = (
-    <Box
-      sx={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 1,
-        backgroundColor: fallbackColor || 'grey.100',
-        color: 'text.disabled',
-      }}
+    <div 
+      className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500"
+      style={{ backgroundColor: fallbackColor || '#f5f5f5' }}
     >
       {getVehicleTypeIcon()}
-      <Typography variant="caption" align="center">
+      <span className="text-xs text-center">
         {vehicleBrand && vehicleModel
           ? `${vehicleBrand} ${vehicleModel}`
           : 'Obrázok vozidla'}
-      </Typography>
-      <PhotoIcon sx={{ fontSize: 16, opacity: 0.5 }} />
-    </Box>
+      </span>
+      <svg className="w-4 h-4 opacity-50" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+    </div>
   );
 
   return (
-    <Box
-      className={className}
-      sx={{
-        position: 'relative',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+    <div
+      className={cn(
+        "relative",
+        onClick ? "cursor-pointer" : "cursor-default",
+        className
+      )}
       onClick={onClick}
     >
       {/* Main Image */}
       {imageUrl ? (
         <LazyImage
           src={imageUrl}
-          lowQualitySrc={lowQualityUrl || undefined}
+          lowQualitySrc={lowQualityUrl ?? ''}
           alt={`${vehicleBrand} ${vehicleModel}`.trim() || 'Vozidlo'}
           width={dimensions.width}
           height={dimensions.height}
@@ -158,63 +160,43 @@ const VehicleImage: React.FC<VehicleImageProps> = ({
           placeholder={vehiclePlaceholder}
           onLoad={handleImageLoad}
           onError={handleImageError}
-          onClick={onClick}
+          onClick={onClick ?? (() => {})}
           threshold={0.2} // Load slightly earlier for better UX
           rootMargin="100px" // Larger margin for vehicles
         />
       ) : (
-        <Box
-          sx={{
+        <div
+          className={cn(
+            "overflow-hidden",
+            onClick ? "cursor-pointer" : "cursor-default"
+          )}
+          style={{
             width: dimensions.width,
             height: dimensions.height,
-            borderRadius,
-            overflow: 'hidden',
-            cursor: onClick ? 'pointer' : 'default',
+            borderRadius: borderRadius || 4,
           }}
           onClick={onClick}
         >
           {vehiclePlaceholder}
-        </Box>
+        </div>
       )}
 
       {/* Brand Badge */}
       {showBrand && vehicleBrand && (
         <CompactChip
           label={vehicleBrand}
-          size="small"
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            fontSize: '0.7rem',
-            '& .MuiChip-label': {
-              px: 1,
-            },
-          }}
+          className="h-8 px-3 text-sm"
+          className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2"
         />
       )}
 
       {/* Vehicle Type Badge */}
       {showType && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            borderRadius: 1,
-            p: 0.5,
-            display: 'flex',
-            alignItems: 'center',
-            color: 'text.secondary',
-          }}
-        >
+        <div className="absolute top-2 right-2 bg-white/90 rounded p-1 flex items-center text-gray-600">
           {getVehicleTypeIcon()}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

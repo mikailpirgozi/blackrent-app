@@ -1,9 +1,10 @@
-import { CloudUpload, Delete, Visibility } from '@mui/icons-material';
-import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import { CloudUpload, Delete, Eye } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+
 import { getApiBaseUrl } from '../../utils/apiUrl';
-import { ErrorButton, SecondaryButton, TextButton } from '../ui';
 
 // Railway backend URL
 
@@ -245,7 +246,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       }
 
       setUploadedFiles(prev => prev.filter(file => file.key !== fileKey));
-    } catch {
+    } catch (err) {
       setError('Chyba pri mazaní súboru');
     }
   };
@@ -265,9 +266,9 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <div className="w-full">
       {/* Upload Button */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-4">
         <input
           ref={fileInputRef}
           type="file"
@@ -277,97 +278,81 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           style={{ display: 'none' }}
           disabled={disabled || uploading}
         />
-        <SecondaryButton
-          startIcon={
-            uploading ? <CircularProgress size={20} /> : <CloudUpload />
-          }
+        <Button
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || uploading}
-          fullWidth
-          sx={{
-            py: 2,
-            borderStyle: 'dashed',
-            borderWidth: 2,
-            '&:hover': {
-              borderWidth: 2,
-              backgroundColor: 'rgba(25, 118, 210, 0.04)',
-            },
-          }}
+          variant="outline"
+          className="w-full py-4 border-2 border-dashed hover:bg-blue-50 hover:border-blue-300 flex items-center gap-2"
         >
+          {uploading ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+          ) : (
+            <CloudUpload className="w-5 h-5" />
+          )}
           {uploading ? 'Nahrávam...' : label}
-        </SecondaryButton>
-      </Box>
+        </Button>
+      </div>
 
       {/* Error Message */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+        <Alert className="mb-4 border-red-200 bg-red-50">
+          <AlertDescription className="text-red-800">
+            {error}
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Uploaded Files */}
       {uploadedFiles.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, color: 'white' }}>
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-2 text-white">
             Nahrané súbory:
-          </Typography>
+          </h4>
           {uploadedFiles.map(file => (
-            <Box
+            <div
               key={file.key}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 1,
-                mb: 1,
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 1,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              }}
+              className="flex items-center justify-between p-2 mb-2 border border-white/20 rounded bg-white/5"
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div className="flex items-center gap-2">
                 <span>{getFileIcon(file.mimetype)}</span>
-                <Box>
-                  <Typography variant="body2" sx={{ color: 'white' }}>
+                <div>
+                  <div className="text-sm text-white">
                     {file.filename}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                  >
+                  </div>
+                  <div className="text-xs text-white/70">
                     {formatFileSize(file.size)}
-                  </Typography>
-                </Box>
-              </Box>
+                  </div>
+                </div>
+              </div>
 
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextButton
-                  size="small"
-                  startIcon={<Visibility />}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => window.open(file.url, '_blank')}
-                  sx={{ color: 'white' }}
+                  className="text-white hover:bg-white/10 flex items-center gap-1"
                 >
+                  <Eye className="w-4 h-4" />
                   Zobraziť
-                </TextButton>
-                <ErrorButton
-                  size="small"
-                  startIcon={<Delete />}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
                   onClick={() => handleDeleteFile(file.key)}
+                  className="flex items-center gap-1"
                 >
+                  <Delete className="w-4 h-4" />
                   Zmazať
-                </ErrorButton>
-              </Box>
-            </Box>
+                </Button>
+              </div>
+            </div>
           ))}
-        </Box>
+        </div>
       )}
 
       {/* File Type Info */}
-      <Box sx={{ mt: 1 }}>
-        <Typography
-          variant="caption"
-          sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
-        >
+      <div className="mt-2">
+        <div className="text-xs text-white/70">
           Podporované typy:{' '}
           {acceptedTypes
             .map(type => {
@@ -376,15 +361,12 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
               return type;
             })
             .join(', ')}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ display: 'block', color: 'rgba(255, 255, 255, 0.7)' }}
-        >
+        </div>
+        <div className="text-xs text-white/70 block">
           Max veľkosť: {maxSize}MB
-        </Typography>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 

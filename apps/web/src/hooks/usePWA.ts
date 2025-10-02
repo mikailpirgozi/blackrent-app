@@ -5,9 +5,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useError } from '../context/ErrorContext';
 
-export interface BeforeInstallPromptEvent extends Event {
+// PWA specific types - using any for browser APIs that may not be available in all environments
+type PWAServiceWorkerRegistration = any;
+type PWAMessageEvent = any;
+type PWANavigator = any;
+
+export interface BeforeInstallPromptEvent {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  preventDefault(): void;
 }
 
 interface PWAState {
@@ -16,7 +22,7 @@ interface PWAState {
   isOffline: boolean;
   isUpdateAvailable: boolean;
   installPrompt: BeforeInstallPromptEvent | null;
-  swRegistration: ServiceWorkerRegistration | null;
+  swRegistration: PWAServiceWorkerRegistration | null;
 }
 
 interface PWAActions {
@@ -30,7 +36,7 @@ interface PWAActions {
 
 // Global singleton to prevent duplicate SW registrations
 let isInitialized = false;
-let globalSWRegistration: ServiceWorkerRegistration | null = null;
+let globalSWRegistration: PWAServiceWorkerRegistration | null = null;
 
 export const usePWA = (): PWAState & PWAActions => {
   const { showError } = useError();
@@ -38,7 +44,7 @@ export const usePWA = (): PWAState & PWAActions => {
   const [state, setState] = useState<PWAState>({
     isInstallable: false,
     isInstalled: false,
-    isOffline: !navigator.onLine,
+    isOffline: !(typeof window !== 'undefined' && 'navigator' in window ? (window.navigator as PWANavigator).onLine : true),
     isUpdateAvailable: false,
     installPrompt: null,
     swRegistration: globalSWRegistration,
@@ -47,56 +53,54 @@ export const usePWA = (): PWAState & PWAActions => {
   const refreshing = useRef(false);
 
   const registerServiceWorker =
-    useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
-      if (!('serviceWorker' in navigator)) {
+    useCallback(async (): Promise<PWAServiceWorkerRegistration | null> => {
+      if (typeof window === 'undefined' || !('navigator' in window) || !('serviceWorker' in (window.navigator as PWANavigator))) {
         console.warn('Service Worker not supported');
         return null;
       }
 
       try {
-        // DEV MODE: Registruj SW ale s obmedzeným cache
-        const swPath = process.env.NODE_ENV === 'development' 
-          ? '/sw-dev.js'  // Špeciálny dev SW
-          : '/sw.js';     // Produkčný SW
-
-        const registration = await navigator.serviceWorker.register(swPath, {
+        const registration = await (window.navigator as PWANavigator).serviceWorker.register('/sw.js', {
           scope: '/',
-        });
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔧 DEV: Service Worker registered with LIMITED caching');
-          console.log('📱 PWA features active, HMR cache DISABLED');
-        } else {
-          console.log('✅ PROD: Service Worker registered with FULL caching');
-        }
+        }) as PWAServiceWorkerRegistration;
 
         console.log(
           '✅ Service Worker registered successfully:',
           registration.scope
         );
 
-        // 🚫 DISABLED: Zakážeme automatické update detection
-        // Toto môže triggernúť neočakávané refreshy na mobile
+        // ✅ ENABLED: Service Worker update detection with smart handling
+        console.log('🔄 PWA: Service Worker update detection ENABLED');
+        console.log('📱 Smart update handling prevents unwanted mobile refreshes');
 
-        console.log('🔄 PWA: Service Worker update detection DISABLED');
-        console.log(
-          '📱 This prevents automatic mobile refreshes caused by SW updates'
-        );
-
-        // PÔVODNÝ KÓD (ZAKÁZANÝ):
-        // registration.addEventListener('updatefound', () => {
-        //   const newWorker = registration.installing;
-        //   if (!newWorker) return;
-        //   newWorker.addEventListener('statechange', () => {
-        //     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-        //       setState(prev => ({ ...prev, isUpdateAvailable: true }));
-        //       console.log('🔄 PWA: Update available');
-        //     }
-        //   });
-        // });
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && (window.navigator as PWANavigator).serviceWorker.controller) {
+              setState(prev => ({ ...prev, isUpdateAvailable: true }));
+              console.log('🔄 PWA: Update available - user will be notified');
+              
+              // Smart update notification instead of automatic refresh
+              if (typeof window !== 'undefined') {
+                // Check if user is on a critical page where refresh would be disruptive
+                const isCriticalPage = window.location.pathname.includes('/availability') || 
+                                     window.location.pathname.includes('/protocols') ||
+                                     window.location.pathname.includes('/rentals');
+                
+                if (isCriticalPage) {
+                  console.log('📱 Critical page detected - update notification only');
+                } else {
+                  console.log('🔄 Safe to show update prompt');
+                }
+              }
+            }
+          });
+        });
 
         // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener(
+        (window.navigator as PWANavigator).serviceWorker.addEventListener(
           'message',
           handleServiceWorkerMessage
         );
@@ -119,6 +123,7 @@ export const usePWA = (): PWAState & PWAActions => {
             message: 'Service Worker registrácia zlyhala',
             category: 'client',
             severity: 'warning',
+            details: error.message,
             context: { error: error.message },
           });
         } else {
@@ -136,23 +141,7 @@ export const usePWA = (): PWAState & PWAActions => {
       // Check if app is already installed
       checkInstallationStatus();
 
-      // 🚫 DEVELOPMENT: Úplne vypnúť Service Worker v dev mode
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔧 DEV: Service Worker DISABLED for faster development');
-        console.log('📱 PWA features will be limited in development mode');
-        
-        // Zmaž existujúce SW registrácie v dev mode
-        if ('serviceWorker' in navigator) {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          for (const registration of registrations) {
-            await registration.unregister();
-            console.log('🗑️ DEV: Unregistered existing Service Worker');
-          }
-        }
-        return;
-      }
-
-      // 🔧 PRODUCTION: Service Worker len v production
+      // 🔧 ALLOW Service Worker on mobile but with disabled auto-updates
       const isMobileDevice = window.matchMedia('(max-width: 900px)').matches;
 
       if (isMobileDevice) {
@@ -161,8 +150,8 @@ export const usePWA = (): PWAState & PWAActions => {
         );
       }
 
-      // Register service worker len v production
-      if ('serviceWorker' in navigator) {
+      // Register service worker na všetkých zariadeniach
+      if (typeof window !== 'undefined' && 'navigator' in window && 'serviceWorker' in (window.navigator as PWANavigator)) {
         const registration = await registerServiceWorker();
         if (registration) {
           globalSWRegistration = registration; // Store globally
@@ -183,27 +172,27 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const setupEventListeners = useCallback(() => {
     // Install prompt event
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    (window as any).addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // App installed event
-    window.addEventListener('appinstalled', handleAppInstalled);
+    (window as any).addEventListener('appinstalled', handleAppInstalled);
 
     // Online/offline events
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    (window as any).addEventListener('online', handleOnline);
+    (window as any).addEventListener('offline', handleOffline);
   }, []);
 
   const removeEventListeners = useCallback(() => {
-    window.removeEventListener(
+    (window as any).removeEventListener(
       'beforeinstallprompt',
       handleBeforeInstallPrompt
     );
-    window.removeEventListener('appinstalled', handleAppInstalled);
-    window.removeEventListener('online', handleOnline);
-    window.removeEventListener('offline', handleOffline);
+    (window as any).removeEventListener('appinstalled', handleAppInstalled);
+    (window as any).removeEventListener('online', handleOnline);
+    (window as any).removeEventListener('offline', handleOffline);
   }, []);
 
-  const handleBeforeInstallPrompt = (event: Event) => {
+  const handleBeforeInstallPrompt = (event: any) => {
     event.preventDefault();
     const promptEvent = event as BeforeInstallPromptEvent;
 
@@ -245,14 +234,14 @@ export const usePWA = (): PWAState & PWAActions => {
   const checkInstallationStatus = () => {
     // Check if running as installed PWA
     const isInstalled =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      (window as any).matchMedia('(display-mode: standalone)').matches ||
+      ((window.navigator as PWANavigator) as PWANavigator & { standalone?: boolean }).standalone ===
         true;
 
     setState(prev => ({ ...prev, isInstalled }));
   };
 
-  const handleServiceWorkerMessage = (event: MessageEvent) => {
+  const handleServiceWorkerMessage = (event: PWAMessageEvent) => {
     const { type, message } = event.data;
 
     switch (type) {
@@ -318,6 +307,7 @@ export const usePWA = (): PWAState & PWAActions => {
         message: 'Inštalácia aplikácie zlyhala',
         category: 'client',
         severity: 'error',
+        details: error instanceof Error ? error.message : 'Unknown error',
         context: { error },
       });
       return false;
@@ -344,8 +334,8 @@ export const usePWA = (): PWAState & PWAActions => {
           window.location.pathname.includes('/vehicles');
         const isMobileViewport =
           typeof window !== 'undefined' &&
-          window.matchMedia &&
-          window.matchMedia('(max-width: 900px)').matches;
+          (window as any).matchMedia &&
+          (window as any).matchMedia('(max-width: 900px)').matches;
 
         // Debounce reloady: minimálny odstup 10 minút
         const now = Date.now();
@@ -363,13 +353,11 @@ export const usePWA = (): PWAState & PWAActions => {
         console.log('Refreshing Flag:', refreshing.current);
         console.groupEnd();
 
-        // 🚫 DISABLED: Úplne zakážeme automatické reloady Service Worker updatov
-        // Toto môže byť hlavná príčina automatického refreshovania na mobile
+        // ✅ ENABLED: Smart Service Worker update handling
+        console.log('🔄 Service Worker updated - Smart update handling enabled');
+        console.log('📱 Update will be applied with user consent');
 
-        console.log('🔄 Service Worker updated - AUTO-RELOAD DISABLED');
-        console.log('📱 Manual refresh required for updates');
-
-        // Len nastavíme flag, že je update dostupný - ŽIADNY automatický reload
+        // Set update available flag
         setState(prev => ({ ...prev, isUpdateAvailable: true }));
 
         // Logujeme dôvod prečo nerobíme reload
@@ -387,6 +375,7 @@ export const usePWA = (): PWAState & PWAActions => {
         message: 'Aktualizácia aplikácie zlyhala',
         category: 'client',
         severity: 'error',
+        details: error instanceof Error ? error.message : 'Unknown error',
         context: { error },
       });
     }
@@ -411,6 +400,7 @@ export const usePWA = (): PWAState & PWAActions => {
         message: 'Odstránenie Service Worker zlyhalo',
         category: 'client',
         severity: 'error',
+        details: 'Nepodarilo sa odstrániť Service Worker z prehliadača.',
         context: { error },
       });
     }
@@ -418,16 +408,16 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const clearCache = async (): Promise<void> => {
     try {
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const cacheNames = await (window as any).caches.keys();
         await Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
+          cacheNames.map((cacheName: string) => (window as any).caches.delete(cacheName))
         );
       }
 
       // Also tell service worker to clear cache
       if (state.swRegistration?.active) {
-        const channel = new MessageChannel();
+        const channel = new (window as any).MessageChannel();
         state.swRegistration.active.postMessage({ type: 'CLEAR_CACHE' }, [
           channel.port2,
         ]);
@@ -442,6 +432,7 @@ export const usePWA = (): PWAState & PWAActions => {
         message: 'Vymazanie cache zlyhalo',
         category: 'client',
         severity: 'error',
+        details: error instanceof Error ? error.message : 'Unknown error',
         context: { error },
       });
     }
@@ -468,8 +459,8 @@ export const usePWA = (): PWAState & PWAActions => {
         return;
       }
 
-      const channel = new MessageChannel();
-      channel.port1.onmessage = event => {
+      const channel = new (window as any).MessageChannel();
+      channel.port1.onmessage = (event: any) => {
         resolve(event.data.version || 'Unknown');
       };
 

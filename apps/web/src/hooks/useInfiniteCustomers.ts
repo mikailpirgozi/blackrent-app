@@ -162,6 +162,7 @@ export function useInfiniteCustomers(
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [filters, initialLoad, loadCustomers]);
 
   // Search term changes - trigger new search
@@ -177,6 +178,7 @@ export function useInfiniteCustomers(
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [searchTerm, initialLoad, loadCustomers]);
 
   // Debug logging

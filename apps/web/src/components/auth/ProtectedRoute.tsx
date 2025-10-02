@@ -1,4 +1,5 @@
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Typography } from '@/components/ui/typography';
+import { Spinner } from '@/components/ui/spinner';
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
@@ -46,17 +47,12 @@ export default function ProtectedRoute({
   // NAJPRV: Ak je loading (session restore prebieha), zobraz loading
   if (state.isLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress />
-        <Typography variant="body2" sx={{ ml: 2 }}>
+      <div className="flex justify-center items-center min-h-screen">
+        <Spinner />
+        <Typography variant="body2" className="ml-2">
           Overujem prihlásenie...
         </Typography>
-      </Box>
+      </div>
     );
   }
 
@@ -90,16 +86,11 @@ export default function ProtectedRoute({
     });
 
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <Typography variant="h6" color="error">
+      <div className="flex justify-center items-center min-h-screen">
+        <Typography variant="h6" className="text-destructive">
           Nemáte oprávnение pristupovať k tejto stránke
         </Typography>
-      </Box>
+      </div>
     );
   }
 
@@ -112,16 +103,11 @@ export default function ProtectedRoute({
     });
 
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <Typography variant="h6" color="error">
+      <div className="flex justify-center items-center min-h-screen">
+        <Typography variant="h6" className="text-destructive">
           Nemáte oprávnenie pristupovať k tejto stránke
         </Typography>
-      </Box>
+      </div>
     );
   }
 

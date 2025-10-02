@@ -1,14 +1,23 @@
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Autocomplete,
-  Box,
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
   Select,
-  TextField,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { CalendarIcon, Plus, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { sk } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
@@ -17,7 +26,7 @@ import {
   useInsurers,
 } from '@/lib/react-query/hooks/useInsurers';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
-import type { Insurance, PaymentFrequency } from '../../types';
+import type { Insurance, PaymentFrequency } from '@/types';
 
 interface InsuranceFormProps {
   insurance?: Insurance | null;
@@ -83,112 +92,112 @@ export default function InsuranceForm({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 3,
-        }}
-      >
-        <Autocomplete
-          fullWidth
-          options={getEnhancedFilteredVehicles()
-            .slice()
-            .sort((a, b) => {
-              const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
-              const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
-              return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
-            })}
-          getOptionLabel={vehicle =>
-            `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
-          }
-          value={
-            getEnhancedFilteredVehicles().find(
-              v => v.id === formData.vehicleId
-            ) || null
-          }
-          onChange={(_, newValue) =>
-            handleInputChange('vehicleId', newValue?.id || '')
-          }
-          renderInput={params => (
-            <TextField
-              {...params}
-              label="Vozidlo"
-              required
-              placeholder="Začnite písať pre vyhľadanie vozidla..."
-            />
-          )}
-          noOptionsText="Žiadne vozidlá nenájdené"
-          filterOptions={(options, { inputValue }) => {
-            const filtered = options.filter(option => {
-              const searchText =
-                `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
-              return searchText.includes(inputValue.toLowerCase());
-            });
-            return filtered;
-          }}
-        />
+    <form onSubmit={handleSubmit} className="mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Vehicle Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="vehicle">Vozidlo *</Label>
+          <Select
+            value={formData.vehicleId || ''}
+            onValueChange={(value) => handleInputChange('vehicleId', value)}
+            required
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte vozidlo..." />
+            </SelectTrigger>
+            <SelectContent>
+              {getEnhancedFilteredVehicles()
+                .slice()
+                .sort((a, b) => {
+                  const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                  const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                  return aText.localeCompare(bText, 'sk', { sensitivity: 'base' });
+                })
+                .map(vehicle => (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Typ poistky - Select s pridanou možnosťou PZP + Kasko */}
-        <FormControl fullWidth required>
-          <InputLabel>Typ poistky</InputLabel>
+        {/* Typ poistky */}
+        <div className="space-y-2">
+          <Label htmlFor="type">Typ poistky *</Label>
           <Select
             value={formData.type || ''}
-            label="Typ poistky"
-            onChange={e => handleInputChange('type', e.target.value)}
+            onValueChange={(value) => handleInputChange('type', value)}
+            required
           >
-            <MenuItem value="PZP">PZP</MenuItem>
-            <MenuItem value="PZP + Kasko">PZP + Kasko</MenuItem>
-            <MenuItem value="Havarijná">Havarijná</MenuItem>
-            <MenuItem value="GAP">GAP</MenuItem>
-            <MenuItem value="Asistenčné služby">Asistenčné služby</MenuItem>
-            <MenuItem value="Iné">Iné</MenuItem>
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte typ poistky..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PZP">PZP</SelectItem>
+              <SelectItem value="PZP + Kasko">PZP + Kasko</SelectItem>
+              <SelectItem value="Havarijná">Havarijná</SelectItem>
+              <SelectItem value="GAP">GAP</SelectItem>
+              <SelectItem value="Asistenčné služby">Asistenčné služby</SelectItem>
+              <SelectItem value="Iné">Iné</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
 
-        {/* Číslo poistky - nové pole */}
-        <TextField
-          fullWidth
-          label="Číslo poistky"
-          value={formData.policyNumber}
-          onChange={e => handleInputChange('policyNumber', e.target.value)}
-          required
-        />
+        {/* Číslo poistky */}
+        <div className="space-y-2">
+          <Label htmlFor="policyNumber">Číslo poistky *</Label>
+          <Input
+            id="policyNumber"
+            value={formData.policyNumber || ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('policyNumber', e.target.value)}
+            placeholder="Zadajte číslo poistky..."
+            required
+          />
+        </div>
 
-        {/* Poistovňa - Select s možnosťou pridať */}
-        <FormControl fullWidth required>
-          <InputLabel>Poistovňa</InputLabel>
+        {/* Poistovňa */}
+        <div className="space-y-2">
+          <Label htmlFor="company">Poistovňa *</Label>
           <Select
             value={formData.company || ''}
-            label="Poistovňa"
-            onChange={e => handleInputChange('company', e.target.value)}
-            renderValue={selected => selected || 'Vyberte poisťovňu'}
+            onValueChange={(value) => {
+              if (value === '__add_new__') {
+                setAddingInsurer(true);
+              } else {
+                handleInputChange('company', value);
+              }
+            }}
+            required
           >
-            {insurers.map(insurer => (
-              <MenuItem key={insurer.id} value={insurer.name}>
-                {insurer.name}
-              </MenuItem>
-            ))}
-            <MenuItem
-              value="__add_new__"
-              onClick={() => setAddingInsurer(true)}
-            >
-              <em>+ Pridať novú poisťovňu</em>
-            </MenuItem>
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte poisťovňu..." />
+            </SelectTrigger>
+            <SelectContent>
+              {insurers.map(insurer => (
+                <SelectItem key={insurer.id} value={insurer.name}>
+                  {insurer.name}
+                </SelectItem>
+              ))}
+              <SelectItem value="__add_new__">
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Pridať novú poisťovňu
+                </div>
+              </SelectItem>
+            </SelectContent>
           </Select>
           {addingInsurer && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <TextField
-                autoFocus
-                size="small"
-                label="Nová poisťovňa"
+            <div className="flex gap-2 mt-2">
+              <Input
+                placeholder="Nová poisťovňa"
                 value={newInsurerName}
-                onChange={e => setNewInsurerName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewInsurerName(e.target.value)}
+                className="flex-1"
               />
               <Button
-                variant="contained"
-                size="small"
+                type="button"
+                size="sm"
                 disabled={!newInsurerName.trim()}
                 onClick={async () => {
                   try {
@@ -209,95 +218,123 @@ export default function InsuranceForm({
                 Pridať
               </Button>
               <Button
-                variant="outlined"
-                size="small"
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setAddingInsurer(false);
                   setNewInsurerName('');
                 }}
               >
-                Zrušiť
+                <X className="h-4 w-4" />
               </Button>
-            </Box>
+            </div>
           )}
-        </FormControl>
+        </div>
 
-        <TextField
-          fullWidth
-          label="Cena (€)"
-          type="number"
-          value={formData.price}
-          onChange={e => handleInputChange('price', parseFloat(e.target.value))}
-          required
-        />
+        {/* Cena */}
+        <div className="space-y-2">
+          <Label htmlFor="price">Cena (€) *</Label>
+          <Input
+            id="price"
+            type="number"
+            value={formData.price || ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            required
+          />
+        </div>
 
-        <TextField
-          fullWidth
-          label="Platná od"
-          type="date"
-          value={
-            formData.validFrom && !isNaN(new Date(formData.validFrom).getTime())
-              ? new Date(formData.validFrom).toISOString().split('T')[0]
-              : ''
-          }
-          onChange={e =>
-            handleInputChange('validFrom', new Date(e.target.value))
-          }
-          InputLabelProps={{ shrink: true }}
-          required
-        />
+        {/* Platná od */}
+        <div className="space-y-2">
+          <Label>Platná od *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formData.validFrom ? (
+                  format(new Date(formData.validFrom), 'dd.MM.yyyy', { locale: sk })
+                ) : (
+                  <span>Vyberte dátum</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={formData.validFrom ? new Date(formData.validFrom) : undefined}
+                onSelect={(date) => handleInputChange('validFrom', date || new Date())}
+                initialFocus
+                locale={sk}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-        <TextField
-          fullWidth
-          label="Platná do"
-          type="date"
-          value={
-            formData.validTo && !isNaN(new Date(formData.validTo).getTime())
-              ? new Date(formData.validTo).toISOString().split('T')[0]
-              : ''
-          }
-          onChange={e => handleInputChange('validTo', new Date(e.target.value))}
-          InputLabelProps={{ shrink: true }}
-          required
-        />
+        {/* Platná do */}
+        <div className="space-y-2">
+          <Label>Platná do *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formData.validTo ? (
+                  format(new Date(formData.validTo), 'dd.MM.yyyy', { locale: sk })
+                ) : (
+                  <span>Vyberte dátum</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={formData.validTo ? new Date(formData.validTo) : undefined}
+                onSelect={(date) => handleInputChange('validTo', date || new Date())}
+                initialFocus
+                locale={sk}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-        <FormControl fullWidth>
-          <InputLabel>Frekvencia platenia</InputLabel>
+        {/* Frekvencia platenia */}
+        <div className="space-y-2">
+          <Label htmlFor="paymentFrequency">Frekvencia platenia *</Label>
           <Select
             value={formData.paymentFrequency || 'yearly'}
-            onChange={e =>
-              handleInputChange(
-                'paymentFrequency',
-                e.target.value as PaymentFrequency
-              )
-            }
-            label="Frekvencia platenia"
+            onValueChange={(value) => handleInputChange('paymentFrequency', value as PaymentFrequency)}
             required
           >
-            <MenuItem value="monthly">Mesačne</MenuItem>
-            <MenuItem value="quarterly">Štvrťročne</MenuItem>
-            <MenuItem value="biannual">Polročne</MenuItem>
-            <MenuItem value="yearly">Ročne</MenuItem>
+            <SelectTrigger>
+              <SelectValue placeholder="Vyberte frekvenciu..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Mesačne</SelectItem>
+              <SelectItem value="quarterly">Štvrťročne</SelectItem>
+              <SelectItem value="biannual">Polročne</SelectItem>
+              <SelectItem value="yearly">Ročne</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
-      </Box>
+        </div>
+      </div>
 
-      <Box
-        sx={{
-          gridColumn: '1 / -1',
-          display: 'flex',
-          gap: 2,
-          justifyContent: 'flex-end',
-          mt: 3,
-        }}
-      >
-        <Button variant="outlined" onClick={onCancel}>
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-4 mt-6">
+        <Button type="button" variant="outline" onClick={onCancel}>
           Zrušiť
         </Button>
-        <Button type="submit" variant="contained">
+        <Button type="submit">
           {insurance ? 'Uložiť zmeny' : 'Pridať poistku'}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </form>
   );
 }

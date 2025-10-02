@@ -2,118 +2,58 @@
 // Beautiful loading indicators with smooth animations and modern design
 
 import {
-  Backdrop,
-  Box,
-  CircularProgress,
-  Fade,
-  LinearProgress,
-  Typography,
-  keyframes,
-  styled,
-  useTheme,
-} from '@mui/material';
+  Progress,
+} from '../ui';
 import React from 'react';
 
-// Gradient pulse animation
-const gradientPulse = keyframes`
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-`;
+// Loading Container Component
+const LoadingContainer: React.FC<{ 
+  children: React.ReactNode; 
+  className?: string;
+  transparent?: boolean;
+}> = ({ children, className = '', transparent = false }) => (
+  <div className={`
+    flex flex-col items-center justify-center min-h-[200px] p-8
+    ${transparent ? 'bg-transparent' : 'bg-background/90 backdrop-blur-sm'}
+    ${transparent ? '' : 'border border-border/20 rounded-2xl'}
+    ${className}
+  `}>
+    {children}
+  </div>
+);
 
-// Floating animation
-const float = keyframes`
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-`;
+// Gradient Spinner Component
+const GradientSpinner: React.FC<{ size: number }> = ({ size }) => (
+  <div className="relative inline-flex">
+    <div 
+      className="animate-spin rounded-full border-4 border-transparent"
+      style={{
+        width: size,
+        height: size,
+        background: 'conic-gradient(from 0deg, transparent 0%, #667eea 50%, #764ba2 100%)',
+        mask: 'radial-gradient(farthest-side, transparent calc(50% - 4px), black calc(50% - 3px))',
+        WebkitMask: 'radial-gradient(farthest-side, transparent calc(50% - 4px), black calc(50% - 3px))',
+      }}
+    />
+  </div>
+);
 
-// Spin with gradient
-const spinGradient = keyframes`
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-`;
+// Floating Icon Component
+const FloatingIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="text-5xl animate-bounce">
+    {children}
+  </div>
+);
 
-// Styled Loading Container
-const LoadingContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: '200px',
-  padding: theme.spacing(4),
-  background:
-    theme.palette.mode === 'dark'
-      ? 'rgba(26, 31, 46, 0.8)'
-      : 'rgba(255, 255, 255, 0.9)',
-  backdropFilter: 'blur(8px)',
-  borderRadius: '20px',
-  border: `1px solid ${
-    theme.palette.mode === 'dark'
-      ? 'rgba(102, 126, 234, 0.2)'
-      : 'rgba(102, 126, 234, 0.1)'
-  }`,
-}));
-
-// Gradient CircularProgress
-const GradientCircularProgress = styled(Box)(({ theme }) => ({
-  position: 'relative',
-  display: 'inline-flex',
-  '& .MuiCircularProgress-root': {
-    color: 'transparent',
-  },
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: `conic-gradient(
-      from 0deg,
-      transparent 0%,
-      ${theme.palette.mode === 'dark' ? '#667eea' : '#667eea'} 50%,
-      ${theme.palette.mode === 'dark' ? '#764ba2' : '#764ba2'} 100%
-    )`,
-    borderRadius: '50%',
-    animation: `${spinGradient} 1.5s linear infinite`,
-    mask: 'radial-gradient(farthest-side, transparent calc(50% - 4px), black calc(50% - 3px))',
-    WebkitMask:
-      'radial-gradient(farthest-side, transparent calc(50% - 4px), black calc(50% - 3px))',
-  },
-}));
-
-// Floating Icon
-const FloatingIcon = styled(Box)(() => ({
-  fontSize: '3rem',
-  animation: `${float} 3s ease-in-out infinite`,
-}));
-
-// Gradient LinearProgress
-const GradientLinearProgress = styled(LinearProgress)(({ theme }) => ({
-  height: 8,
-  borderRadius: 4,
-  background:
-    theme.palette.mode === 'dark'
-      ? 'rgba(45, 55, 72, 0.3)'
-      : 'rgba(241, 245, 249, 0.8)',
-  '& .MuiLinearProgress-bar': {
-    borderRadius: 4,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    backgroundSize: '200% 200%',
-    animation: `${gradientPulse} 2s ease-in-out infinite`,
-  },
-}));
+// Gradient Progress Component
+const GradientProgress: React.FC = () => (
+  <div className="w-full max-w-xs">
+    <Progress 
+      value={undefined} 
+      className="h-2 bg-muted/30"
+    />
+  </div>
+);
 
 interface LoadingStateProps {
   variant?: 'spinner' | 'linear' | 'dots' | 'pulse' | 'custom';
@@ -136,64 +76,43 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   // color = 'primary', // Currently not used
   icon = '🚗',
 }) => {
-  const theme = useTheme();
-
   const getSizeValues = () => {
     switch (size) {
       case 'small':
-        return { spinner: 24, container: 120, text: 'body2' };
+        return { spinner: 24, container: 'min-h-[120px]', text: 'text-sm' };
       case 'large':
-        return { spinner: 60, container: 300, text: 'h6' };
+        return { spinner: 60, container: 'min-h-[300px]', text: 'text-lg' };
       default:
-        return { spinner: 40, container: 200, text: 'body1' };
+        return { spinner: 40, container: 'min-h-[200px]', text: 'text-base' };
     }
   };
 
   const sizeValues = getSizeValues();
 
   const renderSpinner = () => (
-    <GradientCircularProgress>
-      <CircularProgress
-        size={sizeValues.spinner}
-        thickness={4}
-        sx={{ color: 'transparent' }}
-      />
-    </GradientCircularProgress>
+    <GradientSpinner size={sizeValues.spinner} />
   );
 
-  const renderLinear = () => (
-    <Box width="100%" maxWidth={300}>
-      <GradientLinearProgress />
-    </Box>
-  );
+  const renderLinear = () => <GradientProgress />;
 
   const renderDots = () => (
-    <Box display="flex" gap={1}>
+    <div className="flex gap-1">
       {[0, 1, 2].map(index => (
-        <Box
+        <div
           key={index}
-          sx={{
-            width: 12,
-            height: 12,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            animation: `${float} 1.4s ease-in-out infinite`,
-            animationDelay: `${index * 0.2}s`,
-          }}
+          className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 animate-bounce"
+          style={{ animationDelay: `${index * 0.2}s` }}
         />
       ))}
-    </Box>
+    </div>
   );
 
   const renderPulse = () => (
-    <Box
-      sx={{
-        width: sizeValues.spinner,
-        height: sizeValues.spinner,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        animation: `${gradientPulse} 2s ease-in-out infinite`,
-        backgroundSize: '200% 200%',
+    <div
+      className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 animate-pulse"
+      style={{ 
+        width: sizeValues.spinner, 
+        height: sizeValues.spinner 
       }}
     />
   );
@@ -217,71 +136,30 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   const content = (
     <LoadingContainer
-      sx={{
-        minHeight: sizeValues.container,
-        background: transparent ? 'transparent' : undefined,
-        border: transparent ? 'none' : undefined,
-        backdropFilter: transparent ? 'none' : undefined,
-      }}
+      className={sizeValues.container}
+      transparent={transparent}
     >
-      <Box mb={2}>{renderLoader()}</Box>
+      <div className="mb-4">{renderLoader()}</div>
 
-      <Typography
-        variant={
-          sizeValues.text as
-            | 'h1'
-            | 'h2'
-            | 'h3'
-            | 'h4'
-            | 'h5'
-            | 'h6'
-            | 'subtitle1'
-            | 'subtitle2'
-            | 'body1'
-            | 'body2'
-            | 'caption'
-            | 'button'
-            | 'overline'
-        }
-        color="textPrimary"
-        fontWeight={600}
-        textAlign="center"
-        sx={{ mb: submessage ? 1 : 0 }}
-      >
+      <p className={`${sizeValues.text} font-semibold text-center ${submessage ? 'mb-2' : ''}`}>
         {message}
-      </Typography>
+      </p>
 
       {submessage && (
-        <Typography
-          variant="body2"
-          color="textSecondary"
-          textAlign="center"
-          sx={{ opacity: 0.8 }}
-        >
+        <p className="text-sm text-muted-foreground text-center opacity-80">
           {submessage}
-        </Typography>
+        </p>
       )}
     </LoadingContainer>
   );
 
   if (fullScreen) {
     return (
-      <Backdrop
-        sx={{
-          color: '#fff',
-          zIndex: theme => theme.zIndex.drawer + 1,
-          background:
-            theme.palette.mode === 'dark'
-              ? 'rgba(10, 15, 28, 0.8)'
-              : 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(8px)',
-        }}
-        open={true}
-      >
-        <Fade in={true}>
-          <div>{content}</div>
-        </Fade>
-      </Backdrop>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="animate-in fade-in duration-200">
+          {content}
+        </div>
+      </div>
     );
   }
 
@@ -294,7 +172,7 @@ export const PageLoader: React.FC<{ message?: string }> = ({
 }) => (
   <LoadingState
     variant="custom"
-    size="large"
+    className="h-12 px-8 text-base"
     message={message}
     submessage="Prosím počkajte"
     icon="🚗"
@@ -306,7 +184,7 @@ export const ComponentLoader: React.FC<{ message?: string }> = ({
 }) => (
   <LoadingState
     variant="spinner"
-    size="medium"
+    className="h-10 px-4"
     message={message}
     transparent={true}
   />
@@ -315,19 +193,13 @@ export const ComponentLoader: React.FC<{ message?: string }> = ({
 export const ButtonLoader: React.FC<{ size?: 'small' | 'medium' }> = ({
   size = 'small',
 }) => (
-  <GradientCircularProgress>
-    <CircularProgress
-      size={size === 'small' ? 16 : 20}
-      thickness={4}
-      sx={{ color: 'transparent' }}
-    />
-  </GradientCircularProgress>
+  <GradientSpinner size={size === 'small' ? 16 : 20} />
 );
 
 export const FormLoader: React.FC = () => (
   <LoadingState
     variant="linear"
-    size="medium"
+    className="h-10 px-4"
     message="Spracovávam..."
     submessage="Ukladám zmeny"
   />
@@ -339,9 +211,9 @@ export const DataLoader: React.FC<{
 }> = ({ message = 'Načítavam dáta...', count }) => (
   <LoadingState
     variant="dots"
-    size="medium"
+    className="h-10 px-4"
     message={message}
-    submessage={count ? `${count} položiek` : undefined}
+    {...(count && { submessage: `${count} položiek` })}
   />
 );
 
@@ -354,7 +226,7 @@ export const FullScreenLoader: React.FC<{
 }) => (
   <LoadingState
     variant="custom"
-    size="large"
+    className="h-12 px-8 text-base"
     message={message}
     submessage={submessage}
     fullScreen={true}

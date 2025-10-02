@@ -1,20 +1,14 @@
 import {
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  Edit as EditIcon,
-  Euro as EuroIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material';
-import {
-  // Stack, // TODO: Implement stack layout
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  IconButton,
-  Typography,
-} from '@mui/material';
+  Calendar,
+  Car,
+  Edit,
+  Euro,
+  User,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 // import { useApp } from '../../../context/AppContext'; // Migrated to React Query
 import { useVehicles } from '../../../lib/react-query/hooks/useVehicles';
@@ -35,133 +29,111 @@ export function RentalCard({ rental, onEdit }: RentalCardProps) {
   const vehicle = vehicles.find(v => v.id === rental.vehicleId);
 
   // Status color mapping
-  const getStatusColor = (status: string | undefined) => {
+  const getStatusVariant = (status: string | undefined): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
       case 'active':
-        return 'success';
+        return 'default';
       case 'completed':
-        return 'default';
+        return 'secondary';
       case 'pending':
-        return 'warning';
+        return 'outline';
       case 'cancelled':
-        return 'error';
+        return 'destructive';
       default:
-        return 'default';
+        return 'secondary';
     }
   };
 
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        position: 'relative',
-        '&:hover': {
-          boxShadow: 2,
-          transform: 'translateY(-1px)',
-        },
-        transition: 'all 0.2s ease-in-out',
-      }}
-    >
-      <CardContent sx={{ pb: 2 }}>
+    <Card className="relative border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+      <CardContent className="pb-4">
         {/* Header */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="flex-start"
-          mb={2}
-        >
-          <Box display="flex" alignItems="center" gap={1}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-              <CarIcon fontSize="small" />
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-2">
+            <Avatar className="w-8 h-8">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                <Car className="h-4 w-4" />
+              </AvatarFallback>
             </Avatar>
-            <Box>
-              <Typography variant="subtitle2" fontWeight="bold">
+            <div>
+              <p className="text-sm font-semibold">
                 {vehicle
                   ? `${vehicle.brand} ${vehicle.model}`
                   : 'Neznáme vozidlo'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </p>
+              <p className="text-xs text-muted-foreground">
                 {vehicle?.licensePlate || 'Bez ŠPZ'}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
-          <Box display="flex" alignItems="center" gap={1}>
-            <Chip
-              label={rental.status}
-              size="small"
-              color={
-                getStatusColor(rental.status) as
-                  | 'default'
-                  | 'primary'
-                  | 'secondary'
-                  | 'error'
-                  | 'info'
-                  | 'success'
-                  | 'warning'
-              }
-              variant="outlined"
-            />
-            <IconButton
-              size="small"
-              onClick={() => onEdit(rental)}
-              sx={{ ml: 1 }}
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={getStatusVariant(rental.status)}
+              className="text-xs"
             >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Box>
+              {rental.status}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(rental)}
+              className="h-8 w-8 p-0"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
         {/* Customer info */}
-        <Box display="flex" alignItems="center" gap={1} mb={2}>
-          <PersonIcon fontSize="small" color="action" />
-          <Typography variant="body2">
+        <div className="flex items-center gap-2 mb-4">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm">
             {rental.customerName || 'Neznámy zákazník'}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Date range */}
-        <Box display="flex" alignItems="center" gap={1} mb={2}>
-          <CalendarIcon fontSize="small" color="action" />
-          <Typography variant="body2">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm">
             {formatDate(rental.startDate)} - {formatDate(rental.endDate)}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Price */}
-        <Box display="flex" alignItems="center" gap={1} mb={2}>
-          <EuroIcon fontSize="small" color="action" />
-          <Typography variant="body2" fontWeight="medium">
+        <div className="flex items-center gap-2 mb-4">
+          <Euro className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm font-medium">
             {formatCurrency(rental.totalPrice)}
-          </Typography>
+          </p>
           {rental.paymentMethod && (
-            <Chip
-              label={rental.paymentMethod}
-              size="small"
-              variant="outlined"
-              sx={{ ml: 'auto' }}
-            />
+            <Badge
+              variant="outline"
+              className="text-xs ml-auto"
+            >
+              {rental.paymentMethod}
+            </Badge>
           )}
-        </Box>
+        </div>
 
         {/* Company */}
         {vehicle?.company && (
-          <Box>
-            <Typography variant="caption" color="text.secondary">
+          <div>
+            <p className="text-xs text-muted-foreground">
               Firma: {vehicle.company}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* Additional info for flexible rentals */}
         {rental.isFlexible && (
-          <Chip
-            label="Flexibilný prenájom"
-            size="small"
-            color="info"
-            variant="outlined"
-            sx={{ mt: 1 }}
-          />
+          <Badge
+            variant="outline"
+            className="text-xs mt-2"
+          >
+            Flexibilný prenájom
+          </Badge>
         )}
       </CardContent>
     </Card>

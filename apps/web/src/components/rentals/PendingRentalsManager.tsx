@@ -1,40 +1,30 @@
+// Lucide icons (replacing MUI icons)
 import {
   CheckCircle as ApproveIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  CheckCircle,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
   Edit as EditIcon,
-  Email as EmailIcon,
+  Mail as EmailIcon,
   Euro as EuroIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  LocationOn as LocationIcon,
-  Schedule as PendingIcon,
-  Person as PersonIcon,
-  Cancel as RejectIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Divider,
-  Grid,
-  IconButton,
-  Paper,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+  ChevronUp as ExpandLessIcon,
+  ChevronDown as ExpandMoreIcon,
+  MapPin as LocationIcon,
+  Clock as PendingIcon,
+  User as PersonIcon,
+  X as RejectIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import React, { useEffect, useState } from 'react';
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
@@ -113,204 +103,200 @@ const RentalCard: React.FC<RentalCardProps> = ({
 
   return (
     <>
-      <Card sx={{ mb: 2, border: '1px solid #e0e0e0' }}>
-        <CardContent>
+      <Card className="mb-4 border">
+        <CardContent className="p-4">
           {/* Header */}
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-          >
-            <Box display="flex" alignItems="center" gap={1}>
-              <Badge
-                badgeContent={<EmailIcon sx={{ fontSize: 12 }} />}
-                color="primary"
-              >
-                <PendingIcon color="warning" />
-              </Badge>
-              <Typography variant="h6" component="div">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <PendingIcon className="w-6 h-6 text-orange-500" />
+                <EmailIcon className="absolute -top-1 -right-1 w-3 h-3 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-semibold">
                 {rental.orderNumber || 'N/A'}
-              </Typography>
-              <Chip
-                label="Email Auto"
-                size="small"
-                color="info"
-                icon={<EmailIcon />}
-              />
-            </Box>
-            <Box display="flex" gap={1}>
-              <Tooltip title="Upraviť prenájom">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<EditIcon />}
-                  onClick={() => onEdit(rental)}
-                  disabled={processing}
-                >
-                  Upraviť
-                </Button>
-              </Tooltip>
-              <Tooltip title="Schváliť prenájom">
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="success"
-                  startIcon={<ApproveIcon />}
-                  onClick={handleApprove}
-                  disabled={processing}
-                >
-                  Schváliť
-                </Button>
-              </Tooltip>
-              <Tooltip title="Zamietnuť prenájom">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  startIcon={<RejectIcon />}
-                  onClick={() => setShowRejectDialog(true)}
-                  disabled={processing}
-                >
-                  Zamietnuť
-                </Button>
-              </Tooltip>
-            </Box>
-          </Box>
+              </h3>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <EmailIcon className="w-3 h-3" />
+                Email Auto
+              </Badge>
+            </div>
+            <div className="flex gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onEdit(rental)}
+                      disabled={processing}
+                    >
+                      <EditIcon className="w-4 h-4 mr-1" />
+                      Upraviť
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Upraviť prenájom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      onClick={handleApprove}
+                      disabled={processing}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <ApproveIcon className="w-4 h-4 mr-1" />
+                      Schváliť
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Schváliť prenájom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowRejectDialog(true)}
+                      disabled={processing}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      <RejectIcon className="w-4 h-4 mr-1" />
+                      Zamietnuť
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zamietnuť prenájom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
 
           {/* Main Info */}
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={6}>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <PersonIcon color="primary" fontSize="small" />
-                <Typography variant="body1" fontWeight="bold">
-                  {rental.customerName}
-                </Typography>
-              </Box>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <CarIcon color="primary" fontSize="small" />
-                <Typography variant="body2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <PersonIcon className="w-4 h-4 text-primary" />
+                <span className="font-semibold">{rental.customerName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CarIcon className="w-4 h-4 text-primary" />
+                <span className="text-sm">
                   {rental.vehicleName || 'Vozidlo nenájdené'}
                   {rental.vehicleCode && ` (${rental.vehicleCode})`}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <EuroIcon color="primary" fontSize="small" />
-                <Typography variant="body1">
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <EuroIcon className="w-4 h-4 text-primary" />
+                <span>
                   <strong>{formatCurrency(rental.totalPrice)}</strong>
                   {rental.deposit && (
-                    <span style={{ marginLeft: '8px', color: '#666' }}>
+                    <span className="ml-2 text-muted-foreground">
                       (Depozit: {formatCurrency(rental.deposit)})
                     </span>
                   )}
-                </Typography>
-              </Box>
-              <Box display="flex" alignItems="center" gap={1}>
-                <CalendarIcon color="primary" fontSize="small" />
-                <Typography variant="body2">
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-primary" />
+                <span className="text-sm">
                   {formatDate(rental.startDate)} - {formatDate(rental.endDate)}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
+                </span>
+              </div>
+            </div>
+          </div>
 
           {/* Expand/Collapse */}
-          <Box display="flex" justifyContent="center">
-            <IconButton onClick={() => setExpanded(!expanded)} size="small">
-              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              <Typography variant="caption" sx={{ ml: 1 }}>
-                {expanded ? 'Skryť detaily' : 'Zobraziť detaily'}
-              </Typography>
-            </IconButton>
-          </Box>
+          <Collapsible open={expanded} onOpenChange={setExpanded}>
+            <CollapsibleTrigger asChild>
+              <div className="flex justify-center">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  {expanded ? <ExpandLessIcon className="w-4 h-4" /> : <ExpandMoreIcon className="w-4 h-4" />}
+                  <span className="text-xs">
+                    {expanded ? 'Skryť detaily' : 'Zobraziť detaily'}
+                  </span>
+                </Button>
+              </div>
+            </CollapsibleTrigger>
 
-          {/* Expanded Details */}
-          <Collapse in={expanded}>
-            <Divider sx={{ my: 2 }} />
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  Detaily prenájmu
-                </Typography>
-                {rental.handoverPlace && (
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <LocationIcon fontSize="small" />
-                    <Typography variant="body2">
-                      Miesto: {rental.handoverPlace}
-                    </Typography>
-                  </Box>
-                )}
-                {rental.dailyKilometers && (
-                  <Typography variant="body2" color="textSecondary">
-                    Denný limit km: {rental.dailyKilometers}
-                  </Typography>
-                )}
-                <Typography variant="body2" color="textSecondary">
-                  Vytvorené:{' '}
-                  {formatDate(rental.autoProcessedAt || rental.createdAt)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  Obsah emailu
-                </Typography>
-                <Paper
-                  sx={{
-                    p: 2,
-                    backgroundColor: '#f5f5f5',
-                    maxHeight: 200,
-                    overflow: 'auto',
-                    fontFamily: 'monospace',
-                    fontSize: '0.8em',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {rental.emailContent || 'Email obsah nedostupný'}
-                </Paper>
-              </Grid>
-            </Grid>
-          </Collapse>
+            <CollapsibleContent>
+              <Separator className="my-4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-primary mb-2">
+                    Detaily prenájmu
+                  </h4>
+                  {rental.handoverPlace && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <LocationIcon className="w-4 h-4" />
+                      <span className="text-sm">
+                        Miesto: {rental.handoverPlace}
+                      </span>
+                    </div>
+                  )}
+                  {rental.dailyKilometers && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Denný limit km: {rental.dailyKilometers}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Vytvorené:{' '}
+                    {formatDate(rental.autoProcessedAt || rental.createdAt)}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-primary mb-2">
+                    Obsah emailu
+                  </h4>
+                  <div className="p-3 bg-muted rounded-md max-h-48 overflow-auto font-mono text-xs whitespace-pre-wrap">
+                    {rental.emailContent || 'Email obsah nedostupný'}
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 
       {/* Reject Dialog */}
-      <Dialog
-        open={showRejectDialog}
-        onClose={() => setShowRejectDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Zamietnuť automatický prenájom</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Prečo zamietate tento prenájom? Dôvod bude uložený pre budúcu
-            referenciu.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            fullWidth
-            multiline
-            rows={3}
-            label="Dôvod zamietnutia"
-            value={rejectReason}
-            onChange={e => setRejectReason(e.target.value)}
-            placeholder="Napr.: Neplatné dátumy, chýbajúce informácie, duplicitná objednávka..."
-          />
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Zamietnuť automatický prenájom</DialogTitle>
+            <DialogDescription>
+              Prečo zamietate tento prenájom? Dôvod bude uložený pre budúcu
+              referenciu.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="reject-reason">Dôvod zamietnutia</Label>
+              <Textarea
+                id="reject-reason"
+                rows={3}
+                value={rejectReason}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRejectReason(e.target.value)}
+                placeholder="Napr.: Neplatné dátumy, chýbajúce informácie, duplicitná objednávka..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              Zrušiť
+            </Button>
+            <Button
+              onClick={handleReject}
+              disabled={!rejectReason.trim() || processing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Zamietnuť
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowRejectDialog(false)}>Zrušiť</Button>
-          <Button
-            onClick={handleReject}
-            color="error"
-            variant="contained"
-            disabled={!rejectReason.trim() || processing}
-          >
-            Zamietnuť
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
@@ -397,57 +383,55 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <Typography>Načítavam čakajúce prenájmy...</Typography>
-      </Box>
+      <div className="flex justify-center p-8">
+        <p>Načítavam čakajúce prenájmy...</p>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
-        <Typography variant="h4" component="h1">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">
           Čakajúce automatické prenájmy
-        </Typography>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Badge badgeContent={pendingRentals?.length || 0} color="warning">
-            <PendingIcon />
-          </Badge>
+        </h1>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <PendingIcon className="w-6 h-6" />
+            <Badge className="absolute -top-2 -right-2" variant="secondary">
+              {pendingRentals?.length || 0}
+            </Badge>
+          </div>
           <Button
-            variant="outlined"
+            variant="outline"
             onClick={fetchPendingRentals}
             disabled={loading}
           >
             Obnoviť
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
+        <Alert className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Empty State */}
       {pendingRentals?.length === 0 && !loading && (
         <Card>
-          <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <CheckCircle fontSize="large" color="success" sx={{ mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
+          <CardContent className="text-center py-12">
+            <ApproveIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
               Žiadne čakajúce prenájmy
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
+            </h3>
+            <p className="text-muted-foreground">
               Všetky automatické prenájmy boli spracované alebo žiadne ešte
               nepriišli.
-            </Typography>
+            </p>
           </CardContent>
         </Card>
       )}
@@ -475,7 +459,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
         }}
         onSave={handleSaveEditedRental}
       />
-    </Box>
+    </div>
   );
 };
 

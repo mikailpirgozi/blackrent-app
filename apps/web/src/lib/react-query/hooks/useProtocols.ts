@@ -120,33 +120,33 @@ export function useCreateHandoverProtocol() {
 
       return { success: true, protocol }; // Fallback na pôvodný protokol
     },
-    onMutate: async newProtocol => {
+    onMutate: async _____newProtocol => {
       // Optimistická aktualizácia
       await queryClient.cancelQueries({
-        queryKey: queryKeys.protocols.byRental(newProtocol.rentalId),
+        queryKey: queryKeys.protocols.byRental(_____newProtocol.rentalId),
       });
 
       const previousProtocols = queryClient.getQueryData(
-        queryKeys.protocols.byRental(newProtocol.rentalId)
+        queryKeys.protocols.byRental(_____newProtocol.rentalId)
       );
 
       queryClient.setQueryData(
-        queryKeys.protocols.byRental(newProtocol.rentalId),
+        queryKeys.protocols.byRental(_____newProtocol.rentalId),
         (old: Record<string, unknown> = {}) => ({
           ...old,
           handoverProtocols: [
             ...((old.handoverProtocols as unknown[]) || []),
-            newProtocol,
+            _____newProtocol,
           ],
         })
       );
 
       return { previousProtocols };
     },
-    onError: (err, newProtocol, context) => {
+    onError: (_err, ______newProtocol, context) => {
       if (context?.previousProtocols) {
         queryClient.setQueryData(
-          queryKeys.protocols.byRental(newProtocol.rentalId),
+          queryKeys.protocols.byRental(______newProtocol.rentalId),
           context.previousProtocols
         );
       }
@@ -167,12 +167,12 @@ export function useCreateHandoverProtocol() {
 
       // Trigger WebSocket
       window.dispatchEvent(
-        new CustomEvent('protocol-created', {
+        new (window as any).CustomEvent('protocol-created', {
           detail: { type: 'handover', data: protocol },
         })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       // Invaliduj všetky súvisiace queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.protocols.byRental(variables.rentalId),
@@ -194,37 +194,37 @@ export function useCreateReturnProtocol() {
   return useMutation({
     mutationFn: (protocol: ReturnProtocol) =>
       apiService.createReturnProtocol(protocol),
-    onMutate: async newProtocol => {
+    onMutate: async _____newProtocol => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.protocols.byRental(newProtocol.rentalId),
+        queryKey: queryKeys.protocols.byRental(_____newProtocol.rentalId),
       });
 
       const previousProtocols = queryClient.getQueryData(
-        queryKeys.protocols.byRental(newProtocol.rentalId)
+        queryKeys.protocols.byRental(_____newProtocol.rentalId)
       );
 
       queryClient.setQueryData(
-        queryKeys.protocols.byRental(newProtocol.rentalId),
+        queryKeys.protocols.byRental(_____newProtocol.rentalId),
         (old: Record<string, unknown> = {}) => ({
           ...old,
           returnProtocols: [
             ...((old.returnProtocols as unknown[]) || []),
-            newProtocol,
+            _____newProtocol,
           ],
         })
       );
 
       return { previousProtocols };
     },
-    onError: (err, newProtocol, context) => {
+    onError: (_err, ______newProtocol, context) => {
       if (context?.previousProtocols) {
         queryClient.setQueryData(
-          queryKeys.protocols.byRental(newProtocol.rentalId),
+          queryKeys.protocols.byRental(______newProtocol.rentalId),
           context.previousProtocols
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Update rental status to completed
       queryClient.setQueryData(
         queryKeys.rentals.detail(variables.rentalId),
@@ -243,12 +243,12 @@ export function useCreateReturnProtocol() {
 
       // Trigger WebSocket
       window.dispatchEvent(
-        new CustomEvent('protocol-created', {
-          detail: { type: 'return', data },
+        new (window as any).CustomEvent('protocol-created', {
+          detail: { type: 'return', data: _data },
         })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.protocols.byRental(variables.rentalId),
       });
@@ -275,7 +275,7 @@ export function useUpdateHandoverProtocol() {
         `/protocols/handover/${protocol.id}`,
         protocol as unknown as Record<string, unknown>
       ),
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.protocols.byRental(variables.rentalId),
       });
@@ -293,7 +293,7 @@ export function useUpdateReturnProtocol() {
         `/protocols/return/${protocol.id}`,
         protocol as unknown as Record<string, unknown>
       ),
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.protocols.byRental(variables.rentalId),
       });

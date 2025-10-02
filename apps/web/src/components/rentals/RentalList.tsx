@@ -1,18 +1,11 @@
-import {
-  PhotoLibrary as GalleryIcon,
-  PictureAsPdf as PDFIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { ImageIcon, FileText, RefreshCw } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+
+// Global type definitions for DOM elements
+interface WindowWithHandler {
+  __unifiedRentalScrollHandler?: (_event: any) => void;
+}
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
 import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
@@ -34,7 +27,7 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import type {
+import {
   Company,
   Customer,
   ProtocolImage,
@@ -80,7 +73,7 @@ import { RentalTable } from './components/RentalTable';
 
 // Constants (removed unused constants)
 
-const RentalList = () => {
+export default function RentalList() {
   // ⚡ PERFORMANCE: Only log renders in development with throttling
   const renderCountRef = useRef(0);
   const lastRenderTimeRef = useRef(0);
@@ -88,8 +81,8 @@ const RentalList = () => {
   if (process.env.NODE_ENV === 'development') {
     renderCountRef.current++;
     const now = Date.now();
-    // Only log every 500ms to prevent spam
-    if (now - lastRenderTimeRef.current > 500) {
+    // Only log every 2 seconds to prevent spam
+    if (now - lastRenderTimeRef.current > 2000) {
       logger.debug('RentalList render', {
         timestamp: now,
         renderCount: renderCountRef.current,
@@ -128,8 +121,16 @@ const RentalList = () => {
     'handover' | 'return' | null
   >(null);
   // const permissions = usePermissions(); // Unused for now
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // 🚀 INFINITE SCROLL: Use only infinite scroll for performance (50 rentals per page)
   const {
@@ -143,6 +144,7 @@ const RentalList = () => {
     loadMore,
     refresh,
     updateFilters,
+    handleOptimisticDelete,
   } = useInfiniteRentals();
 
   // 🔍 DEBUG: Základné informácie o komponente - OPTIMIZED: Only log once
@@ -152,7 +154,7 @@ const RentalList = () => {
       isMobile,
       screenWidth:
         typeof window !== 'undefined' ? window.innerWidth : 'unknown',
-      breakpoint: theme.breakpoints.values.md,
+      breakpoint: 768,
     });
     debugLoggedRef.current = true;
   }
@@ -173,9 +175,9 @@ const RentalList = () => {
       await protocolsHook.loadProtocolsForRental(rentalId);
 
       // ✅ OPTIMISTIC UPDATE: Okamžite aktualizuj protocol status
-      protocolsHook.setProtocolStatusMap(prev => ({
-        ...prev,
-        [rentalId]: {
+      protocolsHook.setProtocolStatusMap(prev => {
+        const newMap = { ...prev };
+        newMap[rentalId] = {
           hasHandoverProtocol:
             protocolType === 'handover'
               ? true
@@ -184,16 +186,11 @@ const RentalList = () => {
             protocolType === 'return'
               ? true
               : prev[rentalId]?.hasReturnProtocol || false,
-          handoverProtocolId:
-            protocolType === 'handover'
-              ? data.id
-              : prev[rentalId]?.handoverProtocolId,
-          returnProtocolId:
-            protocolType === 'return'
-              ? data.id
-              : prev[rentalId]?.returnProtocolId,
-        },
-      }));
+          ...(protocolType === 'handover' && data.id ? { handoverProtocolId: data.id } : {}),
+          ...(protocolType === 'return' && data.id ? { returnProtocolId: data.id } : {}),
+        };
+        return newMap;
+      });
 
       // ✅ REFRESH RENTALS: Aktualizuj aj rental list pre zobrazenie zelených ikoniek
       // Note: updateRentalInList expects full Rental object, so we'll rely on protocol status map instead
@@ -275,7 +272,20 @@ const RentalList = () => {
       if (process.env.NODE_ENV === 'development') {
         logger.debug('🔧 FILTERS: Syncing filters to server:', serverFilters);
       }
-      updateFilters(serverFilters);
+      updateFilters({
+        ...(serverFilters.company !== undefined && { company: serverFilters.company }),
+        ...(serverFilters.status !== undefined && { status: serverFilters.status }),
+        ...(serverFilters.paymentMethod !== undefined && { paymentMethod: serverFilters.paymentMethod }),
+        ...(serverFilters.protocolStatus !== undefined && { protocolStatus: serverFilters.protocolStatus }),
+        ...(serverFilters.vehicleBrand !== undefined && { vehicleBrand: serverFilters.vehicleBrand }),
+        ...(serverFilters.priceMin !== undefined && { priceMin: serverFilters.priceMin }),
+        ...(serverFilters.priceMax !== undefined && { priceMax: serverFilters.priceMax }),
+        // searchQuery is handled separately via setSearchTerm
+        ...(serverFilters.dateFrom !== undefined && { dateFrom: serverFilters.dateFrom }),
+        ...(serverFilters.dateTo !== undefined && { dateTo: serverFilters.dateTo }),
+        ...(serverFilters.sortBy !== undefined && { sortBy: serverFilters.sortBy }),
+        ...(serverFilters.sortOrder !== undefined && { sortOrder: serverFilters.sortOrder }),
+      });
       previousFiltersRef.current = filtersString;
     }
   }, [advancedFilters, updateFilters]);
@@ -340,6 +350,8 @@ const RentalList = () => {
     },
     onDelete: id => {
       logger.debug('🗑️ External delete handler called', { rentalId: id });
+      // ⚡ OPTIMISTIC DELETE: Okamžite odstráň z UI
+      handleOptimisticDelete(id);
     },
     onScrollRestore: () => {
       logger.debug('📜 External scroll restore handler called');
@@ -419,16 +431,16 @@ const RentalList = () => {
   // This was moved above to fix the dependency issue
 
   // Create separate refs for mobile and desktop scroll containers
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-  const desktopScrollRef = useRef<HTMLDivElement>(null);
-  const scrollHandlerRef = useRef<((event: Event) => void) | null>(null);
+  const mobileScrollRef = useRef<any>(null);
+  const desktopScrollRef = useRef<any>(null);
+  const scrollHandlerRef = useRef<((_event: any) => void) | null>(null);
 
   // 🎯 INFINITE SCROLL: Auto-loading at 75% scroll
   const SCROLL_THRESHOLD = 0.75;
   const DEBOUNCE_DELAY = 150;
   const THROTTLE_DELAY = 100;
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<number | null>(null);
+  const throttleTimerRef = useRef<number | null>(null);
   const lastScrollTimeRef = useRef<number>(0);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Wrapper pre loadMore s uložením pozície
@@ -451,7 +463,7 @@ const RentalList = () => {
 
   // 🎯 UNIFIED SCROLL HANDLER: Auto-trigger loading at 75%
   const createScrollHandler = useCallback(() => {
-    return (event: Event) => {
+    return (_event: any) => {
       // Skip if already loading or no more data
       if (loading || !hasMore) {
         return;
@@ -466,28 +478,30 @@ const RentalList = () => {
 
       // Clear previous debounce timer
       if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+        window.clearTimeout(debounceTimerRef.current);
       }
 
-      debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = window.setTimeout(() => {
+        if (!_event) return;
+        
         let scrollPercentage = 0;
 
         // Calculate scroll percentage based on event type
-        if ('scrollOffset' in event && typeof event.scrollOffset === 'number') {
+        if ('scrollOffset' in _event && typeof _event.scrollOffset === 'number') {
           // Virtual scroll from React Window (mobile)
           const totalHeight = rentals.length * 160; // itemSize * count
           const viewportHeight = 600;
           const maxScroll = Math.max(1, totalHeight - viewportHeight);
-          scrollPercentage = event.scrollOffset / maxScroll;
+          scrollPercentage = _event.scrollOffset / maxScroll;
 
           if (process.env.NODE_ENV === 'development') {
             logger.debug(
               `📱 Virtual scroll: ${Math.round(scrollPercentage * 100)}%`
             );
           }
-        } else if (event.target || event.currentTarget) {
+        } else if (_event.target || _event.currentTarget) {
           // Native scroll from container (desktop)
-          const target = event.target || event.currentTarget;
+          const target = _event.target || _event.currentTarget;
           if (
             target &&
             'scrollTop' in target &&
@@ -517,7 +531,7 @@ const RentalList = () => {
           );
           handleLoadMore();
         }
-      }, DEBOUNCE_DELAY) as unknown as NodeJS.Timeout;
+      }, DEBOUNCE_DELAY);
     };
   }, [loading, hasMore, rentals.length, handleLoadMore]);
 
@@ -597,10 +611,10 @@ const RentalList = () => {
                 acc[status.rentalId] = {
                   hasHandoverProtocol: status.hasHandoverProtocol,
                   hasReturnProtocol: status.hasReturnProtocol,
-                  handoverProtocolId: status.handoverProtocolId,
-                  returnProtocolId: status.returnProtocolId,
-                  handoverCreatedAt: status.handoverCreatedAt,
-                  returnCreatedAt: status.returnCreatedAt,
+                  ...(status.handoverProtocolId ? { handoverProtocolId: status.handoverProtocolId } : {}),
+                  ...(status.returnProtocolId ? { returnProtocolId: status.returnProtocolId } : {}),
+                  ...(status.handoverCreatedAt ? { handoverCreatedAt: status.handoverCreatedAt } : {}),
+                  ...(status.returnCreatedAt ? { returnCreatedAt: status.returnCreatedAt } : {}),
                 };
                 return acc;
               },
@@ -608,8 +622,17 @@ const RentalList = () => {
             )
           : bulkProtocolStatus;
 
-        // Nastav dáta
-        protocolsHook.setProtocolStatusMap(protocolStatusMap);
+        // Nastav dáta - transform to correct type
+        const transformedMap: Record<string, { hasHandoverProtocol: boolean; hasReturnProtocol: boolean; handoverProtocolId?: string; returnProtocolId?: string; }> = {};
+        Object.entries(protocolStatusMap).forEach(([key, value]) => {
+          transformedMap[key] = {
+            hasHandoverProtocol: value.hasHandoverProtocol,
+            hasReturnProtocol: value.hasReturnProtocol,
+            ...(value.handoverProtocolId ? { handoverProtocolId: value.handoverProtocolId } : {}),
+            ...(value.returnProtocolId ? { returnProtocolId: value.returnProtocolId } : {}),
+          };
+        });
+        protocolsHook.setProtocolStatusMap(transformedMap);
         protocolsHook.setProtocolStatusLoaded(true);
 
         // Označ že dáta boli nastavené
@@ -650,20 +673,16 @@ const RentalList = () => {
 
     // Setup mobile handler reference (used by React Window)
     if (isMobile && handler) {
-      (
-        window as Window & {
-          __unifiedRentalScrollHandler?: (event: Event) => void;
-        }
-      ).__unifiedRentalScrollHandler = handler;
+      (window as WindowWithHandler).__unifiedRentalScrollHandler = handler;
     }
 
     return () => {
       // Cleanup timers using captured values
       if (debounceTimer) {
-        clearTimeout(debounceTimer);
+        window.clearTimeout(debounceTimer);
       }
       if (throttleTimer) {
-        clearTimeout(throttleTimer);
+        window.clearTimeout(throttleTimer);
       }
 
       // Remove desktop scroll listener
@@ -678,11 +697,7 @@ const RentalList = () => {
 
       // Remove mobile handler reference
       if (isMobile) {
-        delete (
-          window as Window & {
-            __unifiedRentalScrollHandler?: (event: Event) => void;
-          }
-        ).__unifiedRentalScrollHandler;
+        delete (window as WindowWithHandler).__unifiedRentalScrollHandler;
       }
     };
   }, [isMobile, createScrollHandler]);
@@ -761,7 +776,7 @@ const RentalList = () => {
       }
 
       if (!protocol) {
-        alert('Protokol nebol nájdený!');
+        window.alert('Protokol nebol nájdený!');
         return;
       }
 
@@ -773,7 +788,7 @@ const RentalList = () => {
           try {
             const parsed = JSON.parse(imageData);
             return Array.isArray(parsed) ? (parsed as ProtocolImage[]) : [];
-          } catch {
+          } catch (error) {
             console.warn('⚠️ Failed to parse image data as JSON:', imageData);
             return [];
           }
@@ -793,7 +808,7 @@ const RentalList = () => {
           try {
             const parsed = JSON.parse(videoData);
             return Array.isArray(parsed) ? (parsed as ProtocolVideo[]) : [];
-          } catch {
+          } catch (error) {
             console.warn('⚠️ Failed to parse video data as JSON:', videoData);
             return [];
           }
@@ -824,7 +839,7 @@ const RentalList = () => {
       });
 
       if (images.length === 0 && videos.length === 0) {
-        alert('Nenašli sa žiadne obrázky pre tento protokol!');
+        window.alert('Nenašli sa žiadne obrázky pre tento protokol!');
         return;
       }
 
@@ -840,7 +855,7 @@ const RentalList = () => {
       logger.debug('✅ Gallery opened successfully with protocol data');
     } catch (error) {
       console.error('❌ Error opening gallery:', error);
-      alert('Chyba pri otváraní galérie!');
+      window.alert('Chyba pri otváraní galérie!');
     }
   }, [
     selectedProtocolRental,
@@ -853,15 +868,15 @@ const RentalList = () => {
   // Error handling
   if (error) {
     return (
-      <DefaultCard sx={{ textAlign: 'center' }}>
-        <Typography variant="h6" color="error" gutterBottom>
+      <DefaultCard className="text-center">
+        <h2 className="text-xl font-semibold text-red-600 mb-4">
           Chyba pri načítavaní prenájmov
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
           {typeof error === 'string'
             ? error
             : (error as Error)?.message || 'Neznáma chyba'}
-        </Typography>
+        </p>
         <PrimaryButton onClick={() => window.location.reload()}>
           Obnoviť stránku
         </PrimaryButton>
@@ -870,7 +885,7 @@ const RentalList = () => {
   }
 
   return (
-    <Box sx={{ p: { xs: 0, md: 0 } }}>
+    <div className="p-0 md:p-0">
       {/* 📊 EXTRACTED: RentalStats komponent */}
       <RentalStats
         rentals={filteredRentals}
@@ -982,9 +997,7 @@ const RentalList = () => {
         VirtualizedRentalRow={React.Fragment as React.ComponentType<unknown>}
         onScroll={({ scrollOffset }) => {
           // 🎯 UNIFIED: Use the new unified scroll handler
-          const windowWithHandler = window as Window & {
-            __unifiedRentalScrollHandler?: (event: Event) => void;
-          };
+          const windowWithHandler = window as WindowWithHandler;
           if (windowWithHandler.__unifiedRentalScrollHandler) {
             // Create a proper Event-like object
             const scrollEvent = {
@@ -1011,7 +1024,7 @@ const RentalList = () => {
               BUBBLING_PHASE: 3,
               returnValue: true,
               srcElement: null,
-            } as unknown as Event;
+            } as unknown as any;
             windowWithHandler.__unifiedRentalScrollHandler(scrollEvent);
           }
         }}
@@ -1019,39 +1032,25 @@ const RentalList = () => {
 
       {/* Load more button for desktop */}
       {!loading && hasMore && (
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'flex' },
-            justifyContent: 'center',
-            p: 3,
-          }}
-        >
+        <div className="hidden md:flex justify-center p-6">
           <PrimaryButton
             onClick={handleLoadMore}
-            size="medium"
-            startIcon={<RefreshIcon />}
-            sx={{ px: 3 }}
+            className="h-10 px-4"
+            startIcon={<RefreshCw />}
+            className="px-6"
           >
             Načítať ďalších {ITEMS_PER_PAGE} prenájmov
           </PrimaryButton>
-        </Box>
+        </div>
       )}
 
       {/* End of data indicator */}
       {!hasMore && rentals.length > 0 && (
-        <Box
-          sx={{
-            textAlign: 'center',
-            p: 3,
-            backgroundColor: 'rgba(76, 175, 80, 0.08)',
-            borderRadius: 2,
-            m: 2,
-          }}
-        >
-          <Typography variant="body1" color="success.main" fontWeight={500}>
+        <div className="text-center p-6 bg-green-50 rounded-lg m-4">
+          <p className="text-base text-green-600 font-medium">
             ✅ Všetky prenájmy načítané ({rentals.length} celkom)
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* 🚀 EXTRACTED: All dialogs moved to RentalProtocols component */}
@@ -1097,7 +1096,7 @@ const RentalList = () => {
             console.error('❌ Error saving rental:', error);
             const errorMessage =
               error instanceof Error ? error.message : 'Neznáma chyba';
-            alert(`Chyba pri ukladaní prenájmu: ${errorMessage}`);
+            window.alert(`Chyba pri ukladaní prenájmu: ${errorMessage}`);
           }
         }}
         handleCancel={handleCancel}
@@ -1118,7 +1117,7 @@ const RentalList = () => {
               await protocolsHook.onProtocolUpdate?.(
                 rentalId as string,
                 'handover',
-                protocolData as unknown as ProtocolData
+                protocolData as ProtocolData
               );
             }
 
@@ -1128,10 +1127,10 @@ const RentalList = () => {
             logger.debug('✅ Handover protocol UI updated successfully');
           } catch (error) {
             console.error('❌ Error updating handover protocol UI:', error);
-            alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
+            window.alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
           }
         }}
-        handleSaveReturn={async protocolData => {
+        handleSaveReturn={async (protocolData: any) => {
           try {
             logger.debug(
               '💾 Return protocol already saved, updating UI:',
@@ -1158,7 +1157,7 @@ const RentalList = () => {
             logger.debug('✅ Return protocol UI updated successfully');
           } catch (error) {
             console.error('❌ Error updating return protocol UI:', error);
-            alert(
+            window.alert(
               'Protokol bol uložený, ale UI sa nepodarilo aktualizovať. Obnovte stránku.'
             );
           }
@@ -1173,72 +1172,49 @@ const RentalList = () => {
       {/* 📋 PROTOCOL MENU DIALOG */}
       <Dialog
         open={protocolMenuOpen}
-        onClose={handleCloseProtocolMenu}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={setProtocolMenuOpen}
       >
-        <DialogTitle
-          sx={{
-            bgcolor: 'primary.main',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
-          {selectedProtocolType === 'handover'
-            ? 'Odovzdávací protokol'
-            : 'Preberací protokol'}
-        </DialogTitle>
-        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: { xs: 1.5, sm: 2 },
-            }}
-          >
+        <DialogContent className="max-w-xs w-full">
+          <DialogTitle className="bg-blue-600 text-white flex items-center gap-2 p-4 -m-6 mb-4">
+            {selectedProtocolType === 'handover' ? '🚗→' : '←🚗'}
+            {selectedProtocolType === 'handover'
+              ? 'Odovzdávací protokol'
+              : 'Preberací protokol'}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {selectedProtocolType === 'handover'
+              ? 'Vyberte akciu pre odovzdávací protokol'
+              : 'Vyberte akciu pre preberací protokol'}
+          </DialogDescription>
+          <div className="flex flex-col gap-3 p-2">
             <ErrorButton
-              fullWidth
-              startIcon={<PDFIcon />}
+              className="w-full"
+              startIcon={<FileText />}
               onClick={handleDownloadPDF}
-              sx={{
-                py: { xs: 2, sm: 1.5 },
-                fontSize: { xs: '1rem', sm: '0.875rem' },
-              }}
+              className="h-12 px-8 text-base"
             >
               📄 Stiahnuť PDF protokol
             </ErrorButton>
 
             <PrimaryButton
-              fullWidth
-              startIcon={<GalleryIcon />}
+              className="w-full"
+              startIcon={<ImageIcon />}
               onClick={handleViewGallery}
-              sx={{
-                py: { xs: 2, sm: 1.5 },
-                fontSize: { xs: '1rem', sm: '0.875rem' },
-              }}
+              className="h-12 px-8 text-base"
             >
               🖼️ Zobraziť fotky
             </PrimaryButton>
 
             <SecondaryButton
-              fullWidth
+              className="w-full"
               onClick={handleCloseProtocolMenu}
-              sx={{
-                py: { xs: 2, sm: 1.5 },
-                fontSize: { xs: '1rem', sm: '0.875rem' },
-              }}
+              className="h-12 px-8 text-base"
             >
               Zavrieť
             </SecondaryButton>
-          </Box>
+          </div>
         </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
-};
-
-// Export with memo for performance optimization
-export default memo(RentalList);
+}

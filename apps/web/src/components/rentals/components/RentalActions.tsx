@@ -1,5 +1,5 @@
-import { Add as AddIcon } from '@mui/icons-material';
-import { Box, Button } from '@mui/material';
+import { Plus as AddIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import React from 'react';
 
 interface RentalActionsProps {
@@ -12,34 +12,15 @@ export const RentalActions: React.FC<RentalActionsProps> = ({
   handleAdd,
 }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: { xs: 1, md: 2 },
-        mb: 3,
-        mx: { xs: 1, md: 0 }, // Menší symetrický margin na mobile
-        flexWrap: 'wrap',
-        alignItems: 'center',
-      }}
-    >
+    <div className="flex gap-2 md:gap-4 mb-6 mx-2 md:mx-0 flex-wrap items-center">
       {/* Pridať prenájom */}
       <Button
-        variant="contained"
-        startIcon={<AddIcon />}
         onClick={handleAdd}
-        sx={{
-          minWidth: { xs: 'auto', md: '140px' },
-          fontSize: { xs: '0.8rem', md: '0.875rem' },
-          px: { xs: 2, md: 3 },
-          py: { xs: 1, md: 1.5 },
-          borderRadius: 2,
-          textTransform: 'none',
-          fontWeight: 600,
-          boxShadow: '0 4px 12px rgba(25,118,210,0.3)',
-        }}
+        className="min-w-0 md:min-w-[140px] text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold shadow-lg shadow-blue-500/30"
       >
+        <AddIcon className="h-4 w-4 mr-2" />
         {isMobile ? 'Pridať' : 'Nový prenájom'}
       </Button>
-    </Box>
+    </div>
   );
 };

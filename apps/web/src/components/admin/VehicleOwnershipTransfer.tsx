@@ -1,47 +1,31 @@
-import {
-  Cancel as CancelIcon,
-  DirectionsCar as CarIcon,
-  Business as CompanyIcon,
-  CalendarToday as DateIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  ExpandMore as ExpandMoreIcon,
-  History as HistoryIcon,
-  Refresh as RefreshIcon,
-  Save as SaveIcon,
-  SwapHoriz,
-  SwapHoriz as TransferIcon,
-} from '@mui/icons-material';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
+import { 
+  Car, 
+  Building2, 
+  Calendar, 
+  Trash2, 
+  Edit, 
+  History, 
+  RefreshCw, 
+  Save, 
+  ArrowRightLeft, 
+  X, 
+  Loader2 
+} from 'lucide-react';
+
+import { Alert, AlertDescription } from '../ui/alert';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Textarea } from '../ui/textarea';
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useCompanies } from '../../lib/react-query/hooks/useCompanies';
@@ -212,7 +196,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
         const hasRealTransfers =
           history.length > 1 ||
           (history.length === 1 &&
-            history[0].transferReason !== 'initial_setup');
+            history[0]?.transferReason !== 'initial_setup');
 
         if (hasRealTransfers) {
           vehiclesWithHistoryData.push({
@@ -413,537 +397,493 @@ const VehicleOwnershipTransfer: React.FC = () => {
   );
 
   return (
-    <Box>
-      <Typography
-        variant="h5"
-        gutterBottom
-        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-      >
-        <TransferIcon />
-        Transfer vlastníctva vozidiel
-      </Typography>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <ArrowRightLeft className="h-6 w-6" />
+          <h2 className="text-2xl font-semibold">Transfer vlastníctva vozidiel</h2>
+        </div>
 
-      {message && (
-        <Alert
-          severity={message.type}
-          sx={{ mb: 2 }}
-          onClose={() => setMessage(null)}
-        >
-          {message.text}
-        </Alert>
-      )}
+        {message && (
+          <Alert variant={message.type === 'error' ? 'destructive' : 'default'} className="mb-4">
+            <AlertDescription className="flex items-center justify-between">
+              {message.text}
+              <Button variant="ghost" size="sm" onClick={() => setMessage(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <Grid container spacing={3}>
-        {/* Ľavá strana - Nový transfer */}
-        <Grid item xs={12} md={5}>
-          <Card>
-            <CardContent>
-              <Typography
-                variant="h6"
-                gutterBottom
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <SwapHoriz />
-                Nový transfer vlastníctva
-              </Typography>
-
-              <Stack spacing={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Vozidlo</InputLabel>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Ľavá strana - Nový transfer */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowRightLeft className="h-5 w-5" />
+                  Nový transfer vlastníctva
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vehicle-select">Vozidlo</Label>
                   <Select
                     value={selectedVehicleId}
-                    onChange={e => setSelectedVehicleId(e.target.value)}
-                    label="Vozidlo"
+                    onValueChange={setSelectedVehicleId}
                   >
-                    {vehicles.map(vehicle => {
-                      const ownerCompany = companies.find(
-                        c => c.id === vehicle.ownerCompanyId
-                      );
-                      return (
-                        <MenuItem key={vehicle.id} value={vehicle.id}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <CarIcon fontSize="small" />
-                            <Box>
-                              <Typography variant="body1">
-                                {vehicle.brand} {vehicle.model} -{' '}
-                                {vehicle.licensePlate}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="textSecondary"
-                              >
-                                Majiteľ: {ownerCompany?.name || 'Neznámy'}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </MenuItem>
-                      );
-                    })}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte vozidlo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.map(vehicle => {
+                        const ownerCompany = companies.find(
+                          c => c.id === vehicle.ownerCompanyId
+                        );
+                        return (
+                          <SelectItem key={vehicle.id} value={vehicle.id}>
+                            <div className="flex items-center gap-2">
+                              <Car className="h-4 w-4" />
+                              <div>
+                                <div className="font-medium">
+                                  {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  Majiteľ: {ownerCompany?.name || 'Neznámy'}
+                                </div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
                   </Select>
-                </FormControl>
+                </div>
 
                 {selectedVehicle && (
-                  <Alert severity="info">
-                    <Typography variant="body2">
+                  <Alert>
+                    <AlertDescription>
                       <strong>Aktuálny majiteľ:</strong>{' '}
                       {currentOwnerCompany?.name || 'Neznámy'}
-                    </Typography>
+                    </AlertDescription>
                   </Alert>
                 )}
 
-                <FormControl fullWidth>
-                  <InputLabel>Nový majiteľ</InputLabel>
+                <div className="space-y-2">
+                  <Label htmlFor="new-owner-select">Nový majiteľ</Label>
                   <Select
                     value={newOwnerCompanyId}
-                    onChange={e => setNewOwnerCompanyId(e.target.value)}
-                    label="Nový majiteľ"
+                    onValueChange={setNewOwnerCompanyId}
                     disabled={!selectedVehicleId}
                   >
-                    {companies
-                      .filter(c => c.id !== currentOwnerCompany?.id)
-                      .map(company => (
-                        <MenuItem key={company.id} value={company.id}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <CompanyIcon fontSize="small" />
-                            {company.name}
-                          </Box>
-                        </MenuItem>
-                      ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte nového majiteľa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies
+                        .filter(c => c.id !== currentOwnerCompany?.id)
+                        .map(company => (
+                          <SelectItem key={company.id} value={company.id}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4" />
+                              {company.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
+                </div>
 
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <FormControl sx={{ minWidth: 200 }}>
-                    <InputLabel>Dôvod transferu</InputLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="transfer-reason">Dôvod transferu</Label>
                     <Select
                       value={transferReason}
-                      onChange={e => setTransferReason(e.target.value)}
-                      label="Dôvod transferu"
+                      onValueChange={setTransferReason}
                     >
-                      {transferReasons.map(reason => (
-                        <MenuItem key={reason.value} value={reason.value}>
-                          {reason.label}
-                        </MenuItem>
-                      ))}
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transferReasons.map(reason => (
+                          <SelectItem key={reason.value} value={reason.value}>
+                            {reason.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                  </FormControl>
+                  </div>
 
-                  <TextField
-                    label="Dátum transferu"
-                    type="date"
-                    value={transferDate}
-                    onChange={e => setTransferDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: (
-                        <DateIcon sx={{ mr: 1, color: 'action.active' }} />
-                      ),
-                    }}
+                  <div className="space-y-2">
+                    <Label htmlFor="transfer-date">Dátum transferu</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="transfer-date"
+                        type="date"
+                        value={transferDate}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTransferDate(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="transfer-notes">Poznámky (voliteľné)</Label>
+                  <Textarea
+                    id="transfer-notes"
+                    placeholder="Ďalšie informácie o transfere..."
+                    value={transferNotes}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTransferNotes(e.target.value)}
+                    rows={3}
                   />
-                </Box>
-
-                <TextField
-                  label="Poznámky (voliteľné)"
-                  multiline
-                  rows={3}
-                  value={transferNotes}
-                  onChange={e => setTransferNotes(e.target.value)}
-                  placeholder="Ďalšie informácie o transfere..."
-                />
+                </div>
 
                 <Button
-                  variant="contained"
-                  size="large"
                   onClick={handleTransferSubmit}
                   disabled={loading || !selectedVehicleId || !newOwnerCompanyId}
-                  startIcon={
-                    loading ? <CircularProgress size={20} /> : <TransferIcon />
-                  }
+                  className="w-full"
+                  size="lg"
                 >
-                  {loading ? 'Spracovávam...' : 'Transferovať vlastníctvo'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Pravá strana - História transferov */}
-        <Grid item xs={12} md={7}>
-          <Card>
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <HistoryIcon />
-                  Vozidlá s transfermi vlastníctva
-                </Typography>
-                <Tooltip title="Obnoviť históriu">
-                  <IconButton
-                    onClick={loadAllVehicleHistories}
-                    disabled={historyLoading}
-                  >
-                    <RefreshIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-
-              {historyLoading ? (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    p: 4,
-                  }}
-                >
-                  <CircularProgress size={40} />
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                    sx={{ mt: 2 }}
-                  >
-                    Načítavam históriu transferov...
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    sx={{ mt: 1 }}
-                  >
-                    ⚡⚡ Bulk API - jediné volanie pre všetky vozidlá
-                  </Typography>
-                </Box>
-              ) : (
-                <Stack
-                  spacing={2}
-                  sx={{ maxHeight: '600px', overflow: 'auto' }}
-                >
-                  {vehiclesWithHistory.length === 0 ? (
-                    <Typography color="textSecondary">
-                      Žiadne vozidlá s transfermi vlastníctva nenájdené.
-                    </Typography>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Spracovávam...
+                    </>
                   ) : (
-                    vehiclesWithHistory.map(vehicle => (
-                      <Accordion key={vehicle.id}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <CarIcon />
-                            <Typography variant="subtitle1">
-                              {vehicle.brand} {vehicle.model} -{' '}
-                              {vehicle.licensePlate}
-                            </Typography>
-                            <Chip
-                              label={`${vehicle.history.length} transferov`}
-                              size="small"
-                              color="primary"
-                            />
-                          </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Stack spacing={2}>
-                            {vehicle.history.length === 0 ? (
-                              <Typography color="textSecondary">
-                                Žiadna história transferov.
-                              </Typography>
-                            ) : (
-                              vehicle.history.map((transfer, index) => (
-                                <Paper
-                                  key={transfer.id}
-                                  variant="outlined"
-                                  sx={{ p: 2 }}
-                                >
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'flex-start',
-                                    }}
-                                  >
-                                    <Box sx={{ flexGrow: 1 }}>
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 1,
-                                          mb: 1,
-                                        }}
-                                      >
-                                        <CompanyIcon fontSize="small" />
-                                        <Typography variant="subtitle2">
-                                          {transfer.ownerCompanyName}
-                                        </Typography>
-                                        <Chip
-                                          label={
-                                            index === 0
-                                              ? 'Aktuálny'
-                                              : 'Historický'
-                                          }
-                                          color={
-                                            index === 0 ? 'primary' : 'default'
-                                          }
-                                          size="small"
-                                        />
-                                      </Box>
-
-                                      <Typography
-                                        variant="body2"
-                                        color="textSecondary"
-                                        gutterBottom
-                                      >
-                                        <strong>Platnosť:</strong>{' '}
-                                        {format(
-                                          new Date(transfer.validFrom),
-                                          'dd.MM.yyyy',
-                                          { locale: sk }
-                                        )}
-                                        {transfer.validTo &&
-                                          ` - ${format(new Date(transfer.validTo), 'dd.MM.yyyy', { locale: sk })}`}
-                                      </Typography>
-
-                                      <Typography
-                                        variant="body2"
-                                        color="textSecondary"
-                                        gutterBottom
-                                      >
-                                        <strong>Dôvod:</strong>{' '}
-                                        {transferReasons.find(
-                                          r =>
-                                            r.value === transfer.transferReason
-                                        )?.label || transfer.transferReason}
-                                      </Typography>
-
-                                      {transfer.transferNotes && (
-                                        <Typography
-                                          variant="body2"
-                                          color="textSecondary"
-                                        >
-                                          <strong>Poznámky:</strong>{' '}
-                                          {transfer.transferNotes}
-                                        </Typography>
-                                      )}
-                                    </Box>
-
-                                    <Box sx={{ display: 'flex', gap: 1 }}>
-                                      <Tooltip title="Upraviť transfer">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() =>
-                                            handleEditTransfer(transfer)
-                                          }
-                                          color="primary"
-                                        >
-                                          <EditIcon fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <Tooltip title="Vymazať transfer">
-                                        <IconButton
-                                          size="small"
-                                          onClick={() =>
-                                            handleDeleteTransfer(transfer)
-                                          }
-                                          color="error"
-                                        >
-                                          <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </Box>
-                                  </Box>
-                                </Paper>
-                              ))
-                            )}
-                          </Stack>
-                        </AccordionDetails>
-                      </Accordion>
-                    ))
+                    <>
+                      <ArrowRightLeft className="mr-2 h-4 w-4" />
+                      Transferovať vlastníctvo
+                    </>
                   )}
-                </Stack>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Edit Transfer Dialog */}
-      <Dialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <EditIcon />
-            Upraviť transfer vlastníctva
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Firma</InputLabel>
-              <Select
-                value={editCompanyId}
-                onChange={e => setEditCompanyId(e.target.value)}
-                label="Firma"
-              >
-                {companies.map(company => (
-                  <MenuItem key={company.id} value={company.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CompanyIcon fontSize="small" />
-                      {company.name}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          {/* Pravá strana - História transferov */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Vozidlá s transfermi vlastníctva
+                  </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={loadAllVehicleHistories}
+                        disabled={historyLoading}
+                      >
+                        <RefreshCw className={`h-4 w-4 ${historyLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Obnoviť históriu</TooltipContent>
+                  </Tooltip>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {historyLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                    <Loader2 className="h-10 w-10 animate-spin" />
+                    <p className="text-sm text-muted-foreground">
+                      Načítavam históriu transferov...
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      ⚡⚡ Bulk API - jediné volanie pre všetky vozidlá
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-[600px] overflow-auto">
+                    {vehiclesWithHistory.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">
+                        Žiadne vozidlá s transfermi vlastníctva nenájdené.
+                      </p>
+                    ) : (
+                      <Accordion type="single" collapsible className="w-full">
+                        {vehiclesWithHistory.map(vehicle => (
+                          <AccordionItem key={vehicle.id} value={vehicle.id}>
+                            <AccordionTrigger className="hover:no-underline">
+                              <div className="flex items-center gap-2">
+                                <Car className="h-4 w-4" />
+                                <span className="font-medium">
+                                  {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                                </span>
+                                <Badge variant="secondary">
+                                  {vehicle.history.length} transferov
+                                </Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="space-y-4">
+                                {vehicle.history.length === 0 ? (
+                                  <p className="text-muted-foreground">
+                                    Žiadna história transferov.
+                                  </p>
+                                ) : (
+                                  vehicle.history.map((transfer, index) => (
+                                    <Card key={transfer.id} className="p-4">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1 space-y-2">
+                                          <div className="flex items-center gap-2">
+                                            <Building2 className="h-4 w-4" />
+                                            <span className="font-medium">
+                                              {transfer.ownerCompanyName}
+                                            </span>
+                                            <Badge 
+                                              variant={index === 0 ? 'default' : 'secondary'}
+                                            >
+                                              {index === 0 ? 'Aktuálny' : 'Historický'}
+                                            </Badge>
+                                          </div>
 
-            <FormControl fullWidth>
-              <InputLabel>Dôvod transferu</InputLabel>
-              <Select
-                value={editReason}
-                onChange={e => setEditReason(e.target.value)}
-                label="Dôvod transferu"
-              >
-                {transferReasons.map(reason => (
-                  <MenuItem key={reason.value} value={reason.value}>
-                    {reason.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                                          <p className="text-sm text-muted-foreground">
+                                            <strong>Platnosť:</strong>{' '}
+                                            {format(
+                                              new Date(transfer.validFrom),
+                                              'dd.MM.yyyy',
+                                              { locale: sk }
+                                            )}
+                                            {transfer.validTo &&
+                                              ` - ${format(new Date(transfer.validTo), 'dd.MM.yyyy', { locale: sk })}`}
+                                          </p>
 
-            <TextField
-              label="Dátum platnosti"
-              type="date"
-              value={editDate}
-              onChange={e => setEditDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
+                                          <p className="text-sm text-muted-foreground">
+                                            <strong>Dôvod:</strong>{' '}
+                                            {transferReasons.find(
+                                              r => r.value === transfer.transferReason
+                                            )?.label || transfer.transferReason}
+                                          </p>
 
-            <TextField
-              label="Poznámky"
-              multiline
-              rows={3}
-              value={editNotes}
-              onChange={e => setEditNotes(e.target.value)}
-              fullWidth
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setEditDialogOpen(false)}
-            startIcon={<CancelIcon />}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            onClick={handleEditSubmit}
-            variant="contained"
-            disabled={loading || !editCompanyId || !editReason || !editDate}
-            startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
-          >
-            {loading ? 'Ukladám...' : 'Uložiť'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+                                          {transfer.transferNotes && (
+                                            <p className="text-sm text-muted-foreground">
+                                              <strong>Poznámky:</strong>{' '}
+                                              {transfer.transferNotes}
+                                            </p>
+                                          )}
+                                        </div>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <DeleteIcon />
-            Potvrdiť vymazanie transferu
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {transferToDelete && (
-            <Box>
-              <Typography variant="body1" gutterBottom>
-                Naozaj chcete vymazať tento transfer vlastníctva?
-              </Typography>
-
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>Firma:</strong> {transferToDelete.ownerCompanyName}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Dátum:</strong>{' '}
-                  {format(new Date(transferToDelete.validFrom), 'dd.MM.yyyy', {
-                    locale: sk,
-                  })}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Dôvod:</strong>{' '}
-                  {transferReasons.find(
-                    r => r.value === transferToDelete.transferReason
-                  )?.label || transferToDelete.transferReason}
-                </Typography>
-                {transferToDelete.transferNotes && (
-                  <Typography variant="body2">
-                    <strong>Poznámky:</strong> {transferToDelete.transferNotes}
-                  </Typography>
+                                        <div className="flex gap-1">
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleEditTransfer(transfer)}
+                                              >
+                                                <Edit className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Upraviť transfer</TooltipContent>
+                                          </Tooltip>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDeleteTransfer(transfer)}
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Vymazať transfer</TooltipContent>
+                                          </Tooltip>
+                                        </div>
+                                      </div>
+                                    </Card>
+                                  ))
+                                )}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    )}
+                  </div>
                 )}
-              </Alert>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-              <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-                Táto akcia sa nedá vrátiť späť.
-              </Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setDeleteDialogOpen(false)}
-            startIcon={<CancelIcon />}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            onClick={confirmDeleteTransfer}
-            variant="contained"
-            color="error"
-            disabled={loading}
-            startIcon={
-              loading ? <CircularProgress size={16} /> : <DeleteIcon />
-            }
-          >
-            {loading ? 'Vymazávam...' : 'Vymazať'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+        {/* Edit Transfer Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5" />
+                Upraviť transfer vlastníctva
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-company">Firma</Label>
+                <Select
+                  value={editCompanyId}
+                  onValueChange={setEditCompanyId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte firmu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          {company.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-reason">Dôvod transferu</Label>
+                <Select
+                  value={editReason}
+                  onValueChange={setEditReason}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte dôvod" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {transferReasons.map(reason => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">Dátum platnosti</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editDate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Poznámky</Label>
+                <Textarea
+                  id="edit-notes"
+                  rows={3}
+                  value={editNotes}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditNotes(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Zrušiť
+              </Button>
+              <Button
+                onClick={handleEditSubmit}
+                disabled={loading || !editCompanyId || !editReason || !editDate}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Ukladám...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Uložiť
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Potvrdiť vymazanie transferu
+              </DialogTitle>
+            </DialogHeader>
+            {transferToDelete && (
+              <div className="space-y-4">
+                <p>
+                  Naozaj chcete vymazať tento transfer vlastníctva?
+                </p>
+
+                <Alert variant="destructive">
+                  <AlertDescription className="space-y-1">
+                    <p>
+                      <strong>Firma:</strong> {transferToDelete.ownerCompanyName}
+                    </p>
+                    <p>
+                      <strong>Dátum:</strong>{' '}
+                      {format(new Date(transferToDelete.validFrom), 'dd.MM.yyyy', {
+                        locale: sk,
+                      })}
+                    </p>
+                    <p>
+                      <strong>Dôvod:</strong>{' '}
+                      {transferReasons.find(
+                        r => r.value === transferToDelete.transferReason
+                      )?.label || transferToDelete.transferReason}
+                    </p>
+                    {transferToDelete.transferNotes && (
+                      <p>
+                        <strong>Poznámky:</strong> {transferToDelete.transferNotes}
+                      </p>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <p className="text-sm text-destructive">
+                  Táto akcia sa nedá vrátiť späť.
+                </p>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Zrušiť
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteTransfer}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Vymazávam...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Vymazať
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 

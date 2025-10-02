@@ -1,6 +1,9 @@
 import { apiService } from '@/services/api';
 import type { Vehicle } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Declare browser APIs
+declare const CustomEvent: any;
 import { queryKeys } from '../queryKeys';
 
 // Filter interface pre vehicles
@@ -79,7 +82,7 @@ export function useCreateVehicle() {
 
       return { previousVehicles };
     },
-    onError: (err, newVehicle, context) => {
+    onError: (_err, _newVehicle, context) => {
       // Rollback pri chybe
       if (context?.previousVehicles) {
         queryClient.setQueryData(
@@ -87,6 +90,10 @@ export function useCreateVehicle() {
           context.previousVehicles
         );
       }
+    },
+    onSuccess: data => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(new CustomEvent('vehicle-created', { detail: data }));
     },
     onSettled: () => {
       // Refresh po dokončení
@@ -128,16 +135,20 @@ export function useUpdateVehicle() {
 
       return { previousVehicle };
     },
-    onError: (err, updatedVehicle, context) => {
+    onError: (_err, _updatedVehicle, context) => {
       // Rollback
       if (context?.previousVehicle) {
         queryClient.setQueryData(
-          queryKeys.vehicles.detail(updatedVehicle.id),
+          queryKeys.vehicles.detail(_updatedVehicle.id),
           context.previousVehicle
         );
       }
     },
-    onSettled: (data, error, variables) => {
+    onSuccess: data => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(new CustomEvent('vehicle-updated', { detail: data }));
+    },
+    onSettled: (_data, _error, variables) => {
       // Refresh
       queryClient.invalidateQueries({
         queryKey: queryKeys.vehicles.detail(variables.id),
@@ -171,13 +182,19 @@ export function useDeleteVehicle() {
 
       return { previousVehicles };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousVehicles) {
         queryClient.setQueryData(
           queryKeys.vehicles.lists(),
           context.previousVehicles
         );
       }
+    },
+    onSuccess: (_data, deletedId) => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(
+        new CustomEvent('vehicle-deleted', { detail: { id: deletedId } })
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({

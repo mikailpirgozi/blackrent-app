@@ -20,13 +20,13 @@ import { StorageManager } from '../utils/storage';
 interface AuthContextType {
   state: AuthState;
   login: (
-    credentials: LoginCredentials,
-    rememberMe?: boolean
+    _credentials: LoginCredentials,
+    _rememberMe?: boolean
   ) => Promise<boolean>;
   logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
-  hasPermission: (resource: string, action: string) => boolean;
-  canAccessCompanyData: (companyId: string) => boolean;
+  updateUser: (_userData: Partial<User>) => void;
+  hasPermission: (_resource: string, _action: string) => boolean;
+  canAccessCompanyData: (_companyId: string) => boolean;
   isAdmin: () => boolean;
   isEmployee: () => boolean;
   isCompanyUser: () => boolean;
@@ -124,29 +124,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     StorageManager.clearAuthData();
   };
 
-  // const validateToken = async (token: string): Promise<boolean> => {
-  //   try {
-  //     logger.debug('🔍 Validating token...');
-  //     const response = await fetch(`${getAPI_BASE_URL()}/auth/me`, {
-  //       method: 'GET',
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //         'Content-Type': 'application/json',
-  //       },
-  //     });
+  const validateToken = async (token: string): Promise<boolean> => {
+    try {
+      logger.debug('🔍 Validating token...');
+      const response = await fetch(`${getAPI_BASE_URL()}/auth/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-  //     if (response.ok) {
-  //       logger.debug('✅ Token is valid');
-  //       return true;
-  //     } else {
-  //       console.warn('❌ Token validation failed:', response.status);
-  //       return false;
-  //     }
-  //   } catch (error) {
-  //     console.warn('❌ Token validation error:', error);
-  //     return false;
-  //   }
-  // };
+      if (response.ok) {
+        logger.debug('✅ Token is valid');
+        return true;
+      } else {
+        logger.warn('❌ Token validation failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      logger.warn('❌ Token validation error:', error);
+      return false;
+    }
+  };
 
   const restoreSession = React.useCallback(async () => {
     try {
@@ -181,27 +181,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           },
         });
 
-        // SKIPPED ASYNC VALIDÁCIA - môže spôsobovať auto-logout
-        logger.warn(
-          '⚠️ SKIPPING background token validation to prevent auto-logout'
-        );
-        logger.debug('🔧 Token validation disabled temporarily for debugging');
-
-        // ORIGINAL VALIDATION CODE (DISABLED):
-        // validateToken(token).then((isValid) => {
-        //   if (isValid) {
-        //     logger.debug('✅ Background validation: Token is valid');
-        //   } else {
-        //     logger.debug('❌ Background validation: Token is invalid, clearing auth data');
-        //     clearAuthData();
-        //     dispatch({ type: 'LOGOUT' });
-        //     if (!window.location.pathname.includes('/login')) {
-        //       window.location.href = '/login';
-        //     }
-        //   }
-        // }).catch((error) => {
-        //   console.warn('⚠️ Background validation error:', error);
-        // });
+        // Background token validation for security
+        logger.debug('🔧 Setting up background token validation...');
+        
+        validateToken(token).then((isValid) => {
+          if (isValid) {
+            logger.debug('✅ Background validation: Token is valid');
+          } else {
+            logger.warn('❌ Background validation: Token is invalid, clearing auth data');
+            clearAuthData();
+            dispatch({ type: 'LOGOUT' });
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+          }
+        }).catch((error) => {
+          logger.warn('⚠️ Background validation error:', error);
+        });
       } else {
         logger.debug('❌ No auth data found');
         logger.debug('🔍 Storage debug:', {
@@ -274,43 +270,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 token: String(storedToken),
               },
             });
-          } else {
-            logger.debug('✅ Session unchanged, refreshing storage...');
-            StorageManager.setAuthData(
-              state.token,
-              state.user as unknown as Record<string, unknown>,
-              true
-            );
           }
-        } else {
-          logger.debug(
-            '⚠️ No session data found on visibility change, but keeping active session'
-          );
-          // Neprerušuj session, len obnov storage
-          StorageManager.setAuthData(
-            state.token,
-            state.user as unknown as Record<string, unknown>,
-            true
-          );
+          // ✅ REMOVED: Zbytočné storage refresh - už je uložené
         }
+        // ✅ REMOVED: Zbytočné storage refresh - session je aktívna
       }
     };
 
-    // Periodické obnovenie session dát (každých 30 sekúnd)
-    const sessionRefreshInterval = setInterval(() => {
-      if (state.isAuthenticated && state.token && state.user) {
-        logger.debug('🔄 Periodic session refresh...');
-        // VŽDY nastav remember me na true pre perzistentné prihlásenie
-        StorageManager.setAuthData(
-          state.token,
-          state.user as unknown as Record<string, unknown>,
-          true
-        );
-      }
-    }, 30000); // 30 sekúnd
+    // ✅ REMOVED: Periodické obnovenie - storage už je persistentný
+    // Session sa obnovuje len pri login, logout a cross-tab changes
+    // Toto zbytočne zahlcovalo localStorage každých 30 sekúnd
 
     // Handling pre storage changes (cross-tab synchronization)
-    const handleStorageChange = (e: StorageEvent) => {
+    const handleStorageChange = (e: globalThis.StorageEvent) => {
       if (e.key === 'blackrent_token' || e.key === 'blackrent_user') {
         logger.debug('🔄 Storage change detected:', e.key);
         if (e.newValue) {
@@ -331,7 +303,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(sessionRefreshInterval);
     };
   }, [state.isAuthenticated, state.token, state.user, restoreSession]);
 
@@ -413,7 +384,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       // 🔍 Extra debug - wait a moment and check final state
-      setTimeout(() => {
+      globalThis.setTimeout(() => {
         logger.debug('🔍 Auth state after dispatch (delayed check):', {
           isAuthenticated: true,
           isLoading: false,
@@ -432,10 +403,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
       console.error('❌ Error stack:', (error as Error)?.stack || 'No stack');
       console.error('🌐 Network debug:', {
-        online: navigator.onLine,
-        userAgent: navigator.userAgent,
+        online: globalThis.navigator.onLine,
+        userAgent: globalThis.navigator.userAgent,
         connectionType:
-          (navigator as Navigator & { connection?: { effectiveType?: string } })
+          (globalThis.navigator as globalThis.Navigator & { connection?: { effectiveType?: string } })
             .connection?.effectiveType || 'unknown',
       });
       dispatch({ type: 'LOGIN_FAILURE' });

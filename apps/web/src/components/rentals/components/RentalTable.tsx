@@ -1,34 +1,34 @@
 import {
-  Business as BusinessIcon,
-  DirectionsCar as CarIcon,
+  Building2 as BusinessIcon,
+  Car as CarIcon,
   Check as CheckIcon,
-  ContentCopy as ContentCopyIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Email as EmailIcon,
+  Copy as ContentCopyIcon,
+  Trash2 as DeleteIcon,
+  Edit2 as EditIcon,
+  Mail as EmailIcon,
   Phone as PhoneIcon,
-  Schedule as ScheduleIcon,
-} from '@mui/icons-material';
+  Clock as ScheduleIcon,
+  LayoutGrid,
+  List,
+  } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  Typography,
-} from '@mui/material';
-import React, { memo } from 'react';
+} from '@/components/ui/dialog';
+import React, { useState } from 'react';
 import { formatDateTime } from '../../../utils/formatters';
 import PriceDisplay from './PriceDisplay';
 
 import type { Rental, Vehicle } from '../../../types';
 import { MobileRentalRow } from '../MobileRentalRow';
+import PremiumRentalCard from './PremiumRentalCard';
 
 interface RentalTableProps {
   paginatedRentals: Rental[];
@@ -57,7 +57,7 @@ interface RentalTableProps {
   VirtualizedRentalRow: React.ComponentType<unknown>;
 }
 
-const RentalTable: React.FC<RentalTableProps> = ({
+export const RentalTable: React.FC<RentalTableProps> = ({
   paginatedRentals,
   isMobile,
   handleEdit,
@@ -80,6 +80,9 @@ const RentalTable: React.FC<RentalTableProps> = ({
   // VirtualizedRentalRow,
 }) => {
   // const theme = useTheme();
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // 🗑️ DELETE CONFIRMATION DIALOG STATE
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -108,31 +111,54 @@ const RentalTable: React.FC<RentalTableProps> = ({
 
   return (
     <>
+      {/* View Mode Toggle - Desktop Only */}
+      {!isMobile && (
+        <div className="mb-6 flex justify-end animate-fade-in">
+          <div className="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="gap-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="gap-2"
+            >
+              <List className="h-4 w-4" />
+              List
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Grid View - Premium Cards (Desktop Only) */}
+      {!isMobile && viewMode === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+          {filteredRentals.map((rental) => (
+            <PremiumRentalCard
+              key={rental.id}
+              rental={rental}
+              onEdit={handleEdit}
+              onViewProtocols={(rental) => handleOpenProtocolMenu(rental, 'handover')}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* List View & Mobile - Original Table */}
+      {(isMobile || viewMode === 'list') && (
+      <>
       {isMobile ? (
         /* MOBILNÝ KARTOVÝ DIZAJN PRE PRENÁJMY */
-        <Box
+        <div
           ref={mobileScrollRef}
-          sx={{
-            mx: 1, // Rovnaký margin ako ostatné komponenty
-            py: 2,
-            minHeight: '60vh',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
-              borderRadius: '3px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: '#888',
-              borderRadius: '3px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              background: '#555',
-            },
-          }}
+          className="mx-2 py-4 min-h-[60vh] max-h-[80vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
         >
           {filteredRentals.map((rental, index) => {
             // ⚡ BACKGROUND PROTOCOL STATUS - rovnaká logika ako desktop verzia
@@ -170,163 +196,49 @@ const RentalTable: React.FC<RentalTableProps> = ({
               />
             );
           })}
-        </Box>
+        </div>
       ) : (
         /* DESKTOP BOOKING.COM STYLE PRENÁJMY */
-        <Card
-          sx={{
-            overflow: 'hidden',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
-            borderRadius: 3,
-          }}
-        >
-          <CardContent sx={{ p: 0 }}>
+        <Card className="overflow-hidden shadow-xl rounded-xl">
+          <CardContent className="p-0">
             {/* Desktop sticky header */}
-            <Box
-              sx={{
-                display: 'flex',
-                borderBottom: '3px solid #e0e0e0',
-                backgroundColor:
-                  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                background: '#f8f9fa',
-                position: 'sticky',
-                top: 0,
-                zIndex: 1000,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 280,
-                  maxWidth: 280,
-                  p: 2,
-                  borderRight: '2px solid #e0e0e0',
-                  backgroundColor: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: '#1976d2', fontSize: '1rem' }}
-                >
+            <div className="flex border-b-[3px] border-gray-200 bg-gray-50 sticky top-0 z-40">
+              <div className="w-[280px] max-w-[280px] p-4 border-r-2 border-gray-200 bg-white flex items-center shadow-md overflow-hidden">
+                <span className="font-bold text-blue-600 text-base">
                   🚗 Vozidlo & Status
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 200,
-                  maxWidth: 200,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
+                </span>
+              </div>
+              <div className="w-[200px] max-w-[200px] p-2 border-r border-gray-200 text-center bg-gray-50 overflow-hidden">
+                <span className="font-bold text-gray-600 text-sm">
                   👤 Zákazník
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 180,
-                  maxWidth: 180,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
+                </span>
+              </div>
+              <div className="w-[180px] max-w-[180px] p-2 border-r border-gray-200 text-center bg-gray-50 overflow-hidden">
+                <span className="font-bold text-gray-600 text-sm">
                   📅 Obdobie
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 220,
-                  maxWidth: 220,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
+                </span>
+              </div>
+              <div className="w-[160px] max-w-[160px] p-2 border-r border-gray-200 text-center bg-gray-50 overflow-hidden">
+                <span className="font-bold text-gray-600 text-sm">
                   💰 Cena
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 220,
-                  maxWidth: 220,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                  overflow: 'hidden',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
+                </span>
+              </div>
+              <div className="w-[220px] max-w-[220px] p-2 border-r border-gray-200 text-center bg-gray-50 overflow-hidden">
+                <span className="font-bold text-gray-600 text-sm">
                   📋 Protokoly
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: 80,
-                  maxWidth: 80,
-                  p: 2,
-                  textAlign: 'center',
-                  backgroundColor: '#f8f9fa',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: '#666', fontSize: '0.9rem' }}
-                >
+                </span>
+              </div>
+              <div className="w-20 max-w-[80px] p-2 text-center bg-gray-50">
+                <span className="font-bold text-gray-600 text-sm">
                   ⚡ Akcie
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
 
             {/* 🎯 UNIFIED: Desktop scrollable container */}
-            <Box
+            <div
               ref={desktopScrollRef}
-              sx={{
-                minHeight: '60vh', // Flexibilná výška namiesto fixnej
-                maxHeight: '75vh', // Maximum aby sa neroztiahlo príliš
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                position: 'relative',
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  background: '#f1f1f1',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  background: '#888',
-                  borderRadius: '4px',
-                },
-                '&::-webkit-scrollbar-thumb:hover': {
-                  background: '#555',
-                },
-              }}
+              className="min-h-[60vh] max-h-[75vh] overflow-y-auto overflow-x-hidden relative scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-600"
             >
               {(paginatedRentals || []).map((rental, index) => {
                 const vehicle = getVehicleByRental(rental);
@@ -346,119 +258,50 @@ const RentalTable: React.FC<RentalTableProps> = ({
                   : !!fallbackProtocols?.return;
 
                 return (
-                  <Box
+                  <div
                     key={rental.id}
                     data-rental-item={`rental-${index}`} // 🎯 For item-based infinite scroll
-                    sx={{
-                      display: 'flex',
-                      borderBottom:
-                        index < filteredRentals.length - 1
-                          ? '1px solid #e0e0e0'
-                          : 'none',
-                      '&:hover': {
-                        backgroundColor: isFlexible
-                          ? '#fff3e0'
-                          : 'rgba(0,0,0,0.04)',
-                        transform: 'scale(1.002)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      },
-                      minHeight: 65,
-                      transition: 'all 0.2s ease',
-                      cursor: 'pointer',
-                      // 🎨 Čisté pozadie + flexibilné prenájmy
-                      backgroundColor: isFlexible ? '#fff8f0' : 'transparent',
-                      borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
-                      position: 'relative',
-                    }}
+                    className={`flex min-h-[65px] transition-all duration-200 cursor-pointer relative hover:scale-[1.002] hover:shadow-lg ${
+                      isFlexible ? 'bg-orange-50 border-l-4 border-orange-500 hover:bg-orange-100' : 'hover:bg-gray-50'
+                    } ${
+                      index < filteredRentals.length - 1 ? 'border-b border-gray-200' : ''
+                    }`}
                     onClick={() => {
                       // console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
                       handleEdit(rental);
                     }}
                   >
                     {/* Vozidlo & Status - sticky left - FIXED WIDTH */}
-                    <Box
-                      sx={{
-                        width: 280, // FIXED WIDTH instead of minWidth
-                        maxWidth: 280,
-                        p: 1.5,
-                        borderRight: '2px solid #e0e0e0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        backgroundColor: '#ffffff',
-                        position: 'sticky',
-                        left: 0,
-                        zIndex: 10,
-                        boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
-                        overflow: 'hidden', // Prevent overflow
-                      }}
-                    >
+                    <div className="w-[280px] max-w-[280px] p-1.5 border-r-2 border-gray-200 flex flex-col justify-center bg-white sticky left-0 z-10 shadow-[2px_0_4px_rgba(0,0,0,0.05)] overflow-hidden">
                       {/* 🚗 NÁZOV VOZIDLA HORE - VÝRAZNEJŠÍ */}
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: '1.1rem',
-                          color: '#1976d2',
-                          mb: 0.25,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          lineHeight: 1.2,
-                        }}
-                      >
+                      <span className="font-bold text-[1.1rem] text-blue-600 mb-1 overflow-hidden text-ellipsis whitespace-nowrap leading-tight">
                         {vehicle?.brand} {vehicle?.model}
-                      </Typography>
+                      </span>
                       {/* 🏷️ ŠPZ POD TÝM - MENŠIE */}
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: '#666',
-                          fontSize: '0.8rem',
-                          mb: 0.25,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.5,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <CarIcon fontSize="small" sx={{ fontSize: '0.9rem' }} />
+                      <span className="text-gray-600 text-xs mb-1 flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <CarIcon className="h-4 w-4" />
                         {vehicle?.licensePlate || 'N/A'}
-                      </Typography>
+                      </span>
                       {/* 🏢 FIRMA - VŽDY VIDITEĽNÁ */}
                       {vehicle?.company && (
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: '#ff9800',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            mb: 0.25,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <BusinessIcon fontSize="small" />
+                        <span className="text-orange-500 text-xs font-semibold flex items-center gap-1 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                          <BusinessIcon className="h-4 w-4" />
                           {vehicle.company}
-                        </Typography>
+                        </span>
                       )}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 0.5,
-                          alignItems: 'flex-start',
-                        }}
-                      >
-                        <Chip
-                          size="small"
-                          label={
+                      <div className="flex flex-col gap-1 items-start">
+                        <Badge
+                          className={`h-[22px] text-[0.65rem] font-medium text-white opacity-90 ${
+                            rental.status === 'active'
+                              ? 'bg-green-500'
+                              : rental.status === 'finished'
+                                ? 'bg-blue-500'
+                                : rental.status === 'pending'
+                                  ? 'bg-orange-500'
+                                  : 'bg-gray-600'
+                          }`}
+                        >
+                          {
                             rental.status === 'active'
                               ? 'AKTÍVNY'
                               : rental.status === 'finished'
@@ -467,329 +310,113 @@ const RentalTable: React.FC<RentalTableProps> = ({
                                   ? 'ČAKAJÚCI'
                                   : 'NOVÝ'
                           }
-                          sx={{
-                            height: 22,
-                            fontSize: '0.65rem',
-                            bgcolor:
-                              rental.status === 'active'
-                                ? '#4caf50'
-                                : rental.status === 'finished'
-                                  ? '#2196f3'
-                                  : rental.status === 'pending'
-                                    ? '#ff9800'
-                                    : '#757575',
-                            color: 'white',
-                            fontWeight: 500,
-                            opacity: 0.9,
-                          }}
-                        />
+                        </Badge>
                         {/* 🔄 FLEXIBILNÝ PRENÁJOM INDIKÁTOR */}
                         {isFlexible && (
-                          <Chip
-                            size="small"
-                            label="FLEXIBILNÝ"
-                            sx={{
-                              height: 20,
-                              fontSize: '0.6rem',
-                              bgcolor: '#ff9800',
-                              color: 'white',
-                              fontWeight: 500,
-                              opacity: 0.9,
-                            }}
-                          />
+                          <Badge className="h-5 text-[0.6rem] bg-orange-500 text-white font-medium opacity-90">
+                            FLEXIBILNÝ
+                          </Badge>
                         )}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
 
                     {/* 👤 ZÁKAZNÍK - INŠPIROVANÉ MOBILNÝM DIZAJNOM */}
-                    <Box
-                      sx={{
-                        width: 200,
-                        maxWidth: 200,
-                        p: 1.5,
-                        borderRight: '1px solid #e0e0e0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        textAlign: 'left',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '0.9rem',
-                          color: '#333',
-                          mb: 0.25,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.75,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            bgcolor: '#4caf50',
-                            flexShrink: 0,
-                          }}
-                        />
+                    <div className="w-[200px] max-w-[200px] p-1.5 border-r border-gray-200 flex flex-col justify-center text-left overflow-hidden">
+                      <span className="font-semibold text-sm text-gray-800 mb-1 flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
                         {rental.customerName}
-                      </Typography>
+                      </span>
 
                       {/* 📞 TELEFÓN A EMAIL - KOMPAKTNE */}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 0.25,
-                        }}
-                      >
+                      <div className="flex flex-col gap-0.5">
                         {(rental.customerPhone || rental.customer?.phone) && (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: '#666',
-                              fontSize: '0.75rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <PhoneIcon
-                              fontSize="small"
-                              sx={{ fontSize: '0.9rem' }}
-                            />
+                          <span className="text-xs text-gray-600 flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            <PhoneIcon className="h-3 w-3" />
                             {rental.customerPhone || rental.customer?.phone}
-                          </Typography>
+                          </span>
                         )}
 
                         {(rental.customerEmail || rental.customer?.email) && (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: '#666',
-                              fontSize: '0.75rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <EmailIcon
-                              fontSize="small"
-                              sx={{ fontSize: '0.9rem' }}
-                            />
+                          <span className="text-xs text-gray-600 flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            <EmailIcon className="h-3 w-3" />
                             {rental.customerEmail ||
                               rental.customer?.email ||
                               'N/A'}
-                          </Typography>
+                          </span>
                         )}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
 
                     {/* Obdobie - FIXED WIDTH */}
-                    <Box
-                      sx={{
-                        width: 180,
-                        maxWidth: 180,
-                        p: 1.5,
-                        borderRight: '1px solid #e0e0e0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          color: '#333',
-                          mb: 0.25,
-                        }}
-                      >
+                    <div className="w-[180px] max-w-[180px] p-1.5 border-r border-gray-200 flex flex-col justify-center text-center overflow-hidden">
+                      <span className="font-semibold text-xs text-gray-800 mb-0.5">
                         📅 {formatDateTime(rental.startDate)}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#666',
-                          fontSize: '0.7rem',
-                          mb: 0.25,
-                        }}
-                      >
+                      </span>
+                      <span className="text-gray-600 text-[0.7rem] mb-0.5">
                         ↓
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          color: '#333',
-                        }}
-                      >
+                      </span>
+                      <span className="font-semibold text-xs text-gray-800">
                         📅 {formatDateTime(rental.endDate)}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
 
                     {/* Cena - FIXED WIDTH */}
-                    <Box
-                      sx={{
-                        width: 220,
-                        maxWidth: 220,
-                        p: 1.5,
-                        borderRight: '1px solid #e0e0e0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className="w-[160px] max-w-[160px] p-1 border-r border-gray-200 flex flex-col justify-center text-center overflow-hidden">
                       <PriceDisplay
                         rental={rental}
                         variant="compact"
                         showExtraKm={true}
                       />
-                      <Chip
-                        size="small"
-                        label={rental.paid ? 'Uhradené' : 'Neuhradené'}
-                        sx={{
-                          height: 18,
-                          fontSize: '0.65rem',
-                          bgcolor: rental.paid ? '#4caf50' : '#f44336',
-                          color: 'white',
-                          fontWeight: 500,
-                          mt: 0.5,
-                        }}
-                      />
-                    </Box>
+                      <Badge
+                        className={`h-[16px] text-[0.6rem] text-white font-medium mt-1 ${
+                          rental.paid ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                      >
+                        {rental.paid ? 'Uhradené' : 'Neuhradené'}
+                      </Badge>
+                    </div>
 
                     {/* 📋 PROTOKOLY - INŠPIROVANÉ MOBILNÝM DIZAJNOM */}
-                    <Box
-                      sx={{
-                        width: 220,
-                        maxWidth: 220,
-                        p: 1.5,
-                        borderRight: '1px solid #e0e0e0',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        flexDirection: 'column',
-                        gap: 1,
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className="w-[220px] max-w-[220px] p-1.5 border-r border-gray-200 flex justify-center items-center flex-col gap-2 overflow-hidden">
                       {/* 🔧 PROTOKOL TLAČIDLÁ - ŠTÝL AKO V MOBILE */}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          gap: 0.75,
-                          width: '100%',
-                        }}
-                      >
+                      <div className="flex gap-1.5 w-full">
                         <Button
-                          variant={hasHandover ? 'contained' : 'outlined'}
-                          size="small"
+                          variant={hasHandover ? 'default' : 'outline'}
+                          size="sm"
                           onClick={e => {
                             e.stopPropagation();
                             handleOpenProtocolMenu(rental, 'handover');
                           }}
-                          startIcon={
-                            hasHandover ? <CheckIcon /> : <ScheduleIcon />
-                          }
-                          sx={{
-                            flex: 1,
-                            height: 32,
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            minWidth: 0,
-                            px: 0.75,
-                            bgcolor: hasHandover ? '#4caf50' : 'transparent',
-                            borderColor: hasHandover ? '#4caf50' : '#ff9800',
-                            color: hasHandover ? 'white' : '#ff9800',
-                            '&:hover': {
-                              bgcolor: hasHandover
-                                ? '#388e3c'
-                                : 'rgba(255,152,0,0.1)',
-                              transform: 'scale(1.02)',
-                              boxShadow: hasHandover
-                                ? '0 4px 12px rgba(76,175,80,0.3)'
-                                : '0 4px 12px rgba(255,152,0,0.2)',
-                            },
-                            transition: 'all 0.2s ease',
-                            '& .MuiButton-startIcon': {
-                              marginRight: '4px',
-                              marginLeft: 0,
-                            },
-                          }}
+                          className={`flex-1 h-8 text-[0.7rem] font-semibold min-w-0 px-1.5 transition-all duration-200 hover:scale-[1.02] ${
+                            hasHandover
+                              ? 'bg-green-500 border-green-500 text-white hover:bg-green-600 hover:shadow-[0_4px_12px_rgba(76,175,80,0.3)]'
+                              : 'bg-transparent border-orange-500 text-orange-500 hover:bg-orange-50 hover:shadow-[0_4px_12px_rgba(255,152,0,0.2)]'
+                          }`}
                         >
+                          {hasHandover ? <CheckIcon className="h-3 w-3 mr-1" /> : <ScheduleIcon className="h-3 w-3 mr-1" />}
                           {hasHandover ? 'Odovz.' : 'Odovzdať'}
                         </Button>
 
                         <Button
-                          variant={hasReturn ? 'contained' : 'outlined'}
-                          size="small"
+                          variant={hasReturn ? 'default' : 'outline'}
+                          size="sm"
                           onClick={e => {
                             e.stopPropagation();
                             handleOpenProtocolMenu(rental, 'return');
                           }}
-                          startIcon={
-                            hasReturn ? <CheckIcon /> : <ScheduleIcon />
-                          }
-                          sx={{
-                            flex: 1,
-                            height: 32,
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            minWidth: 0,
-                            px: 0.75,
-                            bgcolor: hasReturn ? '#4caf50' : 'transparent',
-                            borderColor: hasReturn ? '#4caf50' : '#ff9800',
-                            color: hasReturn ? 'white' : '#ff9800',
-                            '&:hover': {
-                              bgcolor: hasReturn
-                                ? '#388e3c'
-                                : 'rgba(255,152,0,0.1)',
-                              transform: 'scale(1.02)',
-                              boxShadow: hasReturn
-                                ? '0 4px 12px rgba(76,175,80,0.3)'
-                                : '0 4px 12px rgba(255,152,0,0.2)',
-                            },
-                            transition: 'all 0.2s ease',
-                            '& .MuiButton-startIcon': {
-                              marginRight: '4px',
-                              marginLeft: 0,
-                            },
-                          }}
+                          className={`flex-1 h-8 text-[0.7rem] font-semibold min-w-0 px-1.5 transition-all duration-200 hover:scale-[1.02] ${
+                            hasReturn
+                              ? 'bg-green-500 border-green-500 text-white hover:bg-green-600 hover:shadow-[0_4px_12px_rgba(76,175,80,0.3)]'
+                              : 'bg-transparent border-orange-500 text-orange-500 hover:bg-orange-50 hover:shadow-[0_4px_12px_rgba(255,152,0,0.2)]'
+                          }`}
                         >
+                          {hasReturn ? <CheckIcon className="h-3 w-3 mr-1" /> : <ScheduleIcon className="h-3 w-3 mr-1" />}
                           {hasReturn ? 'Prevz.' : 'Prevziať'}
                         </Button>
-                      </Box>
+                      </div>
 
                       {/* STATUS TEXT */}
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#666',
-                          fontSize: '0.7rem',
-                          textAlign: 'center',
-                          lineHeight: 1.2,
-                        }}
-                      >
+                      <span className="text-gray-600 text-[0.7rem] text-center leading-tight">
                         {hasHandover && hasReturn
                           ? '✅ Kompletné'
                           : hasHandover
@@ -797,154 +424,94 @@ const RentalTable: React.FC<RentalTableProps> = ({
                             : hasReturn
                               ? '←🚗 Vrátené'
                               : '⏳ Čaká'}
-                      </Typography>
+                      </span>
 
                       {/* PROTOCOL CHECK BUTTON */}
                       {isLoadingProtocolStatus ? (
                         <Button
-                          variant="outlined"
-                          size="small"
+                          variant="outline"
+                          size="sm"
                           disabled
-                          sx={{
-                            borderColor: '#ff9800',
-                            color: '#ff9800',
-                            fontSize: '0.65rem',
-                            height: 26,
-                            minWidth: 0,
-                            px: 1,
-                          }}
+                          className="border-orange-500 text-orange-500 text-[0.65rem] h-[26px] min-w-0 px-2"
                         >
                           Načítavam...
                         </Button>
                       ) : !protocolStatusLoaded ? (
                         <Button
-                          variant="outlined"
-                          size="small"
+                          variant="outline"
+                          size="sm"
                           onClick={e => {
                             e.stopPropagation();
                             handleCheckProtocols(rental);
                           }}
-                          sx={{
-                            borderColor: '#2196f3',
-                            color: '#2196f3',
-                            fontSize: '0.65rem',
-                            height: 26,
-                            minWidth: 0,
-                            px: 1,
-                            '&:hover': {
-                              bgcolor: 'rgba(33,150,243,0.1)',
-                            },
-                          }}
+                          className="border-blue-500 text-blue-500 text-[0.65rem] h-[26px] min-w-0 px-2 hover:bg-blue-50"
                         >
                           Skontrolovať
                         </Button>
                       ) : null}
-                    </Box>
+                    </div>
 
                     {/* Akcie */}
-                    <Box
-                      sx={{
-                        width: 120,
-                        maxWidth: 120,
-                        p: 1,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <IconButton
-                        size="small"
+                    <div className="w-[120px] max-w-[120px] p-1 flex justify-center items-center gap-1 flex-row flex-wrap">
+                      <Button
+                        size="sm"
                         title="Upraviť prenájom"
                         onClick={e => {
                           e.stopPropagation();
                           handleEdit(rental);
                         }}
-                        sx={{
-                          bgcolor: '#2196f3',
-                          color: 'white',
-                          '&:hover': {
-                            bgcolor: '#1976d2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
-                          },
-                          '&:active': {
-                            transform: 'scale(0.95)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="bg-blue-500 text-white hover:bg-blue-600 hover:scale-110 hover:shadow-[0_4px_12px_rgba(33,150,243,0.4)] active:scale-95 transition-all duration-200"
                       >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
+                        <EditIcon className="h-4 w-4" />
+                      </Button>
 
                       {/* 🔄 CLONE TLAČIDLO */}
-                      <IconButton
-                        size="small"
+                      <Button
+                        size="sm"
                         title="Kopírovať prenájom na ďalšie obdobie"
                         onClick={e => {
                           e.stopPropagation();
                           handleCloneRental(rental);
                         }}
-                        sx={{
-                          bgcolor: '#4caf50',
-                          color: 'white',
-                          '&:hover': {
-                            bgcolor: '#388e3c',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
-                          },
-                          '&:active': {
-                            transform: 'scale(0.95)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="bg-green-500 text-white hover:bg-green-600 hover:scale-110 hover:shadow-[0_4px_12px_rgba(76,175,80,0.4)] active:scale-95 transition-all duration-200"
                       >
-                        <ContentCopyIcon fontSize="small" />
-                      </IconButton>
+                        <ContentCopyIcon className="h-4 w-4" />
+                      </Button>
 
-                      <IconButton
-                        size="small"
+                      <Button
+                        size="sm"
                         title="Zmazať prenájom"
                         onClick={e => {
                           e.stopPropagation();
                           handleDeleteClick(rental);
                         }}
-                        sx={{
-                          bgcolor: '#f44336',
-                          color: 'white',
-                          '&:hover': {
-                            bgcolor: '#d32f2f',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="bg-red-500 text-white hover:bg-red-600 hover:scale-110 hover:shadow-[0_4px_12px_rgba(244,67,54,0.4)] transition-all duration-200"
                       >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </Box>
+                        <DeleteIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 );
               })}
-            </Box>
+            </div>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
 
       {/* 🗑️ DELETE CONFIRMATION DIALOG */}
       <Dialog
         open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-        aria-labelledby="delete-dialog-title"
-        aria-describedby="delete-dialog-description"
+        onOpenChange={(open) => !open && handleDeleteCancel()}
       >
-        <DialogTitle id="delete-dialog-title">
-          ⚠️ Potvrdenie zmazania
-        </DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-dialog-description">
+          <DialogHeader>
+            <DialogTitle>
+              ⚠️ Potvrdenie zmazania
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
             Naozaj chcete zmazať prenájom pre zákazníka{' '}
             <strong>{rentalToDelete?.customerName}</strong>?
             <br />
@@ -963,89 +530,29 @@ const RentalTable: React.FC<RentalTableProps> = ({
             </strong>
             <br />
             <br />
-            <span style={{ color: '#f44336', fontWeight: 600 }}>
+            <span className="text-red-500 font-semibold">
               Táto akcia sa nedá vrátiť späť!
             </span>
-          </DialogContentText>
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              onClick={handleDeleteCancel}
+              variant="outline"
+              className="border-gray-600 text-gray-600 hover:border-gray-800 hover:bg-gray-50"
+            >
+              Zrušiť
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              variant="default"
+              className="bg-red-500 hover:bg-red-600 text-white"
+              autoFocus
+            >
+              Zmazať prenájom
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleDeleteCancel}
-            variant="outlined"
-            sx={{
-              borderColor: '#666',
-              color: '#666',
-              '&:hover': {
-                borderColor: '#333',
-                bgcolor: 'rgba(0,0,0,0.04)',
-              },
-            }}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            variant="contained"
-            sx={{
-              bgcolor: '#f44336',
-              '&:hover': {
-                bgcolor: '#d32f2f',
-              },
-            }}
-            autoFocus
-          >
-            Zmazať prenájom
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
 };
-
-// Export with memo and custom comparison for performance
-const MemoizedRentalTable = memo(RentalTable, (prevProps, nextProps) => {
-  // Compare critical props that affect rendering
-  if (prevProps.paginatedRentals.length !== nextProps.paginatedRentals.length) return false;
-  if (prevProps.isMobile !== nextProps.isMobile) return false;
-  
-  // Deep compare rentals array
-  for (let i = 0; i < prevProps.paginatedRentals.length; i++) {
-    const prevRental = prevProps.paginatedRentals[i];
-    const nextRental = nextProps.paginatedRentals[i];
-    
-    if (prevRental.id !== nextRental.id) return false;
-    if (prevRental.status !== nextRental.status) return false;
-    if (prevRental.startDate !== nextRental.startDate) return false;
-    if (prevRental.endDate !== nextRental.endDate) return false;
-    if (prevRental.totalPrice !== nextRental.totalPrice) return false;
-  }
-  
-  // Compare protocol status map
-  const prevStatusKeys = Object.keys(prevProps.protocolStatusMap);
-  const nextStatusKeys = Object.keys(nextProps.protocolStatusMap);
-  if (prevStatusKeys.length !== nextStatusKeys.length) return false;
-  
-  for (const key of prevStatusKeys) {
-    const prevStatus = prevProps.protocolStatusMap[key];
-    const nextStatus = nextProps.protocolStatusMap[key];
-    if (!nextStatus || 
-        prevStatus.hasHandoverProtocol !== nextStatus.hasHandoverProtocol ||
-        prevStatus.hasReturnProtocol !== nextStatus.hasReturnProtocol) {
-      return false;
-    }
-  }
-  
-  // Compare callback functions (should be memoized in parent)
-  if (prevProps.handleEdit !== nextProps.handleEdit) return false;
-  if (prevProps.handleDelete !== nextProps.handleDelete) return false;
-  if (prevProps.handleCloneRental !== nextProps.handleCloneRental) return false;
-  if (prevProps.handleOpenProtocolMenu !== nextProps.handleOpenProtocolMenu) return false;
-  if (prevProps.handleViewRental !== nextProps.handleViewRental) return false;
-  if (prevProps.getVehicleByRental !== nextProps.getVehicleByRental) return false;
-  
-  return true;
-});
-
-// Export both named and default for compatibility
-export { MemoizedRentalTable as RentalTable };
-export default MemoizedRentalTable;

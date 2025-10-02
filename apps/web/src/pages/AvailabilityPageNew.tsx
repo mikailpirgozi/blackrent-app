@@ -1,32 +1,26 @@
 import {
-  Clear as ClearIcon,
-  FilterList as FilterListIcon,
-  Refresh as RefreshIcon,
+  X as ClearIcon,
+  Filter as FilterListIcon,
+  RefreshCw as RefreshIcon,
   Search as SearchIcon,
-  Today as TodayIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  Chip,
-  Collapse,
-  Divider,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  ListItemText,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import type { SelectChangeEvent } from '@mui/material/Select';
+  Calendar as TodayIcon,
+} from 'lucide-react';
+import { UnifiedButton as Button } from '@/components/ui/UnifiedButton';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { UnifiedBadge as Badge } from '@/components/ui/UnifiedBadge';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
 import React, { useState } from 'react';
 
 import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
@@ -38,8 +32,15 @@ import type { Vehicle, VehicleCategory } from '../types';
 
 const AvailabilityPageNew: React.FC = () => {
   const { data: vehicles = [] } = useVehicles();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+  
+  // Custom responsive logic
+  const [isMobile, setIsMobile] = useState(false);
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,16 +80,16 @@ const AvailabilityPageNew: React.FC = () => {
     { value: 'dodavky', label: 'Dodávky', emoji: '📦' },
   ];
 
-  // Handle category selection
-  const handleCategoryChange = (
-    event: SelectChangeEvent<VehicleCategory[]>
-  ) => {
-    const value = event.target.value;
-    setSelectedCategories(
-      Array.isArray(value)
-        ? (value as VehicleCategory[])
-        : [value as VehicleCategory]
-    );
+  // Handle category selection - adapted for shadcn Select
+  const handleCategoryChange = (value: string) => {
+    const category = value as VehicleCategory;
+    setSelectedCategories(prev => {
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category);
+      } else {
+        return [...prev, category];
+      }
+    });
   };
 
   // Clear all category filters
@@ -106,7 +107,7 @@ const AvailabilityPageNew: React.FC = () => {
 
     // Force calendar refresh by triggering a re-render
     // Use a small delay to ensure cache invalidation is processed
-    setTimeout(() => {
+    window.setTimeout(() => {
       window.location.reload();
     }, 200);
   };
@@ -120,334 +121,291 @@ const AvailabilityPageNew: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+    <div className={`p-${isMobile ? '2' : '6'}`}>
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 2, sm: 0 },
-        }}
+      <div
+        className={`flex justify-between items-center mb-6 ${
+          isMobile ? 'flex-col gap-4' : 'flex-row'
+        }`}
       >
-        <Box>
-          <Typography
+        <div>
+          <UnifiedTypography
             variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: '#1976d2',
-              fontSize: { xs: '1.5rem', sm: '2rem' },
-              mb: 0.5,
-            }}
+            className={`font-bold text-blue-600 ${
+              isMobile ? 'text-2xl' : 'text-4xl'
+            } mb-1`}
           >
             📅 Dostupnosť vozidiel
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </UnifiedTypography>
+          <UnifiedTypography variant="body2" className="text-gray-600">
             Kalendárny prehľad dostupnosti všetkých vozidiel v systéme
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          </UnifiedTypography>
+        </div>
+        <div className="flex gap-1 flex-wrap">
           <Button
-            variant="contained"
-            color="error"
-            startIcon={<ClearIcon />}
+            variant="destructive"
             onClick={() => setUnavailabilityModalOpen(true)}
-            size="small"
+            size="sm"
+            className="flex items-center gap-2"
           >
+            <ClearIcon className="h-4 w-4" />
             Pridať nedostupnosť
           </Button>
           <Button
-            variant="outlined"
-            startIcon={<TodayIcon />}
+            variant="outline"
             onClick={handleTodayClick}
-            size="small"
+            size="sm"
+            className="flex items-center gap-2"
           >
+            <TodayIcon className="h-4 w-4" />
             Dnes
           </Button>
           <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
+            variant="outline"
             onClick={handleRefresh}
-            size="small"
+            size="sm"
+            className="flex items-center gap-2"
           >
+            <RefreshIcon className="h-4 w-4" />
             Obnoviť
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Search and Filters */}
-      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <CardContent>
+      <Card className="mb-3 shadow-lg">
+        <CardContent className="p-6">
           {/* Search Bar */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-            <TextField
-              fullWidth
-              placeholder="Hľadať vozidlá..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ color: '#666', mr: 1 }} />,
-              }}
-              sx={{ flex: 1 }}
-            />
-            <IconButton
+          <div className="flex gap-2 mb-2 items-center">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Hľadať vozidlá..."
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
               onClick={() => setFiltersOpen(!filtersOpen)}
-              sx={{
-                bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
-                color: filtersOpen ? 'white' : '#666',
-                '&:hover': {
-                  bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
-                },
-              }}
+              variant={filtersOpen ? "default" : "outline"}
+              size="sm"
+              className="flex items-center gap-2"
             >
-              <FilterListIcon />
-            </IconButton>
-          </Box>
+              <FilterListIcon className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* Filters */}
-          <Collapse in={filtersOpen}>
-            <Divider sx={{ mb: 2 }} />
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Firma</InputLabel>
+          <Collapsible open={filtersOpen}>
+            <CollapsibleContent>
+              <Separator className="mb-2" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company-select">Firma</Label>
                   <Select
                     value={selectedCompany}
-                    label="Firma"
-                    onChange={e => setSelectedCompany(e.target.value)}
+                    onValueChange={setSelectedCompany}
                   >
-                    <MenuItem value="">Všetky firmy</MenuItem>
-                    {uniqueCompanies.map((company: string | undefined) => (
-                      <MenuItem key={company} value={company}>
-                        {company}
-                      </MenuItem>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky firmy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-companies">Všetky firmy</SelectItem>
+                      {uniqueCompanies.map((company: string | undefined) => (
+                        <SelectItem key={company} value={company || "no-company"}>
+                          {company}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Kategória vozidla</InputLabel>
-                  <Select
-                    value={selectedCategories}
-                    label="Kategória vozidla"
-                    onChange={handleCategoryChange}
-                    multiple
-                    renderValue={selected => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map(value => {
-                          const category = vehicleCategories.find(
-                            cat => cat.value === value
-                          );
-                          return (
-                            <Chip
-                              key={value}
-                              label={`${category?.emoji} ${category?.label}`}
-                              size="small"
-                              sx={{ bgcolor: '#e0e0e0', color: '#333' }}
-                            />
-                          );
-                        })}
-                      </Box>
-                    )}
-                  >
-                    {vehicleCategories.map(category => (
-                      <MenuItem key={category.value} value={category.value}>
-                        <Checkbox
-                          checked={
-                            selectedCategories.indexOf(category.value) > -1
-                          }
-                        />
-                        <ListItemText primary={category.label} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {selectedCategories.length > 0 && (
-                    <Button
-                      size="small"
-                      onClick={clearCategoryFilters}
-                      startIcon={<ClearIcon />}
-                      sx={{ mt: 1 }}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category-select">Kategória vozidla</Label>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {selectedCategories.map(category => {
+                        const categoryInfo = vehicleCategories.find(
+                          cat => cat.value === category
+                        );
+                        return (
+                          <Badge
+                            key={category}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {categoryInfo?.emoji} {categoryInfo?.label}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={handleCategoryChange}
                     >
-                      Vymazať všetky
-                    </Button>
-                  )}
-                </FormControl>
-              </Grid>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vybrať kategórie..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicleCategories.map(category => (
+                          <SelectItem key={category.value} value={category.value}>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={selectedCategories.includes(category.value)}
+                              />
+                              <span>{category.emoji} {category.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedCategories.length > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={clearCategoryFilters}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <ClearIcon className="h-4 w-4" />
+                        Vymazať všetky
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
               {/* Date Range Filtre */}
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography
-                  variant="subtitle2"
-                  sx={{ mb: 2, fontWeight: 600, color: '#1976d2' }}
+              <div className="col-span-full">
+                <Separator className="my-4" />
+                <UnifiedTypography
+                  variant="h6"
+                  className="mb-4 font-semibold text-blue-600"
                 >
                   📅 Filtrovanie podľa dátumu dostupnosti
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Dostupné od dátumu"
+                </UnifiedTypography>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="from-date">Dostupné od dátumu</Label>
+                <Input
+                  id="from-date"
                   type="date"
-                  size="small"
                   value={availableFromDate}
-                  onChange={e => setAvailableFromDate(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAvailableFromDate(e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Dostupné do dátumu"
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="to-date">Dostupné do dátumu</Label>
+                <Input
+                  id="to-date"
                   type="date"
-                  size="small"
                   value={availableToDate}
-                  onChange={e => setAvailableToDate(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAvailableToDate(e.target.value)}
                 />
-              </Grid>
+              </div>
               {availableFromDate && availableToDate && (
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      backgroundColor: '#e3f2fd',
-                      borderRadius: 1,
-                      border: '1px solid #2196f3',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
+                <div className="col-span-full">
+                  <div className="p-3 bg-blue-50 border border-blue-300 rounded-lg flex justify-between items-start">
+                    <div className="flex-1">
+                      <UnifiedTypography
                         variant="body2"
-                        sx={{ color: '#1976d2', fontWeight: 500 }}
+                        className="text-blue-700 font-medium"
                       >
                         ℹ️ Zobrazujú sa len vozidlá dostupné v období{' '}
                         {availableFromDate} - {availableToDate}
                         <br />
-                        <span style={{ fontSize: '0.85em' }}>
+                        <span className="text-sm">
                           Zahŕňa: dostupné vozidlá + flexibilné prenájmy (ktoré
                           možno prepísať)
                         </span>
-                      </Typography>
-                    </Box>
+                      </UnifiedTypography>
+                    </div>
                     <Button
-                      size="small"
+                      size="sm"
                       onClick={() => {
                         setAvailableFromDate('');
                         setAvailableToDate('');
                       }}
-                      sx={{ ml: 2, minWidth: 'auto' }}
+                      variant="outline"
+                      className="ml-2 min-w-0"
                     >
                       ✕ Zrušiť
                     </Button>
-                  </Box>
-                </Grid>
+                  </div>
+                </div>
               )}
-            </Grid>
-          </Collapse>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 
       {/* Statistics Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(76,175,80,0.3)',
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {
-                  allVehicles.filter((v: Vehicle) => v.status === 'available')
-                    .length
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Dostupné vozidlá
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(255,152,0,0.3)',
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {
-                  allVehicles.filter((v: Vehicle) => v.status === 'rented')
-                    .length
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Klasicky prenajaté
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(244,67,54,0.3)',
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {
-                  allVehicles.filter((v: Vehicle) => v.status === 'maintenance')
-                    .length
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Údržba
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(33,150,243,0.3)',
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {allVehicles.length}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Celkom
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg">
+          <CardContent className="text-center py-4">
+            <UnifiedTypography
+              variant="h4"
+              className="font-bold mb-1"
+            >
+              {
+                allVehicles.filter((v: Vehicle) => v.status === 'available')
+                  .length
+              }
+            </UnifiedTypography>
+            <UnifiedTypography variant="body2" className="opacity-90">
+              Dostupné vozidlá
+            </UnifiedTypography>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg">
+          <CardContent className="text-center py-4">
+            <UnifiedTypography
+              variant="h4"
+              className="font-bold mb-1"
+            >
+              {
+                allVehicles.filter((v: Vehicle) => v.status === 'rented')
+                  .length
+              }
+            </UnifiedTypography>
+            <UnifiedTypography variant="body2" className="opacity-90">
+              Klasicky prenajaté
+            </UnifiedTypography>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg">
+          <CardContent className="text-center py-4">
+            <UnifiedTypography
+              variant="h4"
+              className="font-bold mb-1"
+            >
+              {
+                allVehicles.filter((v: Vehicle) => v.status === 'maintenance')
+                  .length
+              }
+            </UnifiedTypography>
+            <UnifiedTypography variant="body2" className="opacity-90">
+              Údržba
+            </UnifiedTypography>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+          <CardContent className="text-center py-4">
+            <UnifiedTypography
+              variant="h4"
+              className="font-bold mb-1"
+            >
+              {allVehicles.length}
+            </UnifiedTypography>
+            <UnifiedTypography variant="body2" className="opacity-90">
+              Celkom
+            </UnifiedTypography>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Calendar */}
-      <Card
-        sx={{
-          overflow: 'hidden',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
-          borderRadius: 3,
-        }}
-      >
-        <CardContent sx={{ p: 0 }}>
+      <Card className="overflow-hidden shadow-xl rounded-xl">
+        <CardContent className="p-0">
           <AvailabilityCalendar
             searchQuery={searchQuery}
             isMobile={isMobile}
@@ -465,7 +423,7 @@ const AvailabilityPageNew: React.FC = () => {
         onClose={() => setUnavailabilityModalOpen(false)}
         onSuccess={handleUnavailabilitySuccess}
       />
-    </Box>
+    </div>
   );
 };
 

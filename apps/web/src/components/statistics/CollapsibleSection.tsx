@@ -4,16 +4,11 @@
  * Expandable section pre mobile statistics s smooth animations
  */
 
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
-import {
-  Box,
-  Chip,
-  Collapse,
-  IconButton,
-  Paper,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { ChevronDown as ExpandMoreIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import React, { memo, useState } from 'react';
 
 interface CollapsibleSectionProps {
@@ -46,168 +41,153 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   compact = false,
   disabled = false,
 }) => {
-  const theme = useTheme();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  const handleToggle = () => {
-    if (!disabled) {
-      setExpanded(prev => !prev);
-    }
-  };
-
-  // Get color based on theme
-  const getColor = (colorName: string) => {
-    const colors: Record<string, string> = {
-      primary: theme.palette.primary.main,
-      success: theme.palette.success.main,
-      warning: theme.palette.warning.main,
-      error: theme.palette.error.main,
-      info: theme.palette.info.main,
+  // Get color classes based on color prop
+  const getColorClasses = (colorName: string) => {
+    const colorMap: Record<string, { border: string; bg: string; text: string; hover: string }> = {
+      primary: {
+        border: 'border-blue-200',
+        bg: 'bg-blue-50',
+        text: 'text-blue-600',
+        hover: 'hover:bg-blue-100'
+      },
+      success: {
+        border: 'border-green-200',
+        bg: 'bg-green-50',
+        text: 'text-green-600',
+        hover: 'hover:bg-green-100'
+      },
+      warning: {
+        border: 'border-orange-200',
+        bg: 'bg-orange-50',
+        text: 'text-orange-600',
+        hover: 'hover:bg-orange-100'
+      },
+      error: {
+        border: 'border-red-200',
+        bg: 'bg-red-50',
+        text: 'text-red-600',
+        hover: 'hover:bg-red-100'
+      },
+      info: {
+        border: 'border-cyan-200',
+        bg: 'bg-cyan-50',
+        text: 'text-cyan-600',
+        hover: 'hover:bg-cyan-100'
+      },
     };
-    return colors[colorName] || colorName;
+    return colorMap[colorName] || colorMap.primary;
   };
 
-  const sectionColor = getColor(color);
+  const colorClasses = getColorClasses(color);
 
   return (
-    <Paper
-      elevation={2}
-      sx={{
-        borderRadius: compact ? 2 : 3,
-        overflow: 'hidden',
-        border: `1px solid ${sectionColor}20`,
-        backgroundColor: expanded
-          ? `${sectionColor}05`
-          : theme.palette.background.paper,
-        transition: 'all 0.3s ease-in-out',
-        '&:hover': !disabled
-          ? {
-              borderColor: `${sectionColor}40`,
-              backgroundColor: `${sectionColor}08`,
-            }
-          : {},
-        ...(disabled && {
-          opacity: 0.6,
-          cursor: 'not-allowed',
-        }),
-      }}
-    >
-      {/* Header */}
-      <Box
-        onClick={handleToggle}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          p: compact ? 2 : 2.5,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          transition: 'background-color 0.2s ease-in-out',
-          '&:hover': !disabled
-            ? {
-                backgroundColor: `${sectionColor}08`,
-              }
-            : {},
-          borderBottom: expanded ? `1px solid ${sectionColor}15` : 'none',
-        }}
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
+      <Card
+        className={`
+          ${compact ? 'rounded-lg' : 'rounded-xl'} 
+          overflow-hidden 
+          ${colorClasses?.border || ''} 
+          ${expanded ? (colorClasses?.bg || 'bg-white') : 'bg-white'} 
+          transition-all duration-300 ease-in-out 
+          ${!disabled ? `${colorClasses?.hover || ''} hover:border-opacity-60` : ''} 
+          ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
+          shadow-md
+        `}
       >
-        {/* Icon */}
-        {icon && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              mr: 1.5,
-              color: sectionColor,
-              opacity: disabled ? 0.5 : 1,
-            }}
+        {/* Header */}
+        <CollapsibleTrigger asChild>
+          <div
+            className={`
+              flex items-center 
+              ${compact ? 'p-4' : 'p-5'} 
+              ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} 
+              transition-colors duration-200 
+              ${!disabled ? (colorClasses?.hover || '') : ''} 
+              ${expanded ? `border-b ${colorClasses?.border || ''}` : ''}
+            `}
           >
-            {icon}
-          </Box>
-        )}
-
-        {/* Title and Subtitle */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography
-              variant={compact ? 'subtitle2' : 'h6'}
-              sx={{
-                fontWeight: 600,
-                color: expanded ? sectionColor : 'text.primary',
-                transition: 'color 0.2s ease-in-out',
-              }}
-            >
-              {title}
-            </Typography>
-
-            {/* Badge */}
-            {badge !== undefined && (
-              <Chip
-                label={badge}
-                size="small"
-                sx={{
-                  backgroundColor: `${sectionColor}15`,
-                  color: sectionColor,
-                  fontSize: '0.7rem',
-                  height: 20,
-                  minWidth: 20,
-                }}
-              />
+            {/* Icon */}
+            {icon && (
+              <div
+                className={`
+                  flex items-center mr-3 
+                  ${colorClasses?.text || ''} 
+                  ${disabled ? 'opacity-50' : 'opacity-100'}
+                `}
+              >
+                {icon}
+              </div>
             )}
-          </Box>
 
-          {subtitle && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.secondary',
-                display: 'block',
-                mt: 0.5,
-              }}
+            {/* Title and Subtitle */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3
+                  className={`
+                    ${compact ? 'text-sm' : 'text-lg'} 
+                    font-semibold 
+                    ${expanded ? (colorClasses?.text || 'text-gray-900') : 'text-gray-900'} 
+                    transition-colors duration-200
+                  `}
+                >
+                  {title}
+                </h3>
+
+                {/* Badge */}
+                {badge !== undefined && (
+                  <Badge
+                    variant="secondary"
+                    className={`
+                      ${colorClasses?.bg || ''} ${colorClasses?.text || ''} 
+                      text-xs h-5 min-w-5 px-1.5
+                    `}
+                  >
+                    {badge}
+                  </Badge>
+                )}
+              </div>
+
+              {subtitle && (
+                <p className="text-xs text-gray-500 mt-1 block">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+
+            {/* Expand Icon */}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={disabled}
+              className={`
+                ${expanded ? (colorClasses?.text || 'text-gray-500') : 'text-gray-500'} 
+                transition-all duration-300 ease-in-out 
+                ${expanded ? 'rotate-180' : 'rotate-0'} 
+                ${!disabled ? `hover:${colorClasses?.bg || ''}` : ''} 
+                p-1 h-8 w-8
+              `}
             >
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
+              <ExpandMoreIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </CollapsibleTrigger>
 
-        {/* Expand Icon */}
-        <IconButton
-          size="small"
-          disabled={disabled}
-          sx={{
-            color: expanded ? sectionColor : 'text.secondary',
-            transition: 'all 0.3s ease-in-out',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            '&:hover': !disabled
-              ? {
-                  backgroundColor: `${sectionColor}15`,
-                }
-              : {},
-          }}
-        >
-          <ExpandMoreIcon />
-        </IconButton>
-      </Box>
-
-      {/* Content */}
-      <Collapse
-        in={expanded}
-        timeout={{
-          enter: 300,
-          exit: 200,
-        }}
-        unmountOnExit
-      >
-        <Box
-          sx={{
-            p: compact ? 2 : 2.5,
-            pt: compact ? 1.5 : 2,
-            backgroundColor: expanded ? `${sectionColor}02` : 'transparent',
-            transition: 'background-color 0.2s ease-in-out',
-          }}
-        >
-          {children}
-        </Box>
-      </Collapse>
-    </Paper>
+        {/* Content */}
+        <CollapsibleContent className="transition-all duration-300 ease-in-out">
+          <div
+            className={`
+              ${compact ? 'p-4 pt-3' : 'p-5 pt-4'} 
+              ${expanded ? (colorClasses?.bg || 'bg-transparent') : 'bg-transparent'} 
+              transition-colors duration-200
+            `}
+          >
+            {children}
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
 

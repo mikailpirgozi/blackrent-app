@@ -1,22 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   History as HistoryIcon,
-  Speed as KmIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  Chip,
-  IconButton,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import React from 'react';
+  Gauge as KmIcon,
+  LayoutGrid,
+  List,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react'; 
 
 import type { Vehicle } from '../../../types';
 import {
@@ -26,6 +21,7 @@ import {
   getStatusText,
 } from '../../../utils/vehicles/vehicleHelpers';
 import { Can } from '../../common/PermissionGuard';
+import PremiumVehicleCard from './PremiumVehicleCard';
 
 interface VehicleTableProps {
   vehiclesToDisplay: Vehicle[];
@@ -44,6 +40,23 @@ interface VehicleTableProps {
   onKmHistory?: (vehicle: Vehicle) => void; // 🚗 História kilometrov
 }
 
+// Custom hook for responsive design
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  return isMobile;
+};
+
 const VehicleTable: React.FC<VehicleTableProps> = ({
   vehiclesToDisplay,
   filteredVehicles,
@@ -60,195 +73,126 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
   onLoadMore,
   onKmHistory,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   return (
     <>
+      {/* View Mode Toggle - Desktop Only */}
+      {!isMobile && (
+        <div className="mb-4 flex justify-end">
+          <div className="inline-flex rounded-lg border border-border p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="gap-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="gap-2"
+            >
+              <List className="h-4 w-4" />
+              List
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Grid View - Premium Cards */}
+      {!isMobile && viewMode === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
+          {vehiclesToDisplay.map((vehicle) => (
+            <PremiumVehicleCard
+              key={vehicle.id}
+              vehicle={vehicle}
+              isSelected={selectedVehicles.has(vehicle.id)}
+              onSelect={onVehicleSelect}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              {...(onKmHistory && { onKmHistory })}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* List View & Mobile - Original Table */}
+      {(isMobile || viewMode === 'list') && (
+      <>
       {isMobile ? (
         /* MOBILE CARDS VIEW */
-        <Card
-          sx={{
-            overflow: 'hidden',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
-            borderRadius: 3,
-          }}
-        >
-          <CardContent sx={{ p: 0 }}>
-            <Box
+        <Card className="overflow-hidden shadow-lg rounded-xl">
+          <CardContent className="p-0">
+            <div
               ref={mobileScrollRef}
-              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+              className="max-h-[70vh] overflow-y-auto"
               onScroll={onScroll}
             >
               {vehiclesToDisplay.map((vehicle, index) => (
-                <Box
+                <div
                   key={vehicle.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    p: 0,
-                    borderBottom:
-                      index < vehiclesToDisplay.length - 1
-                        ? '1px solid #e0e0e0'
-                        : 'none',
-                    '&:hover': { backgroundColor: '#f8f9fa' },
-                    minHeight: 80,
-                    cursor: 'pointer',
-                  }}
+                  className={`flex items-center p-0 min-h-20 cursor-pointer hover:bg-gray-50 ${
+                    index < vehiclesToDisplay.length - 1
+                      ? 'border-b border-gray-200'
+                      : ''
+                  }`}
                   onClick={() => onEdit(vehicle)}
                 >
                   {/* ✅ NOVÉ: Checkbox pre výber vozidla */}
-                  <Box
-                    sx={{
-                      width: 50,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRight: '1px solid #e0e0e0',
-                      backgroundColor: '#fafafa',
-                    }}
-                  >
+                  <div className="w-12 flex items-center justify-center border-r border-gray-200 bg-gray-50">
                     <Checkbox
-                      size="small"
                       checked={selectedVehicles.has(vehicle.id)}
-                      onChange={e => {
-                        e.stopPropagation(); // Zabráni kliknutiu na celý riadok
-                        onVehicleSelect(vehicle.id, e.target.checked);
+                      onCheckedChange={(checked: boolean) => {
+                        onVehicleSelect(vehicle.id, !!checked);
                       }}
-                      sx={{
-                        p: 0.5,
-                        '& .MuiSvgIcon-root': { fontSize: 18 },
-                      }}
+                      className="h-4 w-4"
                     />
-                  </Box>
+                  </div>
 
                   {/* Vehicle Info - sticky left */}
-                  <Box
-                    sx={{
-                      width: { xs: 140, sm: 160 },
-                      maxWidth: { xs: 140, sm: 160 },
-                      p: { xs: 1, sm: 1.5 },
-                      borderRight: '2px solid #e0e0e0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      backgroundColor: '#ffffff',
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 10,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                        color: '#1976d2',
-                        lineHeight: 1.2,
-                        wordWrap: 'break-word',
-                        mb: { xs: 0.25, sm: 0.5 },
-                      }}
-                    >
+                  <div className="w-32 sm:w-40 max-w-32 sm:max-w-40 p-2 sm:p-3 border-r-2 border-gray-200 flex flex-col justify-center bg-white sticky left-0 z-10 overflow-hidden">
+                    <p className="font-semibold text-xs sm:text-sm text-blue-600 leading-tight break-words mb-1 sm:mb-2">
                       {vehicle.brand} {vehicle.model}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: '#666',
-                        fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                        mb: { xs: 0.25, sm: 0.5 },
-                        fontWeight: 600,
-                      }}
-                    >
+                    </p>
+                    <p className="text-gray-600 text-xs sm:text-xs mb-1 sm:mb-2 font-semibold">
                       {vehicle.licensePlate}
-                    </Typography>
+                    </p>
                     {vehicle.vin && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#888',
-                          fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                          fontFamily: 'monospace',
-                        }}
-                      >
+                      <p className="text-gray-500 text-xs font-mono">
                         VIN: {vehicle.vin.slice(-6)}
-                      </Typography>
+                      </p>
                     )}
-                    <Chip
-                      size="small"
-                      label={getStatusText(vehicle.status)}
-                      icon={getStatusIcon(vehicle.status)}
-                      sx={{
-                        height: { xs: 18, sm: 20 },
-                        fontSize: { xs: '0.55rem', sm: '0.6rem' },
-                        bgcolor: getStatusBgColor(vehicle.status),
-                        color: 'white',
-                        fontWeight: 700,
-                        minWidth: 'auto',
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                        '& .MuiChip-icon': {
-                          color: 'white',
-                          fontSize: '0.8rem',
-                        },
-                      }}
-                    />
-                  </Box>
+                    <Badge
+                      variant="default"
+                      className={`h-4 sm:h-5 text-xs font-bold text-white min-w-0 max-w-full overflow-hidden ${
+                        vehicle.status === 'available' ? 'bg-green-500' :
+                        vehicle.status === 'rented' ? 'bg-blue-500' :
+                        vehicle.status === 'maintenance' ? 'bg-yellow-500' :
+                        vehicle.status === 'temporarily_removed' ? 'bg-red-500' : 'bg-gray-500'
+                      }`}
+                    >
+                      {getStatusText(vehicle.status)}
+                    </Badge>
+                  </div>
 
                   {/* Vehicle Details - scrollable right */}
-                  <Box
-                    sx={{
-                      flex: 1,
-                      p: { xs: 1, sm: 1.5 },
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      overflow: 'hidden',
-                      minWidth: 0,
-                    }}
-                  >
-                    <Box sx={{ overflow: 'hidden' }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                          color: '#333',
-                          mb: { xs: 0.25, sm: 0.5 },
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                  <div className="flex-1 p-2 sm:p-3 flex flex-col justify-between overflow-hidden min-w-0">
+                    <div className="overflow-hidden">
+                      <p className="font-semibold text-xs sm:text-sm text-gray-700 mb-1 sm:mb-2 overflow-hidden text-ellipsis whitespace-nowrap">
                         🏢 {vehicle.company}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#666',
-                          fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                          display: 'block',
-                          mb: { xs: 0.25, sm: 0.5 },
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      </p>
+                      <p className="text-gray-600 text-xs sm:text-xs block mb-1 sm:mb-2 overflow-hidden text-ellipsis whitespace-nowrap">
                         📊 Status: {getStatusText(vehicle.status)}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
 
                     {/* Mobile Action Buttons */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        gap: { xs: 0.5, sm: 0.75 },
-                        mt: { xs: 1, sm: 1.5 },
-                        justifyContent: 'flex-start',
-                        flexWrap: 'wrap',
-                      }}
-                    >
+                    <div className="flex gap-2 sm:gap-3 mt-2 sm:mt-3 justify-start flex-wrap">
                       {/* Edit Button */}
                       <Can
                         update="vehicles"
@@ -257,28 +201,18 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                           resourceCompanyId: vehicle.ownerCompanyId,
                         }}
                       >
-                        <IconButton
-                          size="small"
+                        <Button
+                          variant="default"
+                          size="sm"
                           title="Upraviť vozidlo"
-                          onClick={e => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             onEdit(vehicle);
                           }}
-                          sx={{
-                            bgcolor: '#2196f3',
-                            color: 'white',
-                            width: { xs: 36, sm: 32 },
-                            height: { xs: 36, sm: 32 },
-                            '&:hover': {
-                              bgcolor: '#1976d2',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
-                            },
-                            transition: 'all 0.2s ease',
-                          }}
+                          className="bg-blue-500 hover:bg-blue-600 text-white w-8 h-8 sm:w-8 sm:h-8 hover:scale-110 hover:shadow-lg transition-all duration-200 p-0"
                         >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
+                          <EditIcon className="h-4 w-4" />
+                        </Button>
                       </Can>
 
                       {/* Delete Button */}
@@ -289,410 +223,175 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                           resourceCompanyId: vehicle.ownerCompanyId,
                         }}
                       >
-                        <IconButton
-                          size="small"
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           title="Zmazať vozidlo"
-                          onClick={e => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             onDelete(vehicle.id);
                           }}
-                          sx={{
-                            bgcolor: '#f44336',
-                            color: 'white',
-                            width: { xs: 36, sm: 32 },
-                            height: { xs: 36, sm: 32 },
-                            '&:hover': {
-                              bgcolor: '#d32f2f',
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
-                            },
-                            transition: 'all 0.2s ease',
-                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white w-8 h-8 sm:w-8 sm:h-8 hover:scale-110 hover:shadow-lg transition-all duration-200 p-0"
                         >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                          <DeleteIcon className="h-4 w-4" />
+                        </Button>
                       </Can>
-                    </Box>
-                  </Box>
-                </Box>
+                    </div>
+                  </div>
+                </div>
               ))}
 
               {/* 🚀 INFINITE SCROLL: Load More Button */}
               {hasMore && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    p: 3,
-                    borderTop: '1px solid #e0e0e0',
-                  }}
-                >
+                <div className="flex justify-center p-6 border-t border-gray-200">
                   <Button
-                    variant="outlined"
+                    variant="outline"
                     onClick={onLoadMore}
                     disabled={isLoadingMore}
-                    sx={{
-                      minWidth: 200,
-                      py: 1.5,
-                      borderRadius: 3,
-                      textTransform: 'none',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                    }}
+                    className="min-w-48 py-3 rounded-xl text-base font-semibold"
                   >
                     {isLoadingMore
                       ? 'Načítavam...'
                       : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
                   </Button>
-                </Box>
+                </div>
               )}
-            </Box>
+            </div>
           </CardContent>
         </Card>
       ) : (
         /* DESKTOP TABLE VIEW */
-        <Card
-          sx={{
-            overflow: 'hidden',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
-            borderRadius: 3,
-          }}
-        >
-          <CardContent sx={{ p: 0 }}>
+        <Card className="overflow-hidden shadow-lg rounded-xl">
+          <CardContent className="p-0">
             {/* Desktop Header */}
-            <Box
-              sx={{
-                display: 'flex',
-                bgcolor: '#f8f9fa',
-                borderBottom: '2px solid #e0e0e0',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100,
-                minHeight: 56,
-              }}
-            >
+            <div className="flex bg-gray-50 border-b-2 border-gray-200 sticky top-0 z-50 min-h-14">
               {/* Vozidlo column */}
-              <Box
-                sx={{
-                  width: 200,
-                  minWidth: 200,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#333' }}
-                >
+              <div className="w-[200px] min-w-[200px] p-2 border-r border-gray-300 flex items-center">
+                <span className="text-sm font-bold text-gray-800">
                   🚗 Vozidlo
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* ŠPZ a VIN column */}
-              <Box
-                sx={{
-                  width: 140,
-                  minWidth: 140,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#333' }}
-                >
+              <div className="w-[140px] min-w-[140px] p-2 border-r border-gray-300 flex items-center">
+                <span className="text-sm font-bold text-gray-800">
                   📋 ŠPZ / VIN
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* Firma column */}
-              <Box
-                sx={{
-                  width: 150,
-                  minWidth: 150,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#333' }}
-                >
+              <div className="w-[150px] min-w-[150px] p-2 border-r border-gray-300 flex items-center">
+                <span className="text-sm font-bold text-gray-800">
                   🏢 Firma
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* Status column */}
-              <Box
-                sx={{
-                  width: 140,
-                  minWidth: 140,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#333' }}
-                >
+              <div className="w-[140px] min-w-[140px] p-2 border-r border-gray-300 flex items-center">
+                <span className="text-sm font-bold text-gray-800">
                   📊 Status
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* Ceny column */}
-              <Box
-                sx={{
-                  width: 200,
-                  minWidth: 200,
-                  p: 2,
-                  borderRight: '1px solid #e0e0e0',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#333' }}
-                >
+              <div className="w-[200px] min-w-[200px] p-2 border-r border-gray-300 flex items-center">
+                <span className="text-sm font-bold text-gray-800">
                   💰 Ceny
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* Akcie column */}
-              <Box
-                sx={{
-                  width: 120,
-                  minWidth: 120,
-                  p: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: '#333' }}
-                >
+              <div className="w-[120px] min-w-[120px] p-2 flex items-center justify-center">
+                <span className="text-sm font-bold text-gray-800">
                   ⚡ Akcie
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
 
             {/* Desktop Vehicle Rows */}
-            <Box
+            <div
               ref={desktopScrollRef}
-              sx={{ maxHeight: '70vh', overflowY: 'auto' }}
+              className="max-h-[70vh] overflow-y-auto"
               onScroll={onScroll}
             >
               {vehiclesToDisplay.map((vehicle, index) => (
-                <Box
+                <div
                   key={vehicle.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    p: 0,
-                    borderBottom:
-                      index < vehiclesToDisplay.length - 1
-                        ? '1px solid #e0e0e0'
-                        : 'none',
-                    '&:hover': { backgroundColor: '#f8f9fa' },
-                    minHeight: 72,
-                    cursor: 'pointer',
-                  }}
+                  className={`flex items-center p-0 min-h-[72px] cursor-pointer hover:bg-gray-50 ${
+                    index < vehiclesToDisplay.length - 1 ? 'border-b border-gray-300' : ''
+                  }`}
                   onClick={() => onEdit(vehicle)}
                 >
                   {/* Vozidlo column */}
-                  <Box
-                    sx={{
-                      width: 200,
-                      minWidth: 200,
-                      p: 2,
-                      borderRight: '1px solid #e0e0e0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 600,
-                        color: '#1976d2',
-                        mb: 0.5,
-                      }}
-                    >
+                  <div className="w-[200px] min-w-[200px] p-2 border-r border-gray-300 flex flex-col justify-center">
+                    <span className="text-sm font-semibold text-blue-600 mb-1">
                       {vehicle.brand} {vehicle.model}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: '#666',
-                        fontSize: '0.7rem',
-                      }}
-                    >
+                    </span>
+                    <span className="text-xs text-gray-600">
                       ID: {vehicle.id.slice(0, 8)}...
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   {/* ŠPZ a VIN column */}
-                  <Box
-                    sx={{
-                      width: 140,
-                      minWidth: 140,
-                      p: 2,
-                      borderRight: '1px solid #e0e0e0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        color: '#333',
-                        fontFamily: 'monospace',
-                      }}
-                    >
+                  <div className="w-[140px] min-w-[140px] p-2 border-r border-gray-300 flex flex-col justify-center">
+                    <span className="text-sm font-semibold text-gray-800 font-mono">
                       {vehicle.licensePlate}
-                    </Typography>
+                    </span>
                     {vehicle.vin && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#666',
-                          fontFamily: 'monospace',
-                          fontSize: '0.7rem',
-                          mt: 0.5,
-                        }}
-                      >
+                      <span className="text-xs text-gray-600 font-mono mt-1">
                         VIN: {vehicle.vin.slice(-8)}
-                      </Typography>
+                      </span>
                     )}
-                  </Box>
+                  </div>
 
                   {/* Firma column */}
-                  <Box
-                    sx={{
-                      width: 150,
-                      minWidth: 150,
-                      p: 2,
-                      borderRight: '1px solid #e0e0e0',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: '#333',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                  <div className="w-[150px] min-w-[150px] p-2 border-r border-gray-300 flex items-center">
+                    <span className="text-sm text-gray-800 overflow-hidden text-ellipsis whitespace-nowrap">
                       {vehicle.company}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   {/* Status column */}
-                  <Box
-                    sx={{
-                      width: 140,
-                      minWidth: 140,
-                      p: 2,
-                      borderRight: '1px solid #e0e0e0',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Chip
-                      size="small"
-                      label={getStatusText(vehicle.status)}
-                      icon={getStatusIcon(vehicle.status)}
-                      sx={{
-                        height: 24,
-                        fontSize: '0.7rem',
-                        bgcolor: getStatusBgColor(vehicle.status),
-                        color: 'white',
-                        fontWeight: 700,
-                        '& .MuiChip-icon': {
-                          color: 'white',
-                          fontSize: '0.9rem',
-                        },
-                      }}
-                    />
-                  </Box>
+                  <div className="w-[140px] min-w-[140px] p-2 border-r border-gray-300 flex items-center">
+                    <Badge 
+                      className="h-6 text-xs font-bold text-white"
+                      style={{ backgroundColor: getStatusBgColor(vehicle.status) }}
+                    >
+                      <span className="flex items-center gap-1">
+                        {getStatusIcon(vehicle.status)}
+                        {getStatusText(vehicle.status)}
+                      </span>
+                    </Badge>
+                  </div>
 
                   {/* Ceny column */}
-                  <Box
-                    sx={{
-                      width: 200,
-                      minWidth: 200,
-                      p: 2,
-                      borderRight: '1px solid #e0e0e0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <div className="w-[200px] min-w-[200px] p-2 border-r border-gray-300 flex flex-col justify-center">
                     {vehicle.pricing && vehicle.pricing.length > 0 ? (
                       <>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: '#666',
-                            fontSize: '0.65rem',
-                            mb: 0.25,
-                          }}
-                        >
+                        <span className="text-xs text-gray-600 mb-1">
                           1 deň:{' '}
                           {vehicle.pricing.find(
                             p => p.minDays === 0 && p.maxDays === 1
                           )?.pricePerDay || 0}
                           €
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: '#666',
-                            fontSize: '0.65rem',
-                          }}
-                        >
+                        </span>
+                        <span className="text-xs text-gray-600">
                           7+ dní:{' '}
                           {vehicle.pricing.find(
                             p => p.minDays === 4 && p.maxDays === 7
                           )?.pricePerDay || 0}
                           €
-                        </Typography>
+                        </span>
                       </>
                     ) : (
-                      <Typography variant="caption" sx={{ color: '#999' }}>
+                      <span className="text-xs text-gray-400">
                         Nezadané
-                      </Typography>
+                      </span>
                     )}
-                  </Box>
+                  </div>
 
                   {/* Akcie column */}
-                  <Box
-                    sx={{
-                      width: 120,
-                      minWidth: 120,
-                      p: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 0.5,
-                    }}
-                  >
+                  <div className="w-[120px] min-w-[120px] p-2 flex items-center justify-center gap-1">
                     {/* Edit Button */}
                     <Can
                       update="vehicles"
@@ -701,79 +400,46 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                         resourceCompanyId: vehicle.ownerCompanyId,
                       }}
                     >
-                      <IconButton
-                        size="small"
+                      <Button
+                        size="sm"
                         title="Upraviť vozidlo"
                         onClick={e => {
                           e.stopPropagation();
                           onEdit(vehicle);
                         }}
-                        sx={{
-                          bgcolor: '#2196f3',
-                          color: 'white',
-                          width: 28,
-                          height: 28,
-                          '&:hover': {
-                            bgcolor: '#1976d2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="w-7 h-7 p-0 bg-blue-500 hover:bg-blue-600 text-white hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
+                        <EditIcon className="h-4 w-4" />
+                      </Button>
                     </Can>
 
                     {/* Km History Button */}
                     {onKmHistory && (
-                      <IconButton
-                        size="small"
+                      <Button
+                        size="sm"
                         title="História kilometrov"
                         onClick={e => {
                           e.stopPropagation();
                           onKmHistory(vehicle);
                         }}
-                        sx={{
-                          bgcolor: '#2196f3',
-                          color: 'white',
-                          width: 28,
-                          height: 28,
-                          '&:hover': {
-                            bgcolor: '#1976d2',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="w-7 h-7 p-0 bg-blue-500 hover:bg-blue-600 text-white hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       >
-                        <KmIcon fontSize="small" />
-                      </IconButton>
+                        <KmIcon className="h-4 w-4" />
+                      </Button>
                     )}
 
                     {/* History Button */}
-                    <IconButton
-                      size="small"
+                    <Button
+                      size="sm"
                       title="História vozidla"
                       onClick={e => {
                         e.stopPropagation();
                         // TODO: Implement history view
                       }}
-                      sx={{
-                        bgcolor: '#9c27b0',
-                        color: 'white',
-                        width: 28,
-                        height: 28,
-                        '&:hover': {
-                          bgcolor: '#7b1fa2',
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 4px 12px rgba(156,39,176,0.4)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
+                      className="w-7 h-7 p-0 bg-purple-500 hover:bg-purple-600 text-white hover:scale-110 transition-all duration-200 hover:shadow-lg"
                     >
-                      <HistoryIcon fontSize="small" />
-                    </IconButton>
+                      <HistoryIcon className="h-4 w-4" />
+                    </Button>
 
                     {/* Delete Button */}
                     <Can
@@ -783,65 +449,42 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                         resourceCompanyId: vehicle.ownerCompanyId,
                       }}
                     >
-                      <IconButton
-                        size="small"
+                      <Button
+                        size="sm"
                         title="Zmazať vozidlo"
                         onClick={e => {
                           e.stopPropagation();
                           onDelete(vehicle.id);
                         }}
-                        sx={{
-                          bgcolor: '#f44336',
-                          color: 'white',
-                          width: 28,
-                          height: 28,
-                          '&:hover': {
-                            bgcolor: '#d32f2f',
-                            transform: 'scale(1.1)',
-                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
+                        className="w-7 h-7 p-0 bg-red-500 hover:bg-red-600 text-white hover:scale-110 transition-all duration-200 hover:shadow-lg"
                       >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                        <DeleteIcon className="h-4 w-4" />
+                      </Button>
                     </Can>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
 
               {/* 🚀 INFINITE SCROLL: Load More Button */}
               {hasMore && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    p: 3,
-                    borderTop: '1px solid #e0e0e0',
-                  }}
-                >
+                <div className="flex justify-center p-3 border-t border-gray-300">
                   <Button
-                    variant="outlined"
+                    variant="outline"
                     onClick={onLoadMore}
                     disabled={isLoadingMore}
-                    sx={{
-                      minWidth: 200,
-                      py: 1.5,
-                      borderRadius: 3,
-                      textTransform: 'none',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                    }}
+                    className="min-w-[200px] py-2 rounded-xl text-base font-semibold"
                   >
                     {isLoadingMore
                       ? 'Načítavam...'
                       : `Načítať ďalších (${filteredVehicles.length - displayedVehicles} zostáva)`}
                   </Button>
-                </Box>
+                </div>
               )}
-            </Box>
+            </div>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
     </>
   );

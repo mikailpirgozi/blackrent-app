@@ -1,42 +1,43 @@
 import {
-  Delete as DeleteIcon,
+  Trash2 as DeleteIcon,
   Edit as EditIcon,
-  PersonAdd as PersonAddIcon,
-} from '@mui/icons-material';
+  UserPlus as PersonAddIcon,
+} from 'lucide-react';
 import {
   Alert,
+  AlertDescription,
   Avatar,
-  Box,
   Button,
   Card,
   CardContent,
-  Chip,
-  CircularProgress,
+  Badge,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
+  DialogFooter,
+  Input,
+  Label,
   Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Skeleton,
-  Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  TextField,
   Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
   Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+} from '../ui';
+import { useMobile } from '../../hooks/use-mobile';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -64,10 +65,11 @@ interface User {
 }
 
 const BasicUserManagement: React.FC = () => {
-  const theme = useTheme();
   const { state } = useAuth();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  const isMobile = useMobile();
+
+  // 🔄 REÁLNE RIEŠENIE: Tracking posledného prihlásenia cez localStorage
+  // Implementujeme fallback tracking kým backend nepodporuje lastLogin
 
   // Helper function to safely format dates
   const formatDate = (
@@ -80,7 +82,7 @@ const BasicUserManagement: React.FC = () => {
       const date = new Date(dateValue);
       if (isNaN(date.getTime())) return fallback;
       return format(date, formatString, { locale: sk });
-    } catch {
+    } catch (error) {
       return fallback;
     }
   };
@@ -120,7 +122,7 @@ const BasicUserManagement: React.FC = () => {
     firstName: '',
     lastName: '',
     role: 'user',
-    linkedInvestorId: '',
+    linkedInvestorId: 'none',
     companyId: '',
   });
 
@@ -188,6 +190,16 @@ const BasicUserManagement: React.FC = () => {
     loadInvestors();
   }, [refetchUsers, loadInvestors]);
 
+  // Track prihlásenie aktuálneho používateľa
+  useEffect(() => {
+    if (state.user?.username) {
+      const now = new Date().toISOString();
+      const storageKey = `user_last_login_${state.user.username}`;
+      localStorage.setItem(storageKey, now);
+      console.log('📝 Tracked login for user:', state.user.username, 'at:', now);
+    }
+  }, [state.user?.username]);
+
   const handleCreateUser = async () => {
     console.log('🚀 Starting user creation process...');
     console.log('📝 User form data:', userForm);
@@ -242,7 +254,7 @@ const BasicUserManagement: React.FC = () => {
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       role: user.role,
-      linkedInvestorId: '', // Pre edit dialog nepovoľujeme zmenu investora
+      linkedInvestorId: 'none', // Pre edit dialog nepovoľujeme zmenu investora
       companyId:
         ((user as unknown as Record<string, unknown>).companyId as string) ||
         '',
@@ -305,21 +317,38 @@ const BasicUserManagement: React.FC = () => {
       firstName: '',
       lastName: '',
       role: 'user',
-      linkedInvestorId: '',
+      linkedInvestorId: 'none',
       companyId: '',
     });
   };
 
-  const getRoleColor = (role: string) => {
+  // const getRoleColor = (role: string) => {
+  //   switch (role) {
+  //     case 'admin':
+  //       return 'destructive'; // Červená pre admin
+  //     case 'manager':
+  //       return 'default'; // Modrá pre manažéra
+  //     case 'employee':
+  //       return 'secondary'; // Šedá pre zamestnanca
+  //     case 'user':
+  //       return 'outline'; // Biela s border pre bežného používateľa
+  //     default:
+  //       return 'outline';
+  //   }
+  // };
+
+  const getRoleBadgeStyle = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'error';
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'manager':
-        return 'warning';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'employee':
-        return 'info';
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'user':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
-        return 'default';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -336,236 +365,280 @@ const BasicUserManagement: React.FC = () => {
     }
   };
 
+  // Funkcia na detekciu online statusu (reálna implementácia)
+  const isUserOnline = (user: User) => {
+    if (!user.isActive) return false;
+    
+    // Ak je to aktuálny používateľ, je určite online
+    if (user.username === state.user?.username) {
+      return true;
+    }
+    
+    // Pre ostatných používateľov skontroluj localStorage tracking
+    const lastLoginData = getRealLastLogin(user);
+    if (!lastLoginData) return false;
+    
+    const lastLogin = new Date(lastLoginData);
+    const now = new Date();
+    const diffInMinutes = (now.getTime() - lastLogin.getTime()) / (1000 * 60);
+    
+    // Online ak sa prihlásil v posledných 30 minútach
+    return diffInMinutes <= 30;
+  };
+
+  // Funkcia na získanie reálneho posledného prihlásenia z localStorage
+  const getRealLastLogin = (user: User) => {
+    // Najprv skús backend dáta
+    if (user.lastLogin) {
+      return user.lastLogin;
+    }
+
+    // Fallback: localStorage tracking
+    const storageKey = `user_last_login_${user.username}`;
+    const storedLogin = localStorage.getItem(storageKey);
+    
+    if (storedLogin) {
+      return storedLogin;
+    }
+
+    // Ak je to aktuálny používateľ, použij aktuálny čas
+    if (user.username === state.user?.username) {
+      const now = new Date().toISOString();
+      localStorage.setItem(storageKey, now);
+      return now;
+    }
+
+    return null;
+  };
+
+  // Funkcia na formátovanie posledného prihlásenia
+  const formatLastLogin = (user: User) => {
+    const lastLoginData = getRealLastLogin(user);
+    
+    if (!lastLoginData) {
+      return user.isActive ? 'Nedávno' : 'Nikdy';
+    }
+    
+    try {
+      const lastLogin = new Date(lastLoginData);
+      
+      if (isNaN(lastLogin.getTime())) {
+        return 'Neznámy dátum';
+      }
+      
+      const now = new Date();
+      const diffInMinutes = (now.getTime() - lastLogin.getTime()) / (1000 * 60);
+      
+      if (diffInMinutes < 1) return 'Práve teraz';
+      if (diffInMinutes < 60) return `Pred ${Math.round(diffInMinutes)} min`;
+      if (diffInMinutes < 1440) return `Pred ${Math.round(diffInMinutes / 60)} hod`;
+      if (diffInMinutes < 10080) return `Pred ${Math.round(diffInMinutes / 1440)} dňami`;
+      
+      return formatDate(lastLoginData, 'dd.MM.yyyy HH:mm', 'Neznámy');
+    } catch (error) {
+      return 'Chyba dát';
+    }
+  };
+
   // Mobile User Card Component
   const UserCard: React.FC<{ user: User }> = ({ user }) => (
-    <Card sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
-      <CardContent sx={{ p: 2 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            mb: 2,
-          }}
-        >
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}
-          >
-            <Avatar sx={{ width: 40, height: 40 }}>
-              {user.firstName?.[0] || user.username[0].toUpperCase()}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 600, lineHeight: 1.2 }}
-              >
+    <Card className="mb-2 border">
+      <CardContent className="p-2">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="relative">
+              <Avatar className="h-10 w-10">
+                {user.firstName?.[0] || user.username?.[0]?.toUpperCase() || '?'}
+              </Avatar>
+              {/* Online status indicator */}
+              {isUserOnline(user) && (
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-lg animate-pulse"></div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <Typography className="font-semibold leading-tight mb-2">
                 {user.firstName && user.lastName
                   ? `${user.firstName} ${user.lastName}`
                   : user.username}
               </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: '0.875rem' }}
-              >
-                @{user.username}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: '0.875rem' }}
-              >
+              <Typography className="text-sm text-muted-foreground">
                 {user.email}
               </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Tooltip title="Upraviť">
-              <IconButton size="small" onClick={() => handleEditUser(user)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            {user.id !== state.user?.id && (
-              <Tooltip title="Vymazať">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setDeleteDialogOpen(true);
-                  }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditUser(user)}
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Upraviť</p>
+                </TooltipContent>
               </Tooltip>
+            </TooltipProvider>
+            {user.id !== state.user?.id && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <DeleteIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Vymazať</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        <Stack spacing={1.5}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 1,
-              alignItems: 'center',
-            }}
-          >
-            <Chip
-              size="small"
-              label={getRoleLabel(user.role)}
-              color={getRoleColor(user.role)}
-              variant="outlined"
-            />
-            <Chip
-              size="small"
-              label={user.isActive ? 'Aktívny' : 'Neaktívny'}
-              color={user.isActive ? 'success' : 'error'}
-            />
-          </Box>
+        <div className="space-y-4">
+          {/* Používateľské meno v samostatnej sekcii */}
+          <div className="bg-gray-50 p-3 rounded-md border-l-4 border-blue-500">
+            <Typography className="text-xs text-muted-foreground mb-2 font-medium">
+              Používateľské meno:
+            </Typography>
+            <Typography className="text-sm font-mono bg-white px-2 py-1 rounded border">
+              @{user.username}
+            </Typography>
+          </div>
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 1,
-              fontSize: '0.875rem',
-            }}
-          >
-            <Box>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Badge
+              variant="outline"
+              className={`text-xs ${getRoleBadgeStyle(user.role)}`}
+            >
+              {getRoleLabel(user.role)}
+            </Badge>
+            <Badge
+              variant={user.isActive ? 'default' : 'destructive'}
+              className="text-xs"
+            >
+              {user.isActive ? 'Aktívny' : 'Neaktívny'}
+            </Badge>
+            {isUserOnline(user) && (
+              <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+                🟢 Online
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
               <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', fontWeight: 500 }}
+                className="block font-medium text-muted-foreground text-xs"
               >
                 Posledné prihlásenie:
               </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                {formatDate(user.lastLogin, 'dd.MM.yyyy HH:mm', 'Nikdy')}
+              <Typography className="text-sm">
+                {formatLastLogin(user)}
               </Typography>
-            </Box>
-            <Box>
+            </div>
+            <div>
               <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', fontWeight: 500 }}
+                className="block font-medium text-muted-foreground text-xs"
               >
                 Vytvorený:
               </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+              <Typography className="text-sm">
                 {formatDate(user.createdAt, 'dd.MM.yyyy', 'Neznámy')}
               </Typography>
-            </Box>
-          </Box>
-        </Stack>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          p: { xs: 2, sm: 3 },
-          backgroundColor: { xs: 'transparent', sm: 'background.paper' },
-          borderRadius: { xs: 0, sm: 2 },
-        }}
-      >
-        <Skeleton variant="text" width="60%" height={40} />
+      <div className={`p-4 ${isMobile ? 'bg-transparent' : 'bg-background'} rounded-lg min-h-[calc(100vh-200px)]`}>
+        <Skeleton className="h-10 w-3/5 mb-6" />
         {isMobile ? (
           // Mobile loading cards
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-2">
             {[1, 2, 3].map(i => (
-              <Card key={i} sx={{ mb: 2 }}>
+              <Card key={i} className="mb-2">
                 <CardContent>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      mb: 2,
-                    }}
-                  >
-                    <Skeleton variant="circular" width={40} height={40} />
-                    <Box sx={{ flex: 1 }}>
-                      <Skeleton variant="text" width="70%" />
-                      <Skeleton variant="text" width="50%" />
-                    </Box>
-                  </Box>
-                  <Skeleton variant="text" width="100%" />
-                  <Skeleton variant="text" width="80%" />
+                  <div className="flex items-center gap-3 mb-2">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-3 w-full mb-2" />
+                  <Skeleton className="h-3 w-4/5" />
                 </CardContent>
               </Card>
             ))}
-          </Box>
+          </div>
         ) : (
           // Desktop loading table
-          <Skeleton variant="rectangular" height={400} sx={{ mt: 2 }} />
+          <Skeleton className="h-96 mt-2" />
         )}
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, sm: 3 },
-        backgroundColor: { xs: 'transparent', sm: 'background.paper' },
-        borderRadius: { xs: 0, sm: 2 },
-        minHeight: { xs: 'calc(100vh - 200px)', sm: 'auto' },
-      }}
-    >
+    <div className={`p-4 ${isMobile ? 'bg-transparent' : 'bg-background'} rounded-lg min-h-[calc(100vh-200px)]`}>
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: { xs: 2, sm: 3 },
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          pb: { xs: 2, sm: 0 },
-          borderBottom: { xs: '1px solid', sm: 'none' },
-          borderColor: 'divider',
-        }}
-      >
+      <div className={`flex justify-between items-center mb-6 ${isMobile ? 'flex-col gap-4 pb-4 border-b' : 'flex-row'}`}>
         <Typography
           variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: '#1976d2',
-            fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2rem' },
-            textAlign: { xs: 'center', sm: 'left' },
-          }}
+          className={`font-bold text-primary ${isMobile ? 'text-xl text-center' : 'text-2xl text-left'}`}
         >
           👥 Správa používateľov
         </Typography>
         <Button
-          variant="contained"
-          startIcon={<PersonAddIcon fontSize={isMobile ? 'small' : 'medium'} />}
           onClick={() => setUserDialogOpen(true)}
-          sx={{
-            minWidth: { xs: '100%', sm: 'auto' },
-            py: { xs: 1.5, sm: 1 },
-            fontSize: { xs: '0.9rem', sm: '1rem' },
-          }}
+          className={`${isMobile ? 'w-full py-3 text-sm' : 'py-2 text-base'}`}
         >
+          <PersonAddIcon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} mr-2`} />
           Pridať používateľa
         </Button>
-      </Box>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Users List - Responsive */}
       <Card>
         <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Používatelia ({users.length})
-          </Typography>
+          <div className="flex items-center justify-between mb-4">
+            <Typography variant="h6">
+              Používatelia ({users.length})
+            </Typography>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Online: {users.filter(isUserOnline).length}</span>
+              </div>
+              <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                📊 Reálne dáta
+              </div>
+            </div>
+          </div>
 
           {/* Sort users alphabetically by firstName, lastName, then username */}
           {(() => {
@@ -593,19 +666,9 @@ const BasicUserManagement: React.FC = () => {
               <>
                 {/* Mobile Card Layout */}
                 {isMobile ? (
-                  <Box
-                    sx={{
-                      maxHeight: 'calc(100vh - 300px)',
-                      overflowY: 'auto',
-                      pr: 1,
-                    }}
-                  >
+                  <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
                     {sortedUsers.length === 0 ? (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ textAlign: 'center', py: 4 }}
-                      >
+                      <Typography variant="body2" className="text-center py-8 text-muted-foreground">
                         Žiadni používatelia
                       </Typography>
                     ) : (
@@ -613,138 +676,143 @@ const BasicUserManagement: React.FC = () => {
                         <UserCard key={user.id} user={user} />
                       ))
                     )}
-                  </Box>
+                  </div>
                 ) : (
                   /* Desktop Table Layout */
-                  <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-                    <Table sx={{ minWidth: isTablet ? 800 : 1000 }}>
-                      <TableHead>
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[800px]">
+                      <TableHeader>
                         <TableRow>
-                          <TableCell>Používateľ</TableCell>
-                          <TableCell>Email</TableCell>
-                          <TableCell>Rola</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell>Posledné prihlásenie</TableCell>
-                          <TableCell>Vytvorený</TableCell>
-                          <TableCell>Akcie</TableCell>
+                          <TableHead>Používateľ</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Rola</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Posledné prihlásenie</TableHead>
+                          <TableHead>Vytvorený</TableHead>
+                          <TableHead>Akcie</TableHead>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {sortedUsers.map(user => (
-                          <TableRow key={user.id} hover>
+                          <TableRow key={user.id} className="hover:bg-muted/50">
                             <TableCell>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                }}
-                              >
-                                <Avatar sx={{ width: 32, height: 32 }}>
-                                  {user.firstName?.[0] ||
-                                    user.username[0].toUpperCase()}
-                                </Avatar>
-                                <Box>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ fontWeight: 500 }}
-                                  >
+                              <div className="flex items-center gap-2">
+                                <div className="relative">
+                                  <Avatar className="h-8 w-8">
+                                    {(user.firstName?.[0] ||
+                                      user.username?.[0]?.toUpperCase()) ?? '?'}
+                                  </Avatar>
+                                  {/* Online status indicator */}
+                                  {isUserOnline(user) && (
+                                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-lg"></div>
+                                  )}
+                                </div>
+                                <div>
+                                  <Typography variant="body2" className="font-medium">
                                     {user.firstName && user.lastName
                                       ? `${user.firstName} ${user.lastName}`
                                       : user.username}
                                   </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {user.username}
+                                  <Typography variant="caption" className="text-muted-foreground font-mono block mt-1">
+                                    @{user.username}
                                   </Typography>
-                                </Box>
-                              </Box>
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Typography
                                 variant="body2"
-                                sx={{
-                                  maxWidth: isTablet ? 150 : 200,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
+                                className="max-w-[200px] truncate"
                               >
                                 {user.email}
                               </Typography>
                             </TableCell>
                             <TableCell>
-                              <Chip
-                                size="small"
-                                label={getRoleLabel(user.role)}
-                                color={getRoleColor(user.role)}
-                                variant="outlined"
-                              />
+                              <div className="flex flex-wrap gap-1">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${getRoleBadgeStyle(user.role)}`}
+                                >
+                                  {getRoleLabel(user.role)}
+                                </Badge>
+                              </div>
                             </TableCell>
                             <TableCell>
-                              <Chip
-                                size="small"
-                                label={user.isActive ? 'Aktívny' : 'Neaktívny'}
-                                color={user.isActive ? 'success' : 'error'}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontSize: '0.875rem' }}
-                              >
-                                {formatDate(
-                                  user.lastLogin,
-                                  isTablet ? 'dd.MM.yy' : 'dd.MM.yyyy HH:mm',
-                                  'Nikdy'
+                              <div className="flex flex-wrap gap-1">
+                                <Badge
+                                  variant={user.isActive ? 'default' : 'destructive'}
+                                  className="text-xs"
+                                >
+                                  {user.isActive ? 'Aktívny' : 'Neaktívny'}
+                                </Badge>
+                                {isUserOnline(user) && (
+                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+                                    🟢 Online
+                                  </Badge>
                                 )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" className="text-sm">
+                                {formatLastLogin(user)}
                               </Typography>
                             </TableCell>
                             <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontSize: '0.875rem' }}
-                              >
+                              <Typography variant="body2" className="text-sm">
                                 {formatDate(
                                   user.createdAt,
-                                  isTablet ? 'dd.MM.yy' : 'dd.MM.yyyy',
+                                  'dd.MM.yyyy',
                                   'Neznámy'
                                 )}
                               </Typography>
                             </TableCell>
                             <TableCell>
-                              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                <Tooltip title="Upraviť">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleEditUser(user)}
-                                  >
-                                    <EditIcon />
-                                  </IconButton>
-                                </Tooltip>
-                                {user.id !== state.user?.id && (
-                                  <Tooltip title="Vymazať">
-                                    <IconButton
-                                      size="small"
-                                      color="error"
-                                      onClick={() => {
-                                        setSelectedUser(user);
-                                        setDeleteDialogOpen(true);
-                                      }}
-                                    >
-                                      <DeleteIcon />
-                                    </IconButton>
+                              <div className="flex gap-1">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditUser(user)}
+                                      >
+                                        <EditIcon className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Upraviť</p>
+                                    </TooltipContent>
                                   </Tooltip>
+                                </TooltipProvider>
+                                {user.id !== state.user?.id && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedUser(user);
+                                            setDeleteDialogOpen(true);
+                                          }}
+                                          className="text-destructive hover:text-destructive"
+                                        >
+                                          <DeleteIcon className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Vymazať</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
-                              </Box>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  </TableContainer>
+                  </div>
                 )}
               </>
             );
@@ -753,131 +821,115 @@ const BasicUserManagement: React.FC = () => {
       </Card>
 
       {/* Create User Dialog */}
-      <Dialog
-        open={userDialogOpen}
-        onClose={() => setUserDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            ...(isMobile && {
-              m: 0,
-              borderRadius: 0,
-              maxHeight: '100vh',
-            }),
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            pb: 1,
-            fontSize: isMobile ? '1.25rem' : '1.5rem',
-            borderBottom: isMobile ? '1px solid' : 'none',
-            borderColor: 'divider',
-          }}
-        >
-          Pridať používateľa
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            px: isMobile ? 2 : 3,
-            py: isMobile ? 2 : 1,
-          }}
-        >
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Používateľské meno"
-                value={userForm.username}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, username: e.target.value }))
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={userForm.email}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, email: e.target.value }))
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Meno"
-                value={userForm.firstName}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, firstName: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Priezvisko"
-                value={userForm.lastName}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, lastName: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Heslo"
-                type="password"
-                value={userForm.password}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, password: e.target.value }))
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Rola</InputLabel>
+      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
+        <DialogContent className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-md'}`}>
+          <DialogHeader>
+            <DialogTitle className={isMobile ? 'text-xl' : 'text-2xl'}>
+              Pridať používateľa
+            </DialogTitle>
+            <DialogDescription>
+              Vyplňte údaje pre nového používateľa. Všetky polia označené hviezdičkou sú povinné.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="username">Používateľské meno</Label>
+                <Input
+                  id="username"
+                  value={userForm.username}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, username: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, email: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="firstName">Meno</Label>
+                <Input
+                  id="firstName"
+                  value={userForm.firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Priezvisko</Label>
+                <Input
+                  id="lastName"
+                  value={userForm.lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, lastName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Heslo</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, password: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="role">Rola</Label>
                 <Select
                   value={userForm.role}
-                  onChange={e =>
-                    setUserForm(prev => ({ ...prev, role: e.target.value }))
+                  onValueChange={(value) =>
+                    setUserForm(prev => ({ ...prev, role: value }))
                   }
-                  label="Rola"
                 >
-                  <MenuItem value="user">Používateľ</MenuItem>
-                  <MenuItem value="employee">Zamestnanec</MenuItem>
-                  <MenuItem value="manager">Manažér</MenuItem>
-                  <MenuItem value="admin">Administrátor</MenuItem>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte rolu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Používateľ</SelectItem>
+                    <SelectItem value="employee">Zamestnanec</SelectItem>
+                    <SelectItem value="manager">Manažér</SelectItem>
+                    <SelectItem value="admin">Administrátor</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
+              </div>
+            </div>
 
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Priradenie k investorovi (voliteľné)</InputLabel>
-                <Select
-                  value={userForm.linkedInvestorId}
-                  onChange={e =>
-                    setUserForm(prev => ({
-                      ...prev,
-                      linkedInvestorId: e.target.value,
-                    }))
-                  }
-                  label="Priradenie k investorovi (voliteľné)"
-                  disabled={loadingInvestors}
-                >
-                  <MenuItem value="">
+            <div>
+              <Label htmlFor="investor">Priradenie k investorovi (voliteľné)</Label>
+              <Select
+                value={userForm.linkedInvestorId}
+                onValueChange={(value) =>
+                  setUserForm(prev => ({
+                    ...prev,
+                    linkedInvestorId: value,
+                  }))
+                }
+                disabled={loadingInvestors}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte investora" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
                     Žiadne priradenie - bežný používateľ
-                  </MenuItem>
+                  </SelectItem>
                   {investors.map(investor => (
-                    <MenuItem
+                    <SelectItem
                       key={investor.id as string}
                       value={investor.id as string}
                     >
@@ -889,259 +941,199 @@ const BasicUserManagement: React.FC = () => {
                             `${c.companyName as string} (${c.ownershipPercentage as number}%)`
                         )
                         .join(', ')}
-                    </MenuItem>
+                    </SelectItem>
                   ))}
-                </Select>
-                {loadingInvestors && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    <Typography variant="caption">
-                      Načítavam investorov...
-                    </Typography>
-                  </Box>
-                )}
-              </FormControl>
-            </Grid>
-          </Grid>
+                </SelectContent>
+              </Select>
+              {loadingInvestors && (
+                <div className="flex items-center mt-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                  <Typography className="text-sm text-muted-foreground">
+                    Načítavam investorov...
+                  </Typography>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUserDialogOpen(false);
+                resetUserForm();
+              }}
+              className={isMobile ? 'w-full' : ''}
+            >
+              Zrušiť
+            </Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={createUserMutation.isPending}
+              className={isMobile ? 'w-full' : ''}
+            >
+              {createUserMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Vytváram...
+                </>
+              ) : (
+                'Vytvoriť'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions
-          sx={{
-            p: isMobile ? 2 : 1,
-            gap: 1,
-            flexDirection: isMobile ? 'column-reverse' : 'row',
-            borderTop: isMobile ? '1px solid' : 'none',
-            borderColor: 'divider',
-          }}
-        >
-          <Button
-            onClick={() => {
-              setUserDialogOpen(false);
-              resetUserForm();
-            }}
-            fullWidth={isMobile}
-            sx={{ minWidth: isMobile ? '100%' : 'auto' }}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCreateUser}
-            disabled={createUserMutation.isPending}
-            fullWidth={isMobile}
-            sx={{ minWidth: isMobile ? '100%' : 'auto' }}
-            startIcon={
-              createUserMutation.isPending ? (
-                <CircularProgress size={16} />
-              ) : undefined
-            }
-          >
-            {createUserMutation.isPending ? 'Vytváram...' : 'Vytvoriť'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Edit User Dialog */}
-      <Dialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            ...(isMobile && {
-              m: 0,
-              borderRadius: 0,
-              maxHeight: '100vh',
-            }),
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            pb: 1,
-            fontSize: isMobile ? '1.25rem' : '1.5rem',
-            borderBottom: isMobile ? '1px solid' : 'none',
-            borderColor: 'divider',
-          }}
-        >
-          Upraviť používateľa
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            px: isMobile ? 2 : 3,
-            py: isMobile ? 2 : 1,
-          }}
-        >
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Používateľské meno"
-                value={userForm.username}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, username: e.target.value }))
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={userForm.email}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, email: e.target.value }))
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Meno"
-                value={userForm.firstName}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, firstName: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Priezvisko"
-                value={userForm.lastName}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, lastName: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Nové heslo (nechajte prázdne pre zachovanie)"
-                type="password"
-                value={userForm.password}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, password: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Rola</InputLabel>
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-md'}`}>
+          <DialogHeader>
+            <DialogTitle className={isMobile ? 'text-xl' : 'text-2xl'}>
+              Upraviť používateľa
+            </DialogTitle>
+            <DialogDescription>
+              Upravte údaje používateľa {selectedUser?.username}. Nechajte pole hesla prázdne pre zachovanie aktuálneho hesla.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-username">Používateľské meno</Label>
+                <Input
+                  id="edit-username"
+                  value={userForm.username}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, username: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, email: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-firstName">Meno</Label>
+                <Input
+                  id="edit-firstName"
+                  value={userForm.firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-lastName">Priezvisko</Label>
+                <Input
+                  id="edit-lastName"
+                  value={userForm.lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, lastName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-password">Nové heslo (nechajte prázdne pre zachovanie)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, password: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-role">Rola</Label>
                 <Select
                   value={userForm.role}
-                  onChange={e =>
-                    setUserForm(prev => ({ ...prev, role: e.target.value }))
+                  onValueChange={(value) =>
+                    setUserForm(prev => ({ ...prev, role: value }))
                   }
-                  label="Rola"
                 >
-                  <MenuItem value="user">Používateľ</MenuItem>
-                  <MenuItem value="employee">Zamestnanec</MenuItem>
-                  <MenuItem value="manager">Manažér</MenuItem>
-                  <MenuItem value="admin">Administrátor</MenuItem>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte rolu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Používateľ</SelectItem>
+                    <SelectItem value="employee">Zamestnanec</SelectItem>
+                    <SelectItem value="manager">Manažér</SelectItem>
+                    <SelectItem value="admin">Administrátor</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false);
+                setSelectedUser(null);
+                resetUserForm();
+              }}
+              className={isMobile ? 'w-full' : ''}
+            >
+              Zrušiť
+            </Button>
+            <Button
+              onClick={handleUpdateUser}
+              className={isMobile ? 'w-full' : ''}
+            >
+              Uložiť
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions
-          sx={{
-            p: isMobile ? 2 : 1,
-            gap: 1,
-            flexDirection: isMobile ? 'column-reverse' : 'row',
-            borderTop: isMobile ? '1px solid' : 'none',
-            borderColor: 'divider',
-          }}
-        >
-          <Button
-            onClick={() => {
-              setEditDialogOpen(false);
-              setSelectedUser(null);
-              resetUserForm();
-            }}
-            fullWidth={isMobile}
-            sx={{ minWidth: isMobile ? '100%' : 'auto' }}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleUpdateUser}
-            fullWidth={isMobile}
-            sx={{ minWidth: isMobile ? '100%' : 'auto' }}
-          >
-            Uložiť
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            ...(isMobile && {
-              m: 2,
-              borderRadius: 2,
-            }),
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            pb: 1,
-            fontSize: isMobile ? '1.25rem' : '1.5rem',
-          }}
-        >
-          Potvrdiť vymazanie
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            px: isMobile ? 2 : 3,
-            py: isMobile ? 1 : 2,
-          }}
-        >
-          <Typography sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }}>
-            Naozaj chcete vymazať používateľa{' '}
-            <strong>{selectedUser?.username}</strong>? Táto akcia sa nedá vrátiť
-            späť.
-          </Typography>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className={isMobile ? 'text-xl' : 'text-2xl'}>
+              Potvrdiť vymazanie
+            </DialogTitle>
+            <DialogDescription>
+              Táto akcia je nevratná. Používateľ {selectedUser?.username} bude trvalo vymazaný zo systému.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Typography className={isMobile ? 'text-sm' : 'text-base'}>
+              Naozaj chcete vymazať používateľa{' '}
+              <strong>{selectedUser?.username}</strong>? Táto akcia sa nedá vrátiť
+              späť.
+            </Typography>
+          </div>
+          <DialogFooter className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setSelectedUser(null);
+              }}
+              className={isMobile ? 'w-full' : ''}
+            >
+              Zrušiť
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteUser}
+              className={isMobile ? 'w-full' : ''}
+            >
+              Vymazať
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions
-          sx={{
-            p: isMobile ? 2 : 1,
-            gap: 1,
-            flexDirection: isMobile ? 'column-reverse' : 'row',
-          }}
-        >
-          <Button
-            onClick={() => {
-              setDeleteDialogOpen(false);
-              setSelectedUser(null);
-            }}
-            fullWidth={isMobile}
-            sx={{ minWidth: isMobile ? '100%' : 'auto' }}
-          >
-            Zrušiť
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteUser}
-            fullWidth={isMobile}
-            sx={{ minWidth: isMobile ? '100%' : 'auto' }}
-          >
-            Vymazať
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

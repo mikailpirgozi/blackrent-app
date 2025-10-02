@@ -1,32 +1,28 @@
 import {
-  Calculate,
-  Cancel,
-  Check,
-  Close,
-  DirectionsCar,
-  Edit,
-  LocationOn,
-  Person,
-  PhotoCamera,
-  Save,
-  SpeedOutlined,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  // CircularProgress, // REMOVED - not needed with React Query
-  Grid,
-  IconButton,
-  LinearProgress,
-  TextField,
-  Typography,
-} from '@mui/material';
+  Calculator as Calculate,
+  X as Cancel,
+  Check as Check,
+  X as Close,
+  Car as DirectionsCar,
+  Edit as Edit,
+  MapPin as LocationOn,
+  User as Person,
+  Camera as PhotoCamera,
+  Save as Save,
+  Gauge as SpeedOutlined,
+  Loader2,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 
 import { useAuth } from '../../context/AuthContext';
 import { useCreateReturnProtocol } from '../../lib/react-query/hooks/useProtocols';
@@ -49,7 +45,7 @@ interface ReturnProtocolFormProps {
   onClose: () => void;
   rental: Rental;
   handoverProtocol: HandoverProtocol;
-  onSave: (protocol: ReturnProtocol) => void;
+  onSave: (_protocol: ReturnProtocol) => void;
 }
 
 export default function ReturnProtocolForm({
@@ -212,7 +208,7 @@ export default function ReturnProtocolForm({
     const notes = handoverProtocol.notes;
     const depositMatch = notes.match(/Spôsob úhrady depozitu:\s*(.+)/);
 
-    if (depositMatch) {
+    if (depositMatch && depositMatch[1]) {
       const method = depositMatch[1].trim();
       switch (method) {
         case 'Hotovosť':
@@ -251,15 +247,17 @@ export default function ReturnProtocolForm({
   if (!handoverProtocol) {
     console.error('❌ ReturnProtocolForm: handoverProtocol is undefined');
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Chyba: Odovzdávací protokol nebol nájdený. Prosím, zatvorte a skúste
-          to znovu.
+      <div className="p-6">
+        <Alert>
+          <AlertDescription>
+            Chyba: Odovzdávací protokol nebol nájdený. Prosím, zatvorte a skúste
+            to znovu.
+          </AlertDescription>
         </Alert>
-        <Button onClick={onClose} sx={{ mt: 2 }}>
+        <Button onClick={onClose} className="mt-4">
           Zatvoriť
         </Button>
-      </Box>
+      </div>
     );
   }
 
@@ -402,7 +400,7 @@ export default function ReturnProtocolForm({
         rentalData: {
           orderNumber: rental.orderNumber || '',
           vehicle: rental.vehicle || ({} as Vehicle),
-          vehicleVin: rental.vehicleVin,
+          ...(rental.vehicleVin && { vehicleVin: rental.vehicleVin }),
           customer: rental.customer || ({} as Customer),
           startDate: rental.startDate as Date,
           endDate: rental.endDate as Date,
@@ -411,7 +409,7 @@ export default function ReturnProtocolForm({
           currency: 'EUR',
           allowedKilometers: rental.allowedKilometers || 0,
           extraKilometerRate: rental.extraKilometerRate || 0,
-          returnConditions: rental.returnConditions,
+          ...(rental.returnConditions && { returnConditions: rental.returnConditions }),
         },
         // Creator info
         createdBy: state.user
@@ -434,7 +432,7 @@ export default function ReturnProtocolForm({
       });
 
       // Počkáme 2 sekundy pred zatvorením
-      setTimeout(() => {
+      window.setTimeout(() => {
         onClose();
       }, 2000);
     } catch (error) {
@@ -447,798 +445,524 @@ export default function ReturnProtocolForm({
   };
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        maxWidth: '100%',
-      }}
-    >
+    <div className="w-full max-w-full">
       {/* Email Status */}
       {(isLoading || emailStatus?.status === 'pending') && (
-        <Box sx={{ mb: 2 }}>
-          <LinearProgress />
-          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+        <div className="mb-4">
+          <Progress value={isLoading ? undefined : 100} className="h-2" />
+          <p className="mt-2 text-sm text-center text-muted-foreground">
             {isLoading ? '⚡ Ukladám protokol...' : emailStatus?.message}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {emailStatus && emailStatus.status !== 'pending' && (
-        <Alert
-          severity={
-            emailStatus.status === 'success'
-              ? 'success'
-              : emailStatus.status === 'warning'
-                ? 'warning'
-                : 'error'
-          }
-          sx={{
-            mb: 2,
-            position: 'sticky',
-            top: 0,
-            zIndex: 1000,
-            animation: 'fadeIn 0.3s ease-in',
-          }}
-        >
-          {emailStatus.message}
+        <Alert className={`mb-4 sticky top-0 z-[1000] ${
+          emailStatus.status === 'success' 
+            ? 'border-green-200 bg-green-50 text-green-800' 
+            : emailStatus.status === 'warning'
+              ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+        }`}>
+          <AlertDescription>
+            {emailStatus.message}
+          </AlertDescription>
         </Alert>
       )}
 
       {/* React Query handles retries automatically */}
 
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-        }}
-      >
-        <Box>
-          <Typography variant="h5" color="text.primary">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground">
             Preberací protokol - {rental.vehicle?.licensePlate || 'Vozidlo'}
-          </Typography>
+          </h2>
           {(rental.vehicleVin || rental.vehicle?.vin) && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: '#888',
-                fontFamily: 'monospace',
-                display: 'block',
-              }}
-            >
+            <p className="text-sm text-muted-foreground font-mono block mt-1">
               VIN: {rental.vehicleVin || rental.vehicle?.vin}
-            </Typography>
+            </p>
           )}
-        </Box>
-        <IconButton onClick={onClose} size="large">
-          <Close />
-        </IconButton>
-      </Box>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <Close className="h-5 w-5" />
+        </Button>
+      </div>
 
       {isLoading && (
-        <Box sx={{ mb: 2 }}>
-          <LinearProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <div className="mb-4">
+          <Progress value={undefined} className="h-2" />
+          <p className="mt-2 text-sm text-muted-foreground">
             Ukladám protokol...
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Info o preberacom protokole */}
       {handoverProtocol && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Navzäuje na odovzdávací protokol #
-          {handoverProtocol.id?.slice(-8) || 'N/A'} z{' '}
-          {handoverProtocol.createdAt
-            ? new Date(handoverProtocol.createdAt).toLocaleString('sk-SK')
-            : 'N/A'}
+        <Alert className="mb-6 border-blue-200 bg-blue-50 text-blue-800">
+          <AlertDescription>
+            Navzäuje na odovzdávací protokol #
+            {handoverProtocol.id?.slice(-8) || 'N/A'} z{' '}
+            {handoverProtocol.createdAt
+              ? new Date(handoverProtocol.createdAt).toLocaleString('sk-SK')
+              : 'N/A'}
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Informácie o vozidle */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+      <Card className="mb-6">
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-            <DirectionsCar sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <DirectionsCar className="mr-2 h-5 w-5" />
             Informácie o vozidle
-          </Typography>
+          </h3>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Značka a model
-              </Typography>
-              <Typography
-                variant="body1"
-                color="text.primary"
-                sx={{ fontWeight: 'bold' }}
-              >
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm text-muted-foreground">Značka a model</Label>
+              <p className="font-bold text-foreground">
                 {rental.vehicle?.brand} {rental.vehicle?.model}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
-                ŠPZ
-              </Typography>
-              <Chip
-                label={rental.vehicle?.licensePlate || 'Neuvedené'}
-                color="secondary"
-                variant="outlined"
-                sx={{ fontWeight: 'bold' }}
-              />
-            </Grid>
+              </p>
+            </div>
+            <div>
+              <Label className="text-sm text-muted-foreground">ŠPZ</Label>
+              <Badge variant="outline" className="font-bold">
+                {rental.vehicle?.licensePlate || 'Neuvedené'}
+              </Badge>
+            </div>
             {(rental.vehicleVin || rental.vehicle?.vin) && (
-              <Grid item xs={12} sm={6} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  VIN číslo
-                </Typography>
-                <Chip
-                  label={
-                    rental.vehicleVin || rental.vehicle?.vin || 'Neuvedené'
-                  }
-                  color="default"
-                  variant="outlined"
-                  sx={{
-                    fontWeight: 'bold',
-                    fontFamily: 'monospace',
-                    fontSize: '0.75rem',
-                  }}
-                />
-              </Grid>
+              <div>
+                <Label className="text-sm text-muted-foreground">VIN číslo</Label>
+                <Badge variant="outline" className="font-bold font-mono text-xs">
+                  {rental.vehicleVin || rental.vehicle?.vin || 'Neuvedené'}
+                </Badge>
+              </div>
             )}
-            <Grid item xs={12} sm={6} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Stav vozidla
-              </Typography>
-              <Chip
-                label={rental.vehicle?.status || 'available'}
-                color={
-                  rental.vehicle?.status === 'available' ? 'success' : 'warning'
-                }
-                variant="outlined"
-              />
-            </Grid>
-          </Grid>
+            <div>
+              <Label className="text-sm text-muted-foreground">Stav vozidla</Label>
+              <Badge 
+                variant="outline" 
+                className={`font-bold ${
+                  rental.vehicle?.status === 'available' 
+                    ? 'border-green-500 text-green-700' 
+                    : 'border-yellow-500 text-yellow-700'
+                }`}
+              >
+                {rental.vehicle?.status || 'available'}
+              </Badge>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Základné informácie */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+      <Card className="mb-6">
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-            <LocationOn sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <LocationOn className="mr-2 h-5 w-5" />
             Základné informácie
-          </Typography>
+          </h3>
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: 2,
-            }}
-          >
-            <TextField
-              label="Miesto vrátenia *"
-              value={formData.location}
-              onChange={e => handleInputChange('location', e.target.value)}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Poznámky"
-              value={formData.notes}
-              onChange={e => handleInputChange('notes', e.target.value)}
-              fullWidth
-              multiline
-              rows={2}
-            />
-          </Box>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location">Miesto vrátenia *</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('location', e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Poznámky</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('notes', e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Stav vozidla */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+      <Card className="mb-6">
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-            <SpeedOutlined sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <SpeedOutlined className="mr-2 h-5 w-5" />
             Stav vozidla pri vrátení
-          </Typography>
+          </h3>
 
           {handoverProtocol?.vehicleCondition && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Pri preberaní:{' '}
-              {handoverProtocol.vehicleCondition.odometer || 'N/A'} km,{' '}
-              {handoverProtocol.vehicleCondition.fuelLevel || 'N/A'}% paliva
+            <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-800">
+              <AlertDescription>
+                Pri preberaní:{' '}
+                {handoverProtocol.vehicleCondition.odometer || 'N/A'} km,{' '}
+                {handoverProtocol.vehicleCondition.fuelLevel || 'N/A'}% paliva
+              </AlertDescription>
             </Alert>
           )}
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 2,
-            }}
-          >
-            <TextField
-              label="Aktuálny stav tachometra (km)"
-              type="number"
-              value={formData.odometer || ''}
-              onChange={e =>
-                handleInputChange(
-                  'odometer',
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-              fullWidth
-            />
-            <TextField
-              label="Úroveň paliva (%)"
-              type="number"
-              value={formData.fuelLevel}
-              onChange={e =>
-                handleInputChange('fuelLevel', parseInt(e.target.value) || 100)
-              }
-              inputProps={{ min: 0, max: 100 }}
-              fullWidth
-            />
-            <TextField
-              label="Stav exteriéru"
-              value={formData.exteriorCondition}
-              onChange={e =>
-                handleInputChange('exteriorCondition', e.target.value)
-              }
-              fullWidth
-            />
-            <TextField
-              label="Stav interiéru"
-              value={formData.interiorCondition}
-              onChange={e =>
-                handleInputChange('interiorCondition', e.target.value)
-              }
-              fullWidth
-            />
-          </Box>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="odometer">Aktuálny stav tachometra (km)</Label>
+              <Input
+                id="odometer"
+                type="number"
+                value={formData.odometer || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange(
+                    'odometer',
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fuelLevel">Úroveň paliva (%)</Label>
+              <Input
+                id="fuelLevel"
+                type="number"
+                value={formData.fuelLevel}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange('fuelLevel', parseInt(e.target.value) || 100)
+                }
+                min={0}
+                max={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="exteriorCondition">Stav exteriéru</Label>
+              <Input
+                id="exteriorCondition"
+                value={formData.exteriorCondition}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange('exteriorCondition', e.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interiorCondition">Stav interiéru</Label>
+              <Input
+                id="interiorCondition"
+                value={formData.interiorCondition}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange('interiorCondition', e.target.value)
+                }
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* 🔧 NOVÉ: Moderný prepočet poplatkov s informáciami o depozite */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+      <Card className="mb-6">
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 3 }}>
-            <Calculate sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center">
+            <Calculate className="mr-2 h-5 w-5" />
             Finančné vyúčtovanie
-          </Typography>
+          </h3>
 
           {/* Informácie o depozite */}
-          <Box
-            sx={{
-              p: 2,
-              mb: 3,
-              bgcolor: 'primary.light',
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'primary.main',
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
-            >
+          <div className="p-4 mb-6 bg-primary/10 rounded-lg border border-primary">
+            <h4 className="text-base font-bold text-foreground mb-4">
               💰 Informácie o depozite
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" color="text.primary">
-                    Výška depozitu:
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {rental.deposit
-                      ? `${rental.deposit.toFixed(2)} €`
-                      : '0,00 €'}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" color="text.primary">
-                    Spôsob úhrady:
-                  </Typography>
-                  <Chip
-                    label={formatDepositPaymentMethod(
-                      getDepositPaymentMethod()
-                    )}
-                    color={
-                      getDepositPaymentMethod() === 'cash'
-                        ? 'success'
-                        : getDepositPaymentMethod() === 'bank_transfer'
-                          ? 'primary'
-                          : 'secondary'
-                    }
-                    size="small"
-                    sx={{
-                      fontWeight: 'bold',
-                      color: 'text.primary',
-                      '& .MuiChip-label': {
-                        color: 'text.primary',
-                      },
-                    }}
-                  />
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-foreground">Výška depozitu:</span>
+                <span className="text-lg font-bold text-foreground">
+                  {rental.deposit
+                    ? `${rental.deposit.toFixed(2)} €`
+                    : '0,00 €'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-foreground">Spôsob úhrady:</span>
+                <Badge
+                  variant="outline"
+                  className={`font-bold ${
+                    getDepositPaymentMethod() === 'cash'
+                      ? 'border-green-500 text-green-700'
+                      : getDepositPaymentMethod() === 'bank_transfer'
+                        ? 'border-blue-500 text-blue-700'
+                        : 'border-gray-500 text-gray-700'
+                  }`}
+                >
+                  {formatDepositPaymentMethod(getDepositPaymentMethod())}
+                </Badge>
+              </div>
+            </div>
+          </div>
 
           {/* Kilometre a palivo */}
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
-            >
+          <div className="mb-6">
+            <h4 className="text-base font-bold text-foreground mb-4">
               🚗 Kilometre a palivo
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 1,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    Povolené km
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="info.main"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {rental.allowedKilometers || 0}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 1,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    Najazdené km
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.kilometersUsed}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 1,
-                    bgcolor:
-                      fees.kilometerOverage > 0
-                        ? 'warning.light'
-                        : 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    Prekročenie km
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.kilometerOverage}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 1,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    Spotrebované palivo
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.fuelUsed}%
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center p-2 bg-muted rounded">
+                <p className="text-xs text-muted-foreground">Povolené km</p>
+                <p className="text-lg font-bold text-blue-600">
+                  {rental.allowedKilometers || 0}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-muted rounded">
+                <p className="text-xs text-muted-foreground">Najazdené km</p>
+                <p className="text-lg font-bold text-foreground">
+                  {fees.kilometersUsed}
+                </p>
+              </div>
+              <div className={`text-center p-2 rounded ${
+                fees.kilometerOverage > 0
+                  ? 'bg-yellow-100'
+                  : 'bg-green-100'
+              }`}>
+                <p className="text-xs text-muted-foreground">Prekročenie km</p>
+                <p className="text-lg font-bold text-foreground">
+                  {fees.kilometerOverage}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-muted rounded">
+                <p className="text-xs text-muted-foreground">Spotrebované palivo</p>
+                <p className="text-lg font-bold text-foreground">
+                  {fees.fuelUsed}%
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Poplatky */}
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
-            >
+          <div className="mb-6">
+            <h4 className="text-base font-bold text-foreground mb-4">
               💸 Poplatky
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 2,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Poplatok za km
-                    </Typography>
-                    <IconButton
-                      onClick={handleStartEditKmRate}
-                      size="small"
-                      color="primary"
-                      title="Upraviť cenu za km"
-                      sx={{
-                        minWidth: 24,
-                        height: 24,
-                        bgcolor:
-                          customKmRate !== null
-                            ? 'warning.light'
-                            : 'transparent',
-                        '&:hover': { bgcolor: 'primary.light' },
-                      }}
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                  </Box>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-4 bg-muted rounded">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Poplatok za km</span>
+                  <Button
+                    onClick={handleStartEditKmRate}
+                    size="sm"
+                    variant="ghost"
+                    className={`h-6 w-6 p-0 ${
+                      customKmRate !== null
+                        ? 'bg-yellow-100 hover:bg-yellow-200'
+                        : 'hover:bg-primary/10'
+                    }`}
+                    title="Upraviť cenu za km"
                   >
-                    {fees.kilometerFee.toFixed(2)} €
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 2,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    Poplatok za palivo
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.fuelFee.toFixed(2)} €
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </div>
+                <span className="text-lg font-bold text-foreground">
+                  {fees.kilometerFee.toFixed(2)} €
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-muted rounded">
+                <span className="text-sm text-muted-foreground">Poplatok za palivo</span>
+                <span className="text-lg font-bold text-foreground">
+                  {fees.fuelFee.toFixed(2)} €
+                </span>
+              </div>
+            </div>
 
             {/* Editačné pole pre cenu za km */}
             {isEditingKmRate && (
-              <Box
-                sx={{
-                  p: 2,
-                  mt: 2,
-                  border: '2px solid',
-                  borderColor: 'warning.main',
-                  borderRadius: 2,
-                  bgcolor: 'warning.light',
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ mb: 1, fontWeight: 'bold' }}
-                >
+              <div className="p-4 mt-4 border-2 border-yellow-500 rounded-lg bg-yellow-50">
+                <h5 className="text-sm font-bold mb-2">
                   ⚠️ Úprava ceny za prekročené km
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 2, color: 'text.secondary' }}
-                >
+                </h5>
+                <p className="text-sm text-muted-foreground mb-4">
                   Cenníková sadzba:{' '}
                   <strong>{originalKmRate.toFixed(2)} €/km</strong> • Prekročené
                   km: <strong>{fees.kilometerOverage} km</strong>
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TextField
-                    label="Nová cena za km (€)"
-                    type="number"
-                    value={customKmRate || ''}
-                    onChange={e => handleKmRateChange(e.target.value)}
-                    inputProps={{
-                      min: 0,
-                      step: 0.01,
-                      style: { textAlign: 'center' },
-                    }}
-                    size="small"
-                    sx={{ width: 150 }}
-                  />
-                  <IconButton
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="customKmRate">Nová cena za km (€)</Label>
+                    <Input
+                      id="customKmRate"
+                      type="number"
+                      value={customKmRate || ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleKmRateChange(e.target.value)}
+                      min={0}
+                      step={0.01}
+                      className="w-36 text-center"
+                    />
+                  </div>
+                  <Button
                     onClick={handleSaveKmRate}
-                    size="small"
-                    color="success"
+                    size="sm"
+                    variant="default"
+                    className="bg-green-600 hover:bg-green-700"
                     title="Uložiť"
                   >
-                    <Check fontSize="small" />
-                  </IconButton>
-                  <IconButton
+                    <Check className="h-3 w-3" />
+                  </Button>
+                  <Button
                     onClick={handleCancelEditKmRate}
-                    size="small"
-                    color="error"
+                    size="sm"
+                    variant="destructive"
                     title="Zrušiť"
                   >
-                    <Cancel fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
+                    <Cancel className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* Finálne vyúčtovanie */}
-          <Box>
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}
-            >
+          <div>
+            <h4 className="text-base font-bold text-foreground mb-4">
               🏁 Finálne vyúčtovanie
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 2,
-                    bgcolor: 'error.light',
-                    borderRadius: 2,
-                    border: '2px solid',
-                    borderColor: 'error.main',
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    Celkové poplatky
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.totalExtraFees.toFixed(2)} €
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 2,
-                    bgcolor: 'success.light',
-                    borderRadius: 2,
-                    border: '2px solid',
-                    borderColor: 'success.main',
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    Vratenie z depozitu
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.depositRefund.toFixed(2)} €
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    p: 2,
-                    bgcolor:
-                      fees.finalRefund > 0
-                        ? 'success.light'
-                        : fees.additionalCharges > 0
-                          ? 'error.light'
-                          : 'grey.100',
-                    borderRadius: 2,
-                    border: '2px solid',
-                    borderColor:
-                      fees.finalRefund > 0
-                        ? 'success.main'
-                        : fees.additionalCharges > 0
-                          ? 'error.main'
-                          : 'grey.300',
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    {fees.finalRefund > 0 ? 'Finálny refund' : 'Doplatok'}
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    color="text.primary"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {fees.finalRefund > 0
-                      ? fees.finalRefund.toFixed(2)
-                      : fees.additionalCharges.toFixed(2)}{' '}
-                    €
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-red-100 rounded-lg border-2 border-red-500">
+                <p className="text-xs text-muted-foreground">Celkové poplatky</p>
+                <p className="text-xl font-bold text-foreground">
+                  {fees.totalExtraFees.toFixed(2)} €
+                </p>
+              </div>
+              <div className="text-center p-4 bg-green-100 rounded-lg border-2 border-green-500">
+                <p className="text-xs text-muted-foreground">Vratenie z depozitu</p>
+                <p className="text-xl font-bold text-foreground">
+                  {fees.depositRefund.toFixed(2)} €
+                </p>
+              </div>
+              <div className={`text-center p-4 rounded-lg border-2 ${
+                fees.finalRefund > 0
+                  ? 'bg-green-100 border-green-500'
+                  : fees.additionalCharges > 0
+                    ? 'bg-red-100 border-red-500'
+                    : 'bg-gray-100 border-gray-300'
+              }`}>
+                <p className="text-xs text-muted-foreground">
+                  {fees.finalRefund > 0 ? 'Finálny refund' : 'Doplatok'}
+                </p>
+                <p className="text-xl font-bold text-foreground">
+                  {fees.finalRefund > 0
+                    ? fees.finalRefund.toFixed(2)
+                    : fees.additionalCharges.toFixed(2)}{' '}
+                  €
+                </p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Fotky */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+      <Card className="mb-6">
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
-            <PhotoCamera sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <PhotoCamera className="mr-2 h-5 w-5" />
             Fotodokumentácia
-          </Typography>
+          </h3>
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 2,
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Button
-              variant="outlined"
-              startIcon={<PhotoCamera />}
+              variant="outline"
               onClick={() => setActivePhotoCapture('vehicle')}
-              size="large"
+              className="h-auto p-4 flex flex-col items-center gap-2"
             >
-              Fotky vozidla ({formData.vehicleImages.length})
+              <PhotoCamera className="h-5 w-5" />
+              <span>Fotky vozidla ({formData.vehicleImages.length})</span>
             </Button>
             <Button
-              variant="outlined"
-              startIcon={<PhotoCamera />}
+              variant="outline"
               onClick={() => setActivePhotoCapture('document')}
-              size="large"
+              className="h-auto p-4 flex flex-col items-center gap-2"
             >
-              Dokumenty ({formData.documentImages.length})
+              <PhotoCamera className="h-5 w-5" />
+              <span>Dokumenty ({formData.documentImages.length})</span>
             </Button>
             <Button
-              variant="outlined"
-              startIcon={<PhotoCamera />}
+              variant="outline"
               onClick={() => setActivePhotoCapture('damage')}
-              size="large"
+              className="h-auto p-4 flex flex-col items-center gap-2"
             >
-              Poškodenia ({formData.damageImages.length})
+              <PhotoCamera className="h-5 w-5" />
+              <span>Poškodenia ({formData.damageImages.length})</span>
             </Button>
-          </Box>
+          </div>
         </CardContent>
       </Card>
 
       {/* ✍️ ELEKTRONICKÉ PODPISY */}
-      <Card sx={{ mb: 3, backgroundColor: 'background.paper' }}>
+      <Card className="mb-6">
         <CardContent>
-          <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             ✍️ Elektronické podpisy s časovou pečiatkou
-          </Typography>
+          </h3>
 
           {/* Existujúce podpisy */}
           {formData.signatures.length > 0 && (
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-4 space-y-2">
               {formData.signatures.map(signature => (
-                <Card
-                  key={signature.id}
-                  variant="outlined"
-                  sx={{ mb: 1, p: 2 }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box
-                        component="img"
+                <Card key={signature.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <img
                         src={signature.signature}
                         alt={`Podpis ${signature.signerName}`}
-                        sx={{
-                          width: 120,
-                          height: 60,
-                          border: '1px solid #ddd',
-                          borderRadius: 1,
-                          objectFit: 'contain',
-                        }}
+                        className="w-30 h-15 border border-gray-300 rounded object-contain"
                       />
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight="bold">
+                      <div>
+                        <p className="font-semibold text-sm">
                           {signature.signerName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        </p>
+                        <p className="text-sm text-muted-foreground">
                           {signature.signerRole === 'customer'
                             ? 'Zákazník'
                             : 'Zamestnanec'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <p className="text-xs text-muted-foreground">
                           📅{' '}
                           {new Date(signature.timestamp).toLocaleString(
                             'sk-SK'
                           )}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'block' }}
-                        >
+                        </p>
+                        <p className="text-xs text-muted-foreground block">
                           📍 {signature.location}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <IconButton
+                        </p>
+                      </div>
+                    </div>
+                    <Button
                       onClick={() => handleRemoveSignature(signature.id)}
-                      color="error"
-                      size="small"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
                     >
-                      <Close />
-                    </IconButton>
-                  </Box>
+                      <Close className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Card>
               ))}
-            </Box>
+            </div>
           )}
 
           {/* Tlačidlá pre pridanie podpisov */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <div className="flex gap-4 flex-wrap">
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={() =>
                 handleAddSignature(
                   rental.customer?.name || rental.customerName || 'Zákazník',
                   'customer'
                 )
               }
-              startIcon={<Person />}
+              className="flex items-center gap-2"
             >
+              <Person className="h-4 w-4" />
               Podpis zákazníka
             </Button>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={() =>
                 handleAddSignature(
                   `${state.user?.firstName || ''} ${state.user?.lastName || ''}`.trim() ||
@@ -1246,28 +970,38 @@ export default function ReturnProtocolForm({
                   'employee'
                 )
               }
-              startIcon={<Person />}
+              className="flex items-center gap-2"
             >
+              <Person className="h-4 w-4" />
               Podpis zamestnanca
             </Button>
-          </Box>
+          </div>
         </CardContent>
       </Card>
 
       {/* Tlačidlá */}
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-        <Button variant="outlined" onClick={onClose} disabled={isLoading}>
+      <div className="flex gap-4 justify-end mt-6">
+        <Button variant="outline" onClick={onClose} disabled={isLoading}>
           Zrušiť
         </Button>
         <Button
-          variant="contained"
-          startIcon={<Save />}
           onClick={handleSave}
           disabled={isLoading}
+          className="flex items-center gap-2"
         >
-          {isLoading ? 'Ukladám...' : 'Uložiť protokol'}
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Ukladám...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              Uložiť protokol
+            </>
+          )}
         </Button>
-      </Box>
+      </div>
 
       {/* Photo capture modal */}
       {activePhotoCapture && (
@@ -1300,31 +1034,8 @@ export default function ReturnProtocolForm({
 
       {/* SignaturePad modal */}
       {showSignaturePad && currentSigner && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            p: 2,
-          }}
-        >
-          <Box
-            sx={{
-              backgroundColor: 'white',
-              borderRadius: 2,
-              maxWidth: 600,
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-            }}
-          >
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
             <SignaturePad
               onSave={handleSignatureSave}
               onCancel={() => setShowSignaturePad(false)}
@@ -1332,9 +1043,9 @@ export default function ReturnProtocolForm({
               signerRole={currentSigner.role}
               location={formData.location}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

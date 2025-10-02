@@ -1,11 +1,7 @@
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -58,50 +54,55 @@ export default function CustomerForm({
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+    <form onSubmit={handleSubmit} className="mt-4">
       <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+        <CardHeader>
+          <CardTitle>
             {customer ? 'Upraviť zákazníka' : 'Nový zákazník'}
-          </Typography>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="name">Meno zákazníka *</Label>
+              <Input
+                id="name"
+                value={formData.name || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('name', e.target.value)}
+                required
+              />
+            </div>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              fullWidth
-              label="Meno zákazníka"
-              value={formData.name || ''}
-              onChange={e => handleInputChange('name', e.target.value)}
-              required
-            />
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('email', e.target.value)}
+              />
+            </div>
 
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={formData.email || ''}
-              onChange={e => handleInputChange('email', e.target.value)}
-            />
+            <div>
+              <Label htmlFor="phone">Telefón</Label>
+              <Input
+                id="phone"
+                value={formData.phone || ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
+              />
+            </div>
+          </div>
 
-            <TextField
-              fullWidth
-              label="Telefón"
-              value={formData.phone || ''}
-              onChange={e => handleInputChange('phone', e.target.value)}
-            />
-          </Box>
-
-          <Box
-            sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}
-          >
-            <Button variant="outlined" onClick={onCancel}>
+          <div className="flex gap-2 justify-end mt-6">
+            <Button variant="outline" onClick={onCancel}>
               Zrušiť
             </Button>
-            <Button type="submit" variant="contained">
+            <Button type="submit">
               {customer ? 'Uložiť zmeny' : 'Pridať zákazníka'}
             </Button>
-          </Box>
+          </div>
         </CardContent>
       </Card>
-    </Box>
+    </form>
   );
 }

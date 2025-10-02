@@ -1,13 +1,8 @@
-import {
-  Box,
-  Card,
-  CardContent,
-  Skeleton,
-  Typography,
-  CircularProgress,
-  useTheme,
-  alpha,
-} from '@mui/material';
+import { UnifiedCard } from '../ui/UnifiedCard';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
+import { Skeleton } from '../ui/skeleton';
+import { Spinner } from '../ui/spinner';
+import { cn } from '../../lib/utils';
 import React from 'react';
 
 interface EnhancedLoadingProps {
@@ -27,157 +22,98 @@ export const EnhancedLoading: React.FC<EnhancedLoadingProps> = ({
   message = 'Načítavam...',
   showMessage = true,
 }) => {
-  const theme = useTheme();
-
   // Card skeleton - pre všetky entity (rentals, vehicles, customers)
   const CardSkeleton = () => (
-    <Card sx={{ mb: 2, opacity: 0.7 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" width="60%" height={24} />
-            <Skeleton variant="text" width="40%" height={20} />
-          </Box>
-        </Box>
-        <Skeleton
-          variant="rectangular"
-          width="100%"
-          height={60}
-          sx={{ borderRadius: 1, mb: 1 }}
-        />
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Skeleton
-            variant="rectangular"
-            width={80}
-            height={32}
-            sx={{ borderRadius: 1 }}
-          />
-          <Skeleton
-            variant="rectangular"
-            width={80}
-            height={32}
-            sx={{ borderRadius: 1 }}
-          />
-          <Skeleton
-            variant="rectangular"
-            width={80}
-            height={32}
-            sx={{ borderRadius: 1 }}
-          />
-        </Box>
-      </CardContent>
-    </Card>
+    <UnifiedCard variant="default" className="mb-4 opacity-70">
+      <div className="p-6">
+        <div className="flex items-center mb-4">
+          <Skeleton className="w-10 h-10 rounded-full mr-4" />
+          <div className="flex-1">
+            <Skeleton className="w-3/5 h-6 mb-2" />
+            <Skeleton className="w-2/5 h-5" />
+          </div>
+        </div>
+        <Skeleton className="w-full h-16 rounded mb-4" />
+        <div className="flex gap-2">
+          <Skeleton className="w-20 h-8 rounded" />
+          <Skeleton className="w-20 h-8 rounded" />
+          <Skeleton className="w-20 h-8 rounded" />
+        </div>
+      </div>
+    </UnifiedCard>
   );
 
   // List skeleton - pre jednoduché zoznamy
   const ListSkeleton = () => (
-    <Box sx={{ mb: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-        <Skeleton variant="circular" width={24} height={24} sx={{ mr: 2 }} />
-        <Skeleton variant="text" width="60%" height={20} sx={{ mr: 2 }} />
-        <Skeleton variant="text" width="30%" height={20} />
-      </Box>
-    </Box>
+    <div className="mb-2">
+      <div className="flex items-center p-4">
+        <Skeleton className="w-6 h-6 rounded-full mr-4" />
+        <Skeleton className="w-3/5 h-5 mr-4" />
+        <Skeleton className="w-1/3 h-5" />
+      </div>
+    </div>
   );
 
   // Table skeleton - pre tabuľky
   const TableSkeleton = () => (
-    <Box sx={{ mb: 1 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          p: 2,
-          borderBottom: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        <Skeleton variant="text" width="20%" height={20} sx={{ mr: 2 }} />
-        <Skeleton variant="text" width="25%" height={20} sx={{ mr: 2 }} />
-        <Skeleton variant="text" width="15%" height={20} sx={{ mr: 2 }} />
-        <Skeleton variant="text" width="20%" height={20} sx={{ mr: 2 }} />
-        <Skeleton
-          variant="rectangular"
-          width={80}
-          height={32}
-          sx={{ borderRadius: 1 }}
-        />
-      </Box>
-    </Box>
+    <div className="mb-2">
+      <div className="flex items-center p-4 border-b border-border">
+        <Skeleton className="w-1/5 h-5 mr-4" />
+        <Skeleton className="w-1/4 h-5 mr-4" />
+        <Skeleton className="w-1/6 h-5 mr-4" />
+        <Skeleton className="w-1/5 h-5 mr-4" />
+        <Skeleton className="w-20 h-8 rounded" />
+      </div>
+    </div>
   );
 
   // Button loading - pre buttons
   const ButtonLoading = () => (
-    <CircularProgress
+    <Spinner
       size={20}
-      sx={{
-        color: 'inherit',
-        mr: showMessage ? 1 : 0,
-      }}
+      className={cn(
+        "text-current",
+        showMessage ? "mr-2" : ""
+      )}
     />
   );
 
   // Inline loading - pre menšie komponenty
   const InlineLoading = () => (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-      }}
-    >
-      <CircularProgress
+    <div className="flex items-center justify-center p-4">
+      <Spinner
         size={24}
-        sx={{
-          mr: showMessage ? 2 : 0,
-          color: 'primary.main',
-        }}
+        className={cn(
+          "text-primary",
+          showMessage ? "mr-4" : ""
+        )}
       />
       {showMessage && (
-        <Typography variant="body2" color="text.secondary">
+        <UnifiedTypography variant="body2" color="textSecondary">
           {message}
-        </Typography>
+        </UnifiedTypography>
       )}
-    </Box>
+    </div>
   );
 
   // Page loading - pre celé stránky
   const PageLoading = () => (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '300px',
-        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
-        borderRadius: 2,
-        p: 4,
-      }}
-    >
-      <CircularProgress
+    <div className="flex flex-col items-center justify-center min-h-[300px] bg-gradient-to-br from-primary/5 to-secondary/5 rounded-lg p-8">
+      <Spinner
         size={50}
-        thickness={4}
-        sx={{
-          color: 'primary.main',
-          mb: 2,
-          '& .MuiCircularProgress-circle': {
-            strokeLinecap: 'round',
-          },
-        }}
+        className="text-primary mb-4"
       />
       {showMessage && (
         <>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
+          <UnifiedTypography variant="h6" className="mb-2 font-medium">
             {message}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </UnifiedTypography>
+          <UnifiedTypography variant="body2" color="textSecondary">
             Optimalizované načítavanie
-          </Typography>
+          </UnifiedTypography>
         </>
       )}
-    </Box>
+    </div>
   );
 
   const renderSkeleton = () => {
@@ -205,7 +141,7 @@ export const EnhancedLoading: React.FC<EnhancedLoadingProps> = ({
     }
   };
 
-  return <Box sx={{ width, height }}>{renderSkeleton()}</Box>;
+  return <div className={cn("w-full")} style={{ width, height }}>{renderSkeleton()}</div>;
 };
 
 // Convenience hooks pre rôzne use cases

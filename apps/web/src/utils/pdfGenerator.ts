@@ -37,7 +37,7 @@ class PDFGenerator {
   private primaryColor: [number, number, number] = [25, 118, 210]; // Modrá
   private secondaryColor: [number, number, number] = [75, 85, 99]; // Sivá
   private accentColor: [number, number, number] = [59, 130, 246]; // Modrá akcent
-  private successColor: [number, number, number] = [34, 197, 94]; // Zelená
+  // private successColor: [number, number, number] = [34, 197, 94]; // Zelená
   private warningColor: [number, number, number] = [245, 158, 11]; // Oranžová
 
   /**
@@ -53,7 +53,7 @@ class PDFGenerator {
       );
       try {
         this.doc.setFont('helvetica', style);
-      } catch {
+      } catch (fallbackError) {
         console.warn('⚠️ Warning: Could not set fallback font, using default');
       }
     }
@@ -250,11 +250,11 @@ class PDFGenerator {
       this.doc.setFontSize(10);
       this.setFontSafely('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(String(label), x, y);
+      this.doc.text(label as string, x, y);
 
       this.setFontSafely('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(String(value), x + 50, y);
+      this.doc.text(value as string, x + 50, y);
     });
 
     this.currentY += Math.ceil(basicInfo.length / 2) * 7 + 10;
@@ -286,11 +286,11 @@ class PDFGenerator {
       this.doc.setFontSize(10);
       this.setFontSafely('helvetica', 'bold');
       this.doc.setTextColor(...this.primaryColor);
-      this.doc.text(String(label), x, y);
+      this.doc.text(label as string, x, y);
 
       this.setFontSafely('helvetica', 'normal');
       this.doc.setTextColor(...this.secondaryColor);
-      this.doc.text(String(value), x + 50, y);
+      this.doc.text(value as string, x + 50, y);
     });
 
     this.currentY += Math.ceil(vehicleInfo.length / 2) * 7 + 10;
@@ -333,7 +333,7 @@ class PDFGenerator {
           imgData = await this.loadImageFromUrl(
             (image as Record<string, unknown>).url as string
           );
-        } catch {
+        } catch (error) {
           console.warn(
             '⚠️ CORS error, trying proxy approach:',
             (image as Record<string, unknown>).url as string
@@ -483,7 +483,7 @@ class PDFGenerator {
           imgData = await this.loadImageFromUrl(
             (image as Record<string, unknown>).url as string
           );
-        } catch {
+        } catch (error) {
           console.warn(
             '⚠️ CORS error, trying proxy approach:',
             (image as Record<string, unknown>).url as string
@@ -696,7 +696,7 @@ class PDFGenerator {
             imgData = await this.loadImageFromUrl(
               (signature as Record<string, unknown>).url as string
             );
-          } catch {
+          } catch (error) {
             console.warn(
               '⚠️ CORS error, trying proxy approach:',
               (signature as Record<string, unknown>).url as string

@@ -13,8 +13,8 @@ export interface CachedProtocolStatus {
   hasReturnProtocol: boolean;
   handoverProtocolId?: string;
   returnProtocolId?: string;
-  handoverCreatedAt?: Date;
-  returnCreatedAt?: Date;
+  handoverCreatedAt: Date | undefined;
+  returnCreatedAt: Date | undefined;
 }
 
 interface ProtocolCacheData {
@@ -120,7 +120,7 @@ export const isCacheFresh = (): boolean => {
     const age = Date.now() - cacheData.timestamp;
 
     return age <= CACHE_TTL && cacheData.version === CACHE_VERSION;
-  } catch {
+  } catch (error) {
     return false;
   }
 };
@@ -148,7 +148,7 @@ export const getCacheInfo = (): {
       records: cacheData.data.length,
       fresh,
     };
-  } catch {
+  } catch (error) {
     return { exists: false };
   }
 };

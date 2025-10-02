@@ -363,10 +363,30 @@ export const useEmailApi = () => {
         );
 
         if (!directResponse.ok) {
-          throw new Error(`HTTP error! status: ${directResponse.status}`);
+          const errorText = await directResponse.text().catch(() => 'Unknown error');
+          console.error('❌ Archive API error:', {
+            status: directResponse.status,
+            statusText: directResponse.statusText,
+            errorText: errorText.substring(0, 200)
+          });
+          throw new Error(`HTTP error! status: ${directResponse.status} - ${errorText.substring(0, 100)}`);
         }
 
-        const response = await directResponse.json();
+        const responseText = await directResponse.text();
+        if (!responseText.trim()) {
+          throw new Error('Prázdna odpoveď zo servera');
+        }
+
+        let response;
+        try {
+          response = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('❌ Archive JSON parsing error:', {
+            responseText: responseText.substring(0, 200),
+            error: parseError
+          });
+          throw new Error('Neplatná odpoveď zo servera');
+        }
 
         if (response.success) {
           return {

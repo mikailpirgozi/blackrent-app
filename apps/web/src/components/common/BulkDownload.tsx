@@ -1,8 +1,6 @@
-import { Download as DownloadIcon } from '@mui/icons-material';
-import { Box, Typography } from '@mui/material';
+import { Download as DownloadIcon } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import React from 'react';
 
 import { SecondaryButton } from '../ui';
 
@@ -95,19 +93,19 @@ export default function BulkDownload({
   }
 
   return (
-    <Box sx={{ mt: 1 }}>
+    <div className="mt-2">
       <SecondaryButton
-        startIcon={<DownloadIcon />}
+        startIcon={<DownloadIcon className="w-4 h-4" />}
         onClick={handleBulkDownload}
         disabled={disabled}
-        size="small"
+        className="h-8 px-3 text-sm"
       >
         {label} ({files.length})
       </SecondaryButton>
 
-      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+      <span className="text-xs text-muted-foreground ml-2">
         Stiahne sa ako ZIP súbor
-      </Typography>
-    </Box>
+      </span>
+    </div>
   );
 }

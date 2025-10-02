@@ -5,16 +5,15 @@
  * Nahradí pôvodný AvailabilityPage s lepším UX
  */
 
-import { Container } from '@mui/material';
 import React from 'react';
 
 import SmartAvailabilityDashboard from '../components/availability/SmartAvailabilityDashboard';
 
 const SmartAvailabilityPage: React.FC = () => {
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
+    <div className="max-w-7xl mx-auto py-4">
       <SmartAvailabilityDashboard />
-    </Container>
+    </div>
   );
 };
 

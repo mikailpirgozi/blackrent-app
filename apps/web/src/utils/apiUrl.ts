@@ -1,6 +1,13 @@
 import { env } from '@/lib/env';
 import { logger } from './logger';
 
+// Extend Window interface for API URL logging
+declare global {
+  interface Window {
+    __API_URL_LOGGED__?: boolean;
+  }
+}
+
 /**
  * Centralizovaná funkcia pre získanie správnej API URL
  * na základe prostredia v ktorom aplikácia beží
@@ -75,12 +82,13 @@ export const getBaseUrl = (): string => {
  */
 export const API_BASE_URL = () => getApiBaseUrl();
 
-// Debug log - len v browseri
-if (typeof window !== 'undefined') {
+// Debug log - len v browseri a len raz
+if (typeof window !== 'undefined' && !window.__API_URL_LOGGED__) {
   logger.debug('🔗 API_BASE_URL nastavené na:', getApiBaseUrl());
   logger.debug('🌍 Environment:', {
     NODE_ENV: process.env.NODE_ENV,
     hostname: window.location.hostname,
     origin: window.location.origin,
   });
+  window.__API_URL_LOGGED__ = true;
 }

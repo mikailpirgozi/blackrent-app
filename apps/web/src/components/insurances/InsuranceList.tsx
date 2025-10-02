@@ -1,103 +1,72 @@
 import {
-  Security as SecurityIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
-import { Box, Paper, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
-import { useState } from 'react';
+  Shield as SecurityIcon,
+  AlertTriangle as WarningIcon,
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 import InsuranceClaimList from './InsuranceClaimList';
 import VehicleCentricInsuranceList from './VehicleCentricInsuranceList';
 
+// Custom useMediaQuery hook
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+
+  return matches;
+}
+
 export default function InsuranceList() {
-  const [activeTab, setActiveTab] = useState(0);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  // const isTablet = useMediaQuery(theme.breakpoints.down('lg')); // TODO: Implement tablet-specific layout
+  const [activeTab, setActiveTab] = useState('documents');
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  // const isTablet = useMediaQuery('(max-width: 1024px)'); // TODO: Implement tablet-specific layout
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        maxWidth: '100%',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Responsive Tab Navigation */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderBottom: 1,
-          borderColor: 'divider',
-          mb: { xs: 1, sm: 2, md: 3 },
-          backgroundColor: 'background.paper',
-        }}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={(event, newValue) => setActiveTab(newValue)}
-          variant={isMobile ? 'fullWidth' : 'standard'}
-          scrollButtons={isMobile ? false : 'auto'}
-          allowScrollButtonsMobile={!isMobile}
-          sx={{
-            minHeight: { xs: 48, sm: 56 },
-            '& .MuiTab-root': {
-              fontWeight: 600,
-              textTransform: 'none',
-              fontSize: { xs: '0.875rem', sm: '1rem' },
-              minHeight: { xs: 48, sm: 56 },
-              padding: {
-                xs: '8px 12px',
-                sm: '12px 16px',
-                md: '12px 24px',
-              },
-              '&.Mui-selected': {
-                color: 'primary.main',
-                fontWeight: 700,
-              },
-            },
-            '& .MuiTabs-indicator': {
-              height: 3,
-              borderRadius: '3px 3px 0 0',
-            },
-            '& .MuiTab-iconWrapper': {
-              fontSize: { xs: 18, sm: 20, md: 24 },
-              marginRight: { xs: 0.5, sm: 1 },
-              marginBottom: 0,
-            },
-          }}
-        >
-          <Tab
-            label={isMobile ? 'Dokumenty' : 'Poistky & Dokumenty'}
-            icon={<SecurityIcon />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            sx={{
-              flexDirection: isMobile ? 'column' : 'row',
-              gap: isMobile ? 0.5 : 1,
-            }}
-          />
-          <Tab
-            label={isMobile ? 'Udalosti' : 'Poistné udalosti'}
-            icon={<WarningIcon />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            sx={{
-              flexDirection: isMobile ? 'column' : 'row',
-              gap: isMobile ? 0.5 : 1,
-            }}
-          />
-        </Tabs>
-      </Paper>
+    <div className="w-full max-w-full overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* Responsive Tab Navigation */}
+        <TabsList className={`grid w-full grid-cols-2 border-b border-border mb-2 md:mb-6 bg-background ${isMobile ? 'h-auto' : 'h-14'}`}>
+          <TabsTrigger 
+            value="documents" 
+            className={`${isMobile ? 'flex-col gap-1 py-3' : 'flex-row gap-2 py-3'} font-semibold text-sm md:text-base`}
+          >
+            <SecurityIcon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            {isMobile ? 'Dokumenty' : 'Poistky & Dokumenty'}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="claims" 
+            className={`${isMobile ? 'flex-col gap-1 py-3' : 'flex-row gap-2 py-3'} font-semibold text-sm md:text-base`}
+          >
+            <WarningIcon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            {isMobile ? 'Udalosti' : 'Poistné udalosti'}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Responsive Tab Content */}
-      <Box
-        sx={{
-          width: '100%',
-          minHeight: 'calc(100vh - 200px)',
-          overflow: 'hidden',
-        }}
-      >
-        {activeTab === 0 && <VehicleCentricInsuranceList />}
-        {activeTab === 1 && <InsuranceClaimList />}
-      </Box>
-    </Box>
+        {/* Responsive Tab Content */}
+        <TabsContent 
+          value="documents" 
+          className="w-full min-h-[calc(100vh-200px)] overflow-hidden mt-0"
+        >
+          <VehicleCentricInsuranceList />
+        </TabsContent>
+        
+        <TabsContent 
+          value="claims" 
+          className="w-full min-h-[calc(100vh-200px)] overflow-hidden mt-0"
+        >
+          <InsuranceClaimList />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

@@ -1,70 +1,40 @@
 // 🏢 Advanced User Management Component
 // Complete UI for multi-tenant user management
 
-import {
-  Add as AddIcon,
-  // VpnKey as KeyIcon,
-  Analytics as AnalyticsIcon,
-  Block as BlockIcon,
-  Business as BusinessIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  ExpandMore as ExpandMoreIcon,
-  Group as GroupIcon,
-  PersonAdd as PersonAddIcon,
-  Security as SecurityIcon,
-  Timeline as TimelineIcon,
-  // Settings as SettingsIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  // List,
-  // ListItem,
-  // ListItemAvatar,
-  // ListItemText,
-  // ListItemSecondaryAction,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Skeleton,
-  Switch,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
-  TextField,
-  // useTheme,
-  // alpha,
-  Tooltip,
-  Typography,
-} from '@mui/material';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { 
+  Plus,
+  BarChart3,
+  Shield,
+  Building2,
+  Trash2,
+  Edit,
+  Users,
+  UserPlus,
+  Lock,
+  Clock,
+  Eye
+} from 'lucide-react';
+
+import { Alert, AlertDescription } from '../ui/alert';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Separator } from '../ui/separator';
+import { Skeleton } from '../ui/skeleton';
+import { Switch } from '../ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Textarea } from '../ui/textarea';
 
 import { useAuth } from '../../context/AuthContext';
 import type { Company, User } from '../../types';
@@ -134,27 +104,7 @@ interface UserPermissionEntry {
   >;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`advanced-user-tabpanel-${index}`}
-      aria-labelledby={`advanced-user-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+// TabPanel je nahradený shadcn TabsContent
 
 const AdvancedUserManagement: React.FC = () => {
   // const theme = useTheme();
@@ -340,7 +290,7 @@ const AdvancedUserManagement: React.FC = () => {
       } else {
         setCompanies([]);
       }
-    } catch {
+    } catch (error) {
       console.warn('Chyba pri načítavaní firiem');
       setCompanies([]);
     }
@@ -363,7 +313,7 @@ const AdvancedUserManagement: React.FC = () => {
       } else {
         setUserPermissions([]);
       }
-    } catch {
+    } catch (error) {
       setUserPermissions([]);
     }
   };
@@ -490,9 +440,9 @@ const AdvancedUserManagement: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setCurrentTab(newValue);
-  };
+  // const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  //   setCurrentTab(newValue);
+  // };
 
   const handleCreateUser = async () => {
     try {
@@ -513,7 +463,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní používateľa');
       }
-    } catch {
+    } catch (error) {
       setError('Chyba pri vytváraní používateľa');
     }
   };
@@ -537,7 +487,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní role');
       }
-    } catch {
+    } catch (error) {
       setError('Chyba pri vytváraní role');
     }
   };
@@ -564,7 +514,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní oddelenia');
       }
-    } catch {
+    } catch (error) {
       setError('Chyba pri vytváraní oddelenia');
     }
   };
@@ -588,7 +538,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní tímu');
       }
-    } catch {
+    } catch (error) {
       setError('Chyba pri vytváraní tímu');
     }
   };
@@ -596,7 +546,7 @@ const AdvancedUserManagement: React.FC = () => {
   const handleViewUser = (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (user) {
-      alert(
+      window.alert(
         `Zobrazenie používateľa: ${user.firstName} ${user.lastName}\nEmail: ${user.email}\nRola: ${user.roleName}`
       );
     }
@@ -666,7 +616,7 @@ const AdvancedUserManagement: React.FC = () => {
               }),
             }
           );
-        } catch {
+        } catch (permError) {
           console.warn(
             'Chyba pri ukladaní oprávnení pre firmu:',
             permission.companyName
@@ -678,7 +628,7 @@ const AdvancedUserManagement: React.FC = () => {
       setEditingUser(null);
       setUserPermissions([]);
       await loadUsers(); // Reload users to show changes
-    } catch {
+    } catch (error) {
       setError('Chyba pri úprave používateľa');
     }
   };
@@ -716,7 +666,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri deaktivácii používateľa');
       }
-    } catch {
+    } catch (error) {
       setError('Chyba pri deaktivácii používateľa');
     }
   };
@@ -780,1006 +730,936 @@ const AdvancedUserManagement: React.FC = () => {
     return levels[level as keyof typeof levels] || `Level ${level}`;
   };
 
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'success' : 'error';
-  };
+  // const getStatusColor = (isActive: boolean) => {
+  //   return isActive ? 'success' : 'error';
+  // };
 
   if (loading && currentTab === 0) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Skeleton variant="text" width="60%" height={40} />
-        <Skeleton variant="rectangular" height={200} sx={{ mt: 2 }} />
-      </Box>
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-8 w-3/5" />
+        <Skeleton className="h-48 w-full" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: 1, fontWeight: 600 }}>
-          Pokročilé správa používateľov
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Multi-tenant user management s pokročilými rolami a oprávneniami
-        </Typography>
-      </Box>
+    <TooltipProvider>
+      <div className="w-full space-y-6">
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold">Pokročilé správa používateľov</h1>
+          <p className="text-muted-foreground">
+            Multi-tenant user management s pokročilými rolami a oprávneniami
+          </p>
+        </div>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription className="flex items-center justify-between">
+              {error}
+              <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+                ×
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Tabs */}
-      <Card sx={{ mb: 2 }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            borderBottom: 1,
-            borderColor: 'divider',
-            '& .MuiTab-root': {
-              minWidth: 120,
-              textTransform: 'none',
-              fontWeight: 500,
-            },
-          }}
-        >
-          <Tab icon={<BusinessIcon />} label="Organizácia" />
-          <Tab icon={<GroupIcon />} label="Používatelia" />
-          <Tab icon={<SecurityIcon />} label="Role" />
-          <Tab icon={<BusinessIcon />} label="Oddelenia" />
-          <Tab icon={<GroupIcon />} label="Tímy" />
-          <Tab icon={<TimelineIcon />} label="Audit Log" />
-        </Tabs>
-      </Card>
+        {/* Tabs */}
+        <Card>
+          <Tabs value={currentTab.toString()} onValueChange={(value) => setCurrentTab(parseInt(value))}>
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="0" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Organizácia
+              </TabsTrigger>
+              <TabsTrigger value="1" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Používatelia
+              </TabsTrigger>
+              <TabsTrigger value="2" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Role
+              </TabsTrigger>
+              <TabsTrigger value="3" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Oddelenia
+              </TabsTrigger>
+              <TabsTrigger value="4" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Tímy
+              </TabsTrigger>
+              <TabsTrigger value="5" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Audit Log
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </Card>
 
-      {/* Tab Panels */}
+        {/* Tab Panels */}
+        <Tabs value={currentTab.toString()}>
+          {/* Organization Overview */}
+          <TabsContent value="0" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Organization Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Informácie o organizácii
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {organization && (
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-2xl font-bold">
+                          {String(organization.name || 'Unknown')}
+                        </h3>
+                        <p className="text-muted-foreground">
+                          {String(organization.slug || 'Unknown')}
+                        </p>
+                      </div>
 
-      {/* Organization Overview */}
-      <TabPanel value={currentTab} index={0}>
-        <Grid container spacing={3}>
-          {/* Organization Info */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <BusinessIcon />
-                  Informácie o organizácii
-                </Typography>
+                      <Badge variant="outline" className="text-sm">
+                        {String(organization.subscriptionPlan || 'Unknown').toUpperCase()}
+                      </Badge>
 
-                {organization && (
-                  <Box>
-                    <Typography variant="h5" sx={{ mb: 1 }}>
-                      {String(organization.name || 'Unknown')}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 2 }}
-                    >
-                      {String(organization.slug || 'Unknown')}
-                    </Typography>
+                      <div className="space-y-2 text-sm">
+                        <p>
+                          <strong>Email:</strong>{' '}
+                          {String(organization.email || 'Nie je nastavený')}
+                        </p>
+                        <p>
+                          <strong>Telefón:</strong>{' '}
+                          {String(organization.phone || 'Nie je nastavený')}
+                        </p>
+                        <p>
+                          <strong>Max. používateľov:</strong>{' '}
+                          {String(organization.maxUsers || 'Unknown')}
+                        </p>
+                        <p>
+                          <strong>Max. vozidiel:</strong>{' '}
+                          {String(organization.maxVehicles || 'Unknown')}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                    <Chip
-                      label={String(
-                        organization.subscriptionPlan || 'Unknown'
-                      ).toUpperCase()}
-                      color="primary"
-                      variant="outlined"
-                      sx={{ mb: 2 }}
-                    />
-
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2">
-                        <strong>Email:</strong>{' '}
-                        {String(organization.email || 'Nie je nastavený')}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Telefón:</strong>{' '}
-                        {String(organization.phone || 'Nie je nastavený')}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Max. používateľov:</strong>{' '}
-                        {String(organization.maxUsers || 'Unknown')}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Max. vozidiel:</strong>{' '}
-                        {String(organization.maxVehicles || 'Unknown')}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Statistics */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <AnalyticsIcon />
-                  Štatistiky
-                </Typography>
-
-                {stats && (
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 1 }}>
-                        <Typography variant="h4" color="primary">
+              {/* Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Štatistiky
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {stats && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4">
+                        <div className="text-3xl font-bold text-blue-600">
                           {String(stats.totalUsers || 0)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        </div>
+                        <p className="text-sm text-muted-foreground">
                           Celkom používateľov
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 1 }}>
-                        <Typography variant="h4" color="success.main">
+                        </p>
+                      </div>
+                      <div className="text-center p-4">
+                        <div className="text-3xl font-bold text-green-600">
                           {String(stats.activeUsers || 0)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        </div>
+                        <p className="text-sm text-muted-foreground">
                           Aktívnych
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 1 }}>
-                        <Typography variant="h4" color="info.main">
+                        </p>
+                      </div>
+                      <div className="text-center p-4">
+                        <div className="text-3xl font-bold text-blue-500">
                           {String(stats.totalDepartments || 0)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        </div>
+                        <p className="text-sm text-muted-foreground">
                           Oddelení
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 1 }}>
-                        <Typography variant="h4" color="warning.main">
+                        </p>
+                      </div>
+                      <div className="text-center p-4">
+                        <div className="text-3xl font-bold text-orange-500">
                           {String(stats.totalTeams || 0)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        </div>
+                        <p className="text-sm text-muted-foreground">
                           Tímov
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                )}
-              </CardContent>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Users Management */}
+          <TabsContent value="1" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Používatelia ({users.length})</h2>
+              <Button
+                onClick={() => {
+                  setUserDialogOpen(true);
+                  loadRoles(); // Načítaj role pri otvorení dialógu
+                }}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Pridať používateľa
+              </Button>
+            </div>
+
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Používateľ</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rola</TableHead>
+                    <TableHead>Oddelenie</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Posledné prihlásenie</TableHead>
+                    <TableHead>Akcie</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map(user => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                              {user.firstName?.[0] || user.username[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              {user.firstName && user.lastName
+                                ? `${user.firstName} ${user.lastName}`
+                                : user.username}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {user.jobTitle || user.username}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {user.roleName || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.departmentName || '-'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={user.isActive ? 'default' : 'destructive'}
+                        >
+                          {user.isActive ? 'Aktívny' : 'Neaktívny'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.lastLoginAt
+                          ? format(new Date(user.lastLoginAt), 'dd.MM.yyyy HH:mm', {
+                              locale: sk,
+                            })
+                          : 'Nikdy'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewUser(user.id)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Zobraziť</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditUser(user.id)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Upraviť</TooltipContent>
+                          </Tooltip>
+                          {user.isActive && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeactivateUser(user.id)}
+                                >
+                                  <Shield className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Deaktivovať</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
-          </Grid>
-        </Grid>
-      </TabPanel>
+          </TabsContent>
 
-      {/* Users Management */}
-      <TabPanel value={currentTab} index={1}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Používatelia ({users.length})</Typography>
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={() => {
-              setUserDialogOpen(true);
-              loadRoles(); // Načítaj role pri otvorení dialógu
-            }}
-          >
-            Pridať používateľa
-          </Button>
-        </Box>
+          {/* Roles Management */}
+          <TabsContent value="2" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Role ({roles.length})</h2>
+              <Button onClick={() => setRoleDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Pridať rolu
+              </Button>
+            </div>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Používateľ</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Rola</TableCell>
-                <TableCell>Oddelenie</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Posledné prihlásenie</TableCell>
-                <TableCell>Akcie</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 32, height: 32 }}>
-                        {user.firstName?.[0] || user.username[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {roles.map(role => (
+                <Card key={role.id}>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">{role.displayName}</h3>
+                        <p className="text-sm text-muted-foreground">{role.name}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {getRoleLevel(role.level)}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm min-h-[40px]">
+                      {role.description || 'Bez popisu'}
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1">
+                        {role.isSystem && (
+                          <Badge variant="secondary" className="text-xs">Systémová</Badge>
+                        )}
+                        {!role.isActive && (
+                          <Badge variant="destructive" className="text-xs">Neaktívna</Badge>
+                        )}
+                      </div>
+
+                      {!role.isSystem && (
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Departments Management */}
+          <TabsContent value="3" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Oddelenia ({departments.length})</h2>
+              <Button onClick={() => setDepartmentDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Pridať oddelenie
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {departments.map(department => (
+                <Card key={department.id}>
+                  <CardContent className="space-y-4">
+                    <h3 className="font-semibold text-lg">{department.name}</h3>
+
+                    {department.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {department.description}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap gap-2">
+                      {department.monthlyBudget && (
+                        <Badge variant="outline" className="text-xs">
+                          Budget: {department.monthlyBudget}€
+                        </Badge>
+                      )}
+                      {department.vehicleLimit && (
+                        <Badge variant="outline" className="text-xs">
+                          Vozidlá: {department.vehicleLimit}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Teams Management */}
+          <TabsContent value="4" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Tímy ({teams.length})</h2>
+              <Button onClick={() => setTeamDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Pridať tím
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {teams.map(team => (
+                <Card key={team.id}>
+                  <CardContent className="space-y-4">
+                    <h3 className="font-semibold text-lg">{team.name}</h3>
+
+                    {team.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {team.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <Badge
+                        variant={team.isActive ? 'default' : 'destructive'}
+                      >
+                        {team.isActive ? 'Aktívny' : 'Neaktívny'}
+                      </Badge>
+
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Activity Log */}
+          <TabsContent value="5" className="space-y-6">
+            <h2 className="text-xl font-semibold">Audit Log ({activityLog.length})</h2>
+
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Čas</TableHead>
+                    <TableHead>Používateľ</TableHead>
+                    <TableHead>Akcia</TableHead>
+                    <TableHead>Zdroj</TableHead>
+                    <TableHead>IP adresa</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activityLog.map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        {format(new Date(log.createdAt), 'dd.MM.yyyy HH:mm:ss', {
+                          locale: sk,
+                        })}
+                      </TableCell>
+                      <TableCell>{log.userId}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{log.action}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {log.resourceType && (
+                          <Badge variant="secondary">{log.resourceType}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{log.ipAddress || '-'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={log.success ? 'default' : 'destructive'}
+                        >
+                          {log.success ? 'Úspech' : 'Chyba'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* User Dialog */}
+        <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Pridať používateľa</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Používateľské meno</Label>
+                <Input
+                  id="username"
+                  value={userForm.username}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, username: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Meno</Label>
+                <Input
+                  id="firstName"
+                  value={userForm.firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Priezvisko</Label>
+                <Input
+                  id="lastName"
+                  value={userForm.lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, lastName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Heslo</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, password: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefón</Label>
+                <Input
+                  id="phone"
+                  value={userForm.phone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUserForm(prev => ({ ...prev, phone: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Rola</Label>
+                <Select
+                  value={userForm.roleId}
+                  onValueChange={(value) =>
+                    setUserForm(prev => ({ ...prev, roleId: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte rolu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map(role => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="department">Oddelenie</Label>
+                <Select
+                  value={userForm.departmentId}
+                  onValueChange={(value) =>
+                    setUserForm(prev => ({ ...prev, departmentId: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte oddelenie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-department">Žiadne</SelectItem>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUserDialogOpen(false)}>
+                Zrušiť
+              </Button>
+              <Button onClick={handleCreateUser}>
+                Vytvoriť
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Role Dialog */}
+        <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Pridať rolu</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role-name">Názov role</Label>
+                <Input
+                  id="role-name"
+                  value={roleForm.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setRoleForm(prev => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role-display-name">Zobrazovaný názov</Label>
+                <Input
+                  id="role-display-name"
+                  value={roleForm.displayName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setRoleForm(prev => ({
+                      ...prev,
+                      displayName: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role-description">Popis</Label>
+                <Textarea
+                  id="role-description"
+                  rows={3}
+                  value={roleForm.description}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setRoleForm(prev => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role-level">Úroveň (1-10)</Label>
+                <Input
+                  id="role-level"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={roleForm.level}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setRoleForm(prev => ({
+                      ...prev,
+                      level: parseInt(e.target.value) || 1,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+                Zrušiť
+              </Button>
+              <Button onClick={handleCreateRole}>
+                Vytvoriť
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Department Dialog */}
+        <Dialog open={departmentDialogOpen} onOpenChange={setDepartmentDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Pridať oddelenie</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="dept-name">Názov oddelenia</Label>
+                <Input
+                  id="dept-name"
+                  value={departmentForm.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setDepartmentForm(prev => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dept-description">Popis</Label>
+                <Textarea
+                  id="dept-description"
+                  rows={3}
+                  value={departmentForm.description}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setDepartmentForm(prev => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dept-budget">Mesačný budget (€)</Label>
+                  <Input
+                    id="dept-budget"
+                    type="number"
+                    value={departmentForm.monthlyBudget}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setDepartmentForm(prev => ({
+                        ...prev,
+                        monthlyBudget: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dept-vehicles">Limit vozidiel</Label>
+                  <Input
+                    id="dept-vehicles"
+                    type="number"
+                    value={departmentForm.vehicleLimit}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setDepartmentForm(prev => ({
+                        ...prev,
+                        vehicleLimit: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDepartmentDialogOpen(false)}>
+                Zrušiť
+              </Button>
+              <Button onClick={handleCreateDepartment}>
+                Vytvoriť
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Team Dialog */}
+        <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Pridať tím</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="team-name">Názov tímu</Label>
+                <Input
+                  id="team-name"
+                  value={teamForm.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setTeamForm(prev => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-description">Popis</Label>
+                <Textarea
+                  id="team-description"
+                  rows={3}
+                  value={teamForm.description}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setTeamForm(prev => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-lead">Vedúci tímu</Label>
+                <Select
+                  value={teamForm.teamLeadId}
+                  onValueChange={(value) =>
+                    setTeamForm(prev => ({
+                      ...prev,
+                      teamLeadId: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte vedúceho tímu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-team-lead">Žiadny</SelectItem>
+                    {users
+                      .filter(u => u.isActive)
+                      .map(user => (
+                        <SelectItem key={user.id} value={user.id}>
                           {user.firstName && user.lastName
                             ? `${user.firstName} ${user.lastName}`
                             : user.username}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {user.jobTitle || user.username}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={user.roleName || 'N/A'}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>{user.departmentName || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={user.isActive ? 'Aktívny' : 'Neaktívny'}
-                      color={getStatusColor(user.isActive)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {user.lastLoginAt
-                      ? format(new Date(user.lastLoginAt), 'dd.MM.yyyy HH:mm', {
-                          locale: sk,
-                        })
-                      : 'Nikdy'}
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="Zobraziť">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleViewUser(user.id)}
-                      >
-                        <ViewIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Upraviť">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditUser(user.id)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    {user.isActive && (
-                      <Tooltip title="Deaktivovať">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeactivateUser(user.id)}
-                        >
-                          <BlockIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </TabPanel>
-
-      {/* Roles Management */}
-      <TabPanel value={currentTab} index={2}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Role ({roles.length})</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setRoleDialogOpen(true)}
-          >
-            Pridať rolu
-          </Button>
-        </Box>
-
-        <Grid container spacing={2}>
-          {roles.map(role => (
-            <Grid item xs={12} md={6} lg={4} key={role.id}>
-              <Card>
-                <CardContent>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 2,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {role.displayName}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {role.name}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      size="small"
-                      label={getRoleLevel(role.level)}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  <Typography variant="body2" sx={{ mb: 2, minHeight: 40 }}>
-                    {role.description || 'Bez popisu'}
-                  </Typography>
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {role.isSystem && (
-                        <Chip size="small" label="Systémová" color="info" />
-                      )}
-                      {!role.isActive && (
-                        <Chip size="small" label="Neaktívna" color="error" />
-                      )}
-                    </Box>
-
-                    {!role.isSystem && (
-                      <Box>
-                        <IconButton size="small">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton size="small" color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </TabPanel>
-
-      {/* Departments Management */}
-      <TabPanel value={currentTab} index={3}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Oddelenia ({departments.length})</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setDepartmentDialogOpen(true)}
-          >
-            Pridať oddelenie
-          </Button>
-        </Box>
-
-        <Grid container spacing={2}>
-          {departments.map(department => (
-            <Grid item xs={12} md={6} key={department.id}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-                    {department.name}
-                  </Typography>
-
-                  {department.description && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 2 }}
-                    >
-                      {department.description}
-                    </Typography>
-                  )}
-
-                  <Box
-                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}
-                  >
-                    {department.monthlyBudget && (
-                      <Chip
-                        size="small"
-                        label={`Budget: ${department.monthlyBudget}€`}
-                        color="success"
-                        variant="outlined"
-                      />
-                    )}
-                    {department.vehicleLimit && (
-                      <Chip
-                        size="small"
-                        label={`Vozidlá: ${department.vehicleLimit}`}
-                        color="info"
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <IconButton size="small">
-                      <EditIcon />
-                    </IconButton>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </TabPanel>
-
-      {/* Teams Management */}
-      <TabPanel value={currentTab} index={4}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Tímy ({teams.length})</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setTeamDialogOpen(true)}
-          >
-            Pridať tím
-          </Button>
-        </Box>
-
-        <Grid container spacing={2}>
-          {teams.map(team => (
-            <Grid item xs={12} md={6} key={team.id}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-                    {team.name}
-                  </Typography>
-
-                  {team.description && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 2 }}
-                    >
-                      {team.description}
-                    </Typography>
-                  )}
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <Chip
-                      size="small"
-                      label={team.isActive ? 'Aktívny' : 'Neaktívny'}
-                      color={team.isActive ? 'success' : 'error'}
-                    />
-
-                    <Box>
-                      <IconButton size="small">
-                        <ViewIcon />
-                      </IconButton>
-                      <IconButton size="small">
-                        <EditIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </TabPanel>
-
-      {/* Activity Log */}
-      <TabPanel value={currentTab} index={5}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Audit Log ({activityLog.length})
-        </Typography>
-
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Čas</TableCell>
-                <TableCell>Používateľ</TableCell>
-                <TableCell>Akcia</TableCell>
-                <TableCell>Zdroj</TableCell>
-                <TableCell>IP adresa</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {activityLog.map(log => (
-                <TableRow key={log.id}>
-                  <TableCell>
-                    {format(new Date(log.createdAt), 'dd.MM.yyyy HH:mm:ss', {
-                      locale: sk,
-                    })}
-                  </TableCell>
-                  <TableCell>{log.userId}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={log.action} variant="outlined" />
-                  </TableCell>
-                  <TableCell>
-                    {log.resourceType && (
-                      <Chip
-                        size="small"
-                        label={log.resourceType}
-                        color="info"
-                        variant="outlined"
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>{log.ipAddress || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={log.success ? 'Úspech' : 'Chyba'}
-                      color={log.success ? 'success' : 'error'}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </TabPanel>
-
-      {/* User Dialog */}
-      <Dialog
-        open={userDialogOpen}
-        onClose={() => setUserDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Pridať používateľa</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Používateľské meno"
-                value={userForm.username}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, username: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={userForm.email}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, email: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Meno"
-                value={userForm.firstName}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, firstName: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Priezvisko"
-                value={userForm.lastName}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, lastName: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Heslo"
-                type="password"
-                value={userForm.password}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, password: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Telefón"
-                value={userForm.phone}
-                onChange={e =>
-                  setUserForm(prev => ({ ...prev, phone: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Rola</InputLabel>
-                <Select
-                  value={userForm.roleId}
-                  onChange={e =>
-                    setUserForm(prev => ({ ...prev, roleId: e.target.value }))
-                  }
-                  label="Rola"
-                >
-                  {roles.map(role => (
-                    <MenuItem key={role.id} value={role.id}>
-                      {role.displayName}
-                    </MenuItem>
-                  ))}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Oddelenie</InputLabel>
-                <Select
-                  value={userForm.departmentId}
-                  onChange={e =>
-                    setUserForm(prev => ({
-                      ...prev,
-                      departmentId: e.target.value,
-                    }))
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTeamDialogOpen(false)}>
+                Zrušiť
+              </Button>
+              <Button onClick={handleCreateTeam}>
+                Vytvoriť
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={editModalOpen} onOpenChange={handleCancelEdit}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Upraviť používateľa</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-firstName">Meno</Label>
+                <Input
+                  id="edit-firstName"
+                  value={editForm.firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditForm({ ...editForm, firstName: e.target.value })
                   }
-                  label="Oddelenie"
-                >
-                  <MenuItem value="">Žiadne</MenuItem>
-                  {departments.map(dept => (
-                    <MenuItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUserDialogOpen(false)}>Zrušiť</Button>
-          <Button variant="contained" onClick={handleCreateUser}>
-            Vytvoriť
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Role Dialog */}
-      <Dialog
-        open={roleDialogOpen}
-        onClose={() => setRoleDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Pridať rolu</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Názov role"
-                value={userForm.username}
-                onChange={e =>
-                  setRoleForm(prev => ({ ...prev, name: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Zobrazovaný názov"
-                value={roleForm.displayName}
-                onChange={e =>
-                  setRoleForm(prev => ({
-                    ...prev,
-                    displayName: e.target.value,
-                  }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Popis"
-                multiline
-                rows={3}
-                value={roleForm.description}
-                onChange={e =>
-                  setRoleForm(prev => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Úroveň (1-10)"
-                type="number"
-                value={roleForm.level}
-                onChange={e =>
-                  setRoleForm(prev => ({
-                    ...prev,
-                    level: parseInt(e.target.value) || 1,
-                  }))
-                }
-                inputProps={{ min: 1, max: 10 }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRoleDialogOpen(false)}>Zrušiť</Button>
-          <Button variant="contained" onClick={handleCreateRole}>
-            Vytvoriť
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Department Dialog */}
-      <Dialog
-        open={departmentDialogOpen}
-        onClose={() => setDepartmentDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Pridať oddelenie</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Názov oddelenia"
-                value={departmentForm.name}
-                onChange={e =>
-                  setDepartmentForm(prev => ({ ...prev, name: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Popis"
-                multiline
-                rows={3}
-                value={departmentForm.description}
-                onChange={e =>
-                  setDepartmentForm(prev => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Mesačný budget (€)"
-                type="number"
-                value={departmentForm.monthlyBudget}
-                onChange={e =>
-                  setDepartmentForm(prev => ({
-                    ...prev,
-                    monthlyBudget: e.target.value,
-                  }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Limit vozidiel"
-                type="number"
-                value={departmentForm.vehicleLimit}
-                onChange={e =>
-                  setDepartmentForm(prev => ({
-                    ...prev,
-                    vehicleLimit: e.target.value,
-                  }))
-                }
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDepartmentDialogOpen(false)}>Zrušiť</Button>
-          <Button variant="contained" onClick={handleCreateDepartment}>
-            Vytvoriť
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Team Dialog */}
-      <Dialog
-        open={teamDialogOpen}
-        onClose={() => setTeamDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Pridať tím</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Názov tímu"
-                value={teamForm.name}
-                onChange={e =>
-                  setTeamForm(prev => ({ ...prev, name: e.target.value }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Popis"
-                multiline
-                rows={3}
-                value={teamForm.description}
-                onChange={e =>
-                  setTeamForm(prev => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Vedúci tímu</InputLabel>
-                <Select
-                  value={teamForm.teamLeadId}
-                  onChange={e =>
-                    setTeamForm(prev => ({
-                      ...prev,
-                      teamLeadId: e.target.value,
-                    }))
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-lastName">Priezvisko</Label>
+                <Input
+                  id="edit-lastName"
+                  value={editForm.lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditForm({ ...editForm, lastName: e.target.value })
                   }
-                  label="Vedúci tímu"
-                >
-                  <MenuItem value="">Žiadny</MenuItem>
-                  {users
-                    .filter(u => u.isActive)
-                    .map(user => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.firstName && user.lastName
-                          ? `${user.firstName} ${user.lastName}`
-                          : user.username}
-                      </MenuItem>
-                    ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTeamDialogOpen(false)}>Zrušiť</Button>
-          <Button variant="contained" onClick={handleCreateTeam}>
-            Vytvoriť
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Edit User Dialog */}
-      <Dialog
-        open={editModalOpen}
-        onClose={handleCancelEdit}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Upraviť používateľa</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Meno"
-                value={editForm.firstName}
-                onChange={e =>
-                  setEditForm({ ...editForm, firstName: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Priezvisko"
-                value={editForm.lastName}
-                onChange={e =>
-                  setEditForm({ ...editForm, lastName: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={editForm.email}
-                onChange={e =>
-                  setEditForm({ ...editForm, email: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Telefón"
-                value={editForm.phone}
-                onChange={e =>
-                  setEditForm({ ...editForm, phone: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Pozícia"
-                value={editForm.jobTitle}
-                onChange={e =>
-                  setEditForm({ ...editForm, jobTitle: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Rola</InputLabel>
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefón</Label>
+                <Input
+                  id="edit-phone"
+                  value={editForm.phone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditForm({ ...editForm, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-jobTitle">Pozícia</Label>
+                <Input
+                  id="edit-jobTitle"
+                  value={editForm.jobTitle}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditForm({ ...editForm, jobTitle: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Rola</Label>
                 <Select
                   value={editForm.roleId}
-                  onChange={e =>
-                    setEditForm({ ...editForm, roleId: e.target.value })
+                  onValueChange={(value) =>
+                    setEditForm({ ...editForm, roleId: value })
                   }
-                  label="Rola"
                 >
-                  {roles.map(role => (
-                    <MenuItem key={role.id} value={role.id}>
-                      {role.displayName}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte rolu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map(role => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Oddelenie</InputLabel>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-department">Oddelenie</Label>
                 <Select
                   value={editForm.departmentId}
-                  onChange={e =>
-                    setEditForm({ ...editForm, departmentId: e.target.value })
+                  onValueChange={(value) =>
+                    setEditForm({ ...editForm, departmentId: value })
                   }
-                  label="Oddelenie"
                 >
-                  <MenuItem value="">Žiadne</MenuItem>
-                  {departments.map(dept => (
-                    <MenuItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte oddelenie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-department">Žiadne</SelectItem>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
+              </div>
+
+            </div>
 
             {/* Permissions Section */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <SecurityIcon />
+            <div className="space-y-4">
+              <Separator />
+              <h4 className="font-semibold flex items-center gap-2">
+                <Lock className="h-4 w-4" />
                 Oprávnenia pre firmy
-              </Typography>
+              </h4>
 
               {companies.map(company => {
                 const userCompanyAccess = userPermissions.find(
@@ -1798,374 +1678,204 @@ const AdvancedUserManagement: React.FC = () => {
                 };
 
                 return (
-                  <Accordion key={company.id} sx={{ mb: 1 }}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <BusinessIcon />
-                        <Typography>{company.name}</Typography>
-                        {userCompanyAccess && (
-                          <Chip
-                            size="small"
-                            label="Má prístup"
-                            color="success"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <Grid container spacing={1}>
-                        {Object.entries({
-                          vehicles: '🚗 Vozidlá',
-                          rentals: '📋 Prenájmy',
-                          expenses: '💰 Náklady',
-                          customers: '👥 Zákazníci',
-                          insurances: '🛡️ Poistky',
-                          protocols: '📝 Protokoly',
-                          settlements: '📊 Vyúčtovania',
-                          maintenance: '🔧 Údržba',
-                          statistics: '📈 Štatistiky',
-                        }).map(([resource, label]) => (
-                          <Grid item xs={12} key={resource}>
-                            <Typography
-                              variant="body2"
-                              sx={{ mb: 1, fontWeight: 500 }}
-                            >
-                              {label}
-                            </Typography>
-                            <Box
-                              sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}
-                            >
-                              <FormControlLabel
-                                control={
+                  <Accordion key={company.id} type="single" collapsible>
+                    <AccordionItem value={company.id}>
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          <span>{company.name}</span>
+                          {userCompanyAccess && (
+                            <Badge variant="outline" className="text-xs">
+                              Má prístup
+                            </Badge>
+                          )}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4">
+                          {Object.entries({
+                            vehicles: '🚗 Vozidlá',
+                            rentals: '📋 Prenájmy',
+                            expenses: '💰 Náklady',
+                            customers: '👥 Zákazníci',
+                            insurances: '🛡️ Poistky',
+                            protocols: '📝 Protokoly',
+                            settlements: '📊 Vyúčtovania',
+                            maintenance: '🔧 Údržba',
+                            statistics: '📈 Štatistiky',
+                          }).map(([resource, label]) => (
+                            <div key={resource} className="space-y-2">
+                              <p className="font-medium text-sm">{label}</p>
+                              <div className="flex gap-4">
+                                <div className="flex items-center space-x-2">
                                   <Switch
-                                    size="small"
-                                    checked={
-                                      permissions[resource]?.read || false
-                                    }
-                                    onChange={e => {
-                                      const newPermissions = [
-                                        ...userPermissions,
-                                      ];
-                                      const existingIndex =
-                                        newPermissions.findIndex(
-                                          p => p.companyId === company.id
-                                        );
+                                    checked={permissions[resource]?.read || false}
+                                    onCheckedChange={(checked: boolean) => {
+                                      const newPermissions = [...userPermissions];
+                                      const existingIndex = newPermissions.findIndex(
+                                        p => p.companyId === company.id
+                                      );
 
                                       if (existingIndex >= 0) {
-                                        const permissions =
-                                          newPermissions[existingIndex]
-                                            .permissions;
-                                        if (!permissions[resource]) {
+                                        const permissions = newPermissions[existingIndex]?.permissions;
+                                        if (permissions && !permissions[resource]) {
                                           permissions[resource] = {};
                                         }
-                                        (
-                                          permissions[resource] as {
-                                            read?: boolean;
-                                          }
-                                        ).read = e.target.checked;
+                                        if (permissions) {
+                                          (permissions[resource] as { read?: boolean }).read = checked;
+                                        }
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            rentals: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            expenses: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            customers: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            insurances: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            protocols: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            settlements: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            maintenance: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            statistics: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
+                                            vehicles: { read: false, write: false, delete: false },
+                                            rentals: { read: false, write: false, delete: false },
+                                            expenses: { read: false, write: false, delete: false },
+                                            customers: { read: false, write: false, delete: false },
+                                            insurances: { read: false, write: false, delete: false },
+                                            protocols: { read: false, write: false, delete: false },
+                                            settlements: { read: false, write: false, delete: false },
+                                            maintenance: { read: false, write: false, delete: false },
+                                            statistics: { read: false, write: false, delete: false },
                                           },
                                         };
-                                        const permissionsObj =
-                                          newPerm.permissions as Record<
-                                            string,
-                                            {
-                                              read?: boolean;
-                                              write?: boolean;
-                                              delete?: boolean;
-                                            }
-                                          >;
+                                        const permissionsObj = newPerm.permissions as Record<string, { read?: boolean; write?: boolean; delete?: boolean }>;
                                         if (!permissionsObj[resource]) {
-                                          permissionsObj[resource] = {};
+                                          permissionsObj[resource] = { read: false, write: false, delete: false };
                                         }
-                                        permissionsObj[resource].read =
-                                          e.target.checked;
+                                        const resourcePerms = permissionsObj[resource];
+                                        if (resourcePerms) {
+                                          resourcePerms.read = checked;
+                                        }
                                         newPermissions.push(newPerm);
                                       }
 
                                       setUserPermissions(newPermissions);
                                     }}
                                   />
-                                }
-                                label="Čítanie"
-                              />
-                              <FormControlLabel
-                                control={
+                                  <Label className="text-sm">Čítanie</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
                                   <Switch
-                                    size="small"
-                                    checked={
-                                      permissions[resource]?.write || false
-                                    }
-                                    onChange={e => {
-                                      const newPermissions = [
-                                        ...userPermissions,
-                                      ];
-                                      const existingIndex =
-                                        newPermissions.findIndex(
-                                          p => p.companyId === company.id
-                                        );
+                                    checked={permissions[resource]?.write || false}
+                                    onCheckedChange={(checked: boolean) => {
+                                      const newPermissions = [...userPermissions];
+                                      const existingIndex = newPermissions.findIndex(
+                                        p => p.companyId === company.id
+                                      );
 
                                       if (existingIndex >= 0) {
-                                        const permissions =
-                                          newPermissions[existingIndex]
-                                            .permissions;
-                                        if (!permissions[resource]) {
+                                        const permissions = newPermissions[existingIndex]?.permissions;
+                                        if (permissions && !permissions[resource]) {
                                           permissions[resource] = {};
                                         }
-                                        (
-                                          permissions[resource] as {
-                                            write?: boolean;
-                                          }
-                                        ).write = e.target.checked;
+                                        if (permissions) {
+                                          (permissions[resource] as { write?: boolean }).write = checked;
+                                        }
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            rentals: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            expenses: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            customers: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            insurances: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            protocols: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            settlements: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            maintenance: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            statistics: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
+                                            vehicles: { read: false, write: false, delete: false },
+                                            rentals: { read: false, write: false, delete: false },
+                                            expenses: { read: false, write: false, delete: false },
+                                            customers: { read: false, write: false, delete: false },
+                                            insurances: { read: false, write: false, delete: false },
+                                            protocols: { read: false, write: false, delete: false },
+                                            settlements: { read: false, write: false, delete: false },
+                                            maintenance: { read: false, write: false, delete: false },
+                                            statistics: { read: false, write: false, delete: false },
                                           },
                                         };
-                                        const permissionsObj =
-                                          newPerm.permissions as Record<
-                                            string,
-                                            {
-                                              read?: boolean;
-                                              write?: boolean;
-                                              delete?: boolean;
-                                            }
-                                          >;
+                                        const permissionsObj = newPerm.permissions as Record<string, { read?: boolean; write?: boolean; delete?: boolean }>;
                                         if (!permissionsObj[resource]) {
-                                          permissionsObj[resource] = {};
+                                          permissionsObj[resource] = { read: false, write: false, delete: false };
                                         }
-                                        permissionsObj[resource].write =
-                                          e.target.checked;
+                                        const resourcePerms = permissionsObj[resource];
+                                        if (resourcePerms) {
+                                          resourcePerms.write = checked;
+                                        }
                                         newPermissions.push(newPerm);
                                       }
 
                                       setUserPermissions(newPermissions);
                                     }}
                                   />
-                                }
-                                label="Zápis"
-                              />
-                              <FormControlLabel
-                                control={
+                                  <Label className="text-sm">Zápis</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
                                   <Switch
-                                    size="small"
-                                    checked={
-                                      permissions[resource]?.delete || false
-                                    }
-                                    onChange={e => {
-                                      const newPermissions = [
-                                        ...userPermissions,
-                                      ];
-                                      const existingIndex =
-                                        newPermissions.findIndex(
-                                          p => p.companyId === company.id
-                                        );
+                                    checked={permissions[resource]?.delete || false}
+                                    onCheckedChange={(checked: boolean) => {
+                                      const newPermissions = [...userPermissions];
+                                      const existingIndex = newPermissions.findIndex(
+                                        p => p.companyId === company.id
+                                      );
 
                                       if (existingIndex >= 0) {
-                                        const permissions =
-                                          newPermissions[existingIndex]
-                                            .permissions;
-                                        if (!permissions[resource]) {
+                                        const permissions = newPermissions[existingIndex]?.permissions;
+                                        if (permissions && !permissions[resource]) {
                                           permissions[resource] = {};
                                         }
-                                        (
-                                          permissions[resource] as {
-                                            delete?: boolean;
-                                          }
-                                        ).delete = e.target.checked;
+                                        if (permissions) {
+                                          (permissions[resource] as { delete?: boolean }).delete = checked;
+                                        }
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            rentals: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            expenses: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            customers: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            insurances: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            protocols: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            settlements: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            maintenance: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
-                                            statistics: {
-                                              read: false,
-                                              write: false,
-                                              delete: false,
-                                            },
+                                            vehicles: { read: false, write: false, delete: false },
+                                            rentals: { read: false, write: false, delete: false },
+                                            expenses: { read: false, write: false, delete: false },
+                                            customers: { read: false, write: false, delete: false },
+                                            insurances: { read: false, write: false, delete: false },
+                                            protocols: { read: false, write: false, delete: false },
+                                            settlements: { read: false, write: false, delete: false },
+                                            maintenance: { read: false, write: false, delete: false },
+                                            statistics: { read: false, write: false, delete: false },
                                           },
                                         };
-                                        const permissionsObj =
-                                          newPerm.permissions as Record<
-                                            string,
-                                            {
-                                              read?: boolean;
-                                              write?: boolean;
-                                              delete?: boolean;
-                                            }
-                                          >;
+                                        const permissionsObj = newPerm.permissions as Record<string, { read?: boolean; write?: boolean; delete?: boolean }>;
                                         if (!permissionsObj[resource]) {
-                                          permissionsObj[resource] = {};
+                                          permissionsObj[resource] = { read: false, write: false, delete: false };
                                         }
-                                        permissionsObj[resource].delete =
-                                          e.target.checked;
+                                        const resourcePerms = permissionsObj[resource];
+                                        if (resourcePerms) {
+                                          resourcePerms.delete = checked;
+                                        }
                                         newPermissions.push(newPerm);
                                       }
 
                                       setUserPermissions(newPermissions);
                                     }}
                                   />
-                                }
-                                label="Mazanie"
-                              />
-                            </Box>
-                          </Grid>
-                        ))}
-                      </Grid>
-                    </AccordionDetails>
+                                  <Label className="text-sm">Mazanie</Label>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
                   </Accordion>
                 );
               })}
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelEdit}>Zrušiť</Button>
-          <Button variant="contained" onClick={handleSaveEditUser}>
-            Uložiť
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancelEdit}>
+                Zrušiť
+              </Button>
+              <Button onClick={handleSaveEditUser}>
+                Uložiť
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 

@@ -24,7 +24,7 @@ export function useInfiniteScroll(
     const element = scrollRef.current;
     if (!element) return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
       if (!shouldLoad || loadingRef.current) return;
@@ -70,7 +70,7 @@ export function useInfiniteScroll(
             loadingRef.current = false;
           }, 3000); // 3 seconds delay
         }
-      }, 150) as unknown as NodeJS.Timeout; // Debounce for 150ms
+      }, 150); // Debounce for 150ms
     };
 
     element.addEventListener('scroll', handleScroll, { passive: true });
@@ -108,7 +108,7 @@ export function useInfiniteScrollAdvanced({
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
 
-      if (entry.isIntersecting && hasMore && !loading) {
+      if (entry?.isIntersecting && hasMore && !loading) {
         loadMoreRef.current();
       }
     },
@@ -228,7 +228,7 @@ export function useItemBasedInfiniteScroll(
     const container = containerRef.current;
     if (!container) return;
 
-    let debounceTimer: NodeJS.Timeout;
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
       if (!shouldLoad || loadingRef.current || totalItems === 0) return;
@@ -283,7 +283,7 @@ export function useItemBasedInfiniteScroll(
             loadingRef.current = false;
           }, 3000);
         }
-      }, 150) as unknown as NodeJS.Timeout; // Debounce
+      }, 150); // Debounce
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });

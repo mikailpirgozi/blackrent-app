@@ -1,28 +1,25 @@
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Assignment as DocumentIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
+  Plus as AddIcon,
+  Trash2 as DeleteIcon,
+  FileText as DocumentIcon,
+  Eye as ViewIcon,
+} from 'lucide-react';
 import {
   Alert,
-  Box,
+  AlertDescription,
   Button,
   Card,
   CardContent,
-  Chip,
+  Badge,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  List,
-  ListItem,
-  ListItemSecondaryAction,
-  ListItemText,
-  TextField,
+  DialogFooter,
+  Input,
+  Label,
   Typography,
-} from '@mui/material';
+} from '../ui';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { VehicleDocument } from '../../types';
@@ -216,138 +213,117 @@ export default function TechnicalCertificateUpload({
   };
 
   return (
-    <Card sx={{ mt: 2 }}>
+    <Card className="mt-2">
       <CardContent>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="subtitle1"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <DocumentIcon sx={{ color: '#1976d2' }} />
+        <div className="flex justify-between items-center mb-2">
+          <Typography variant="h6" className="flex items-center gap-2">
+            <DocumentIcon className="h-5 w-5 text-blue-600" />
             Technický preukaz
           </Typography>
           <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
+            variant="outline"
             onClick={() => setUploadDialogOpen(true)}
-            size="small"
-            sx={{ borderRadius: 2 }}
+            size="sm"
+            className="rounded-lg"
           >
+            <AddIcon className="h-4 w-4 mr-2" />
             Nahrať TP
           </Button>
-        </Box>
+        </div>
 
         {loading ? (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ textAlign: 'center', py: 2 }}
-          >
+          <Typography variant="body2" className="text-center py-2 text-muted-foreground">
             Načítavam technické preukazy...
           </Typography>
         ) : documents.length > 0 ? (
-          <List dense>
+          <div className="space-y-2">
             {documents.map(doc => (
-              <ListItem key={doc.id} divider>
-                <ListItemText
-                  primary={doc.documentNumber || 'Technický preukaz'}
-                  secondary={
-                    <Box>
-                      {doc.notes && (
-                        <Typography variant="caption" color="text.secondary">
-                          {doc.notes}
-                        </Typography>
-                      )}
-                      <br />
-                      <Typography variant="caption" color="text.secondary">
-                        Nahraný:{' '}
-                        {doc.createdAt
-                          ? new Date(doc.createdAt).toLocaleDateString('sk-SK')
-                          : 'Neznámy dátum'}
+              <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex-1">
+                  <Typography variant="body1" className="font-medium">
+                    {doc.documentNumber || 'Technický preukaz'}
+                  </Typography>
+                  <div className="mt-1">
+                    {doc.notes && (
+                      <Typography variant="caption" className="text-muted-foreground">
+                        {doc.notes}
                       </Typography>
-                    </Box>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <IconButton
-                    size="small"
+                    )}
+                    <br />
+                    <Typography variant="caption" className="text-muted-foreground">
+                      Nahraný:{' '}
+                      {doc.createdAt
+                        ? new Date(doc.createdAt).toLocaleDateString('sk-SK')
+                        : 'Neznámy dátum'}
+                    </Typography>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => window.open(doc.filePath, '_blank')}
                     title="Zobraziť technický preukaz"
                   >
-                    <ViewIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
+                    <ViewIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleDeleteTechnicalCertificate(doc.id)}
                     title="Zmazať technický preukaz"
-                    color="error"
+                    className="text-destructive hover:text-destructive"
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
+                    <DeleteIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             ))}
-          </List>
+          </div>
         ) : (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ textAlign: 'center', py: 2 }}
-          >
+          <Typography variant="body2" className="text-center py-2 text-muted-foreground">
             Žiadny technický preukaz nahraný
           </Typography>
         )}
 
         {/* UPLOAD DIALOG */}
-        <Dialog
-          open={uploadDialogOpen}
-          onClose={() => setUploadDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            📄 Nahrať technický preukaz pre {vehicleName}
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ mt: 2 }}>
-              <TextField
-                fullWidth
-                label="Názov dokumentu"
-                value={uploadData.documentName}
-                onChange={e =>
-                  setUploadData(prev => ({
-                    ...prev,
-                    documentName: e.target.value,
-                  }))
-                }
-                size="small"
-                required
-                placeholder="napr. Technický preukaz 2024"
-                sx={{ mb: 2 }}
-              />
+        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                📄 Nahrať technický preukaz pre {vehicleName}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label htmlFor="documentName">Názov dokumentu</Label>
+                <Input
+                  id="documentName"
+                  value={uploadData.documentName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUploadData(prev => ({
+                      ...prev,
+                      documentName: e.target.value,
+                    }))
+                  }
+                  placeholder="napr. Technický preukaz 2024"
+                  required
+                />
+              </div>
 
-              <TextField
-                fullWidth
-                label="Poznámky (nepovinné)"
-                value={uploadData.notes}
-                onChange={e =>
-                  setUploadData(prev => ({ ...prev, notes: e.target.value }))
-                }
-                size="small"
-                multiline
-                rows={2}
-                placeholder="Dodatočné informácie..."
-                sx={{ mb: 2 }}
-              />
+              <div>
+                <Label htmlFor="notes">Poznámky (nepovinné)</Label>
+                <Input
+                  id="notes"
+                  value={uploadData.notes}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUploadData(prev => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Dodatočné informácie..."
+                />
+              </div>
 
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              <Typography variant="body2" className="mb-2">
                 Nahrať technický preukaz:
               </Typography>
 
@@ -369,53 +345,61 @@ export default function TechnicalCertificateUpload({
               />
 
               {uploadedFiles.length > 0 && (
-                <Alert severity="success" sx={{ mt: 1 }}>
-                  ✅ {uploadedFiles.length} súborov úspešne nahraných a
-                  pripravených na uloženie
-                  <Box sx={{ mt: 1 }}>
-                    {uploadedFiles.map((file, index) => (
-                      <Chip
-                        key={index}
-                        label={file.filename}
-                        size="small"
-                        variant="outlined"
-                        sx={{ mr: 1, mb: 1 }}
-                        onDelete={() =>
-                          setUploadedFiles(prev =>
-                            prev.filter((_, i) => i !== index)
-                          )
-                        }
-                      />
-                    ))}
-                  </Box>
+                <Alert className="mt-2">
+                  <AlertDescription>
+                    ✅ {uploadedFiles.length} súborov úspešne nahraných a
+                    pripravených na uloženie
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {uploadedFiles.map((file, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="px-2 py-1"
+                        >
+                          {file.filename}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setUploadedFiles(prev =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
+                            className="ml-2 h-4 w-4 p-0"
+                          >
+                            ×
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </AlertDescription>
                 </Alert>
               )}
-            </Box>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadDialogOpen(false);
+                  setUploadedFiles([]);
+                  setUploadData({ documentName: '', notes: '' });
+                }}
+              >
+                Zrušiť
+              </Button>
+              <Button
+                onClick={handleSaveTechnicalCertificates}
+                disabled={
+                  uploadedFiles.length === 0 || !uploadData.documentName.trim()
+                }
+              >
+                💾 Uložiť{' '}
+                {uploadedFiles.length > 1
+                  ? `${uploadedFiles.length} súborov`
+                  : 'technický preukaz'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions sx={{ p: 3, gap: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                setUploadDialogOpen(false);
-                setUploadedFiles([]);
-                setUploadData({ documentName: '', notes: '' });
-              }}
-            >
-              Zrušiť
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSaveTechnicalCertificates}
-              disabled={
-                uploadedFiles.length === 0 || !uploadData.documentName.trim()
-              }
-            >
-              💾 Uložiť{' '}
-              {uploadedFiles.length > 1
-                ? `${uploadedFiles.length} súborov`
-                : 'technický preukaz'}
-            </Button>
-          </DialogActions>
         </Dialog>
       </CardContent>
     </Card>

@@ -122,6 +122,7 @@ export function useCreateUser() {
       const optimisticUser = {
         id: `temp-${Date.now()}`,
         ...newUser,
+        permissions: newUser.permissions?.map(p => ({ resource: p as any, actions: ['read'] as const })) || [],
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -134,7 +135,7 @@ export function useCreateUser() {
 
       return { previousUsers };
     },
-    onError: (err, newUser, context) => {
+    onError: (_err, _newUser, context) => {
       if (context?.previousUsers) {
         queryClient.setQueryData(
           queryKeys.users.lists(),
@@ -186,7 +187,7 @@ export function useUpdateUser() {
 
       return { previousUser };
     },
-    onError: (err, updatedUser, context) => {
+    onError: (_err, updatedUser, context) => {
       if (context?.previousUser) {
         queryClient.setQueryData(
           queryKeys.users.detail(updatedUser.id),
@@ -198,7 +199,7 @@ export function useUpdateUser() {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('user-updated', { detail: data }));
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.users.detail(variables.id),
       });
@@ -228,7 +229,7 @@ export function useDeleteUser() {
 
       return { previousUsers };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousUsers) {
         queryClient.setQueryData(
           queryKeys.users.lists(),
@@ -236,7 +237,7 @@ export function useDeleteUser() {
         );
       }
     },
-    onSuccess: (data, deletedId) => {
+    onSuccess: (_, deletedId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('user-deleted', { detail: { id: deletedId } })
@@ -257,7 +258,7 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: (passwordData: ChangePasswordData) =>
       apiService.changeUserPassword(passwordData),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('user-password-changed', {
@@ -265,7 +266,7 @@ export function useChangePassword() {
         })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_, _error, variables) => {
       // Invalidate user data to refresh any cached info
       queryClient.invalidateQueries({
         queryKey: queryKeys.users.detail(variables.id),
@@ -304,7 +305,7 @@ export function useDeactivateUser() {
 
       return { previousUser };
     },
-    onError: (err, userId, context) => {
+    onError: (_err, userId, context) => {
       if (context?.previousUser) {
         queryClient.setQueryData(
           queryKeys.users.detail(userId),
@@ -312,13 +313,13 @@ export function useDeactivateUser() {
         );
       }
     },
-    onSuccess: (data, userId) => {
+    onSuccess: (_, userId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('user-deactivated', { detail: { id: userId } })
       );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.users.detail(variables),
       });

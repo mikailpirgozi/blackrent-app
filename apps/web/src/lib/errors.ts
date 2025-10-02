@@ -3,6 +3,9 @@
  * Centralizované spracovanie chýb z backendu
  */
 
+// Use global types
+type Response = globalThis.Response;
+
 /**
  * Štandardný formát error response z backendu
  */
@@ -20,9 +23,9 @@ export interface ErrorResponse {
  */
 export class ApiError extends Error {
   public readonly code: string;
-  public readonly requestId?: string;
-  public readonly status?: number;
-  public readonly details?: Record<string, unknown>;
+  public readonly requestId: string | undefined;
+  public readonly status: number | undefined;
+  public readonly details: Record<string, unknown> | undefined;
 
   constructor(
     code: string,
@@ -51,9 +54,9 @@ export class ApiError extends Error {
    */
   static fromErrorResponse(errorResponse: ErrorResponse): ApiError {
     return new ApiError(errorResponse.code, errorResponse.message, {
-      requestId: errorResponse.requestId,
-      status: errorResponse.status,
-      details: errorResponse.details,
+      ...(errorResponse.requestId !== undefined && { requestId: errorResponse.requestId }),
+      ...(errorResponse.status !== undefined && { status: errorResponse.status }),
+      ...(errorResponse.details !== undefined && { details: errorResponse.details }),
     });
   }
 
@@ -103,9 +106,9 @@ export class ApiError extends Error {
     return {
       code: this.code,
       message: this.message,
-      requestId: this.requestId,
-      status: this.status,
-      details: this.details,
+      ...(this.requestId !== undefined && { requestId: this.requestId }),
+      ...(this.status !== undefined && { status: this.status }),
+      ...(this.details !== undefined && { details: this.details }),
     };
   }
 }

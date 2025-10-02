@@ -20,6 +20,7 @@ export const useApiService = () => {
         message: error.message,
         category: 'server',
         severity: 'error',
+        details: error.message,
         context: {
           originalError: error,
           timestamp: new Date().toISOString(),
@@ -51,6 +52,7 @@ export const useApiCall = () => {
           message: errorMessage,
           category: 'server',
           severity: 'error',
+          details: errorMessage,
           context: {
             originalError: error,
             timestamp: new Date().toISOString(),

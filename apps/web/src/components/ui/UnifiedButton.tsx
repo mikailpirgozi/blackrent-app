@@ -5,125 +5,138 @@
  * Nahradí všetky rôzne button štýly jednotným dizajnom
  */
 
-import type { ButtonProps } from '@mui/material';
-import { Button, CircularProgress } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import React from 'react';
+import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '../../lib/utils';
+import { Spinner } from './spinner';
 
-// 🎨 Definované farby a štýly pre BlackRent
-const BLACKRENT_COLORS = {
-  primary: '#1976d2',
-  secondary: '#dc004e',
-  success: '#2e7d32',
-  warning: '#ed6c02',
-  error: '#d32f2f',
-  info: '#0288d1',
-} as const;
-
-// 🎨 Styled Button s BlackRent dizajnom
-const StyledButton = styled(Button)<{
-  variant?: 'contained' | 'outlined' | 'text';
-  size?: 'small' | 'medium' | 'large';
-  color?: keyof typeof BLACKRENT_COLORS | 'inherit';
-}>(({ theme, variant = 'contained', size = 'medium', color = 'primary' }) => {
-  const baseColor =
-    color === 'inherit'
-      ? theme.palette.primary.main
-      : BLACKRENT_COLORS[color as keyof typeof BLACKRENT_COLORS] ||
-        BLACKRENT_COLORS.primary;
-
-  // 📏 Veľkosti
-  const sizeStyles = {
-    small: {
-      padding: '6px 12px',
-      fontSize: '0.75rem',
-      minHeight: '32px',
-    },
-    medium: {
-      padding: '8px 16px',
-      fontSize: '0.875rem',
-      minHeight: '36px',
-    },
-    large: {
-      padding: '12px 24px',
-      fontSize: '1rem',
-      minHeight: '42px',
-    },
-  };
-
-  // 🎨 Variant štýly
-  const variantStyles = {
-    contained: {
-      backgroundColor: baseColor,
-      color: '#ffffff',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      '&:hover': {
-        backgroundColor:
-          theme.palette.mode === 'dark' ? `${baseColor}dd` : `${baseColor}cc`,
-        boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-        transform: 'translateY(-1px)',
+// 🎨 Button varianty pomocou CVA (class-variance-authority)
+const unifiedButtonVariants = cva(
+  "inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        contained: "text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm",
+        outlined: "bg-transparent border-2 hover:-translate-y-0.5 active:translate-y-0",
+        text: "bg-transparent hover:bg-opacity-10 hover:-translate-y-0.5 active:translate-y-0",
       },
-      '&:active': {
-        transform: 'translateY(0)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      size: {
+        small: "h-8 px-3 text-xs",
+        medium: "h-9 px-4 text-sm",
+        large: "h-11 px-6 text-base",
       },
+      color: {
+        primary: "",
+        secondary: "",
+        success: "",
+        warning: "",
+        error: "",
+        info: "",
+        inherit: "",
+      }
     },
-    outlined: {
-      backgroundColor: 'transparent',
-      color: baseColor,
-      border: `2px solid ${baseColor}`,
-      '&:hover': {
-        backgroundColor: `${baseColor}08`,
-        borderColor: baseColor,
-        transform: 'translateY(-1px)',
-      },
-      '&:active': {
-        transform: 'translateY(0)',
-        backgroundColor: `${baseColor}12`,
-      },
+    compoundVariants: [
+      // Primary color variants
+      { variant: "contained", color: "primary", className: "bg-blue-600 hover:bg-blue-700" },
+      { variant: "outlined", color: "primary", className: "text-blue-600 border-blue-600 hover:bg-blue-50" },
+      { variant: "text", color: "primary", className: "text-blue-600 hover:bg-blue-50" },
+      
+      // Secondary color variants
+      { variant: "contained", color: "secondary", className: "bg-pink-600 hover:bg-pink-700" },
+      { variant: "outlined", color: "secondary", className: "text-pink-600 border-pink-600 hover:bg-pink-50" },
+      { variant: "text", color: "secondary", className: "text-pink-600 hover:bg-pink-50" },
+      
+      // Success color variants
+      { variant: "contained", color: "success", className: "bg-green-700 hover:bg-green-800" },
+      { variant: "outlined", color: "success", className: "text-green-700 border-green-700 hover:bg-green-50" },
+      { variant: "text", color: "success", className: "text-green-700 hover:bg-green-50" },
+      
+      // Warning color variants
+      { variant: "contained", color: "warning", className: "bg-orange-600 hover:bg-orange-700" },
+      { variant: "outlined", color: "warning", className: "text-orange-600 border-orange-600 hover:bg-orange-50" },
+      { variant: "text", color: "warning", className: "text-orange-600 hover:bg-orange-50" },
+      
+      // Error color variants
+      { variant: "contained", color: "error", className: "bg-red-600 hover:bg-red-700" },
+      { variant: "outlined", color: "error", className: "text-red-600 border-red-600 hover:bg-red-50" },
+      { variant: "text", color: "error", className: "text-red-600 hover:bg-red-50" },
+      
+      // Info color variants
+      { variant: "contained", color: "info", className: "bg-cyan-600 hover:bg-cyan-700" },
+      { variant: "outlined", color: "info", className: "text-cyan-600 border-cyan-600 hover:bg-cyan-50" },
+      { variant: "text", color: "info", className: "text-cyan-600 hover:bg-cyan-50" },
+      
+      // Inherit uses primary colors
+      { variant: "contained", color: "inherit", className: "bg-primary hover:bg-primary/90" },
+      { variant: "outlined", color: "inherit", className: "text-primary border-primary hover:bg-primary/10" },
+      { variant: "text", color: "inherit", className: "text-primary hover:bg-primary/10" },
+    ],
+    defaultVariants: {
+      variant: "contained",
+      size: "medium",
+      color: "primary",
     },
-    text: {
-      backgroundColor: 'transparent',
-      color: baseColor,
-      '&:hover': {
-        backgroundColor: `${baseColor}08`,
-        transform: 'translateY(-1px)',
-      },
-      '&:active': {
-        transform: 'translateY(0)',
-        backgroundColor: `${baseColor}12`,
-      },
-    },
-  };
-
-  return {
-    ...sizeStyles[size],
-    ...variantStyles[variant],
-    borderRadius: '8px',
-    fontWeight: 600,
-    textTransform: 'none' as const,
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    '&:disabled': {
-      backgroundColor: theme.palette.action.disabledBackground,
-      color: theme.palette.action.disabled,
-      transform: 'none',
-      boxShadow: 'none',
-    },
-  };
-});
+  }
+);
 
 // 🎨 Props interface
-export interface UnifiedButtonProps extends Omit<ButtonProps, 'color'> {
-  variant?: 'contained' | 'outlined' | 'text';
-  size?: 'small' | 'medium' | 'large';
-  color?: keyof typeof BLACKRENT_COLORS | 'inherit';
+export interface UnifiedButtonProps 
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'color'>,
+    VariantProps<typeof unifiedButtonVariants> {
   loading?: boolean;
   loadingText?: string;
   fullWidth?: boolean;
+  startIcon?: React.ReactNode;
+  endIcon?: React.ReactNode;
+  asChild?: boolean;
+  component?: string | React.ElementType; // Pre kompatibilitu s MUI component prop
+  sx?: any; // Pre spätnu kompatibilitu s MUI sx prop
 }
 
+// Helper funkcia na konverziu MUI sx prop na inline styles (základná podpora)
+const convertSxToStyle = (sx: any): React.CSSProperties | undefined => {
+  if (!sx) return undefined;
+  
+  const style: React.CSSProperties = {};
+  
+  // Základná konverzia niektorých častých sx properties
+  if (sx.mb !== undefined) style.marginBottom = sx.mb * 8; // MUI spacing je násobok 8px
+  if (sx.mt !== undefined) style.marginTop = sx.mt * 8;
+  if (sx.ml !== undefined) style.marginLeft = sx.ml * 8;
+  if (sx.mr !== undefined) style.marginRight = sx.mr * 8;
+  if (sx.m !== undefined) style.margin = sx.m * 8;
+  
+  if (sx.pb !== undefined) style.paddingBottom = sx.pb * 8;
+  if (sx.pt !== undefined) style.paddingTop = sx.pt * 8;
+  if (sx.pl !== undefined) style.paddingLeft = sx.pl * 8;
+  if (sx.pr !== undefined) style.paddingRight = sx.pr * 8;
+  if (sx.px !== undefined) {
+    style.paddingLeft = sx.px * 8;
+    style.paddingRight = sx.px * 8;
+  }
+  if (sx.py !== undefined) {
+    style.paddingTop = sx.py * 8;
+    style.paddingBottom = sx.py * 8;
+  }
+  if (sx.p !== undefined) style.padding = sx.p * 8;
+  
+  if (sx.fontSize) style.fontSize = sx.fontSize;
+  if (sx.color) style.color = sx.color;
+  if (sx.backgroundColor) style.backgroundColor = sx.backgroundColor;
+  if (sx.borderColor) style.borderColor = sx.borderColor;
+  if (sx.borderStyle) style.borderStyle = sx.borderStyle;
+  if (sx.borderWidth) style.borderWidth = sx.borderWidth;
+  
+  return Object.keys(style).length > 0 ? style : undefined;
+};
+
 // 🎨 Unified Button Component
-export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
+export const UnifiedButton = React.forwardRef<
+  HTMLButtonElement,
+  UnifiedButtonProps
+>(({
+  className,
   children,
   loading = false,
   loadingText,
@@ -134,49 +147,80 @@ export const UnifiedButton: React.FC<UnifiedButtonProps> = ({
   startIcon,
   endIcon,
   fullWidth = false,
+  asChild = false,
+  component,
+  sx,
+  style,
   ...props
-}) => {
-  return (
-    <StyledButton
-      variant={variant}
-      size={size}
-      color={color}
-      disabled={disabled || loading}
-      startIcon={
-        loading ? <CircularProgress size={16} color="inherit" /> : startIcon
-      }
-      endIcon={!loading ? endIcon : undefined}
-      fullWidth={fullWidth}
-      {...props}
-    >
+}, ref) => {
+  // Ak je component prop, použijeme ho (pre spätnú kompatibilitu s MUI)
+  const Comp = component || (asChild ? Slot : 'button');
+  
+  const content = (
+    <>
+      {loading && <Spinner size={16} className="mr-2" />}
+      {!loading && startIcon && <span className="mr-2">{startIcon}</span>}
       {loading ? loadingText || 'Načítavam...' : children}
-    </StyledButton>
+      {!loading && endIcon && <span className="ml-2">{endIcon}</span>}
+    </>
   );
-};
+  
+  // Kombinujeme style z sx prop a existujúci style prop
+  const combinedStyle = {
+    ...convertSxToStyle(sx),
+    ...style
+  };
+  
+  // Pre component="label" alebo iné HTML elementy, musíme props trochu upraviť
+  const buttonProps: any = {
+    ref,
+    className: cn(
+      unifiedButtonVariants({ variant, size, color }),
+      fullWidth && "w-full",
+      className
+    ),
+    style: combinedStyle,
+    ...props
+  };
+  
+  // Pridáme disabled len ak je to button element
+  if (typeof Comp === 'string' && Comp === 'button') {
+    buttonProps.disabled = disabled || loading;
+  } else if (!component) {
+    buttonProps.disabled = disabled || loading;
+  }
+  
+  return (
+    <Comp {...buttonProps}>
+      {content}
+    </Comp>
+  );
+});
+UnifiedButton.displayName = "UnifiedButton";
 
 // 🎨 Predefined button variants pre rýchle použitie
 export const PrimaryButton: React.FC<
   Omit<UnifiedButtonProps, 'color' | 'variant'>
-> = props => <UnifiedButton color="primary" variant="contained" {...props} />;
+> = props => <UnifiedButton color="primary" variant="default" {...props} />;
 
 export const SecondaryButton: React.FC<
   Omit<UnifiedButtonProps, 'color' | 'variant'>
-> = props => <UnifiedButton color="secondary" variant="outlined" {...props} />;
+> = props => <UnifiedButton color="secondary" variant="outline" {...props} />;
 
 export const SuccessButton: React.FC<
   Omit<UnifiedButtonProps, 'color' | 'variant'>
-> = props => <UnifiedButton color="success" variant="contained" {...props} />;
+> = props => <UnifiedButton color="success" variant="default" {...props} />;
 
 export const WarningButton: React.FC<
   Omit<UnifiedButtonProps, 'color' | 'variant'>
-> = props => <UnifiedButton color="warning" variant="contained" {...props} />;
+> = props => <UnifiedButton color="warning" variant="default" {...props} />;
 
 export const ErrorButton: React.FC<
   Omit<UnifiedButtonProps, 'color' | 'variant'>
-> = props => <UnifiedButton color="error" variant="contained" {...props} />;
+> = props => <UnifiedButton color="error" variant="default" {...props} />;
 
 export const TextButton: React.FC<
   Omit<UnifiedButtonProps, 'variant'>
-> = props => <UnifiedButton variant="text" {...props} />;
+> = props => <UnifiedButton variant="ghost" {...props} />;
 
 export default UnifiedButton;

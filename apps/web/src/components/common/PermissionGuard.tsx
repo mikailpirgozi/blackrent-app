@@ -1,8 +1,9 @@
-import { Alert, Box, Typography } from '@mui/material';
 import React from 'react';
 
 import { usePermissions } from '../../hooks/usePermissions';
 import type { Permission } from '../../types';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Typography } from '../ui/typography';
 
 // 🛡️ PERMISSION GUARD COMPONENT
 interface PermissionGuardProps {
@@ -32,10 +33,12 @@ export function PermissionGuard({
   if (!permissionResult.hasAccess) {
     if (showAccessDeniedMessage) {
       return (
-        <Alert severity="warning" sx={{ my: 2 }}>
-          <Typography variant="body2">
-            🚫 {permissionResult.reason || 'Nemáte oprávnenie pre túto akciu'}
-          </Typography>
+        <Alert variant="destructive" className="my-2">
+          <AlertDescription>
+            <Typography variant="body2">
+              🚫 {permissionResult.reason || 'Nemáte oprávnenie pre túto akciu'}
+            </Typography>
+          </AlertDescription>
         </Alert>
       );
     }
@@ -45,14 +48,16 @@ export function PermissionGuard({
   // Ak vyžaduje schválenie, zobraz warning
   if (permissionResult.requiresApproval) {
     return (
-      <Box>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            ⚠️ {permissionResult.reason || 'Táto akcia vyžaduje schválenie'}
-          </Typography>
+      <div>
+        <Alert variant="default" className="mb-2">
+          <AlertDescription>
+            <Typography variant="body2">
+              ⚠️ {permissionResult.reason || 'Táto akcia vyžaduje schválenie'}
+            </Typography>
+          </AlertDescription>
         </Alert>
         {children}
-      </Box>
+      </div>
     );
   }
 
@@ -79,10 +84,12 @@ export function RoleGuard({
   if (!currentUser || !allowedRoles.includes(currentUser.role)) {
     if (showAccessDeniedMessage) {
       return (
-        <Alert severity="warning" sx={{ my: 2 }}>
-          <Typography variant="body2">
-            🚫 Túto sekciu môžu vidieť len: {allowedRoles.join(', ')}
-          </Typography>
+        <Alert variant="destructive" className="my-2">
+          <AlertDescription>
+            <Typography variant="body2">
+              🚫 Túto sekciu môžu vidieť len: {allowedRoles.join(', ')}
+            </Typography>
+          </AlertDescription>
         </Alert>
       );
     }
@@ -143,7 +150,7 @@ export function CompanyOnly({
 
   // Company owner môže vidieť len svoje company resources
   if (currentUser?.role === 'company_owner') {
-    const canAccess = canRead(resource, { companyId });
+    const canAccess = canRead(resource, { ...(companyId && { companyId }) });
     return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
   }
 
@@ -168,7 +175,7 @@ export function MechanicOnly({
 
   // Mechanic môže vidieť len vozidlá v firmách kde má oprávnenia
   if (currentUser?.role === 'mechanic') {
-    const canAccess = canUpdate('vehicles', { companyId });
+    const canAccess = canUpdate('vehicles', { ...(companyId && { companyId }) });
     return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
   }
 
@@ -196,26 +203,30 @@ export function AmountLimitGuard({
 
   if (!permissionResult.hasAccess) {
     return (
-      <Alert severity="error" sx={{ my: 2 }}>
-        <Typography variant="body2">🚫 {permissionResult.reason}</Typography>
+      <Alert variant="destructive" className="my-2">
+        <AlertDescription>
+          <Typography variant="body2">🚫 {permissionResult.reason}</Typography>
+        </AlertDescription>
       </Alert>
     );
   }
 
   if (permissionResult.requiresApproval) {
     return (
-      <Box>
+      <div>
         <Alert
-          severity="warning"
-          sx={{ mb: 2, cursor: onApprovalRequired ? 'pointer' : 'default' }}
+          variant="default"
+          className={`mb-2 ${onApprovalRequired ? 'cursor-pointer' : 'cursor-default'}`}
           onClick={onApprovalRequired}
         >
-          <Typography variant="body2">
-            ⚠️ {permissionResult.reason} - Kliknite pre vyžiadanie schválenia
-          </Typography>
+          <AlertDescription>
+            <Typography variant="body2">
+              ⚠️ {permissionResult.reason} - Kliknite pre vyžiadanie schválenia
+            </Typography>
+          </AlertDescription>
         </Alert>
         {children}
-      </Box>
+      </div>
     );
   }
 

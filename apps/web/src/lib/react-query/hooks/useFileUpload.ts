@@ -149,10 +149,10 @@ export function useDeleteFile() {
         new CustomEvent('file-delete-error', { detail: { error, fileId } })
       );
     },
-    onSuccess: (data, fileId) => {
+    onSuccess: (_, fileId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
-        new CustomEvent('file-deleted', { detail: { id: fileId, data } })
+        new CustomEvent('file-deleted', { detail: { id: fileId } })
       );
     },
     onSettled: () => {
@@ -230,11 +230,11 @@ export function useBulkDeleteFiles() {
 
   return useMutation({
     mutationFn: (fileIds: string[]) => apiService.bulkDeleteFiles(fileIds),
-    onSuccess: (data, fileIds) => {
+    onSuccess: (_, fileIds) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('files-bulk-deleted', {
-          detail: { ids: fileIds, data },
+          detail: { ids: fileIds },
         })
       );
     },

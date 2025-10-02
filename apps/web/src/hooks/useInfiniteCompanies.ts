@@ -162,6 +162,7 @@ export function useInfiniteCompanies(
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [filters, initialLoad, loadCompanies]);
 
   // Search term changes - trigger new search
@@ -177,6 +178,7 @@ export function useInfiniteCompanies(
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [searchTerm, initialLoad, loadCompanies]);
 
   // Debug logging

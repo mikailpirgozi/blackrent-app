@@ -3,39 +3,42 @@
  * Podporuje background upload, retry logiku a real-time progress
  */
 
+/// <reference lib="dom" />
+
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as uuid from 'uuid';
 import { featureManager } from '../../../config/featureFlags';
 
+
 export interface QueueItem {
   id: string;
-  file: File;
+  file: globalThis.File;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'failed';
   progress: number;
   retries: number;
-  photoId?: string;
+  photoId?: string | undefined;
   urls?: {
-    original?: string;
-    thumb?: string;
-    gallery?: string;
-    pdf?: string;
-  };
-  error?: string;
-  uploadedAt?: Date;
-  processedAt?: Date;
+    original?: string | undefined;
+    thumb?: string | undefined;
+    gallery?: string | undefined;
+    pdf?: string | undefined;
+  } | undefined;
+  error?: string | undefined;
+  uploadedAt?: Date | undefined;
+  processedAt?: Date | undefined;
 }
 
 export interface Preview {
   id: string;
   url: string;
-  file: File;
+  file: globalThis.File;
   timestamp: Date;
 }
 
 interface Props {
   protocolId: string;
-  onPhotosChange?: (photos: QueueItem[]) => void;
-  onUploadComplete?: (photoId: string, urls: QueueItem['urls']) => void;
+  onPhotosChange?: (_photos: QueueItem[]) => void;
+  onUploadComplete?: (_photoId: string, _urls: QueueItem['urls']) => void;
   maxPhotos?: number;
   userId?: string;
   disabled?: boolean;
@@ -54,8 +57,8 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   const [isV2Enabled, setIsV2Enabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<globalThis.HTMLInputElement | null>(null);
+  const processingIntervalRef = useRef<number | null>(null);
 
   /**
    * Helper funkcie pre state updates
@@ -157,7 +160,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
         // Continue monitoring ak ešte nie je hotové
         if (photo.status !== 'completed' && photo.status !== 'failed') {
-          setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
+          window.setTimeout(() => monitorPhotoProcessing(itemId, photoId), 2000);
         }
       } catch (error) {
         console.error(`Failed to check photo status ${photoId}:`, error);
@@ -182,7 +185,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
         updateQueueItemStatus(item.id, 'uploading', 10);
 
         // Príprava form data
-        const formData = new FormData();
+        const formData = new window.FormData();
         formData.append('photos', item.file);
         formData.append('protocolId', protocolId);
         if (userId) {
@@ -242,7 +245,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
         // Retry logic
         if (item.retries < 3) {
-          setTimeout(
+          window.setTimeout(
             () => {
               updateQueueItem(item.id, {
                 retries: item.retries + 1,
@@ -271,14 +274,14 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
    * Handling file capture/selection
    */
   const handleCapture = useCallback(
-    async (files: FileList | File[]) => {
+    async (files: globalThis.FileList | globalThis.File[]) => {
       if (disabled || !isV2Enabled) return;
 
       const fileArray = Array.from(files);
 
       // Check limits
       if (uploadQueue.length + fileArray.length > maxPhotos) {
-        alert(`Maximálny počet fotografií je ${maxPhotos}`);
+        window.alert(`Maximálny počet fotografií je ${maxPhotos}`);
         return;
       }
 
@@ -295,14 +298,14 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
         if (file.size > 50 * 1024 * 1024) {
           // 50MB limit
-          alert(`Súbor ${file.name} je príliš veľký (max 50MB)`);
+          window.alert(`Súbor ${file.name} je príliš veľký (max 50MB)`);
           continue;
         }
 
         // Generovanie preview
         const preview: Preview = {
           id: uuid.v4(),
-          url: URL.createObjectURL(file),
+          url: window.URL.createObjectURL(file),
           file,
           timestamp: new Date(),
         };
@@ -362,17 +365,17 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
 
     if (processingPhotos.length === 0) return;
 
-    processingIntervalRef.current = setInterval(async () => {
+    processingIntervalRef.current = window.setInterval(async () => {
       for (const item of processingPhotos) {
         if (item.photoId) {
           await checkPhotoStatus(item.photoId);
         }
       }
-    }, 2000) as unknown as NodeJS.Timeout; // Check každé 2 sekundy
+    }, 2000); // Check každé 2 sekundy
 
     return () => {
       if (processingIntervalRef.current) {
-        clearInterval(processingIntervalRef.current);
+        window.clearInterval(processingIntervalRef.current);
       }
     };
   }, [uploadQueue, checkPhotoStatus]);
@@ -381,7 +384,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
    * File input handling
    */
   const handleFileInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<globalThis.HTMLInputElement>
   ) => {
     const files = event.target.files;
     if (files) {
@@ -404,7 +407,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
     setPreviews(prev => {
       const preview = prev.find(p => p.id === id);
       if (preview) {
-        URL.revokeObjectURL(preview.url);
+        window.URL.revokeObjectURL(preview.url);
       }
       return prev.filter(p => p.id !== id);
     });
@@ -414,7 +417,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
   useEffect(() => {
     return () => {
       previews.forEach(preview => {
-        URL.revokeObjectURL(preview.url);
+        window.URL.revokeObjectURL(preview.url);
       });
     };
   }, [previews]);
@@ -478,7 +481,7 @@ export const SerialPhotoCaptureV2: React.FC<Props> = ({
           <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
             V2 System
           </span>{' '}
-          Background processing • Automatic retry • Real-time progress
+          Background processing  •  Automatic retry • Real-time progress
         </div>
       </div>
 

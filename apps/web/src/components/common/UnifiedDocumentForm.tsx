@@ -1,27 +1,48 @@
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import FileIcon from '@mui/icons-material/AttachFile';
-import BuildIcon from '@mui/icons-material/Build';
-import HighwayIcon from '@mui/icons-material/LocalShipping';
-import SecurityIcon from '@mui/icons-material/Security';
+import { FileText, Paperclip, Wrench, Truck, Shield } from 'lucide-react';
 import {
   Alert,
-  Autocomplete,
-  Box,
-  Button,
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
   Card,
   CardContent,
-  Chip,
-  Divider,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
+} from '@/components/ui/card';
+import {
   Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import React, { useEffect, useState } from 'react';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Input,
+} from '@/components/ui/input';
+import {
+  Label,
+} from '@/components/ui/label';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
+  Separator,
+} from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import {
+  Textarea,
+} from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+
+// Unified design system imports
+import {
+  UnifiedButton,
+} from '@/components/ui';
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useInsurers } from '../../lib/react-query/hooks/useInsurers';
@@ -31,7 +52,7 @@ import type { PaymentFrequency } from '../../types';
 import R2FileUpload from './R2FileUpload';
 
 export interface UnifiedDocumentData {
-  id?: string;
+  id?: string | undefined;
   vehicleId: string;
   type:
     | 'insurance_pzp'
@@ -44,32 +65,32 @@ export interface UnifiedDocumentData {
     | 'technical_certificate';
 
   // Insurance specific
-  policyNumber?: string;
-  company?: string;
-  paymentFrequency?: PaymentFrequency;
+  policyNumber?: string | undefined;
+  company?: string | undefined;
+  paymentFrequency?: PaymentFrequency | undefined;
 
   // Vehicle document specific
-  documentNumber?: string;
-  notes?: string;
+  documentNumber?: string | undefined;
+  notes?: string | undefined;
 
   // Common fields
-  validFrom?: Date;
+  validFrom?: Date | undefined;
   validTo: Date;
-  price?: number;
-  filePath?: string; // Zachováme pre backward compatibility
-  filePaths?: string[]; // Nové pole pre viacero súborov
+  price?: number | undefined;
+  filePath?: string | undefined; // Zachováme pre backward compatibility
+  filePaths?: string[] | undefined; // Nové pole pre viacero súborov
 
   // 🟢 BIELA KARTA: Platnosť zelenej karty (len pre PZP poistky)
-  greenCardValidFrom?: Date;
-  greenCardValidTo?: Date;
+  greenCardValidFrom?: Date | undefined;
+  greenCardValidTo?: Date | undefined;
 
   // 🚗 STAV KM: Pre Kasko poistky, STK a EK
-  kmState?: number;
+  kmState?: number | undefined;
 }
 
 interface UnifiedDocumentFormProps {
   document?: UnifiedDocumentData | null;
-  onSave: (document: UnifiedDocumentData) => void;
+  onSave: (_data: UnifiedDocumentData) => void;
   onCancel: () => void;
 }
 
@@ -78,46 +99,46 @@ const getDocumentTypeInfo = (type: string) => {
     case 'insurance_pzp':
       return {
         label: 'Poistka - PZP',
-        icon: <SecurityIcon />,
+        icon: <Shield className="h-4 w-4" />,
         color: '#1976d2',
       };
     case 'insurance_kasko':
       return {
         label: 'Poistka - Kasko',
-        icon: <SecurityIcon />,
+        icon: <Shield className="h-4 w-4" />,
         color: '#2196f3',
       };
     case 'insurance_pzp_kasko':
       return {
         label: 'Poistka - PZP + Kasko',
-        icon: <SecurityIcon />,
+        icon: <Shield className="h-4 w-4" />,
         color: '#9c27b0',
       };
     case 'stk':
-      return { label: 'STK', icon: <BuildIcon />, color: '#388e3c' };
+      return { label: 'STK', icon: <Wrench className="h-4 w-4" />, color: '#388e3c' };
     case 'ek':
-      return { label: 'EK', icon: <AssignmentIcon />, color: '#f57c00' };
+      return { label: 'EK', icon: <FileText className="h-4 w-4" />, color: '#f57c00' };
     case 'vignette':
       return {
         label: 'Dialničná známka',
-        icon: <HighwayIcon />,
+        icon: <Truck className="h-4 w-4" />,
         color: '#7b1fa2',
       };
     // Backward compatibility
     case 'insurance':
       return {
         label: 'Poistka - PZP',
-        icon: <SecurityIcon />,
+        icon: <Shield className="h-4 w-4" />,
         color: '#1976d2',
       };
     default:
-      return { label: 'Dokument', icon: <FileIcon />, color: '#666' };
+      return { label: 'Dokument', icon: <Paperclip className="h-4 w-4" />, color: '#666' };
   }
 };
 
 export default function UnifiedDocumentForm({
   document,
-  onSave,
+  onSave: _onSave,
   onCancel,
 }: UnifiedDocumentFormProps) {
   // const { state } = useApp(); // Migrated to React Query
@@ -168,7 +189,7 @@ export default function UnifiedDocumentForm({
   const [addingInsurer, setAddingInsurer] = useState(false);
   const [newInsurerName, setNewInsurerName] = useState('');
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors] = useState<Record<string, string>>({});
 
   // 🔄 Automatické dopĺňanie validTo dátumu pre poistky
   const calculateValidToDate = (
@@ -267,45 +288,43 @@ export default function UnifiedDocumentForm({
     }
   }, [document]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  // const _validateForm = (): boolean => {
+  //   const newErrors: Record<string, string> = {};
 
-    if (!formData.vehicleId) {
-      newErrors.vehicleId = 'Vozidlo je povinné';
-    }
+  //   if (!formData.vehicleId) {
+  //     newErrors.vehicleId = 'Vozidlo je povinné';
+  //   }
 
-    if (!formData.validTo) {
-      newErrors.validTo = 'Dátum platnosti do je povinný';
-    }
+  //   if (!formData.validTo) {
+  //     newErrors.validTo = 'Dátum platnosti do je povinný';
+  //   }
 
-    if (
-      formData.type === 'insurance_pzp' ||
-      formData.type === 'insurance_kasko' ||
-      formData.type === 'insurance_pzp_kasko'
-    ) {
-      if (!formData.policyNumber) {
-        newErrors.policyNumber = 'Číslo poistky je povinné';
-      }
-      if (!formData.company) {
-        newErrors.company = 'Poisťovňa je povinná';
-      }
-    }
+  //   if (
+  //     formData.type === 'insurance_pzp' ||
+  //     formData.type === 'insurance_kasko' ||
+  //     formData.type === 'insurance_pzp_kasko'
+  //   ) {
+  //     if (!formData.policyNumber) {
+  //       newErrors.policyNumber = 'Číslo poistky je povinné';
+  //     }
+  //     if (!formData.company) {
+  //       newErrors.company = 'Poisťovňa je povinná';
+  //     }
+  //   }
 
-    if (formData.price && formData.price < 0) {
-      newErrors.price = 'Cena nemôže byť záporná';
-    }
+  //   if (formData.price && formData.price < 0) {
+  //     newErrors.price = 'Cena nemôže byť záporná';
+  //   }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  //   setErrors(newErrors);
+  //   return Object.keys(newErrors).length === 0;
+  // };
 
   const handleFileUploadSuccess = (
     fileData:
       | { url: string; key: string; filename: string }
       | { url: string; key: string; filename: string }[]
   ) => {
-    console.log('🔍 FILE UPLOAD SUCCESS:', fileData);
-
     if (Array.isArray(fileData)) {
       // Viacero súborov - pridaj do filePaths array
       const newUrls = fileData.map(file => file.url);
@@ -317,7 +336,6 @@ export default function UnifiedDocumentForm({
           filePaths: updatedPaths,
           filePath: existingPaths.length > 0 ? prev.filePath : updatedPaths[0], // Zachovaj pôvodný filePath ak existuje
         };
-        console.log('🔍 UPDATED FORM DATA (multiple files):', newData);
         return newData;
       });
     } else {
@@ -330,23 +348,17 @@ export default function UnifiedDocumentForm({
           filePaths: updatedPaths,
           filePath: existingPaths.length > 0 ? prev.filePath : fileData.url, // Zachovaj pôvodný filePath ak existuje
         };
-        console.log('🔍 UPDATED FORM DATA (single file):', newData);
         return newData;
       });
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    console.log('🔍 FORM SUBMIT - Form data being saved:', formData);
-
-    onSave(formData);
-  };
+  // Form submission handler (currently unused but kept for future use)
+  // const _handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!validateForm()) return;
+  //   onSave(formData);
+  // };
 
   const typeInfo = getDocumentTypeInfo(formData.type);
   const isInsurance =
@@ -367,143 +379,126 @@ export default function UnifiedDocumentForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit}>
-        <Box sx={{ p: 3 }}>
+      <div className="p-6">
           {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <div className="flex items-center gap-2 mb-6">
             {typeInfo.icon}
-            <Typography variant="h6" sx={{ color: typeInfo.color }}>
+            <h2 className="text-xl font-semibold" style={{ color: typeInfo.color }}>
               {document?.id ? 'Upraviť' : 'Pridať'} {typeInfo.label}
-            </Typography>
-          </Box>
+            </h2>
+          </div>
 
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-1 gap-6">
             {/* Základné informácie */}
-            <Grid item xs={12}>
+            <div className="col-span-1">
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <h3 className="text-lg font-semibold mb-4">
                     Základné informácie
-                  </Typography>
+                  </h3>
 
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Autocomplete
-                        fullWidth
-                        options={vehicles.slice().sort((a, b) => {
-                          const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
-                          const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
-                          return aText.localeCompare(bText, 'sk', {
-                            sensitivity: 'base',
-                          });
-                        })}
-                        getOptionLabel={vehicle =>
-                          `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
-                        }
-                        value={
-                          vehicles.find(v => v.id === formData.vehicleId) ||
-                          null
-                        }
-                        onChange={(_, newValue) =>
-                          setFormData(prev => ({
-                            ...prev,
-                            vehicleId: newValue?.id || '',
-                          }))
-                        }
-                        renderInput={params => (
-                          <TextField
-                            {...params}
-                            label="Vozidlo"
-                            required
-                            error={!!errors.vehicleId}
-                            placeholder="Začnite písať pre vyhľadanie vozidla..."
-                          />
-                        )}
-                        noOptionsText="Žiadne vozidlá nenájdené"
-                        filterOptions={(options, { inputValue }) => {
-                          const filtered = options.filter(option => {
-                            const searchText =
-                              `${option.brand} ${option.model} ${option.licensePlate}`.toLowerCase();
-                            return searchText.includes(
-                              inputValue.toLowerCase()
-                            );
-                          });
-                          return filtered;
-                        }}
-                      />
-                      {errors.vehicleId && (
-                        <Typography
-                          variant="caption"
-                          color="error"
-                          sx={{ mt: 0.5, display: 'block' }}
-                        >
-                          {errors.vehicleId}
-                        </Typography>
-                      )}
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth required>
-                        <InputLabel>Typ dokumentu</InputLabel>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicle-select">Vozidlo *</Label>
                         <Select
-                          value={formData.type}
-                          label="Typ dokumentu"
-                          onChange={e =>
+                          value={formData.vehicleId}
+                          onValueChange={(value) =>
                             setFormData(prev => ({
                               ...prev,
-                              type: e.target
-                                .value as UnifiedDocumentData['type'],
+                              vehicleId: value,
                             }))
                           }
                         >
-                          <MenuItem value="insurance_pzp">
-                            Poistka - PZP
-                          </MenuItem>
-                          <MenuItem value="insurance_kasko">
-                            Poistka - Kasko
-                          </MenuItem>
-                          <MenuItem value="insurance_pzp_kasko">
-                            Poistka - PZP + Kasko
-                          </MenuItem>
-                          <MenuItem value="stk">STK</MenuItem>
-                          <MenuItem value="ek">EK</MenuItem>
-                          <MenuItem value="vignette">Dialničná známka</MenuItem>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Vyberte vozidlo..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicles.slice().sort((a, b) => {
+                              const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
+                              const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
+                              return aText.localeCompare(bText, 'sk', {
+                                sensitivity: 'base',
+                              });
+                            }).map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.id}>
+                                {`${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                    </Grid>
+                        {errors.vehicleId && (
+                          <p className="text-sm text-red-500">
+                            {errors.vehicleId}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="document-type">Typ dokumentu *</Label>
+                        <Select
+                          value={formData.type}
+                          onValueChange={(value) =>
+                            setFormData(prev => ({
+                              ...prev,
+                              type: value as UnifiedDocumentData['type'],
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Vyberte typ dokumentu..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="insurance_pzp">
+                              Poistka - PZP
+                            </SelectItem>
+                            <SelectItem value="insurance_kasko">
+                              Poistka - Kasko
+                            </SelectItem>
+                            <SelectItem value="insurance_pzp_kasko">
+                              Poistka - PZP + Kasko
+                            </SelectItem>
+                            <SelectItem value="stk">STK</SelectItem>
+                            <SelectItem value="ek">EK</SelectItem>
+                            <SelectItem value="vignette">Dialničná známka</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
                     {/* Insurance specific fields */}
                     {isInsurance && (
                       <>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            required
-                            label="Číslo poistky"
-                            value={formData.policyNumber}
-                            onChange={e =>
-                              setFormData(prev => ({
-                                ...prev,
-                                policyNumber: e.target.value,
-                              }))
-                            }
-                            error={!!errors.policyNumber}
-                            helperText={errors.policyNumber}
-                          />
-                        </Grid>
+                        <div className="col-span-1 md:col-span-1">
+                          <div className="space-y-2">
+                            <Label htmlFor="policy-number">Číslo poistky *</Label>
+                            <Input
+                              id="policy-number"
+                              value={formData.policyNumber}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  policyNumber: e.target.value,
+                                }))
+                              }
+                              className={cn(errors.policyNumber && "border-red-500")}
+                            />
+                            {errors.policyNumber && (
+                              <p className="text-sm text-red-500">
+                                {errors.policyNumber}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
-                        <Grid item xs={12} sm={6}>
-                          <FormControl
-                            fullWidth
-                            required
-                            error={!!errors.company}
-                          >
-                            <InputLabel>Poisťovňa</InputLabel>
+                        <div className="col-span-1 md:col-span-1">
+                          <div className="space-y-2">
+                            <Label htmlFor="company">Poisťovňa *</Label>
                             <Select
-                              value={formData.company}
-                              label="Poisťovňa"
-                              onChange={e => {
-                                const value = e.target.value;
+                              value={formData.company || ''}
+                              onValueChange={(value) => {
                                 if (value === '__add_new__') {
                                   setAddingInsurer(true);
                                 } else {
@@ -514,369 +509,422 @@ export default function UnifiedDocumentForm({
                                 }
                               }}
                             >
-                              {insurers.map(insurer => (
-                                <MenuItem key={insurer.id} value={insurer.name}>
-                                  {insurer.name}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="__add_new__">
-                                <em>+ Pridať novú poisťovňu</em>
-                              </MenuItem>
+                              <SelectTrigger className={cn("w-full", errors.company && "border-red-500")}>
+                                <SelectValue placeholder="Vyberte poisťovňu..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {insurers.map(insurer => (
+                                  <SelectItem key={insurer.id} value={insurer.name}>
+                                    {insurer.name}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="__add_new__">
+                                  <em>+ Pridať novú poisťovňu</em>
+                                </SelectItem>
+                              </SelectContent>
                             </Select>
                             {errors.company && (
-                              <Typography
-                                variant="caption"
-                                color="error"
-                                sx={{ mt: 0.5, ml: 1 }}
-                              >
+                              <p className="text-sm text-red-500 mt-1">
                                 {errors.company}
-                              </Typography>
+                              </p>
                             )}
-                          </FormControl>
-                        </Grid>
+                          </div>
+                        </div>
 
-                        <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth>
-                            <InputLabel>Frekvencia platenia</InputLabel>
+                        <div className="col-span-1 md:col-span-1">
+                          <div className="space-y-2">
+                            <Label htmlFor="payment-frequency">Frekvencia platenia</Label>
                             <Select
-                              value={formData.paymentFrequency}
-                              label="Frekvencia platenia"
-                              onChange={e =>
+                              value={formData.paymentFrequency || 'yearly'}
+                              onValueChange={(value) =>
                                 setFormData(prev => ({
                                   ...prev,
-                                  paymentFrequency: e.target
-                                    .value as PaymentFrequency,
+                                  paymentFrequency: value as PaymentFrequency,
                                 }))
                               }
                             >
-                              <MenuItem value="monthly">
-                                Mesačne (platnosť +1 mesiac)
-                              </MenuItem>
-                              <MenuItem value="quarterly">
-                                Štvrťročne (platnosť +3 mesiace)
-                              </MenuItem>
-                              <MenuItem value="biannual">
-                                Polročne (platnosť +6 mesiacov)
-                              </MenuItem>
-                              <MenuItem value="yearly">
-                                Ročne (platnosť +1 rok)
-                              </MenuItem>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Vyberte frekvenciu..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="monthly">
+                                  Mesačne (platnosť +1 mesiac)
+                                </SelectItem>
+                                <SelectItem value="quarterly">
+                                  Štvrťročne (platnosť +3 mesiace)
+                                </SelectItem>
+                                <SelectItem value="biannual">
+                                  Polročne (platnosť +6 mesiacov)
+                                </SelectItem>
+                                <SelectItem value="yearly">
+                                  Ročne (platnosť +1 rok)
+                                </SelectItem>
+                              </SelectContent>
                             </Select>
-                          </FormControl>
-                        </Grid>
+                          </div>
+                        </div>
                       </>
                     )}
-                  </Grid>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
 
             {/* 🟢 BIELA KARTA: Samostatná sekcia len pre PZP poistky */}
             {isPZP && (
-              <Grid item xs={12}>
+              <div className="col-span-1">
                 <Card>
                   <CardContent>
-                    <Typography
-                      variant="h6"
-                      gutterBottom
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                    >
-                      🟢 Platnosť bielej karty
-                      <Chip
-                        size="small"
-                        label="Automatické"
-                        color="success"
-                        variant="outlined"
-                      />
-                    </Typography>
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-lg font-semibold">
+                        🟢 Platnosť bielej karty
+                      </h3>
+                      <Badge variant="outline" className="text-xs">
+                        Automatické
+                      </Badge>
+                    </div>
 
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      <Typography variant="body2">
+                    <Alert className="mb-4">
+                      <AlertDescription>
                         💡 Platnosť zelenej karty sa automaticky nastaví podľa
                         platnosti poistky. Môžete ju však upraviť podľa potreby.
-                      </Typography>
+                      </AlertDescription>
                     </Alert>
 
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <DatePicker
-                          label="Biela karta platná od"
-                          value={
-                            formData.greenCardValidFrom
-                              ? new Date(formData.greenCardValidFrom)
-                              : null
-                          }
-                          onChange={date => {
-                            setFormData(prev => ({
-                              ...prev,
-                              greenCardValidFrom: date || undefined,
-                            }));
-                            setGreenCardManuallyEdited(true); // Označiť ako manuálne editované
-                          }}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              placeholder: 'Automaticky nastavené',
-                            },
-                          }}
-                        />
-                      </Grid>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="green-card-from">Biela karta platná od</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !formData.greenCardValidFrom && "text-muted-foreground"
+                                )}
+                              >
+                                {formData.greenCardValidFrom ? (
+                                  new Date(formData.greenCardValidFrom).toLocaleDateString('sk-SK')
+                                ) : (
+                                  "Vyberte dátum"
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={formData.greenCardValidFrom ? new Date(formData.greenCardValidFrom) : undefined}
+                                onSelect={(date) =>
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    greenCardValidFrom: date || undefined,
+                                  }))
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
 
-                      <Grid item xs={12} sm={6}>
-                        <DatePicker
-                          label="Biela karta platná do"
-                          value={
-                            formData.greenCardValidTo
-                              ? new Date(formData.greenCardValidTo)
-                              : null
-                          }
-                          onChange={date => {
-                            setFormData(prev => ({
-                              ...prev,
-                              greenCardValidTo: date || undefined,
-                            }));
-                            setGreenCardManuallyEdited(true); // Označiť ako manuálne editované
-                          }}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              placeholder: 'Automaticky nastavené',
-                            },
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="green-card-to">Biela karta platná do</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !formData.greenCardValidTo && "text-muted-foreground"
+                                )}
+                              >
+                                {formData.greenCardValidTo ? (
+                                  new Date(formData.greenCardValidTo).toLocaleDateString('sk-SK')
+                                ) : (
+                                  "Vyberte dátum"
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={formData.greenCardValidTo ? new Date(formData.greenCardValidTo) : undefined}
+                                onSelect={(date) => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    greenCardValidTo: date || undefined,
+                                  }));
+                                  setGreenCardManuallyEdited(true);
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
             )}
 
             {/* Platnosť a cena */}
-            <Grid item xs={12}>
+            <div className="col-span-1">
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <h3 className="text-lg font-semibold mb-4">
                     Platnosť a cena
-                  </Typography>
+                  </h3>
 
                   {/* 💡 Informačný alert pre automatické dopĺňanie */}
                   {isInsurance && (
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      <Typography variant="body2">
+                    <Alert className="mb-4">
+                      <AlertDescription>
                         💡 <strong>Automatické dopĺňanie:</strong> Dátum "Platné
                         do" sa automaticky vypočíta na základě dátumu "Platné
                         od" a frekvencie platenia.
-                      </Typography>
+                      </AlertDescription>
                     </Alert>
                   )}
 
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <DatePicker
-                        label="Platné od"
-                        value={
-                          formData.validFrom
-                            ? new Date(formData.validFrom)
-                            : null
-                        }
-                        onChange={date =>
-                          setFormData(prev => ({
-                            ...prev,
-                            validFrom: date || undefined,
-                          }))
-                        }
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                          },
-                        }}
-                      />
-                    </Grid>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="valid-from">Platné od</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !formData.validFrom && "text-muted-foreground"
+                              )}
+                            >
+                              {formData.validFrom ? (
+                                new Date(formData.validFrom).toLocaleDateString('sk-SK')
+                              ) : (
+                                "Vyberte dátum"
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={formData.validFrom ? new Date(formData.validFrom) : undefined}
+                              onSelect={(date) =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  validFrom: date || undefined,
+                                }))
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
 
-                    <Grid item xs={12} sm={6}>
-                      <DatePicker
-                        label={
-                          isInsurance ? 'Platné do (automaticky)' : 'Platné do'
-                        }
-                        value={
-                          formData.validTo
-                            ? new Date(formData.validTo)
-                            : new Date()
-                        }
-                        onChange={date =>
-                          setFormData(prev => ({
-                            ...prev,
-                            validTo: date || new Date(),
-                          }))
-                        }
-                        readOnly={isInsurance} // 🔒 Pre poistky je readonly - automaticky sa vypočíta
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            required: true,
-                            error: !!errors.validTo,
-                            helperText: isInsurance
-                              ? 'Automaticky vypočítané podľa frekvencie platenia'
-                              : errors.validTo,
-                            InputProps: isInsurance
-                              ? {
-                                  style: {
-                                    backgroundColor: '#f5f5f5',
-                                    color: '#666',
-                                  },
-                                }
-                              : undefined,
-                          },
-                        }}
-                      />
-                    </Grid>
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="valid-to">
+                          {isInsurance ? 'Platné do (automaticky)' : 'Platné do'}
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !formData.validTo && "text-muted-foreground",
+                                isInsurance && "bg-gray-100 text-gray-600"
+                              )}
+                              disabled={isInsurance}
+                            >
+                              {formData.validTo ? (
+                                new Date(formData.validTo).toLocaleDateString('sk-SK')
+                              ) : (
+                                "Vyberte dátum"
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={formData.validTo ? new Date(formData.validTo) : undefined}
+                              onSelect={(date) =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  validTo: date || new Date(),
+                                }))
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        {isInsurance && (
+                          <p className="text-sm text-gray-500">
+                            Automaticky vypočítané podľa frekvencie platenia
+                          </p>
+                        )}
+                        {errors.validTo && !isInsurance && (
+                          <p className="text-sm text-red-500">
+                            {errors.validTo}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Cena (€)"
-                        value={formData.price || ''}
-                        onChange={e =>
-                          setFormData(prev => ({
-                            ...prev,
-                            price: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        error={!!errors.price}
-                        helperText={errors.price}
-                        inputProps={{ step: 0.01, min: 0 }}
-                      />
-                    </Grid>
-                  </Grid>
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="price">Cena (€)</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.price || ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setFormData(prev => ({
+                              ...prev,
+                              price: parseFloat(e.target.value) || 0,
+                            }))
+                          }
+                          className={cn(errors.price && "border-red-500")}
+                        />
+                        {errors.price && (
+                          <p className="text-sm text-red-500">
+                            {errors.price}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
 
             {/* 🚗 STAV KM: Pre Kasko poistky, STK a EK */}
             {hasKmField && (
-              <Grid item xs={12}>
+              <div className="col-span-1">
                 <Card>
                   <CardContent>
-                    <Typography
-                      variant="h6"
-                      gutterBottom
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                    >
-                      🚗 Stav kilometrov
-                      <Chip
-                        size="small"
-                        label={isKasko ? 'Kasko' : 'Kontrola'}
-                        color={isKasko ? 'info' : 'success'}
-                        variant="outlined"
-                      />
-                    </Typography>
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-lg font-semibold">
+                        🚗 Stav kilometrov
+                      </h3>
+                      <Badge variant="outline" className="text-xs">
+                        {isKasko ? 'Kasko' : 'Kontrola'}
+                      </Badge>
+                    </div>
 
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      <Typography variant="body2">
+                    <Alert className="mb-4">
+                      <AlertDescription>
                         💡{' '}
                         {isKasko
                           ? 'Zadajte stav kilometrov pri uzatváraní Kasko poistky pre evidenciu.'
                           : 'Zadajte stav kilometrov pri STK/EK kontrole.'}
-                      </Typography>
+                      </AlertDescription>
                     </Alert>
 
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          type="number"
-                          label="Stav kilometrov"
-                          value={formData.kmState || ''}
-                          onChange={e =>
-                            setFormData(prev => ({
-                              ...prev,
-                              kmState: parseInt(e.target.value) || undefined,
-                            }))
-                          }
-                          placeholder="Napríklad: 125000"
-                          helperText="Zadajte aktuálny stav kilometrov"
-                          inputProps={{ min: 0, step: 1 }}
-                          InputProps={{
-                            endAdornment: (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                km
-                              </Typography>
-                            ),
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="km-state">Stav kilometrov</Label>
+                          <Input
+                            id="km-state"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={formData.kmState || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              setFormData(prev => ({
+                                ...prev,
+                                kmState: parseInt(e.target.value) || undefined,
+                              }))
+                            }
+                            placeholder="Napríklad: 125000"
+                          />
+                          <p className="text-sm text-gray-500">
+                            Zadajte aktuálny stav kilometrov
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
             )}
 
             {/* Vehicle document specific fields */}
             {!isInsurance && (
-              <Grid item xs={12}>
+              <div className="col-span-1">
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom>
+                    <h3 className="text-lg font-semibold mb-4">
                       Dodatočné informácie
-                    </Typography>
+                    </h3>
 
-                    <Grid container spacing={2}>
-                      <>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            label="Číslo dokumentu"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="document-number">Číslo dokumentu</Label>
+                          <Input
+                            id="document-number"
                             value={formData.documentNumber}
-                            onChange={e =>
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                               setFormData(prev => ({
                                 ...prev,
                                 documentNumber: e.target.value,
                               }))
                             }
                             placeholder="Napríklad: ABC123456"
-                            helperText="Zadajte číslo dokumentu alebo poistky"
                           />
-                        </Grid>
+                          <p className="text-sm text-gray-500">
+                            Zadajte číslo dokumentu alebo poistky
+                          </p>
+                        </div>
+                      </div>
 
-                        <Grid item xs={12}>
-                          <TextField
-                            fullWidth
-                            multiline
+                      <div className="col-span-1 md:col-span-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Poznámky</Label>
+                          <Textarea
+                            id="notes"
                             rows={3}
-                            label="Poznámky"
                             value={formData.notes}
-                            onChange={e =>
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                               setFormData(prev => ({
                                 ...prev,
                                 notes: e.target.value,
                               }))
                             }
+                            placeholder="Zadajte poznámky..."
                           />
-                        </Grid>
-                      </>
-                    </Grid>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
             )}
 
             {/* File Upload */}
-            <Grid item xs={12}>
+            <div className="col-span-1">
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <h3 className="text-lg font-semibold mb-4">
                     Priložený súbor
-                  </Typography>
+                  </h3>
 
                   {formData.filePaths && formData.filePaths.length > 0 && (
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      {formData.filePaths.length === 1
-                        ? 'Súbor už je priložený. Môžete pridať viac súborov.'
-                        : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`}
+                    <Alert className="mb-4">
+                      <AlertDescription>
+                        {formData.filePaths.length === 1
+                          ? 'Súbor už je priložený. Môžete pridať viac súborov.'
+                          : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`}
+                      </AlertDescription>
                     </Alert>
                   )}
 
@@ -899,109 +947,89 @@ export default function UnifiedDocumentForm({
                   />
 
                   {formData.filePaths && formData.filePaths.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        gutterBottom
-                      >
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">
                         Priložené súbory ({formData.filePaths.length}):
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
                         {formData.filePaths.map((filePath, index) => (
-                          <Chip
+                          <Badge
                             key={index}
-                            label={`${index + 1}. ${filePath.split('/').pop()}`}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-gray-100 px-3 py-1"
                             onClick={() => window.open(filePath, '_blank')}
-                            onDelete={() => {
-                              // Odstráň súbor z filePaths
-                              setFormData(prev => {
-                                const updatedPaths =
-                                  prev.filePaths?.filter(
-                                    (_, i) => i !== index
-                                  ) || [];
-                                return {
-                                  ...prev,
-                                  filePaths: updatedPaths,
-                                  filePath: updatedPaths[0] || '', // Zachováme pre backward compatibility
-                                };
-                              });
-                            }}
-                            size="small"
-                            variant="outlined"
-                            sx={{ cursor: 'pointer' }}
-                          />
+                          >
+                            {`${index + 1}. ${filePath.split('/').pop()}`}
+                            <button
+                              className="ml-2 hover:text-red-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Odstráň súbor z filePaths
+                                setFormData(prev => {
+                                  const updatedPaths =
+                                    prev.filePaths?.filter(
+                                      (_, i) => i !== index
+                                    ) || [];
+                                  return {
+                                    ...prev,
+                                    filePaths: updatedPaths,
+                                    filePath: updatedPaths[0] || '', // Zachováme pre backward compatibility
+                                  };
+                                });
+                              }}
+                            >
+                              ×
+                            </button>
+                          </Badge>
                         ))}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
-          <Divider sx={{ my: 3 }} />
+          <Separator className="my-6" />
 
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button variant="outlined" onClick={onCancel}>
+          <div className="flex gap-4 justify-end">
+            <UnifiedButton variant="outline" onClick={onCancel}>
               Zrušiť
-            </Button>
-            <Button
+            </UnifiedButton>
+            <UnifiedButton
               type="submit"
-              variant="contained"
-              sx={{
-                background: `linear-gradient(135deg, ${typeInfo.color} 0%, ${typeInfo.color}dd 100%)`,
-                '&:hover': {
-                  background: `linear-gradient(135deg, ${typeInfo.color}dd 0%, ${typeInfo.color}bb 100%)`,
-                },
-              }}
+              variant="default"
             >
               {document?.id ? 'Uložiť zmeny' : 'Pridať dokument'}
-            </Button>
-          </Box>
-        </Box>
-      </form>
+            </UnifiedButton>
+          </div>
+        </div>
 
       {/* Dialóg pre pridanie novej poistovne */}
       {addingInsurer && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setAddingInsurer(false)}
         >
-          <Card sx={{ minWidth: 400, m: 2 }} onClick={e => e.stopPropagation()}>
+          <Card className="min-w-[400px] m-2" onClick={e => e.stopPropagation()}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <h3 className="text-lg font-semibold mb-4">
                 Pridať novú poisťovňu
-              </Typography>
-              <TextField
-                fullWidth
-                label="Názov poisťovne"
-                value={newInsurerName}
-                onChange={e => setNewInsurerName(e.target.value)}
-                margin="normal"
-                autoFocus
-              />
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 1,
-                  mt: 2,
-                  justifyContent: 'flex-end',
-                }}
-              >
+              </h3>
+              <div className="space-y-2">
+                <Label htmlFor="new-insurer-name">Názov poisťovne</Label>
+                <Input
+                  id="new-insurer-name"
+                  value={newInsurerName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewInsurerName(e.target.value)}
+                  autoFocus
+                  placeholder="Zadajte názov poisťovne..."
+                />
+              </div>
+              <div className="flex gap-2 mt-4 justify-end">
                 <Button
+                  variant="outline"
                   onClick={() => {
                     setAddingInsurer(false);
                     setNewInsurerName('');
@@ -1010,7 +1038,6 @@ export default function UnifiedDocumentForm({
                   Zrušiť
                 </Button>
                 <Button
-                  variant="contained"
                   onClick={async () => {
                     if (newInsurerName.trim()) {
                       try {
@@ -1031,11 +1058,7 @@ export default function UnifiedDocumentForm({
                         });
 
                         if (response.ok) {
-                          const result = await response.json();
-                          console.log(
-                            '✅ Poistovňa úspešne vytvorená:',
-                            result.data
-                          );
+                          await response.json();
 
                           // Po úspešnom pridaní nastavím novú poistovňu ako vybranú
                           setFormData(prev => ({
@@ -1048,16 +1071,10 @@ export default function UnifiedDocumentForm({
                           // Refresh poistovní v AppContext (ak by bolo potrebné)
                           window.location.reload();
                         } else {
-                          console.error(
-                            '❌ Chyba pri vytváraní poistovne:',
-                            response.statusText
-                          );
+                          // Handle error silently or show user-friendly message
                         }
                       } catch (error) {
-                        console.error(
-                          '❌ Chyba pri pridávaní poistovne:',
-                          error
-                        );
+                        // Handle error silently or show user-friendly message
                       }
                     }
                   }}
@@ -1065,10 +1082,10 @@ export default function UnifiedDocumentForm({
                 >
                   Pridať
                 </Button>
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Box>
+        </div>
       )}
     </>
   );

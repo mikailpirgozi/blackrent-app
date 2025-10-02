@@ -5,10 +5,9 @@
  * Nahradí všetky rôzne card štýly jednotným dizajnom
  */
 
-import type { CardProps } from '@mui/material';
-import { Card, CardActions, CardContent } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import React from 'react';
+import { Card, CardContent, CardFooter } from '../ui/card';
+import { cn } from '../../lib/utils';
 
 // 🎨 Definované card varianty pre BlackRent
 export type CardVariant =
@@ -19,109 +18,50 @@ export type CardVariant =
   | 'statistics'
   | 'compact';
 
-// 🎨 Styled Card s BlackRent dizajnom
-const StyledCard = styled(Card, {
-  shouldForwardProp: prop => prop !== 'clickable' && prop !== 'cardVariant',
-})<{
-  cardVariant?: CardVariant;
-  clickable?: boolean;
-}>(({ theme, cardVariant = 'default', clickable = false }) => {
-  // 🎨 Base štýly
-  const baseStyles = {
-    borderRadius: '12px',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    overflow: 'hidden',
+// 🎨 Card variant štýly
+const getCardVariantClasses = (variant: CardVariant, clickable: boolean) => {
+  const baseClasses = 'rounded-xl transition-all duration-200 overflow-hidden';
+  
+  const variantClasses = {
+    default: cn(
+      'shadow-sm border border-border',
+      clickable && 'hover:shadow-md hover:-translate-y-0.5'
+    ),
+    elevated: cn(
+      'shadow-lg border-0',
+      clickable && 'hover:shadow-xl hover:-translate-y-1'
+    ),
+    outlined: cn(
+      'shadow-none border-2 border-primary',
+      clickable && 'hover:border-primary/80 hover:shadow-sm'
+    ),
+    interactive: cn(
+      'shadow-sm border border-border cursor-pointer',
+      'hover:shadow-lg hover:-translate-y-0.5 hover:border-primary',
+      'active:translate-y-0 active:shadow-sm'
+    ),
+    statistics: cn(
+      'shadow-md border border-border bg-gradient-to-br from-background to-muted',
+      clickable && 'hover:shadow-lg hover:-translate-y-0.5'
+    ),
+    compact: cn(
+      'shadow-sm border border-border rounded-lg',
+      clickable && 'hover:shadow-md'
+    ),
   };
 
-  // 🎨 Variant štýly
-  const variantStyles = {
-    default: {
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      border: '1px solid',
-      borderColor: theme.palette.divider,
-      '&:hover': clickable
-        ? {
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-            transform: 'translateY(-2px)',
-          }
-        : {},
-    },
-    elevated: {
-      boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
-      border: 'none',
-      '&:hover': clickable
-        ? {
-            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-            transform: 'translateY(-3px)',
-          }
-        : {},
-    },
-    outlined: {
-      boxShadow: 'none',
-      border: '2px solid',
-      borderColor: theme.palette.primary.main,
-      '&:hover': clickable
-        ? {
-            borderColor: theme.palette.primary.dark,
-            boxShadow: '0 2px 8px rgba(25,118,210,0.15)',
-          }
-        : {},
-    },
-    interactive: {
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      border: '1px solid',
-      borderColor: theme.palette.divider,
-      cursor: 'pointer',
-      '&:hover': {
-        boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-        transform: 'translateY(-2px)',
-        borderColor: theme.palette.primary.main,
-      },
-      '&:active': {
-        transform: 'translateY(0)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      },
-    },
-    statistics: {
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-      border: '1px solid',
-      borderColor: theme.palette.divider,
-      background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
-      '&:hover': clickable
-        ? {
-            boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
-            transform: 'translateY(-1px)',
-          }
-        : {},
-    },
-    compact: {
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-      border: '1px solid',
-      borderColor: theme.palette.divider,
-      borderRadius: '8px',
-      '&:hover': clickable
-        ? {
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }
-        : {},
-    },
-  };
-
-  return {
-    ...baseStyles,
-    ...variantStyles[cardVariant as keyof typeof variantStyles],
-  };
-});
+  return cn(baseClasses, variantClasses[variant]);
+};
 
 // 🎨 Props interface
-export interface UnifiedCardProps extends Omit<CardProps, 'variant'> {
+export interface UnifiedCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
   clickable?: boolean;
   padding?: 'none' | 'small' | 'medium' | 'large';
   children?: React.ReactNode;
   actions?: React.ReactNode;
-  contentProps?: Record<string, unknown>;
-  actionsProps?: Record<string, unknown>;
+  contentProps?: React.HTMLAttributes<HTMLDivElement>;
+  actionsProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 // 🎨 Unified Card Component
@@ -133,35 +73,35 @@ export const UnifiedCard: React.FC<UnifiedCardProps> = ({
   actions,
   contentProps,
   actionsProps,
+  className,
   ...props
 }) => {
   // 📏 Padding štýly
-  const paddingStyles = {
-    none: { p: 0 },
-    small: { p: 1 },
-    medium: { p: 2 },
-    large: { p: 3 },
+  const paddingClasses = {
+    none: 'p-0',
+    small: 'p-2',
+    medium: 'p-4',
+    large: 'p-6',
   };
 
-  const { ...cardProps } = props as Record<string, unknown>;
+  const cardClasses = getCardVariantClasses(variant, clickable);
 
   return (
-    <StyledCard cardVariant={variant} clickable={clickable} {...cardProps}>
-      <CardContent sx={paddingStyles[padding]} {...contentProps}>
+    <Card className={cn(cardClasses, className)} {...props}>
+      <CardContent className={cn(paddingClasses[padding])} {...contentProps}>
         {children}
       </CardContent>
       {actions && (
-        <CardActions
-          sx={{
-            px: padding === 'none' ? 0 : 2,
-            pb: padding === 'none' ? 0 : 2,
-          }}
+        <CardFooter
+          className={cn(
+            padding === 'none' ? 'px-0 pb-0' : 'px-4 pb-4'
+          )}
           {...actionsProps}
         >
           {actions}
-        </CardActions>
+        </CardFooter>
       )}
-    </StyledCard>
+    </Card>
   );
 };
 
@@ -176,7 +116,7 @@ export const ElevatedCard: React.FC<
 
 export const OutlinedCard: React.FC<
   Omit<UnifiedCardProps, 'variant'>
-> = props => <UnifiedCard variant="outlined" {...props} />;
+> = props => <UnifiedCard variant="outline" {...props} />;
 
 export const InteractiveCard: React.FC<
   Omit<UnifiedCardProps, 'variant'>

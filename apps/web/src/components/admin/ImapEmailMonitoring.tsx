@@ -1,29 +1,20 @@
-import {
-  Email as EmailIcon,
-  // Settings as SettingsIcon,
-  Info as InfoIcon,
-  PlayArrow,
-  Refresh as RefreshIcon,
-  PlayArrow as StartIcon,
-  Stop as StopIcon,
-  CheckCircle as TestIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Divider,
-  Grid,
-  IconButton,
-  Paper,
-  Tooltip,
-  Typography,
-} from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
+import { 
+  Mail, 
+  Info, 
+  Play, 
+  RefreshCw, 
+  Square, 
+  CheckCircle, 
+  Loader2 
+} from 'lucide-react';
+
+import { Alert, AlertDescription } from '../ui/alert';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 import { apiService } from '../../services/api';
 
@@ -90,42 +81,45 @@ const ImapEmailMonitoring: React.FC = () => {
   // Ak sa IMAP ešte načítava, zobraz loading
   if (initialLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Načítavam IMAP konfiguráciu...</Typography>
-      </Box>
+      <div className="flex items-center justify-center p-6">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <p className="ml-2">Načítavam IMAP konfiguráciu...</p>
+      </div>
     );
   }
 
   // Ak je IMAP vypnuté, zobraz info hlásenie
   if (status && status.enabled === false) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            📧 IMAP Email Monitoring je vypnuté
-          </Typography>
-          <Typography variant="body2">
-            IMAP služba je momentálne vypnutá v konfigurácii servera. Pre
-            aktiváciu kontaktujte administrátora systému.
-          </Typography>
+      <div className="space-y-6">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">
+                📧 IMAP Email Monitoring je vypnuté
+              </h3>
+              <p>
+                IMAP služba je momentálne vypnutá v konfigurácii servera. Pre
+                aktiváciu kontaktujte administrátora systému.
+              </p>
+            </div>
+          </AlertDescription>
         </Alert>
 
         <Card>
+          <CardHeader>
+            <CardTitle>⚙️ Konfigurácia</CardTitle>
+          </CardHeader>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              ⚙️ Konfigurácia
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              <strong>Host:</strong> {status.config.host}
-              <br />
-              <strong>Používateľ:</strong> {status.config.user}
-              <br />
-              <strong>Stav:</strong> Vypnuté
-            </Typography>
+            <div className="space-y-2 text-sm">
+              <p><strong>Host:</strong> {status.config.host}</p>
+              <p><strong>Používateľ:</strong> {status.config.user}</p>
+              <p><strong>Stav:</strong> Vypnuté</p>
+            </div>
           </CardContent>
         </Card>
-      </Box>
+      </div>
     );
   }
 
@@ -201,191 +195,187 @@ const ImapEmailMonitoring: React.FC = () => {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        📧 IMAP Email Monitoring
-      </Typography>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">📧 IMAP Email Monitoring</h1>
+          <p className="text-muted-foreground mt-2">
+            Automatické sledovanie schránky <strong>info@blackrent.sk</strong> pre
+            nové objednávky od <strong>objednavky@blackrent.sk</strong>
+          </p>
+        </div>
 
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Automatické sledovanie schránky <strong>info@blackrent.sk</strong> pre
-        nové objednávky od <strong>objednavky@blackrent.sk</strong>
-      </Typography>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription className="flex items-center justify-between">
+              {error}
+              <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+                ×
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {success && (
+          <Alert>
+            <AlertDescription className="flex items-center justify-between">
+              {success}
+              <Button variant="ghost" size="sm" onClick={() => setSuccess(null)}>
+                ×
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {success && (
-        <Alert
-          severity="success"
-          sx={{ mb: 2 }}
-          onClose={() => setSuccess(null)}
-        >
-          {success}
-        </Alert>
-      )}
-
-      <Grid container spacing={3}>
-        {/* Status Card */}
-        <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Status Card */}
           <Card>
-            <CardContent>
-              <Box
-                display="flex"
-                alignItems="center"
-                justifyContent="space-between"
-                mb={2}
-              >
-                <Typography variant="h6">📊 Status monitoringu</Typography>
-                <Tooltip title="Obnoviť status">
-                  <IconButton onClick={fetchStatus} size="small">
-                    <RefreshIcon />
-                  </IconButton>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>📊 Status monitoringu</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={fetchStatus}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Obnoviť status</TooltipContent>
                 </Tooltip>
-              </Box>
-
+              </div>
+            </CardHeader>
+            <CardContent>
               {status ? (
-                <Box>
-                  <Box display="flex" alignItems="center" gap={1} mb={2}>
-                    <Chip
-                      label={status.running ? 'BEŽÍ' : 'ZASTAVENÝ'}
-                      color={status.running ? 'success' : 'default'}
-                      icon={status.running ? <PlayArrow /> : <StopIcon />}
-                    />
-                    <Typography variant="body2" color="text.secondary">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={status.running ? 'default' : 'secondary'}
+                      className="flex items-center gap-1"
+                    >
+                      {status.running ? (
+                        <Play className="h-3 w-3" />
+                      ) : (
+                        <Square className="h-3 w-3" />
+                      )}
+                      {status.running ? 'BEŽÍ' : 'ZASTAVENÝ'}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
                       {new Date(status.timestamp).toLocaleString('sk')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
-                  <Divider sx={{ my: 2 }} />
+                  <Separator />
 
-                  <Typography variant="subtitle2" gutterBottom>
-                    Konfigurácia:
-                  </Typography>
-                  <Box>
-                    <Typography variant="body2">
-                      <strong>Server:</strong> {status.config.host}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Používateľ:</strong> {status.config.user}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Heslo:</strong>{' '}
-                      {status.config.enabled ? '✅ Nastavené' : '❌ Chýba'}
-                    </Typography>
-                  </Box>
-                </Box>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Konfigurácia:</h4>
+                    <div className="space-y-1 text-sm">
+                      <p><strong>Server:</strong> {status.config.host}</p>
+                      <p><strong>Používateľ:</strong> {status.config.user}</p>
+                      <p>
+                        <strong>Heslo:</strong>{' '}
+                        {status.config.enabled ? '✅ Nastavené' : '❌ Chýba'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <CircularProgress size={24} />
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
               )}
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* Controls Card */}
-        <Grid item xs={12} md={6}>
+          {/* Controls Card */}
           <Card>
+            <CardHeader>
+              <CardTitle>🎛️ Ovládanie</CardTitle>
+            </CardHeader>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                🎛️ Ovládanie
-              </Typography>
-
-              <Box display="flex" flexDirection="column" gap={2}>
+              <div className="space-y-3">
                 <Button
-                  variant="outlined"
-                  startIcon={<TestIcon />}
+                  variant="outline"
                   onClick={testConnection}
                   disabled={loading}
-                  fullWidth
+                  className="w-full"
                 >
+                  <CheckCircle className="mr-2 h-4 w-4" />
                   Test pripojenia
                 </Button>
 
                 <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<StartIcon />}
                   onClick={startMonitoring}
                   disabled={loading || status?.running}
-                  fullWidth
+                  className="w-full"
                 >
+                  <Play className="mr-2 h-4 w-4" />
                   Spustiť monitoring
                 </Button>
 
                 <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<StopIcon />}
+                  variant="destructive"
                   onClick={stopMonitoring}
                   disabled={loading || !status?.running}
-                  fullWidth
+                  className="w-full"
                 >
+                  <Square className="mr-2 h-4 w-4" />
                   Zastaviť monitoring
                 </Button>
 
                 <Button
-                  variant="outlined"
-                  startIcon={<EmailIcon />}
+                  variant="outline"
                   onClick={checkNow}
                   disabled={loading}
-                  fullWidth
+                  className="w-full"
                 >
+                  <Mail className="mr-2 h-4 w-4" />
                   Skontrolovať teraz
                 </Button>
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+
+        </div>
 
         {/* Test Results */}
         {testResult && (
-          <Grid item xs={12}>
-            <Paper elevation={1} sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                🧪 Výsledok testu pripojenia
-              </Typography>
-
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <Chip
-                  label={testResult.connected ? 'PRIPOJENÉ' : 'NEPRIPOJENÉ'}
-                  color={testResult.connected ? 'success' : 'error'}
-                />
-                <Typography variant="body2" color="text.secondary">
+          <Card>
+            <CardHeader>
+              <CardTitle>🧪 Výsledok testu pripojenia</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <Badge
+                  variant={testResult.connected ? 'default' : 'destructive'}
+                >
+                  {testResult.connected ? 'PRIPOJENÉ' : 'NEPRIPOJENÉ'}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
                   {new Date(testResult.timestamp).toLocaleString('sk')}
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2">
-                    <strong>Server:</strong> {testResult.config.host}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2">
-                    <strong>Port:</strong> {testResult.config.port}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2">
-                    <strong>Používateľ:</strong> {testResult.config.user}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="text-sm">
+                  <strong>Server:</strong> {testResult.config.host}
+                </div>
+                <div className="text-sm">
+                  <strong>Port:</strong> {testResult.config.port}
+                </div>
+                <div className="text-sm">
+                  <strong>Používateľ:</strong> {testResult.config.user}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Info Card */}
-        <Grid item xs={12}>
-          <Alert severity="info" icon={<InfoIcon />}>
-            <Typography variant="subtitle2" gutterBottom>
-              ℹ️ Ako to funguje:
-            </Typography>
-            <Typography variant="body2" component="div">
-              <ul>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <h4 className="font-semibold">ℹ️ Ako to funguje:</h4>
+              <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>
                   Monitoring kontroluje schránku{' '}
                   <strong>info@blackrent.sk</strong> každých 30 sekúnd
@@ -402,17 +392,17 @@ const ImapEmailMonitoring: React.FC = () => {
                   Nové prenájmy sa zobrazia v <strong>Čakajúce prenájmy</strong>
                 </li>
               </ul>
-            </Typography>
-          </Alert>
-        </Grid>
-      </Grid>
+            </div>
+          </AlertDescription>
+        </Alert>
 
-      {loading && (
-        <Box display="flex" justifyContent="center" mt={2}>
-          <CircularProgress />
-        </Box>
-      )}
-    </Box>
+        {loading && (
+          <div className="flex justify-center mt-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 

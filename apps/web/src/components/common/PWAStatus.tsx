@@ -2,48 +2,57 @@
 // Shows PWA state, offline status, and management options
 
 import {
-  ClearAll as ClearCacheIcon,
+  Trash2 as ClearCacheIcon,
   Info as InfoIcon,
-  GetApp as InstallIcon,
-  CloudDone as InstalledIcon,
+  Download as InstallIcon,
+  CloudCheck as InstalledIcon,
   WifiOff as OfflineIcon,
   Wifi as OnlineIcon,
-  Refresh as RefreshIcon,
+  RefreshCw as RefreshIcon,
   Settings as SettingsIcon,
-  Update as UpdateIcon,
-} from '@mui/icons-material';
+  RotateCcw as UpdateIcon,
+} from 'lucide-react';
 import {
   Alert,
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
   Badge,
-  Box,
+} from '@/components/ui/badge';
+import {
   Button,
-  Chip,
-  // Switch,
-  // FormControlLabel,
+} from '@/components/ui/button';
+import {
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Divider,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Typography,
-} from '@mui/material';
-import React, { useState } from 'react';
+} from '@/components/ui/typography';
+import { useState } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { usePWA } from '../../hooks/usePWA';
 
-interface PWAStatusProps {
-  showDetailed?: boolean;
-  position?: 'fixed' | 'relative';
-}
 
-export const PWAStatus: React.FC<PWAStatusProps> = ({
+export const PWAStatus = ({
   showDetailed = false,
   position = 'relative',
 }) => {
@@ -62,12 +71,12 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
   const { networkQuality } = useNetworkStatus();
   const isSlowConnection = networkQuality === 'slow';
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [anchorEl, setAnchorEl] = useState<any>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [version, setVersion] = useState<string>('');
   const [, setLoading] = useState(false);
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenuClick = (event: any) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -131,8 +140,8 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
   const getStatusInfo = () => {
     if (isOffline) {
       return {
-        color: 'error' as const,
-        icon: <OfflineIcon fontSize="small" />,
+        color: 'error',
+        icon: <OfflineIcon size={16} />,
         label: 'Offline',
         description: 'Bez internetového pripojenia',
       };
@@ -140,8 +149,8 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
 
     if (isInstalled) {
       return {
-        color: 'success' as const,
-        icon: <InstalledIcon fontSize="small" />,
+        color: 'success',
+        icon: <InstalledIcon size={16} />,
         label: 'Nainštalované',
         description: 'Aplikácia je nainštalovaná',
       };
@@ -149,16 +158,16 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
 
     if (isInstallable) {
       return {
-        color: 'primary' as const,
-        icon: <InstallIcon fontSize="small" />,
+        color: 'primary',
+        icon: <InstallIcon size={16} />,
         label: 'Môže sa nainštalovať',
         description: 'Kliknite pre inštaláciu',
       };
     }
 
     return {
-      color: 'default' as const,
-      icon: <OnlineIcon fontSize="small" />,
+      color: 'default',
+      icon: <OnlineIcon size={16} />,
       label: 'Online',
       description: 'Štandardný web prehliadač',
     };
@@ -169,253 +178,226 @@ export const PWAStatus: React.FC<PWAStatusProps> = ({
   // Simple chip version
   if (!showDetailed) {
     return (
-      <Box
-        sx={
-          position === 'fixed'
-            ? {
-                position: 'fixed',
-                top: 16,
-                right: 80, // Moved left to avoid profile overlap
-                zIndex: 1300,
-                '@media (max-width: 600px)': {
-                  right: 16, // On mobile, move closer to edge
-                  top: 80, // Move down to avoid mobile header
-                },
-              }
-            : {}
-        }
-      >
-        <Tooltip title={statusInfo.description}>
-          <Badge
-            variant="dot"
-            color={isUpdateAvailable ? 'error' : 'default'}
-            invisible={!isUpdateAvailable}
-          >
-            <Chip
-              icon={statusInfo.icon}
-              label={statusInfo.label}
-              color={statusInfo.color}
-              size="small"
-              onClick={isInstallable ? handleInstall : handleMenuClick}
-              clickable
-              sx={{
-                fontWeight: 500,
-                '& .MuiChip-icon': {
-                  marginLeft: 1,
-                },
-                '@media (max-width: 600px)': {
-                  fontSize: '0.75rem', // Smaller on mobile
-                  height: 28,
-                },
-              }}
-            />
-          </Badge>
-        </Tooltip>
-      </Box>
+      <div className={position === 'fixed' ? 'fixed top-4 right-20 z-50 md:right-20 md:top-4 right-4 top-20' : ''}>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge 
+                variant={isUpdateAvailable ? 'destructive' : 'secondary'}
+                className={isUpdateAvailable ? 'animate-pulse' : ''}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={isInstallable ? handleInstall : handleMenuClick}
+                  className="flex items-center gap-2 text-xs md:text-sm h-7 md:h-8"
+                >
+                  {statusInfo.icon}
+                  {statusInfo.label}
+                </Button>
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              {statusInfo.description}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     );
   }
 
   // Detailed version
   return (
-    <Box>
-      <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+    <div>
+      <div className="flex items-center gap-2 flex-wrap">
         {/* Connection Status */}
-        <Chip
-          icon={isOffline ? <OfflineIcon /> : <OnlineIcon />}
-          label={isOffline ? 'Offline' : `Online (${networkQuality})`}
-          color={isOffline ? 'error' : isSlowConnection ? 'warning' : 'success'}
-          variant="outlined"
-        />
+        <Badge
+          variant="outline"
+          className={`flex items-center gap-2 ${
+            isOffline 
+              ? 'border-red-500 text-red-700 bg-red-50' 
+              : isSlowConnection 
+                ? 'border-yellow-500 text-yellow-700 bg-yellow-50'
+                : 'border-green-500 text-green-700 bg-green-50'
+          }`}
+        >
+          {isOffline ? <OfflineIcon size={16} /> : <OnlineIcon size={16} />}
+          {isOffline ? 'Offline' : `Online (${networkQuality})`}
+        </Badge>
 
         {/* PWA Status */}
-        <Chip
-          icon={statusInfo.icon}
-          label={statusInfo.label}
-          color={statusInfo.color}
+        <Button
+          variant="outline"
+          size="sm"
           onClick={isInstallable ? handleInstall : handleMenuClick}
-          clickable={isInstallable}
-        />
+          className="flex items-center gap-2"
+        >
+          {statusInfo.icon}
+          {statusInfo.label}
+        </Button>
 
         {/* Update Available */}
         {isUpdateAvailable && (
-          <Chip
-            icon={<UpdateIcon />}
-            label="Update dostupný"
-            color="info"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleUpdate}
-            clickable
-          />
+            className="flex items-center gap-2 border-blue-500 text-blue-700 bg-blue-50"
+          >
+            <UpdateIcon size={16} />
+            Update dostupný
+          </Button>
         )}
 
         {/* Settings Menu */}
-        <IconButton onClick={handleMenuClick} size="small">
-          <SettingsIcon />
-        </IconButton>
-      </Box>
+        <DropdownMenu open={Boolean(anchorEl)} onOpenChange={(open) => setAnchorEl(open ? document.body : null)}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <SettingsIcon size={16} />
+            </Button>
+          </DropdownMenuTrigger>
 
-      {/* Context Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        {isInstallable && (
-          <MenuItem onClick={handleInstall}>
-            <ListItemIcon>
-              <InstallIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Nainštalovať aplikáciu" />
-          </MenuItem>
-        )}
+          <DropdownMenuContent align="end">
+            {isInstallable && (
+              <DropdownMenuItem onClick={handleInstall}>
+                <InstallIcon size={16} className="mr-2" />
+                Nainštalovať aplikáciu
+              </DropdownMenuItem>
+            )}
 
-        {isUpdateAvailable && (
-          <MenuItem onClick={handleUpdate}>
-            <ListItemIcon>
-              <UpdateIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Aktualizovať aplikáciu" />
-          </MenuItem>
-        )}
+            {isUpdateAvailable && (
+              <DropdownMenuItem onClick={handleUpdate}>
+                <UpdateIcon size={16} className="mr-2" />
+                Aktualizovať aplikáciu
+              </DropdownMenuItem>
+            )}
 
-        <MenuItem onClick={handleCheckUpdates}>
-          <ListItemIcon>
-            <RefreshIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Skontrolovať aktualizácie" />
-        </MenuItem>
+            <DropdownMenuItem onClick={handleCheckUpdates}>
+              <RefreshIcon size={16} className="mr-2" />
+              Skontrolovať aktualizácie
+            </DropdownMenuItem>
 
-        <Divider />
+            <DropdownMenuSeparator />
 
-        <MenuItem onClick={handleClearCache}>
-          <ListItemIcon>
-            <ClearCacheIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Vymazať cache" />
-        </MenuItem>
+            <DropdownMenuItem onClick={handleClearCache}>
+              <ClearCacheIcon size={16} className="mr-2" />
+              Vymazať cache
+            </DropdownMenuItem>
 
-        <MenuItem onClick={handleShowInfo}>
-          <ListItemIcon>
-            <InfoIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Informácie o aplikácii" />
-        </MenuItem>
-      </Menu>
+            <DropdownMenuItem onClick={handleShowInfo}>
+              <InfoIcon size={16} className="mr-2" />
+              Informácie o aplikácii
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* Info Dialog */}
-      <Dialog
-        open={showDialog}
-        onClose={() => setShowDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <InfoIcon color="primary" />
-            Informácie o BlackRent PWA
-          </Box>
-        </DialogTitle>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <InfoIcon size={20} className="text-blue-600" />
+              Informácie o BlackRent PWA
+            </DialogTitle>
+            <DialogDescription>
+              Podrobné informácie o Progressive Web App funkcionalite
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogContent>
-          <Box sx={{ mb: 3 }}>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              BlackRent je Progressive Web App (PWA) s pokročilými funkciami
+          <div className="space-y-4">
+            <Alert>
+              <AlertDescription>
+                BlackRent je Progressive Web App (PWA) s pokročilými funkciami
+              </AlertDescription>
             </Alert>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
+            <div>
+              <Typography variant="subtitle2" className="font-semibold mb-2">
                 Status aplikácie:
               </Typography>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <div className="flex items-center gap-2 mb-2">
                 {statusInfo.icon}
                 <Typography variant="body2">
                   {statusInfo.description}
                 </Typography>
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
+            <div>
+              <Typography variant="subtitle2" className="font-semibold mb-2">
                 Sieťové pripojenie:
               </Typography>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <div className="flex items-center gap-2 mb-2">
                 {isOffline ? (
-                  <OfflineIcon color="error" />
+                  <OfflineIcon size={16} className="text-red-600" />
                 ) : (
-                  <OnlineIcon color="success" />
+                  <OnlineIcon size={16} className="text-green-600" />
                 )}
                 <Typography variant="body2">
                   {isOffline
                     ? 'Offline režim'
                     : `Online - kvalita: ${networkQuality}`}
                 </Typography>
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
+            <div>
+              <Typography variant="subtitle2" className="font-semibold mb-2">
                 Verzia:
               </Typography>
-              <Typography variant="body2" fontFamily="monospace">
+              <Typography variant="body2" className="font-mono">
                 {version || 'Načítavam...'}
               </Typography>
-            </Box>
+            </div>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
+            <div>
+              <Typography variant="subtitle2" className="font-semibold mb-2">
                 Funkcie:
               </Typography>
-              <Box sx={{ pl: 1 }}>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  ✅ Offline podpora
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  ✅ Automatické cache
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  ✅ Background sync
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  ✅ Rýchle načítanie
-                </Typography>
+              <div className="pl-4 space-y-1">
+                <Typography variant="body2">✅ Offline podpora</Typography>
+                <Typography variant="body2">✅ Automatické cache</Typography>
+                <Typography variant="body2">✅ Background sync</Typography>
+                <Typography variant="body2">✅ Rýchle načítanie</Typography>
                 {isInstalled && (
-                  <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    ✅ Standalone režim
-                  </Typography>
+                  <Typography variant="body2">✅ Standalone režim</Typography>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {isInstalled && (
-              <Alert severity="success">
-                🎉 Aplikácia je úspešne nainštalovaná a beží v standalone
-                režime!
+              <Alert className="bg-green-50 border-green-200">
+                <AlertDescription className="text-green-800">
+                  🎉 Aplikácia je úspešne nainštalovaná a beží v standalone
+                  režime!
+                </AlertDescription>
               </Alert>
             )}
 
             {isInstallable && (
-              <Alert severity="info">
-                💡 Môžete si nainštalovať aplikáciu pre lepší zážitok
+              <Alert className="bg-blue-50 border-blue-200">
+                <AlertDescription className="text-blue-800">
+                  💡 Môžete si nainštalovať aplikáciu pre lepší zážitok
+                </AlertDescription>
               </Alert>
             )}
-          </Box>
-        </DialogContent>
+          </div>
 
-        <DialogActions>
-          <Button onClick={() => setShowDialog(false)}>Zavrieť</Button>
-          {isInstallable && (
-            <Button
-              variant="contained"
-              onClick={handleInstall}
-              startIcon={<InstallIcon />}
-            >
-              Nainštalovať
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>
+              Zavrieť
             </Button>
-          )}
-        </DialogActions>
+            {isInstallable && (
+              <Button onClick={handleInstall}>
+                <InstallIcon size={16} className="mr-2" />
+                Nainštalovať
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

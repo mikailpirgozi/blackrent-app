@@ -13,48 +13,27 @@
  */
 
 import {
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon,
+  Plus as AddIcon,
+  ArrowLeft as ArrowBackIcon,
+  ArrowRight as ArrowForwardIcon,
   CheckCircle as AvailableIcon,
-  DirectionsCar as CarIcon,
-  FilterList as FilterIcon,
-  Build as MaintenanceIcon,
-  Refresh as RefreshIcon,
-  Cancel as UnavailableIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Stack,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  Car as CarIcon,
+  Filter as FilterIcon,
+  Wrench as MaintenanceIcon,
+  RefreshCw as RefreshIcon,
+  X as UnavailableIcon,
+  Eye as ViewIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { addDays, format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -68,7 +47,6 @@ import { apiService } from '../../services/api';
 import type { Vehicle, VehicleCategory } from '../../types';
 import { logger } from '../../utils/smartLogger';
 // 🔄 PHASE 2: UnifiedCache removed - migrating to React Query
-import { PrimaryButton, SecondaryButton, WarningButton } from '../ui';
 
 import AddUnavailabilityModal from './AddUnavailabilityModal';
 
@@ -83,9 +61,9 @@ interface AvailabilityData {
   dailyStatus: Array<{
     date: string;
     status: 'available' | 'rented' | 'maintenance' | 'service' | 'blocked';
-    reason?: string;
-    customerName?: string;
-    rentalId?: string;
+    reason?: string | undefined;
+    customerName?: string | undefined;
+    rentalId?: string | undefined;
   }>;
   availableDays: number;
   totalDays: number;
@@ -127,10 +105,20 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   // React Query hooks for server state
   const { data: vehicles = [], isLoading: vehiclesLoading } = useVehicles();
   const { data: rentals = [], isLoading: rentalsLoading } = useRentals();
-  const theme = useTheme();
-  const fallbackIsMobile = useMediaQuery(theme.breakpoints.down('md'), {
-    noSsr: true,
-  });
+  
+  // Custom hook for mobile detection using Tailwind breakpoints
+  const [fallbackIsMobile, setFallbackIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setFallbackIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   const isMobile = propIsMobile !== undefined ? propIsMobile : fallbackIsMobile;
 
   // State
@@ -218,7 +206,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     () =>
       [
         ...new Set(availableVehicles.map(v => v.category).filter(Boolean)),
-      ].sort(),
+      ].sort() as VehicleCategory[],
     [availableVehicles]
   );
   const availableCompanies = useMemo(
@@ -267,12 +255,12 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         vehicles: Array<{
           vehicleId: number;
           status: string;
-          customer_name?: string;
-          rental_id?: string;
-          reason?: string;
-          customerName?: string;
-          rentalId?: string;
-          unavailabilityReason?: string;
+          customer_name?: string | undefined;
+          rental_id?: string | undefined;
+          reason?: string | undefined;
+          customerName?: string | undefined;
+          rentalId?: string | undefined;
+          unavailabilityReason?: string | undefined;
         }>;
       }> = [];
       if (cachedData && !forceRefresh) {
@@ -344,8 +332,8 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                 return {
                   vehicleId: parseInt(vehicle.id),
                   status: vehicleRental ? 'rented' : 'available',
-                  customer_name: vehicleRental?.customerName,
-                  rental_id: vehicleRental?.id,
+                  customer_name: vehicleRental?.customerName || undefined,
+                  rental_id: vehicleRental?.id || undefined,
                   reason: vehicleRental ? 'Prenájom' : undefined,
                 };
               }),
@@ -397,9 +385,9 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                 | 'blocked') || 'available',
             reason:
               vehicleStatus.unavailabilityReason ||
-              (vehicleStatus.status === 'rented' ? 'Prenájom' : undefined),
-            customerName: vehicleStatus.customerName,
-            rentalId: vehicleStatus.rentalId,
+              (vehicleStatus.status === 'rented' ? 'Prenájom' : undefined) || undefined,
+            customerName: vehicleStatus.customerName || undefined,
+            rentalId: vehicleStatus.rentalId || undefined,
           };
         });
 
@@ -821,25 +809,25 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
       case 'available':
         return {
           color: 'success',
-          icon: <AvailableIcon fontSize="small" />,
+          icon: <AvailableIcon className="h-4 w-4" />,
           label: 'Dostupné',
         };
       case 'rented':
         return {
           color: 'error',
-          icon: <UnavailableIcon fontSize="small" />,
+          icon: <UnavailableIcon className="h-4 w-4" />,
           label: 'Prenajatý (platforma)',
         };
       case 'maintenance':
         return {
           color: 'warning',
-          icon: <MaintenanceIcon fontSize="small" />,
+          icon: <MaintenanceIcon className="h-4 w-4" />,
           label: 'Údržba',
         };
       case 'service':
         return {
           color: 'info',
-          icon: <MaintenanceIcon fontSize="small" />,
+          icon: <MaintenanceIcon className="h-4 w-4" />,
           label: 'Servis',
         };
       case 'unavailable':
@@ -847,56 +835,56 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
           case 'private_rental':
             return {
               color: 'secondary',
-              icon: <UnavailableIcon fontSize="small" />,
+              icon: <UnavailableIcon className="h-4 w-4" />,
               label: 'Súkromný prenájom',
             };
           case 'service':
             return {
               color: 'info',
-              icon: <MaintenanceIcon fontSize="small" />,
+              icon: <MaintenanceIcon className="h-4 w-4" />,
               label: 'Servis',
             };
           case 'repair':
             return {
               color: 'warning',
-              icon: <MaintenanceIcon fontSize="small" />,
+              icon: <MaintenanceIcon className="h-4 w-4" />,
               label: 'Oprava',
             };
           case 'blocked':
             return {
               color: 'secondary',
-              icon: <UnavailableIcon fontSize="small" />,
+              icon: <UnavailableIcon className="h-4 w-4" />,
               label: 'Blokované',
             };
           case 'cleaning':
             return {
               color: 'info',
-              icon: <MaintenanceIcon fontSize="small" />,
+              icon: <MaintenanceIcon className="h-4 w-4" />,
               label: 'Čistenie',
             };
           case 'inspection':
             return {
               color: 'warning',
-              icon: <MaintenanceIcon fontSize="small" />,
+              icon: <MaintenanceIcon className="h-4 w-4" />,
               label: 'Kontrola',
             };
           default:
             return {
               color: 'secondary',
-              icon: <UnavailableIcon fontSize="small" />,
+              icon: <UnavailableIcon className="h-4 w-4" />,
               label: 'Nedostupné',
             };
         }
       case 'blocked':
         return {
           color: 'secondary',
-          icon: <UnavailableIcon fontSize="small" />,
+          icon: <UnavailableIcon className="h-4 w-4" />,
           label: 'Blokované',
         };
       default:
         return {
           color: 'default',
-          icon: <CarIcon fontSize="small" />,
+          icon: <CarIcon className="h-4 w-4" />,
           label: status,
         };
     }
@@ -910,41 +898,35 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
     const visibleDays = vehicle.dailyStatus.slice(0, maxDaysToShow);
 
     return (
-      <Stack direction="row" spacing={0.5} sx={{ mt: 1 }}>
+      <div className="flex gap-2 mt-4">
         {visibleDays.map((day, index) => {
           const statusDisplay = getStatusDisplay(day.status);
           return (
-            <Tooltip
-              key={index}
-              title={`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''}`}
-            >
-              <Box
-                sx={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 1,
-                  bgcolor: getVehicleStatusColor(day.status),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '10px',
-                  color: 'white',
-                  fontWeight: 'bold',
-                }}
-              >
-                {format(parseISO(day.date), 'd')}
-              </Box>
-            </Tooltip>
+            <TooltipProvider key={index}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className="w-6 h-6 rounded flex items-center justify-center text-xs text-white font-bold"
+                    style={{ backgroundColor: getVehicleStatusColor(day.status) }}
+                  >
+                    {format(parseISO(day.date), 'd')}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''}`}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         })}
         {vehicle.dailyStatus.length > maxDaysToShow && (
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-            <Typography variant="caption" color="text.secondary">
+          <div className="flex items-center ml-4">
+            <span className="text-sm text-gray-500">
               +{vehicle.dailyStatus.length - maxDaysToShow} dní
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </Stack>
+      </div>
     );
   };
 
@@ -965,118 +947,79 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
   const isLoading = vehiclesLoading || rentalsLoading;
   if (isLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight={200}
-      >
-        <RefreshIcon sx={{ animation: 'spin 1s linear infinite', mr: 2 }} />
-        <Typography>Načítavam dostupnosť vozidiel...</Typography>
-      </Box>
+      <div className="flex justify-center items-center min-h-[200px]">
+        <RefreshIcon className="animate-spin mr-2 h-4 w-4" />
+        <span>Načítavam dostupnosť vozidiel...</span>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: isMobile ? 1 : 2 }}>
+    <div className={`${isMobile ? 'p-2' : 'p-4'}`}>
       {/* Header with quick filters */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant={isMobile ? 'h6' : 'h5'} gutterBottom>
+      <div className="mb-4">
+        <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold mb-4`}>
           🚗 Smart Dostupnosť Vozidiel
-        </Typography>
+        </h2>
 
         {/* Quick Filter Buttons */}
-        <Stack
-          direction={isMobile ? 'column' : 'row'}
-          spacing={1}
-          sx={{ mb: 2 }}
-          flexWrap="wrap"
-        >
+        <div className={`${isMobile ? 'flex flex-col' : 'flex flex-row flex-wrap'} gap-2 mb-4`}>
           {/* 🚫 ADD UNAVAILABILITY BUTTON */}
-          <WarningButton
-            size="small"
-            startIcon={<AddIcon />}
+          <Button
+            size="sm"
+            variant="destructive"
             onClick={() => {
               setSelectedVehicleForUnavailability(undefined);
               setSelectedDateForUnavailability(undefined);
               setUnavailabilityModalOpen(true);
             }}
-            sx={{ mr: 2 }}
+            className="mr-2"
           >
+            <AddIcon className="h-4 w-4 mr-2" />
             Pridať nedostupnosť
-          </WarningButton>
+          </Button>
 
-          <SecondaryButton
-            size="small"
+          <Button
+            size="sm"
+            variant={filters.dateTo === format(new Date(), 'yyyy-MM-dd') ? 'default' : 'outline'}
             onClick={() => applyQuickFilter('today')}
-            sx={{
-              backgroundColor:
-                filters.dateTo === format(new Date(), 'yyyy-MM-dd')
-                  ? '#1976d2'
-                  : 'transparent',
-              color:
-                filters.dateTo === format(new Date(), 'yyyy-MM-dd')
-                  ? 'white'
-                  : '#1976d2',
-            }}
           >
             Dnes
-          </SecondaryButton>
-          <SecondaryButton
-            size="small"
+          </Button>
+          <Button
+            size="sm"
+            variant={filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd') ? 'default' : 'outline'}
             onClick={() => applyQuickFilter('week')}
-            sx={{
-              backgroundColor:
-                filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd')
-                  ? '#1976d2'
-                  : 'transparent',
-              color:
-                filters.dateTo === format(addDays(new Date(), 7), 'yyyy-MM-dd')
-                  ? 'white'
-                  : '#1976d2',
-            }}
           >
             7 dní
-          </SecondaryButton>
-          <SecondaryButton
-            size="small"
+          </Button>
+          <Button
+            size="sm"
+            variant={filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd') ? 'default' : 'outline'}
             onClick={() => applyQuickFilter('month')}
-            sx={{
-              backgroundColor:
-                filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd')
-                  ? '#1976d2'
-                  : 'transparent',
-              color:
-                filters.dateTo === format(addDays(new Date(), 30), 'yyyy-MM-dd')
-                  ? 'white'
-                  : '#1976d2',
-            }}
           >
             30 dní
-          </SecondaryButton>
-          <SecondaryButton
-            size="small"
+          </Button>
+          <Button
+            size="sm"
+            variant={filters.availableOnly ? 'default' : 'outline'}
             onClick={() => applyQuickFilter('available-only')}
-            sx={{
-              backgroundColor: filters.availableOnly
-                ? '#2e7d32'
-                : 'transparent',
-              color: filters.availableOnly ? 'white' : '#2e7d32',
-            }}
+            className={filters.availableOnly ? 'bg-green-600 hover:bg-green-700' : 'text-green-600 border-green-600 hover:bg-green-50'}
           >
             {filters.availableOnly ? '✓ Len dostupné' : 'Len dostupné'}
-          </SecondaryButton>
-          <SecondaryButton
-            size="small"
-            startIcon={<FilterIcon />}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setFilterDialogOpen(true)}
           >
+            <FilterIcon className="h-4 w-4 mr-2" />
             Filtre
-          </SecondaryButton>
-        </Stack>
+          </Button>
+        </div>
 
         {/* Summary */}
-        <Typography variant="body2" color="text.secondary">
+        <p className="text-sm text-gray-600">
           Zobrazujem {filteredData.length} vozidiel z {availabilityData.length}{' '}
           • Obdobie: {format(parseISO(filters.dateFrom), 'dd.MM.yyyy')} -{' '}
           {format(parseISO(filters.dateTo), 'dd.MM.yyyy')} • Priemer
@@ -1086,125 +1029,103 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
               Math.max(filteredData.length, 1)
           )}
           %
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Mobile Card View */}
       {isMobile ? (
-        <Stack spacing={1}>
+        <div className="space-y-2">
           {filteredData.map(vehicle => (
-            <Card key={vehicle.vehicleId} variant="outlined" sx={{ p: 1 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                }}
-              >
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" fontWeight="bold">
+            <Card key={vehicle.vehicleId} className="p-4 border">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-base font-bold">
                     {vehicle.vehicleName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </h3>
+                  <p className="text-sm text-gray-600">
                     {vehicle.licensePlate} • {vehicle.company}
-                  </Typography>
-                  <Box sx={{ mt: 0.5 }}>
-                    <Chip
-                      size="small"
-                      label={`${vehicle.availableDays}/${vehicle.totalDays} dní`}
-                      color={
+                  </p>
+                  <div className="mt-2">
+                    <Badge
+                      variant={
                         vehicle.availabilityPercent >= 80
-                          ? 'success'
+                          ? 'default'
                           : vehicle.availabilityPercent >= 50
-                            ? 'warning'
-                            : 'error'
+                            ? 'secondary'
+                            : 'destructive'
                       }
-                      sx={{ fontSize: '0.7rem' }}
-                    />
-                  </Box>
-                </Box>
-                <Typography
-                  variant="h6"
-                  color={
+                      className="text-xs"
+                    >
+                      {vehicle.availableDays}/{vehicle.totalDays} dní
+                    </Badge>
+                  </div>
+                </div>
+                <div
+                  className={`text-xl font-bold ${
                     vehicle.availabilityPercent >= 80
-                      ? 'success.main'
+                      ? 'text-green-600'
                       : vehicle.availabilityPercent >= 50
-                        ? 'warning.main'
-                        : 'error.main'
-                  }
+                        ? 'text-yellow-600'
+                        : 'text-red-600'
+                  }`}
                 >
                   {vehicle.availabilityPercent}%
-                </Typography>
-              </Box>
+                </div>
+              </div>
               {renderMobileTimeline(vehicle)}
             </Card>
           ))}
-        </Stack>
+        </div>
       ) : (
         /* Desktop Table View */
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <Table>{/* Removed className="h-8 px-3 text-sm" */}
+            <TableHeader>
               <TableRow>
-                <TableCell>Vozidlo</TableCell>
-                <TableCell>EČV</TableCell>
-                <TableCell>Kategória</TableCell>
-                <TableCell>Firma</TableCell>
-                <TableCell align="center">Dostupnosť</TableCell>
-                <TableCell align="center">Timeline</TableCell>
-                <TableCell align="center">Akcie</TableCell>
+                <TableHead>Vozidlo</TableHead>
+                <TableHead>EČV</TableHead>
+                <TableHead>Kategória</TableHead>
+                <TableHead>Firma</TableHead>
+                <TableHead className="text-center">Dostupnosť</TableHead>
+                <TableHead className="text-center">Timeline</TableHead>
+                <TableHead className="text-center">Akcie</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {filteredData.map(vehicle => (
-                <TableRow key={vehicle.vehicleId} hover>
+                <TableRow key={vehicle.vehicleId} className="hover:bg-gray-50">
                   <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
+                    <span className="text-sm font-medium">
                       {vehicle.vehicleName}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell>{vehicle.licensePlate}</TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      label={vehicle.category}
-                      variant="outlined"
-                    />
+                    <Badge variant="outline" className="text-xs">
+                      {vehicle.category}
+                    </Badge>
                   </TableCell>
                   <TableCell>{vehicle.company}</TableCell>
-                  <TableCell align="center">
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        fontWeight="bold"
-                        color={
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span
+                        className={`text-sm font-bold ${
                           vehicle.availabilityPercent >= 80
-                            ? 'success.main'
+                            ? 'text-green-600'
                             : vehicle.availabilityPercent >= 50
-                              ? 'warning.main'
-                              : 'error.main'
-                        }
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                        }`}
                       >
                         {vehicle.availabilityPercent}%
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      </span>
+                      <span className="text-xs text-gray-500">
                         ({vehicle.availableDays}/{vehicle.totalDays})
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell align="center">
-                    <Stack
-                      direction="row"
-                      spacing={0.5}
-                      justifyContent="center"
-                    >
+                  <TableCell className="text-center">
+                    <div className="flex gap-1 justify-center">
                       {vehicle.dailyStatus.slice(0, 14).map((day, index) => {
                         const statusDisplay = getStatusDisplay(day.status);
                         const vehicleData = availableVehicles.find(
@@ -1212,90 +1133,77 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
                         );
 
                         return (
-                          <Tooltip
-                            key={index}
-                            title={`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''} - ${day.status === 'available' ? 'Kliknite pre pridanie nedostupnosti' : day.status === 'rented' ? 'Prenájom (nie je možné upraviť)' : 'Kliknite pre úpravu nedostupnosti'}`}
-                          >
-                            <Box
-                              sx={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: 0.5,
-                                bgcolor: getVehicleStatusColor(day.status),
-                                border:
-                                  day.status === 'available'
-                                    ? '1px solid'
-                                    : 'none',
-                                borderColor: 'success.main',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  transform: 'scale(1.2)',
-                                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                                  zIndex: 1,
-                                },
-                              }}
-                              onClick={e => {
-                                e.stopPropagation();
-                                if (vehicleData) {
-                                  if (day.status === 'available') {
-                                    // Create new unavailability
-                                    setSelectedVehicleForUnavailability(
-                                      vehicleData
-                                    );
-                                    setSelectedDateForUnavailability(
-                                      parseISO(day.date)
-                                    );
-                                    setEditingUnavailability(undefined);
-                                    setUnavailabilityModalOpen(true);
-                                  } else if (day.status !== 'rented') {
-                                    // Edit existing unavailability (not rental)
-                                    // Load full unavailability data from API
-                                    loadUnavailabilityForEdit(
-                                      vehicleData.id,
-                                      day.date,
-                                      day.status,
-                                      day.reason || ''
-                                    );
-                                  }
-                                }
-                              }}
-                            />
-                          </Tooltip>
+                          <TooltipProvider key={index}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`w-4 h-4 rounded cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-md hover:z-10 ${
+                                    day.status === 'available' ? 'border border-green-600' : ''
+                                  }`}
+                                  style={{ backgroundColor: getVehicleStatusColor(day.status) }}
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    if (vehicleData) {
+                                      if (day.status === 'available') {
+                                        // Create new unavailability
+                                        setSelectedVehicleForUnavailability(
+                                          vehicleData
+                                        );
+                                        setSelectedDateForUnavailability(
+                                          parseISO(day.date)
+                                        );
+                                        setEditingUnavailability(undefined);
+                                        setUnavailabilityModalOpen(true);
+                                      } else if (day.status !== 'rented') {
+                                        // Edit existing unavailability (not rental)
+                                        // Load full unavailability data from API
+                                        loadUnavailabilityForEdit(
+                                          vehicleData.id,
+                                          day.date,
+                                          day.status,
+                                          day.reason || ''
+                                        );
+                                      }
+                                    }
+                                  }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {`${format(parseISO(day.date), 'dd.MM', { locale: sk })}: ${statusDisplay.label}${day.reason ? ` (${day.reason})` : ''} - ${day.status === 'available' ? 'Kliknite pre pridanie nedostupnosti' : day.status === 'rented' ? 'Prenájom (nie je možné upraviť)' : 'Kliknite pre úpravu nedostupnosti'}`}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         );
                       })}
-                    </Stack>
+                    </div>
                   </TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small">
-                      <ViewIcon fontSize="small" />
-                    </IconButton>
+                  <TableCell className="text-center">
+                    <Button size="sm" variant="ghost">
+                      <ViewIcon className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ⚡ PROGRESSIVE LOADING: Load More/Past Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3 }}>
+      <div className="flex justify-center gap-4 mt-6">
         {/* Load Past Days Button */}
         {loadMoreState.canLoadPast && (
           <Button
-            variant="outlined"
-            color="secondary"
+            variant="outline"
             onClick={loadPastDays}
             disabled={loadMoreState.isLoadingPast}
-            startIcon={
-              loadMoreState.isLoadingPast ? (
-                <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <ArrowBackIcon />
-              )
-            }
-            size="large"
+            size="lg"
           >
+            {loadMoreState.isLoadingPast ? (
+              <RefreshIcon className="animate-spin mr-2 h-4 w-4" />
+            ) : (
+              <ArrowBackIcon className="mr-2 h-4 w-4" />
+            )}
             {loadMoreState.isLoadingPast
               ? 'Načítavam minulosť...'
               : `Načítať 7 dní do minulosti (${loadMoreState.currentPastDays}/${loadMoreState.maxPastDays})`}
@@ -1305,205 +1213,199 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         {/* Load Future Days Button */}
         {loadMoreState.canLoadMore && (
           <Button
-            variant="outlined"
+            variant="outline"
             onClick={loadMoreDays}
             disabled={loadMoreState.isLoadingMore}
-            startIcon={
-              loadMoreState.isLoadingMore ? (
-                <RefreshIcon sx={{ animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <ArrowForwardIcon />
-              )
-            }
-            size="large"
+            size="lg"
           >
+            {loadMoreState.isLoadingMore ? (
+              <RefreshIcon className="animate-spin mr-2 h-4 w-4" />
+            ) : (
+              <ArrowForwardIcon className="mr-2 h-4 w-4" />
+            )}
             {loadMoreState.isLoadingMore
               ? 'Načítavam budúcnosť...'
               : `Načítať 14 dní do budúcnosti (${loadMoreState.currentDays}/${loadMoreState.maxDays})`}
           </Button>
         )}
-      </Box>
+      </div>
 
       {/* Max days reached info */}
       {!loadMoreState.canLoadMore &&
         loadMoreState.currentDays >= loadMoreState.maxDays && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex justify-center mt-4">
+            <p className="text-sm text-gray-600">
               📅 Dosiahli ste maximálny rozsah {loadMoreState.maxDays} dní (6
               mesiacov)
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
       {/* Filter Dialog */}
-      <Dialog
-        open={filterDialogOpen}
-        onClose={() => setFilterDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-      >
-        <DialogTitle>Filtre dostupnosti</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+      <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+        <DialogContent className={`${isMobile ? 'h-full max-w-full overflow-y-auto' : 'max-w-md'} w-full`}>
+          <DialogHeader>
+            <DialogTitle>Filtre dostupnosti</DialogTitle>
+            <DialogDescription>
+              Nastavte filtre pre zobrazenie dostupnosti vozidiel
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
             {/* Date Range */}
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Od dátumu"
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date-from">Od dátumu</Label>
+                <Input
+                  id="date-from"
                   type="date"
                   value={filters.dateFrom}
-                  onChange={e =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setFilters(prev => ({ ...prev, dateFrom: e.target.value }))
                   }
-                  InputLabelProps={{ shrink: true }}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Do dátumu"
+              </div>
+              <div>
+                <Label htmlFor="date-to">Do dátumu</Label>
+                <Input
+                  id="date-to"
                   type="date"
                   value={filters.dateTo}
-                  onChange={e =>
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setFilters(prev => ({ ...prev, dateTo: e.target.value }))
                   }
-                  InputLabelProps={{ shrink: true }}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Categories */}
-            <FormControl fullWidth>
-              <InputLabel>Kategórie</InputLabel>
+            <div>
+              <Label>Kategórie</Label>
               <Select
-                multiple
-                value={filters.categories}
-                onChange={e =>
-                  setFilters(prev => ({
-                    ...prev,
-                    categories: e.target.value as VehicleCategory[],
-                  }))
-                }
-                renderValue={selected => selected.join(', ')}
+                value={filters.categories.length > 0 ? filters.categories.join(',') : ''}
+                onValueChange={(value) => {
+                  const categories = value ? value.split(',') as VehicleCategory[] : [];
+                  setFilters(prev => ({ ...prev, categories }));
+                }}
               >
-                {availableCategories.map(category => (
-                  <MenuItem key={category} value={category}>
-                    {category}
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte kategórie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
 
             {/* Brands */}
-            <FormControl fullWidth>
-              <InputLabel>Značky</InputLabel>
+            <div>
+              <Label>Značky</Label>
               <Select
-                multiple
-                value={filters.brands}
-                onChange={e =>
-                  setFilters(prev => ({
-                    ...prev,
-                    brands: e.target.value as string[],
-                  }))
-                }
-                renderValue={selected => selected.join(', ')}
+                value={filters.brands.length > 0 ? filters.brands.join(',') : ''}
+                onValueChange={(value) => {
+                  const brands = value ? value.split(',') : [];
+                  setFilters(prev => ({ ...prev, brands }));
+                }}
               >
-                {availableBrands.map(brand => (
-                  <MenuItem key={brand} value={brand}>
-                    {brand}
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte značky" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBrands.map(brand => (
+                    <SelectItem key={brand} value={brand}>
+                      {brand}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
 
             {/* Companies */}
-            <FormControl fullWidth>
-              <InputLabel>Firmy</InputLabel>
+            <div>
+              <Label>Firmy</Label>
               <Select
-                multiple
-                value={filters.companies}
-                onChange={e =>
-                  setFilters(prev => ({
-                    ...prev,
-                    companies: e.target.value as string[],
-                  }))
-                }
-                renderValue={selected => selected.join(', ')}
+                value={filters.companies.length > 0 ? filters.companies.join(',') : ''}
+                onValueChange={(value) => {
+                  const companies = value ? value.split(',') : [];
+                  setFilters(prev => ({ ...prev, companies }));
+                }}
               >
-                {availableCompanies.map(company => (
-                  <MenuItem key={company} value={company}>
-                    {company}
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte firmy" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCompanies.map(company => (
+                    <SelectItem key={company} value={company}>
+                      {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
 
             {/* Options */}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={filters.availableOnly}
-                  onChange={e =>
-                    setFilters(prev => ({
-                      ...prev,
-                      availableOnly: e.target.checked,
-                    }))
-                  }
-                />
-              }
-              label="Zobraziť len dostupné vozidlá"
-            />
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="available-only"
+                checked={filters.availableOnly}
+                onCheckedChange={(checked) =>
+                  setFilters(prev => ({
+                    ...prev,
+                    availableOnly: checked,
+                  }))
+                }
+              />
+              <Label htmlFor="available-only">Zobraziť len dostupné vozidlá</Label>
+            </div>
 
             {/* Minimum Availability */}
-            <TextField
-              fullWidth
-              label="Minimálna dostupnosť (%)"
-              type="number"
-              value={filters.minAvailabilityPercent}
-              onChange={e =>
-                setFilters(prev => ({
-                  ...prev,
-                  minAvailabilityPercent: parseInt(e.target.value) || 0,
-                }))
-              }
-              InputProps={{ inputProps: { min: 0, max: 100 } }}
-            />
-          </Stack>
+            <div>
+              <Label htmlFor="min-availability">Minimálna dostupnosť (%)</Label>
+              <Input
+                id="min-availability"
+                type="number"
+                value={filters.minAvailabilityPercent}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFilters(prev => ({
+                    ...prev,
+                    minAvailabilityPercent: parseInt(e.target.value) || 0,
+                  }))
+                }
+                min={0}
+                max={100}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
+              Zrušiť
+            </Button>
+            <Button
+              onClick={() => {
+                setFilterDialogOpen(false);
+                loadAvailabilityData();
+              }}
+            >
+              Aplikovať
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <SecondaryButton onClick={() => setFilterDialogOpen(false)}>
-            Zrušiť
-          </SecondaryButton>
-          <PrimaryButton
-            onClick={() => {
-              setFilterDialogOpen(false);
-              loadAvailabilityData();
-            }}
-          >
-            Aplikovať
-          </PrimaryButton>
-        </DialogActions>
       </Dialog>
 
       {/* Empty State */}
       {filteredData.length === 0 && !isLoading && (
-        <Box
-          sx={{
-            textAlign: 'center',
-            py: 4,
-            color: 'text.secondary',
-          }}
-        >
-          <CarIcon sx={{ fontSize: 48, mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
+        <div className="text-center py-8 text-gray-600">
+          <CarIcon className="h-12 w-12 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">
             Žiadne vozidlá nevyhovujú filtrom
-          </Typography>
-          <Typography variant="body2">
+          </h3>
+          <p className="text-sm">
             Skúste zmeniť filtre alebo rozšíriť dátumový rozsah
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* 🚫 ADD UNAVAILABILITY MODAL */}
@@ -1520,7 +1422,7 @@ const SmartAvailabilityDashboard: React.FC<SmartAvailabilityDashboardProps> = ({
         preselectedDate={selectedDateForUnavailability}
         editingUnavailability={editingUnavailability}
       />
-    </Box>
+    </div>
   );
 };
 

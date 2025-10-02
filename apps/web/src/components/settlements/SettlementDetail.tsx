@@ -1,35 +1,19 @@
+import { UnifiedIcon } from '../ui/UnifiedIcon';
+import { UnifiedCard, StatisticsCard } from '../ui/UnifiedCard';
+import { UnifiedButton } from '../ui/UnifiedButton';
+import { UnifiedChip } from '../ui/UnifiedChip';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
+import { Badge } from '../ui/badge';
+import { Spinner } from '../ui/spinner';
 import {
-  AccountBalance as BankIcon,
-  CalendarToday as CalendarIcon,
-  Close as CloseIcon,
-  Business as CompanyIcon,
-  Euro as EuroIcon,
-  TrendingDown as LossIcon,
-  Payment as PaymentIcon,
-  PictureAsPdf as PdfIcon,
-  Person as PersonIcon,
-  TrendingUp as ProfitIcon,
-  Receipt as ReceiptIcon,
-  Assessment as ReportIcon,
-  DirectionsCar as VehicleIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Grid,
-  // Paper, // TODO: Implement Paper layout
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Typography,
-} from '@mui/material';
+} from '../ui/table';
+import { cn } from '../../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useState } from 'react';
@@ -214,58 +198,48 @@ export default function SettlementDetail({
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       {/* Modern Header */}
-      <Card sx={{ mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <CardContent
-          sx={{
-            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-            color: 'white',
-            position: 'relative',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <ReportIcon sx={{ fontSize: 32 }} />
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+      <UnifiedCard
+        variant="elevated"
+        className="mb-6 shadow-lg"
+      >
+        <div className="relative text-white bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-t-lg">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-4 mb-4">
+              <UnifiedIcon name="assessment" size={32} className="text-white" />
+              <div>
+                <UnifiedTypography
+                  variant="h4"
+                  className="font-bold mb-2 text-white"
+                >
                   Detail vyúčtovania
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CompanyIcon sx={{ fontSize: 20 }} />
-                  <Typography variant="h6">
+                </UnifiedTypography>
+                <div className="flex items-center gap-2">
+                  <UnifiedIcon name="building" size={20} className="text-white" />
+                  <UnifiedTypography
+                    variant="h6"
+                    className="text-white"
+                  >
                     {settlement.company || 'N/A'}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+                  </UnifiedTypography>
+                </div>
+              </div>
+            </div>
 
-            <Button
-              variant="outlined"
-              startIcon={<CloseIcon />}
+            <UnifiedButton
+              variant="outline"
+              startIcon={<UnifiedIcon name="close" size={20} />}
               onClick={onClose}
-              sx={{
-                color: 'white',
-                borderColor: 'white',
-                '&:hover': {
-                  borderColor: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                },
-              }}
+              className="text-white border-white hover:bg-white/10 hover:border-white"
             >
               Zavrieť
-            </Button>
-          </Box>
+            </UnifiedButton>
+          </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CalendarIcon sx={{ fontSize: 18 }} />
-            <Typography variant="body1">
+          <div className="flex items-center gap-2">
+            <UnifiedIcon name="calendar" size={18} className="text-white" />
+            <UnifiedTypography variant="body1" className="text-white">
               Obdobie:{' '}
               {format(
                 settlement.period.from instanceof Date
@@ -282,251 +256,191 @@ export default function SettlementDetail({
                 'dd.MM.yyyy',
                 { locale: sk }
               )}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
+            </UnifiedTypography>
+          </div>
+        </div>
+      </UnifiedCard>
 
       {/* Financial Summary Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%',
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatisticsCard
+          className="bg-gradient-to-br from-blue-400 to-cyan-400 text-white shadow-lg h-full"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <UnifiedTypography
+                variant="h6"
+                className="font-semibold mb-2 text-white"
               >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    CELKOVÉ PRÍJMY
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {settlement.totalIncome.toFixed(2)}€
-                  </Typography>
-                </Box>
-                <BankIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+                CELKOVÉ PRÍJMY
+              </UnifiedTypography>
+              <UnifiedTypography
+                variant="h4"
+                className="font-bold text-white"
+              >
+                {settlement.totalIncome.toFixed(2)}€
+              </UnifiedTypography>
+            </div>
+            <UnifiedIcon name="creditCard" size={40} className="opacity-80" />
+          </div>
+        </StatisticsCard>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%',
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+        <StatisticsCard
+          className="bg-gradient-to-br from-pink-400 to-red-500 text-white shadow-lg h-full"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <UnifiedTypography
+                variant="h6"
+                className="font-semibold mb-2 text-white"
               >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    CELKOVÉ NÁKLADY
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {settlement.totalExpenses.toFixed(2)}€
-                  </Typography>
-                </Box>
-                <EuroIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+                CELKOVÉ NÁKLADY
+              </UnifiedTypography>
+              <UnifiedTypography
+                variant="h4"
+                className="font-bold text-white"
+              >
+                {settlement.totalExpenses.toFixed(2)}€
+              </UnifiedTypography>
+            </div>
+            <UnifiedIcon name="euro" size={40} className="opacity-80" />
+          </div>
+        </StatisticsCard>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%',
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+        <StatisticsCard
+          className="bg-gradient-to-br from-yellow-300 to-orange-400 text-white shadow-lg h-full"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <UnifiedTypography
+                variant="h6"
+                className="font-semibold mb-2 text-white"
               >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    CELKOVÉ PROVÍZIE
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {settlement.totalCommission.toFixed(2)}€
-                  </Typography>
-                </Box>
-                <ReceiptIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+                CELKOVÉ PROVÍZIE
+              </UnifiedTypography>
+              <UnifiedTypography
+                variant="h4"
+                className="font-bold text-white"
+              >
+                {settlement.totalCommission.toFixed(2)}€
+              </UnifiedTypography>
+            </div>
+            <UnifiedIcon name="receipt" size={40} className="opacity-80" />
+          </div>
+        </StatisticsCard>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background:
-                settlement.profit >= 0
-                  ? 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
-                  : 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              height: '100%',
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+        <StatisticsCard
+          className={cn(
+            "text-white shadow-lg h-full",
+            settlement.profit >= 0
+              ? "bg-gradient-to-br from-teal-300 to-pink-300"
+              : "bg-gradient-to-br from-red-300 to-pink-300"
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <UnifiedTypography
+                variant="h6"
+                className="font-semibold mb-2 text-white"
               >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    {settlement.profit >= 0 ? 'CELKOVÝ ZISK' : 'CELKOVÁ STRATA'}
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {settlement.profit.toFixed(2)}€
-                  </Typography>
-                </Box>
-                {settlement.profit >= 0 ? (
-                  <ProfitIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-                ) : (
-                  <LossIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                {settlement.profit >= 0 ? 'CELKOVÝ ZISK' : 'CELKOVÁ STRATA'}
+              </UnifiedTypography>
+              <UnifiedTypography
+                variant="h4"
+                className="font-bold text-white"
+              >
+                {settlement.profit.toFixed(2)}€
+              </UnifiedTypography>
+            </div>
+            {settlement.profit >= 0 ? (
+              <UnifiedIcon name="trendingUp" size={40} className="opacity-80" />
+            ) : (
+              <UnifiedIcon name="trendingDown" size={40} className="opacity-80" />
+            )}
+          </div>
+        </StatisticsCard>
+      </div>
 
       {/* Payment Methods Overview */}
-      <Card sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <PaymentIcon sx={{ color: '#1976d2' }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
+      <UnifiedCard
+        variant="default"
+        className="mb-6 shadow-md"
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <UnifiedIcon name="payment" size={24} className="text-blue-600" />
+            <UnifiedTypography
+              variant="h6"
+              className="font-semibold text-blue-600"
+            >
               Prehľad podľa spôsobov platby
-            </Typography>
-          </Box>
+            </UnifiedTypography>
+          </div>
 
-          <TableContainer
-            sx={{
-              backgroundColor: 'transparent',
-              '& .MuiTableHead-root': {
-                '& .MuiTableCell-root': {
-                  backgroundColor: '#f8f9fa',
-                  fontWeight: 600,
-                  color: '#1976d2',
-                },
-              },
-            }}
-          >
+          <div className="overflow-hidden rounded-lg border">
             <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Spôsob platby</TableCell>
-                  <TableCell align="center">Počet prenájmov</TableCell>
-                  <TableCell align="right">Celková cena (€)</TableCell>
-                  <TableCell align="right">Provízie (€)</TableCell>
-                  <TableCell align="right">
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-semibold text-blue-600">Spôsob platby</TableHead>
+                  <TableHead className="text-center font-semibold text-blue-600">Počet prenájmov</TableHead>
+                  <TableHead className="text-right font-semibold text-blue-600">Celková cena (€)</TableHead>
+                  <TableHead className="text-right font-semibold text-blue-600">Provízie (€)</TableHead>
+                  <TableHead className="text-right font-semibold text-blue-600">
                     Po odpočítaní provízií (€)
-                  </TableCell>
+                  </TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {Object.entries(paymentMethodStats).map(([method, stats]) => (
                   <TableRow
                     key={method}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'rgba(25, 118, 210, 0.04)',
-                      },
-                    }}
+                    className="hover:bg-blue-50/50"
                   >
                     <TableCell>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <Box
-                          sx={{
-                            width: 12,
-                            height: 12,
-                            borderRadius: '50%',
-                            backgroundColor: getPaymentMethodColor(method),
-                          }}
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getPaymentMethodColor(method) }}
                         />
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <UnifiedTypography
+                          variant="body2"
+                          className="font-semibold"
+                        >
                           {getPaymentMethodLabel(method)}
-                        </Typography>
-                      </Box>
+                        </UnifiedTypography>
+                      </div>
                     </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={stats.count}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800"
+                      >
+                        {stats.count}
+                      </Badge>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                    <TableCell className="text-right font-semibold">
                       {stats.totalPrice.toFixed(2)}
                     </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ fontWeight: 600, color: '#ff9800' }}
-                    >
+                    <TableCell className="text-right font-semibold text-orange-600">
                       {stats.totalCommission.toFixed(2)}
                     </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ fontWeight: 600, color: '#4caf50' }}
-                    >
+                    <TableCell className="text-right font-semibold text-green-600">
                       {stats.netAmount.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow
-                  sx={{
-                    backgroundColor: '#e3f2fd',
-                    '& .MuiTableCell-root': {
-                      fontWeight: 700,
-                      borderTop: '2px solid #1976d2',
-                    },
-                  }}
-                >
-                  <TableCell>SPOLU</TableCell>
-                  <TableCell align="center">
+                <TableRow className="bg-blue-50 border-t-2 border-blue-600">
+                  <TableCell className="font-bold">SPOLU</TableCell>
+                  <TableCell className="text-center font-bold">
                     {settlement.rentals?.length || 0}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-right font-bold">
                     {settlement.totalIncome.toFixed(2)}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-right font-bold">
                     {settlement.totalCommission.toFixed(2)}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-right font-bold">
                     {(
                       settlement.totalIncome - settlement.totalCommission
                     ).toFixed(2)}
@@ -534,95 +448,80 @@ export default function SettlementDetail({
                 </TableRow>
               </TableBody>
             </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </UnifiedCard>
 
       {/* Detailed Lists */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} lg={8}>
-          <Card
-            sx={{
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              height: 'fit-content',
-            }}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2">
+          <UnifiedCard
+            variant="default"
+            className="shadow-md h-fit"
           >
-            <CardContent>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}
-              >
-                <VehicleIcon sx={{ color: '#4caf50' }} />
-                <Typography
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <UnifiedIcon name="car" size={24} className="text-green-600" />
+                <UnifiedTypography
                   variant="h6"
-                  sx={{ fontWeight: 600, color: '#4caf50' }}
+                  className="font-semibold text-green-600"
                 >
                   Prenájmy ({settlement.rentals?.length || 0})
-                </Typography>
-              </Box>
+                </UnifiedTypography>
+              </div>
 
-              <TableContainer
-                sx={{
-                  maxHeight: 600,
-                  '& .MuiTableHead-root': {
-                    '& .MuiTableCell-root': {
-                      backgroundColor: '#e8f5e8',
-                      fontWeight: 600,
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 1,
-                    },
-                  },
-                }}
-              >
-                <Table size="small">
-                  <TableHead>
+              <div className="overflow-hidden rounded-lg border max-h-[600px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-green-50 z-10">
                     <TableRow>
-                      <TableCell>Vozidlo</TableCell>
-                      <TableCell>Zákazník</TableCell>
-                      <TableCell>Dátum prenájmu</TableCell>
-                      <TableCell>Platba</TableCell>
-                      <TableCell align="right">Cena (€)</TableCell>
-                      <TableCell align="right">Provízia (€)</TableCell>
+                      <TableHead className="font-semibold">Vozidlo</TableHead>
+                      <TableHead className="font-semibold">Zákazník</TableHead>
+                      <TableHead className="font-semibold">Dátum prenájmu</TableHead>
+                      <TableHead className="font-semibold">Platba</TableHead>
+                      <TableHead className="text-right font-semibold">Cena (€)</TableHead>
+                      <TableHead className="text-right font-semibold">Provízia (€)</TableHead>
                     </TableRow>
-                  </TableHead>
+                  </TableHeader>
                   <TableBody>
                     {settlement.rentals.map((rental, index) => (
                       <TableRow
                         key={rental.id}
-                        sx={{
-                          backgroundColor:
-                            index % 2 === 0 ? 'transparent' : '#fafafa',
-                          '&:hover': {
-                            backgroundColor: 'rgba(76, 175, 80, 0.04)',
-                          },
-                        }}
+                        className={cn(
+                          index % 2 === 0 ? "bg-transparent" : "bg-gray-50/50",
+                          "hover:bg-green-50/50"
+                        )}
                       >
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {rental.vehicle?.brand} {rental.vehicle?.model}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {rental.vehicle?.licensePlate}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                            }}
+                          <UnifiedTypography
+                            variant="body2"
+                            className="font-semibold"
                           >
-                            <PersonIcon
-                              sx={{ fontSize: 16, color: 'text.secondary' }}
-                            />
-                            <Typography variant="body2">
-                              {rental.customerName}
-                            </Typography>
-                          </Box>
+                            {rental.vehicle?.brand} {rental.vehicle?.model}
+                          </UnifiedTypography>
+                          <UnifiedTypography
+                            variant="caption"
+                            color="textSecondary"
+                          >
+                            {rental.vehicle?.licensePlate}
+                          </UnifiedTypography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <div className="flex items-center gap-1">
+                            <UnifiedIcon
+                              name="person"
+                              size={16}
+                              className="text-muted-foreground"
+                            />
+                            <UnifiedTypography variant="body2">
+                              {rental.customerName}
+                            </UnifiedTypography>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <UnifiedTypography
+                            variant="body2"
+                            className="font-semibold"
+                          >
                             {format(new Date(rental.startDate), 'dd.MM.yyyy', {
                               locale: sk,
                             })}{' '}
@@ -630,8 +529,11 @@ export default function SettlementDetail({
                             {format(new Date(rental.endDate), 'dd.MM.yyyy', {
                               locale: sk,
                             })}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          </UnifiedTypography>
+                          <UnifiedTypography
+                            variant="caption"
+                            color="textSecondary"
+                          >
                             {Math.max(
                               1,
                               Math.ceil(
@@ -641,184 +543,133 @@ export default function SettlementDetail({
                               )
                             )}{' '}
                             dní
-                          </Typography>
+                          </UnifiedTypography>
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <UnifiedChip
                             label={getPaymentMethodLabel(rental.paymentMethod)}
-                            size="small"
-                            sx={{
+                            className="h-8 px-3 text-sm"
+                            className="font-semibold text-white"
+                            style={{
                               backgroundColor: getPaymentMethodColor(
                                 rental.paymentMethod
                               ),
-                              color: 'white',
-                              fontWeight: 600,
                             }}
                           />
                         </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>
+                        <TableCell className="text-right font-semibold">
                           {rental.totalPrice.toFixed(2)}
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 600, color: '#ff9800' }}
-                        >
+                        <TableCell className="text-right font-semibold text-orange-600">
                           {rental.commission.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
+              </div>
+            </div>
+          </UnifiedCard>
+        </div>
 
-        <Grid item xs={12} lg={4}>
-          <Card
-            sx={{
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              height: 'fit-content',
-            }}
+        <div className="lg:col-span-1">
+          <UnifiedCard
+            variant="default"
+            className="shadow-md h-fit"
           >
-            <CardContent>
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}
-              >
-                <EuroIcon sx={{ color: '#f44336' }} />
-                <Typography
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <UnifiedIcon name="euro" size={24} className="text-red-600" />
+                <UnifiedTypography
                   variant="h6"
-                  sx={{ fontWeight: 600, color: '#f44336' }}
+                  className="font-semibold text-red-600"
                 >
                   Náklady {settlement.company || 'N/A'} (
                   {settlement.expenses?.length || 0})
-                </Typography>
-              </Box>
+                </UnifiedTypography>
+              </div>
 
-              <TableContainer
-                sx={{
-                  maxHeight: 400,
-                  '& .MuiTableHead-root': {
-                    '& .MuiTableCell-root': {
-                      backgroundColor: '#ffebee',
-                      fontWeight: 600,
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 1,
-                    },
-                  },
-                }}
-              >
-                <Table size="small">
-                  <TableHead>
+              <div className="overflow-hidden rounded-lg border max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-red-50 z-10">
                     <TableRow>
-                      <TableCell>Popis</TableCell>
-                      <TableCell>Kategória</TableCell>
-                      <TableCell align="right">Suma (€)</TableCell>
+                      <TableHead className="font-semibold">Popis</TableHead>
+                      <TableHead className="font-semibold">Kategória</TableHead>
+                      <TableHead className="text-right font-semibold">Suma (€)</TableHead>
                     </TableRow>
-                  </TableHead>
+                  </TableHeader>
                   <TableBody>
                     {settlement.expenses.map((expense, index) => (
                       <TableRow
                         key={expense.id}
-                        sx={{
-                          backgroundColor:
-                            index % 2 === 0 ? 'transparent' : '#fafafa',
-                          '&:hover': {
-                            backgroundColor: 'rgba(244, 67, 54, 0.04)',
-                          },
-                        }}
+                        className={cn(
+                          index % 2 === 0 ? "bg-transparent" : "bg-gray-50/50",
+                          "hover:bg-red-50/50"
+                        )}
                       >
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <UnifiedTypography
+                            variant="body2"
+                            className="font-semibold"
+                          >
                             {expense.description}
-                          </Typography>
+                          </UnifiedTypography>
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            label={expense.category}
-                            size="small"
-                            color="secondary"
-                            variant="outlined"
-                          />
+                          <Badge
+                            variant="outline"
+                            className="bg-gray-100 text-gray-800"
+                          >
+                            {expense.category}
+                          </Badge>
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 600, color: '#f44336' }}
-                        >
+                        <TableCell className="text-right font-semibold text-red-600">
                           {expense.amount.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+              </div>
+            </div>
+          </UnifiedCard>
+        </div>
+      </div>
 
       {/* Action Buttons */}
-      <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <CardContent>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 2,
-            }}
-          >
-            <Button
-              variant="contained"
-              size="large"
+      <UnifiedCard
+        variant="default"
+        className="shadow-md"
+      >
+        <div className="p-6">
+          <div className="flex justify-between items-center flex-col sm:flex-row gap-4">
+            <UnifiedButton
+              variant="default"
+              className="h-12 px-8 text-base"
               startIcon={
                 pdfLoading ? (
-                  <CircularProgress size={20} color="inherit" />
+                  <Spinner size={20} className="text-white" />
                 ) : (
-                  <PdfIcon />
+                  <UnifiedIcon name="fileText" size={20} />
                 )
               }
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
-              sx={{
-                background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
-                px: 4,
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                borderRadius: 2,
-                boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)',
-                '&:hover': {
-                  background:
-                    'linear-gradient(135deg, #c62828 0%, #e53935 100%)',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 16px rgba(211, 47, 47, 0.4)',
-                },
-                '&:disabled': {
-                  background:
-                    'linear-gradient(135deg, #bdbdbd 0%, #9e9e9e 100%)',
-                },
-                transition: 'all 0.2s ease',
-              }}
+              className="bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed"
             >
               {pdfLoading ? 'Generujem PDF...' : 'Stiahnuť PDF'}
-            </Button>
+            </UnifiedButton>
 
-            <Typography
+            <UnifiedTypography
               variant="body2"
-              color="text.secondary"
-              sx={{
-                fontStyle: 'italic',
-                textAlign: { xs: 'center', sm: 'right' },
-              }}
+              color="textSecondary"
+              className="italic text-center sm:text-right"
             >
               ID vyúčtovania: {settlement.id.slice(-8).toUpperCase()}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+            </UnifiedTypography>
+          </div>
+        </div>
+      </UnifiedCard>
+    </div>
   );
 }

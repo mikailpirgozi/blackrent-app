@@ -1,0 +1,343 @@
+/**
+ * 🧪 UNIFIED SELECT TESTS
+ */
+
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { UnifiedSelect, type SelectOption } from '../UnifiedSelect';
+
+const mockOptions: SelectOption[] = [
+  { value: 'option1', label: 'Option 1' },
+  { value: 'option2', label: 'Option 2' },
+  { value: 'option3', label: 'Option 3', disabled: true },
+  { value: 'option4', label: 'Option 4', group: 'Group A' },
+  { value: 'option5', label: 'Option 5', group: 'Group A' },
+  { value: 'option6', label: 'Option 6', group: 'Group B' },
+];
+
+describe('UnifiedSelect', () => {
+  it('renders with basic props', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        placeholder="Select option"
+      />
+    );
+    
+    expect(screen.getByText('Select option')).toBeInTheDocument();
+  });
+
+  it('renders with label', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        label="Test Label"
+      />
+    );
+    
+    expect(screen.getByText('Test Label')).toBeInTheDocument();
+  });
+
+  it('shows required asterisk when required', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        label="Required Field"
+        required
+      />
+    );
+    
+    const label = screen.getByText('Required Field');
+    expect(label).toHaveClass('after:content-["*"]');
+  });
+
+  it('opens dropdown when clicked', async () => {
+    const user = userEvent.setup();
+    
+    render(<UnifiedSelect options={mockOptions} />);
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Option 1')).toBeInTheDocument();
+      expect(screen.getByText('Option 2')).toBeInTheDocument();
+    });
+  });
+
+  it('selects single option', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        onValueChange={handleChange}
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      const option = screen.getByText('Option 1');
+      expect(option).toBeInTheDocument();
+    });
+    
+    const option = screen.getByText('Option 1');
+    await user.click(option);
+    
+    expect(handleChange).toHaveBeenCalledWith('option1');
+  });
+
+  it('handles multiple selection', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        onValueChange={handleChange}
+        multiple
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    // Select first option
+    await waitFor(() => {
+      const option1 = screen.getByText('Option 1');
+      expect(option1).toBeInTheDocument();
+    });
+    
+    const option1 = screen.getByText('Option 1');
+    await user.click(option1);
+    
+    expect(handleChange).toHaveBeenCalledWith(['option1']);
+    
+    // Select second option
+    const option2 = screen.getByText('Option 2');
+    await user.click(option2);
+    
+    expect(handleChange).toHaveBeenCalledWith(['option1', 'option2']);
+  });
+
+  it('respects maxSelections in multiple mode', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        onValueChange={handleChange}
+        multiple
+        maxSelections={2}
+        value={['option1', 'option2']}
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      const option4 = screen.getByText('Option 4');
+      expect(option4).toBeInTheDocument();
+    });
+    
+    // Try to select third option (should be ignored)
+    const option4 = screen.getByText('Option 4');
+    await user.click(option4);
+    
+    // Should not call onChange since max is reached
+    expect(handleChange).not.toHaveBeenCalledWith(['option1', 'option2', 'option4']);
+  });
+
+  it('filters options when searchable', async () => {
+    const user = userEvent.setup();
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        searchable
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      const searchInput = screen.getByPlaceholderText('Hľadať...');
+      expect(searchInput).toBeInTheDocument();
+    });
+    
+    const searchInput = screen.getByPlaceholderText('Hľadať...');
+    await user.type(searchInput, 'Option 1');
+    
+    await waitFor(() => {
+      expect(screen.getByText('Option 1')).toBeInTheDocument();
+      expect(screen.queryByText('Option 2')).not.toBeInTheDocument();
+    });
+  });
+
+  it('groups options correctly', async () => {
+    const user = userEvent.setup();
+    
+    render(<UnifiedSelect options={mockOptions} />);
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Group A')).toBeInTheDocument();
+      expect(screen.getByText('Group B')).toBeInTheDocument();
+    });
+  });
+
+  it('disables options correctly', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        onValueChange={handleChange}
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      const disabledOption = screen.getByText('Option 3');
+      expect(disabledOption.closest('[data-disabled="true"]')).toBeInTheDocument();
+    });
+  });
+
+  it('shows loading state', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        loading
+      />
+    );
+    
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+  });
+
+  it('shows error state', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        error
+        errorText="This field is required"
+      />
+    );
+    
+    expect(screen.getByText('This field is required')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toHaveClass('border-red-500');
+  });
+
+  it('shows helper text', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        helperText="Choose an option"
+      />
+    );
+    
+    expect(screen.getByText('Choose an option')).toBeInTheDocument();
+  });
+
+  it('respects disabled state', () => {
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        disabled
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    expect(trigger).toBeDisabled();
+  });
+
+  it('handles different sizes', () => {
+    const { rerender } = render(
+      <UnifiedSelect options={mockOptions} size="sm" />
+    );
+    
+    let trigger = screen.getByRole('combobox');
+    expect(trigger).toHaveClass('h-8');
+    
+    rerender(<UnifiedSelect options={mockOptions} size="lg" />);
+    trigger = screen.getByRole('combobox');
+    expect(trigger).toHaveClass('h-11');
+  });
+
+  it('supports custom option rendering', async () => {
+    const user = userEvent.setup();
+    const renderOption = (option: SelectOption) => (
+      <div data-testid={`custom-${option.value}`}>
+        Custom: {option.label}
+      </div>
+    );
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        renderOption={renderOption}
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('custom-option1')).toBeInTheDocument();
+      expect(screen.getByText('Custom: Option 1')).toBeInTheDocument();
+    });
+  });
+
+  it('supports custom value rendering', () => {
+    const renderValue = (value: string | string[]) => (
+      <span data-testid="custom-value">Selected: {value}</span>
+    );
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        value="option1"
+        renderValue={renderValue}
+      />
+    );
+    
+    expect(screen.getByTestId('custom-value')).toBeInTheDocument();
+    expect(screen.getByText('Selected: option1')).toBeInTheDocument();
+  });
+
+  it('calls onValueChange for shadcn compatibility', async () => {
+    const user = userEvent.setup();
+    const handleValueChange = jest.fn();
+    
+    render(
+      <UnifiedSelect 
+        options={mockOptions}
+        onValueChange={handleValueChange}
+      />
+    );
+    
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    
+    await waitFor(() => {
+      const option = screen.getByText('Option 1');
+      expect(option).toBeInTheDocument();
+    });
+    
+    const option = screen.getByText('Option 1');
+    await user.click(option);
+    
+    expect(handleValueChange).toHaveBeenCalledWith('option1');
+  });
+});

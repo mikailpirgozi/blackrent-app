@@ -1,88 +1,44 @@
 // 💀 Enhanced Skeleton Loader Component
 // Beautiful animated skeleton screens with gradient shimmer effects
 
-import {
-  Box,
-  Skeleton,
-  Card,
-  CardContent,
-  Grid,
-  useTheme,
-  styled,
-  keyframes,
-} from '@mui/material';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import React from 'react';
 
-// Shimmer animation
-const shimmer = keyframes`
-  0% {
-    background-position: -468px 0;
-  }
-  100% {
-    background-position: 468px 0;
-  }
-`;
+// Enhanced Skeleton component with custom styling
+const EnhancedSkeleton: React.FC<{
+  className?: string;
+  variant?: 'text' | 'circular' | 'rounded';
+  width?: string | number;
+  height?: string | number;
+}> = ({ className, variant = 'rounded', width, height, ...props }) => {
+  const baseClasses = "animate-pulse bg-muted/50";
+  
+  const variantClasses = {
+    text: "h-4 w-full rounded",
+    circular: "rounded-full",
+    rounded: "rounded-lg"
+  };
 
-// Enhanced Skeleton with custom shimmer
-const EnhancedSkeleton = styled(Skeleton)(({ theme }) => ({
-  borderRadius: 12,
-  background: `linear-gradient(
-    90deg,
-    ${theme.palette.mode === 'dark' ? 'rgba(45, 55, 72, 0.3)' : 'rgba(241, 245, 249, 0.8)'} 0px,
-    ${theme.palette.mode === 'dark' ? 'rgba(102, 126, 234, 0.2)' : 'rgba(102, 126, 234, 0.1)'} 40px,
-    ${theme.palette.mode === 'dark' ? 'rgba(45, 55, 72, 0.3)' : 'rgba(241, 245, 249, 0.8)'} 80px
-  )`,
-  backgroundSize: '468px 104px',
-  animation: `${shimmer} 1.6s ease-in-out infinite`,
-  '&::after': {
-    content: '" "',
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    background: `linear-gradient(
-      90deg,
-      transparent,
-      ${theme.palette.mode === 'dark' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)'},
-      transparent
-    )`,
-    transform: 'translateX(-100%)',
-    animation: `${shimmer} 2s ease-in-out infinite`,
-  },
-}));
+  return (
+    <Skeleton
+      className={cn(baseClasses, variantClasses[variant], className)}
+      style={{ width, height }}
+      {...props}
+    />
+  );
+};
 
 // Shimmer Card for card layouts
-const ShimmerCard = styled(Card)(({ theme }) => ({
-  background:
-    theme.palette.mode === 'dark'
-      ? 'rgba(26, 31, 46, 0.6)'
-      : 'rgba(255, 255, 255, 0.6)',
-  backdropFilter: 'blur(8px)',
-  border: `1px solid ${
-    theme.palette.mode === 'dark'
-      ? 'rgba(102, 126, 234, 0.1)'
-      : 'rgba(102, 126, 234, 0.1)'
-  }`,
-  borderRadius: 20,
-  overflow: 'hidden',
-  position: 'relative',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: '-100%',
-    width: '100%',
-    height: '100%',
-    background: `linear-gradient(
-      90deg,
-      transparent,
-      ${theme.palette.mode === 'dark' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)'},
-      transparent
-    )`,
-    animation: `${shimmer} 2s ease-in-out infinite`,
-  },
-}));
+const ShimmerCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ 
+  children, 
+  className 
+}) => (
+  <Card className={cn("bg-background/60 backdrop-blur-sm border shadow-sm", className)}>
+    {children}
+  </Card>
+);
 
 interface SkeletonLoaderProps {
   variant?: 'card' | 'list' | 'table' | 'dashboard' | 'form' | 'custom';
@@ -101,483 +57,326 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   count = 3,
   height = 200,
   width = '100%',
-  animation = 'wave',
+  // animation = 'wave',
   showAvatar = true,
   showText = true,
   showButtons = true,
   rows = 3,
 }) => {
-  const theme = useTheme();
 
   const renderCardSkeleton = (index: number) => (
     <ShimmerCard key={index}>
-      <CardContent sx={{ p: 3 }}>
-        <Box display="flex" alignItems="center" gap={2} mb={2}>
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4 mb-4">
           {showAvatar && (
             <EnhancedSkeleton
               variant="circular"
               width={48}
               height={48}
-              animation={animation}
             />
           )}
-          <Box flex={1}>
+          <div className="flex-1">
             <EnhancedSkeleton
-              variant="text"
+              variant="ghost"
               width="60%"
               height={24}
-              animation={animation}
-              sx={{ mb: 1 }}
+              className="mb-2"
             />
             <EnhancedSkeleton
-              variant="text"
+              variant="ghost"
               width="40%"
               height={16}
-              animation={animation}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {showText && (
-          <Box mb={2}>
+          <div className="mb-4 space-y-2">
             {Array.from({ length: rows }).map((_, i) => (
               <EnhancedSkeleton
                 key={i}
-                variant="text"
+                variant="ghost"
                 width={i === rows - 1 ? '70%' : '100%'}
                 height={16}
-                animation={animation}
-                sx={{ mb: 1 }}
               />
             ))}
-          </Box>
+          </div>
         )}
 
         {showButtons && (
-          <Box display="flex" gap={1} mt={2}>
+          <div className="flex gap-2 mt-4">
             <EnhancedSkeleton
               variant="rounded"
               width={80}
               height={36}
-              animation={animation}
             />
             <EnhancedSkeleton
               variant="rounded"
               width={100}
               height={36}
-              animation={animation}
             />
-          </Box>
+          </div>
         )}
       </CardContent>
     </ShimmerCard>
   );
 
   const renderListSkeleton = (index: number) => (
-    <Box
+    <div
       key={index}
-      display="flex"
-      alignItems="center"
-      gap={2}
-      p={2}
-      sx={{
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        background:
-          theme.palette.mode === 'dark'
-            ? 'rgba(26, 31, 46, 0.3)'
-            : 'rgba(255, 255, 255, 0.5)',
-        backdropFilter: 'blur(4px)',
-      }}
+      className="flex items-center gap-4 p-4 border-b border-border bg-background/50 backdrop-blur-sm"
     >
       {showAvatar && (
         <EnhancedSkeleton
           variant="circular"
           width={40}
           height={40}
-          animation={animation}
         />
       )}
-      <Box flex={1}>
+      <div className="flex-1">
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="80%"
           height={20}
-          animation={animation}
-          sx={{ mb: 0.5 }}
+          className="mb-1"
         />
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="50%"
           height={16}
-          animation={animation}
         />
-      </Box>
+      </div>
       {showButtons && (
         <EnhancedSkeleton
           variant="rounded"
           width={60}
           height={32}
-          animation={animation}
         />
       )}
-    </Box>
+    </div>
   );
 
   const renderTableSkeleton = () => (
-    <Box
-      sx={{
-        background:
-          theme.palette.mode === 'dark'
-            ? 'rgba(26, 31, 46, 0.6)'
-            : 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(8px)',
-        borderRadius: 3,
-        overflow: 'hidden',
-        border: `1px solid ${theme.palette.divider}`,
-      }}
-    >
+    <div className="bg-background/80 backdrop-blur-sm rounded-lg overflow-hidden border border-border">
       {/* Table Header */}
-      <Box
-        display="flex"
-        p={2}
-        gap={2}
-        sx={{
-          background:
-            theme.palette.mode === 'dark'
-              ? 'rgba(102, 126, 234, 0.1)'
-              : 'rgba(102, 126, 234, 0.05)',
-        }}
-      >
+      <div className="flex p-4 gap-4 bg-muted/50">
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="25%"
           height={24}
-          animation={animation}
         />
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="30%"
           height={24}
-          animation={animation}
         />
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="20%"
           height={24}
-          animation={animation}
         />
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="25%"
           height={24}
-          animation={animation}
         />
-      </Box>
+      </div>
 
       {/* Table Rows */}
       {Array.from({ length: count }).map((_, index) => (
-        <Box
+        <div
           key={index}
-          display="flex"
-          p={2}
-          gap={2}
-          sx={{
-            borderBottom:
-              index < count - 1 ? `1px solid ${theme.palette.divider}` : 'none',
-          }}
+          className={cn(
+            "flex p-4 gap-4",
+            index < count - 1 && "border-b border-border"
+          )}
         >
           <EnhancedSkeleton
-            variant="text"
+            variant="ghost"
             width="25%"
             height={16}
-            animation={animation}
           />
           <EnhancedSkeleton
-            variant="text"
+            variant="ghost"
             width="30%"
             height={16}
-            animation={animation}
           />
           <EnhancedSkeleton
-            variant="text"
+            variant="ghost"
             width="20%"
             height={16}
-            animation={animation}
           />
           <EnhancedSkeleton
-            variant="text"
+            variant="ghost"
             width="25%"
             height={16}
-            animation={animation}
           />
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 
   const renderDashboardSkeleton = () => (
-    <Grid container spacing={3}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
       {/* Stats Cards */}
-      <Grid item xs={12} sm={6} md={3}>
-        <ShimmerCard>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <ShimmerCard key={index}>
           <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
+            <div className="flex items-center gap-4">
               <EnhancedSkeleton
                 variant="circular"
                 width={48}
                 height={48}
-                animation={animation}
               />
-              <Box flex={1}>
+              <div className="flex-1">
                 <EnhancedSkeleton
-                  variant="text"
-                  width="60%"
+                  variant="ghost"
+                  width={index === 1 ? "70%" : index === 2 ? "55%" : index === 3 ? "65%" : "60%"}
                   height={20}
-                  animation={animation}
                 />
                 <EnhancedSkeleton
-                  variant="text"
-                  width="40%"
+                  variant="ghost"
+                  width={index === 1 ? "50%" : index === 2 ? "35%" : index === 3 ? "45%" : "40%"}
                   height={32}
-                  animation={animation}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
           </CardContent>
         </ShimmerCard>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <ShimmerCard>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <EnhancedSkeleton
-                variant="circular"
-                width={48}
-                height={48}
-                animation={animation}
-              />
-              <Box flex={1}>
-                <EnhancedSkeleton
-                  variant="text"
-                  width="70%"
-                  height={20}
-                  animation={animation}
-                />
-                <EnhancedSkeleton
-                  variant="text"
-                  width="50%"
-                  height={32}
-                  animation={animation}
-                />
-              </Box>
-            </Box>
-          </CardContent>
-        </ShimmerCard>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <ShimmerCard>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <EnhancedSkeleton
-                variant="circular"
-                width={48}
-                height={48}
-                animation={animation}
-              />
-              <Box flex={1}>
-                <EnhancedSkeleton
-                  variant="text"
-                  width="55%"
-                  height={20}
-                  animation={animation}
-                />
-                <EnhancedSkeleton
-                  variant="text"
-                  width="35%"
-                  height={32}
-                  animation={animation}
-                />
-              </Box>
-            </Box>
-          </CardContent>
-        </ShimmerCard>
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <ShimmerCard>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <EnhancedSkeleton
-                variant="circular"
-                width={48}
-                height={48}
-                animation={animation}
-              />
-              <Box flex={1}>
-                <EnhancedSkeleton
-                  variant="text"
-                  width="65%"
-                  height={20}
-                  animation={animation}
-                />
-                <EnhancedSkeleton
-                  variant="text"
-                  width="45%"
-                  height={32}
-                  animation={animation}
-                />
-              </Box>
-            </Box>
-          </CardContent>
-        </ShimmerCard>
-      </Grid>
+      ))}
 
       {/* Chart Area */}
-      <Grid item xs={12} md={8}>
+      <div className="col-span-1 md:col-span-3">
         <ShimmerCard>
           <CardContent>
             <EnhancedSkeleton
-              variant="text"
+              variant="ghost"
               width="30%"
               height={24}
-              animation={animation}
-              sx={{ mb: 2 }}
+              className="mb-4"
             />
             <EnhancedSkeleton
               variant="rounded"
               width="100%"
               height={300}
-              animation={animation}
             />
           </CardContent>
         </ShimmerCard>
-      </Grid>
+      </div>
 
       {/* Side Panel */}
-      <Grid item xs={12} md={4}>
+      <div className="col-span-1 md:col-span-1">
         <ShimmerCard>
           <CardContent>
             <EnhancedSkeleton
-              variant="text"
+              variant="ghost"
               width="40%"
               height={24}
-              animation={animation}
-              sx={{ mb: 2 }}
+              className="mb-4"
             />
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Box key={i} display="flex" alignItems="center" gap={2} mb={2}>
-                <EnhancedSkeleton
-                  variant="circular"
-                  width={32}
-                  height={32}
-                  animation={animation}
-                />
-                <Box flex={1}>
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
                   <EnhancedSkeleton
-                    variant="text"
-                    width="70%"
+                    variant="circular"
+                    width={32}
+                    height={32}
+                  />
+                  <div className="flex-1">
+                    <EnhancedSkeleton
+                      variant="ghost"
+                      width="70%"
+                      height={16}
+                    />
+                    <EnhancedSkeleton
+                      variant="ghost"
+                      width="50%"
+                      height={14}
+                    />
+                  </div>
+                  <EnhancedSkeleton
+                    variant="ghost"
+                    width="25%"
                     height={16}
-                    animation={animation}
                   />
-                  <EnhancedSkeleton
-                    variant="text"
-                    width="50%"
-                    height={14}
-                    animation={animation}
-                  />
-                </Box>
-                <EnhancedSkeleton
-                  variant="text"
-                  width="25%"
-                  height={16}
-                  animation={animation}
-                />
-              </Box>
-            ))}
+                </div>
+              ))}
+            </div>
           </CardContent>
         </ShimmerCard>
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 
   const renderFormSkeleton = () => (
     <ShimmerCard>
-      <CardContent sx={{ p: 3 }}>
+      <CardContent className="p-6">
         <EnhancedSkeleton
-          variant="text"
+          variant="ghost"
           width="40%"
           height={32}
-          animation={animation}
-          sx={{ mb: 3 }}
+          className="mb-6"
         />
 
-        <Box display="flex" gap={2} mb={3}>
-          <Box flex={1}>
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
             <EnhancedSkeleton
-              variant="text"
+              variant="ghost"
               width="30%"
               height={16}
-              animation={animation}
-              sx={{ mb: 1 }}
+              className="mb-2"
             />
             <EnhancedSkeleton
               variant="rounded"
               width="100%"
               height={56}
-              animation={animation}
             />
-          </Box>
-          <Box flex={1}>
+          </div>
+          <div className="flex-1">
             <EnhancedSkeleton
-              variant="text"
+              variant="ghost"
               width="35%"
               height={16}
-              animation={animation}
-              sx={{ mb: 1 }}
+              className="mb-2"
             />
             <EnhancedSkeleton
               variant="rounded"
               width="100%"
               height={56}
-              animation={animation}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Box key={i} mb={3}>
-            <EnhancedSkeleton
-              variant="text"
-              width="25%"
-              height={16}
-              animation={animation}
-              sx={{ mb: 1 }}
-            />
-            <EnhancedSkeleton
-              variant="rounded"
-              width="100%"
-              height={56}
-              animation={animation}
-            />
-          </Box>
-        ))}
+        <div className="space-y-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i}>
+              <EnhancedSkeleton
+                variant="ghost"
+                width="25%"
+                height={16}
+                className="mb-2"
+              />
+              <EnhancedSkeleton
+                variant="rounded"
+                width="100%"
+                height={56}
+              />
+            </div>
+          ))}
+        </div>
 
-        <Box display="flex" gap={2} justifyContent="flex-end" mt={4}>
+        <div className="flex gap-3 justify-end mt-8">
           <EnhancedSkeleton
             variant="rounded"
             width={100}
             height={40}
-            animation={animation}
           />
           <EnhancedSkeleton
             variant="rounded"
             width={120}
             height={40}
-            animation={animation}
           />
-        </Box>
+        </div>
       </CardContent>
     </ShimmerCard>
   );
@@ -587,7 +386,6 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
       variant="rounded"
       width={width}
       height={height}
-      animation={animation}
     />
   );
 
@@ -595,21 +393,19 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     switch (variant) {
       case 'card':
         return (
-          <Grid container spacing={3}>
-            {Array.from({ length: count }).map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                {renderCardSkeleton(index)}
-              </Grid>
-            ))}
-          </Grid>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {Array.from({ length: count }).map((_, index) =>
+              renderCardSkeleton(index)
+            )}
+          </div>
         );
       case 'list':
         return (
-          <Box>
+          <div>
             {Array.from({ length: count }).map((_, index) =>
               renderListSkeleton(index)
             )}
-          </Box>
+          </div>
         );
       case 'table':
         return renderTableSkeleton();
@@ -624,7 +420,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     }
   };
 
-  return <Box>{renderSkeleton()}</Box>;
+  return <div>{renderSkeleton()}</div>;
 };
 
 // Quick skeleton variants for common use cases

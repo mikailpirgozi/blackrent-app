@@ -5,32 +5,25 @@
 
 import {
   CheckCircle as ApproveIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
   CheckCircle,
   Euro as EuroIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  LocationOn as LocationIcon,
-  Person as PersonIcon,
-  Refresh as RefreshIcon,
-  Cancel as RejectIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Collapse,
-  Divider,
-  Grid,
-  IconButton,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+  ChevronDown as ExpandLessIcon,
+  ChevronUp as ExpandMoreIcon,
+  MapPin as LocationIcon,
+  User as PersonIcon,
+  RefreshCw as RefreshIcon,
+  X as RejectIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useEffect, useState } from 'react';
 
 // import { Rental } from '../../../types';
 import { usePendingRentals } from '../hooks/usePendingRentals';
@@ -84,228 +77,218 @@ export const PendingRentalsTab: React.FC = () => {
   };
 
   return (
-    <>
+    <TooltipProvider>
       <Card>
-        <CardContent>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={3}
-          >
-            <Typography variant="h6" gutterBottom>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>
               ⏳ Čakajúce automatické prenájmy ({pendingRentals.length})
-            </Typography>
+            </CardTitle>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={fetchPendingRentals}
               disabled={pendingLoading}
-              startIcon={<RefreshIcon />}
+              className="flex items-center gap-2"
             >
+              <RefreshIcon className="h-4 w-4" />
               Obnoviť
             </Button>
-          </Box>
-
+          </div>
+        </CardHeader>
+        <CardContent>
           {pendingLoading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center p-8">
+              <Spinner className="h-8 w-8" />
+            </div>
           ) : pendingRentals.length === 0 ? (
-            <Box textAlign="center" py={6}>
-              <CheckCircle fontSize="large" color="success" sx={{ mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+            <div className="text-center py-8">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
                 Žiadne čakajúce prenájmy
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
+              </h3>
+              <p className="text-sm text-muted-foreground">
                 Všetky automatické prenájmy boli spracované alebo žiadne ešte
                 nepriišli.
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Grid container spacing={2}>
+            <div className="space-y-4">
               {pendingRentals.map(rental => (
-                <Grid item xs={12} key={rental.id}>
-                  <Card variant="outlined" sx={{ mb: 2 }}>
-                    <CardContent>
-                      <Box
-                        display="flex"
-                        justifyContent="between"
-                        alignItems="start"
-                      >
-                        <Box flex={1}>
+                <Card key={rental.id} className="border">
+                  <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
                           {/* Rental Header */}
-                          <Box
-                            display="flex"
-                            justifyContent="between"
-                            alignItems="start"
-                            mb={2}
-                          >
-                            <Box>
-                              <Typography
-                                variant="h6"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
-                              >
-                                <CarIcon color="primary" />
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <CarIcon className="h-5 w-5 text-primary" />
                                 {rental.vehicleName || 'Neznáme vozidlo'}
-                                <Chip
-                                  label={rental.vehicleCode}
-                                  size="small"
-                                  variant="outlined"
-                                />
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
-                              >
-                                <PersonIcon fontSize="small" />
+                                <Badge variant="outline" className="text-xs">
+                                  {rental.vehicleCode}
+                                </Badge>
+                              </h3>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <PersonIcon className="h-4 w-4" />
                                 {rental.customerName}
-                              </Typography>
-                            </Box>
-                            <Box display="flex" gap={1}>
-                              <Tooltip title="Schváliť">
-                                <IconButton
-                                  color="success"
-                                  onClick={() => handleApproveRental(rental.id)}
-                                  disabled={actionLoading === rental.id}
-                                >
-                                  {actionLoading === rental.id ? (
-                                    <CircularProgress size={20} />
-                                  ) : (
-                                    <ApproveIcon />
-                                  )}
-                                </IconButton>
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleApproveRental(rental.id)}
+                                    disabled={actionLoading === rental.id}
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    {actionLoading === rental.id ? (
+                                      <Spinner className="h-4 w-4" />
+                                    ) : (
+                                      <ApproveIcon className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Schváliť</TooltipContent>
                               </Tooltip>
-                              <Tooltip title="Zamietnuť">
-                                <IconButton
-                                  color="error"
-                                  onClick={() =>
-                                    setRejectDialog({
-                                      open: true,
-                                      rentalId: rental.id,
-                                    })
-                                  }
-                                  disabled={actionLoading === rental.id}
-                                >
-                                  <RejectIcon />
-                                </IconButton>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      setRejectDialog({
+                                        open: true,
+                                        rentalId: rental.id,
+                                      })
+                                    }
+                                    disabled={actionLoading === rental.id}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <RejectIcon className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Zamietnuť</TooltipContent>
                               </Tooltip>
-                              <Tooltip title="Rozbaliť detaily">
-                                <IconButton
-                                  onClick={() =>
-                                    toggleRentalExpansion(rental.id)
-                                  }
-                                >
-                                  {expandedRentals.has(rental.id) ? (
-                                    <ExpandLessIcon />
-                                  ) : (
-                                    <ExpandMoreIcon />
-                                  )}
-                                </IconButton>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      toggleRentalExpansion(rental.id)
+                                    }
+                                  >
+                                    {expandedRentals.has(rental.id) ? (
+                                      <ExpandLessIcon className="h-4 w-4" />
+                                    ) : (
+                                      <ExpandMoreIcon className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Rozbaliť detaily</TooltipContent>
                               </Tooltip>
-                            </Box>
-                          </Box>
+                            </div>
+                          </div>
 
                           {/* Basic Info */}
-                          <Grid container spacing={2} mb={2}>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <CalendarIcon fontSize="small" color="action" />
-                                <Typography variant="body2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">
                                   <strong>Od:</strong>{' '}
                                   {formatDate(rental.startDate)}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <CalendarIcon fontSize="small" color="action" />
-                                <Typography variant="body2">
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">
                                   <strong>Do:</strong>{' '}
                                   {formatDate(rental.endDate)}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <EuroIcon fontSize="small" color="action" />
-                                <Typography variant="body2">
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <EuroIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">
                                   <strong>Cena:</strong>{' '}
                                   {formatCurrency(rental.totalPrice)}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <LocationIcon fontSize="small" color="action" />
-                                <Typography variant="body2">
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <LocationIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">
                                   <strong>Miesto:</strong>{' '}
                                   {rental.handoverPlace}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          </Grid>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
 
                           {/* Expanded Details */}
-                          <Collapse in={expandedRentals.has(rental.id)}>
-                            <Divider sx={{ mb: 2 }} />
-                            <Grid container spacing={2}>
-                              <Grid item xs={12} sm={6}>
-                                <Typography variant="body2">
-                                  <strong>Objednávka:</strong>{' '}
-                                  {rental.orderNumber}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Email:</strong> {rental.customerEmail}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Telefón:</strong>{' '}
-                                  {rental.customerPhone}
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={12} sm={6}>
-                                <Typography variant="body2">
-                                  <strong>Denné km:</strong>{' '}
-                                  {rental.dailyKilometers}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Záloha:</strong>{' '}
-                                  {formatCurrency(rental.deposit || 0)}
-                                </Typography>
-                                <Typography variant="body2">
-                                  <strong>Platba:</strong>{' '}
-                                  {rental.paymentMethod}
-                                </Typography>
-                              </Grid>
-                            </Grid>
-                          </Collapse>
-                        </Box>
-                      </Box>
+                          <Collapsible open={expandedRentals.has(rental.id)}>
+                            <CollapsibleContent>
+                              <Separator className="my-4" />
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <p className="text-sm">
+                                    <strong>Objednávka:</strong>{' '}
+                                    {rental.orderNumber}
+                                  </p>
+                                  <p className="text-sm">
+                                    <strong>Email:</strong> {rental.customerEmail}
+                                  </p>
+                                  <p className="text-sm">
+                                    <strong>Telefón:</strong>{' '}
+                                    {rental.customerPhone}
+                                  </p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p className="text-sm">
+                                    <strong>Denné km:</strong>{' '}
+                                    {rental.dailyKilometers}
+                                  </p>
+                                  <p className="text-sm">
+                                    <strong>Záloha:</strong>{' '}
+                                    {formatCurrency(rental.deposit || 0)}
+                                  </p>
+                                  <p className="text-sm">
+                                    <strong>Platba:</strong>{' '}
+                                    {rental.paymentMethod}
+                                  </p>
+                                </div>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
-                </Grid>
-              ))}
-            </Grid>
+                ))}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Reject Dialog */}
-      <RejectDialog
-        open={rejectDialog.open}
-        isRental={true}
-        reason={rejectReason}
-        onReasonChange={setRejectReason}
-        onConfirm={handleRejectRentalClick}
-        onCancel={() => {
-          setRejectDialog({ open: false, rentalId: null });
-          setRejectReason('');
-        }}
-      />
-    </>
+        {/* Reject Dialog */}
+        <RejectDialog
+          open={rejectDialog.open}
+          isRental={true}
+          reason={rejectReason}
+          onReasonChange={setRejectReason}
+          onConfirm={handleRejectRentalClick}
+          onCancel={() => {
+            setRejectDialog({ open: false, rentalId: null });
+            setRejectReason('');
+          }}
+        />
+    </TooltipProvider>
   );
 };

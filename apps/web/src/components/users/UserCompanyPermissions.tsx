@@ -1,34 +1,25 @@
 import {
-  Add as AddIcon,
-  Business as BusinessIcon,
+  Plus as AddIcon,
+  Building2 as BusinessIcon,
   Check as CheckIcon,
-  Delete as DeleteIcon,
-  ExpandMore as ExpandMoreIcon,
-  Visibility as ReadIcon,
-  Remove as RemoveIcon,
+  Trash2 as DeleteIcon,
+  Eye as ReadIcon,
+  Minus as RemoveIcon,
   Edit as WriteIcon,
-} from '@mui/icons-material';
+} from 'lucide-react';
 import {
   Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  // Chip, // Nepoužívané
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CircularProgress,
-  FormControlLabel,
-  Grid,
-  // Divider, // Nepoužívané
-  // Tooltip, // Nepoužívané
-  IconButton,
-  Stack,
-  Switch,
-  Typography,
-} from '@mui/material';
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader } from '../ui/card';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
+import { Typography } from '../ui/typography';
+import { Spinner } from '../ui/spinner';
 import { useEffect, useState } from 'react';
 
 import { apiService } from '../../services/api';
@@ -41,7 +32,7 @@ import type {
 
 interface UserCompanyPermissionsProps {
   userId?: string; // undefined pre nového používateľa
-  onPermissionsChange?: (permissions: UserCompanyAccess[]) => void;
+  onPermissionsChange?: (_permissions: UserCompanyAccess[]) => void;
 }
 
 const RESOURCES = [
@@ -199,10 +190,10 @@ export default function UserCompanyPermissions({
     );
   };
 
-  const hasAnyPermission = (permissions: CompanyPermissions): boolean => {
+  const hasAnyPermission = (_permissions: CompanyPermissions): boolean => {
     return RESOURCES.some(resource => {
       const resourcePerms =
-        permissions[resource.key as keyof CompanyPermissions];
+        _permissions[resource.key as keyof CompanyPermissions];
       return resourcePerms.read || resourcePerms.write || resourcePerms.delete;
     });
   };
@@ -230,40 +221,38 @@ export default function UserCompanyPermissions({
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" p={3}>
-        <CircularProgress size={24} />
-        <Typography variant="body2" sx={{ ml: 2 }}>
+      <div className="flex justify-center items-center p-6">
+        <Spinner className="h-6 w-6" />
+        <Typography variant="body2" className="ml-2">
           Načítavam oprávnenia...
         </Typography>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       <Typography
         variant="h6"
-        gutterBottom
-        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        className="mb-4 flex items-center gap-2"
       >
-        <BusinessIcon color="primary" />
+        <BusinessIcon className="h-6 w-6 text-primary" />
         Oprávnenia na firmy
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Pridanie prístupu k firmám */}
-      <Card sx={{ mb: 3 }}>
-        <CardHeader
-          title="Pridať prístup k firme"
-          titleTypographyProps={{ variant: 'subtitle1' }}
-        />
+      <Card className="mb-6">
+        <CardHeader>
+          <Typography variant="h6">Pridať prístup k firme</Typography>
+        </CardHeader>
         <CardContent>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <div className="flex flex-wrap gap-2">
             {companies
               .filter(
                 company =>
@@ -272,12 +261,12 @@ export default function UserCompanyPermissions({
               .map(company => (
                 <Button
                   key={company.id}
-                  variant="outlined"
-                  size="small"
-                  startIcon={<AddIcon />}
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleAddCompanyAccess(company.id)}
-                  sx={{ mb: 1 }}
+                  className="mb-2"
                 >
+                  <AddIcon className="h-4 w-4 mr-2" />
                   {company.name}
                 </Button>
               ))}
@@ -285,222 +274,177 @@ export default function UserCompanyPermissions({
               company =>
                 !userAccess.some(access => access.companyId === company.id)
             ).length === 0 && (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-muted-foreground">
                 Používateľ má prístup ku všetkým firmám
               </Typography>
             )}
-          </Stack>
+          </div>
         </CardContent>
       </Card>
 
       {/* Zoznam firiem s oprávneniami */}
-      {userAccess.map(access => (
-        <Accordion
-          key={access.companyId}
-          expanded={expandedCompany === access.companyId}
-          onChange={(_, isExpanded) =>
-            setExpandedCompany(isExpanded ? access.companyId : false)
-          }
-          sx={{ mb: 2 }}
-        >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                width: '100%',
-              }}
-            >
-              <BusinessIcon color="primary" />
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle1" fontWeight="bold">
-                  {access.companyName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {getPermissionSummary(access.permissions)}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {hasAnyPermission(access.permissions) && (
-                  <CheckIcon color="success" fontSize="small" />
-                )}
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleRemoveCompanyAccess(access.companyId);
-                  }}
-                >
-                  <RemoveIcon />
-                </IconButton>
-              </Box>
-            </Box>
-          </AccordionSummary>
+      <Accordion type="single" collapsible className="space-y-2">
+        {userAccess.map(access => (
+          <AccordionItem key={access.companyId} value={access.companyId}>
+            <AccordionTrigger>
+              <div className="flex items-center gap-4 w-full">
+                <BusinessIcon className="h-5 w-5 text-primary" />
+                <div className="flex-1 text-left">
+                  <Typography variant="h6" className="font-semibold">
+                    {access.companyName}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {getPermissionSummary(access.permissions)}
+                  </Typography>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasAnyPermission(access.permissions) && (
+                    <CheckIcon className="h-4 w-4 text-green-600" />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      handleRemoveCompanyAccess(access.companyId);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <RemoveIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </AccordionTrigger>
 
-          <AccordionDetails>
-            {/* Hromadné akcie */}
-            <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Hromadné nastavenie:
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  size="small"
-                  onClick={() =>
-                    handleSetAllPermissions(access.companyId, 'read', true)
-                  }
-                >
-                  Všetko čítanie
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() =>
-                    handleSetAllPermissions(access.companyId, 'write', true)
-                  }
-                >
-                  Všetky úpravy
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={() => {
-                    handleSetAllPermissions(access.companyId, 'read', false);
-                    handleSetAllPermissions(access.companyId, 'write', false);
-                    handleSetAllPermissions(access.companyId, 'delete', false);
-                  }}
-                >
-                  Zrušiť všetko
-                </Button>
-              </Stack>
-            </Box>
+            <AccordionContent>
+              {/* Hromadné akcie */}
+              <div className="mb-6 p-4 bg-muted rounded-lg">
+                <Typography variant="h6" className="mb-3">
+                  Hromadné nastavenie:
+                </Typography>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      handleSetAllPermissions(access.companyId, 'read', true)
+                    }
+                  >
+                    Všetko čítanie
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      handleSetAllPermissions(access.companyId, 'write', true)
+                    }
+                  >
+                    Všetky úpravy
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      handleSetAllPermissions(access.companyId, 'read', false);
+                      handleSetAllPermissions(access.companyId, 'write', false);
+                      handleSetAllPermissions(access.companyId, 'delete', false);
+                    }}
+                  >
+                    Zrušiť všetko
+                  </Button>
+                </div>
+              </div>
 
-            {/* Detailné oprávnenia */}
-            <Grid container spacing={2}>
-              {RESOURCES.map(resource => {
-                const resourcePerms =
-                  access.permissions[resource.key as keyof CompanyPermissions];
-                return (
-                  <Grid item xs={12} sm={6} md={4} key={resource.key}>
-                    <Card variant="outlined" sx={{ height: '100%' }}>
-                      <CardContent sx={{ p: 2 }}>
+              {/* Detailné oprávnenia */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {RESOURCES.map(resource => {
+                  const resourcePerms =
+                    access.permissions[resource.key as keyof CompanyPermissions];
+                  return (
+                    <Card key={resource.key} className="h-full">
+                      <CardContent className="p-4">
                         <Typography
-                          variant="subtitle2"
-                          gutterBottom
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                          variant="h6"
+                          className="mb-4 flex items-center gap-2"
                         >
                           <span>{resource.icon}</span>
                           {resource.label}
                         </Typography>
-                        <Stack spacing={1}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                size="small"
-                                checked={resourcePerms.read}
-                                onChange={e =>
-                                  handlePermissionChange(
-                                    access.companyId,
-                                    resource.key as keyof CompanyPermissions,
-                                    'read',
-                                    e.target.checked
-                                  )
-                                }
-                              />
-                            }
-                            label={
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <ReadIcon fontSize="small" color="primary" />
-                                <Typography variant="caption">
-                                  Čítanie
-                                </Typography>
-                              </Box>
-                            }
-                          />
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                size="small"
-                                checked={resourcePerms.write}
-                                onChange={e =>
-                                  handlePermissionChange(
-                                    access.companyId,
-                                    resource.key as keyof CompanyPermissions,
-                                    'write',
-                                    e.target.checked
-                                  )
-                                }
-                              />
-                            }
-                            label={
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <WriteIcon fontSize="small" color="warning" />
-                                <Typography variant="caption">
-                                  Úpravy
-                                </Typography>
-                              </Box>
-                            }
-                          />
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                size="small"
-                                checked={resourcePerms.delete}
-                                onChange={e =>
-                                  handlePermissionChange(
-                                    access.companyId,
-                                    resource.key as keyof CompanyPermissions,
-                                    'delete',
-                                    e.target.checked
-                                  )
-                                }
-                              />
-                            }
-                            label={
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                }}
-                              >
-                                <DeleteIcon fontSize="small" color="error" />
-                                <Typography variant="caption">
-                                  Mazanie
-                                </Typography>
-                              </Box>
-                            }
-                          />
-                        </Stack>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="flex items-center gap-2">
+                              <ReadIcon className="h-4 w-4 text-primary" />
+                              <Typography variant="caption">
+                                Čítanie
+                              </Typography>
+                            </Label>
+                            <Switch
+                              checked={resourcePerms.read}
+                              onCheckedChange={(checked: boolean) =>
+                                handlePermissionChange(
+                                  access.companyId,
+                                  resource.key as keyof CompanyPermissions,
+                                  'read',
+                                  checked
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label className="flex items-center gap-2">
+                              <WriteIcon className="h-4 w-4 text-warning" />
+                              <Typography variant="caption">
+                                Úpravy
+                              </Typography>
+                            </Label>
+                            <Switch
+                              checked={resourcePerms.write}
+                              onCheckedChange={(checked: boolean) =>
+                                handlePermissionChange(
+                                  access.companyId,
+                                  resource.key as keyof CompanyPermissions,
+                                  'write',
+                                  checked
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label className="flex items-center gap-2">
+                              <DeleteIcon className="h-4 w-4 text-destructive" />
+                              <Typography variant="caption">
+                                Mazanie
+                              </Typography>
+                            </Label>
+                            <Switch
+                              checked={resourcePerms.delete}
+                              onCheckedChange={(checked: boolean) =>
+                                handlePermissionChange(
+                                  access.companyId,
+                                  resource.key as keyof CompanyPermissions,
+                                  'delete',
+                                  checked
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
-      ))}
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
 
       {userAccess.length === 0 && (
-        <Alert severity="info">
-          Používateľ nemá prístup k žiadnej firme. Použite tlačidlá vyššie na
-          pridanie prístupu k firmám.
+        <Alert>
+          <AlertDescription>
+            Používateľ nemá prístup k žiadnej firme. Použite tlačidlá vyššie na
+            pridanie prístupu k firmám.
+          </AlertDescription>
         </Alert>
       )}
-    </Box>
+    </div>
   );
 }

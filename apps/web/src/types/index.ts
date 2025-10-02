@@ -161,10 +161,10 @@ export interface Expense {
   description: string;
   amount: number;
   date: Date;
-  vehicleId?: string;
+  vehicleId?: string | undefined;
   company: string;
   category: string; // názov kategórie (FK na expense_categories.name)
-  note?: string;
+  note?: string | undefined;
 }
 
 // Rozšírený typ pre dynamické kategórie nákladov
@@ -172,7 +172,7 @@ export interface ExpenseCategory {
   id: string;
   name: string; // jedinečný identifikátor (používa sa ako FK)
   displayName: string; // zobrazovaný názov
-  description?: string;
+  description?: string | undefined;
   icon: string; // Material UI icon name
   color: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
   isDefault: boolean; // základné kategórie nemožno zmazať
@@ -180,7 +180,7 @@ export interface ExpenseCategory {
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
-  createdBy?: string;
+  createdBy?: string | undefined;
 }
 
 // Zachováme pôvodný typ pre backward compatibility
@@ -194,19 +194,19 @@ export interface RecurringExpense {
   amount: number; // mesačná suma
   category: string; // kategória (FK na expense_categories.name)
   company: string; // firma
-  vehicleId?: string; // voliteľné priradenie k vozidlu
-  note?: string; // voliteľná poznámka
+  vehicleId?: string | undefined; // voliteľné priradenie k vozidlu
+  note?: string | undefined; // voliteľná poznámka
 
   // Nastavenia pravidelnosi
   frequency: 'monthly' | 'quarterly' | 'yearly';
   startDate: Date; // od kedy začať generovanie
-  endDate?: Date; // voliteľný koniec
+  endDate?: Date | undefined; // voliteľný koniec
   dayOfMonth: number; // ktorý deň v mesiaci (1-28)
 
   // Status a kontrola
   isActive: boolean;
-  lastGeneratedDate?: Date; // kedy sa naposledy vygeneroval
-  nextGenerationDate?: Date; // kedy sa má vygenerovať ďalší
+  lastGeneratedDate?: Date | undefined; // kedy sa naposledy vygeneroval
+  nextGenerationDate?: Date | undefined; // kedy sa má vygenerovať ďalší
   totalGenerated: number; // počet vygenerovaných nákladov
 
   // Audit

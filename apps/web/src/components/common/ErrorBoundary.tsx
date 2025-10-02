@@ -1,21 +1,15 @@
 import {
-  BugReport as BugReportIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
+  Bug as BugReportIcon,
+  ChevronDown as ExpandLessIcon,
+  ChevronUp as ExpandMoreIcon,
   Home as HomeIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  AlertTitle,
-  Box,
-  Button,
-  Collapse,
-  IconButton,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material';
+  RefreshCw as RefreshIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Component } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
@@ -31,18 +25,18 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo?: ErrorInfo;
+  errorInfo: ErrorInfo | null;
   retryCount: number;
   showDetails: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  private retryTimeouts: NodeJS.Timeout[] = [];
+  private retryTimeouts: ReturnType<typeof setTimeout>[] = [];
 
   public state: State = {
     hasError: false,
     error: null,
-    errorInfo: undefined,
+    errorInfo: null,
     retryCount: 0,
     showDetails: false,
   };
@@ -85,7 +79,7 @@ class ErrorBoundary extends Component<Props, State> {
         1000 * (this.state.retryCount + 1)
       );
 
-      this.retryTimeouts.push(timeout as unknown as NodeJS.Timeout);
+      this.retryTimeouts.push(timeout);
     }
   }
 
@@ -110,7 +104,7 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState(prevState => ({
       hasError: false,
       error: null,
-      errorInfo: undefined,
+      errorInfo: null,
       retryCount: prevState.retryCount + 1,
       showDetails: false,
     }));
@@ -124,11 +118,11 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.href = '/';
   };
 
-  private toggleDetails = () => {
-    this.setState(prevState => ({
-      showDetails: !prevState.showDetails,
-    }));
-  };
+  // private toggleDetails = () => {
+  //   this.setState(prevState => ({
+  //     showDetails: !prevState.showDetails,
+  //   }));
+  // };
 
   private getErrorMessage = (): string => {
     const { error } = this.state;
@@ -210,162 +204,141 @@ class ErrorBoundary extends Component<Props, State> {
       // Different layouts based on error level
       if (level === 'page') {
         return (
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="100vh"
-            p={2}
-            bgcolor="background.default"
-          >
-            <Paper elevation={3} sx={{ p: 4, maxWidth: 700 }}>
-              <Alert severity="error" sx={{ mb: 3 }}>
-                <AlertTitle
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <BugReportIcon />
+          <div className="flex justify-center items-center min-h-screen p-4 bg-background">
+            <Card className="p-8 max-w-2xl w-full">
+              <Alert variant="destructive" className="mb-6">
+                <BugReportIcon className="h-4 w-4" />
+                <AlertTitle className="flex items-center gap-2">
+                  <BugReportIcon className="h-4 w-4" />
                   Stránka sa nenačítala správne
                 </AlertTitle>
-                <Typography variant="body2">
+                <AlertDescription>
                   {this.getErrorMessage()}
-                </Typography>
+                </AlertDescription>
               </Alert>
 
-              <Stack
-                direction="row"
-                spacing={2}
-                sx={{ mb: 2, justifyContent: 'center' }}
-              >
+              <div className="flex flex-wrap gap-2 mb-4 justify-center">
                 {canRetry && (
                   <Button
-                    variant="contained"
-                    startIcon={<RefreshIcon />}
                     onClick={this.handleRetry}
+                    className="flex items-center gap-2"
                   >
+                    <RefreshIcon className="h-4 w-4" />
                     Skúsiť znovu ({retryCount}/{maxRetries})
                   </Button>
                 )}
 
                 <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
+                  variant="outline"
                   onClick={this.handleReload}
+                  className="flex items-center gap-2"
                 >
+                  <RefreshIcon className="h-4 w-4" />
                   Obnoviť stránku
                 </Button>
 
                 <Button
-                  variant="text"
-                  startIcon={<HomeIcon />}
+                  variant="ghost"
                   onClick={this.handleGoHome}
+                  className="flex items-center gap-2"
                 >
+                  <HomeIcon className="h-4 w-4" />
                   Domov
                 </Button>
-              </Stack>
+              </div>
 
               {/* Technical details for developers */}
-              <Box>
-                <Button
-                  size="small"
-                  onClick={this.toggleDetails}
-                  startIcon={
-                    showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />
-                  }
-                  sx={{ mb: 1 }}
-                >
-                  Technické detaily
-                </Button>
+              <div>
+                <Collapsible open={showDetails} onOpenChange={(open) => this.setState({ showDetails: open })}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mb-2 flex items-center gap-2"
+                    >
+                      {showDetails ? <ExpandLessIcon className="h-4 w-4" /> : <ExpandMoreIcon className="h-4 w-4" />}
+                      Technické detaily
+                    </Button>
+                  </CollapsibleTrigger>
 
-                <Collapse in={showDetails}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    {process.env.NODE_ENV === 'development' && error && (
-                      <>
-                        <Typography
-                          variant="caption"
-                          sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}
-                        >
-                          Chybová správa:
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontFamily: 'monospace', mb: 2 }}
-                        >
-                          {error.toString()}
-                        </Typography>
+                  <CollapsibleContent>
+                    <Card className="p-4 bg-muted/50">
+                      {process.env.NODE_ENV === 'development' && error && (
+                        <div className="space-y-2">
+                          <Badge variant="secondary" className="text-xs font-bold">
+                            Chybová správa:
+                          </Badge>
+                          <pre className="text-sm font-mono mb-4 p-2 bg-muted rounded">
+                            {error.toString()}
+                          </pre>
 
-                        {error.stack && (
-                          <Box
-                            component="pre"
-                            sx={{
-                              fontSize: '0.75rem',
-                              overflow: 'auto',
-                              maxHeight: 200,
-                              bgcolor: 'grey.100',
-                              p: 1,
-                              borderRadius: 1,
-                            }}
-                          >
-                            {error.stack}
-                          </Box>
-                        )}
-                      </>
-                    )}
+                          {error.stack && (
+                            <pre className="text-xs overflow-auto max-h-48 bg-muted p-2 rounded">
+                              {error.stack}
+                            </pre>
+                          )}
+                        </div>
+                      )}
 
-                    <Typography variant="caption" color="text.secondary">
-                      Chyba bola automaticky nahlásená a bude opravená čo
-                      najskôr.
-                    </Typography>
-                  </Paper>
-                </Collapse>
-              </Box>
-            </Paper>
-          </Box>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Chyba bola automaticky nahlásená a bude opravená čo
+                        najskôr.
+                      </p>
+                    </Card>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            </Card>
+          </div>
         );
       }
 
       // Component-level error (smaller, inline)
       return (
-        <Alert
-          severity="error"
-          sx={{ m: 2 }}
-          action={
-            <Stack direction="row" spacing={1}>
-              {canRetry && (
-                <IconButton size="small" onClick={this.handleRetry}>
-                  <RefreshIcon />
-                </IconButton>
-              )}
-              {showDetails && (
-                <IconButton size="small" onClick={this.toggleDetails}>
-                  {showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              )}
-            </Stack>
-          }
-        >
+        <Alert variant="destructive" className="m-4">
           <AlertTitle>Chyba v komponente</AlertTitle>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+          <AlertDescription className="mb-2">
             {this.getErrorMessage()}
-          </Typography>
+          </AlertDescription>
 
           {retryCount > 0 && (
-            <Typography
-              variant="caption"
-              sx={{ display: 'block', opacity: 0.7 }}
-            >
+            <Badge variant="secondary" className="text-xs opacity-70 mb-2">
               Počet pokusov: {retryCount}/{maxRetries}
-            </Typography>
+            </Badge>
           )}
 
-          <Collapse in={showDetails}>
-            <Box
-              sx={{ mt: 2, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}
-            >
-              <Typography variant="caption">
-                {process.env.NODE_ENV === 'development' && error?.message}
-              </Typography>
-            </Box>
-          </Collapse>
+          <div className="flex gap-2 mt-2">
+            {canRetry && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={this.handleRetry}
+                className="flex items-center gap-1"
+              >
+                <RefreshIcon className="h-3 w-3" />
+                Skúsiť znovu
+              </Button>
+            )}
+            
+            <Collapsible open={showDetails} onOpenChange={(open) => this.setState({ showDetails: open })}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="flex items-center gap-1"
+                >
+                  {showDetails ? <ExpandLessIcon className="h-3 w-3" /> : <ExpandMoreIcon className="h-3 w-3" />}
+                  Detaily
+                </Button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent>
+                <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
+                  {process.env.NODE_ENV === 'development' && error?.message}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         </Alert>
       );
     }

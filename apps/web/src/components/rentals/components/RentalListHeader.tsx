@@ -1,10 +1,6 @@
-import {
-  Add as AddIcon,
-  GetApp as ExportIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import { Box, Typography, Card, CardContent, Button } from '@mui/material';
-import React from 'react';
+import { UnifiedIcon } from '@/components/ui/UnifiedIcon';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface RentalListHeaderProps {
   filteredRentalsCount: number;
@@ -24,165 +20,82 @@ export function RentalListHeader({
   onRefresh,
 }: RentalListHeaderProps) {
   return (
-    <Card
-      sx={{
-        mb: 3,
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between',
-            alignItems: { xs: 'stretch', md: 'center' },
-            gap: { xs: 2, md: 0 },
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h4"
-              fontWeight="bold"
-              sx={{
-                mb: 1,
-                fontSize: { xs: '1.75rem', md: '2.125rem' },
-              }}
-            >
+    <Card className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 md:gap-0">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
               Prenájmy
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                opacity: 0.9,
-                fontSize: { xs: '0.875rem', md: '1rem' },
-              }}
-            >
+            </h1>
+            <p className="opacity-90 text-sm md:text-base">
               Správa a prehľad všetkých prenájmov vozidiel
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'stretch', sm: 'center' },
-              gap: 2,
-            }}
-          >
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             {/* Stats */}
-            <Box
-              sx={{
-                textAlign: { xs: 'center', md: 'right' },
-                mr: { xs: 0, md: 2 },
-                mb: { xs: 2, md: 0 },
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: { xs: 2, md: 3 },
-                  justifyContent: { xs: 'center', md: 'flex-end' },
-                }}
-              >
-                <Box>
-                  <Typography variant="h6" fontWeight="bold">
+            <div className="text-center md:text-right mr-0 md:mr-4 mb-4 md:mb-0">
+              <div className="flex gap-4 md:gap-6 justify-center md:justify-end">
+                <div>
+                  <div className="text-xl font-bold">
                     {filteredRentalsCount}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  </div>
+                  <div className="text-xs opacity-80">
                     zobrazených
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="success.light"
-                  >
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-green-300">
                     {activeRentalsCount}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  </div>
+                  <div className="text-xs opacity-80">
                     aktívnych
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="warning.light"
-                  >
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-yellow-300">
                     {waitingForReturnCount}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  </div>
+                  <div className="text-xs opacity-80">
                     čakajú na vrátenie
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Action buttons */}
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: 1.5,
-                alignItems: 'stretch',
-              }}
-            >
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
               <Button
-                variant="contained"
-                color="success"
-                startIcon={<AddIcon />}
                 onClick={onAddRental}
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-                  minWidth: { xs: 'auto', sm: 140 },
-                }}
-                size="small"
+                className="bg-white/20 hover:bg-white/30 text-white border-0 min-w-[140px]"
+                size="sm"
               >
+                <UnifiedIcon name="add" className="w-4 h-4 mr-2" />
                 Nový prenájom
               </Button>
 
               <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<RefreshIcon />}
+                variant="outline"
                 onClick={onRefresh}
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.3)',
-                  color: 'white',
-                  '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                  },
-                }}
-                size="small"
+                className="border-white/30 text-white hover:border-white/50 hover:bg-white/10"
+                size="sm"
               >
+                <UnifiedIcon name="refresh" className="w-4 h-4 mr-2" />
                 Obnoviť
               </Button>
 
               <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<ExportIcon />}
+                variant="outline"
                 onClick={onExport}
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.3)',
-                  color: 'white',
-                  '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                  },
-                }}
-                size="small"
+                className="border-white/30 text-white hover:border-white/50 hover:bg-white/10"
+                size="sm"
               >
+                <UnifiedIcon name="export" className="w-4 h-4 mr-2" />
                 Export CSV
               </Button>
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

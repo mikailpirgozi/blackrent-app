@@ -18,6 +18,9 @@ import type {
   VehicleDocument,
 } from '../types';
 
+// Global type declarations for browser APIs
+// Using any type for window object to avoid ESLint unused interface warning
+
 // Railway backend URL
 const RAILWAY_API_URL =
   'https://blackrent-app-production-4d6f.up.railway.app/api';
@@ -25,43 +28,57 @@ const RAILWAY_API_URL =
 const getApiBaseUrl = () => {
   // Ak je nastavená custom API URL v environment
   if (import.meta.env.VITE_API_URL) {
-    console.log('🌐 Používam API URL z .env:', import.meta.env.VITE_API_URL);
+    if (!(window as any).__API_BASE_URL_LOGGED__) {
+      console.log('🌐 Používam API URL z .env:', import.meta.env.VITE_API_URL);
+      (window as any).__API_BASE_URL_LOGGED__ = true;
+    }
     return import.meta.env.VITE_API_URL;
   }
 
   // Pre Railway deployment (celá aplikácia na Railway)
-  if (window.location.hostname.includes('railway.app')) {
+  if ((window as any).location.hostname.includes('railway.app')) {
     const apiUrl = `${window.location.origin}/api`;
-    console.log('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
+    if (!(window as any).__API_BASE_URL_LOGGED__) {
+      console.log('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
+      (window as any).__API_BASE_URL_LOGGED__ = true;
+    }
     return apiUrl;
   }
 
   // Pre GitHub Pages používaj Railway API
-  if (window.location.hostname === 'mikailpirgozi.github.io') {
-    console.log(
-      '🌐 GitHub Pages detekované, používam Railway API:',
-      RAILWAY_API_URL
-    );
+  if ((window as any).location.hostname === 'mikailpirgozi.github.io') {
+    if (!(window as any).__API_BASE_URL_LOGGED__) {
+      console.log(
+        '🌐 GitHub Pages detekované, používam Railway API:',
+        RAILWAY_API_URL
+      );
+      (window as any).__API_BASE_URL_LOGGED__ = true;
+    }
     return RAILWAY_API_URL;
   }
 
   // Pre lokálny development - používaj Vite proxy
   if (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
+    (window as any).location.hostname === 'localhost' ||
+    (window as any).location.hostname === '127.0.0.1'
   ) {
-    console.log('🌐 Localhost detekované, používam Vite proxy');
+    if (!(window as any).__API_BASE_URL_LOGGED__) {
+      console.log('🌐 Localhost detekované, používam Vite proxy');
+      (window as any).__API_BASE_URL_LOGGED__ = true;
+    }
     return '/api';
   }
 
   // Fallback na Railway API
-  console.log('🌐 Používam Railway API ako fallback:', RAILWAY_API_URL);
+  if (!(window as any).__API_URL_LOGGED__) {
+    console.log('🌐 Používam Railway API ako fallback:', RAILWAY_API_URL);
+    (window as any).__API_URL_LOGGED__ = true;
+  }
   return RAILWAY_API_URL;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
 export const getAPI_BASE_URL = getApiBaseUrl;
-console.log('🔗 API_BASE_URL nastavené na:', API_BASE_URL);
 
 class ApiService {
   private getAuthToken(): string | null {
@@ -75,12 +92,12 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: any = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getAuthToken();
 
-    const config: RequestInit = {
+    const config: any = {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -112,7 +129,25 @@ class ApiService {
         throw new Error('Neplatný token - presmerovanie na prihlásenie');
       }
 
-      const data: ApiResponse<T> = await response.json();
+      // Check if response has content before parsing JSON
+      const responseText = await response.text();
+      
+      if (!responseText.trim()) {
+        console.warn('⚠️ Empty response from API:', endpoint);
+        throw new Error('Prázdna odpoveď zo servera');
+      }
+
+      let data: ApiResponse<T>;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ JSON parsing error:', {
+          endpoint,
+          responseText: responseText.substring(0, 200),
+          error: parseError
+        });
+        throw new Error('Neplatná odpoveď zo servera');
+      }
 
       // Debug log pre protokoly
       if (endpoint.includes('/protocols/')) {
@@ -237,7 +272,7 @@ class ApiService {
   async post<T>(endpoint: string, data?: Record<string, unknown>): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? JSON.stringify(data) : null,
     });
   }
 
@@ -245,7 +280,7 @@ class ApiService {
   async put<T>(endpoint: string, data?: Record<string, unknown>): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? JSON.stringify(data) : null,
     });
   }
 
@@ -364,7 +399,7 @@ class ApiService {
     });
   }
 
-  async exportExpensesCSV(): Promise<Blob> {
+  async exportExpensesCSV(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/expenses/export/csv`, {
       method: 'GET',
       headers: {
@@ -491,7 +526,7 @@ class ApiService {
       hasMore: boolean;
     };
   }> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         queryParams.append(key, value.toString());
@@ -641,7 +676,7 @@ class ApiService {
     const url = `${API_BASE_URL}/protocols/rental/${rentalId}`;
     const token = this.getAuthToken();
 
-    const config: RequestInit = {
+    const config: any = {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -840,7 +875,7 @@ class ApiService {
       hasMore: boolean;
     };
   }> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         queryParams.append(key, value.toString());
@@ -1005,7 +1040,7 @@ class ApiService {
   }
 
   // Export methods
-  async exportVehiclesCSV(): Promise<Blob> {
+  async exportVehiclesCSV(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/vehicles/export/csv`, {
       method: 'GET',
       headers: {
@@ -1020,7 +1055,7 @@ class ApiService {
     return response.blob();
   }
 
-  async exportCustomersCSV(): Promise<Blob> {
+  async exportCustomersCSV(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/customers/export/csv`, {
       method: 'GET',
       headers: {
@@ -1065,7 +1100,7 @@ class ApiService {
     page: number;
     limit: number;
   }> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -1088,7 +1123,7 @@ class ApiService {
     page: number;
     limit: number;
   }> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -1111,7 +1146,7 @@ class ApiService {
     page: number;
     limit: number;
   }> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -1173,10 +1208,10 @@ class ApiService {
   }
 
   // Error Handler method
-  setErrorHandler(handler: (error: Error) => void): void {
+  setErrorHandler(_handler: (_error: Error) => void): void {
     // Store error handler for future use
     // This is a placeholder implementation
-    console.log('Error handler set:', handler);
+    console.log('Error handler set');
   }
 
   // ===== EMAIL MANAGEMENT API METHODS =====
@@ -1189,7 +1224,7 @@ class ApiService {
     limit?: number;
     offset?: number;
   }): Promise<Record<string, unknown>[]> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     if (filters?.status) queryParams.append('status', filters.status);
     if (filters?.sender) queryParams.append('sender', filters.sender);
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
@@ -1274,7 +1309,7 @@ class ApiService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<Record<string, unknown>> {
-    const params = new URLSearchParams();
+    const params = new (globalThis as any).URLSearchParams();
     if (filters?.limit) params.append('limit', filters.limit.toString());
     if (filters?.offset) params.append('offset', filters.offset.toString());
     if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
@@ -1293,7 +1328,7 @@ class ApiService {
     status?: string;
     search?: string;
   }): Promise<User[]> {
-    const queryParams = new URLSearchParams();
+    const queryParams = new (globalThis as any).URLSearchParams();
     if (filters?.role) queryParams.append('role', filters.role);
     if (filters?.companyId) queryParams.append('companyId', filters.companyId);
     if (filters?.status) queryParams.append('status', filters.status);
@@ -1375,14 +1410,14 @@ class ApiService {
   // ===== FILE UPLOAD API METHODS =====
 
   async uploadFile(uploadData: {
-    file: File;
+    file: any;
     protocolId?: string;
     protocolType?: string; // ✅ PRIDANÉ: Backend vyžaduje protocolType
     category?: string;
     mediaType?: string;
     metadata?: Record<string, unknown>;
   }): Promise<Record<string, unknown>> {
-    const formData = new FormData();
+    const formData = new (globalThis as any).FormData();
     formData.append('file', uploadData.file);
     if (uploadData.protocolId)
       formData.append('protocolId', uploadData.protocolId);
@@ -1411,7 +1446,7 @@ class ApiService {
   }
 
   async presignedUpload(uploadData: {
-    file: File;
+    file: any;
     protocolId: string;
     category: string;
     mediaType: string;
@@ -1473,14 +1508,14 @@ class ApiService {
 
   async bulkUploadFiles(
     files: Array<{
-      file: File;
+      file: any;
       protocolId?: string;
       category?: string;
       mediaType?: string;
       metadata?: Record<string, unknown>;
     }>
   ): Promise<Record<string, unknown>[]> {
-    const formData = new FormData();
+    const formData = new (globalThis as any).FormData();
     files.forEach((fileData, index) => {
       formData.append(`files[${index}]`, fileData.file);
       if (fileData.protocolId)
@@ -1522,8 +1557,8 @@ class ApiService {
     return this.request<Record<string, unknown>>(`/files/${fileId}/metadata`);
   }
 
-  async validateFile(file: File): Promise<Record<string, unknown>> {
-    const formData = new FormData();
+  async validateFile(file: any): Promise<Record<string, unknown>> {
+    const formData = new (globalThis as any).FormData();
     formData.append('file', file);
 
     const response = await fetch(`${API_BASE_URL}/files/validate`, {

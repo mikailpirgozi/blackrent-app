@@ -1,29 +1,41 @@
 import {
-  CalendarToday,
+  Calendar,
   ChevronLeft,
   ChevronRight,
-  DirectionsCar,
-  Refresh,
-} from '@mui/icons-material';
+  Car,
+  RefreshCw,
+} from 'lucide-react';
 import {
   Alert,
-  Box,
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
+  Button,
+} from '@/components/ui/button';
+import {
   Card,
   CardContent,
-  Chip,
-  CircularProgress,
-  Grid,
-  IconButton,
-  Paper,
+} from '@/components/ui/card';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
+  Spinner,
+} from '@/components/ui/spinner';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
+} from '@/components/ui/table';
+import {
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   addMonths,
   eachDayOfInterval,
@@ -259,110 +271,101 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       }
 
       return (
-        <Grid item xs={12 / 7} key={day.toISOString()}>
-          <Tooltip
-            title={`${format(day, 'dd.MM.yyyy', { locale: sk })} - ${primaryStatus}`}
-          >
-            <Card
-              sx={{
-                height: 80,
-                cursor: 'pointer',
-                backgroundColor: primaryColor,
-                border: isSelected
-                  ? '2px solid #1976d2'
-                  : isDayToday
-                    ? '2px solid #ff9800'
-                    : '1px solid #e0e0e0',
-                borderRadius: 1,
-                '&:hover': {
-                  boxShadow: 2,
-                  transform: 'translateY(-1px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-              onClick={() => handleDateClick(day)}
-            >
-              <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {format(day, 'd')}
-                </Typography>
+        <div key={day.toISOString()} className="col-span-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card
+                  className="h-20 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                  style={{
+                    backgroundColor: primaryColor,
+                    border: isSelected
+                      ? '2px solid #1976d2'
+                      : isDayToday
+                        ? '2px solid #ff9800'
+                        : '1px solid #e0e0e0',
+                  }}
+                  onClick={() => handleDateClick(day)}
+                >
+                  <CardContent className="p-2">
+                    <div className="font-semibold mb-1">
+                      {format(day, 'd')}
+                    </div>
 
-                {counts.total > 0 && (
-                  <Box
-                    sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}
-                  >
-                    {counts.privateRental > 0 && (
-                      <Chip
-                        label={`${counts.privateRental} súkromných`}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor(
-                            'unavailable',
-                            'private_rental'
-                          ),
-                          color: 'white',
-                        }}
-                      />
+                    {counts.total > 0 && (
+                      <div className="flex flex-col gap-1">
+                        {counts.privateRental > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 text-xs text-white"
+                            style={{
+                              backgroundColor: getVehicleStatusColor(
+                                'unavailable',
+                                'private_rental'
+                              ),
+                            }}
+                          >
+                            {counts.privateRental} súkromných
+                          </Badge>
+                        )}
+                        {counts.rented > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 text-xs text-white"
+                            style={{
+                              backgroundColor: getVehicleStatusColor('rented'),
+                            }}
+                          >
+                            {counts.rented} prenajatých
+                          </Badge>
+                        )}
+                        {counts.available > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 text-xs text-white"
+                            style={{
+                              backgroundColor: getVehicleStatusColor('available'),
+                            }}
+                          >
+                            {counts.available} voľných
+                          </Badge>
+                        )}
+                        {counts.service > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 text-xs text-white"
+                            style={{
+                              backgroundColor: getVehicleStatusColor(
+                                'unavailable',
+                                'service'
+                              ),
+                            }}
+                          >
+                            {counts.service} servis
+                          </Badge>
+                        )}
+                        {counts.maintenance > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 text-xs text-white"
+                            style={{
+                              backgroundColor: getVehicleStatusColor('maintenance'),
+                            }}
+                          >
+                            {counts.maintenance} údržba
+                          </Badge>
+                        )}
+                      </div>
                     )}
-                    {counts.rented > 0 && (
-                      <Chip
-                        label={`${counts.rented} prenajatých`}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor('rented'),
-                          color: 'white',
-                        }}
-                      />
-                    )}
-                    {counts.available > 0 && (
-                      <Chip
-                        label={`${counts.available} voľných`}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor('available'),
-                          color: 'white',
-                        }}
-                      />
-                    )}
-                    {counts.service > 0 && (
-                      <Chip
-                        label={`${counts.service} servis`}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor(
-                            'unavailable',
-                            'service'
-                          ),
-                          color: 'white',
-                        }}
-                      />
-                    )}
-                    {counts.maintenance > 0 && (
-                      <Chip
-                        label={`${counts.maintenance} údržba`}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: '0.65rem',
-                          backgroundColor: getVehicleStatusColor('maintenance'),
-                          color: 'white',
-                        }}
-                      />
-                    )}
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Tooltip>
-        </Grid>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{format(day, 'dd.MM.yyyy', { locale: sk })} - {primaryStatus}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       );
     });
   };
@@ -372,19 +375,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     const weekDays = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'];
 
     return weekDays.map(day => (
-      <Grid item xs={12 / 7} key={day}>
-        <Typography
-          variant="body2"
-          sx={{
-            textAlign: 'center',
-            fontWeight: 600,
-            color: '#666',
-            py: 1,
-          }}
-        >
+      <div key={day} className="col-span-1">
+        <div className="text-center font-semibold text-gray-600 py-2">
           {day}
-        </Typography>
-      </Grid>
+        </div>
+      </div>
     ));
   };
 
@@ -398,9 +393,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
     if (!todayData) {
       return (
-        <Alert severity="info">
-          Žiadne dáta pre dnešný deň (
-          {format(today, 'dd.MM.yyyy', { locale: sk })})
+        <Alert>
+          <AlertDescription>
+            Žiadne dáta pre dnešný deň (
+            {format(today, 'dd.MM.yyyy', { locale: sk })})
+          </AlertDescription>
         </Alert>
       );
     }
@@ -408,53 +405,51 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     const filteredVehicles = getFilteredVehiclesForDay(today);
 
     return (
-      <TableContainer component={Paper}>
+      <div className="border rounded-lg">
         <Table>
-          <TableHead>
+          <TableHeader>
             <TableRow>
-              <TableCell>Vozidlo</TableCell>
-              <TableCell>ŠPZ</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Zákazník</TableCell>
-              <TableCell>Poznámka</TableCell>
+              <TableHead>Vozidlo</TableHead>
+              <TableHead>ŠPZ</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Zákazník</TableHead>
+              <TableHead>Poznámka</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {filteredVehicles.map(vehicle => (
               <TableRow key={vehicle.vehicleId}>
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <DirectionsCar fontSize="small" />
+                  <div className="flex items-center gap-2">
+                    <Car className="h-4 w-4" />
                     {vehicle.vehicleName}
-                  </Box>
+                  </div>
                 </TableCell>
                 <TableCell>{vehicle.licensePlate}</TableCell>
                 <TableCell>
-                  <Chip
-                    label={
+                  <Badge
+                    variant={
                       vehicle.status === 'available'
-                        ? 'Dostupné'
+                        ? 'default'
                         : vehicle.status === 'rented'
-                          ? 'Prenajatý'
+                          ? 'destructive'
                           : vehicle.status === 'flexible'
-                            ? 'Flexibilný'
+                            ? 'secondary'
                             : vehicle.status === 'maintenance'
-                              ? 'Údržba'
-                              : 'Nedostupné'
+                              ? 'outline'
+                              : 'secondary'
                     }
-                    color={
-                      vehicle.status === 'available'
-                        ? 'success'
-                        : vehicle.status === 'rented'
-                          ? 'error'
-                          : vehicle.status === 'flexible'
-                            ? 'warning'
-                            : vehicle.status === 'maintenance'
-                              ? 'info'
-                              : 'default'
-                    }
-                    size="small"
-                  />
+                  >
+                    {vehicle.status === 'available'
+                      ? 'Dostupné'
+                      : vehicle.status === 'rented'
+                        ? 'Prenajatý'
+                        : vehicle.status === 'flexible'
+                          ? 'Flexibilný'
+                          : vehicle.status === 'maintenance'
+                            ? 'Údržba'
+                            : 'Nedostupné'}
+                  </Badge>
                 </TableCell>
                 <TableCell>{vehicle.customerName || '-'}</TableCell>
                 <TableCell>{vehicle.unavailabilityReason || '-'}</TableCell>
@@ -462,204 +457,179 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
     );
   };
 
   if (loading || externalLoading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 400,
-        }}
-      >
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Načítavam kalendárne dáta...</Typography>
-      </Box>
+      <div className="flex justify-center items-center h-96">
+        <Spinner />
+        <span className="ml-2">Načítavam kalendárne dáta...</span>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-        <Box sx={{ mt: 1 }}>
-          <IconButton onClick={handleRefresh} size="small">
-            <Refresh />
-          </IconButton>
-        </Box>
+      <Alert variant="destructive" className="mb-4">
+        <AlertDescription>
+          {error}
+        </AlertDescription>
+        <div className="mt-2">
+          <Button onClick={handleRefresh} size="sm" variant="outline">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </Alert>
     );
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Card className="p-6">
       {/* Header s navigáciou */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton onClick={handlePreviousMonth}>
-            <ChevronLeft />
-          </IconButton>
-          <Typography variant="h6" sx={{ minWidth: 200, textAlign: 'center' }}>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePreviousMonth}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-xl font-semibold min-w-[200px] text-center">
             {format(currentMonth, 'MMMM yyyy', { locale: sk })}
-          </Typography>
-          <IconButton onClick={handleNextMonth}>
-            <ChevronRight />
-          </IconButton>
-        </Box>
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNextMonth}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() =>
               setViewMode(viewMode === 'calendar' ? 'table' : 'calendar')
             }
-            color={viewMode === 'table' ? 'primary' : 'default'}
           >
-            <CalendarToday />
-          </IconButton>
-          <IconButton onClick={handleRefresh}>
-            <Refresh />
-          </IconButton>
-        </Box>
-      </Box>
+            <Calendar className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* Obsah */}
       {viewMode === 'calendar' ? (
-        <Grid container spacing={1}>
+        <div className="grid grid-cols-7 gap-1">
           {/* Týždňové dni */}
           {renderWeekDays()}
 
           {/* Kalendárne dni */}
           {renderCalendarDays()}
-        </Grid>
+        </div>
       ) : (
         renderTableView()
       )}
 
       {/* Legenda */}
-      <Box
-        sx={{
-          mt: 3,
-          display: 'flex',
-          gap: 2,
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+      <div className="mt-6 flex gap-4 flex-wrap justify-center">
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('available'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Dostupné</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Dostupné</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('rented'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Prenajatý (platforma)</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Prenajatý (platforma)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor(
                 'unavailable',
                 'private_rental'
               ),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Súkromný prenájom</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Súkromný prenájom</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('maintenance'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Údržba</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Údržba</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('unavailable', 'service'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Servis</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Servis</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('unavailable', 'repair'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Oprava</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Oprava</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('unavailable', 'cleaning'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Čistenie</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Čistenie</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('unavailable', 'blocked'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Blokované</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
+          <span className="text-xs">Blokované</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="w-4 h-4 rounded-sm"
+            style={{
               backgroundColor: getVehicleStatusColor('unavailable'),
-              borderRadius: 0.5,
             }}
           />
-          <Typography variant="caption">Nedostupné</Typography>
-        </Box>
-      </Box>
-    </Paper>
+          <span className="text-xs">Nedostupné</span>
+        </div>
+      </div>
+    </Card>
   );
 };
 

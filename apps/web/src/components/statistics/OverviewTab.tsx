@@ -1,20 +1,17 @@
-import { Person as PersonIcon } from '@mui/icons-material';
+import { User as PersonIcon } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Divider,
-  Grid,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Typography,
-} from '@mui/material';
+} from '@/components/ui/table';
+import { Typography } from '@/components/ui/typography';
 import React from 'react';
 import {
   Area,
@@ -54,23 +51,12 @@ interface OverviewTabProps {
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
   return (
-    <Grid container spacing={3}>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Mesiačný trend */}
-      <Grid item xs={12} lg={8}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+      <div className="lg:col-span-8">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <Typography variant="h6" className="font-bold text-blue-600 mb-4">
               Mesiačný trend príjmov
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -97,145 +83,79 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
 
       {/* Rýchle štatistiky */}
-      <Grid item xs={12} lg={4}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+      <div className="lg:col-span-4">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <Typography variant="h6" className="font-bold text-blue-600 mb-4">
               Rýchle štatistiky
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  borderRadius: 1,
-                  backgroundColor: '#f8f9fa',
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center p-4 rounded-lg bg-gray-50">
+                <Typography variant="body2" className="font-semibold">
                   Priemerná cena
                 </Typography>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#11998e' }}
-                >
+                <Typography variant="h6" className="font-bold text-green-600">
                   {stats.avgRentalPrice.toFixed(2)} €
                 </Typography>
-              </Box>
-              <Divider />
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  borderRadius: 1,
-                  backgroundColor: '#f8f9fa',
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center p-4 rounded-lg bg-gray-50">
+                <Typography variant="body2" className="font-semibold">
                   Priemerná dĺžka
                 </Typography>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{ color: '#667eea' }}
-                >
+                <Typography variant="h6" className="font-bold text-blue-600">
                   {stats.avgRentalDuration.toFixed(1)} dní
                 </Typography>
-              </Box>
-              <Divider />
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  borderRadius: 1,
-                  backgroundColor: '#f8f9fa',
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center p-4 rounded-lg bg-gray-50">
+                <Typography variant="body2" className="font-semibold">
                   Celková provízia
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" color="warning.main">
+                <Typography variant="h6" className="font-bold text-yellow-600">
                   {stats.totalCommission.toLocaleString()} €
                 </Typography>
-              </Box>
-              <Divider />
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  borderRadius: 1,
-                  backgroundColor: '#f8f9fa',
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center p-4 rounded-lg bg-gray-50">
+                <Typography variant="body2" className="font-semibold">
                   Zajtrajšie vrátenia
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" color="info.main">
+                <Typography variant="h6" className="font-bold text-cyan-600">
                   {stats.tomorrowReturns.length}
                 </Typography>
-              </Box>
-            </Box>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
 
       {/* Top firmy */}
-      <Grid item xs={12}>
-        <Card
-          sx={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            },
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ fontWeight: 700, color: '#667eea' }}
-            >
+      <div className="col-span-12">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <Typography variant="h6" className="font-bold text-blue-600 mb-4">
               Top firmy podľa príjmov
             </Typography>
-            <TableContainer>
+            <div className="overflow-x-auto">
               <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Firma</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-bold">Firma</TableHead>
+                    <TableHead className="text-right font-bold">
                       Počet prenájmov
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
                       Príjmy
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
                       Provízia
-                    </TableCell>
+                    </TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {Object.entries(stats.companyStats)
                     .sort(([, a], [, b]) => b.revenue - a.revenue)
@@ -243,56 +163,37 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
                     .map(([company, data]) => (
                       <TableRow
                         key={company}
-                        sx={{
-                          '&:hover': {
-                            backgroundColor: '#f8f9fa',
-                          },
-                          transition: 'background-color 0.2s ease',
-                        }}
+                        className="hover:bg-gray-50 transition-colors"
                       >
                         <TableCell>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <Avatar
-                              sx={{ width: 32, height: 32, bgcolor: '#667eea' }}
-                            >
-                              <PersonIcon fontSize="small" />
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8 bg-blue-600">
+                              <AvatarFallback className="text-white text-xs">
+                                <PersonIcon className="h-4 w-4" />
+                              </AvatarFallback>
                             </Avatar>
-                            <Typography variant="body2" fontWeight="medium">
+                            <Typography variant="body2" className="font-medium">
                               {company}
                             </Typography>
-                          </Box>
+                          </div>
                         </TableCell>
-                        <TableCell align="right">
-                          <Chip
-                            label={data.count}
-                            size="small"
-                            sx={{
-                              backgroundColor: '#667eea',
-                              color: 'white',
-                              fontWeight: 600,
-                            }}
-                          />
+                        <TableCell className="text-right">
+                          <Badge className="bg-blue-600 text-white font-semibold">
+                            {data.count}
+                          </Badge>
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell className="text-right">
                           <Typography
                             variant="body2"
-                            fontWeight="bold"
-                            sx={{ color: '#11998e' }}
+                            className="font-bold text-green-600"
                           >
                             {data.revenue.toLocaleString()} €
                           </Typography>
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell className="text-right">
                           <Typography
                             variant="body2"
-                            color="warning.main"
-                            fontWeight="bold"
+                            className="font-bold text-yellow-600"
                           >
                             {data.commission.toLocaleString()} €
                           </Typography>
@@ -301,11 +202,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ stats }) => {
                     ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 };
 

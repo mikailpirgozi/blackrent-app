@@ -33,7 +33,7 @@ const assessNetworkQuality = (
   if (effectiveType === '4g') return 'fast';
 
   // Based on downlink speed (Mbps) and RTT (ms)
-  if (typeof downlink === 'number' && typeof rtt === 'number') {
+  if (downlink && rtt && typeof downlink === 'number' && typeof rtt === 'number') {
     if (downlink < 1 || rtt > 500) return 'slow';
     if (downlink < 5 || rtt > 200) return 'medium';
     return 'fast';
@@ -47,10 +47,10 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
 
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>({
     isOnline: navigator.onLine,
-    effectiveType: undefined,
-    downlink: undefined,
-    rtt: undefined,
-    saveData: undefined,
+    effectiveType: '4g',
+    downlink: 10,
+    rtt: 50,
+    saveData: false,
   });
 
   const [wasOffline, setWasOffline] = useState(false);
@@ -90,6 +90,7 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
           category: 'network',
           severity: 'info',
           details: `Obnovené o ${now.toLocaleTimeString()}`,
+          context: { timestamp: now.toISOString() },
           retry: false,
         });
       }
@@ -108,6 +109,7 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
         severity: 'warning',
         details:
           'Niektoré funkcie môžu byť obmedzené až do obnovenia pripojenia.',
+        context: { timestamp: new Date().toISOString() },
         retry: false,
       });
     };
@@ -159,7 +161,7 @@ export const useNetworkStatus = (): UseNetworkStatusReturn => {
   return {
     ...networkStatus,
     wasOffline,
-    reconnectedAt,
+    ...(reconnectedAt && { reconnectedAt }),
     networkQuality,
   };
 };

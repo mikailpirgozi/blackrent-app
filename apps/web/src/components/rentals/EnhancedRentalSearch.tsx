@@ -4,10 +4,8 @@
  * Pokročilé vyhľadávanie pre prenájmy s kompletnou filter funkcionalitou
  */
 
-import { Box, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 
-// import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import type {
   QuickFilter,
   SearchSuggestion,
@@ -19,13 +17,11 @@ import type { Rental } from '../../types';
 import { searchInTexts } from '../../utils/textNormalization';
 import EnhancedSearchBar from '../common/EnhancedSearchBar';
 import QuickFilters, { RENTAL_QUICK_FILTERS } from '../common/QuickFilters';
-// 🔄 MOBILE CLEANUP: MobileFilterDrawer removed
-// import MobileFilterDrawer from '../common/MobileFilterDrawer';
 
 interface EnhancedRentalSearchProps {
-  onResults: (results: Rental[]) => void;
-  onQueryChange?: (query: string) => void;
-  onFiltersChange?: (filters: Record<string, unknown>) => void;
+  onResults: (_results: Rental[]) => void;
+  onQueryChange?: (_query: string) => void;
+  onFiltersChange?: (_filters: Record<string, unknown>) => void;
   placeholder?: string;
   showQuickFilters?: boolean;
   compact?: boolean;
@@ -34,14 +30,23 @@ interface EnhancedRentalSearchProps {
 const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
   onResults,
   onQueryChange,
-  // onFiltersChange, // commented out - not used
   placeholder = 'Hľadať prenájmy...',
   showQuickFilters = true,
   compact = false,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  // const { state } = useApp(); // Migrated to React Query
+  // Use Tailwind breakpoints instead of MUI theme
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check for mobile viewport
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // React Query hooks for server state
   const { data: rentals = [] } = useRentals();
@@ -304,7 +309,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
       // Trigger search with current query
       const searchBar = document.querySelector(
         'input[type="text"]'
-      ) as HTMLInputElement;
+      ) as any;
       const currentQuery = searchBar?.value || '';
 
       searchRentals(currentQuery, filterId || undefined).then(results => {
@@ -314,74 +319,23 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
     [searchRentals, onResults]
   );
 
-  // Mobile filter sections (commented out - not used)
-  // const mobileFilterSections = useMemo(
-  //   () => [
-  //     {
-  //       id: 'company',
-  //       title: 'Firma',
-  //       type: 'text' as const,
-  //       placeholder: 'Názov firmy...',
-  //       icon: '🏢',
-  //     },
-  //     {
-  //       id: 'vehicle_type',
-  //       title: 'Typ vozidla',
-  //       type: 'select' as const,
-  //       options: [
-  //         { label: 'Osobné', value: 'car' },
-  //         { label: 'Nákladné', value: 'truck' },
-  //         { label: 'Dodávka', value: 'van' },
-  //         { label: 'Motorka', value: 'motorcycle' },
-  //       ],
-  //       icon: '🚗',
-  //     },
-  //     {
-  //       id: 'date_from',
-  //       title: 'Od dátumu',
-  //       type: 'date' as const,
-  //       icon: '📅',
-  //     },
-  //     {
-  //       id: 'date_to',
-  //       title: 'Do dátumu',
-  //       type: 'date' as const,
-  //       icon: '📅',
-  //     },
-  //     {
-  //       id: 'price_min',
-  //       title: 'Min. cena',
-  //       type: 'text' as const,
-  //       placeholder: '0',
-  //       icon: '💰',
-  //     },
-  //     {
-  //       id: 'price_max',
-  //       title: 'Max. cena',
-  //       type: 'text' as const,
-  //       placeholder: '999999',
-  //       icon: '💰',
-  //     },
-  //   ],
-  //   []
-  // );
 
   const hasActiveFilters =
     activeQuickFilter ||
     Object.values(advancedFilters).some(v => v && v !== 'all');
 
   return (
-    <Box>
+    <div>
       {/* Search Bar */}
-      <Stack direction="row" spacing={1} alignItems="flex-start">
-        <Box sx={{ flex: 1 }}>
+      <div className="flex flex-row gap-2 items-start">
+        <div className="flex-1">
           <EnhancedSearchBar
             onSearch={searchForSuggestions}
             suggestionFunction={getSuggestions}
             placeholder={placeholder}
             quickFilters={showQuickFilters ? enhancedQuickFilters : []}
             onQuickFilterChange={handleQuickFilterChange}
-            onQueryChange={onQueryChange}
+            {...(onQueryChange && { onQueryChange })}
             showResultCount
             showPerformanceStats={!compact}
             debounceDelay={300}
@@ -389,80 +343,32 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
             enableHistory
             storageKey="rental_search_history"
           />
-        </Box>
+        </div>
 
-        {/* Mobile Filter Button - commented out (not used) */}
-        {/* {isMobile && (
-          <Tooltip title="Pokročilé filtre">
-            <IconButton
-              onClick={() => setShowMobileFilters(true)}
-              sx={{
-                mt: 0.5,
-                bgcolor: hasActiveFilters ? 'primary.main' : 'background.paper',
-                color: hasActiveFilters
-                  ? 'primary.contrastText'
-                  : 'text.primary',
-                border: `1px solid ${theme.palette.divider}`,
-                '&:hover': {
-                  bgcolor: hasActiveFilters ? 'primary.dark' : 'action.hover',
-                },
-              }}
-            >
-              <TuneIcon />
-            </IconButton>
-          </Tooltip>
-        )} */}
-      </Stack>
+      </div>
 
       {/* Quick Filters - Desktop */}
       {!isMobile && showQuickFilters && (
-        <Box sx={{ mt: 2 }}>
+        <div className="mt-4">
           <QuickFilters
             filters={enhancedQuickFilters}
             activeFilter={activeQuickFilter}
             onFilterSelect={handleQuickFilterChange}
             compact={compact}
           />
-        </Box>
+        </div>
       )}
 
-      {/* 🔄 MOBILE CLEANUP: MobileFilterDrawer removed */}
-      {/* <MobileFilterDrawer
-        open={showMobileFilters}
-        onClose={() => setShowMobileFilters(false)}
-        title="Filtre prenájmov"
-        quickFilters={enhancedQuickFilters}
-        activeQuickFilter={activeQuickFilter}
-        onQuickFilterChange={handleQuickFilterChange}
-        filterSections={mobileFilterSections}
-        filters={advancedFilters}
-        onFiltersChange={handleAdvancedFiltersChange}
-        onApply={handleAdvancedFiltersChange}
-        onReset={() => {
-          setAdvancedFilters({});
-          setActiveQuickFilter(null);
-        }}
-        resultCount={rentals?.length}
-        hasActiveFilters={Boolean(hasActiveFilters)}
-      /> */}
 
       {/* Results info */}
       {!compact && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 1,
-            color: 'text.secondary',
-            textAlign: 'right',
-          }}
-        >
+        <p className="block mt-2 text-sm text-muted-foreground text-right">
           {hasActiveFilters
             ? 'Filtrované výsledky'
             : `${rentals?.length || 0} prenájmov`}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 

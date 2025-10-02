@@ -1,57 +1,19 @@
-import {
-  Add as AddIcon,
-  Assignment as AssignmentIcon,
-  Build as BuildIcon,
-  DirectionsCar as CarIcon,
-  CheckCircle as CheckCircleIcon,
-  Close as CloseIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Error as ErrorIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  AttachFile as FileIcon,
-  FilterList as FilterListIcon,
-  LocalShipping as HighwayIcon,
-  Assessment as ReportIcon,
-  Schedule as ScheduleIcon,
-  Search as SearchIcon,
-  Security as SecurityIcon,
-  Sort as SortIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Collapse,
-  Dialog,
-  Divider,
-  Fab,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  ListItemText,
-  MenuItem,
-  Select,
-  TextField,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import type { ChipProps } from '@mui/material/Chip';
+import { UnifiedIcon } from '../ui/UnifiedIcon';
+import { UnifiedCard, StatisticsCard, InteractiveCard } from '../ui/UnifiedCard';
+import { UnifiedButton } from '../ui/UnifiedButton';
+import { UnifiedChip } from '../ui/UnifiedChip';
+import { UnifiedTextField } from '../ui/UnifiedTextField';
+import { UnifiedSelect } from '../ui/UnifiedSelect';
+import { UnifiedDialog } from '../ui/UnifiedDialog';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
+import { Alert, AlertTitle } from '../ui/alert';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { Collapsible } from '../ui/collapsible';
+import { Separator } from '../ui/separator';
+import { Spinner } from '../ui/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { cn } from '../../lib/utils';
 import { addDays, format, isAfter, isValid, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -92,19 +54,19 @@ interface UnifiedDocument {
     | 'ek'
     | 'vignette'
     | 'technical_certificate';
-  documentNumber?: string;
-  policyNumber?: string;
-  validFrom?: Date | string;
+  documentNumber?: string | undefined;
+  policyNumber?: string | undefined;
+  validFrom?: Date | string | undefined;
   validTo: Date | string;
-  price?: number;
-  company?: string;
-  paymentFrequency?: PaymentFrequency;
-  notes?: string;
-  filePath?: string;
-  filePaths?: string[];
+  price?: number | undefined;
+  company?: string | undefined;
+  paymentFrequency?: PaymentFrequency | undefined;
+  notes?: string | undefined;
+  filePath?: string | undefined;
+  filePaths?: string[] | undefined;
   createdAt: Date | string;
   originalData: Insurance | VehicleDocument;
-  kmState?: number; // 🚗 Stav kilometrov
+  kmState?: number | undefined; // 🚗 Stav kilometrov
 }
 
 // Vehicle with documents grouped
@@ -116,7 +78,7 @@ interface VehicleWithDocuments {
     valid: number;
     expiring: number;
     expired: number;
-    nextExpiry?: Date;
+    nextExpiry?: Date | undefined;
     hasProblems: boolean;
   };
 }
@@ -130,7 +92,7 @@ type StatusFilter = 'all' | 'valid' | 'expiring' | 'expired';
 interface ExpiryStatus {
   status: 'valid' | 'expiring' | 'expired' | 'invalid';
   text: string;
-  color: ChipProps['color'];
+  color: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
   bgColor?: string;
   daysLeft?: number;
 }
@@ -164,7 +126,7 @@ const getExpiryStatus = (
     if (!isValid(validToDate)) {
       return {
         status: 'invalid',
-        color: 'default',
+        color: 'neutral',
         text: 'Neplatný dátum',
         bgColor: '#f5f5f5',
       };
@@ -195,10 +157,10 @@ const getExpiryStatus = (
         bgColor: '#fff3e0',
       };
     }
-  } catch {
+  } catch (error) {
     return {
       status: 'invalid',
-      color: 'default',
+      color: 'neutral',
       text: 'Neplatný dátum',
       bgColor: '#f5f5f5',
     };
@@ -210,49 +172,49 @@ const getDocumentTypeInfo = (type: string) => {
     case 'insurance_pzp':
       return {
         label: 'Poistka - PZP',
-        icon: <SecurityIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="security" size={20} />,
         color: '#1976d2',
       };
     case 'insurance_kasko':
       return {
         label: 'Poistka - Kasko',
-        icon: <SecurityIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="security" size={20} />,
         color: '#2196f3',
       };
     case 'insurance_pzp_kasko':
       return {
         label: 'Poistka - PZP + Kasko',
-        icon: <SecurityIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="security" size={20} />,
         color: '#9c27b0',
       };
     case 'stk':
       return {
         label: 'STK',
-        icon: <BuildIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="build" size={20} />,
         color: '#388e3c',
       };
     case 'ek':
       return {
         label: 'EK',
-        icon: <AssignmentIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="assignment" size={20} />,
         color: '#f57c00',
       };
     case 'vignette':
       return {
         label: 'Dialničná',
-        icon: <HighwayIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="truck" size={20} />,
         color: '#7b1fa2',
       };
     case 'technical_certificate':
       return {
         label: 'Technický preukaz',
-        icon: <FileIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="file" size={20} />,
         color: '#9c27b0',
       };
     default:
       return {
         label: type,
-        icon: <ReportIcon sx={{ fontSize: 20 }} />,
+        icon: <UnifiedIcon name="report" size={20} />,
         color: '#666',
       };
   }
@@ -268,9 +230,21 @@ export default function VehicleCentricInsuranceList() {
   const createVehicleDocumentMutation = useCreateVehicleDocument();
   const updateVehicleDocumentMutation = useUpdateVehicleDocument();
   const deleteVehicleDocumentMutation = useDeleteVehicleDocument();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  
+  // Media queries using window.innerWidth
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsTablet(window.innerWidth < 1024); // lg breakpoint
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // React Query hooks for insurances
   const [currentPage, setCurrentPage] = useState(1);
@@ -289,7 +263,11 @@ export default function VehicleCentricInsuranceList() {
   } = useInsurancesPaginated({
     page: currentPage,
     limit: 20,
-    ...filters,
+    search: filters.search,
+    ...(filters.type && { type: filters.type }),
+    ...(filters.company && { company: filters.company }),
+    status: filters.status,
+    ...(filters.vehicleId && { vehicleId: filters.vehicleId }),
   });
 
   // Per-entity cache invalidation is now handled in useInsurances hook
@@ -395,17 +373,17 @@ export default function VehicleCentricInsuranceList() {
         id: insurance.id,
         vehicleId: insurance.vehicleId,
         type: insuranceType,
-        policyNumber: insurance.policyNumber,
+        policyNumber: insurance.policyNumber || undefined,
         validFrom: insurance.validFrom,
         validTo: insurance.validTo,
-        price: insurance.price,
-        company: insurance.company,
-        paymentFrequency: insurance.paymentFrequency,
-        filePath: insurance.filePath,
-        filePaths: insurance.filePaths,
+        price: insurance.price || undefined,
+        company: insurance.company || undefined,
+        paymentFrequency: insurance.paymentFrequency || undefined,
+        filePath: insurance.filePath || undefined,
+        filePaths: insurance.filePaths || undefined,
         createdAt: insurance.validTo,
         originalData: insurance,
-        kmState: insurance.kmState,
+        kmState: insurance.kmState || undefined,
       });
     });
 
@@ -416,15 +394,15 @@ export default function VehicleCentricInsuranceList() {
           id: doc.id,
           vehicleId: doc.vehicleId,
           type: doc.documentType,
-          documentNumber: doc.documentNumber,
-          validFrom: doc.validFrom,
+          documentNumber: doc.documentNumber || undefined,
+          validFrom: doc.validFrom || undefined,
           validTo: doc.validTo,
-          price: doc.price,
-          notes: doc.notes,
-          filePath: doc.filePath,
+          price: doc.price || undefined,
+          notes: doc.notes || undefined,
+          filePath: doc.filePath || undefined,
           createdAt: doc.validTo,
           originalData: doc,
-          kmState: doc.kmState, // STK/EK môžu mať stav km
+          kmState: doc.kmState || undefined, // STK/EK môžu mať stav km
         });
       });
     }
@@ -485,6 +463,15 @@ export default function VehicleCentricInsuranceList() {
       if (filteredDocs.length === 0) return;
 
       // Calculate stats
+      const nextExpiryDate = filteredDocs
+        .map(doc =>
+          typeof doc.validTo === 'string'
+            ? parseISO(doc.validTo)
+            : doc.validTo
+        )
+        .filter(date => isValid(date) && isAfter(date, new Date()))
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+
       const stats = {
         total: filteredDocs.length,
         valid: filteredDocs.filter(
@@ -496,14 +483,7 @@ export default function VehicleCentricInsuranceList() {
         expired: filteredDocs.filter(
           doc => getExpiryStatus(doc.validTo, doc.type).status === 'expired'
         ).length,
-        nextExpiry: filteredDocs
-          .map(doc =>
-            typeof doc.validTo === 'string'
-              ? parseISO(doc.validTo)
-              : doc.validTo
-          )
-          .filter(date => isValid(date) && isAfter(date, new Date()))
-          .sort((a, b) => a.getTime() - b.getTime())[0],
+        nextExpiry: nextExpiryDate || undefined,
         hasProblems: false,
       };
 
@@ -642,30 +622,30 @@ export default function VehicleCentricInsuranceList() {
       id: doc.id,
       vehicleId: doc.vehicleId,
       type: doc.type,
-      policyNumber: doc.policyNumber,
-      company: doc.company,
-      paymentFrequency: doc.paymentFrequency,
-      documentNumber: doc.documentNumber,
-      notes: doc.notes,
+      policyNumber: doc.policyNumber || '',
+      company: doc.company || '',
+      paymentFrequency: doc.paymentFrequency || 'yearly',
+      documentNumber: doc.documentNumber || '',
+      notes: doc.notes || '',
       validFrom: doc.validFrom
         ? typeof doc.validFrom === 'string'
           ? new Date(doc.validFrom)
           : doc.validFrom
-        : undefined,
+        : new Date(),
       validTo:
         typeof doc.validTo === 'string' ? new Date(doc.validTo) : doc.validTo,
-      price: doc.price,
-      filePath: doc.filePath,
+      price: doc.price || 0,
+      filePath: doc.filePath || '',
       filePaths: doc.filePaths || (doc.filePath ? [doc.filePath] : []),
       greenCardValidFrom:
         doc.originalData && 'greenCardValidFrom' in doc.originalData
           ? doc.originalData.greenCardValidFrom
-          : undefined,
+          : new Date(),
       greenCardValidTo:
         doc.originalData && 'greenCardValidTo' in doc.originalData
           ? doc.originalData.greenCardValidTo
-          : undefined,
-      kmState: doc.kmState, // 🚗 Stav kilometrov
+          : new Date(),
+      kmState: doc.kmState || 0, // 🚗 Stav kilometrov
     };
     setEditingDocument(formData);
     setOpenDialog(true);
@@ -685,7 +665,7 @@ export default function VehicleCentricInsuranceList() {
         }
       } catch (error) {
         console.error('Chyba pri mazaní dokumentu:', error);
-        alert('Chyba pri mazaní dokumentu');
+        window.alert('Chyba pri mazaní dokumentu');
       }
     }
   };
@@ -724,17 +704,17 @@ export default function VehicleCentricInsuranceList() {
             company: data.company || '',
             insurerId: selectedInsurer?.id || null,
             paymentFrequency: data.paymentFrequency || 'yearly',
-            filePath: data.filePath,
-            filePaths: data.filePaths,
-            greenCardValidFrom: data.greenCardValidFrom,
-            greenCardValidTo: data.greenCardValidTo,
-            kmState: data.kmState, // 🚗 Stav kilometrov
+            filePath: data.filePath || '',
+            filePaths: data.filePaths || [],
+            greenCardValidFrom: data.greenCardValidFrom || new Date(),
+            greenCardValidTo: data.greenCardValidTo || new Date(),
+            kmState: data.kmState || 0, // 🚗 Stav kilometrov
           };
           updateInsuranceMutation.mutate(insuranceData, {
             onSuccess: closeDialog,
             onError: error => {
               console.error('Chyba pri ukladaní insurance:', error);
-              alert('Chyba pri ukladaní insurance: ' + error.message);
+              window.alert('Chyba pri ukladaní insurance: ' + error.message);
             },
             onSettled: () => {
               // Ensure cache invalidation happens
@@ -755,19 +735,19 @@ export default function VehicleCentricInsuranceList() {
               id: editingDocument.id || '',
               vehicleId: data.vehicleId,
               documentType: data.type,
-              validFrom: data.validFrom,
+              validFrom: data.validFrom || new Date(),
               validTo: data.validTo,
-              documentNumber: data.documentNumber,
-              price: data.price,
-              notes: data.notes,
-              filePath: data.filePath,
-              kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
+              documentNumber: data.documentNumber || '',
+              price: data.price || 0,
+              notes: data.notes || '',
+              filePath: data.filePath || '',
+              kmState: data.kmState || 0, // 🚗 Stav kilometrov pre STK/EK
             };
             updateVehicleDocumentMutation.mutate(vehicleDocData, {
               onSuccess: closeDialog,
               onError: error => {
                 console.error('Chyba pri ukladaní vehicle document:', error);
-                alert('Chyba pri ukladaní vehicle document: ' + error.message);
+                window.alert('Chyba pri ukladaní vehicle document: ' + error.message);
               },
             });
           }
@@ -795,17 +775,17 @@ export default function VehicleCentricInsuranceList() {
             price: data.price || 0,
             company: data.company || '',
             paymentFrequency: data.paymentFrequency || 'yearly',
-            filePath: data.filePath,
-            filePaths: data.filePaths,
-            greenCardValidFrom: data.greenCardValidFrom,
-            greenCardValidTo: data.greenCardValidTo,
-            kmState: data.kmState, // 🚗 Stav kilometrov pre Kasko
+            filePath: data.filePath || '',
+            filePaths: data.filePaths || [],
+            greenCardValidFrom: data.greenCardValidFrom || new Date(),
+            greenCardValidTo: data.greenCardValidTo || new Date(),
+            kmState: data.kmState || 0, // 🚗 Stav kilometrov pre Kasko
           };
           createInsuranceMutation.mutate(insuranceData, {
             onSuccess: closeDialog,
             onError: error => {
               console.error('Chyba pri ukladaní insurance:', error);
-              alert('Chyba pri ukladaní insurance: ' + error.message);
+              window.alert('Chyba pri ukladaní insurance: ' + error.message);
             },
             onSettled: () => {
               // Ensure cache invalidation happens
@@ -818,19 +798,19 @@ export default function VehicleCentricInsuranceList() {
             id: '',
             vehicleId: data.vehicleId,
             documentType: data.type as DocumentType,
-            validFrom: data.validFrom,
+            validFrom: data.validFrom || new Date(),
             validTo: data.validTo,
-            documentNumber: data.documentNumber,
-            price: data.price,
-            notes: data.notes,
-            filePath: data.filePath,
-            kmState: data.kmState, // 🚗 Stav kilometrov pre STK/EK
+            documentNumber: data.documentNumber || '',
+            price: data.price || 0,
+            notes: data.notes || '',
+            filePath: data.filePath || '',
+            kmState: data.kmState || 0, // 🚗 Stav kilometrov pre STK/EK
           };
           createVehicleDocumentMutation.mutate(vehicleDocData, {
             onSuccess: closeDialog,
             onError: error => {
               console.error('Chyba pri ukladaní vehicle document:', error);
-              alert('Chyba pri ukladaní vehicle document: ' + error.message);
+              window.alert('Chyba pri ukladaní vehicle document: ' + error.message);
             },
           });
         }
@@ -858,760 +838,453 @@ export default function VehicleCentricInsuranceList() {
     searchQuery || filterVehicle || filterCompany || filterType || filterStatus;
 
   return (
-    <Box
-      sx={{
-        p: { xs: 1, sm: 2, md: 3 },
-        width: '100%',
-        maxWidth: '100%',
-        overflow: 'hidden',
-      }}
-    >
+    <div className={cn(
+      "w-full max-w-full overflow-hidden",
+      isMobile ? "p-4" : isTablet ? "p-6" : "p-8"
+    )}>
       {/* Modern Responsive Header */}
-      <Card
-        sx={{
-          mb: { xs: 2, sm: 3 },
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          borderRadius: { xs: 2, sm: 3 },
-        }}
+      <UnifiedCard
+        variant="elevated"
+        className={cn(
+          "mb-6",
+          isMobile ? "rounded-lg" : "rounded-xl"
+        )}
       >
-        <CardContent
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            position: 'relative',
-            p: { xs: 2, sm: 2.5, md: 3 },
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              flexDirection: isMobile ? 'column' : 'row',
-              gap: { xs: 2, sm: 2, md: 2 },
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: { xs: 1.5, sm: 2 },
-                width: isMobile ? '100%' : 'auto',
-              }}
-            >
-              <SecurityIcon
-                sx={{
-                  fontSize: { xs: 24, sm: 28, md: 32 },
-                  flexShrink: 0,
-                }}
+        <div className={cn(
+          "relative text-white",
+          "bg-gradient-to-br from-blue-600 to-purple-600",
+          isMobile ? "p-4" : isTablet ? "p-6" : "p-8"
+        )}>
+          <div className={cn(
+            "flex justify-between",
+            isMobile ? "flex-col items-start gap-4" : "flex-row items-center gap-4"
+          )}>
+            <div className={cn(
+              "flex items-center",
+              isMobile ? "w-full gap-3" : "gap-4"
+            )}>
+              <UnifiedIcon 
+                name="security" 
+                size={isMobile ? 24 : isTablet ? 28 : 32}
+                className="flex-shrink-0"
               />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
+              <div className="min-w-0 flex-1">
+                <UnifiedTypography
                   variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                  sx={{
-                    fontWeight: 700,
-                    mb: 0.5,
-                    fontSize: {
-                      xs: '1.1rem',
-                      sm: '1.25rem',
-                      md: '1.5rem',
-                      lg: '2rem',
-                    },
-                    lineHeight: 1.2,
-                  }}
+                  className={cn(
+                    "font-bold mb-2 leading-tight",
+                    isMobile ? "text-lg" : isTablet ? "text-xl" : "text-2xl"
+                  )}
                 >
                   {isMobile ? 'Poistky & STK' : 'Poistky/STK/Dialničné'}
-                </Typography>
-                <Typography
+                </UnifiedTypography>
+                <UnifiedTypography
                   variant={isMobile ? 'body2' : 'body1'}
-                  sx={{
-                    opacity: 0.9,
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: { xs: 0.5, sm: 1 },
-                  }}
+                  className={cn(
+                    "opacity-90 flex flex-wrap",
+                    isMobile ? "text-sm gap-2" : "text-base gap-4"
+                  )}
                 >
                   <span>{overallStats.totalVehicles} vozidiel</span>
                   <span>•</span>
                   <span>{overallStats.totalDocuments} dokumentov</span>
-                </Typography>
-              </Box>
-            </Box>
+                </UnifiedTypography>
+              </div>
+            </div>
 
             {!isMobile && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
+              <UnifiedButton
+                variant="default"
+                startIcon={<UnifiedIcon name="add" size={20} />}
                 onClick={handleAdd}
                 size={isTablet ? 'medium' : 'large'}
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                  },
-                }}
+                className="bg-white/20 backdrop-blur-sm border border-white/30 whitespace-nowrap flex-shrink-0 hover:bg-white/30"
               >
                 Pridať dokument
-              </Button>
+              </UnifiedButton>
             )}
-          </Box>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </UnifiedCard>
 
       {/* Responsive Statistics Cards */}
       {activeTab === 0 && (
-        <Grid
-          container
-          spacing={{ xs: 1, sm: 2 }}
-          sx={{ mb: { xs: 2, sm: 3 } }}
-        >
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                height: '100%',
-                borderRadius: { xs: 2, sm: 3 },
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: { xs: 1.5, sm: 2, md: 2.5 },
-                  '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } },
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    textAlign: isMobile ? 'center' : 'left',
-                    gap: isMobile ? 1 : 0,
-                  }}
-                >
-                  <Box sx={{ order: isMobile ? 2 : 1 }}>
-                    <Typography
-                      variant={
-                        isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'
-                      }
-                      sx={{
-                        fontWeight: 600,
-                        mb: { xs: 0.5, sm: 1 },
-                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                        letterSpacing: 0.5,
-                      }}
+        <div className={cn(
+          "grid grid-cols-2 md:grid-cols-4 gap-4",
+          isMobile ? "mb-4" : "mb-6"
+        )}>
+          <StatisticsCard
+            className="bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
+          >
+                <div className={cn(
+                  "flex items-center justify-between",
+                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
+                )}>
+                  <div className={cn(isMobile ? "order-2" : "order-1")}>
+                    <UnifiedTypography
+                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                      className={cn(
+                        "font-semibold tracking-wider",
+                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
+                      )}
                     >
                       VOZIDLÁ
-                    </Typography>
-                    <Typography
+                    </UnifiedTypography>
+                    <UnifiedTypography
                       variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
-                      }}
+                      className={cn(
+                        "font-bold",
+                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
+                      )}
                     >
                       {overallStats.totalVehicles}
-                    </Typography>
-                  </Box>
-                  <CarIcon
-                    sx={{
-                      fontSize: { xs: 20, sm: 32, md: 40 },
-                      opacity: 0.8,
-                      order: isMobile ? 1 : 2,
-                    }}
+                    </UnifiedTypography>
+                  </div>
+                  <UnifiedIcon
+                    name="car"
+                    size={isMobile ? 20 : isTablet ? 32 : 40}
+                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
                   />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                </div>
+          </StatisticsCard>
 
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                height: '100%',
-                borderRadius: { xs: 2, sm: 3 },
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: { xs: 1.5, sm: 2, md: 2.5 },
-                  '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } },
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    textAlign: isMobile ? 'center' : 'left',
-                    gap: isMobile ? 1 : 0,
-                  }}
-                >
-                  <Box sx={{ order: isMobile ? 2 : 1 }}>
-                    <Typography
-                      variant={
-                        isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'
-                      }
-                      sx={{
-                        fontWeight: 600,
-                        mb: { xs: 0.5, sm: 1 },
-                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                        letterSpacing: 0.5,
-                      }}
+          <StatisticsCard
+            className="bg-gradient-to-br from-green-500 to-green-400 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
+          >
+                <div className={cn(
+                  "flex items-center justify-between",
+                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
+                )}>
+                  <div className={cn(isMobile ? "order-2" : "order-1")}>
+                    <UnifiedTypography
+                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                      className={cn(
+                        "font-semibold tracking-wider",
+                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
+                      )}
                     >
                       PLATNÉ
-                    </Typography>
-                    <Typography
+                    </UnifiedTypography>
+                    <UnifiedTypography
                       variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
-                      }}
+                      className={cn(
+                        "font-bold",
+                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
+                      )}
                     >
                       {overallStats.validDocs}
-                    </Typography>
-                  </Box>
-                  <CheckCircleIcon
-                    sx={{
-                      fontSize: { xs: 20, sm: 32, md: 40 },
-                      opacity: 0.8,
-                      order: isMobile ? 1 : 2,
-                    }}
+                    </UnifiedTypography>
+                  </div>
+                  <UnifiedIcon
+                    name="success"
+                    size={isMobile ? 20 : isTablet ? 32 : 40}
+                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
                   />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                </div>
+          </StatisticsCard>
 
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #ffa726 0%, #fb8c00 100%)',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                height: '100%',
-                borderRadius: { xs: 2, sm: 3 },
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: { xs: 1.5, sm: 2, md: 2.5 },
-                  '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } },
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    textAlign: isMobile ? 'center' : 'left',
-                    gap: isMobile ? 1 : 0,
-                  }}
-                >
-                  <Box sx={{ order: isMobile ? 2 : 1 }}>
-                    <Typography
-                      variant={
-                        isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'
-                      }
-                      sx={{
-                        fontWeight: 600,
-                        mb: { xs: 0.5, sm: 1 },
-                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                        letterSpacing: 0.5,
-                      }}
+          <StatisticsCard
+            className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
+          >
+                <div className={cn(
+                  "flex items-center justify-between",
+                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
+                )}>
+                  <div className={cn(isMobile ? "order-2" : "order-1")}>
+                    <UnifiedTypography
+                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                      className={cn(
+                        "font-semibold tracking-wider",
+                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
+                      )}
                     >
                       VYPRŠÍ
-                    </Typography>
-                    <Typography
+                    </UnifiedTypography>
+                    <UnifiedTypography
                       variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
-                      }}
+                      className={cn(
+                        "font-bold",
+                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
+                      )}
                     >
                       {overallStats.expiringDocs}
-                    </Typography>
-                  </Box>
-                  <ScheduleIcon
-                    sx={{
-                      fontSize: { xs: 20, sm: 32, md: 40 },
-                      opacity: 0.8,
-                      order: isMobile ? 1 : 2,
-                    }}
+                    </UnifiedTypography>
+                  </div>
+                  <UnifiedIcon
+                    name="clock"
+                    size={isMobile ? 20 : isTablet ? 32 : 40}
+                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
                   />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                </div>
+          </StatisticsCard>
 
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #ef5350 0%, #e53935 100%)',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                height: '100%',
-                borderRadius: { xs: 2, sm: 3 },
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: { xs: 1.5, sm: 2, md: 2.5 },
-                  '&:last-child': { pb: { xs: 1.5, sm: 2, md: 2.5 } },
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    textAlign: isMobile ? 'center' : 'left',
-                    gap: isMobile ? 1 : 0,
-                  }}
-                >
-                  <Box sx={{ order: isMobile ? 2 : 1 }}>
-                    <Typography
-                      variant={
-                        isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'
-                      }
-                      sx={{
-                        fontWeight: 600,
-                        mb: { xs: 0.5, sm: 1 },
-                        fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                        letterSpacing: 0.5,
-                      }}
+          <StatisticsCard
+            className="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg h-full transition-transform duration-200 hover:-translate-y-0.5"
+          >
+                <div className={cn(
+                  "flex items-center justify-between",
+                  isMobile ? "flex-col text-center gap-4" : "flex-row text-left"
+                )}>
+                  <div className={cn(isMobile ? "order-2" : "order-1")}>
+                    <UnifiedTypography
+                      variant={isMobile ? 'caption' : isTablet ? 'subtitle2' : 'h6'}
+                      className={cn(
+                        "font-semibold tracking-wider",
+                        isMobile ? "mb-2 text-xs" : isTablet ? "mb-2 text-sm" : "mb-4 text-base"
+                      )}
                     >
                       VYPRŠANÉ
-                    </Typography>
-                    <Typography
+                    </UnifiedTypography>
+                    <UnifiedTypography
                       variant={isMobile ? 'h6' : isTablet ? 'h5' : 'h4'}
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
-                      }}
+                      className={cn(
+                        "font-bold",
+                        isMobile ? "text-xl" : isTablet ? "text-2xl" : "text-3xl"
+                      )}
                     >
                       {overallStats.expiredDocs}
-                    </Typography>
-                  </Box>
-                  <ErrorIcon
-                    sx={{
-                      fontSize: { xs: 20, sm: 32, md: 40 },
-                      opacity: 0.8,
-                      order: isMobile ? 1 : 2,
-                    }}
+                    </UnifiedTypography>
+                  </div>
+                  <UnifiedIcon
+                    name="error"
+                    size={isMobile ? 20 : isTablet ? 32 : 40}
+                    className={cn("opacity-80", isMobile ? "order-1" : "order-2")}
                   />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+                </div>
+          </StatisticsCard>
+        </div>
       )}
 
       {/* Responsive Search, Filters and Sorting */}
       {activeTab === 0 && (
-        <Card
-          sx={{
-            mb: { xs: 2, sm: 3 },
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            borderRadius: { xs: 2, sm: 3 },
-          }}
+        <UnifiedCard
+          variant="default"
+          className={cn(
+            "shadow-md",
+            isMobile ? "mb-4 rounded-lg" : "mb-6 rounded-xl"
+          )}
         >
-          <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
             {/* Mobile-first Search and main controls */}
-            <Box
-              sx={{
-                display: 'flex',
-                gap: { xs: 1, sm: 2 },
-                mb: showFilters ? { xs: 1.5, sm: 2 } : 0,
-                flexDirection: isMobile ? 'column' : 'row',
-                flexWrap: 'wrap',
-                alignItems: isMobile ? 'stretch' : 'center',
-              }}
-            >
+            <div className={cn(
+              "flex gap-4",
+              showFilters ? (isMobile ? "mb-4" : "mb-6") : "mb-0",
+              isMobile ? "flex-col items-stretch" : "flex-row items-center flex-wrap"
+            )}>
               {/* Search Field */}
-              <TextField
+              <UnifiedTextField
                 placeholder={
                   isMobile
                     ? 'Vyhľadať...'
                     : 'Vyhľadať vozidlo alebo dokument...'
                 }
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <SearchIcon
-                      sx={{
-                        color: 'text.secondary',
-                        mr: 1,
-                        fontSize: { xs: 20, sm: 24 },
-                      }}
-                    />
-                  ),
-                }}
-                sx={{
-                  flex: isMobile ? 'none' : 1,
-                  minWidth: isMobile ? '100%' : '250px',
-                  order: isMobile ? 1 : 1,
-                }}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                startAdornment={
+                  <UnifiedIcon
+                    name="search"
+                    size={isMobile ? 20 : 24}
+                    className="text-muted-foreground mr-2"
+                  />
+                }
+                className={cn(
+                  isMobile ? "w-full" : "flex-1 min-w-[250px]"
+                )}
                 size={isMobile ? 'small' : 'medium'}
                 fullWidth={isMobile}
               />
 
               {/* Controls Row for Mobile */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: { xs: 1, sm: 2 },
-                  order: isMobile ? 2 : 2,
-                  width: isMobile ? '100%' : 'auto',
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div className={cn(
+                "flex gap-4 flex-wrap",
+                isMobile ? "w-full" : "w-auto"
+              )}>
                 {/* Sort dropdown */}
-                <FormControl
-                  sx={{
-                    minWidth: isMobile ? 'calc(50% - 4px)' : 180,
-                    flex: isMobile ? 1 : 'none',
-                  }}
-                  size={isMobile ? 'small' : 'medium'}
-                >
-                  <InputLabel>
-                    {isMobile ? 'Triediť' : 'Triediť podľa'}
-                  </InputLabel>
-                  <Select
-                    value={sortBy}
-                    label={isMobile ? 'Triediť' : 'Triediť podľa'}
-                    onChange={e => setSortBy(e.target.value as SortOption)}
-                    startAdornment={
-                      !isMobile ? (
-                        <SortIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                      ) : undefined
-                    }
-                  >
-                    <MenuItem value="expiry">
-                      {isMobile ? 'Expirácia' : 'Najbližšia expirácia'}
-                    </MenuItem>
-                    <MenuItem value="problems">
-                      {isMobile ? 'Problémy' : 'Počet problémov'}
-                    </MenuItem>
-                    <MenuItem value="name">
-                      {isMobile ? 'Názov' : 'Názov vozidla'}
-                    </MenuItem>
-                  </Select>
-                </FormControl>
+                <UnifiedSelect
+                  value={sortBy}
+                  onChange={(value: string | string[]) => setSortBy((Array.isArray(value) ? value[0] : value) as SortOption)}
+                  options={[
+                    { value: 'expiry', label: isMobile ? 'Expirácia' : 'Najbližšia expirácia' },
+                    { value: 'problems', label: isMobile ? 'Problémy' : 'Počet problémov' },
+                    { value: 'name', label: isMobile ? 'Názov' : 'Názov vozidla' }
+                  ]}
+                  placeholder={isMobile ? 'Triediť' : 'Triediť podľa'}
+                  className={cn(
+                    isMobile ? "w-[calc(50%-8px)] flex-1" : "w-[180px]"
+                  )}
+                  size={isMobile ? 'sm' : 'default'}
+                />
 
                 {/* Filter Button */}
-                <Button
+                <UnifiedButton
                   variant={showFilters ? 'contained' : 'outlined'}
-                  startIcon={<FilterListIcon />}
+                  startIcon={<UnifiedIcon name="filter" size={20} />}
                   onClick={() => setShowFilters(!showFilters)}
-                  sx={{
-                    whiteSpace: 'nowrap',
-                    minWidth: isMobile ? 'calc(50% - 4px)' : 'auto',
-                    flex: isMobile ? 1 : 'none',
-                  }}
+                  className={cn(
+                    "whitespace-nowrap",
+                    isMobile ? "w-[calc(50%-8px)] flex-1" : "w-auto"
+                  )}
                   size={isMobile ? 'small' : 'medium'}
                 >
                   {isMobile
                     ? `Filtre${hasActiveFilters ? ` (${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`
                     : `Filtre ${hasActiveFilters ? `(${Object.values({ searchQuery, filterVehicle, filterCompany, filterType, filterStatus }).filter(Boolean).length})` : ''}`}
-                </Button>
+                </UnifiedButton>
 
                 {/* Clear Filters Button */}
                 {hasActiveFilters && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<CloseIcon />}
+                  <UnifiedButton
+                    variant="outline"
+                    startIcon={<UnifiedIcon name="close" size={20} />}
                     onClick={clearFilters}
                     color="secondary"
-                    sx={{
-                      whiteSpace: 'nowrap',
-                      minWidth: isMobile ? '100%' : 'auto',
-                      order: isMobile ? 3 : 'unset',
-                    }}
+                    className={cn(
+                      "whitespace-nowrap",
+                      isMobile ? "w-full" : "w-auto"
+                    )}
                     size={isMobile ? 'small' : 'medium'}
                     fullWidth={isMobile}
                   >
                     {isMobile ? 'Zrušiť filtre' : 'Zrušiť'}
-                  </Button>
+                  </UnifiedButton>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Responsive Advanced filters */}
             {showFilters && (
               <>
-                <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
-                <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Vozidlo</InputLabel>
-                      <Select
-                        value={filterVehicle}
-                        label="Vozidlo"
-                        onChange={e => setFilterVehicle(e.target.value)}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: isMobile ? 200 : 300,
-                            },
-                          },
-                        }}
-                      >
-                        <MenuItem value="">Všetky vozidlá</MenuItem>
-                        {vehicles?.map(vehicle => (
-                          <MenuItem key={vehicle.id} value={vehicle.id}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                flexDirection: isMobile ? 'column' : 'row',
-                                alignItems: isMobile ? 'flex-start' : 'center',
-                                gap: isMobile ? 0 : 1,
-                                width: '100%',
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
-                                {vehicle.brand} {vehicle.model}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {vehicle.licensePlate}
-                              </Typography>
-                            </Box>
-                          </MenuItem>
-                        )) || []}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Typ dokumentu</InputLabel>
-                      <Select
-                        value={filterType}
-                        label="Typ dokumentu"
-                        onChange={e => setFilterType(e.target.value)}
-                      >
-                        <MenuItem value="">Všetky typy</MenuItem>
-                        <MenuItem value="insurance_pzp">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <SecurityIcon sx={{ fontSize: 16 }} />
-                            Poistka - PZP
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="insurance_kasko">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <SecurityIcon sx={{ fontSize: 16 }} />
-                            Poistka - Kasko
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="insurance_pzp_kasko">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <SecurityIcon sx={{ fontSize: 16 }} />
-                            Poistka - PZP + Kasko
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="stk">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <BuildIcon sx={{ fontSize: 16 }} />
-                            STK
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="ek">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <AssignmentIcon sx={{ fontSize: 16 }} />
-                            EK
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="vignette">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <HighwayIcon sx={{ fontSize: 16 }} />
-                            Dialničná
-                          </Box>
-                        </MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Spoločnosť</InputLabel>
-                      <Select
-                        value={filterCompany}
-                        label="Spoločnosť"
-                        onChange={e => setFilterCompany(e.target.value)}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: isMobile ? 200 : 300,
-                            },
-                          },
-                        }}
-                      >
-                        <MenuItem value="">Všetky spoločnosti</MenuItem>
-                        {Array.from(
-                          new Set(
-                            unifiedDocuments.map(d => d.company).filter(Boolean)
-                          )
-                        ).map(company => (
-                          <MenuItem key={company} value={company}>
-                            <Typography variant="body2" noWrap>
-                              {company}
-                            </Typography>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                      <InputLabel>Stav</InputLabel>
-                      <Select
-                        value={filterStatus}
-                        label="Stav"
-                        onChange={e => setFilterStatus(e.target.value)}
-                      >
-                        <MenuItem value="">Všetky stavy</MenuItem>
-                        <MenuItem value="valid">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <CheckCircleIcon
-                              sx={{ fontSize: 16, color: 'success.main' }}
-                            />
-                            Platné
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="expiring">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <ScheduleIcon
-                              sx={{ fontSize: 16, color: 'warning.main' }}
-                            />
-                            Vypršia čoskoro
-                          </Box>
-                        </MenuItem>
-                        <MenuItem value="expired">
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <ErrorIcon
-                              sx={{ fontSize: 16, color: 'error.main' }}
-                            />
-                            Vypršané
-                          </Box>
-                        </MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
+                <Separator className={cn(isMobile ? "my-4" : "my-6")} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <UnifiedSelect
+                    value={filterVehicle}
+                    onChange={(value: string | string[]) => setFilterVehicle(Array.isArray(value) ? value[0] || '' : value)}
+                    options={[
+                      { value: '', label: 'Všetky vozidlá' },
+                      ...(vehicles?.map(vehicle => ({
+                        value: vehicle.id,
+                        label: `${vehicle.brand} ${vehicle.model}`,
+                        description: vehicle.licensePlate
+                      })) || [])
+                    ]}
+                    placeholder="Vozidlo"
+                    fullWidth
+                    size={isMobile ? 'sm' : 'default'}
+                  />
+                  <UnifiedSelect
+                    value={filterType}
+                    onChange={(value: string | string[]) => setFilterType(Array.isArray(value) ? value[0] || '' : value)}
+                    options={[
+                      { value: '', label: 'Všetky typy' },
+                      { 
+                        value: 'insurance_pzp', 
+                        label: 'Poistka - PZP',
+                        icon: <UnifiedIcon name="security" size={16} />
+                      },
+                      { 
+                        value: 'insurance_kasko', 
+                        label: 'Poistka - Kasko',
+                        icon: <UnifiedIcon name="security" size={16} />
+                      },
+                      { 
+                        value: 'insurance_pzp_kasko', 
+                        label: 'Poistka - PZP + Kasko',
+                        icon: <UnifiedIcon name="security" size={16} />
+                      },
+                      { 
+                        value: 'stk', 
+                        label: 'STK',
+                        icon: <UnifiedIcon name="build" size={16} />
+                      },
+                      { 
+                        value: 'ek', 
+                        label: 'EK',
+                        icon: <UnifiedIcon name="assignment" size={16} />
+                      },
+                      { 
+                        value: 'vignette', 
+                        label: 'Dialničná',
+                        icon: <UnifiedIcon name="truck" size={16} />
+                      }
+                    ]}
+                    placeholder="Typ dokumentu"
+                    fullWidth
+                    size={isMobile ? 'sm' : 'default'}
+                  />
+                  <UnifiedSelect
+                    value={filterCompany}
+                    onChange={(value: string | string[]) => setFilterCompany(Array.isArray(value) ? value[0] || '' : value)}
+                    options={[
+                      { value: '', label: 'Všetky spoločnosti' },
+                      ...Array.from(
+                        new Set(
+                          unifiedDocuments.map(d => d.company).filter(Boolean)
+                        )
+                      ).map(company => ({
+                        value: company || '',
+                        label: company || ''
+                      }))
+                    ]}
+                    placeholder="Spoločnosť"
+                    fullWidth
+                    size={isMobile ? 'sm' : 'default'}
+                  />
+                  <UnifiedSelect
+                    value={filterStatus}
+                    onChange={(value: string | string[]) => setFilterStatus(Array.isArray(value) ? value[0] || '' : value)}
+                    options={[
+                      { value: '', label: 'Všetky stavy' },
+                      { 
+                        value: 'valid', 
+                        label: 'Platné',
+                        icon: <UnifiedIcon name="success" size={16} className="text-green-600" />
+                      },
+                      { 
+                        value: 'expiring', 
+                        label: 'Vypršia čoskoro',
+                        icon: <UnifiedIcon name="clock" size={16} className="text-orange-600" />
+                      },
+                      { 
+                        value: 'expired', 
+                        label: 'Vypršané',
+                        icon: <UnifiedIcon name="error" size={16} className="text-red-600" />
+                      }
+                    ]}
+                    placeholder="Stav"
+                    fullWidth
+                    size={isMobile ? 'sm' : 'default'}
+                  />
+                </div>
               </>
             )}
-          </CardContent>
-        </Card>
+        </UnifiedCard>
       )}
 
       {/* Alerts */}
       {activeTab === 0 && overallStats.expiredDocs > 0 && (
-        <Alert severity="error" sx={{ mb: 3 }} icon={<WarningIcon />}>
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Pozor! {overallStats.expiredDocs} dokumentov už vypršalo
-          </Typography>
+        <Alert variant="destructive" className="mb-6">
+          <UnifiedIcon name="warning" size={20} />
+          <AlertTitle>
+            <UnifiedTypography variant="body1" className="font-semibold">
+              Pozor! {overallStats.expiredDocs} dokumentov už vypršalo
+            </UnifiedTypography>
+          </AlertTitle>
         </Alert>
       )}
 
       {activeTab === 0 && overallStats.expiringDocs > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }} icon={<ScheduleIcon />}>
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Upozornenie: {overallStats.expiringDocs} dokumentov vyprší čoskoro
-          </Typography>
+        <Alert className="mb-6 border-orange-200 bg-orange-50 text-orange-800">
+          <UnifiedIcon name="clock" size={20} />
+          <AlertTitle>
+            <UnifiedTypography variant="body1" className="font-semibold">
+              Upozornenie: {overallStats.expiringDocs} dokumentov vyprší čoskoro
+            </UnifiedTypography>
+          </AlertTitle>
         </Alert>
       )}
 
       {/* Vehicle List */}
       {activeTab === 0 && (
-        <Box sx={{ mb: 3 }}>
+        <div className="mb-6">
           {sortedVehicles.map(vehicleGroup => (
             <VehicleCard
               key={vehicleGroup.vehicle.id}
@@ -1629,58 +1302,61 @@ export default function VehicleCentricInsuranceList() {
 
           {/* Loading indicator */}
           {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center p-4">
+              <Spinner size={32} />
+            </div>
           )}
 
           {/* Load more button */}
           {hasMore && !loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <Button variant="outlined" onClick={loadMore}>
+            <div className="flex justify-center p-4">
+              <UnifiedButton variant="outline" onClick={loadMore}>
                 Načítať viac ({totalCount - insurances.length} zostáva)
-              </Button>
-            </Box>
+              </UnifiedButton>
+            </div>
           )}
 
           {/* Error handling */}
           {error && (
-            <Alert severity="error" sx={{ m: 2 }}>
-              {error instanceof Error ? error.message : String(error)}
+            <Alert variant="destructive" className="m-4">
+              <UnifiedIcon name="error" size={20} />
+              <AlertTitle>
+                {error instanceof Error ? error.message : String(error)}
+              </AlertTitle>
             </Alert>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Empty State */}
       {activeTab === 0 && sortedVehicles.length === 0 && !loading && (
-        <Card sx={{ textAlign: 'center', py: 6, mt: 3 }}>
-          <CardContent>
-            <SecurityIcon
-              sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
-            />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {hasActiveFilters
-                ? 'Žiadne vozidlá nevyhovujú filtrom'
-                : 'Žiadne vozidlá s dokumentmi'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {hasActiveFilters
-                ? 'Skúste zmeniť filtre alebo vyhľadávanie'
-                : 'Začnite pridaním prvého dokumentu'}
-            </Typography>
-            {!hasActiveFilters && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAdd}
-                sx={{ mt: 2 }}
-              >
-                Pridať dokument
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        <UnifiedCard className="text-center py-12 mt-6">
+          <UnifiedIcon
+            name="security"
+            size={64}
+            className="text-muted-foreground mb-4"
+          />
+          <UnifiedTypography variant="h6" color="textSecondary" className="mb-2">
+            {hasActiveFilters
+              ? 'Žiadne vozidlá nevyhovujú filtrom'
+              : 'Žiadne vozidlá s dokumentmi'}
+          </UnifiedTypography>
+          <UnifiedTypography variant="body2" color="textSecondary" className="mb-6">
+            {hasActiveFilters
+              ? 'Skúste zmeniť filtre alebo vyhľadávanie'
+              : 'Začnite pridaním prvého dokumentu'}
+          </UnifiedTypography>
+          {!hasActiveFilters && (
+            <UnifiedButton
+              variant="default"
+              startIcon={<UnifiedIcon name="add" size={20} />}
+              onClick={handleAdd}
+              className="mt-4"
+            >
+              Pridať dokument
+            </UnifiedButton>
+          )}
+        </UnifiedCard>
       )}
 
       {/* Insurance Claims Tab */}
@@ -1688,33 +1364,24 @@ export default function VehicleCentricInsuranceList() {
 
       {/* Floating Action Button for Mobile */}
       {isMobile && (
-        <Fab
-          color="primary"
-          aria-label="add"
+        <UnifiedButton
+          variant="default"
           onClick={handleAdd}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-            },
-          }}
+          className="fixed bottom-6 right-6 bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-full w-14 h-14 p-0 shadow-lg z-50"
+          aria-label="add"
         >
-          <AddIcon />
-        </Fab>
+          <UnifiedIcon name="add" size={24} />
+        </UnifiedButton>
       )}
 
       {/* Document Form Dialog */}
       {activeTab === 0 && (
-        <Dialog
+        <UnifiedDialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
           maxWidth="lg"
           fullWidth
           fullScreen={isMobile}
-          disableRestoreFocus
           keepMounted={false}
         >
           <UnifiedDocumentForm
@@ -1722,9 +1389,9 @@ export default function VehicleCentricInsuranceList() {
             onSave={handleSave}
             onCancel={() => setOpenDialog(false)}
           />
-        </Dialog>
+        </UnifiedDialog>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -1733,8 +1400,8 @@ interface VehicleCardProps {
   vehicleGroup: VehicleWithDocuments;
   expanded: boolean;
   onToggleExpand: () => void;
-  onEditDocument: (doc: UnifiedDocument) => void;
-  onDeleteDocument: (doc: UnifiedDocument) => void;
+  onEditDocument: (_doc: UnifiedDocument) => void;
+  onDeleteDocument: (_doc: UnifiedDocument) => void;
   isMobile: boolean;
   isTablet: boolean;
 }
@@ -1751,93 +1418,68 @@ function VehicleCard({
   const { vehicle, documents, stats } = vehicleGroup;
 
   return (
-    <Card
-      sx={{
-        mb: { xs: 1.5, sm: 2 },
-        boxShadow: stats.hasProblems
-          ? '0 4px 20px rgba(244, 67, 54, 0.15)'
-          : '0 2px 8px rgba(0,0,0,0.1)',
-        border: stats.hasProblems ? '1px solid rgba(244, 67, 54, 0.2)' : 'none',
-        borderRadius: { xs: 2, sm: 3 },
-        transition: 'all 0.2s ease-in-out',
-        overflow: 'hidden',
-        '&:hover': {
-          boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
-          transform: isMobile ? 'none' : 'translateY(-2px)',
-        },
-      }}
+    <InteractiveCard
+      className={cn(
+        "mb-4 overflow-hidden transition-all duration-200",
+        isMobile ? "rounded-lg" : "rounded-xl",
+        stats.hasProblems 
+          ? "shadow-lg border border-red-200 hover:shadow-xl" 
+          : "shadow-md hover:shadow-lg",
+        !isMobile && "hover:-translate-y-0.5"
+      )}
     >
       {/* Responsive Vehicle Header */}
-      <CardContent
-        sx={{
-          cursor: 'pointer',
-          p: { xs: 1.5, sm: 2, md: 3 },
-          '&:hover': {
-            backgroundColor: 'rgba(0,0,0,0.02)',
-          },
-        }}
+      <div
+        className={cn(
+          "cursor-pointer hover:bg-gray-50/50 transition-colors",
+          isMobile ? "p-4" : isTablet ? "p-6" : "p-8"
+        )}
         onClick={onToggleExpand}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: isMobile ? 'flex-start' : 'center',
-            justifyContent: 'space-between',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: { xs: 1.5, sm: 2 },
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: { xs: 1.5, sm: 2 },
-              flex: 1,
-              width: isMobile ? '100%' : 'auto',
-              minWidth: 0,
-            }}
-          >
+        <div className={cn(
+          "flex justify-between",
+          isMobile ? "flex-col items-start gap-4" : "flex-row items-center gap-4"
+        )}>
+          <div className={cn(
+            "flex items-center flex-1 min-w-0",
+            isMobile ? "w-full gap-3" : "gap-4"
+          )}>
             {/* Vehicle Avatar/Icon */}
-            <Avatar
-              sx={{
-                bgcolor: stats.hasProblems ? 'error.main' : 'primary.main',
-                width: { xs: 36, sm: 40, md: 48 },
-                height: { xs: 36, sm: 40, md: 48 },
-                flexShrink: 0,
-              }}
-            >
-              <CarIcon sx={{ fontSize: { xs: 18, sm: 20, md: 24 } }} />
+            <Avatar className={cn(
+              "flex-shrink-0",
+              stats.hasProblems ? "bg-red-600" : "bg-blue-600",
+              isMobile ? "w-9 h-9" : isTablet ? "w-10 h-10" : "w-12 h-12"
+            )}>
+              <AvatarFallback>
+                <UnifiedIcon 
+                  name="car" 
+                  size={isMobile ? 18 : isTablet ? 20 : 24}
+                  className="text-white"
+                />
+              </AvatarFallback>
             </Avatar>
 
             {/* Vehicle Info */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
+            <div className="flex-1 min-w-0">
+              <UnifiedTypography
                 variant={isMobile ? 'subtitle1' : isTablet ? 'h6' : 'h5'}
-                sx={{
-                  fontWeight: 700,
-                  mb: 0.5,
-                  fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
+                className={cn(
+                  "font-bold mb-2 leading-tight overflow-hidden text-ellipsis whitespace-nowrap",
+                  isMobile ? "text-base" : isTablet ? "text-lg" : "text-xl"
+                )}
               >
                 {vehicle.brand} {vehicle.model}
-              </Typography>
-              <Box>
-                <Typography
+              </UnifiedTypography>
+              <div>
+                <UnifiedTypography
                   variant="body2"
-                  color="text.secondary"
-                  sx={{
-                    fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 0.5,
-                    alignItems: 'center',
-                  }}
+                  color="textSecondary"
+                  className={cn(
+                    "flex flex-wrap items-center gap-2",
+                    isMobile ? "text-sm" : "text-sm"
+                  )}
                 >
-                  <span style={{ fontWeight: 600 }}>
+                  <span className="font-semibold">
                     {vehicle.licensePlate}
                   </span>
                   <span>•</span>
@@ -1848,148 +1490,122 @@ function VehicleCard({
                     </>
                   )}
                   <span>{stats.total} dokumentov</span>
-                </Typography>
+                </UnifiedTypography>
                 {isMobile && (
-                  <Typography
+                  <UnifiedTypography
                     variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      display: 'block',
-                      fontSize: '0.75rem',
-                      mt: 0.25,
-                    }}
+                    color="textSecondary"
+                    className="block text-xs mt-1"
                   >
                     VIN: {vehicle.vin || 'Neuvedené'}
-                  </Typography>
+                  </UnifiedTypography>
                 )}
-              </Box>
+              </div>
 
               {/* Next expiry info */}
               {stats.nextExpiry && (
-                <Typography
+                <UnifiedTypography
                   variant="caption"
-                  color="text.secondary"
-                  sx={{
-                    display: 'block',
-                    mt: 0.5,
-                    fontSize: { xs: '0.75rem', sm: '0.75rem' },
-                  }}
+                  color="textSecondary"
+                  className="block mt-2 text-xs"
                 >
                   Najbližšia expirácia:{' '}
                   {format(stats.nextExpiry, 'dd.MM.yyyy', { locale: sk })}
-                </Typography>
+                </UnifiedTypography>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Responsive Status Badges */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: { xs: 0.5, sm: 1 },
-              flexWrap: 'wrap',
-              justifyContent: isMobile ? 'space-between' : 'flex-end',
-              width: isMobile ? '100%' : 'auto',
-            }}
-          >
+          <div className={cn(
+            "flex items-center flex-wrap",
+            isMobile ? "justify-between w-full gap-2" : "justify-end gap-4"
+          )}>
             {/* Status Chips */}
-            <Box
-              sx={{
-                display: 'flex',
-                gap: { xs: 0.5, sm: 1 },
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
+            <div className="flex gap-2 flex-wrap items-center">
               {stats.expired > 0 && (
                 <Badge
-                  badgeContent={stats.expired}
-                  color="error"
-                  sx={{
-                    '& .MuiBadge-badge': {
-                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
-                      minWidth: { xs: 16, sm: 20 },
-                      height: { xs: 16, sm: 20 },
-                    },
-                  }}
+                  variant="destructive"
+                  className={cn(
+                    "flex items-center",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}
                 >
-                  <Chip
+                  <UnifiedChip
                     label={isMobile ? 'Vypršané' : 'Vypršané'}
-                    color="error"
-                    size="small"
-                    icon={<ErrorIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
-                    sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                      height: { xs: 24, sm: 32 },
-                    }}
+                    variant="default"
+                    className="h-8 px-3 text-sm"
+                    icon={<UnifiedIcon name="error" size={isMobile ? 14 : 16} />}
+                    className={cn(
+                      "font-medium bg-red-100 text-red-800",
+                      isMobile ? "text-xs h-6" : "text-sm h-8"
+                    )}
                   />
+                  <span className="ml-1 text-xs font-bold">
+                    {stats.expired}
+                  </span>
                 </Badge>
               )}
               {stats.expiring > 0 && (
                 <Badge
-                  badgeContent={stats.expiring}
-                  color="warning"
-                  sx={{
-                    '& .MuiBadge-badge': {
-                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
-                      minWidth: { xs: 16, sm: 20 },
-                      height: { xs: 16, sm: 20 },
-                    },
-                  }}
+                  variant="secondary"
+                  className={cn(
+                    "flex items-center",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}
                 >
-                  <Chip
+                  <UnifiedChip
                     label={isMobile ? 'Vyprší' : 'Vyprší'}
-                    color="warning"
-                    size="small"
-                    icon={
-                      <ScheduleIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
-                    }
-                    sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                      height: { xs: 24, sm: 32 },
-                    }}
+                    variant="default"
+                    className="h-8 px-3 text-sm"
+                    icon={<UnifiedIcon name="clock" size={isMobile ? 14 : 16} />}
+                    className={cn(
+                      "font-medium bg-orange-100 text-orange-800",
+                      isMobile ? "text-xs h-6" : "text-sm h-8"
+                    )}
                   />
+                  <span className="ml-1 text-xs font-bold">
+                    {stats.expiring}
+                  </span>
                 </Badge>
               )}
               {!stats.hasProblems && (
-                <Chip
+                <UnifiedChip
                   label={isMobile ? 'OK' : 'V poriadku'}
-                  color="success"
-                  size="small"
-                  icon={
-                    <CheckCircleIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
-                  }
-                  sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                    height: { xs: 24, sm: 32 },
-                  }}
+                  variant="default"
+                  className="h-8 px-3 text-sm"
+                  icon={<UnifiedIcon name="check" size={isMobile ? 14 : 16} />}
+                  className={cn(
+                    "font-medium bg-green-100 text-green-800",
+                    isMobile ? "text-xs h-6" : "text-sm h-8"
+                  )}
                 />
               )}
-            </Box>
+            </div>
 
             {/* Expand/Collapse Icon */}
-            <IconButton
-              size="small"
-              sx={{
-                ml: { xs: 0, sm: 1 },
-                p: { xs: 0.5, sm: 1 },
-              }}
+            <UnifiedButton
+              variant="ghost"
+              className="h-8 px-3 text-sm"
+              className={cn(
+                "p-2",
+                isMobile ? "ml-0" : "ml-4"
+              )}
             >
               {expanded ? (
-                <ExpandLessIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                <UnifiedIcon name="chevronUp" size={isMobile ? 20 : 24} />
               ) : (
-                <ExpandMoreIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                <UnifiedIcon name="chevronDown" size={isMobile ? 20 : 24} />
               )}
-            </IconButton>
-          </Box>
-        </Box>
-      </CardContent>
+            </UnifiedButton>
+          </div>
+        </div>
+      </div>
 
       {/* Expandable Documents List */}
-      <Collapse in={expanded} timeout="auto" unmountOnExit>
-        <Divider />
-        <List sx={{ pt: 0 }}>
+      <Collapsible open={expanded}>
+        <Separator />
+        <div className="pt-0">
           {documents.map((doc, index) => (
             <DocumentListItem
               key={`${doc.type}-${doc.id || index}`}
@@ -2000,9 +1616,9 @@ function VehicleCard({
               isLast={index === documents.length - 1}
             />
           ))}
-        </List>
-      </Collapse>
-    </Card>
+        </div>
+      </Collapsible>
+    </InteractiveCard>
   );
 }
 
@@ -2027,80 +1643,57 @@ function DocumentListItem({
 
   return (
     <>
-      <ListItem
-        sx={{
-          py: { xs: 1, sm: 1.5, md: 2 },
-          px: { xs: 1.5, sm: 2, md: 3 },
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'stretch' : 'center',
-          gap: isMobile ? 1 : 0,
-          '&:hover': {
-            backgroundColor: 'rgba(0,0,0,0.02)',
-          },
-        }}
-      >
+      <div className={cn(
+        "flex transition-colors hover:bg-gray-50/50",
+        isMobile ? "flex-col items-stretch gap-4 py-4 px-6" : "flex-row items-center gap-0 py-6 px-8"
+      )}>
         {!isMobile && (
-          <ListItemIcon sx={{ minWidth: { xs: 32, sm: 40 } }}>
-            <Box sx={{ color: typeInfo.color }}>{typeInfo.icon}</Box>
-          </ListItemIcon>
+          <div className="min-w-10 mr-8">
+            <div style={{ color: typeInfo.color }}>{typeInfo.icon}</div>
+          </div>
         )}
 
-        <ListItemText
-          sx={{
-            flex: 1,
-            mr: isMobile ? 0 : 2,
-          }}
-          secondaryTypographyProps={{ component: 'div' }}
-          primary={
-            <span
-              style={{
-                display: 'flex',
-                alignItems: isMobile ? 'flex-start' : 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-                flexDirection: isMobile ? 'column' : 'row',
-              }}
-            >
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                {isMobile && (
-                  <span
-                    style={{
-                      color: typeInfo.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {typeInfo.icon}
-                  </span>
-                )}
-                <Typography
-                  component="span"
-                  variant={isMobile ? 'subtitle2' : 'body1'}
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
+        <div className={cn(
+          "flex-1",
+          isMobile ? "mr-0" : "mr-8"
+        )}>
+          <div className={cn(
+            "flex gap-2 flex-wrap",
+            isMobile ? "flex-col items-start" : "flex-row items-center"
+          )}>
+            <div className="flex items-center gap-2 flex-wrap">
+              {isMobile && (
+                <div
+                  style={{
+                    color: typeInfo.color,
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
                 >
-                  {typeInfo.label}
-                </Typography>
+                  {typeInfo.icon}
+                </div>
+              )}
+              <UnifiedTypography
+                component="span"
+                variant={isMobile ? 'subtitle2' : 'body1'}
+                className={cn(
+                  "font-semibold",
+                  isMobile ? "text-sm" : "text-base"
+                )}
+              >
+                {typeInfo.label}
+              </UnifiedTypography>
                 {(document.policyNumber ||
                   document.documentNumber ||
                   document.kmState) && (
-                  <Typography
+                  <UnifiedTypography
                     component="span"
                     variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      fontFamily: 'monospace',
-                    }}
+                    color="textSecondary"
+                    className={cn(
+                      "font-mono",
+                      isMobile ? "text-xs" : "text-sm"
+                    )}
                   >
                     {document.type === 'stk' || document.type === 'ek'
                       ? document.kmState
@@ -2109,39 +1702,30 @@ function DocumentListItem({
                       : document.type === 'insurance_kasko' && document.kmState
                         ? `${document.kmState.toLocaleString()} km`
                         : document.policyNumber || document.documentNumber}
-                  </Typography>
+                  </UnifiedTypography>
                 )}
-              </span>
-            </span>
-          }
-          secondary={
-            <span
-              style={{ marginTop: isMobile ? '8px' : '4px', display: 'block' }}
-            >
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: isMobile ? 'flex-start' : 'center',
-                  gap: isMobile ? '8px' : '16px',
-                  flexWrap: 'wrap',
-                  flexDirection: isMobile ? 'column' : 'row',
-                }}
-              >
-                {/* Date and Status Row */}
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flexWrap: 'wrap',
-                  }}
+              </div>
+            </div>
+          </div>
+          
+          <div className={cn(
+            "block",
+            isMobile ? "mt-2" : "mt-1"
+          )}>
+            <div className={cn(
+              "flex flex-wrap",
+              isMobile ? "flex-col items-start gap-2" : "flex-row items-center gap-4"
+            )}>
+              {/* Date and Status Row */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <UnifiedTypography
+                  component="span"
+                  variant="body2"
+                  color="textSecondary"
+                  className={cn(
+                    isMobile ? "text-xs" : "text-sm"
+                  )}
                 >
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                  >
                     {(() => {
                       try {
                         const date =
@@ -2151,65 +1735,58 @@ function DocumentListItem({
                         return isValid(date)
                           ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}`
                           : 'Neplatný dátum';
-                      } catch {
+                      } catch (error) {
                         return 'Neplatný dátum';
                       }
                     })()}
-                  </Typography>
+                  </UnifiedTypography>
 
-                  <span style={{ display: 'inline-flex' }}>
-                    <Chip
+                  <span className="inline-flex">
+                    <UnifiedChip
                       label={expiryStatus.text}
-                      color={expiryStatus.color}
-                      size="small"
-                      variant="filled"
-                      sx={{
-                        fontSize: { xs: '0.625rem', sm: '0.75rem' },
-                        height: { xs: 20, sm: 24 },
-                      }}
+                      variant="default"
+                      className="h-8 px-3 text-sm"
+                      className={cn(
+                        isMobile ? "text-xs h-5" : "text-xs h-6",
+                        expiryStatus.status === 'expired' ? "bg-red-100 text-red-800" :
+                        expiryStatus.status === 'expiring' ? "bg-orange-100 text-orange-800" :
+                        "bg-green-100 text-green-800"
+                      )}
                     />
                   </span>
-                </span>
+                </div>
 
                 {/* Company and Price Row */}
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flexWrap: 'wrap',
-                  }}
-                >
+                <div className="flex items-center gap-2 flex-wrap">
                   {document.company && (
-                    <Typography
+                    <UnifiedTypography
                       component="span"
                       variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                        fontWeight: 500,
-                      }}
+                      color="textSecondary"
+                      className={cn(
+                        "font-medium",
+                        isMobile ? "text-xs" : "text-sm"
+                      )}
                     >
                       {document.company}
-                    </Typography>
+                    </UnifiedTypography>
                   )}
 
                   {document.price && (
-                    <Typography
+                    <UnifiedTypography
                       component="span"
                       variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                        fontWeight: 600,
-                        color: 'primary.main',
-                      }}
+                      color="primary"
+                      className={cn(
+                        "font-semibold text-primary",
+                        isMobile ? "text-xs" : "text-sm"
+                      )}
                     >
                       €{document.price.toFixed(2)}
-                    </Typography>
+                    </UnifiedTypography>
                   )}
-                </span>
-              </span>
+                </div>
+              </div>
 
               {/* Green Card info for insurance */}
               {(document.type === 'insurance_pzp' ||
@@ -2218,25 +1795,18 @@ function DocumentListItem({
                 document.originalData &&
                 'greenCardValidTo' in document.originalData &&
                 document.originalData.greenCardValidTo && (
-                  <span
-                    style={{
-                      marginTop: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <Typography
+                  <div className="mt-2 flex items-center gap-2">
+                    <UnifiedTypography
                       component="span"
                       variant="caption"
-                      color="text.secondary"
+                      color="textSecondary"
                     >
                       🟢 Biela karta:
-                    </Typography>
-                    <Typography
+                    </UnifiedTypography>
+                    <UnifiedTypography
                       component="span"
                       variant="caption"
-                      color="text.secondary"
+                      color="textSecondary"
                     >
                       {(() => {
                         try {
@@ -2248,30 +1818,25 @@ function DocumentListItem({
                           return isValid(date)
                             ? format(date, 'dd.MM.yyyy', { locale: sk })
                             : 'Neplatný';
-                        } catch {
+                        } catch (error) {
                           return 'Neplatný';
                         }
                       })()}
-                    </Typography>
-                    <span style={{ display: 'inline-flex' }}>
-                      <Chip
-                        label={
-                          getExpiryStatus(
-                            document.originalData.greenCardValidTo,
-                            'greencard'
-                          ).text
-                        }
-                        color={
-                          getExpiryStatus(
-                            document.originalData.greenCardValidTo,
-                            'greencard'
-                          ).color
-                        }
-                        size="small"
-                        variant="outlined"
-                      />
+                    </UnifiedTypography>
+                    <span className="inline-flex">
+                    <UnifiedChip
+                      label={
+                        getExpiryStatus(
+                          document.originalData.greenCardValidTo,
+                          'greencard'
+                        ).text
+                      }
+                      variant="default"
+                      className="h-8 px-3 text-sm"
+                      className="border border-gray-300"
+                    />
                     </span>
-                  </span>
+                  </div>
                 )}
 
               {/* Files */}
@@ -2282,115 +1847,101 @@ function DocumentListItem({
 
                 if (filePaths.length > 0) {
                   return (
-                    <span
-                      style={{
-                        marginTop: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <FileIcon
-                        sx={{ fontSize: 16, color: 'text.secondary' }}
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <UnifiedIcon
+                        name="file"
+                        size={16}
+                        className="text-muted-foreground"
                       />
                       {filePaths.length === 1 ? (
-                        <Button
-                          size="small"
-                          variant="text"
+                        <UnifiedButton
+                          className="h-8 px-3 text-sm"
+                          variant="ghost"
                           onClick={() => window.open(filePaths[0], '_blank')}
-                          sx={{ minWidth: 'auto', p: 0.5 }}
+                          className="min-w-auto p-2"
                         >
                           Zobraziť súbor
-                        </Button>
+                        </UnifiedButton>
                       ) : (
-                        <span style={{ display: 'inline-flex' }}>
-                          <Chip
+                        <span className="inline-flex">
+                          <UnifiedChip
                             label={`${filePaths.length} súborov`}
-                            size="small"
-                            variant="outlined"
+                            className="h-8 px-3 text-sm"
+                            variant="default"
                             onClick={() => {
                               // ZIP download logic here
                               console.log('Download ZIP for files:', filePaths);
                             }}
-                            sx={{ cursor: 'pointer' }}
+                            className="cursor-pointer border border-gray-300"
                           />
                         </span>
                       )}
-                    </span>
+                    </div>
                   );
                 }
                 return null;
               })()}
-            </span>
-          }
-        />
+            </div>
 
         {/* Responsive Action Buttons */}
         {isMobile ? (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 0.5,
-              mt: 1,
-              width: '100%',
-            }}
-          >
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<EditIcon />}
+          <div className="flex justify-end gap-2 mt-4 w-full">
+            <UnifiedButton
+              className="h-8 px-3 text-sm"
+              variant="outline"
+              startIcon={<UnifiedIcon name="edit" size={16} />}
               onClick={onEdit}
-              sx={{
-                minWidth: 'auto',
-                px: 1.5,
-                fontSize: '0.75rem',
-              }}
+              className="min-w-auto px-3 text-xs"
             >
               Upraviť
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
+            </UnifiedButton>
+            <UnifiedButton
+              className="h-8 px-3 text-sm"
+              variant="outline"
               color="error"
-              startIcon={<DeleteIcon />}
+              startIcon={<UnifiedIcon name="delete" size={16} />}
               onClick={onDelete}
-              sx={{
-                minWidth: 'auto',
-                px: 1.5,
-                fontSize: '0.75rem',
-              }}
+              className="min-w-auto px-3 text-xs"
             >
               Vymazať
-            </Button>
-          </Box>
+            </UnifiedButton>
+          </div>
         ) : (
-          <ListItemSecondaryAction>
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Tooltip title="Upraviť">
-                <IconButton
-                  size="small"
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <UnifiedButton
+                  variant="ghost"
+                  className="h-8 px-3 text-sm"
                   onClick={onEdit}
-                  sx={{ color: 'primary.main' }}
+                  className="text-primary p-2"
                 >
-                  <EditIcon sx={{ fontSize: { sm: 18, md: 20 } }} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Vymazať">
-                <IconButton
-                  size="small"
+                  <UnifiedIcon name="edit" size={18} />
+                </UnifiedButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Upraviť</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <UnifiedButton
+                  variant="ghost"
+                  className="h-8 px-3 text-sm"
                   onClick={onDelete}
-                  sx={{ color: 'error.main' }}
+                  className="text-error p-2"
                 >
-                  <DeleteIcon sx={{ fontSize: { sm: 18, md: 20 } }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </ListItemSecondaryAction>
+                  <UnifiedIcon name="delete" size={18} />
+                </UnifiedButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vymazať</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         )}
-      </ListItem>
-      {!isLast && <Divider variant="inset" component="li" />}
+      </div>
+      {!isLast && <Separator className="mx-6" />}
     </>
   );
 }

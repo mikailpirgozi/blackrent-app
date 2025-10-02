@@ -1,64 +1,42 @@
 import {
   CheckCircle as ApproveIcon,
   Archive as ArchiveIcon,
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
   CheckCircle,
-  Delete as DeleteIcon,
-  Email as EmailIcon,
+  Trash2 as DeleteIcon,
+  Mail as EmailIcon,
   Euro as EuroIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  LocationOn as LocationIcon,
+  ChevronUp as ExpandLessIcon,
+  ChevronDown as ExpandMoreIcon,
+  MapPin as LocationIcon,
   // Edit as EditIcon,
-  NotificationsNone as NotificationIcon,
-  Schedule as PendingIcon,
-  Person as PersonIcon,
-  Refresh as RefreshIcon,
-  Cancel as RejectIcon,
-  PlayArrow as StartIcon,
-  Stop as StopIcon,
+  Clock as PendingIcon,
+  User as PersonIcon,
+  RefreshCw as RefreshIcon,
+  X as RejectIcon,
+  Play as StartIcon,
+  Square as StopIcon,
   // Settings as SettingsIcon,
   CheckCircle as TestIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Grid,
-  IconButton,
-  MenuItem,
-  Pagination,
-  Paper,
-  Stack,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
-  TextField,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+  Eye as ViewIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
+import { Avatar } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Separator } from '../ui/separator';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '../ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Typography } from '../ui/typography';
+import { Spinner } from '../ui/spinner';
+import { useEffect, useState } from 'react';
 
 import {
   useArchiveEmail,
@@ -126,12 +104,13 @@ interface EmailDetail {
 }
 
 const EmailManagementDashboard: React.FC = () => {
-  // Theme and responsive hooks
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
+  // Responsive design will be handled with Tailwind CSS classes
+  // md: breakpoint for mobile, sm: for small mobile, lg: for tablet
+  
+  // Responsive breakpoints
+  const isExtraSmall = false; // sm: breakpoint
+  const isSmallMobile = false; // xs: breakpoint  
+  const isMobile = false; // md: breakpoint
 
   // Tabs state
   const [activeTab, setActiveTab] = useState(0);
@@ -167,9 +146,30 @@ const EmailManagementDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [senderFilter, setSenderFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  
   const [totalPages] = useState(1);
-  const [totalEmails] = useState(0);
   const pageSize = 20;
+  
+  // Email filters for React Query
+  const emailFilters: EmailFilters = {
+    ...(statusFilter && statusFilter !== 'all-statuses' && { status: statusFilter }),
+    ...(senderFilter && { sender: senderFilter }),
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
+  };
+  
+  // Main emails query
+  const {
+    data: emails = [],
+    isLoading: loading,
+    error: emailsError,
+    refetch: refetchEmails,
+  } = useEmailManagement(emailFilters);
+
+  const typedEmails = emails as unknown as EmailEntry[];
+
+  // Calculated values
+  const totalEmails = typedEmails?.length || 0;
 
   // Pending Rentals State - React Query
   const {
@@ -200,24 +200,6 @@ const EmailManagementDashboard: React.FC = () => {
 
   const archivedEmails = (archivedEmailsData?.emails as EmailEntry[]) || [];
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
-
-  // Email filters for React Query
-  const emailFilters: EmailFilters = {
-    status: statusFilter || undefined,
-    sender: senderFilter || undefined,
-    limit: pageSize,
-    offset: (currentPage - 1) * pageSize,
-  };
-
-  // Main emails query
-  const {
-    data: emails = [],
-    isLoading: loading,
-    error: emailsError,
-    refetch: refetchEmails,
-  } = useEmailManagement(emailFilters);
-
-  const typedEmails = emails as unknown as EmailEntry[];
 
   // Dialogs
   const [viewDialog, setViewDialog] = useState<{
@@ -354,7 +336,7 @@ const EmailManagementDashboard: React.FC = () => {
       setActionLoading(emailId);
       await archiveEmailMutation.mutateAsync(emailId);
       setSuccess('Email archivovaný!');
-      setTimeout(() => setSuccess(null), 3000);
+      window.setTimeout(() => setSuccess(null), 3000);
     } catch (error: unknown) {
       console.error('Archive email error:', error);
       setError('Chyba pri archivovaní emailu');
@@ -781,11 +763,11 @@ const EmailManagementDashboard: React.FC = () => {
   const getStatusChip = (status: string, actionTaken?: string) => {
     const getColor = () => {
       if (status === 'processed' && actionTaken === 'approved')
-        return 'success';
-      if (status === 'rejected') return 'error';
-      if (status === 'archived') return 'default';
-      if (status === 'new') return 'warning';
-      return 'info';
+        return 'default';
+      if (status === 'rejected') return 'destructive';
+      if (status === 'archived') return 'secondary';
+      if (status === 'new') return 'outline';
+      return 'default';
     };
 
     const getLabel = () => {
@@ -797,482 +779,289 @@ const EmailManagementDashboard: React.FC = () => {
       return status;
     };
 
-    return <Chip label={getLabel()} color={getColor()} size="small" />;
+    return <Badge variant={getColor()} className="text-sm">{getLabel()}</Badge>;
   };
 
   return (
-    <Box
-      sx={{
-        p: isExtraSmall ? 1 : isSmallMobile ? 2 : 3,
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-      }}
-    >
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems={isMobile ? 'flex-start' : 'center'}
-        mb={3}
-        flexDirection={isSmallMobile ? 'column' : 'row'}
-        gap={isSmallMobile ? 2 : 0}
-      >
+    <div className={`p-${isExtraSmall ? '1' : isSmallMobile ? '2' : '3'} min-h-screen bg-background`}>
+      <div className={`flex justify-between items-${isMobile ? 'start' : 'center'} mb-3 flex-${isSmallMobile ? 'col' : 'row'} gap-${isSmallMobile ? '2' : '0'}`}>
         <Typography
           variant={isExtraSmall ? 'h5' : isSmallMobile ? 'h4' : 'h4'}
-          gutterBottom={!isSmallMobile}
-          sx={{
-            fontSize: isExtraSmall
-              ? '1.25rem'
-              : isSmallMobile
-                ? '1.5rem'
-                : undefined,
-            textAlign: isSmallMobile ? 'center' : 'left',
-            width: isSmallMobile ? '100%' : 'auto',
-          }}
+          className={`${!isSmallMobile ? 'mb-4' : ''} text-${isExtraSmall ? 'xl' : isSmallMobile ? '2xl' : '2xl'} text-${isSmallMobile ? 'center' : 'left'} ${isSmallMobile ? 'w-full' : 'w-auto'}`}
         >
           📧 Email Management Dashboard
         </Typography>
-        <Box
-          display="flex"
-          gap={isExtraSmall ? 0.5 : 1}
-          alignItems="center"
-          flexWrap={isMobile ? 'wrap' : 'nowrap'}
-          justifyContent={isSmallMobile ? 'center' : 'flex-end'}
-          width={isSmallMobile ? '100%' : 'auto'}
-        >
+        <div className={`flex gap-${isExtraSmall ? '0.5' : '1'} items-center flex-${isMobile ? 'wrap' : 'nowrap'} justify-${isSmallMobile ? 'center' : 'end'} ${isSmallMobile ? 'w-full' : 'w-auto'}`}>
           {/* IMAP Status Chip */}
           {imapStatus && (
-            <Chip
-              icon={<EmailIcon />}
-              label={
+            <Badge
+              variant={
                 imapStatus.enabled
                   ? imapStatus.running
-                    ? 'IMAP Beží'
-                    : 'IMAP Zastavený'
-                  : 'IMAP Vypnutý'
+                    ? 'default'
+                    : 'secondary'
+                  : 'outline'
               }
-              color={
-                imapStatus.enabled
-                  ? imapStatus.running
-                    ? 'success'
-                    : 'warning'
-                  : 'default'
-              }
-              size="small"
-              sx={{ mr: 1 }}
-            />
+              className="mr-1"
+            >
+              <EmailIcon className="w-4 h-4 mr-1" />
+              {imapStatus.enabled
+                ? imapStatus.running
+                  ? 'IMAP Beží'
+                  : 'IMAP Zastavený'
+                : 'IMAP Vypnutý'}
+            </Badge>
           )}
 
           {/* IMAP Control Buttons */}
-          <Tooltip title="Test IMAP pripojenia">
-            <span>
-              <Button
-                variant="outlined"
-                size={isExtraSmall ? 'small' : 'small'}
-                startIcon={!isExtraSmall && <TestIcon />}
-                onClick={testImapConnection}
-                disabled={imapLoading || !imapStatus?.enabled}
-                sx={{
-                  minWidth: 'auto',
-                  px: isExtraSmall ? 0.5 : 1,
-                  fontSize: isExtraSmall ? '0.75rem' : undefined,
-                }}
-              >
-                {isExtraSmall ? 'T' : 'Test'}
-              </Button>
-            </span>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size={isExtraSmall ? 'sm' : 'sm'}
+                  onClick={testImapConnection}
+                  disabled={imapLoading || !imapStatus?.enabled}
+                  className={`min-w-auto px-${isExtraSmall ? '0.5' : '1'} text-${isExtraSmall ? 'xs' : 'sm'}`}
+                >
+                  {!isExtraSmall && <TestIcon className="w-4 h-4 mr-1" />}
+                  {isExtraSmall ? 'T' : 'Test'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Test IMAP pripojenia</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           {imapStatus?.enabled && (
             <>
               {!imapStatus.running ? (
-                <Tooltip title="Spustiť IMAP monitoring">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={!isExtraSmall && <StartIcon />}
-                      onClick={startImapMonitoring}
-                      disabled={imapLoading}
-                      color="success"
-                      sx={{
-                        minWidth: 'auto',
-                        px: isExtraSmall ? 0.5 : 1,
-                        fontSize: isExtraSmall ? '0.75rem' : undefined,
-                      }}
-                    >
-                      {isExtraSmall ? 'S' : 'Spusiť'}
-                    </Button>
-                  </span>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={startImapMonitoring}
+                        disabled={imapLoading}
+                        className={`min-w-auto px-${isExtraSmall ? '0.5' : '1'} text-${isExtraSmall ? 'xs' : 'sm'} bg-green-50 border-green-200 text-green-700 hover:bg-green-100`}
+                      >
+                        {!isExtraSmall && <StartIcon className="w-4 h-4 mr-1" />}
+                        {isExtraSmall ? 'S' : 'Spusiť'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Spustiť IMAP monitoring</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               ) : (
-                <Tooltip title="Zastaviť IMAP monitoring">
-                  <span>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={!isExtraSmall && <StopIcon />}
-                      onClick={stopImapMonitoring}
-                      disabled={imapLoading}
-                      color="error"
-                      sx={{
-                        minWidth: 'auto',
-                        px: isExtraSmall ? 0.5 : 1,
-                        fontSize: isExtraSmall ? '0.75rem' : undefined,
-                      }}
-                    >
-                      {isExtraSmall ? 'Z' : 'Zastaviť'}
-                    </Button>
-                  </span>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={stopImapMonitoring}
+                        disabled={imapLoading}
+                        className={`min-w-auto px-${isExtraSmall ? '0.5' : '1'} text-${isExtraSmall ? 'xs' : 'sm'} bg-red-50 border-red-200 text-red-700 hover:bg-red-100`}
+                      >
+                        {!isExtraSmall && <StopIcon className="w-4 h-4 mr-1" />}
+                        {isExtraSmall ? 'Z' : 'Zastaviť'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Zastaviť IMAP monitoring</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </>
           )}
 
           <Button
-            variant="outlined"
-            startIcon={!isExtraSmall && <RefreshIcon />}
+            variant="outline"
             onClick={() => {
               refetchEmails();
               refetchImapStatus();
               refetchPendingRentals();
             }}
             disabled={loading}
-            size={isSmallMobile ? 'small' : 'medium'}
-            sx={{
-              fontSize: isExtraSmall ? '0.75rem' : undefined,
-              px: isExtraSmall ? 1 : undefined,
-            }}
+            size={isSmallMobile ? 'sm' : 'default'}
+            className={`text-${isExtraSmall ? 'xs' : 'sm'} px-${isExtraSmall ? '1' : 'default'}`}
           >
+            {!isExtraSmall && <RefreshIcon className="w-4 h-4 mr-1" />}
             {isExtraSmall ? 'R' : 'Obnoviť'}
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
+        <Alert variant="destructive" className="mb-2">
+          <AlertDescription>
+            {error}
+            <button 
+              onClick={() => setError(null)}
+              className="ml-2 text-sm underline"
+            >
+              Zavrieť
+            </button>
+          </AlertDescription>
         </Alert>
       )}
 
       {success && (
-        <Alert
-          severity="success"
-          sx={{ mb: 2 }}
-          onClose={() => setSuccess(null)}
-        >
-          {success}
+        <Alert className="mb-2">
+          <AlertDescription>
+            {success}
+            <button 
+              onClick={() => setSuccess(null)}
+              className="ml-2 text-sm underline"
+            >
+              Zavrieť
+            </button>
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Statistics Cards */}
       {stats && (
-        <Grid container spacing={isExtraSmall ? 1 : isMobile ? 2 : 3} mb={3}>
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                minHeight: isExtraSmall ? '80px' : '100px',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 2,
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: isExtraSmall ? 1 : isMobile ? 1.5 : 2,
-                  '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                }}
-              >
+        <div className={`grid grid-cols-2 md:grid-cols-4 gap-${isExtraSmall ? '1' : isMobile ? '2' : '3'} mb-3`}>
+          <div className="col-span-1">
+            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
+              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
-                  color="primary"
-                  sx={{
-                    fontSize: isExtraSmall
-                      ? '0.75rem'
-                      : isMobile
-                        ? '0.875rem'
-                        : undefined,
-                    mb: 0.5,
-                    fontWeight: 500,
-                  }}
+                  className={`text-primary text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
                 >
                   {isExtraSmall ? '📬' : '📬 Celkom'}
                 </Typography>
                 <Typography
                   variant={isExtraSmall ? 'h6' : isMobile ? 'h5' : 'h4'}
-                  fontWeight="bold"
-                  sx={{
-                    fontSize: isExtraSmall ? '1.25rem' : undefined,
-                    lineHeight: 1,
-                  }}
+                  className={`font-bold text-${isExtraSmall ? 'xl' : '2xl'} leading-none`}
                 >
                   {(stats as { today?: { total?: number } })?.today?.total || 0}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                minHeight: isExtraSmall ? '80px' : '100px',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 2,
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: isExtraSmall ? 1 : isMobile ? 1.5 : 2,
-                  '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                }}
-              >
+          </div>
+          <div className="col-span-1">
+            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
+              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
-                  color="success.main"
-                  sx={{
-                    fontSize: isExtraSmall
-                      ? '0.75rem'
-                      : isMobile
-                        ? '0.875rem'
-                        : undefined,
-                    mb: 0.5,
-                    fontWeight: 500,
-                  }}
+                  className={`text-green-600 text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
                 >
                   {isExtraSmall ? '✅' : '✅ Schválené'}
                 </Typography>
                 <Typography
                   variant={isExtraSmall ? 'h6' : isMobile ? 'h5' : 'h4'}
-                  fontWeight="bold"
-                  sx={{
-                    fontSize: isExtraSmall ? '1.25rem' : undefined,
-                    lineHeight: 1,
-                  }}
+                  className={`font-bold text-${isExtraSmall ? 'xl' : '2xl'} leading-none`}
                 >
                   {(stats as { today?: { processed?: number } })?.today
                     ?.processed || 0}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                minHeight: isExtraSmall ? '80px' : '100px',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 2,
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: isExtraSmall ? 1 : isMobile ? 1.5 : 2,
-                  '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                }}
-              >
+          </div>
+          <div className="col-span-1">
+            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
+              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
-                  color="error.main"
-                  sx={{
-                    fontSize: isExtraSmall
-                      ? '0.75rem'
-                      : isMobile
-                        ? '0.875rem'
-                        : undefined,
-                    mb: 0.5,
-                    fontWeight: 500,
-                  }}
+                  className={`text-red-600 text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
                 >
                   {isExtraSmall ? '❌' : '❌ Zamietnuté'}
                 </Typography>
                 <Typography
                   variant={isExtraSmall ? 'h6' : isMobile ? 'h5' : 'h4'}
-                  fontWeight="bold"
-                  sx={{
-                    fontSize: isExtraSmall ? '1.25rem' : undefined,
-                    lineHeight: 1,
-                  }}
+                  className={`font-bold text-${isExtraSmall ? 'xl' : '2xl'} leading-none`}
                 >
                   {(stats as { today?: { rejected?: number } })?.today
                     ?.rejected || 0}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={6} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                minHeight: isExtraSmall ? '80px' : '100px',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 2,
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: isExtraSmall ? 1 : isMobile ? 1.5 : 2,
-                  '&:last-child': { pb: isExtraSmall ? 1 : isMobile ? 1.5 : 2 },
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                }}
-              >
+          </div>
+          <div className="col-span-1">
+            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
+              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
-                  color="warning.main"
-                  sx={{
-                    fontSize: isExtraSmall
-                      ? '0.75rem'
-                      : isMobile
-                        ? '0.875rem'
-                        : undefined,
-                    mb: 0.5,
-                    fontWeight: 500,
-                  }}
+                  className={`text-yellow-600 text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
                 >
                   {isExtraSmall ? '⏳' : '⏳ Čakajúce'}
                 </Typography>
                 <Typography
                   variant={isExtraSmall ? 'h6' : isMobile ? 'h5' : 'h4'}
-                  fontWeight="bold"
-                  sx={{
-                    fontSize: isExtraSmall ? '1.25rem' : undefined,
-                    lineHeight: 1,
-                  }}
+                  className={`font-bold text-${isExtraSmall ? 'xl' : '2xl'} leading-none`}
                 >
                   {(stats as { today?: { pending?: number } })?.today
                     ?.pending || 0}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {/* IMAP Configuration Info */}
       {imapStatus && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent sx={{ p: isExtraSmall ? 2 : 3 }}>
-            <Typography
-              variant={isSmallMobile ? 'subtitle1' : 'h6'}
-              gutterBottom
-              sx={{
-                fontSize: isExtraSmall ? '1rem' : undefined,
-                textAlign: isSmallMobile ? 'center' : 'left',
-              }}
-            >
-              📧 IMAP Konfigurácia
-            </Typography>
-            <Grid container spacing={isSmallMobile ? 2 : 2}>
-              <Grid item xs={12} sm={6} md={4}>
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={1}
-                  justifyContent={isSmallMobile ? 'center' : 'flex-start'}
-                  flexDirection={isExtraSmall ? 'column' : 'row'}
+        <Card className="mb-6">
+          <CardContent className={isExtraSmall ? "p-4" : "p-6"}>
+                <h3 className={`${isSmallMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4 ${isExtraSmall ? 'text-base' : ''} ${isSmallMobile ? 'text-center' : 'text-left'}`}>
+                  📧 IMAP Konfigurácia
+                </h3>
+            <div className={`grid grid-cols-1 gap-${isSmallMobile ? '4' : '4'}`}>
+              <div className="col-span-1">
+                <div
+                  className={`flex items-center gap-2 ${isSmallMobile ? 'justify-center' : 'justify-start'} ${isExtraSmall ? 'flex-col' : 'flex-row'}`}
                 >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-                  >
+                  <p className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''}`}>
                     Status:
-                  </Typography>
-                  <Chip
-                    label={
+                  </p>
+                  <Badge
+                    variant={
                       imapStatus.enabled
                         ? imapStatus.running
-                          ? 'Beží'
-                          : 'Zastavený'
-                        : 'Vypnutý'
+                          ? 'default'
+                          : 'secondary'
+                        : 'destructive'
                     }
-                    color={
-                      imapStatus.enabled
-                        ? imapStatus.running
-                          ? 'success'
-                          : 'warning'
-                        : 'default'
-                    }
-                    size={isExtraSmall ? 'small' : 'small'}
-                    sx={{ fontSize: isExtraSmall ? '0.75rem' : undefined }}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Box textAlign={isSmallMobile ? 'center' : 'left'}>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      fontSize: isExtraSmall ? '0.875rem' : undefined,
-                      wordBreak: 'break-word',
-                    }}
+                    className={isExtraSmall ? 'text-xs' : ''}
                   >
+                    {imapStatus.enabled
+                      ? imapStatus.running
+                        ? 'Beží'
+                        : 'Zastavený'
+                      : 'Vypnutý'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="col-span-1">
+                <div className={isSmallMobile ? 'text-center' : 'text-left'}>
+                  <p className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''} break-words`}>
                     Server:{' '}
                     <strong>
                       {imapStatus.config?.host || 'Nekonfigurovaný'}
                     </strong>
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={12} md={4}>
-                <Box textAlign={isSmallMobile ? 'center' : 'left'}>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      fontSize: isExtraSmall ? '0.875rem' : undefined,
-                      wordBreak: 'break-word',
-                    }}
-                  >
+                  </p>
+                </div>
+              </div>
+              <div className="col-span-12 md:col-span-4">
+                <div className={isSmallMobile ? 'text-center' : 'text-left'}>
+                  <p className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''} break-words`}>
                     Používateľ:{' '}
                     <strong>
                       {imapStatus.config?.user || 'Nekonfigurovaný'}
                     </strong>
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
+                  </p>
+                </div>
+              </div>
+            </div>
             {!imapStatus.enabled && (
-              <Alert
-                severity="info"
-                sx={{
-                  mt: 2,
-                  fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  '& .MuiAlert-message': {
-                    fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  },
-                }}
-              >
+              <Alert className={`mt-4 ${isExtraSmall ? 'text-sm' : ''}`}>
                 IMAP monitoring je vypnutý. Skontrolujte konfiguráciu v
                 backend/.env súbore.
               </Alert>
@@ -1282,183 +1071,74 @@ const EmailManagementDashboard: React.FC = () => {
       )}
 
       {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: isExtraSmall ? 2 : isMobile ? 2 : 3 }}>
-          <Typography
-            variant={isExtraSmall ? 'body1' : isMobile ? 'subtitle1' : 'h6'}
-            gutterBottom
-            sx={{
-              fontSize: isExtraSmall ? '1rem' : undefined,
-              textAlign: isSmallMobile ? 'center' : 'left',
-              fontWeight: 600,
-            }}
-          >
+      <Card className="mb-3">
+        <CardContent className={`p-${isExtraSmall ? '2' : isMobile ? '2' : '3'}`}>
+          <h3 className={`mb-4 text-${isExtraSmall ? 'base' : 'lg'} text-${isSmallMobile ? 'center' : 'left'} font-semibold`}>
             🔍 Filtre
-          </Typography>
-          <Grid container spacing={isExtraSmall ? 1.5 : isMobile ? 2 : 2}>
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                select
-                label="Status"
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                fullWidth
-                size={isExtraSmall ? 'small' : isMobile ? 'medium' : 'small'}
-                sx={{
-                  '& .MuiInputLabel-root': {
-                    fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  },
-                  '& .MuiInputBase-input': {
-                    fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  },
-                }}
-              >
-                <MenuItem
-                  value=""
-                  sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-                >
-                  Všetky
-                </MenuItem>
-                <MenuItem
-                  value="new"
-                  sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-                >
-                  Nové
-                </MenuItem>
-                <MenuItem
-                  value="processed"
-                  sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-                >
-                  Spracované
-                </MenuItem>
-                <MenuItem
-                  value="rejected"
-                  sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-                >
-                  Zamietnuté
-                </MenuItem>
-                <MenuItem
-                  value="archived"
-                  sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
-                >
-                  Archivované
-                </MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                label="Odosielateľ"
-                value={senderFilter}
-                onChange={e => setSenderFilter(e.target.value)}
-                fullWidth
-                size={isExtraSmall ? 'small' : isMobile ? 'medium' : 'small'}
-                placeholder={
-                  isExtraSmall ? 'Hľadať...' : 'Hľadať podľa odosielateľa...'
-                }
-                sx={{
-                  '& .MuiInputLabel-root': {
-                    fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  },
-                  '& .MuiInputBase-input': {
-                    fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
+          </h3>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-${isExtraSmall ? '1.5' : isMobile ? '2' : '2'}`}>
+            <div className="col-span-1">
+              <div className="space-y-2">
+                <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className={`text-${isExtraSmall ? 'sm' : 'base'}`}>
+                    <SelectValue placeholder="Vyberte status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-statuses">Všetky</SelectItem>
+                    <SelectItem value="new">Nové</SelectItem>
+                    <SelectItem value="processed">Spracované</SelectItem>
+                    <SelectItem value="rejected">Zamietnuté</SelectItem>
+                    <SelectItem value="archived">Archivované</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="col-span-1">
+              <div className="space-y-2">
+                <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>Odosielateľ</Label>
+                <Input
+                  value={senderFilter}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSenderFilter(e.target.value)}
+                  placeholder={
+                    isExtraSmall ? 'Hľadať...' : 'Hľadať podľa odosielateľa...'
+                  }
+                  className={`text-${isExtraSmall ? 'sm' : 'base'}`}
+                />
+              </div>
+            </div>
+            <div className="col-span-1 md:col-span-1">
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={() => {
                   setStatusFilter('');
                   setSenderFilter('');
                   setCurrentPage(1);
                 }}
-                fullWidth
-                size={isExtraSmall ? 'small' : 'medium'}
-                sx={{
-                  fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  py: isExtraSmall ? 1 : undefined,
-                }}
+                className={`w-full text-${isExtraSmall ? 'sm' : 'base'} py-${isExtraSmall ? '1' : 'default'}`}
               >
                 {isExtraSmall ? 'Vyčistiť' : 'Vyčistiť filtre'}
               </Button>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Tabs Navigation */}
-      <Box
-        sx={{
-          borderBottom: 1,
-          borderColor: 'divider',
-          mb: 3,
-          overflowX: 'auto',
-          '&::-webkit-scrollbar': {
-            height: 4,
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: 2,
-          },
-        }}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={(event, newValue) => setActiveTab(newValue)}
-          aria-label="Email management tabs"
-          variant={isMobile ? 'scrollable' : 'standard'}
-          scrollButtons={isMobile ? 'auto' : false}
-          allowScrollButtonsMobile
-          sx={{
-            minHeight: isExtraSmall ? 40 : 48,
-            '& .MuiTab-root': {
-              minHeight: isExtraSmall ? 40 : 48,
-              fontSize: isExtraSmall
-                ? '0.75rem'
-                : isSmallMobile
-                  ? '0.875rem'
-                  : undefined,
-              padding: isExtraSmall
-                ? '6px 8px'
-                : isSmallMobile
-                  ? '8px 12px'
-                  : undefined,
-              minWidth: isExtraSmall ? 'auto' : undefined,
-            },
-            '& .MuiTabs-flexContainer': {
-              gap: isExtraSmall ? 0.5 : 1,
-            },
-          }}
-        >
-          <Tab
-            label={
-              isExtraSmall
+      <div className="border-b border-border mb-3 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300">
+        <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="w-full">
+          <TabsList className={`grid w-full grid-cols-3 min-h-${isExtraSmall ? '10' : '12'}`}>
+            <TabsTrigger value="0" className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}>
+              {!isExtraSmall && <EmailIcon className="w-4 h-4 mr-1" />}
+              {isExtraSmall
                 ? 'Emaily'
                 : isSmallMobile
                   ? 'História'
-                  : 'História Emailov'
-            }
-            icon={!isExtraSmall ? <EmailIcon /> : undefined}
-            iconPosition={isSmallMobile ? 'top' : 'start'}
-            sx={{
-              '& .MuiTab-iconWrapper': {
-                marginBottom: isSmallMobile ? 0.5 : undefined,
-                marginRight: isSmallMobile ? 0 : undefined,
-              },
-            }}
-          />
-          <Tab
-            label={
-              <Box
-                display="flex"
-                alignItems="center"
-                gap={isExtraSmall ? 0.5 : 1}
-                flexDirection={isSmallMobile ? 'column' : 'row'}
-              >
+                  : 'História Emailov'}
+            </TabsTrigger>
+            <TabsTrigger value="1" className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}>
+              <div className="flex items-center gap-1">
+                {!isExtraSmall && <PendingIcon className="w-4 h-4 mr-1" />}
                 <span>
                   {isExtraSmall
                     ? 'Prenájmy'
@@ -1467,41 +1147,15 @@ const EmailManagementDashboard: React.FC = () => {
                       : 'Čakajúce Prenájmy'}
                 </span>
                 {pendingRentals.length > 0 && (
-                  <Badge
-                    badgeContent={pendingRentals.length}
-                    color="warning"
-                    sx={{
-                      '& .MuiBadge-badge': {
-                        fontSize: isExtraSmall ? '0.625rem' : '0.75rem',
-                        minWidth: isExtraSmall ? 16 : 20,
-                        height: isExtraSmall ? 16 : 20,
-                      },
-                    }}
-                  >
-                    <NotificationIcon
-                      sx={{ fontSize: isExtraSmall ? 16 : 20 }}
-                    />
+                  <Badge variant="secondary" className="ml-1">
+                    {pendingRentals.length}
                   </Badge>
                 )}
-              </Box>
-            }
-            icon={!isExtraSmall ? <PendingIcon /> : undefined}
-            iconPosition={isSmallMobile ? 'top' : 'start'}
-            sx={{
-              '& .MuiTab-iconWrapper': {
-                marginBottom: isSmallMobile ? 0.5 : undefined,
-                marginRight: isSmallMobile ? 0 : undefined,
-              },
-            }}
-          />
-          <Tab
-            label={
-              <Box
-                display="flex"
-                alignItems="center"
-                gap={isExtraSmall ? 0.5 : 1}
-                flexDirection={isSmallMobile ? 'column' : 'row'}
-              >
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="2" className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}>
+              <div className="flex items-center gap-1">
+                {!isExtraSmall && <ArchiveIcon className="w-4 h-4 mr-1" />}
                 <span>
                   {isExtraSmall
                     ? 'Archív'
@@ -1510,149 +1164,88 @@ const EmailManagementDashboard: React.FC = () => {
                       : 'Archív Emailov'}
                 </span>
                 {archivePagination.total > 0 && (
-                  <Badge
-                    badgeContent={archivePagination.total}
-                    color="default"
-                    sx={{
-                      '& .MuiBadge-badge': {
-                        fontSize: isExtraSmall ? '0.625rem' : '0.75rem',
-                        minWidth: isExtraSmall ? 16 : 20,
-                        height: isExtraSmall ? 16 : 20,
-                      },
-                    }}
-                  >
-                    <ArchiveIcon sx={{ fontSize: isExtraSmall ? 16 : 20 }} />
+                  <Badge variant="outline" className="ml-1">
+                    {archivePagination.total}
                   </Badge>
                 )}
-              </Box>
-            }
-            icon={!isExtraSmall ? <ArchiveIcon /> : undefined}
-            iconPosition={isSmallMobile ? 'top' : 'start'}
-            sx={{
-              '& .MuiTab-iconWrapper': {
-                marginBottom: isSmallMobile ? 0.5 : undefined,
-                marginRight: isSmallMobile ? 0 : undefined,
-              },
-            }}
-          />
+              </div>
+            </TabsTrigger>
+          </TabsList>
         </Tabs>
-      </Box>
+      </div>
 
       {/* Tab Content */}
-      {activeTab === 0 && (
-        /* Email Table */
+      <TabsContent value="0">
+        {/* Email Table */}
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <h3 className="text-lg font-semibold mb-4">
               📋 Emaily ({totalEmails} celkom)
-            </Typography>
+            </h3>
 
             {loading ? (
-              <Box display="flex" justifyContent="center" p={3}>
-                <CircularProgress />
-              </Box>
+              <div className="flex justify-center p-6">
+                <Spinner />
+              </div>
             ) : (
               <>
                 {/* Mobile View - Card List */}
                 {isMobile ? (
-                  <Stack spacing={2}>
+                  <div className="space-y-2">
                     {typedEmails.map(email => (
                       <Card
                         key={email.id}
-                        variant="outlined"
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          '&:hover': {
-                            borderColor: 'primary.main',
-                            boxShadow: 1,
-                          },
-                        }}
+                        className="border border-border hover:border-primary hover:shadow-md"
                       >
-                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                        <CardContent className="p-4 last:pb-4">
                           {/* Header - Subject and Status */}
-                          <Box
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="flex-start"
-                            mb={1}
-                          >
-                            <Typography
-                              variant="subtitle2"
-                              sx={{
-                                fontWeight: 600,
-                                flex: 1,
-                                mr: 1,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                              }}
-                            >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold flex-1 mr-2 overflow-hidden text-ellipsis line-clamp-2">
                               {email.subject}
-                            </Typography>
+                            </h4>
                             {getStatusChip(email.status, email.action_taken)}
-                          </Box>
+                          </div>
 
                           {/* Sender and Date */}
-                          <Box
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            mb={2}
-                          >
-                            <Box display="flex" alignItems="center" gap={1}>
+                          <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
                               <Avatar
-                                sx={{
-                                  width: 24,
-                                  height: 24,
-                                  fontSize: '0.75rem',
-                                  bgcolor: 'primary.main',
-                                }}
+                                className="w-6 h-6 text-xs bg-primary text-primary-foreground"
                               >
                                 {email.sender.charAt(0).toUpperCase()}
                               </Avatar>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ fontSize: '0.875rem' }}
-                              >
+                              <p className="text-sm text-muted-foreground">
                                 {email.sender.length > 25
                                   ? `${email.sender.substring(0, 25)}...`
                                   : email.sender}
-                              </Typography>
-                            </Box>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                              </p>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
                               {new Date(email.received_at).toLocaleDateString(
                                 'sk'
                               )}
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
 
                           {/* Order Number */}
                           {email.order_number && (
-                            <Box mb={2}>
-                              <Chip
-                                label={`📋 ${email.order_number}`}
-                                size="small"
-                                variant="outlined"
-                                sx={{ fontSize: '0.75rem' }}
-                              />
-                            </Box>
+                            <div className="mb-4">
+                              <Badge
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                📋 {email.order_number}
+                              </Badge>
+                            </div>
                           )}
 
                           {/* Actions */}
-                          <Box display="flex" gap={1} flexWrap="wrap">
+                          <div className="flex gap-2 flex-wrap">
                             <Button
-                              size="small"
-                              startIcon={<ViewIcon />}
+                              size="sm"
                               onClick={() => viewEmailDetail(email.id)}
-                              variant="outlined"
-                              sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                              variant="outline"
+                              className="min-w-0 text-xs flex items-center gap-2"
                             >
                               Detail
                             </Button>
@@ -1660,34 +1253,24 @@ const EmailManagementDashboard: React.FC = () => {
                             {email.status === 'new' && (
                               <>
                                 <Button
-                                  size="small"
-                                  startIcon={
-                                    actionLoading === email.id ? (
-                                      <CircularProgress size={16} />
-                                    ) : (
-                                      <ApproveIcon />
-                                    )
-                                  }
+                                  size="sm"
                                   onClick={() => approveEmail(email.id)}
                                   disabled={actionLoading === email.id}
-                                  color="success"
-                                  variant="outlined"
-                                  sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                                  variant="outline"
+                                  className="min-w-0 text-xs text-green-600 hover:text-green-700 flex items-center gap-2"
                                 >
                                   Schváliť
                                 </Button>
                                 <Button
-                                  size="small"
-                                  startIcon={<RejectIcon />}
+                                  size="sm"
                                   onClick={() =>
                                     setRejectDialog({
                                       open: true,
                                       emailId: email.id,
                                     })
                                   }
-                                  color="error"
-                                  variant="outlined"
-                                  sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                                  variant="outline"
+                                  className="min-w-0 text-xs text-red-600 hover:text-red-700 flex items-center gap-2"
                                 >
                                   Zamietnuť
                                 </Button>
@@ -1695,308 +1278,286 @@ const EmailManagementDashboard: React.FC = () => {
                             )}
 
                             <Button
-                              size="small"
-                              startIcon={
-                                actionLoading === email.id ? (
-                                  <CircularProgress size={16} />
-                                ) : (
-                                  <ArchiveIcon />
-                                )
-                              }
+                              size="sm"
                               onClick={() => archiveEmail(email.id)}
                               disabled={actionLoading === email.id}
-                              variant="outlined"
-                              sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                              variant="outline"
+                              className="min-w-0 text-xs flex items-center gap-2"
                             >
                               Archív
                             </Button>
-                          </Box>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
-                  </Stack>
+                  </div>
                 ) : (
                   /* Desktop View - Table */
-                  <TableContainer
-                    component={Paper}
-                    elevation={0}
-                    sx={{ overflowX: 'auto' }}
-                  >
-                    <Table stickyHeader>
-                      <TableHead>
+                  <div className="overflow-x-auto border rounded-lg">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell sx={{ minWidth: 200 }}>Predmet</TableCell>
-                          <TableCell sx={{ minWidth: 150 }}>
+                          <TableCell className="min-w-[200px]">Predmet</TableCell>
+                          <TableCell className="min-w-[150px]">
                             Odosielateľ
                           </TableCell>
-                          <TableCell sx={{ minWidth: 120 }}>Prijaté</TableCell>
-                          <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-                          <TableCell sx={{ minWidth: 120 }}>
+                          <TableCell className="min-w-[120px]">Prijaté</TableCell>
+                          <TableCell className="min-w-[100px]">Status</TableCell>
+                          <TableCell className="min-w-[120px]">
                             Objednávka
                           </TableCell>
-                          <TableCell sx={{ minWidth: 200 }}>Akcie</TableCell>
+                          <TableCell className="min-w-[200px]">Akcie</TableCell>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {typedEmails.map(email => (
-                          <TableRow key={email.id} hover>
+                          <TableRow key={email.id} className="hover:bg-muted/50">
                             <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  maxWidth: 250,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                }}
-                              >
+                              <p className="max-w-[250px] overflow-hidden text-ellipsis line-clamp-2">
                                 {email.subject}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ maxWidth: 150 }}
-                                noWrap
-                              >
+                              <p className="max-w-[150px] whitespace-nowrap">
                                 {email.sender}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell>
-                              <Typography variant="body2">
+                              <p className="text-sm">
                                 {new Date(email.received_at).toLocaleString(
                                   'sk'
                                 )}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell>
                               {getStatusChip(email.status, email.action_taken)}
                             </TableCell>
                             <TableCell>
                               {email.order_number ? (
-                                <Chip
-                                  label={email.order_number}
-                                  size="small"
-                                  variant="outlined"
-                                />
-                              ) : (
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
+                                <Badge
+                                  variant="outline"
                                 >
+                                  {email.order_number}
+                                </Badge>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">
                                   -
-                                </Typography>
+                                </p>
                               )}
                             </TableCell>
                             <TableCell>
-                              <Box display="flex" gap={1} flexWrap="wrap">
-                                <Tooltip title="Zobraziť detail">
-                                  <IconButton
-                                    size="small"
+                              <div className="flex gap-2 flex-wrap">
+                                <Tooltip>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => viewEmailDetail(email.id)}
+                                    className="h-8 w-8 p-0"
                                   >
-                                    <ViewIcon />
-                                  </IconButton>
+                                    <ViewIcon className="h-4 w-4" />
+                                  </Button>
                                 </Tooltip>
 
                                 {email.status === 'new' && (
-                                  <Tooltip title="Schváliť">
+                                  <Tooltip>
                                     <span>
-                                      <IconButton
-                                        size="small"
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => approveEmail(email.id)}
                                         disabled={actionLoading === email.id}
-                                        color="success"
+                                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                       >
                                         {actionLoading === email.id ? (
-                                          <CircularProgress size={20} />
+                                          <Spinner className="w-5 h-5" />
                                         ) : (
-                                          <ApproveIcon />
+                                          <ApproveIcon className="h-4 w-4" />
                                         )}
-                                      </IconButton>
+                                      </Button>
                                     </span>
                                   </Tooltip>
                                 )}
 
                                 {email.status === 'new' && (
-                                  <Tooltip title="Zamietnuť">
-                                    <IconButton
-                                      size="small"
+                                  <Tooltip>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() =>
                                         setRejectDialog({
                                           open: true,
                                           emailId: email.id,
                                         })
                                       }
-                                      color="error"
+                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                                     >
-                                      <RejectIcon />
-                                    </IconButton>
+                                      <RejectIcon className="h-4 w-4" />
+                                    </Button>
                                   </Tooltip>
                                 )}
 
-                                <Tooltip title="Archivovať">
+                                <Tooltip>
                                   <span>
-                                    <IconButton
-                                      size="small"
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => archiveEmail(email.id)}
                                       disabled={actionLoading === email.id}
+                                      className="h-8 w-8 p-0"
                                     >
                                       {actionLoading === email.id ? (
-                                        <CircularProgress size={20} />
+                                        <Spinner className="w-5 h-5" />
                                       ) : (
-                                        <ArchiveIcon />
+                                        <ArchiveIcon className="h-4 w-4" />
                                       )}
-                                    </IconButton>
+                                    </Button>
                                   </span>
                                 </Tooltip>
 
-                                <Tooltip title="Zmazať">
+                                <Tooltip>
                                   <span>
-                                    <IconButton
-                                      size="small"
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => deleteEmail(email.id)}
                                       disabled={actionLoading === email.id}
-                                      color="error"
+                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                                     >
                                       {actionLoading === email.id ? (
-                                        <CircularProgress size={20} />
+                                        <Spinner className="w-5 h-5" />
                                       ) : (
-                                        <DeleteIcon />
+                                        <DeleteIcon className="h-4 w-4" />
                                       )}
-                                    </IconButton>
+                                    </Button>
                                   </span>
                                 </Tooltip>
-                              </Box>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  </TableContainer>
+                  </div>
                 )}
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <Box display="flex" justifyContent="center" mt={2}>
-                    <Pagination
-                      count={totalPages}
-                      page={currentPage}
-                      onChange={(_, page) => setCurrentPage(page)}
-                      color="primary"
-                    />
-                  </Box>
+                  <div className="flex justify-center mt-4">
+                    <div className="flex justify-center items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        Predchádzajúca
+                      </Button>
+                      <span className="text-sm">
+                        Strana {currentPage} z {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Ďalšia
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </>
             )}
           </CardContent>
         </Card>
-      )}
+      </TabsContent>
 
       {/* Pending Rentals Tab */}
-      {activeTab === 1 && (
+      <TabsContent value="1">
         <Card>
           <CardContent>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              mb={3}
-            >
-              <Typography variant="h6" gutterBottom>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold mb-4">
                 ⏳ Čakajúce automatické prenájmy ({pendingRentals.length})
-              </Typography>
+              </h3>
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={() => refetchPendingRentals()}
                 disabled={pendingLoading}
-                startIcon={<RefreshIcon />}
+                className="flex items-center gap-2"
               >
                 Obnoviť
               </Button>
-            </Box>
+            </div>
 
             {pendingLoading ? (
-              <Box display="flex" justifyContent="center" p={4}>
-                <CircularProgress />
-              </Box>
+              <div className="flex justify-center p-8">
+                <Spinner />
+              </div>
             ) : pendingRentals.length === 0 ? (
-              <Box textAlign="center" py={6}>
-                <CheckCircle fontSize="large" color="success" sx={{ mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
+              <div className="text-center py-12">
+                <CheckCircle className="w-12 h-12 text-green-600 mb-4" />
+                <h4 className="text-lg font-semibold mb-4">
                   Žiadne čakajúce prenájmy
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
+                </h4>
+                <p className="text-sm text-muted-foreground">
                   Všetky automatické prenájmy boli spracované alebo žiadne ešte
                   nepriišli.
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
-              <Grid container spacing={2}>
+              <div className="grid grid-cols-1 gap-4">
                 {pendingRentals.map(rental => (
-                  <Grid item xs={12} key={rental.id}>
-                    <Card variant="outlined" sx={{ mb: 2 }}>
+                  <div className="col-span-12" key={rental.id}>
+                    <Card className="mb-4 border border-border">
                       <CardContent>
-                        <Box
-                          display="flex"
-                          justifyContent="between"
-                          alignItems="start"
-                        >
-                          <Box flex={1}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
                             {/* Rental Header */}
-                            <Box
-                              display="flex"
-                              justifyContent="between"
-                              alignItems="start"
-                              mb={2}
-                            >
-                              <Box>
-                                <Typography
-                                  variant="h6"
-                                  display="flex"
-                                  alignItems="center"
-                                  gap={1}
-                                >
-                                  <CarIcon color="primary" />
-                                  {rental.vehicleName || 'Neznáme vozidlo'}
-                                  <Chip
-                                    label={rental.vehicleCode}
-                                    size="small"
-                                    variant="outlined"
-                                  />
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                  display="flex"
-                                  alignItems="center"
-                                  gap={1}
-                                >
-                                  <PersonIcon fontSize="small" />
-                                  {rental.customerName}
-                                </Typography>
-                              </Box>
-                              <Box display="flex" gap={1}>
-                                <Tooltip title="Schváliť">
-                                  <IconButton
-                                    color="success"
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                    <CarIcon className="text-primary" />
+                                    <span className="text-lg font-semibold">
+                                      {rental.vehicleName || 'Neznáme vozidlo'}
+                                    </span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {rental.vehicleCode}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <PersonIcon className="w-4 h-4" />
+                                  <span className="text-sm text-muted-foreground">
+                                    {rental.customerName}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                    variant="ghost"
                                     onClick={() =>
                                       handleApproveRental(rental.id)
                                     }
                                     disabled={actionLoading === rental.id}
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                   >
                                     {actionLoading === rental.id ? (
-                                      <CircularProgress size={20} />
+                                      <Spinner className="w-5 h-5" />
                                     ) : (
-                                      <ApproveIcon />
+                                      <ApproveIcon className="h-4 w-4" />
                                     )}
-                                  </IconButton>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Schváliť</p>
+                                  </TooltipContent>
                                 </Tooltip>
-                                <Tooltip title="Zamietnuť">
-                                  <IconButton
-                                    color="error"
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                    variant="ghost"
                                     onClick={() =>
                                       setRejectDialog({
                                         open: true,
@@ -2005,544 +1566,419 @@ const EmailManagementDashboard: React.FC = () => {
                                       })
                                     }
                                     disabled={actionLoading === rental.id}
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                                   >
-                                    <RejectIcon />
-                                  </IconButton>
+                                    <RejectIcon className="h-4 w-4" />
+                                  </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Zamietnuť</p>
+                                  </TooltipContent>
                                 </Tooltip>
-                                <Tooltip title="Rozbaliť detaily">
-                                  <IconButton
+                                <Tooltip>
+                                  <Button
+                                    variant="ghost"
                                     onClick={() =>
                                       toggleRentalExpansion(rental.id)
                                     }
+                                    className="h-8 w-8 p-0"
                                   >
                                     {expandedRentals.has(rental.id) ? (
-                                      <ExpandLessIcon />
+                                      <ExpandLessIcon className="h-4 w-4" />
                                     ) : (
-                                      <ExpandMoreIcon />
+                                      <ExpandMoreIcon className="h-4 w-4" />
                                     )}
-                                  </IconButton>
+                                  </Button>
                                 </Tooltip>
-                              </Box>
-                            </Box>
+                              </div>
+                            </div>
 
                             {/* Basic Info */}
-                            <Grid container spacing={2} mb={2}>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <CalendarIcon
-                                    fontSize="small"
-                                    color="action"
-                                  />
-                                  <Typography variant="body2">
+                            <div className="grid grid-cols-1 gap-4 mb-4">
+                              <div className="col-span-12 sm:col-span-6 md:col-span-3">
+                                <div className="flex items-center gap-2">
+                                  <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                                  <p className="text-sm">
                                     <strong>Od:</strong>{' '}
                                     {formatDate(rental.startDate)}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <CalendarIcon
-                                    fontSize="small"
-                                    color="action"
-                                  />
-                                  <Typography variant="body2">
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="col-span-12 sm:col-span-6 md:col-span-3">
+                                <div className="flex items-center gap-2">
+                                  <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                                  <p className="text-sm">
                                     <strong>Do:</strong>{' '}
                                     {formatDate(rental.endDate)}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <EuroIcon fontSize="small" color="action" />
-                                  <Typography variant="body2">
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="col-span-12 sm:col-span-6 md:col-span-3">
+                                <div className="flex items-center gap-2">
+                                  <EuroIcon className="w-4 h-4 text-muted-foreground" />
+                                  <p className="text-sm">
                                     <strong>Cena:</strong>{' '}
                                     {formatCurrency(rental.totalPrice)}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <LocationIcon
-                                    fontSize="small"
-                                    color="action"
-                                  />
-                                  <Typography variant="body2">
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="col-span-12 sm:col-span-6 md:col-span-3">
+                                <div className="flex items-center gap-2">
+                                  <LocationIcon className="w-4 h-4 text-muted-foreground" />
+                                  <p className="text-sm">
                                     <strong>Miesto:</strong>{' '}
                                     {rental.handoverPlace}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                            </Grid>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
 
                             {/* Expanded Details */}
-                            <Collapse in={expandedRentals.has(rental.id)}>
-                              <Divider sx={{ mb: 2 }} />
-                              <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2">
+                            <div className={`transition-all duration-300 ${expandedRentals.has(rental.id) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                              <Separator className="mb-2" />
+                              <div className="grid grid-cols-1 gap-4">
+                                <div className="col-span-12 sm:col-span-6">
+                                  <p className="text-sm">
                                     <strong>Objednávka:</strong>{' '}
                                     {rental.orderNumber}
-                                  </Typography>
-                                  <Typography variant="body2">
+                                  </p>
+                                  <p className="text-sm">
                                     <strong>Email:</strong>{' '}
                                     {rental.customerEmail}
-                                  </Typography>
-                                  <Typography variant="body2">
+                                  </p>
+                                  <p className="text-sm">
                                     <strong>Telefón:</strong>{' '}
                                     {rental.customerPhone}
-                                  </Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2">
+                                  </p>
+                                </div>
+                                <div className="col-span-12 sm:col-span-6">
+                                  <p className="text-sm">
                                     <strong>Denné km:</strong>{' '}
                                     {rental.dailyKilometers}
-                                  </Typography>
-                                  <Typography variant="body2">
+                                  </p>
+                                  <p className="text-sm">
                                     <strong>Záloha:</strong>{' '}
                                     {formatCurrency(rental.deposit || 0)}
-                                  </Typography>
-                                  <Typography variant="body2">
+                                  </p>
+                                  <p className="text-sm">
                                     <strong>Platba:</strong>{' '}
                                     {rental.paymentMethod}
-                                  </Typography>
-                                </Grid>
-                              </Grid>
-                            </Collapse>
-                          </Box>
-                        </Box>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </div>
                 ))}
-              </Grid>
+              </div>
             )}
           </CardContent>
         </Card>
-      )}
+      </TabsContent>
 
       {/* Archive Tab */}
-      {activeTab === 2 && (
+      <TabsContent value="2">
         <Card>
           <CardContent>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems={isMobile ? 'flex-start' : 'center'}
-              mb={3}
-              flexDirection={isMobile ? 'column' : 'row'}
-              gap={isMobile ? 2 : 0}
-            >
-              <Typography variant="h6" gutterBottom={isMobile}>
+            <div className={`flex justify-between items-${isMobile ? 'start' : 'center'} mb-6 flex-${isMobile ? 'col' : 'row'} gap-${isMobile ? '2' : '0'}`}>
+              <h3 className={`text-lg font-semibold ${isMobile ? 'mb-4' : 'mb-0'}`}>
                 📁 Archív emailov ({archivePagination.total})
-              </Typography>
-              <Box
-                display="flex"
-                gap={1}
-                flexWrap="wrap"
-                justifyContent={isMobile ? 'center' : 'flex-end'}
-              >
+              </h3>
+              <div className={`flex gap-2 flex-wrap justify-${isMobile ? 'center' : 'end'}`}>
                 <Button
-                  variant="outlined"
+                  variant="outline"
                   onClick={() => fetchArchivedEmails(0)}
                   disabled={archiveLoading}
-                  startIcon={<RefreshIcon />}
-                  size={isSmallMobile ? 'small' : 'medium'}
+                  className="flex items-center gap-2"
+                  size={isSmallMobile ? 'sm' : 'default'}
                 >
                   {isExtraSmall ? 'Obnoviť' : 'Obnoviť'}
                 </Button>
                 <Button
-                  variant="outlined"
+                  variant="outline"
                   onClick={autoArchiveOldEmails}
                   disabled={actionLoading === 'auto-archive'}
-                  startIcon={
-                    actionLoading === 'auto-archive' ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <ArchiveIcon />
-                    )
-                  }
-                  color="warning"
-                  size={isSmallMobile ? 'small' : 'medium'}
+                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700"
+                  size={isSmallMobile ? 'sm' : 'default'}
                 >
                   {isExtraSmall ? 'Auto' : 'Auto-archív'}
                 </Button>
                 <Button
-                  variant="outlined"
+                  variant="outline"
                   onClick={clearHistoricalEmails}
                   disabled={actionLoading === 'clear-historical'}
-                  startIcon={
-                    actionLoading === 'clear-historical' ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <DeleteIcon />
-                    )
-                  }
-                  color="error"
-                  size={isSmallMobile ? 'small' : 'medium'}
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                  size={isSmallMobile ? 'sm' : 'default'}
                 >
                   {isExtraSmall ? 'Vymazať' : 'Vymazať historické'}
                 </Button>
                 {selectedEmails.size > 0 && (
                   <Button
-                    variant="contained"
+                    variant="default"
                     onClick={bulkArchiveEmails}
                     disabled={actionLoading === 'bulk-archive'}
-                    startIcon={
-                      actionLoading === 'bulk-archive' ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <ArchiveIcon />
-                      )
-                    }
-                    color="primary"
-                    size={isSmallMobile ? 'small' : 'medium'}
+                    size={isSmallMobile ? 'sm' : 'default'}
+                    className="flex items-center gap-2"
                   >
                     {isExtraSmall
                       ? `Archív (${selectedEmails.size})`
                       : `Archivovať (${selectedEmails.size})`}
                   </Button>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {archiveLoading ? (
-              <Box display="flex" justifyContent="center" p={4}>
-                <CircularProgress />
-              </Box>
+              <div className="flex justify-center p-8">
+                <Spinner />
+              </div>
             ) : archivedEmails.length === 0 ? (
-              <Box textAlign="center" py={6}>
-                <ArchiveIcon fontSize="large" color="disabled" sx={{ mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
+              <div className="text-center py-12">
+                <ArchiveIcon className="w-12 h-12 text-gray-400 mb-4" />
+                <h4 className="text-lg font-semibold mb-4">
                   Archív je prázdny
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
+                </h4>
+                <p className="text-sm text-muted-foreground">
                   Žiadne emaily nie sú archivované. Schválené a zamietnuté
                   emaily sa automaticky archivujú po 30 dňoch.
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
               <>
                 {/* Mobile View - Card List */}
                 {isMobile ? (
-                  <Stack spacing={2}>
+                  <div className="space-y-2">
                     {archivedEmails.map(email => (
                       <Card
                         key={email.id}
-                        variant="outlined"
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          '&:hover': {
-                            borderColor: 'primary.main',
-                            boxShadow: 1,
-                          },
-                        }}
+                        className="border border-border hover:border-primary hover:shadow-md"
                       >
-                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                        <CardContent className="p-4 last:pb-4">
                           {/* Header - Subject and Status */}
-                          <Box
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="flex-start"
-                            mb={1}
-                          >
-                            <Typography
-                              variant="subtitle2"
-                              sx={{
-                                fontWeight: 600,
-                                flex: 1,
-                                mr: 1,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                              }}
-                            >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold flex-1 mr-2 overflow-hidden text-ellipsis line-clamp-2">
                               {email.subject}
-                            </Typography>
+                            </h4>
                             {getStatusChip(email.status, email.action_taken)}
-                          </Box>
+                          </div>
 
                           {/* Sender and Date */}
-                          <Box
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            mb={2}
-                          >
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <Avatar
-                                sx={{
-                                  width: 24,
-                                  height: 24,
-                                  fontSize: '0.75rem',
-                                  bgcolor: 'grey.500',
-                                }}
-                              >
+                          <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-6 h-6 text-xs bg-gray-500 text-white">
                                 {email.sender.charAt(0).toUpperCase()}
                               </Avatar>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ fontSize: '0.875rem' }}
-                              >
+                              <p className="text-sm text-muted-foreground">
                                 {email.sender.length > 25
                                   ? `${email.sender.substring(0, 25)}...`
                                   : email.sender}
-                              </Typography>
-                            </Box>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                              </p>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
                               {new Date(email.received_at).toLocaleDateString(
                                 'sk'
                               )}
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
 
                           {/* Order Number */}
                           {email.order_number && (
-                            <Box mb={2}>
-                              <Chip
-                                label={`📋 ${email.order_number}`}
-                                size="small"
-                                variant="outlined"
-                                sx={{ fontSize: '0.75rem' }}
-                              />
-                            </Box>
+                            <div className="mb-4">
+                              <Badge
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                📋 {email.order_number}
+                              </Badge>
+                            </div>
                           )}
 
                           {/* Actions */}
-                          <Box display="flex" gap={1} flexWrap="wrap">
+                          <div className="flex gap-2 flex-wrap">
                             <Button
-                              size="small"
-                              startIcon={<ViewIcon />}
+                              size="sm"
                               onClick={() => viewEmailDetail(email.id)}
-                              variant="outlined"
-                              sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                              variant="outline"
+                              className="min-w-0 text-xs flex items-center gap-2"
                             >
                               Detail
                             </Button>
 
                             <Button
-                              size="small"
-                              startIcon={
-                                actionLoading === email.id ? (
-                                  <CircularProgress size={16} />
-                                ) : (
-                                  <RefreshIcon />
-                                )
-                              }
+                              size="sm"
                               onClick={() => unarchiveEmail(email.id)}
                               disabled={actionLoading === email.id}
-                              color="success"
-                              variant="outlined"
-                              sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
+                              variant="outline"
+                              className="min-w-0 text-xs text-green-600 hover:text-green-700 flex items-center gap-2"
                             >
                               Obnoviť
                             </Button>
-                          </Box>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
-                  </Stack>
+                  </div>
                 ) : (
                   /* Desktop View - Table */
-                  <TableContainer
-                    component={Paper}
-                    elevation={0}
-                    sx={{ overflowX: 'auto' }}
-                  >
-                    <Table stickyHeader>
-                      <TableHead>
+                  <div className="overflow-x-auto border rounded-lg">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell sx={{ minWidth: 200 }}>Predmet</TableCell>
-                          <TableCell sx={{ minWidth: 150 }}>
+                          <TableCell className="min-w-[200px]">Predmet</TableCell>
+                          <TableCell className="min-w-[150px]">
                             Odosielateľ
                           </TableCell>
-                          <TableCell sx={{ minWidth: 120 }}>
+                          <TableCell className="min-w-[120px]">
                             Archivované
                           </TableCell>
-                          <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-                          <TableCell sx={{ minWidth: 120 }}>
+                          <TableCell className="min-w-[100px]">Status</TableCell>
+                          <TableCell className="min-w-[120px]">
                             Objednávka
                           </TableCell>
-                          <TableCell sx={{ minWidth: 150 }}>Akcie</TableCell>
+                          <TableCell className="min-w-[150px]">Akcie</TableCell>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {archivedEmails.map(email => (
-                          <TableRow key={email.id} hover>
+                          <TableRow key={email.id} className="hover:bg-muted/50">
                             <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  maxWidth: 250,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                }}
-                              >
+                              <p className="max-w-[250px] overflow-hidden text-ellipsis line-clamp-2">
                                 {email.subject}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ maxWidth: 150 }}
-                                noWrap
-                              >
+                              <p className="max-w-[150px] whitespace-nowrap">
                                 {email.sender}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell>
-                              <Typography variant="body2">
+                              <p className="text-sm">
                                 {new Date(email.received_at).toLocaleString(
                                   'sk'
                                 )}
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell>
                               {getStatusChip(email.status, email.action_taken)}
                             </TableCell>
                             <TableCell>
                               {email.order_number ? (
-                                <Chip
-                                  label={email.order_number}
-                                  size="small"
-                                  variant="outlined"
-                                />
-                              ) : (
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
+                                <Badge
+                                  variant="outline"
                                 >
+                                  {email.order_number}
+                                </Badge>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">
                                   -
-                                </Typography>
+                                </p>
                               )}
                             </TableCell>
                             <TableCell>
-                              <Box display="flex" gap={1} flexWrap="wrap">
-                                <Tooltip title="Zobraziť detail">
-                                  <IconButton
-                                    size="small"
+                              <div className="flex gap-2 flex-wrap">
+                                <Tooltip>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => viewEmailDetail(email.id)}
+                                    className="h-8 w-8 p-0"
                                   >
-                                    <ViewIcon />
-                                  </IconButton>
+                                    <ViewIcon className="h-4 w-4" />
+                                  </Button>
                                 </Tooltip>
 
-                                <Tooltip title="Obnoviť z archívu">
+                                <Tooltip>
                                   <span>
-                                    <IconButton
-                                      size="small"
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => unarchiveEmail(email.id)}
                                       disabled={actionLoading === email.id}
-                                      color="success"
+                                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                     >
                                       {actionLoading === email.id ? (
-                                        <CircularProgress size={20} />
+                                        <Spinner className="w-5 h-5" />
                                       ) : (
-                                        <RefreshIcon />
+                                        <RefreshIcon className="h-4 w-4" />
                                       )}
-                                    </IconButton>
+                                    </Button>
                                   </span>
                                 </Tooltip>
-                              </Box>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  </TableContainer>
+                  </div>
                 )}
 
                 {/* Pagination */}
                 {archivePagination.total > archivePagination.limit && (
-                  <Box display="flex" justifyContent="center" mt={2}>
-                    <Pagination
-                      count={Math.ceil(
-                        archivePagination.total / archivePagination.limit
-                      )}
-                      page={
-                        Math.floor(
-                          archivePagination.offset / archivePagination.limit
-                        ) + 1
-                      }
-                      onChange={(_, page) =>
-                        fetchArchivedEmails(
-                          (page - 1) * archivePagination.limit
-                        )
-                      }
-                      color="primary"
-                    />
-                  </Box>
+                  <div className="flex justify-center mt-4">
+                    <div className="flex justify-center items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newOffset = Math.max(0, archivePagination.offset - archivePagination.limit);
+                          fetchArchivedEmails(newOffset);
+                        }}
+                        disabled={archivePagination.offset === 0}
+                      >
+                        Predchádzajúca
+                      </Button>
+                      <span className="text-sm">
+                        Strana {Math.floor(archivePagination.offset / archivePagination.limit) + 1} z {Math.ceil(archivePagination.total / archivePagination.limit)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newOffset = archivePagination.offset + archivePagination.limit;
+                          fetchArchivedEmails(newOffset);
+                        }}
+                        disabled={archivePagination.offset + archivePagination.limit >= archivePagination.total}
+                      >
+                        Ďalšia
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </>
             )}
           </CardContent>
         </Card>
-      )}
+      </TabsContent>
 
       {/* View Email Dialog */}
       <Dialog
         open={viewDialog.open}
-        onClose={() => setViewDialog({ open: false, email: null })}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isSmallMobile}
-        PaperProps={{
-          sx: {
-            margin: isSmallMobile ? 0 : isTablet ? 1 : 2,
-            maxHeight: isSmallMobile ? '100vh' : 'calc(100vh - 64px)',
-            borderRadius: isSmallMobile ? 0 : undefined,
-          },
-        }}
+        onOpenChange={(open) => !open && setViewDialog({ open: false, email: null })}
       >
-        <DialogTitle
-          sx={{
-            fontSize: isExtraSmall ? '1.1rem' : undefined,
-            p: isExtraSmall ? 2 : undefined,
-          }}
-        >
-          <Box display="flex" alignItems="center" gap={1}>
-            <EmailIcon sx={{ fontSize: isExtraSmall ? 20 : undefined }} />
-            <Typography variant={isExtraSmall ? 'h6' : 'h5'} component="span">
+        <DialogTitle className={isExtraSmall ? 'text-lg p-4' : 'p-6'}>
+          <div className="flex items-center gap-2">
+            <EmailIcon className={isExtraSmall ? "w-5 h-5" : "w-6 h-6"} />
+            <span className={isExtraSmall ? "text-lg font-semibold" : "text-xl font-semibold"}>
               {isExtraSmall ? 'Detail' : 'Email Detail'}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </DialogTitle>
-        <DialogContent sx={{ p: isExtraSmall ? 2 : undefined }}>
+        <DialogContent className={isExtraSmall ? 'p-4' : 'p-6'}>
           {viewDialog.email && (
-            <Box>
-              <Typography
-                variant={isExtraSmall ? 'subtitle1' : 'h6'}
-                gutterBottom
-                sx={{
-                  fontSize: isExtraSmall ? '1rem' : undefined,
-                  wordBreak: 'break-word',
-                }}
-              >
+            <div>
+              <h4 className={`${isExtraSmall ? 'text-base' : 'text-lg'} font-semibold mb-4 break-words`}>
                 {viewDialog.email.email.subject}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                gutterBottom
-                sx={{
-                  fontSize: isExtraSmall ? '0.875rem' : undefined,
-                  wordBreak: 'break-word',
-                }}
-              >
+              </h4>
+              <p className={`text-sm text-muted-foreground mb-4 break-words ${isExtraSmall ? 'text-xs' : ''}`}>
                 Od: {viewDialog.email.email.sender} |{' '}
                 {new Date(viewDialog.email.email.received_at).toLocaleString(
                   'sk'
                 )}
-              </Typography>
+              </p>
 
               {getStatusChip(
                 viewDialog.email.email.status,
@@ -2550,102 +1986,72 @@ const EmailManagementDashboard: React.FC = () => {
               )}
 
               {viewDialog.email.email.email_content && (
-                <Box mt={2}>
-                  <Typography variant="subtitle2" gutterBottom>
+                <div className="mt-2">
+                  <h5 className="text-sm font-semibold mb-2">
                     Obsah emailu:
-                  </Typography>
-                  <Paper
-                    elevation={1}
-                    sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}
-                  >
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                  </h5>
+                  <div className="p-2 max-h-48 overflow-auto border rounded-lg bg-card">
+                    <p className="text-sm whitespace-pre-wrap">
                       {viewDialog.email.email.email_content.substring(0, 1000)}
                       {viewDialog.email.email.email_content.length > 1000 &&
                         '...'}
-                    </Typography>
-                  </Paper>
-                </Box>
+                    </p>
+                  </div>
+                </div>
               )}
 
               {viewDialog.email.email.parsed_data && (
-                <Box mt={2}>
-                  <Typography variant="subtitle2" gutterBottom>
+                <div className="mt-2">
+                  <h5 className="text-sm font-semibold mb-2">
                     Parsované údaje:
-                  </Typography>
-                  <Paper elevation={1} sx={{ p: 2 }}>
-                    <pre
-                      style={{
-                        fontSize: '12px',
-                        margin: 0,
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
+                  </h5>
+                  <div className="p-2 border rounded-lg bg-card">
+                    <pre className="text-xs m-0 whitespace-pre-wrap">
                       {JSON.stringify(
                         viewDialog.email.email.parsed_data,
                         null,
                         2
                       )}
                     </pre>
-                  </Paper>
-                </Box>
+                  </div>
+                </div>
               )}
 
               {viewDialog.email.actions &&
                 viewDialog.email.actions.length > 0 && (
-                  <Box mt={2}>
-                    <Typography variant="subtitle2" gutterBottom>
+                  <div className="mt-2">
+                    <h5 className="text-sm font-semibold mb-2">
                       História akcií:
-                    </Typography>
+                    </h5>
                     {viewDialog.email.actions.map(action => (
-                      <Box
-                        key={action.id}
-                        display="flex"
-                        justifyContent="space-between"
-                        py={1}
-                      >
-                        <Typography variant="body2">
+                      <div key={action.id} className="flex justify-between py-1">
+                        <p className="text-sm">
                           {action.action} - {action.username}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="text-xs text-muted-foreground">
                           {new Date(action.created_at).toLocaleString('sk')}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                     ))}
-                  </Box>
+                  </div>
                 )}
-            </Box>
+            </div>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogFooter>
           <Button onClick={() => setViewDialog({ open: false, email: null })}>
             Zatvoriť
           </Button>
-        </DialogActions>
+        </DialogFooter>
       </Dialog>
 
       {/* Reject Dialog */}
       <Dialog
         open={rejectDialog.open}
-        onClose={() =>
-          setRejectDialog({ open: false, emailId: null, isRental: false })
-        }
-        fullScreen={isExtraSmall}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            margin: isExtraSmall ? 0 : isSmallMobile ? 1 : 2,
-            borderRadius: isExtraSmall ? 0 : undefined,
-          },
-        }}
+        onOpenChange={(open) => !open && setRejectDialog({ open: false, emailId: null, isRental: false })}
       >
-        <DialogTitle
-          sx={{
-            fontSize: isExtraSmall ? '1.1rem' : undefined,
-            p: isExtraSmall ? 2 : undefined,
-          }}
-        >
-          <Typography variant={isExtraSmall ? 'h6' : 'h5'} component="span">
+        <DialogTitle className={isExtraSmall ? 'text-lg p-4' : 'p-6'}>
+          <span className={isExtraSmall ? 'text-lg font-semibold' : 'text-xl font-semibold'}>
             {rejectDialog.isRental
               ? isExtraSmall
                 ? 'Zamietnuť'
@@ -2653,55 +2059,42 @@ const EmailManagementDashboard: React.FC = () => {
               : isExtraSmall
                 ? 'Zamietnuť'
                 : 'Zamietnuť email'}
-          </Typography>
+          </span>
         </DialogTitle>
-        <DialogContent sx={{ p: isExtraSmall ? 2 : undefined }}>
-          <TextField
-            fullWidth
-            multiline
-            rows={isExtraSmall ? 2 : 3}
-            label={isExtraSmall ? 'Dôvod' : 'Dôvod zamietnutia'}
-            value={rejectReason}
-            onChange={e => setRejectReason(e.target.value)}
-            margin="normal"
-            size={isExtraSmall ? 'small' : 'medium'}
-            sx={{
-              '& .MuiInputLabel-root': {
-                fontSize: isExtraSmall ? '0.875rem' : undefined,
-              },
-              '& .MuiInputBase-input': {
-                fontSize: isExtraSmall ? '0.875rem' : undefined,
-              },
-            }}
-          />
+        <DialogContent className={isExtraSmall ? 'p-4' : 'p-6'}>
+          <div className="space-y-2">
+            <Label className={isExtraSmall ? 'text-sm' : 'text-base'}>
+              {isExtraSmall ? 'Dôvod' : 'Dôvod zamietnutia'}
+            </Label>
+            <textarea
+              value={rejectReason}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRejectReason(e.target.value)}
+              rows={isExtraSmall ? 2 : 3}
+              className={`w-full px-3 py-2 border border-input bg-background rounded-md resize-none ${isExtraSmall ? 'text-sm' : 'text-base'} focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent`}
+            />
+          </div>
         </DialogContent>
-        <DialogActions
-          sx={{
-            p: isExtraSmall ? 2 : undefined,
-            gap: isExtraSmall ? 1 : undefined,
-          }}
-        >
+        <DialogFooter className={`${isExtraSmall ? 'p-4 gap-2' : 'p-6 gap-4'} flex justify-end`}>
           <Button
             onClick={() =>
               setRejectDialog({ open: false, emailId: null, isRental: false })
             }
-            size={isExtraSmall ? 'small' : 'medium'}
-            sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
+            size={isExtraSmall ? 'sm' : 'default'}
+            className={isExtraSmall ? 'text-sm' : 'text-base'}
           >
             {isExtraSmall ? 'Zrušiť' : 'Zrušiť'}
           </Button>
           <Button
             onClick={rejectItem}
-            color="error"
-            variant="contained"
-            size={isExtraSmall ? 'small' : 'medium'}
-            sx={{ fontSize: isExtraSmall ? '0.875rem' : undefined }}
+            variant="destructive"
+            size={isExtraSmall ? 'sm' : 'default'}
+            className={isExtraSmall ? 'text-sm' : 'text-base'}
           >
             {isExtraSmall ? 'Zamietnuť' : 'Zamietnuť'}
           </Button>
-        </DialogActions>
+        </DialogFooter>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

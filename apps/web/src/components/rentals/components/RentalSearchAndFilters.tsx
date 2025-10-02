@@ -1,22 +1,15 @@
 import {
-  Clear as ClearIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  FilterList as FilterListIcon,
-  Search as SearchIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Collapse,
-  InputAdornment,
-  TextField,
-  Typography,
-} from '@mui/material';
-import React from 'react';
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Search,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface RentalSearchAndFiltersProps {
   searchQuery: string;
@@ -44,108 +37,73 @@ export function RentalSearchAndFilters({
   totalCount,
 }: RentalSearchAndFiltersProps) {
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-6">
       {/* Search bar */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2,
-          mb: 2,
-          flexDirection: { xs: 'column', sm: 'row' },
-        }}
-      >
-        <TextField
-          fullWidth
-          placeholder="Hľadať prenájmy (zákazník, vozidlo, ŠPZ, poznámky...)"
-          value={searchQuery}
-          onChange={e => onSearchChange(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              backgroundColor: 'background.paper',
-            },
-          }}
-        />
+      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-10 bg-background"
+            placeholder="Hľadať prenájmy (zákazník, vozidlo, ŠPZ, poznámky...)"
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+          />
+        </div>
 
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            flexShrink: 0,
-            flexDirection: { xs: 'row', sm: 'row' },
-          }}
-        >
+        <div className="flex gap-2 shrink-0">
           <Button
-            variant={showFilters ? 'contained' : 'outlined'}
-            startIcon={showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            endIcon={
-              hasActiveFilters && (
-                <Chip
-                  label={activeFiltersCount}
-                  size="small"
-                  color="primary"
-                  sx={{ ml: 0.5, minWidth: 20, height: 20 }}
-                />
-              )
-            }
+            variant={showFilters ? 'default' : 'outline'}
             onClick={onToggleFilters}
-            sx={{ minWidth: 120 }}
+            className="min-w-[120px] gap-2"
           >
-            <FilterListIcon sx={{ mr: 0.5 }} />
+            <Filter className="h-4 w-4" />
             Filtre
+            {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-1 min-w-[20px] h-5">
+                {activeFiltersCount}
+              </Badge>
+            )}
           </Button>
 
           {hasActiveFilters && (
             <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<ClearIcon />}
+              variant="outline"
               onClick={onClearFilters}
-              size="small"
+              size="sm"
+              className="gap-2"
             >
+              <X className="h-4 w-4" />
               Vymazať
             </Button>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Filter results info */}
       {(hasActiveFilters || searchQuery) && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground">
             Zobrazených: {filteredCount} z {totalCount} prenájmov
             {searchQuery && ` pre "${searchQuery}"`}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Advanced filters */}
-      <Collapse in={showFilters}>
-        <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                mb: 2,
-              }}
-            >
-              <FilterListIcon />
-              Pokročilé filtre
-            </Typography>
-            {filtersComponent}
-          </CardContent>
-        </Card>
-      </Collapse>
-    </Box>
+      <Collapsible open={showFilters}>
+        <CollapsibleContent>
+          <Card className="mb-4 border">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Pokročilé filtre
+              </h3>
+              {filtersComponent}
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }

@@ -1,480 +1,292 @@
-import {
-  Assessment as AssessmentIcon,
-  Euro as EuroIcon,
-  Person as PersonIcon,
-  EmojiEvents as TrophyIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
-import React from 'react';
+import { BarChart3, Euro, User, Trophy } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+interface EmployeeStatistic {
+  employeeName: string;
+  handoverCount: number;
+  returnCount: number;
+  totalProtocols: number;
+  handoverRevenue: number;
+  returnRevenue: number;
+  totalRevenue: number;
+  uniqueRentals: number;
+}
 
 interface EmployeeStats {
-  activeEmployees: number;
+  allEmployees: EmployeeStatistic[];
+  topEmployeesByProtocols: EmployeeStatistic[];
+  topEmployeesByRevenue: EmployeeStatistic[];
+  topEmployeesByHandovers: EmployeeStatistic[];
+  topEmployeesByReturns: EmployeeStatistic[];
   totalProtocols: number;
   totalHandovers: number;
   totalReturns: number;
-  topEmployeesByProtocols: Array<{
-    employeeName: string;
-    totalProtocols: number;
-    handoverCount: number;
-    returnCount: number;
-    uniqueRentals?: number;
-  }>;
-  topEmployeesByRevenue: Array<{
-    employeeName: string;
-    totalRevenue: number;
-  }>;
-  allEmployees: Array<{
-    employeeName: string;
-    totalProtocols: number;
-    handoverCount: number;
-    returnCount: number;
-    uniqueRentals?: number;
-  }>;
+  activeEmployees: number;
+}
+
+interface StatsData {
+  employeeStats: EmployeeStats;
 }
 
 interface EmployeesTabProps {
-  stats: {
-    employeeStats?: EmployeeStats;
-  };
+  stats: StatsData;
   formatPeriod: () => string;
 }
 
-const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
+const EmployeesTab = ({ stats, formatPeriod }: EmployeesTabProps) => {
   return (
-    <Grid container spacing={3}>
+    <div className="grid gap-6">
       {/* Header */}
-      <Grid item xs={12}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 700,
-            mb: 3,
-            color: '#667eea',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <PersonIcon />
+      <div className="col-span-full">
+        <h2 className="text-2xl font-bold mb-6 text-blue-600 flex items-center gap-2">
+          <User className="h-6 w-6" />
           Výkon zamestnancov za obdobie: {formatPeriod()}
-        </Typography>
-      </Grid>
+        </h2>
+      </div>
 
       {/* Employee Statistics Cards */}
       {stats.employeeStats && stats.employeeStats.activeEmployees > 0 ? (
         <>
           {/* Summary Stats */}
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    background:
-                      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                      {stats.employeeStats.totalProtocols}
-                    </Typography>
-                    <Typography variant="body2">Celkovo protokolov</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    background:
-                      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                    color: 'white',
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                      {stats.employeeStats.totalHandovers}
-                    </Typography>
-                    <Typography variant="body2">Odovzdaní</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    background:
-                      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                    color: 'white',
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                      {stats.employeeStats.totalReturns}
-                    </Typography>
-                    <Typography variant="body2">Prebraní</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    background:
-                      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                    color: 'white',
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                      {stats.employeeStats.activeEmployees}
-                    </Typography>
-                    <Typography variant="body2">
-                      Aktívnych zamestnancov
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </Grid>
+          <div className="col-span-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+                <CardContent className="text-center p-6">
+                  <h3 className="text-3xl font-bold mb-2">
+                    {stats.employeeStats.totalProtocols}
+                  </h3>
+                  <p className="text-sm opacity-90">Celkovo protokolov</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-pink-400 to-red-500 text-white shadow-lg">
+                <CardContent className="text-center p-6">
+                  <h3 className="text-3xl font-bold mb-2">
+                    {stats.employeeStats.totalHandovers}
+                  </h3>
+                  <p className="text-sm opacity-90">Odovzdaní</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-lg">
+                <CardContent className="text-center p-6">
+                  <h3 className="text-3xl font-bold mb-2">
+                    {stats.employeeStats.totalReturns}
+                  </h3>
+                  <p className="text-sm opacity-90">Prebraní</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-pink-500 to-yellow-400 text-white shadow-lg">
+                <CardContent className="text-center p-6">
+                  <h3 className="text-3xl font-bold mb-2">
+                    {stats.employeeStats.activeEmployees}
+                  </h3>
+                  <p className="text-sm opacity-90">Aktívnych zamestnancov</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
           {/* Top Employees by Protocols */}
-          <Grid item xs={12} lg={6}>
-            <Card
-              sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', height: '100%' }}
-            >
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 600,
-                    mb: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
-                >
-                  <TrophyIcon />
+          <div className="col-span-full lg:col-span-6">
+            <Card className="shadow-lg h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                  <Trophy className="h-5 w-5" />
                   Top zamestnanci (protokoly)
-                </Typography>
-                <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto">
                   {stats.employeeStats.topEmployeesByProtocols
                     .slice(0, 10)
-                    .map((employee, index: number) => (
-                      <Box
+                    .map((employee: EmployeeStatistic, index: number) => (
+                      <div
                         key={index}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          p: 2,
-                          mb: 1,
-                          bgcolor:
-                            index < 3
-                              ? 'rgba(102, 126, 234, 0.1)'
-                              : 'background.paper',
-                          borderRadius: 2,
-                          border:
-                            index < 3
-                              ? '1px solid rgba(102, 126, 234, 0.2)'
-                              : '1px solid rgba(0,0,0,0.1)',
-                        }}
+                        className={`flex justify-between items-center p-4 mb-2 rounded-lg border ${
+                          index < 3
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-white border-gray-200'
+                        }`}
                       >
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
-                        >
-                          <Box
-                            sx={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: '50%',
-                              bgcolor:
-                                index === 0
-                                  ? '#FFD700'
-                                  : index === 1
-                                    ? '#C0C0C0'
-                                    : index === 2
-                                      ? '#CD7F32'
-                                      : '#667eea',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'white',
-                              fontWeight: 700,
-                            }}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                              index === 0
+                                ? 'bg-yellow-500'
+                                : index === 1
+                                  ? 'bg-gray-400'
+                                  : index === 2
+                                    ? 'bg-amber-600'
+                                    : 'bg-blue-500'
+                            }`}
                           >
                             {index + 1}
-                          </Box>
-                          <Box>
-                            <Typography
-                              variant="body1"
-                              sx={{ fontWeight: 600 }}
-                            >
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">
                               {employee.employeeName}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            </p>
+                            <p className="text-xs text-gray-500">
                               {employee.handoverCount} odovzdaní •{' '}
                               {employee.returnCount} prebraní
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 700, color: '#667eea' }}
-                        >
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-lg font-bold text-blue-600">
                           {employee.totalProtocols}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                     ))}
-                </Box>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
           {/* Top Employees by Revenue */}
-          <Grid item xs={12} lg={6}>
-            <Card
-              sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', height: '100%' }}
-            >
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 600,
-                    mb: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
-                >
-                  <EuroIcon />
+          <div className="col-span-full lg:col-span-6">
+            <Card className="shadow-lg h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                  <Euro className="h-5 w-5" />
                   Top zamestnanci (tržby)
-                </Typography>
-                <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto">
                   {stats.employeeStats.topEmployeesByRevenue
                     .slice(0, 10)
-                    .map((employee, index: number) => (
-                      <Box
+                    .map((employee: EmployeeStatistic, index: number) => (
+                      <div
                         key={index}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          p: 2,
-                          mb: 1,
-                          bgcolor:
-                            index < 3
-                              ? 'rgba(76, 175, 80, 0.1)'
-                              : 'background.paper',
-                          borderRadius: 2,
-                          border:
-                            index < 3
-                              ? '1px solid rgba(76, 175, 80, 0.2)'
-                              : '1px solid rgba(0,0,0,0.1)',
-                        }}
+                        className={`flex justify-between items-center p-4 mb-2 rounded-lg border ${
+                          index < 3
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-white border-gray-200'
+                        }`}
                       >
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
-                        >
-                          <Box
-                            sx={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: '50%',
-                              bgcolor:
-                                index === 0
-                                  ? '#FFD700'
-                                  : index === 1
-                                    ? '#C0C0C0'
-                                    : index === 2
-                                      ? '#CD7F32'
-                                      : '#4CAF50',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'white',
-                              fontWeight: 700,
-                            }}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                              index === 0
+                                ? 'bg-yellow-500'
+                                : index === 1
+                                  ? 'bg-gray-400'
+                                  : index === 2
+                                    ? 'bg-amber-600'
+                                    : 'bg-green-500'
+                            }`}
                           >
                             {index + 1}
-                          </Box>
-                          <Box>
-                            <Typography
-                              variant="body1"
-                              sx={{ fontWeight: 600 }}
-                            >
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">
                               {employee.employeeName}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            </p>
+                            <p className="text-xs text-gray-500">
                               Tržby: €{employee.totalRevenue.toLocaleString()}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 700, color: '#4CAF50' }}
-                        >
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-lg font-bold text-green-600">
                           €{employee.totalRevenue?.toLocaleString() || 0}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                     ))}
-                </Box>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
           {/* Detailed Employee Table */}
-          <Grid item xs={12}>
-            <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 600,
-                    mb: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
-                >
-                  <AssessmentIcon />
+          <div className="col-span-full">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                  <BarChart3 className="h-5 w-5" />
                   Detailné štatistiky zamestnancov
-                </Typography>
-                <TableContainer>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
                   <Table>
-                    <TableHead>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>
-                          Zamestnanec
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600 }}>
-                          Protokoly
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600 }}>
-                          Odovzdania
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600 }}>
-                          Prebrania
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>
-                          Tržby
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600 }}>
-                          Prenájmy
-                        </TableCell>
+                        <TableHead className="font-semibold">Zamestnanec</TableHead>
+                        <TableHead className="text-center font-semibold">Protokoly</TableHead>
+                        <TableHead className="text-center font-semibold">Odovzdania</TableHead>
+                        <TableHead className="text-center font-semibold">Prebrania</TableHead>
+                        <TableHead className="text-right font-semibold">Tržby</TableHead>
+                        <TableHead className="text-center font-semibold">Prenájmy</TableHead>
                       </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                       {stats.employeeStats.allEmployees
-                        .sort((a, b) => b.totalProtocols - a.totalProtocols)
-                        .map((employee, index: number) => (
+                        .sort((a: EmployeeStatistic, b: EmployeeStatistic) => b.totalProtocols - a.totalProtocols)
+                        .map((employee: EmployeeStatistic, index: number) => (
                           <TableRow
                             key={index}
-                            sx={{
-                              '&:nth-of-type(odd)': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              },
-                            }}
+                            className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
                           >
                             <TableCell>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                }}
-                              >
-                                <PersonIcon color="primary" />
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 600 }}
-                                >
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-blue-600" />
+                                <span className="font-semibold text-sm">
                                   {employee.employeeName}
-                                </Typography>
-                              </Box>
+                                </span>
+                              </div>
                             </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={employee.totalProtocols}
-                                color="primary"
-                                size="small"
-                              />
+                            <TableCell className="text-center">
+                              <Badge variant="default" className="bg-blue-600">
+                                {employee.totalProtocols}
+                              </Badge>
                             </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={employee.handoverCount}
-                                color="secondary"
-                                size="small"
-                              />
+                            <TableCell className="text-center">
+                              <Badge variant="secondary">
+                                {employee.handoverCount}
+                              </Badge>
                             </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={employee.returnCount}
-                                color="info"
-                                size="small"
-                              />
+                            <TableCell className="text-center">
+                              <Badge variant="outline">
+                                {employee.returnCount}
+                              </Badge>
                             </TableCell>
-                            <TableCell align="right">
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, color: '#4CAF50' }}
-                              >
+                            <TableCell className="text-right">
+                              <span className="font-semibold text-green-600">
                                 N/A
-                              </Typography>
+                              </span>
                             </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">
+                            <TableCell className="text-center">
+                              <span className="text-sm">
                                 {employee.uniqueRentals || 0}
-                              </Typography>
+                              </span>
                             </TableCell>
                           </TableRow>
                         ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         </>
       ) : (
-        <Grid item xs={12}>
-          <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <PersonIcon
-                sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
-              />
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+        <div className="col-span-full">
+          <Card className="shadow-lg">
+            <CardContent className="text-center py-8">
+              <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">
                 Žiadne protokoly za vybrané obdobie
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h3>
+              <p className="text-sm text-gray-500">
                 V tomto období neboli vytvorené žiadne protokoly odovzdávania
                 alebo preberania vozidiel.
-              </Typography>
+              </p>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
       )}
-    </Grid>
+    </div>
   );
 };
 

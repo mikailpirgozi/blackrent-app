@@ -21,7 +21,7 @@ interface UseLazyImageReturn {
   hasError: boolean;
   isInView: boolean;
   retry: () => void;
-  imageRef: React.RefObject<HTMLImageElement>;
+  imageRef: React.RefObject<HTMLImageElement | null>;
 }
 
 export const useLazyImage = (
@@ -45,7 +45,7 @@ export const useLazyImage = (
 
   const imageRef = useRef<HTMLImageElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Preload image
   const loadImage = useCallback(async () => {
@@ -73,7 +73,7 @@ export const useLazyImage = (
         // Set timeout as fallback
         loadTimeoutRef.current = setTimeout(() => {
           reject(new Error('Image load timeout'));
-        }, fallbackDelay) as unknown as NodeJS.Timeout;
+        }, fallbackDelay);
 
         img.src = imageSrc;
       });
@@ -154,7 +154,7 @@ export const useLazyImage = (
     // Create observer
     observerRef.current = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           console.log('🎯 Image in view, starting lazy load:', imageSrc);
           setIsInView(true);
 

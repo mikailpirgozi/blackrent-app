@@ -1,25 +1,19 @@
+// Lucide icons (replacing MUI icons)
 import {
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  FilterList as FilterListIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Card,
-  CardContent,
-  Checkbox,
-  Chip,
-  Collapse,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
+  ChevronUp as ExpandLessIcon,
+  ChevronDown as ExpandMoreIcon,
+  Filter as FilterListIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { memo } from 'react';
 
 import type { PaymentMethod, Vehicle } from '../../types';
@@ -135,257 +129,221 @@ const RentalFilters = memo<RentalFiltersProps>(
     ].filter(filter => filter !== '').length;
 
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card className="mb-4">
         <CardContent>
           {/* Mobile filter toggle */}
           {isMobile && (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 2,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <FilterListIcon />
-                <Typography variant="h6">Filtre</Typography>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <FilterListIcon className="w-5 h-5" />
+                <h3 className="text-lg font-semibold">Filtre</h3>
                 {activeFiltersCount > 0 && (
-                  <Chip
-                    label={activeFiltersCount}
-                    size="small"
-                    color="primary"
-                  />
+                  <Badge variant="default">
+                    {activeFiltersCount}
+                  </Badge>
                 )}
-              </Box>
-              <IconButton
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowFiltersMobile(!showFiltersMobile)}
-                size="small"
               >
-                {showFiltersMobile ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-            </Box>
+                {showFiltersMobile ? <ExpandLessIcon className="w-4 h-4" /> : <ExpandMoreIcon className="w-4 h-4" />}
+              </Button>
+            </div>
           )}
 
           {/* Priority Filters */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold mb-2">
               Prioritné filtre
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showAll}
-                    onChange={e => setShowAll(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Zobraziť všetko"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showActive}
-                    onChange={e => setShowActive(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Aktívne"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showTodayReturns}
-                    onChange={e => setShowTodayReturns(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Dnešné vrátenia"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showTomorrowReturns}
-                    onChange={e => setShowTomorrowReturns(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Zajtrajšie vrátenia"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showUnconfirmed}
-                    onChange={e => setShowUnconfirmed(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Nepotvrdené"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showFuture}
-                    onChange={e => setShowFuture(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Budúce"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showOldConfirmed}
-                    onChange={e => setShowOldConfirmed(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Staré potvrdené"
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showConfirmed}
-                    onChange={e => setShowConfirmed(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label="Potvrdené"
-              />
-            </Box>
-          </Box>
+            </h4>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-all"
+                  checked={showAll}
+                  onCheckedChange={setShowAll}
+                />
+                <Label htmlFor="show-all" className="text-sm">Zobraziť všetko</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-active"
+                  checked={showActive}
+                  onCheckedChange={setShowActive}
+                />
+                <Label htmlFor="show-active" className="text-sm">Aktívne</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-today-returns"
+                  checked={showTodayReturns}
+                  onCheckedChange={setShowTodayReturns}
+                />
+                <Label htmlFor="show-today-returns" className="text-sm">Dnešné vrátenia</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-tomorrow-returns"
+                  checked={showTomorrowReturns}
+                  onCheckedChange={setShowTomorrowReturns}
+                />
+                <Label htmlFor="show-tomorrow-returns" className="text-sm">Zajtrajšie vrátenia</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-unconfirmed"
+                  checked={showUnconfirmed}
+                  onCheckedChange={setShowUnconfirmed}
+                />
+                <Label htmlFor="show-unconfirmed" className="text-sm">Nepotvrdené</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-future"
+                  checked={showFuture}
+                  onCheckedChange={setShowFuture}
+                />
+                <Label htmlFor="show-future" className="text-sm">Budúce</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-old-confirmed"
+                  checked={showOldConfirmed}
+                  onCheckedChange={setShowOldConfirmed}
+                />
+                <Label htmlFor="show-old-confirmed" className="text-sm">Staré potvrdené</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-confirmed"
+                  checked={showConfirmed}
+                  onCheckedChange={setShowConfirmed}
+                />
+                <Label htmlFor="show-confirmed" className="text-sm">Potvrdené</Label>
+              </div>
+            </div>
+          </div>
 
           {/* Detailed Filters */}
-          <Collapse in={!isMobile || showFiltersMobile}>
-            <Grid container spacing={2}>
+          <Collapsible open={!isMobile || showFiltersMobile}>
+            <CollapsibleContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Vyhľadať"
+              <div>
+                <Label htmlFor="search-query">Vyhľadať</Label>
+                <Input
+                  id="search-query"
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  size="small"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                   placeholder="Meno zákazníka, ŠPZ, poznámka..."
                 />
-              </Grid>
+              </div>
 
               {/* Vehicle Filter */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Vozidlo</InputLabel>
-                  <Select
-                    value={filterVehicle}
-                    onChange={e => setFilterVehicle(e.target.value)}
-                    label="Vozidlo"
-                  >
-                    <MenuItem value="">Všetky vozidlá</MenuItem>
+              <div>
+                <Label htmlFor="filter-vehicle">Vozidlo</Label>
+                <Select value={filterVehicle} onValueChange={setFilterVehicle}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky vozidlá" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-vehicles">Všetky vozidlá</SelectItem>
                     {vehicles.map(vehicle => (
-                      <MenuItem key={vehicle.id} value={vehicle.id}>
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
                         {vehicle.licensePlate} - {vehicle.brand} {vehicle.model}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Company Filter */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Firma</InputLabel>
-                  <Select
-                    value={filterCompany}
-                    onChange={e => setFilterCompany(e.target.value)}
-                    label="Firma"
-                  >
-                    <MenuItem value="">Všetky firmy</MenuItem>
+              <div>
+                <Label htmlFor="filter-company">Firma</Label>
+                <Select value={filterCompany} onValueChange={setFilterCompany}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky firmy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-companies">Všetky firmy</SelectItem>
                     {companies.map(company => (
-                      <MenuItem key={company} value={company}>
+                      <SelectItem key={company} value={company}>
                         {company}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Customer Filter */}
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Zákazník"
+              <div>
+                <Label htmlFor="filter-customer">Zákazník</Label>
+                <Input
+                  id="filter-customer"
                   value={filterCustomer}
-                  onChange={e => setFilterCustomer(e.target.value)}
-                  size="small"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterCustomer(e.target.value)}
                 />
-              </Grid>
+              </div>
 
               {/* Payment Method Filter */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Spôsob platby</InputLabel>
-                  <Select
-                    value={filterPaymentMethod}
-                    onChange={e => setFilterPaymentMethod(e.target.value)}
-                    label="Spôsob platby"
-                  >
-                    <MenuItem value="">Všetky</MenuItem>
+              <div>
+                <Label htmlFor="filter-payment-method">Spôsob platby</Label>
+                <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-payment-methods">Všetky</SelectItem>
                     {paymentMethods.map(method => (
-                      <MenuItem key={method.value} value={method.value}>
+                      <SelectItem key={method.value} value={method.value}>
                         {method.label}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Paid Status Filter */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Stav platby</InputLabel>
-                  <Select
-                    value={filterPaid}
-                    onChange={e => setFilterPaid(e.target.value)}
-                    label="Stav platby"
-                  >
-                    <MenuItem value="">Všetky</MenuItem>
-                    <MenuItem value="paid">Zaplatené</MenuItem>
-                    <MenuItem value="unpaid">Nezaplatené</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+              <div>
+                <Label htmlFor="filter-paid">Stav platby</Label>
+                <Select value={filterPaid} onValueChange={setFilterPaid}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-payment-statuses">Všetky</SelectItem>
+                    <SelectItem value="paid">Zaplatené</SelectItem>
+                    <SelectItem value="unpaid">Nezaplatené</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Date From */}
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  label="Dátum od"
+              <div>
+                <Label htmlFor="filter-date-from">Dátum od</Label>
+                <Input
+                  id="filter-date-from"
                   type="date"
                   value={filterDateFrom}
-                  onChange={e => setFilterDateFrom(e.target.value)}
-                  size="small"
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateFrom(e.target.value)}
                 />
-              </Grid>
+              </div>
 
               {/* Date To */}
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  label="Dátum do"
+              <div>
+                <Label htmlFor="filter-date-to">Dátum do</Label>
+                <Input
+                  id="filter-date-to"
                   type="date"
                   value={filterDateTo}
-                  onChange={e => setFilterDateTo(e.target.value)}
-                  size="small"
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateTo(e.target.value)}
                 />
-              </Grid>
-            </Grid>
-          </Collapse>
+              </div>
+            </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
     );

@@ -25,12 +25,12 @@ export function parseDate(
     const [, year, month, day, hour, minute, second] = match;
     // Vytvor Date objekt s explicitnými hodnotami - bez timezone konverzie
     return new Date(
-      parseInt(year),
-      parseInt(month) - 1, // Mesiace sú 0-indexed
-      parseInt(day),
-      parseInt(hour),
-      parseInt(minute),
-      parseInt(second)
+      parseInt(year!),
+      parseInt(month!) - 1, // Mesiace sú 0-indexed
+      parseInt(day!),
+      parseInt(hour!),
+      parseInt(minute!),
+      parseInt(second!)
     );
   }
 
@@ -42,12 +42,12 @@ export function parseDate(
     if (isoMatch) {
       const [, year, month, day, hour, minute, second] = isoMatch;
       return new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        parseInt(hour),
-        parseInt(minute),
-        parseInt(second)
+        parseInt(year!),
+        parseInt(month!) - 1,
+        parseInt(day!),
+        parseInt(hour!),
+        parseInt(minute!),
+        parseInt(second!)
       );
     }
   }

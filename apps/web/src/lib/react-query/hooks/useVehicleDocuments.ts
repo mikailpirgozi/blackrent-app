@@ -2,6 +2,9 @@ import { apiService } from '@/services/api';
 import type { VehicleDocument } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+// Declare browser APIs
+declare const CustomEvent: any;
+
 // GET vehicle documents
 export function useVehicleDocuments(vehicleId?: string) {
   return useQuery({
@@ -19,24 +22,24 @@ export function useCreateVehicleDocument() {
   return useMutation({
     mutationFn: (document: VehicleDocument) =>
       apiService.createVehicleDocument(document),
-    onMutate: async newDocument => {
+    onMutate: async _newDocument => {
       await queryClient.cancelQueries({
         queryKey: ['vehicleDocuments'],
       });
 
       const previousDocuments = queryClient.getQueryData([
         'vehicleDocuments',
-        newDocument.vehicleId,
+        _newDocument.vehicleId,
       ]);
 
       const optimisticDocument = {
-        ...newDocument,
+        ..._newDocument,
         id: `temp-${Date.now()}`,
         createdAt: new Date(),
       };
 
       queryClient.setQueryData(
-        ['vehicleDocuments', newDocument.vehicleId],
+        ['vehicleDocuments', _newDocument.vehicleId],
         (old: VehicleDocument[] = []) => [
           ...old,
           optimisticDocument as VehicleDocument,
@@ -54,15 +57,15 @@ export function useCreateVehicleDocument() {
 
       return { previousDocuments };
     },
-    onError: (err, newDocument, context) => {
+    onError: (_err, __newDocument, context) => {
       if (context?.previousDocuments) {
         queryClient.setQueryData(
-          ['vehicleDocuments', newDocument.vehicleId],
+          ['vehicleDocuments', __newDocument.vehicleId],
           context.previousDocuments
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('vehicle-document-created', { detail: variables })
@@ -84,40 +87,40 @@ export function useUpdateVehicleDocument() {
   return useMutation({
     mutationFn: (document: VehicleDocument) =>
       apiService.updateVehicleDocument(document),
-    onMutate: async updatedDocument => {
+    onMutate: async _updatedDocument => {
       await queryClient.cancelQueries({
         queryKey: ['vehicleDocuments'],
       });
 
       const previousDocuments = queryClient.getQueryData([
         'vehicleDocuments',
-        updatedDocument.vehicleId,
+        _updatedDocument.vehicleId,
       ]);
 
       queryClient.setQueryData(
-        ['vehicleDocuments', updatedDocument.vehicleId],
+        ['vehicleDocuments', _updatedDocument.vehicleId],
         (old: VehicleDocument[] = []) =>
-          old.map(d => (d.id === updatedDocument.id ? updatedDocument : d))
+          old.map(d => (d.id === _updatedDocument.id ? _updatedDocument : d))
       );
 
       // Also update the general vehicle documents query
       queryClient.setQueryData(
         ['vehicleDocuments'],
         (old: VehicleDocument[] = []) =>
-          old.map(d => (d.id === updatedDocument.id ? updatedDocument : d))
+          old.map(d => (d.id === _updatedDocument.id ? _updatedDocument : d))
       );
 
       return { previousDocuments };
     },
-    onError: (err, updatedDocument, context) => {
+    onError: (_err, __updatedDocument, context) => {
       if (context?.previousDocuments) {
         queryClient.setQueryData(
-          ['vehicleDocuments', updatedDocument.vehicleId],
+          ['vehicleDocuments', __updatedDocument.vehicleId],
           context.previousDocuments
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('vehicle-document-updated', { detail: variables })
@@ -179,7 +182,7 @@ export function useDeleteVehicleDocument() {
 
       return { previousDocuments, vehicleId };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousDocuments && context?.vehicleId) {
         queryClient.setQueryData(
           ['vehicleDocuments', context.vehicleId],
@@ -187,7 +190,7 @@ export function useDeleteVehicleDocument() {
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('vehicle-document-deleted', {

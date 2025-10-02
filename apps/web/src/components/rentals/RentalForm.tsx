@@ -1,28 +1,18 @@
-import { Close as CloseIcon } from '@mui/icons-material';
-import EditIcon from '@mui/icons-material/Edit';
-import EmailIcon from '@mui/icons-material/Email';
-import PercentIcon from '@mui/icons-material/Percent';
-import PhoneIcon from '@mui/icons-material/Phone';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  Chip,
-  CircularProgress,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import Autocomplete from '@mui/material/Autocomplete';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { Edit2 as EditIcon, Mail as EmailIcon, Percent as PercentIcon, Phone as PhoneIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+
+// MUI imports úspešne odstránené! ✅
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -34,7 +24,7 @@ import {
 } from '@/lib/react-query/hooks/useCustomers';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
-import type {
+import {
   Customer,
   PaymentMethod,
   Rental,
@@ -49,7 +39,7 @@ import EmailParser from './EmailParser';
 
 interface RentalFormProps {
   rental?: Rental | null;
-  onSave: (rental: Rental) => void;
+  onSave: (_rental: Rental) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -98,10 +88,9 @@ export default function RentalForm({
     orderNumber: '',
     // 🔄 OPTIMALIZOVANÉ: Flexibilné prenájmy (zjednodušené)
     isFlexible: false,
-    flexibleEndDate: undefined,
     // 🆕 NOVÉ: Súkromný prenájom mimo platformy
     isPrivateRental: false,
-  });
+  } as Partial<Rental>);
 
   // ═══════════════════════════════════════════════════════════════════
   // 💰 SECTION 2: PRICING & PAYMENT STATE
@@ -185,7 +174,7 @@ export default function RentalForm({
         // 🔄 OPTIMALIZOVANÉ: Nastavenie flexibilných polí z existujúceho prenájmu (zjednodušené)
         isFlexible: rental.isFlexible || false,
         flexibleEndDate: rental.flexibleEndDate,
-      });
+      } as Partial<Rental>);
 
       // 🐛 FIX: Správne nastavenie ceny - odčítaj doplatok za km z celkovej ceny
       const extraKm = rental.extraKmCharge || 0;
@@ -434,10 +423,10 @@ export default function RentalForm({
 
       setEditCustomerDialogOpen(false);
       setEditingCustomer(null);
-      alert('Zákazník bol úspešne upravený!');
+      window.alert('Zákazník bol úspešne upravený!');
     } catch (error) {
       console.error('Chyba pri aktualizácii zákazníka:', error);
-      alert('Chyba pri aktualizácii zákazníka. Skúste to znovu.');
+      window.alert('Chyba pri aktualizácii zákazníka. Skúste to znovu.');
     } finally {
       setSavingCustomer(false);
     }
@@ -470,7 +459,7 @@ export default function RentalForm({
       ...rentalData,
       customerName: rentalData.customerName || prev.customerName,
       orderNumber: rentalData.orderNumber || prev.orderNumber,
-    }));
+    } as Partial<Rental>));
 
     // Nastav selectedVehicle ak bolo parsované vozidlo
     if (rentalData.vehicleId) {
@@ -523,7 +512,7 @@ export default function RentalForm({
       }
     }
 
-    alert('Dáta z emailu boli úspešne načítané do formulára!');
+    window.alert('Dáta z emailu boli úspešne načítané do formulára!');
   };
 
   // NEW: Auto-calculate total kilometers based on daily km and rental duration
@@ -703,20 +692,20 @@ export default function RentalForm({
 
     // Validácia - musí byť zadané meno zákazníka
     if (!formData.customerName?.trim()) {
-      alert('Meno zákazníka je povinné');
+      window.alert('Meno zákazníka je povinné');
       return;
     }
 
     // Validácia - vozidlo musí byť vybrané
     if (!formData.vehicleId?.trim()) {
-      alert('Výber vozidla je povinný');
+      window.alert('Výber vozidla je povinný');
       return;
     }
 
     // 🔄 NOVÁ VALIDÁCIA: Pre flexibilné prenájmy
     if (formData.isFlexible) {
       if (!formData.flexibleEndDate) {
-        alert(
+        window.alert(
           'Pre flexibilný prenájom je potrebné zadať odhadovaný dátum vrátenia'
         );
         return;
@@ -732,7 +721,7 @@ export default function RentalForm({
     } else {
       // Pre štandardné prenájmy je endDate povinné
       if (!formData.endDate) {
-        alert('Dátum ukončenia je povinný pre štandardný prenájom');
+        window.alert('Dátum ukončenia je povinný pre štandardný prenájom');
         return;
       }
     }
@@ -788,12 +777,12 @@ export default function RentalForm({
         return;
       } catch (error) {
         console.error('Chyba pri vytváraní súkromného prenájmu:', error);
-        alert('Chyba pri vytváraní súkromného prenájmu');
+        window.alert('Chyba pri vytváraní súkromného prenájmu');
         return;
       }
     }
 
-    const completeRental: Rental = {
+    const completeRental = {
       id: rental?.id || uuidv4(),
       vehicleId: formData.vehicleId || undefined,
       vehicle: vehicle,
@@ -831,7 +820,7 @@ export default function RentalForm({
       isFlexible: formData.isFlexible || false,
       flexibleEndDate: formData.flexibleEndDate,
     };
-    onSave(completeRental);
+    onSave(completeRental as Rental);
   };
 
   // Removed unused availableVehicles variable
@@ -840,14 +829,9 @@ export default function RentalForm({
   // 🎨 RENDER - MAIN FORM UI
   // ════════════════════════════════════════════════════════════════════════════════
   return (
-    <Box
-      component="form"
+    <form
       onSubmit={handleSubmit}
-      sx={{
-        mt: 2,
-        opacity: isLoading ? 0.6 : 1,
-        pointerEvents: isLoading ? 'none' : 'auto',
-      }}
+      className={`mt-4 ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
     >
       {/* Email Parser komponent */}
       <EmailParser
@@ -856,279 +840,262 @@ export default function RentalForm({
         customers={customers || []}
       />
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 3,
-        }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Vozidlo */}
-        <FormControl fullWidth>
-          <Autocomplete
-            options={vehicleOptions}
-            getOptionLabel={option => option.label}
-            value={
-              vehicleOptions.find(v => v.id === formData.vehicleId) || null
-            }
-            onChange={(_, newValue) => {
-              const vehicleId = newValue ? newValue.id : '';
-              handleInputChange('vehicleId', vehicleId);
-
-              // Nájdi vozidlo a nastav ho
-              if (vehicleId) {
-                const vehicle = vehicles.find(v => v.id === vehicleId);
-                setSelectedVehicle(vehicle || null);
-              } else {
-                setSelectedVehicle(null);
-              }
-
-              // ✅ Povoliť prepočítanie cien pri zmene vozidla
-              setPreserveImportedValues(false);
-            }}
-            renderInput={params => (
-              <TextField {...params} label="Vozidlo" fullWidth required />
-            )}
-          />
-        </FormControl>
+        <div className="flex flex-col space-y-2">
+          <Label htmlFor="vehicle-select">Vozidlo *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="vehicle-select"
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between"
+              >
+                {formData.vehicleId
+                  ? vehicleOptions.find(v => v.id === formData.vehicleId)?.label
+                  : "Vyberte vozidlo..."}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Hľadať vozidlo..." />
+                <CommandEmpty>Žiadne vozidlo nenájdené.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {vehicleOptions.map((option) => (
+                    <CommandItem
+                      key={option.id}
+                      value={option.id}
+                      onSelect={(value) => {
+                        handleInputChange('vehicleId', value);
+                        // Nájdi vozidlo a nastav ho
+                        if (value) {
+                          const vehicle = vehicles.find(v => v.id === value);
+                          setSelectedVehicle(vehicle || null);
+                        } else {
+                          setSelectedVehicle(null);
+                        }
+                        // ✅ Povoliť prepočítanie cien pri zmene vozidla
+                        setPreserveImportedValues(false);
+                      }}
+                    >
+                      {option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {/* Informácia o majiteľovi vozidla */}
         {selectedVehicle && (
-          <Box sx={{ gridColumn: '1 / -1', mt: 1 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          <div className="col-span-full mt-2">
+            <p className="text-sm text-muted-foreground mb-1">
               Informácie o vozidle:
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
-              <Chip
-                label={`Majiteľ: ${selectedVehicle.company}`}
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                label={`ŠPZ: ${selectedVehicle.licensePlate}`}
-                color="secondary"
-                variant="outlined"
-              />
+            </p>
+            <div className="flex gap-2 flex-wrap items-center">
+              <Badge variant="outline">
+                Majiteľ: {selectedVehicle.company}
+              </Badge>
+              <Badge variant="outline" className="border-purple-500">
+                ŠPZ: {selectedVehicle.licensePlate}
+              </Badge>
               {selectedVehicle.vin && (
-                <Chip
-                  label={`VIN: ${selectedVehicle.vin}`}
-                  color="default"
-                  variant="outlined"
-                  sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                />
+                <Badge variant="outline" className="font-mono text-xs">
+                  VIN: {selectedVehicle.vin}
+                </Badge>
               )}
-              <Chip
-                label={`Provízia: ${selectedVehicle.commission.type === 'percentage' ? selectedVehicle.commission.value + '%' : selectedVehicle.commission.value + '€'}`}
-                color="info"
-                variant="outlined"
-              />
-            </Box>
-            <Typography
-              variant="body2"
-              color="success.main"
-              sx={{ mt: 1, fontWeight: 'bold' }}
-            >
+              <Badge variant="outline" className="border-blue-500">
+                Provízia: {selectedVehicle.commission.type === 'percentage' ? selectedVehicle.commission.value + '%' : selectedVehicle.commission.value + '€'}
+              </Badge>
+            </div>
+            <p className="text-sm text-green-600 font-bold mt-2">
               ✓ Platba automaticky nastavená priamo majiteľovi vozidla
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* TextField pre zadanie mena zákazníka */}
-        <TextField
-          fullWidth
-          label="Meno zákazníka"
-          value={formData.customerName || ''}
-          onChange={e => {
-            const name = e.target.value;
-            setFormData(prev => ({ ...prev, customerName: name }));
-            // Ak sa zadá meno, ktoré už existuje, automaticky ho vyberiem
-            const existingCustomer = (customers || []).find(
-              c => c.name === name
-            );
-            if (existingCustomer) {
-              handleCustomerChange(existingCustomer);
-            } else {
-              // Ak sa nenájde existujúci zákazník, vyčistím customerId
-              setFormData(prev => ({ ...prev, customerId: '' }));
-              setSelectedCustomer(null);
-            }
-          }}
-          placeholder="Zadajte meno zákazníka alebo vyberte z existujúcich"
-          helperText={
-            formData.customerId
+        <div>
+          <Label htmlFor="customer-name">Meno zákazníka *</Label>
+          <Input
+            id="customer-name"
+            value={formData.customerName || ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const name = e.target.value;
+              setFormData(prev => ({ ...prev, customerName: name }));
+              // Ak sa zadá meno, ktoré už existuje, automaticky ho vyberiem
+              const existingCustomer = (customers || []).find(
+                c => c.name === name
+              );
+              if (existingCustomer) {
+                handleCustomerChange(existingCustomer);
+              } else {
+                // Ak sa nenájde existujúci zákazník, vyčistím customerId
+                setFormData(prev => ({ ...prev, customerId: '' }));
+                setSelectedCustomer(null);
+              }
+            }}
+            placeholder="Zadajte meno zákazníka alebo vyberte z existujúcich"
+            required
+          />
+          <p className="text-sm text-muted-foreground mt-1">
+            {formData.customerId
               ? 'Vybraný zákazník z existujúcich'
-              : 'Ak zákazník neexistuje, bude automaticky vytvorený pri uložení'
-          }
-          required
-        />
+              : 'Ak zákazník neexistuje, bude automaticky vytvorený pri uložení'}
+          </p>
+        </div>
 
         {/* Výber z existujúcich zákazníkov s vyhľadávaním */}
-        <Autocomplete
-          fullWidth
-          options={[
-            ...customerOptions,
-            {
-              label: '+ Pridať nového zákazníka',
-              id: '__add_new__',
-              customer: null,
-            },
-          ]}
-          value={
-            selectedCustomer
-              ? {
-                  label: selectedCustomer.name,
-                  id: selectedCustomer.id,
-                  customer: selectedCustomer,
-                }
-              : null
-          }
-          onChange={(event, newValue) => {
-            if (newValue?.id === '__add_new__') {
-              handleAddCustomer();
-              return;
-            }
-            handleCustomerChange(newValue?.customer || null);
-          }}
-          getOptionLabel={option => option.label}
-          isOptionEqualToValue={(option, value) => option.id === value.id}
-          filterOptions={(options, { inputValue }) => {
-            const filtered = options.filter(option =>
-              option.label.toLowerCase().includes(inputValue.toLowerCase())
-            );
-            return filtered;
-          }}
-          renderInput={params => (
-            <TextField
-              {...params}
-              label="Výber z existujúcich zákazníkov"
-              placeholder="Začnite písať meno zákazníka..."
-              helperText="Píšte pre vyhľadávanie alebo vyberte zo zoznamu"
-            />
-          )}
-          renderOption={(props, option) => (
-            <li {...props} key={option.id}>
-              {option.id === '__add_new__' ? (
-                <em style={{ color: '#1976d2' }}>{option.label}</em>
-              ) : (
-                option.label
-              )}
-            </li>
-          )}
-          noOptionsText="Žiadni zákazníci nenájdení"
-        />
+        <div className="flex flex-col space-y-2">
+          <Label htmlFor="customer-select">Výber z existujúcich zákazníkov</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="customer-select"
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between"
+              >
+                {selectedCustomer
+                  ? selectedCustomer.name
+                  : "Vyberte zákazníka..."}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Hľadať zákazníka..." />
+                <CommandEmpty>Žiadni zákazníci nenájdení.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  <CommandItem
+                    value="__add_new__"
+                    onSelect={() => {
+                      handleAddCustomer();
+                    }}
+                  >
+                    <em className="text-primary">+ Pridať nového zákazníka</em>
+                  </CommandItem>
+                  {customerOptions.map((option) => (
+                    <CommandItem
+                      key={option.id}
+                      value={option.id}
+                      onSelect={(value) => {
+                        const customer = customerOptions.find(c => c.id === value)?.customer;
+                        handleCustomerChange(customer || null);
+                      }}
+                    >
+                      {option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <p className="text-sm text-muted-foreground">
+            Píšte pre vyhľadávanie alebo vyberte zo zoznamu
+          </p>
+        </div>
 
         {/* Kontaktné údaje zákazníka */}
         {selectedCustomer && (
-          <Box sx={{ gridColumn: '1 / -1', mt: 1 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          <div className="col-span-full mt-2">
+            <p className="text-sm text-muted-foreground mb-1">
               Kontaktné údaje:
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
+            </p>
+            <div className="flex gap-2 flex-wrap items-center">
               {selectedCustomer.phone && (
-                <Chip
-                  icon={<PhoneIcon />}
-                  label={selectedCustomer.phone}
+                <Badge 
+                  variant="default" 
+                  className="cursor-pointer hover:bg-primary/90 flex items-center gap-1"
                   onClick={() => handleCallCustomer(selectedCustomer.phone)}
-                  clickable
-                  color="primary"
-                />
+                >
+                  <PhoneIcon className="w-3 h-3" />
+                  {selectedCustomer.phone}
+                </Badge>
               )}
               {selectedCustomer.email && (
-                <Chip
-                  icon={<EmailIcon />}
-                  label={selectedCustomer.email}
+                <Badge 
+                  variant="default"
+                  className="cursor-pointer hover:bg-primary/90 flex items-center gap-1"
                   onClick={() => handleEmailCustomer(selectedCustomer.email)}
-                  clickable
-                  color="primary"
-                />
+                >
+                  <EmailIcon className="w-3 h-3" />
+                  {selectedCustomer.email}
+                </Badge>
               )}
               <Button
-                variant="outlined"
-                size="small"
+                variant="outline"
+                size="sm"
                 onClick={() => handleEditCustomer(selectedCustomer)}
-                sx={{ ml: 1 }}
+                className="ml-2"
               >
                 Upraviť zákazníka
               </Button>
               <Button
-                variant="outlined"
-                size="small"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   dispatch({
                     type: 'UPDATE_CUSTOMER',
                     payload: selectedCustomer,
                   });
-                  alert('Zákazník bol úspešne uložený!');
+                  window.alert('Zákazník bol úspešne uložený!');
                 }}
-                sx={{ ml: 1 }}
+                className="ml-2"
               >
                 Uložiť zákazníka
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
         {/* Informácia o novom zákazníkovi */}
         {formData.customerName && !selectedCustomer && (
-          <Box sx={{ gridColumn: '1 / -1', mt: 1 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          <div className="col-span-full mt-2">
+            <p className="text-sm text-muted-foreground mb-1">
               Nový zákazník:
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            </p>
+            <p className="text-sm text-muted-foreground">
               {formData.customerName} - bude automaticky vytvorený pri uložení
               prenájmu
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* Číslo objednávky - odstránený FormControl a InputLabel */}
-        <TextField
-          fullWidth
-          label="Číslo objednávky"
-          value={formData.orderNumber || ''}
-          onChange={e =>
-            setFormData(prev => ({ ...prev, orderNumber: e.target.value }))
-          }
-          InputLabelProps={{ shrink: true }}
-          required={false}
-        />
+        <div>
+          <Label htmlFor="order-number">Číslo objednávky</Label>
+          <Input
+            id="order-number"
+            value={formData.orderNumber || ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormData(prev => ({ ...prev, orderNumber: e.target.value }))
+            }
+          />
+        </div>
 
         {/* Spôsob platby */}
-        <FormControl fullWidth>
-          <InputLabel>Spôsob platby</InputLabel>
-          <Select
+        <div>
+          <Label htmlFor="payment-method">Spôsob platby</Label>
+          <Select 
             value={formData.paymentMethod || 'cash'}
-            label="Spôsob platby"
-            onChange={e =>
-              handleInputChange(
-                'paymentMethod',
-                e.target.value as PaymentMethod
-              )
-            }
+            onValueChange={(value) => handleInputChange('paymentMethod', value as PaymentMethod)}
           >
-            <MenuItem value="cash">Hotovosť</MenuItem>
-            <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
-            <MenuItem value="vrp">VRP</MenuItem>
-            <MenuItem value="direct_to_owner">Priamo majiteľovi</MenuItem>
+            <SelectTrigger id="payment-method">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cash">Hotovosť</SelectItem>
+              <SelectItem value="bank_transfer">Bankový prevod</SelectItem>
+              <SelectItem value="vrp">VRP</SelectItem>
+              <SelectItem value="direct_to_owner">Priamo majiteľovi</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
 
         <DateTimePicker
-          label="Dátum a čas od *"
+          label="Dátum a čas od"
           value={
             formData.startDate
               ? parseTimezoneFreeDateString(formData.startDate)
@@ -1139,20 +1106,15 @@ export default function RentalForm({
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
             setPreserveImportedValues(false);
           }}
-          ampm={false}
-          slots={{
-            textField: TextField,
-          }}
-          slotProps={{
-            textField: { fullWidth: true, required: true },
-          }}
+          required
+          className="w-full"
         />
 
         <DateTimePicker
           label={
             formData.isFlexible
               ? 'Dátum a čas do (voliteľné)'
-              : 'Dátum a čas do *'
+              : 'Dátum a čas do'
           }
           value={
             formData.endDate
@@ -1164,58 +1126,37 @@ export default function RentalForm({
             // ✅ Povoliť prepočítanie cien pri zmene dátumu
             setPreserveImportedValues(false);
           }}
-          ampm={false}
-          slots={{
-            textField: TextField,
-          }}
-          slotProps={{
-            textField: {
-              fullWidth: true,
-              required: !formData.isFlexible,
-              helperText: formData.isFlexible
-                ? 'Pre flexibilný prenájom môžete nechať prázdne'
-                : undefined,
-            },
-          }}
+          required={!formData.isFlexible}
+          className="w-full"
         />
 
         {/* 🔄 NOVÉ: Flexibilné prenájmy sekcia */}
-        <Box sx={{ gridColumn: '1 / -1', mt: 2, mb: 2 }}>
+        <div className="col-span-full mt-4 mb-4">
           <Card
-            variant="outlined"
-            sx={{
-              p: 2,
-              bgcolor: formData.isFlexible
-                ? 'warning.light'
-                : 'background.paper',
-              border: formData.isFlexible ? '2px solid' : '1px solid',
-              borderColor: formData.isFlexible ? 'warning.main' : 'divider',
-              boxShadow: formData.isFlexible ? 3 : 1,
-            }}
+            className={`p-4 ${
+              formData.isFlexible 
+                ? 'bg-yellow-50 border-2 border-yellow-500 shadow-lg' 
+                : 'border'
+            }`}
           >
-            <Typography
-              variant="h6"
-              gutterBottom
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
               🔄 Flexibilný prenájom
-              <Chip
-                label={formData.isFlexible ? 'AKTÍVNY' : 'ŠTANDARDNÝ'}
-                color={formData.isFlexible ? 'warning' : 'default'}
-                size="small"
-              />
-            </Typography>
+              <Badge 
+                className={formData.isFlexible ? 'bg-yellow-500 text-white' : ''}
+                variant={formData.isFlexible ? 'default' : 'secondary'}
+              >
+                {formData.isFlexible ? 'AKTÍVNY' : 'ŠTANDARDNÝ'}
+              </Badge>
+            </h3>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Typ prenájmu</InputLabel>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <div>
+                  <Label htmlFor="rental-type">Typ prenájmu</Label>
                   <Select
                     value={formData.isFlexible ? 'flexible' : 'standard'}
-                    onChange={e => {
-                      const rentalType = e.target.value as
-                        | 'standard'
-                        | 'flexible';
+                    onValueChange={(value: string) => {
+                      const rentalType = value as 'standard' | 'flexible';
                       const isFlexible = rentalType === 'flexible';
                       handleInputChange('isFlexible', isFlexible);
 
@@ -1231,56 +1172,48 @@ export default function RentalForm({
                         setUseManualPricing(false);
                       }
                     }}
-                    label="Typ prenájmu"
                   >
-                    <MenuItem value="standard">🔒 Štandardný prenájom</MenuItem>
-                    <MenuItem value="flexible">🔄 Flexibilný prenájom</MenuItem>
+                    <SelectTrigger id="rental-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">🔒 Štandardný prenájom</SelectItem>
+                      <SelectItem value="flexible">🔄 Flexibilný prenájom</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
+                </div>
+              </div>
 
               {/* 🆕 NOVÉ: Súkromný prenájom checkbox */}
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.isPrivateRental || false}
-                      onChange={e =>
-                        handleInputChange('isPrivateRental', e.target.checked)
-                      }
-                      color="secondary"
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2">
+              <div>
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="private-rental"
+                    checked={formData.isPrivateRental || false}
+                    onCheckedChange={(checked: boolean) =>
+                      handleInputChange('isPrivateRental', checked as boolean)
+                    }
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="private-rental" className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-sm">
                         🔒 Súkromný prenájom (mimo BlackRent platformy)
-                      </Typography>
-                      <Chip
-                        label="FIALOVÁ FARBA"
-                        size="small"
-                        sx={{
-                          bgcolor: '#9c27b0',
-                          color: 'white',
-                          fontSize: '0.7rem',
-                        }}
-                      />
-                    </Box>
-                  }
-                />
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block', ml: 4 }}
-                >
-                  Prenájom sa zobrazí vo fialovej farbe v dostupnosti a nebude
-                  sa počítať do štatistík platformy
-                </Typography>
-              </Grid>
+                      </span>
+                      <Badge className="bg-purple-600 text-white text-xs">
+                        FIALOVÁ FARBA
+                      </Badge>
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Prenájom sa zobrazí vo fialovej farbe v dostupnosti a nebude
+                      sa počítať do štatistík platformy
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {formData.isFlexible && (
                 <>
-                  <Grid item xs={12} md={6}>
+                  <div className="md:col-span-1">
                     <DateTimePicker
                       label="Odhadovaný dátum a čas vrátenia"
                       value={
@@ -1293,117 +1226,119 @@ export default function RentalForm({
                       onChange={newValue => {
                         handleInputChange('flexibleEndDate', newValue);
                       }}
-                      ampm={false}
-                      slots={{
-                        textField: TextField,
-                      }}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          helperText:
-                            'Orientačný dátum ukončenia pre flexibilný prenájom',
-                        },
-                      }}
+                      className="w-full"
+                      placeholder="Orientačný dátum ukončenia"
                     />
-                  </Grid>
+                  </div>
 
                   {/* Priorita prepísania odstránená - zjednodušené flexible rentals */}
 
-                  <Grid item xs={12}>
-                    <Card
-                      variant="outlined"
-                      sx={{ p: 2, bgcolor: 'background.default' }}
-                    >
-                      <Typography
-                        variant="subtitle1"
-                        gutterBottom
-                        sx={{ fontWeight: 'bold' }}
-                      >
+                  <div className="col-span-full">
+                    <Card className="p-4 bg-gray-50">
+                      <h4 className="font-semibold mb-2">
                         💰 Cenotvorba pre flexibilný prenájom
-                      </Typography>
+                      </h4>
 
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Typ cenotvorby</InputLabel>
+                      <div className="mb-4">
+                        <Label htmlFor="pricing-type">Typ cenotvorby</Label>
                         <Select
                           value={useManualPricing ? 'manual' : 'automatic'}
-                          onChange={e => {
-                            const isManual = e.target.value === 'manual';
+                          onValueChange={(value: string) => {
+                            const isManual = value === 'manual';
                             setUseManualPricing(isManual);
                             if (isManual && manualPrice === undefined) {
                               setManualPrice(calculatedPrice || 0);
                             }
                           }}
-                          label="Typ cenotvorby"
                         >
-                          <MenuItem value="automatic">
-                            🤖 Automatická (štandardná)
-                          </MenuItem>
-                          <MenuItem value="manual">
-                            ✋ Manuálna (individuálna)
-                          </MenuItem>
+                          <SelectTrigger id="pricing-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="automatic">
+                              🤖 Automatická (štandardná)
+                            </SelectItem>
+                            <SelectItem value="manual">
+                              ✋ Manuálna (individuálna)
+                            </SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
+                      </div>
 
                       {useManualPricing && (
-                        <TextField
-                          fullWidth
-                          label="Manuálna cena"
-                          type="number"
-                          value={manualPrice || ''}
-                          onChange={e => {
-                            const value = parseFloat(e.target.value) || 0;
-                            setManualPrice(value);
-                          }}
-                          InputProps={{
-                            endAdornment: '€',
-                          }}
-                          helperText="Zadajte individuálnu cenu pre tento flexibilný prenájom"
-                        />
+                        <div>
+                          <Label htmlFor="manual-price">Manuálna cena</Label>
+                          <div className="relative">
+                            <Input
+                              id="manual-price"
+                              type="number"
+                              value={manualPrice || ''}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const value = parseFloat(e.target.value) || 0;
+                                setManualPrice(value);
+                              }}
+                              className="pr-8"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Zadajte individuálnu cenu pre tento flexibilný prenájom
+                          </p>
+                        </div>
                       )}
 
                       {!useManualPricing && (
-                        <Typography variant="body2" color="text.secondary">
+                        <p className="text-sm text-muted-foreground">
                           Automatická cena:{' '}
-                          <strong>{calculatedPrice || 0}€</strong>
-                        </Typography>
+                          <strong className="font-semibold">{calculatedPrice || 0}€</strong>
+                        </p>
                       )}
                     </Card>
-                  </Grid>
+                  </div>
                 </>
               )}
-            </Grid>
+            </div>
           </Card>
-        </Box>
+        </div>
 
         {/* Miesto odovzdania */}
-        <FormControl fullWidth>
-          <InputLabel>Miesto odovzdania vozidla</InputLabel>
+        <div>
+          <Label htmlFor="handover-place">Miesto odovzdania vozidla</Label>
           <Select
             value={handoverPlace}
-            label="Miesto odovzdania vozidla"
-            onChange={e => setHandoverPlace(e.target.value)}
+            onValueChange={(value: string) => {
+              if (value === '__add_new__') {
+                setAddingPlace(true);
+              } else {
+                setHandoverPlace(value);
+              }
+            }}
           >
-            {places.map(place => (
-              <MenuItem key={place} value={place}>
-                {place}
-              </MenuItem>
-            ))}
-            <MenuItem value="__add_new__" onClick={() => setAddingPlace(true)}>
-              <em>+ Pridať nové miesto</em>
-            </MenuItem>
+            <SelectTrigger id="handover-place">
+              <SelectValue placeholder="Vyberte miesto" />
+            </SelectTrigger>
+            <SelectContent>
+              {places.map(place => (
+                <SelectItem key={place} value={place}>
+                  {place}
+                </SelectItem>
+              ))}
+              <SelectItem value="__add_new__">
+                <em>+ Pridať nové miesto</em>
+              </SelectItem>
+            </SelectContent>
           </Select>
           {addingPlace && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <TextField
+            <div className="flex gap-2 mt-2">
+              <Input
                 autoFocus
-                size="small"
-                label="Nové miesto"
+                placeholder="Nové miesto"
                 value={newPlace}
-                onChange={e => setNewPlace(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPlace(e.target.value)}
               />
               <Button
-                variant="contained"
-                size="small"
+                variant="default"
+                size="sm"
                 disabled={!newPlace.trim()}
                 onClick={() => {
                   setPlaces(prev => [...prev, newPlace.trim()]);
@@ -1415,8 +1350,8 @@ export default function RentalForm({
                 Pridať
               </Button>
               <Button
-                variant="outlined"
-                size="small"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setAddingPlace(false);
                   setNewPlace('');
@@ -1424,64 +1359,67 @@ export default function RentalForm({
               >
                 Zrušiť
               </Button>
-            </Box>
+            </div>
           )}
-        </FormControl>
+        </div>
 
         {/* Denné kilometry - NOVÉ POLE */}
-        <TextField
-          fullWidth
-          label="Denné kilometry"
-          type="number"
-          value={dailyKilometers}
-          onChange={e => {
-            const daily = Number(e.target.value) || 0;
-            setDailyKilometers(daily);
+        <div>
+          <Label htmlFor="daily-km">Denné kilometry</Label>
+          <div className="relative">
+            <Input
+              id="daily-km"
+              type="number"
+              value={dailyKilometers}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const daily = Number(e.target.value) || 0;
+                setDailyKilometers(daily);
 
-            // Ak sú zadané denné km, vyčisti manuálne celkové km
-            if (daily > 0) {
-              // Celkové km sa automaticky prepočítajú cez useEffect
-            } else {
-              // Ak sú denné km 0, umožni manuálne zadanie celkových km
-              setAllowedKilometers(0);
-            }
-          }}
-          InputProps={{
-            endAdornment: <span style={{ marginLeft: 8 }}>km/deň</span>,
-          }}
-          placeholder="250"
-          helperText="Automaticky sa prepočítajú na celkové km podľa dĺžky prenájmu"
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              backgroundColor: dailyKilometers > 0 ? '#e8f5e8' : 'inherit',
-            },
-          }}
-        />
+                // Ak sú zadané denné km, vyčisti manuálne celkové km
+                if (daily > 0) {
+                  // Celkové km sa automaticky prepočítajú cez useEffect
+                } else {
+                  // Ak sú denné km 0, umožni manuálne zadanie celkových km
+                  setAllowedKilometers(0);
+                }
+              }}
+              placeholder="250"
+              className={dailyKilometers > 0 ? 'bg-green-50' : ''}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">km/deň</span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Automaticky sa prepočítajú na celkové km podľa dĺžky prenájmu
+          </p>
+        </div>
 
         {/* Povolené kilometry - CELKOVÉ */}
-        <TextField
-          fullWidth
-          label={
-            dailyKilometers > 0
+        <div>
+          <Label htmlFor="allowed-km">
+            {dailyKilometers > 0
               ? 'Celkové kilometry (automaticky)'
-              : 'Celkové kilometry'
-          }
-          type="number"
-          value={allowedKilometers}
-          onChange={e => {
-            // Ak sú zadané denné km, nepovoľ manuálnu zmenu celkových
-            if (dailyKilometers > 0) {
-              return; // Ignoruj zmenu
-            }
-            setAllowedKilometers(Number(e.target.value) || 0);
-          }}
-          InputProps={{
-            endAdornment: <span style={{ marginLeft: 8 }}>km</span>,
-            readOnly: dailyKilometers > 0, // Read-only ak sú zadané denné km
-          }}
-          placeholder="0 = neobmedzené"
-          helperText={
-            dailyKilometers > 0
+              : 'Celkové kilometry'}
+          </Label>
+          <div className="relative">
+            <Input
+              id="allowed-km"
+              type="number"
+              value={allowedKilometers}
+              onChange={(e: any) => {
+                // Ak sú zadané denné km, nepovoľ manuálnu zmenu celkových
+                if (dailyKilometers > 0) {
+                  return; // Ignoruj zmenu
+                }
+                setAllowedKilometers(Number(e.target.value) || 0);
+              }}
+              readOnly={dailyKilometers > 0}
+              placeholder="0 = neobmedzené"
+              className="pr-12"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">km</span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {dailyKilometers > 0
               ? `Automaticky: ${dailyKilometers} km/deň × ${
                   formData.startDate && formData.endDate
                     ? (() => {
@@ -1500,68 +1438,69 @@ export default function RentalForm({
                       })()
                     : '?'
                 } dní`
-              : '0 znamená neobmedzené kilometry'
-          }
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              backgroundColor: dailyKilometers > 0 ? '#f5f5f5' : 'inherit',
-            },
-          }}
-        />
+              : '0 znamená neobmedzené kilometry'}
+          </p>
+        </div>
 
         {/* Cena za extra km */}
-        <TextField
-          fullWidth
-          label="Cena za extra km (€)"
-          type="number"
-          value={extraKilometerRate}
-          onChange={e => {
-            const value = e.target.value.replace(',', '.'); // Nahraď čiarku bodkou
-            setExtraKilometerRate(Number(value) || 0);
-          }}
-          InputProps={{
-            startAdornment: <span style={{ marginRight: 8 }}>€</span>,
-            endAdornment: <span style={{ marginLeft: 8 }}>/ km</span>,
-            inputProps: { step: 0.1 },
-          }}
-          placeholder="0"
-          helperText="Cena za každý kilometer nad povolený limit"
-        />
+        <div>
+          <Label htmlFor="extra-km-rate">Cena za extra km (€)</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            <Input
+              id="extra-km-rate"
+              type="number"
+              step="0.1"
+              value={extraKilometerRate}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const value = e.target.value.replace(',', '.'); // Nahraď čiarku bodkou
+                setExtraKilometerRate(Number(value) || 0);
+              }}
+              placeholder="0"
+              className="pl-8 pr-12"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">/ km</span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cena za každý kilometer nad povolený limit
+          </p>
+        </div>
 
         {/* Výška depozitu */}
-        <TextField
-          fullWidth
-          label="Výška depozitu (€)"
-          type="number"
-          value={deposit}
-          onChange={e => setDeposit(Number(e.target.value) || 0)}
-          InputProps={{
-            startAdornment: <span style={{ marginRight: 8 }}>€</span>,
-          }}
-          placeholder="0"
-        />
+        <div>
+          <Label htmlFor="deposit">Výška depozitu (€)</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            <Input
+              id="deposit"
+              type="number"
+              value={deposit}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeposit(Number(e.target.value) || 0)}
+              placeholder="0"
+              className="pl-8"
+            />
+          </div>
+        </div>
 
         {/* Uhradené */}
-        <FormControl fullWidth>
-          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-            <input
-              type="checkbox"
-              checked={paid}
-              onChange={e => setPaid(e.target.checked)}
-              id="paid-checkbox"
-              style={{ marginRight: 8 }}
-            />
-            <label htmlFor="paid-checkbox">Prenájom uhradený</label>
-          </Box>
-        </FormControl>
-      </Box>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="paid-checkbox"
+            checked={paid}
+            onCheckedChange={(checked) => setPaid(checked as boolean)}
+          />
+          <Label htmlFor="paid-checkbox" className="cursor-pointer">
+            Prenájom uhradený
+          </Label>
+        </div>
+      </div>
 
-      <Box sx={{ gridColumn: '1 / -1', mt: 3 }}>
+      <div className="col-span-full mt-6">
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <h3 className="text-lg font-semibold mb-2">
               Výpočet ceny
-            </Typography>
+            </h3>
             <PriceSummary
               calculatedPrice={calculatedPrice}
               extraKmCharge={extraKmCharge}
@@ -1570,395 +1509,350 @@ export default function RentalForm({
               showOriginalPrice={true}
             />
             {/* Nadpis sekcie s ikonou na zobrazenie/skrytie zľavy/provízie */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+            <div className="flex items-center mb-2">
+              <h3 className="text-base font-semibold flex-grow">
                 Zľava / Provízia
-              </Typography>
-              <IconButton
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowDiscountCommission(prev => !prev)}
+                className="h-8 w-8 p-0"
               >
-                {showDiscountCommission ? <PercentIcon /> : <EditIcon />}
-              </IconButton>
-            </Box>
+                {showDiscountCommission ? <PercentIcon className="h-4 w-4" /> : <EditIcon className="h-4 w-4" />}
+              </Button>
+            </div>
             {/* Polia pre zľavu a províziu - zobrazia sa až po kliknutí */}
             {showDiscountCommission && (
               <>
                 {/* Zľava */}
-                <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                  <FormControl sx={{ minWidth: 80 }} size="small">
-                    <InputLabel>Zľava</InputLabel>
+                <div className="flex gap-2 mb-2">
+                  <div className="min-w-[80px]">
+                    <Label htmlFor="discount-type">Zľava</Label>
                     <Select
                       value={formData.discount?.type || ''}
-                      label="Zľava"
-                      onChange={e =>
+                      onValueChange={(value: string) =>
                         handleInputChange('discount', {
                           ...formData.discount,
-                          type: e.target.value,
+                          type: value,
                         })
                       }
                     >
-                      <MenuItem value="percentage">%</MenuItem>
-                      <MenuItem value="fixed">€</MenuItem>
+                      <SelectTrigger id="discount-type" className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">%</SelectItem>
+                        <SelectItem value="fixed">€</SelectItem>
+                      </SelectContent>
                     </Select>
-                  </FormControl>
-                  <TextField
-                    label="Hodnota"
-                    type="number"
-                    value={formData.discount?.value || ''}
-                    onChange={e =>
-                      handleInputChange('discount', {
-                        ...formData.discount,
-                        value: Number(e.target.value),
-                      })
-                    }
-                    size="small"
-                    sx={{ maxWidth: 100 }}
-                  />
-                </Box>
+                  </div>
+                  <div className="max-w-[100px]">
+                    <Label htmlFor="discount-value">Hodnota</Label>
+                    <Input
+                      id="discount-value"
+                      type="number"
+                      value={formData.discount?.value || ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange('discount', {
+                          ...formData.discount,
+                          value: Number(e.target.value),
+                        })
+                      }
+                      className="h-9"
+                    />
+                  </div>
+                </div>
                 {/* Provízia */}
-                <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                  <FormControl sx={{ minWidth: 120 }} size="small">
-                    <InputLabel>Provízia</InputLabel>
+                <div className="flex gap-2 mb-2">
+                  <div className="min-w-[120px]">
+                    <Label htmlFor="commission-type">Provízia</Label>
                     <Select
                       value={formData.customCommission?.type || ''}
-                      label="Provízia"
-                      onChange={e =>
+                      onValueChange={(value: string) =>
                         handleInputChange('customCommission', {
                           ...formData.customCommission,
-                          type: e.target.value,
+                          type: value,
                         })
                       }
                     >
-                      <MenuItem value="percentage">%</MenuItem>
-                      <MenuItem value="fixed">€</MenuItem>
+                      <SelectTrigger id="commission-type" className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">%</SelectItem>
+                        <SelectItem value="fixed">€</SelectItem>
+                      </SelectContent>
                     </Select>
-                  </FormControl>
-                  <TextField
-                    label="Hodnota"
-                    type="number"
-                    value={formData.customCommission?.value || ''}
-                    onChange={e =>
-                      handleInputChange('customCommission', {
-                        ...formData.customCommission,
-                        value: Number(e.target.value),
-                      })
-                    }
-                    size="small"
-                    sx={{ maxWidth: 100 }}
-                  />
-                </Box>
+                  </div>
+                  <div className="max-w-[100px]">
+                    <Label htmlFor="commission-value">Hodnota</Label>
+                    <Input
+                      id="commission-value"
+                      type="number"
+                      value={formData.customCommission?.value || ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange('customCommission', {
+                          ...formData.customCommission,
+                          value: Number(e.target.value),
+                        })
+                      }
+                      className="h-9"
+                    />
+                  </div>
+                </div>
               </>
             )}
             {/* Doplatok za km */}
-            <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Typography>Doplatok za km (€):</Typography>
-              <TextField
+            <div className="mt-4 flex gap-4 items-center">
+              <span>Doplatok za km (€):</span>
+              <Input
                 type="number"
-                size="small"
                 value={extraKmCharge}
-                onChange={e => setExtraKmCharge(Number(e.target.value))}
-                sx={{ width: 120 }}
-                inputProps={{ min: 0 }}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtraKmCharge(Number(e.target.value))}
+                className="w-[120px]"
+                min={0}
               />
-            </Box>
+            </div>
           </CardContent>
         </Card>
-      </Box>
+      </div>
 
       {/* Pridám sekciu Platby pod výpočet ceny */}
-      <Box sx={{ gridColumn: '1 / -1', mt: 3 }}>
+      <div className="col-span-full mt-6">
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <h3 className="text-lg font-semibold mb-2">
               Platby (splátky)
-            </Typography>
+            </h3>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={handleAddPayment}
-              sx={{ mb: 2 }}
+              className="mb-4"
             >
               Pridať platbu
             </Button>
             {payments.length === 0 ? (
-              <Typography color="text.secondary">Žiadne platby</Typography>
+              <p className="text-muted-foreground">Žiadne platby</p>
             ) : (
-              <Box
-                component="table"
-                sx={{ width: '100%', borderCollapse: 'collapse' }}
-              >
-                <Box component="thead">
-                  <Box component="tr">
-                    <Box component="th">Dátum</Box>
-                    <Box component="th">Suma (€)</Box>
-                    <Box component="th">Stav</Box>
-                    <Box component="th">Spôsob platby</Box>
-                    <Box component="th">Faktúra</Box>
-                    <Box component="th">Poznámka</Box>
-                    <Box component="th">Akcie</Box>
-                  </Box>
-                </Box>
-                <Box component="tbody">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2">Dátum</th>
+                    <th className="text-left p-2">Suma (€)</th>
+                    <th className="text-left p-2">Stav</th>
+                    <th className="text-left p-2">Spôsob platby</th>
+                    <th className="text-left p-2">Faktúra</th>
+                    <th className="text-left p-2">Poznámka</th>
+                    <th className="text-left p-2">Akcie</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {payments.map(payment => (
-                    <Box component="tr" key={payment.id}>
-                      <Box component="td">
+                    <tr key={payment.id} className="border-t">
+                      <td className="p-2">
                         {new Date(payment.date).toLocaleDateString()}
-                      </Box>
-                      <Box component="td">
+                      </td>
+                      <td className="p-2">
                         {(payment.amount || 0).toFixed(2)}
-                      </Box>
-                      <Box component="td">
+                      </td>
+                      <td className="p-2">
                         {payment.isPaid ? 'Zaplatené' : 'Nezaplatené'}
-                      </Box>
-                      <Box component="td">{payment.paymentMethod}</Box>
-                      <Box component="td">{payment.invoiceNumber}</Box>
-                      <Box component="td">{payment.note}</Box>
-                      <Box component="td">
+                      </td>
+                      <td className="p-2">{payment.paymentMethod}</td>
+                      <td className="p-2">{payment.invoiceNumber}</td>
+                      <td className="p-2">{payment.note}</td>
+                      <td className="p-2 space-x-2">
                         <Button
-                          size="small"
+                          size="sm"
+                          variant="ghost"
                           onClick={() => handleEditPayment(payment)}
                         >
                           Upraviť
                         </Button>
                         <Button
-                          size="small"
-                          color="error"
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700"
                           onClick={() => handleDeletePayment(payment.id)}
                         >
                           Vymazať
                         </Button>
-                      </Box>
-                    </Box>
+                      </td>
+                    </tr>
                   ))}
-                </Box>
-              </Box>
+                </tbody>
+              </table>
             )}
           </CardContent>
         </Card>
-      </Box>
+      </div>
 
       {/* Dialóg na pridanie/upravenie platby */}
-      {paymentDialogOpen && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            bgcolor: 'rgba(0,0,0,0.3)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Card sx={{ minWidth: 320 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {editingPayment?.id ? 'Upraviť platbu' : 'Pridať platbu'}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  label="Dátum"
-                  type="date"
-                  value={
-                    editingPayment?.date
-                      ? new Date(editingPayment.date)
-                          .toISOString()
-                          .split('T')[0]
-                      : ''
-                  }
-                  onChange={e =>
-                    setEditingPayment(p =>
-                      p ? { ...p, date: new Date(e.target.value) } : null
-                    )
-                  }
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="Suma (€)"
-                  type="number"
-                  value={editingPayment?.amount || ''}
-                  onChange={e =>
-                    setEditingPayment(p =>
-                      p ? { ...p, amount: Number(e.target.value) } : null
-                    )
-                  }
-                />
-                <FormControl>
-                  <InputLabel>Spôsob platby</InputLabel>
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPayment?.id ? 'Upraviť platbu' : 'Pridať platbu'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingPayment?.id ? 'Upravte detaily platby' : 'Pridajte novú platbu k rezervácii'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+                <div>
+                  <Label htmlFor="payment-date">Dátum</Label>
+                  <Input
+                    id="payment-date"
+                    type="date"
+                    value={
+                      editingPayment?.date
+                        ? new Date(editingPayment.date)
+                            .toISOString()
+                            .split('T')[0]
+                        : ''
+                    }
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditingPayment(p =>
+                        p ? { ...p, date: new Date(e.target.value) } : null
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payment-amount">Suma (€)</Label>
+                  <Input
+                    id="payment-amount"
+                    type="number"
+                    value={editingPayment?.amount || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditingPayment(p =>
+                        p ? { ...p, amount: Number(e.target.value) } : null
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payment-method-dialog">Spôsob platby</Label>
                   <Select
                     value={editingPayment?.paymentMethod || 'cash'}
-                    label="Spôsob platby"
-                    onChange={e =>
+                    onValueChange={(value: string) =>
                       setEditingPayment(p =>
                         p
                           ? {
                               ...p,
-                              paymentMethod: e.target.value as PaymentMethod,
+                              paymentMethod: value as PaymentMethod,
                             }
                           : null
                       )
                     }
                   >
-                    <MenuItem value="cash">Hotovosť</MenuItem>
-                    <MenuItem value="bank_transfer">Bankový prevod</MenuItem>
-                    <MenuItem value="vrp">VRP</MenuItem>
-                    <MenuItem value="direct_to_owner">
-                      Priamo majiteľovi
-                    </MenuItem>
+                    <SelectTrigger id="payment-method-dialog">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Hotovosť</SelectItem>
+                      <SelectItem value="bank_transfer">Bankový prevod</SelectItem>
+                      <SelectItem value="vrp">VRP</SelectItem>
+                      <SelectItem value="direct_to_owner">
+                        Priamo majiteľovi
+                      </SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-                <TextField
-                  label="Faktúra"
-                  value={editingPayment?.invoiceNumber || ''}
-                  onChange={e =>
-                    setEditingPayment(p =>
-                      p ? { ...p, invoiceNumber: e.target.value } : null
-                    )
-                  }
-                />
-                <TextField
-                  label="Poznámka"
-                  value={editingPayment?.note || ''}
-                  onChange={e =>
-                    setEditingPayment(p =>
-                      p ? { ...p, note: e.target.value } : null
-                    )
-                  }
-                />
-                <FormControl>
-                  <InputLabel>Stav</InputLabel>
+                </div>
+                <div>
+                  <Label htmlFor="invoice-number">Faktúra</Label>
+                  <Input
+                    id="invoice-number"
+                    value={editingPayment?.invoiceNumber || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditingPayment(p =>
+                        p ? { ...p, invoiceNumber: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payment-note">Poznámka</Label>
+                  <Input
+                    id="payment-note"
+                    value={editingPayment?.note || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditingPayment(p =>
+                        p ? { ...p, note: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payment-status">Stav</Label>
                   <Select
                     value={editingPayment?.isPaid ? 'paid' : 'unpaid'}
-                    label="Stav"
-                    onChange={e =>
+                    onValueChange={(value: string) =>
                       setEditingPayment(p =>
-                        p ? { ...p, isPaid: e.target.value === 'paid' } : null
+                        p ? { ...p, isPaid: value === 'paid' } : null
                       )
                     }
                   >
-                    <MenuItem value="paid">Zaplatené</MenuItem>
-                    <MenuItem value="unpaid">Nezaplatené</MenuItem>
+                    <SelectTrigger id="payment-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Zaplatené</SelectItem>
+                      <SelectItem value="unpaid">Nezaplatené</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Box>
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 2,
-                  justifyContent: 'flex-end',
-                  mt: 3,
-                }}
-              >
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    setPaymentDialogOpen(false);
-                    setEditingPayment(null);
-                  }}
-                >
-                  Zrušiť
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() =>
-                    editingPayment && handleSavePayment(editingPayment)
-                  }
-                >
-                  Uložiť
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      )}
-
-      {/* Dialóg na editáciu zákazníka */}
-      {editCustomerDialogOpen && editingCustomer && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            bgcolor: 'rgba(0,0,0,0.5)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            // 🎯 CENTERING FIX: Ensure proper centering
-            backdropFilter: 'blur(2px)',
-          }}
-          onClick={e => {
-            // Close on backdrop click
-            if (e.target === e.currentTarget) {
-              setEditCustomerDialogOpen(false);
-              setEditingCustomer(null);
-            }
-          }}
-          onKeyDown={e => {
-            // Close on ESC key
-            if (e.key === 'Escape') {
-              setEditCustomerDialogOpen(false);
-              setEditingCustomer(null);
-            }
-          }}
-        >
-          <Box
-            sx={{
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              p: 3,
-              minWidth: 400,
-              maxWidth: 500,
-              maxHeight: '90vh',
-              overflow: 'auto',
-              // 🎯 SHADOW & ANIMATION
-              boxShadow: 24,
-              transform: 'scale(1)',
-              transition: 'all 0.2s ease-in-out',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 2,
+                </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPaymentDialogOpen(false);
+                setEditingPayment(null);
               }}
             >
-              <Typography variant="h6">
-                Upraviť zákazníka: {editingCustomer.name}
-              </Typography>
-              <IconButton
-                onClick={() => {
-                  setEditCustomerDialogOpen(false);
-                  setEditingCustomer(null);
-                }}
-                sx={{ color: 'grey.500' }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </Box>
-            <Box
-              component="form"
+              Zrušiť
+            </Button>
+            <Button
+              variant="default"
+              onClick={() =>
+                editingPayment && handleSavePayment(editingPayment)
+              }
+            >
+              Uložiť
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialóg na editáciu zákazníka */}
+      <Dialog open={editCustomerDialogOpen && !!editingCustomer} onOpenChange={setEditCustomerDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              Upraviť zákazníka: {editingCustomer?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Upravte informácie o zákazníkovi
+            </DialogDescription>
+          </DialogHeader>
+          <form
               onSubmit={e => {
                 e.preventDefault();
-                const form = e.currentTarget as HTMLFormElement;
-                const formData = new FormData(form);
+                const form = e.currentTarget as any;
+                const formData = new (window as any).FormData(form);
                 const name = formData.get('name') as string;
                 const email = formData.get('email') as string;
                 const phone = formData.get('phone') as string;
 
                 if (!name?.trim()) {
-                  alert('Meno zákazníka je povinné');
+                  window.alert('Meno zákazníka je povinné');
                   return;
                 }
 
                 const updatedCustomer: Customer = {
-                  ...editingCustomer,
+                  ...editingCustomer!,
                   name: name.trim(),
                   email: email?.trim() || '',
                   phone: phone?.trim() || '',
@@ -1966,100 +1860,79 @@ export default function RentalForm({
 
                 handleSaveEditedCustomer(updatedCustomer);
               }}
-            >
-              <Box
-                sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}
-              >
-                <TextField
-                  fullWidth
+          >
+            <div className="flex flex-col gap-4 py-4">
+              <div>
+                <Label htmlFor="edit-name">Meno zákazníka *</Label>
+                <Input
+                  id="edit-name"
                   name="name"
-                  label="Meno zákazníka"
-                  defaultValue={editingCustomer.name}
+                  defaultValue={editingCustomer?.name}
                   required
                 />
-
-                <TextField
-                  fullWidth
+              </div>
+              <div>
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
                   name="email"
-                  label="Email"
                   type="email"
-                  defaultValue={editingCustomer.email}
+                  defaultValue={editingCustomer?.email}
                 />
-
-                <TextField
-                  fullWidth
+              </div>
+              <div>
+                <Label htmlFor="edit-phone">Telefón</Label>
+                <Input
+                  id="edit-phone"
                   name="phone"
-                  label="Telefón"
-                  defaultValue={editingCustomer.phone}
+                  defaultValue={editingCustomer?.phone}
                 />
-              </Box>
+              </div>
+            </div>
 
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    setEditCustomerDialogOpen(false);
-                    setEditingCustomer(null);
-                  }}
-                >
-                  Zrušiť
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={savingCustomer}
-                  startIcon={
-                    savingCustomer ? <CircularProgress size={20} /> : undefined
-                  }
-                >
-                  {savingCustomer ? 'Ukladám...' : 'Uložiť zmeny'}
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditCustomerDialogOpen(false);
+                  setEditingCustomer(null);
+                }}
+              >
+                Zrušiť
+              </Button>
+              <Button
+                type="submit"
+                variant="default"
+                disabled={savingCustomer}
+              >
+                {savingCustomer && <Spinner className="w-5 h-5 mr-2" />}
+                {savingCustomer ? 'Ukladám...' : 'Uložiť zmeny'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialóg na pridanie/upravenie zákazníka */}
-      {customerDialogOpen && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            bgcolor: 'rgba(0,0,0,0.3)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              p: 3,
-              minWidth: 320,
-              maxWidth: 500,
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              Nový zákazník
-            </Typography>
-            <Box
-              component="form"
+      <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nový zákazník</DialogTitle>
+            <DialogDescription>
+              Pridajte nového zákazníka do systému
+            </DialogDescription>
+          </DialogHeader>
+          <form
               onSubmit={e => {
                 e.preventDefault();
-                const form = e.currentTarget as HTMLFormElement;
-                const formData = new FormData(form);
+                const form = e.currentTarget as any;
+                const formData = new (window as any).FormData(form);
                 const name = formData.get('name') as string;
                 const email = formData.get('email') as string;
                 const phone = formData.get('phone') as string;
 
                 if (!name?.trim()) {
-                  alert('Meno zákazníka je povinné');
+                  window.alert('Meno zákazníka je povinné');
                   return;
                 }
 
@@ -2073,53 +1946,54 @@ export default function RentalForm({
 
                 handleSaveCustomer(newCustomer);
               }}
-            >
-              <Box
-                sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}
-              >
-                <TextField
-                  fullWidth
+          >
+            <div className="flex flex-col gap-4 py-4">
+              <div>
+                <Label htmlFor="new-name">Meno zákazníka *</Label>
+                <Input
+                  id="new-name"
                   name="name"
-                  label="Meno zákazníka"
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="new-email">Email</Label>
+                <Input
+                  id="new-email"
+                  name="email"
+                  type="email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-phone">Telefón</Label>
+                <Input
+                  id="new-phone"
+                  name="phone"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setCustomerDialogOpen(false)}
+              >
+                Zrušiť
+              </Button>
+              <Button type="submit" variant="default">
+                Pridať zákazníka
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-                <TextField fullWidth name="email" label="Email" type="email" />
-
-                <TextField fullWidth name="phone" label="Telefón" />
-              </Box>
-
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setCustomerDialogOpen(false)}
-                >
-                  Zrušiť
-                </Button>
-                <Button type="submit" variant="contained">
-                  Pridať zákazníka
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      )}
-
-      <Box
-        sx={{
-          gridColumn: '1 / -1',
-          display: 'flex',
-          gap: 2,
-          justifyContent: 'flex-end',
-          mt: 3,
-        }}
-      >
-        <Button variant="outlined" onClick={onCancel} disabled={isLoading}>
+      <div className="col-span-full flex gap-4 justify-end mt-6">
+        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
           Zrušiť
         </Button>
-        <Button type="submit" variant="contained" disabled={isLoading}>
+        <Button type="submit" variant="default" disabled={isLoading}>
           {isLoading && (
-            <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+            <Spinner className="w-5 h-5 mr-2" />
           )}
           {isLoading
             ? 'Ukladá sa...'
@@ -2127,7 +2001,7 @@ export default function RentalForm({
               ? 'Uložiť zmeny'
               : 'Vytvoriť prenájom'}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </form>
   );
 }

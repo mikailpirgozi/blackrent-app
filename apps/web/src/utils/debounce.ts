@@ -8,11 +8,11 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: ReturnType<typeof setTimeout>;
 
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay) as unknown as NodeJS.Timeout;
+    timeoutId = setTimeout(() => func(...args), delay);
   };
 }
 
@@ -36,7 +36,7 @@ export function measurePerformance<T>(
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-  // eslint-disable-next-line no-console
+   
   console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
   return result;
 }

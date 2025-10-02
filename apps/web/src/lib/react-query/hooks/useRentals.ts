@@ -1,6 +1,9 @@
 import { apiService } from '@/services/api';
 import type { Rental } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Declare browser APIs
+declare const CustomEvent: any;
 import { queryKeys } from '../queryKeys';
 
 // Filter interface pre rentals
@@ -122,7 +125,7 @@ export function useCreateRental() {
 
       return { previousRentals };
     },
-    onError: (err, newRental, context) => {
+    onError: (_err, _newRental, context) => {
       if (context?.previousRentals) {
         queryClient.setQueryData(
           queryKeys.rentals.lists(),
@@ -133,6 +136,13 @@ export function useCreateRental() {
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-created', { detail: data }));
+      
+      // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: data, action: 'create' } 
+        })
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({
@@ -151,34 +161,34 @@ export function useUpdateRental() {
 
   return useMutation({
     mutationFn: (rental: Rental) => apiService.updateRental(rental),
-    onMutate: async updatedRental => {
+    onMutate: async _updatedRental => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.rentals.detail(updatedRental.id),
+        queryKey: queryKeys.rentals.detail(_updatedRental.id),
       });
 
       const previousRental = queryClient.getQueryData(
-        queryKeys.rentals.detail(updatedRental.id)
+        queryKeys.rentals.detail(_updatedRental.id)
       );
 
       // Update detail
       queryClient.setQueryData(
-        queryKeys.rentals.detail(updatedRental.id),
-        updatedRental
+        queryKeys.rentals.detail(_updatedRental.id),
+        _updatedRental
       );
 
       // Update list
       queryClient.setQueryData(
         queryKeys.rentals.lists(),
         (old: Rental[] = []) =>
-          old.map(r => (r.id === updatedRental.id ? updatedRental : r))
+          old.map(r => (r.id === _updatedRental.id ? _updatedRental : r))
       );
 
       return { previousRental };
     },
-    onError: (err, updatedRental, context) => {
+    onError: (_err, __updatedRental, context) => {
       if (context?.previousRental) {
         queryClient.setQueryData(
-          queryKeys.rentals.detail(updatedRental.id),
+          queryKeys.rentals.detail(__updatedRental.id),
           context.previousRental
         );
       }
@@ -186,8 +196,15 @@ export function useUpdateRental() {
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-updated', { detail: data }));
+      
+      // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: data, action: 'update' } 
+        })
+      );
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.detail(variables.id),
       });
@@ -216,38 +233,18 @@ export function useDeleteRental() {
         queryKey: queryKeys.rentals.all,
       });
 
-      // Optimistic update pre všetky rental queries
-      queryClient.setQueriesData(
-        { queryKey: queryKeys.rentals.all },
-        (old: unknown) => {
-          if (Array.isArray(old)) {
-            // Normálny array
-            return old.filter((r: Rental) => r.id !== deletedId);
-          } else if (old && typeof old === 'object' && 'pages' in old) {
-            // Infinite query
-            const infiniteData = old as { pages: Array<{ data?: Rental[] }> };
-            return {
-              ...infiniteData,
-              pages: infiniteData.pages.map((page) => ({
-                ...page,
-                data: page.data?.filter((r: Rental) => r.id !== deletedId) || [],
-              })),
-            };
-          }
-          return old;
-        }
+      const previousRentals = queryClient.getQueryData(
+        queryKeys.rentals.lists()
       );
 
-      // Trigger optimistic event pre custom hooks
-      window.dispatchEvent(
-        new CustomEvent('rental-optimistic-delete', { 
-          detail: { rentalId: deletedId } 
-        })
+      queryClient.setQueryData(
+        queryKeys.rentals.lists(),
+        (old: Rental[] = []) => old.filter(r => r.id !== deletedId)
       );
 
-      return { deletedId };
+      return { previousRentals };
     },
-    onError: (err, deletedId, context) => {
+    onError: (_err, _deletedId, context) => {
       if (context?.previousRentals) {
         queryClient.setQueryData(
           queryKeys.rentals.lists(),
@@ -255,10 +252,17 @@ export function useDeleteRental() {
         );
       }
     },
-    onSuccess: (data, deletedId) => {
+    onSuccess: (_data, deletedId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('rental-deleted', { detail: { id: deletedId } })
+      );
+      
+      // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
+      window.dispatchEvent(
+        new CustomEvent('rental-optimistic-update', { 
+          detail: { rental: { id: deletedId }, action: 'delete' } 
+        })
       );
     },
     onSettled: () => {

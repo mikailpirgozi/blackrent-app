@@ -1,25 +1,18 @@
 import {
-  Description as DescriptionIcon,
+  FileText as DescriptionIcon,
   Download as DownloadIcon,
   Image as ImageIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Card,
-  CardContent,
-  CardMedia,
-  Chip,
-  CircularProgress,
-  Grid,
-  IconButton,
-  Paper,
-  Typography,
-} from '@mui/material';
+  Eye as VisibilityIcon,
+} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Typography } from '@/components/ui/typography';
 import { useCallback, useEffect, useState } from 'react';
 
-import type { ProtocolImage } from '../../types';
+import { ProtocolImage } from '../../types';
 
 interface ProtocolDetailViewerProps {
   protocolId: string;
@@ -147,292 +140,246 @@ export function ProtocolDetailViewer({
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="400px"
-      >
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error}
+      <Alert className="m-4">
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
 
   if (!protocol) {
     return (
-      <Alert severity="warning" sx={{ m: 2 }}>
-        Protokol sa nenašiel
+      <Alert className="m-4">
+        <AlertDescription>Protokol sa nenašiel</AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-4">
       {/* Záhlavie */}
-      <Box
-        sx={{
-          mb: 3,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Typography variant="h4" component="h1" color="primary">
+      <div className="mb-6 flex justify-between items-center">
+        <Typography variant="h4" className="text-primary">
           {protocol.type === 'handover' ? 'Preberací' : 'Vratný'} Protokol
         </Typography>
-        <Box>
-          <IconButton
+        <div className="flex gap-2">
+          <Button
             onClick={handleDownloadPDF}
-            color="primary"
+            variant="outline"
+            size="sm"
             title="Stiahnuť PDF"
           >
-            <DownloadIcon />
-          </IconButton>
+            <DownloadIcon className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
           {onClose && (
-            <IconButton onClick={onClose} color="secondary">
-              <VisibilityIcon />
-            </IconButton>
+            <Button onClick={onClose} variant="outline" size="sm">
+              <VisibilityIcon className="w-4 h-4 mr-2" />
+              Zavrieť
+            </Button>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Základné informácie */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Card className="p-4 mb-6">
+        <Typography variant="h6" className="mb-4">
           Základné informácie
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" color="text.secondary">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Typography variant="body2" className="text-muted-foreground">
               <strong>ID Protokolu:</strong> {protocol.id}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-muted-foreground">
               <strong>Dátum:</strong>{' '}
               {new Date(protocol.createdAt).toLocaleDateString('sk-SK')}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-muted-foreground">
               <strong>Miesto:</strong> {protocol.location || 'N/A'}
             </Typography>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" color="text.secondary">
+          </div>
+          <div className="space-y-2">
+            <Typography variant="body2" className="text-muted-foreground">
               <strong>Vozidlo:</strong>{' '}
               {protocol.rental?.vehicle?.brand || 'N/A'}{' '}
               {protocol.rental?.vehicle?.model || 'N/A'}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-muted-foreground">
               <strong>ŠPZ:</strong>{' '}
               {protocol.rental?.vehicle?.licensePlate || 'N/A'}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-muted-foreground">
               <strong>Zákazník:</strong>{' '}
               {protocol.rental?.customer?.name || 'N/A'}
             </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
+          </div>
+        </div>
+      </Card>
 
       {/* Stav vozidla */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Card className="p-4 mb-6">
+        <Typography variant="h6" className="mb-4">
           Stav vozidla
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
-            <Chip
-              label={`${protocol.vehicleCondition?.odometer || 0} km`}
-              icon={<DescriptionIcon />}
-              color="primary"
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Chip
-              label={`${protocol.vehicleCondition?.fuelLevel || 100}%`}
-              icon={<ImageIcon />}
-              color="secondary"
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Chip
-              label={protocol.vehicleCondition?.fuelType || 'N/A'}
-              color="info"
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Chip
-              label={protocol.vehicleCondition?.condition || 'Výborný'}
-              color="success"
-              variant="outlined"
-            />
-          </Grid>
-        </Grid>
-      </Paper>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Badge variant="outline" className="flex items-center gap-2 p-2">
+            <DescriptionIcon className="w-4 h-4" />
+            {protocol.vehicleCondition?.odometer || 0} km
+          </Badge>
+          <Badge variant="outline" className="flex items-center gap-2 p-2">
+            <ImageIcon className="w-4 h-4" />
+            {protocol.vehicleCondition?.fuelLevel || 100}%
+          </Badge>
+          <Badge variant="outline" className="p-2">
+            {protocol.vehicleCondition?.fuelType || 'N/A'}
+          </Badge>
+          <Badge variant="outline" className="p-2">
+            {protocol.vehicleCondition?.condition || 'Výborný'}
+          </Badge>
+        </div>
+      </Card>
 
       {/* Obrázky vozidla */}
       {protocol.vehicleImages && protocol.vehicleImages.length > 0 && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Card className="p-4 mb-6">
+          <Typography variant="h6" className="mb-4">
             Fotky vozidla ({protocol.vehicleImages.length})
           </Typography>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {protocol.vehicleImages.map((image, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-                <Card>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={image.url}
-                    alt={`Fotka vozidla ${index + 1}`}
-                    sx={{ cursor: 'pointer' }}
-                    onClick={() => handleViewOriginalImage(image)}
-                  />
-                  <CardContent sx={{ py: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {image.type} -{' '}
-                      {new Date(image.timestamp).toLocaleString('sk-SK')}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                    >
-                      {image.originalSize
-                        ? formatFileSize(image.originalSize)
-                        : 'N/A'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+              <Card key={index} className="overflow-hidden">
+                <img
+                  src={image.url}
+                  alt={`Fotka vozidla ${index + 1}`}
+                  className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => handleViewOriginalImage(image)}
+                />
+                <CardContent className="p-2">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {image.type} -{' '}
+                    {new Date(image.timestamp).toLocaleString('sk-SK')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground block">
+                    {image.originalSize
+                      ? formatFileSize(image.originalSize)
+                      : 'N/A'}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
-        </Paper>
+          </div>
+        </Card>
       )}
 
       {/* Dokumenty */}
       {protocol.documentImages && protocol.documentImages.length > 0 && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Card className="p-4 mb-6">
+          <Typography variant="h6" className="mb-4">
             Dokumenty ({protocol.documentImages.length})
           </Typography>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {protocol.documentImages.map((image, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-                <Card>
-                  <CardMedia
-                    component="img"
-                    height="150"
-                    image={image.url}
-                    alt={`Dokument ${index + 1}`}
-                    sx={{ cursor: 'pointer' }}
-                    onClick={() => handleViewOriginalImage(image)}
-                  />
-                  <CardContent sx={{ py: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {image.type} -{' '}
-                      {new Date(image.timestamp).toLocaleString('sk-SK')}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                    >
-                      {image.originalSize
-                        ? formatFileSize(image.originalSize)
-                        : 'N/A'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+              <Card key={index} className="overflow-hidden">
+                <img
+                  src={image.url}
+                  alt={`Dokument ${index + 1}`}
+                  className="w-full h-36 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => handleViewOriginalImage(image)}
+                />
+                <CardContent className="p-2">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {image.type} -{' '}
+                    {new Date(image.timestamp).toLocaleString('sk-SK')}
+                  </Typography>
+                  <Typography variant="caption" className="text-muted-foreground block">
+                    {image.originalSize
+                      ? formatFileSize(image.originalSize)
+                      : 'N/A'}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
-        </Paper>
+          </div>
+        </Card>
       )}
 
       {/* Škody */}
       {protocol.damages && protocol.damages.length > 0 && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Card className="p-4 mb-6">
+          <Typography variant="h6" className="mb-4">
             Škody a poškodenia ({protocol.damages.length})
           </Typography>
-          {protocol.damages.map((damage, index) => (
-            <Box
-              key={index}
-              sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}
-            >
-              <Typography variant="subtitle2" color="primary">
-                Škoda {index + 1}
-              </Typography>
-              <Typography variant="body2">
-                {damage.description || 'N/A'}
-              </Typography>
-              {damage.location && (
-                <Typography variant="caption" color="text.secondary">
-                  Lokalizácia: {damage.location}
+          <div className="space-y-4">
+            {protocol.damages.map((damage, index) => (
+              <div
+                key={index}
+                className="p-4 bg-gray-50 rounded-lg"
+              >
+                <Typography variant="caption" className="text-primary font-semibold">
+                  Škoda {index + 1}
                 </Typography>
-              )}
-            </Box>
-          ))}
-        </Paper>
+                <Typography variant="caption" className="mt-1">
+                  {damage.description || 'N/A'}
+                </Typography>
+                {damage.location && (
+                  <Typography variant="caption" className="text-muted-foreground mt-1">
+                    Lokalizácia: {damage.location}
+                  </Typography>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Poznámky */}
       {protocol.notes && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+        <Card className="p-4 mb-6">
+          <Typography variant="h6" className="mb-4">
             Poznámky
           </Typography>
-          <Typography variant="body2">{protocol.notes}</Typography>
-        </Paper>
+          <Typography variant="caption">{protocol.notes}</Typography>
+        </Card>
       )}
 
       {/* Podpisy */}
       {protocol.signatures && protocol.signatures.length > 0 && (
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
+        <Card className="p-4">
+          <Typography variant="h6" className="mb-4">
             Podpisy ({protocol.signatures.length})
           </Typography>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {protocol.signatures.map((signature, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <Card>
-                  <CardMedia
-                    component="img"
-                    height="100"
-                    image={(signature.signature || signature.url) as string}
-                    alt={`Podpis ${signature.signerName || index + 1}`}
-                  />
-                  <CardContent sx={{ py: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {signature.signerName || `Podpis ${index + 1}`}
+              <Card key={index} className="overflow-hidden">
+                <img
+                  src={(signature.signature || signature.url) as string}
+                  alt={`Podpis ${signature.signerName || index + 1}`}
+                  className="w-full h-24 object-contain"
+                />
+                <CardContent className="p-2">
+                  <Typography variant="caption" className="text-muted-foreground">
+                    {signature.signerName || `Podpis ${index + 1}`}
+                  </Typography>
+                  {signature.signerRole && (
+                    <Typography variant="caption" className="text-muted-foreground block">
+                      {signature.signerRole}
                     </Typography>
-                    {signature.signerRole && (
-                      <Typography
-                        variant="caption"
-                        display="block"
-                        color="text.secondary"
-                      >
-                        {signature.signerRole}
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
+                  )}
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
-        </Paper>
+          </div>
+        </Card>
       )}
-    </Box>
+    </div>
   );
 }
 

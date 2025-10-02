@@ -1,31 +1,21 @@
 import {
-  // Close as CloseIcon, // Nepoužívané
-  AdminPanelSettings as AdminIcon,
+  Shield as AdminIcon,
   Check as CheckIcon,
-  Business as CompanyIcon,
-  Work as EmployeeIcon,
-  ExpandMore as ExpandMoreIcon,
-  Engineering as MechanicIcon,
-  BusinessCenter as SalesIcon,
-  Build as TempWorkerIcon,
-  Person as UserIcon,
-} from '@mui/icons-material';
+  Building2 as CompanyIcon,
+  Briefcase as EmployeeIcon,
+  Wrench as MechanicIcon,
+  Store as SalesIcon,
+  Hammer as TempWorkerIcon,
+  User as UserIcon,
+} from 'lucide-react';
 import {
-  // Divider, // Nepoužívané
   Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  // Card, // Nepoužívané
-  // CardContent, // Nepoužívané
-  Chip,
-  // Grid, // Nepoužívané
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-} from '@mui/material';
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
+import { Badge } from '../ui/badge';
+import { Typography } from '../ui/typography';
 
 // Definícia typov pre oprávnenia
 interface Permission {
@@ -213,7 +203,7 @@ interface RolePermissionsDisplayProps {
 
 export default function RolePermissionsDisplay({
   selectedRole,
-  showAllRoles = true,
+  // showAllRoles = true,
 }: RolePermissionsDisplayProps) {
   const rolesToShow = selectedRole
     ? [selectedRole]
@@ -234,23 +224,19 @@ export default function RolePermissionsDisplay({
     if (conditions?.approvalRequired) conditionText += ' (vyžaduje schválenie)';
 
     return (
-      <ListItem key={permission.resource} sx={{ py: 0.5 }}>
-        <ListItemIcon sx={{ minWidth: 32 }}>
-          <CheckIcon color="success" fontSize="small" />
-        </ListItemIcon>
-        <ListItemText
-          primary={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" fontWeight={500}>
-                {resourceLabel}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                ({actions}){conditionText}
-              </Typography>
-            </Box>
-          }
-        />
-      </ListItem>
+      <div key={permission.resource} className="flex items-start gap-3 py-2">
+        <CheckIcon className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Typography variant="body2" className="font-medium">
+              {resourceLabel}
+            </Typography>
+            <Typography variant="caption" className="text-muted-foreground">
+              ({actions}){conditionText}
+            </Typography>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -262,105 +248,94 @@ export default function RolePermissionsDisplay({
 
     if (!roleInfo || !permissions) return null;
 
+    const getColorClass = (color: string) => {
+      switch (color) {
+        case 'primary': return 'text-primary';
+        case 'secondary': return 'text-secondary';
+        case 'error': return 'text-destructive';
+        case 'info': return 'text-blue-600';
+        case 'success': return 'text-green-600';
+        case 'warning': return 'text-yellow-600';
+        default: return 'text-foreground';
+      }
+    };
+
+    const getBadgeVariant = (color: string) => {
+      switch (color) {
+        case 'primary': return 'default';
+        case 'secondary': return 'secondary';
+        case 'error': return 'destructive';
+        case 'info': return 'default';
+        case 'success': return 'default';
+        case 'warning': return 'default';
+        default: return 'outline';
+      }
+    };
+
     return (
-      <Accordion key={roleKey} defaultExpanded={!showAllRoles}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              width: '100%',
-            }}
-          >
-            <IconComponent
-              color={
-                roleInfo.color as
-                  | 'primary'
-                  | 'secondary'
-                  | 'error'
-                  | 'info'
-                  | 'success'
-                  | 'warning'
-                  | 'inherit'
-              }
-            />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" component="div">
+      <AccordionItem key={roleKey} value={roleKey} className="mb-4">
+        <AccordionTrigger>
+          <div className="flex items-center gap-4 w-full">
+            <IconComponent className={`h-6 w-6 ${getColorClass(roleInfo.color)}`} />
+            <div className="flex-1 text-left">
+              <Typography variant="h6" className="font-semibold">
                 {roleInfo.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-muted-foreground">
                 {roleInfo.description}
               </Typography>
-            </Box>
-            <Chip
-              label={roleKey.toUpperCase()}
-              color={
-                roleInfo.color === 'inherit'
-                  ? 'default'
-                  : (roleInfo.color as
-                      | 'primary'
-                      | 'secondary'
-                      | 'error'
-                      | 'info'
-                      | 'success'
-                      | 'warning'
-                      | 'default')
-              }
-              size="small"
-              variant="outlined"
-            />
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box>
-            <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
+            </div>
+            <Badge
+              variant={getBadgeVariant(roleInfo.color)}
+              className="text-xs"
+            >
+              {roleKey.toUpperCase()}
+            </Badge>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div>
+            <Typography variant="h6" className="mb-4">
               Oprávnenia:
             </Typography>
 
             {roleKey === 'admin' ? (
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'error.50',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'error.200',
-                }}
-              >
-                <Typography variant="body2" color="error.main" fontWeight={600}>
+              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <Typography variant="body2" className="text-destructive font-semibold">
                   🔥 ÚPLNÉ PRÁVA NA VŠETKO
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" className="text-muted-foreground">
                   Administrátor má neobmedzený prístup k celému systému
                 </Typography>
-              </Box>
+              </div>
             ) : (
-              <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
+              <div className="bg-muted rounded-lg p-4 space-y-2">
                 {permissions.map(permission =>
                   renderPermissionItem(permission)
                 )}
-              </List>
+              </div>
             )}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
     );
   };
 
   return (
-    <Box>
-      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+    <div>
+      <Typography variant="h4" className="mb-6">
         📋 Práva používateľských rolí
       </Typography>
 
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
+      <div className="mb-4">
+        <Typography variant="body2" className="text-muted-foreground">
           Prehľad oprávnení pre jednotlivé role v BlackRent systéme
         </Typography>
-      </Box>
+      </div>
 
-      <Box>{rolesToShow.map(roleKey => renderRoleCard(roleKey))}</Box>
-    </Box>
+      <Accordion type="single" collapsible className="space-y-2">
+        {rolesToShow.map(roleKey => renderRoleCard(roleKey))}
+      </Accordion>
+    </div>
   );
 }

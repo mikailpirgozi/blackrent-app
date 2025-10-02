@@ -1,32 +1,29 @@
+// Lucide icons (replacing MUI icons)
 import {
-  Business as BusinessIcon,
-  DirectionsCar as CarIcon,
+  Building2 as BusinessIcon,
+  Car as CarIcon,
   CheckCircle as CheckCircleIcon,
-  Delete as DeleteIcon,
+  Trash2 as DeleteIcon,
   Edit as EditIcon,
-  Error as ErrorIcon,
-  PhotoLibrary as GalleryIcon,
-  Assignment as HandoverIcon,
-  PictureAsPdf as PDFIcon,
-  Payment as PaymentIcon,
-  Pending as PendingIcon,
-  Person as PersonIcon,
-  AssignmentReturn as ReturnIcon,
-  Schedule as ScheduleIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Divider,
-  Grid,
-  IconButton,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+  AlertCircle as ErrorIcon,
+  Images as GalleryIcon,
+  FileText as HandoverIcon,
+  FileText as PDFIcon,
+  CreditCard as PaymentIcon,
+  Clock as PendingIcon,
+  User as PersonIcon,
+  RotateCcw as ReturnIcon,
+  Calendar as ScheduleIcon,
+  Eye as VisibilityIcon,
+} from 'lucide-react';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { memo } from 'react';
@@ -125,291 +122,213 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
     return (
       <Card
         key={rental.id}
-        sx={{
-          height: '100%',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          border: '1px solid',
-          borderColor: isActive ? '#4caf50' : 'divider',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-            borderColor: isActive ? '#4caf50' : 'primary.main',
-          },
-          position: 'relative',
-          overflow: 'visible',
-        }}
+        className={cn(
+          "h-full cursor-pointer transition-all duration-300 border relative overflow-visible",
+          "hover:-translate-y-1 hover:shadow-xl",
+          isActive 
+            ? "border-green-500 hover:border-green-500" 
+            : "border-border hover:border-primary"
+        )}
         onClick={() => onEdit(rental)}
       >
         {/* Status indicator */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -8,
-            right: 16,
-            zIndex: 1,
-          }}
-        >
-          <Chip
-            label={rental.status}
-            color={getStatusColor(rental.status)}
-            size="small"
-            icon={getStatusIcon(rental.status)}
-            sx={{
-              fontWeight: 'bold',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          />
-        </Box>
+        <div className="absolute -top-2 right-4 z-10">
+          <Badge
+            variant={getStatusColor(rental.status) === 'success' ? 'default' : 
+                    getStatusColor(rental.status) === 'error' ? 'destructive' : 
+                    getStatusColor(rental.status) === 'warning' ? 'secondary' : 'outline'}
+            className="font-bold shadow-md"
+          >
+            <span className="mr-1">{getStatusIcon(rental.status)}</span>
+            {rental.status}
+          </Badge>
+        </div>
 
         {/* Protocol status indicator */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 1,
-          }}
-        >
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <div className="absolute top-2 left-2 z-10">
+          <div className="flex gap-1">
             {hasHandover && (
-              <Chip
-                icon={<HandoverIcon />}
-                label=""
-                color="success"
-                size="small"
-                sx={{
-                  minWidth: 32,
-                  height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 },
-                }}
-              />
+              <Badge
+                variant="default"
+                className="min-w-8 h-6 p-1 bg-green-500 hover:bg-green-600"
+              >
+                <HandoverIcon className="w-4 h-4" />
+              </Badge>
             )}
             {hasReturn && (
-              <Chip
-                icon={<ReturnIcon />}
-                label=""
-                color="primary"
-                size="small"
-                sx={{
-                  minWidth: 32,
-                  height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 },
-                }}
-              />
+              <Badge
+                variant="default"
+                className="min-w-8 h-6 p-1 bg-blue-500 hover:bg-blue-600"
+              >
+                <ReturnIcon className="w-4 h-4" />
+              </Badge>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        <CardContent sx={{ p: 2, pt: 4 }}>
+        <CardContent className="p-4 pt-8">
           {/* Vehicle info */}
-          <Box sx={{ mb: 1.5 }}>
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
-            >
-              <CarIcon color="primary" fontSize="small" />
-              <Typography variant="subtitle1" fontWeight="bold" color="primary">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <CarIcon className="w-4 h-4 text-primary" />
+              <h3 className="text-base font-bold text-primary">
                 {rental.vehicle
                   ? `${rental.vehicle.brand} ${rental.vehicle.model}`
                   : 'Bez vozidla'}
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground ml-6">
               {rental.vehicle?.licensePlate || 'N/A'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Customer */}
-          <Box sx={{ mb: 1.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon color="action" fontSize="small" />
-              <Typography variant="body2" fontWeight="medium">
+          <div className="mb-6">
+            <div className="flex items-center gap-2">
+              <PersonIcon className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">
                 {rental.customerName}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Dates */}
-          <Box sx={{ mb: 1.5 }}>
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
-            >
-              <ScheduleIcon color="action" fontSize="small" />
-              <Typography variant="body2" fontWeight="medium">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <ScheduleIcon className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">
                 {formatDateTime(rental.startDate)}
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground ml-6">
               do {formatDateTime(rental.endDate)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Price */}
           <PriceDisplay rental={rental} variant="compact" showExtraKm={false} />
 
           {/* Protocol actions - vždy zobrazené */}
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+          <div className="flex gap-2 mb-4 flex-wrap">
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={<VisibilityIcon />}
+              size="sm"
+              variant="outline"
               onClick={e => {
                 e.stopPropagation();
                 onViewProtocols(rental);
               }}
               disabled={loadingProtocols.includes(rental.id)}
-              sx={{ flex: 1, minWidth: 'fit-content' }}
+              className="flex-1 min-w-fit"
             >
+              <VisibilityIcon className="w-4 h-4 mr-2" />
               {loadingProtocols.includes(rental.id)
                 ? 'Načítavam...'
                 : 'Zobraziť protokoly'}
             </Button>
             {hasHandover && (
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<PDFIcon />}
+                size="sm"
+                variant="outline"
                 onClick={e => {
                   e.stopPropagation();
                   onViewPDF(hasHandover.id, 'handover', 'Preberací protokol');
                 }}
-                sx={{ minWidth: 'fit-content' }}
+                className="min-w-fit"
               >
+                <PDFIcon className="w-4 h-4 mr-2" />
                 PDF
               </Button>
             )}
             {hasReturn && (
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<PDFIcon />}
+                size="sm"
+                variant="outline"
                 onClick={e => {
                   e.stopPropagation();
                   onViewPDF(hasReturn.id, 'return', 'Preberací protokol');
                 }}
-                sx={{ minWidth: 'fit-content' }}
+                className="min-w-fit"
               >
+                <PDFIcon className="w-4 h-4 mr-2" />
                 PDF
               </Button>
             )}
-          </Box>
+          </div>
 
           {/* Protocol details when loaded */}
           {protocols[rental.id] && (
-            <Box sx={{ mb: 1, p: 0.5, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography
-                variant="caption"
-                sx={{ fontWeight: 600, fontSize: '0.65rem' }}
-              >
+            <div className="mb-4 p-2 bg-gray-50 rounded">
+              <span className="text-xs font-semibold">
                 Detaily protokolov:
-              </Typography>
+              </span>
               {hasHandover && (
-                <Box
-                  sx={{
-                    mt: 0.5,
-                    p: 0.5,
-                    bgcolor: 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 500,
-                      color: 'success.dark',
-                      fontSize: '0.6rem',
-                    }}
-                  >
+                <div className="mt-2 p-2 bg-green-100 rounded">
+                  <span className="text-[0.6rem] font-medium text-green-800">
                     ✅ Preberací protokol
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', fontSize: '0.55rem' }}
-                  >
+                  </span>
+                  <span className="block text-[0.55rem] text-muted-foreground">
                     {format(
                       new Date(hasHandover.createdAt),
                       'dd.MM.yyyy HH:mm',
                       { locale: sk }
                     )}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
               {hasReturn && (
-                <Box
-                  sx={{
-                    mt: 0.5,
-                    p: 0.5,
-                    bgcolor: 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 500,
-                      color: 'success.dark',
-                      fontSize: '0.6rem',
-                    }}
-                  >
+                <div className="mt-2 p-2 bg-green-100 rounded">
+                  <span className="text-[0.6rem] font-medium text-green-800">
                     ✅ Preberací protokol
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', fontSize: '0.55rem' }}
-                  >
+                  </span>
+                  <span className="block text-[0.55rem] text-muted-foreground">
                     {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', {
                       locale: sk,
                     })}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Actions */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 0.5,
-              mt: 2,
-              justifyContent: 'flex-end',
-            }}
-          >
-            <Tooltip title="Upraviť">
-              <IconButton
-                size="small"
+          <div className="flex gap-2 mt-4 justify-end">
+            <Tooltip>
+              <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={e => {
                   e.stopPropagation();
                   onEdit(rental);
                 }}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-8 h-8 p-0"
               >
-                <EditIcon fontSize="small" />
-              </IconButton>
+                <EditIcon className="w-4 h-4" />
+              </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vymazať</p>
+              </TooltipContent>
             </Tooltip>
-            <Tooltip title="Vymazať">
-              <IconButton
-                size="small"
+            <Tooltip>
+              <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={e => {
                   e.stopPropagation();
                   onDelete(rental.id);
                 }}
-                sx={{
-                  bgcolor: 'error.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'error.dark' },
-                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-8 h-8 p-0"
               >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+                <DeleteIcon className="w-4 h-4" />
+              </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vymazať</p>
+              </TooltipContent>
             </Tooltip>
-          </Box>
+          </div>
         </CardContent>
       </Card>
     );
@@ -425,410 +344,324 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
     return (
       <Card
         key={rental.id}
-        sx={{
-          height: '100%',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          border: '1px solid',
-          borderColor: isActive ? '#4caf50' : 'divider',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-            borderColor: isActive ? '#4caf50' : 'primary.main',
-          },
-          position: 'relative',
-          overflow: 'visible',
-        }}
+        className={cn(
+          "h-full cursor-pointer transition-all duration-300 border relative overflow-visible",
+          "hover:-translate-y-1 hover:shadow-xl",
+          isActive 
+            ? "border-green-500 hover:border-green-500" 
+            : "border-border hover:border-primary"
+        )}
         onClick={() => onEdit(rental)}
       >
         {/* Status indicator */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -8,
-            right: 16,
-            zIndex: 1,
-          }}
-        >
-          <Chip
-            label={rental.status}
-            color={getStatusColor(rental.status)}
-            size="small"
-            icon={getStatusIcon(rental.status)}
-            sx={{
-              fontWeight: 'bold',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          />
-        </Box>
+        <div className="absolute -top-2 right-4 z-10">
+          <Badge
+            variant={getStatusColor(rental.status) === 'success' ? 'default' : 
+                    getStatusColor(rental.status) === 'error' ? 'destructive' : 
+                    getStatusColor(rental.status) === 'warning' ? 'secondary' : 'outline'}
+            className="font-bold shadow-md"
+          >
+            <span className="mr-1">{getStatusIcon(rental.status)}</span>
+            {rental.status}
+          </Badge>
+        </div>
 
         {/* Protocol status indicator */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 1,
-          }}
-        >
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <div className="absolute top-2 left-2 z-10">
+          <div className="flex gap-1">
             {hasHandover && (
-              <Chip
-                icon={<HandoverIcon />}
-                label=""
-                color="success"
-                size="small"
-                sx={{
-                  minWidth: 32,
-                  height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 },
-                }}
-              />
+              <Badge
+                variant="default"
+                className="min-w-8 h-6 p-1 bg-green-500 hover:bg-green-600"
+              >
+                <HandoverIcon className="w-4 h-4" />
+              </Badge>
             )}
             {hasReturn && (
-              <Chip
-                icon={<ReturnIcon />}
-                label=""
-                color="primary"
-                size="small"
-                sx={{
-                  minWidth: 32,
-                  height: 24,
-                  '& .MuiChip-icon': { fontSize: 16 },
-                }}
-              />
+              <Badge
+                variant="default"
+                className="min-w-8 h-6 p-1 bg-blue-500 hover:bg-blue-600"
+              >
+                <ReturnIcon className="w-4 h-4" />
+              </Badge>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        <CardContent sx={{ p: 3, pt: 4 }}>
+        <CardContent className="p-4 pt-8">
           {/* Vehicle info */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <CarIcon color="primary" fontSize="small" />
-              <Typography variant="h6" fontWeight="bold" color="primary">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <CarIcon className="w-4 h-4 text-primary" />
+              <h3 className="text-base font-bold text-primary">
                 {rental.vehicle
                   ? `${rental.vehicle.brand} ${rental.vehicle.model}`
                   : 'Bez vozidla'}
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground ml-6">
               {rental.vehicle?.licensePlate || 'N/A'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Customer and company */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <PersonIcon color="action" fontSize="small" />
-              <Typography variant="body1" fontWeight="medium">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <PersonIcon className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">
                 {rental.customerName}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <BusinessIcon color="action" fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <BusinessIcon className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
                 {rental.vehicle?.company || 'N/A'}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Dates */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <ScheduleIcon color="action" fontSize="small" />
-              <Typography variant="body2" fontWeight="medium">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <ScheduleIcon className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">
                 Obdobie prenájmu
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 3 }}>
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground ml-6">
               {formatDateTime(rental.startDate)} -{' '}
               {formatDateTime(rental.endDate)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Price and commission */}
           <PriceDisplay rental={rental} variant="detailed" showExtraKm={true} />
 
           {/* Payment info */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PaymentIcon color="action" fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
+          <div className="mb-6">
+            <div className="flex items-center gap-2">
+              <PaymentIcon className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
                 {rental.paymentMethod} -{' '}
                 {rental.paid ? 'Uhradené' : 'Neuhradené'}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
-          <Divider sx={{ my: 2 }} />
+          <Separator className="my-4" />
 
           {/* Protocol actions */}
-          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <div className="flex gap-2 mb-4 flex-wrap">
             {!hasHandover && (
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<HandoverIcon />}
+              size="sm"
+              variant="outline"
                 onClick={e => {
                   e.stopPropagation();
                   onCreateHandover(rental);
                 }}
-                sx={{ flex: 1 }}
+                className="flex-1"
               >
                 Preberací protokol
               </Button>
             )}
             {hasHandover && !hasReturn && (
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<ReturnIcon />}
+              size="sm"
+              variant="outline"
                 onClick={e => {
                   e.stopPropagation();
                   onCreateReturn(rental);
                 }}
-                sx={{ flex: 1 }}
+                className="flex-1"
               >
+                <ReturnIcon className="w-4 h-4 mr-2" />
                 Protokol vrátenia
               </Button>
             )}
-          </Box>
+          </div>
 
           {/* Protocol actions for existing protocols */}
           {/* Debug info */}
-          <Box sx={{ mb: 1, p: 0.5, bgcolor: 'info.light', borderRadius: 1 }}>
-            <Typography variant="caption" color="info.dark">
+          <div className="mb-2 p-2 bg-blue-100 rounded">
+            <span className="text-xs text-blue-800">
               Debug: hasHandover={!!hasHandover}, hasReturn={!!hasReturn},
               protocols={Object.keys(protocols).length}
-            </Typography>
-          </Box>
+            </span>
+          </div>
 
           {(hasHandover || hasReturn) && (
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <div className="flex gap-2 mb-4">
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<VisibilityIcon />}
+              size="sm"
+              variant="outline"
                 onClick={e => {
                   e.stopPropagation();
                   onViewProtocols(rental);
                 }}
                 disabled={loadingProtocols.includes(rental.id)}
-                sx={{ flex: 1 }}
+                className="flex-1"
               >
+                <VisibilityIcon className="w-4 h-4 mr-2" />
                 Zobraziť protokoly
               </Button>
               {hasHandover && (
                 <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<PDFIcon />}
+              size="sm"
+              variant="outline"
                   onClick={e => {
                     e.stopPropagation();
                     onViewPDF(hasHandover.id, 'handover', 'Preberací protokol');
                   }}
-                  sx={{ flex: 1 }}
+                  className="flex-1"
                 >
+                  <PDFIcon className="w-4 h-4 mr-2" />
                   PDF
                 </Button>
               )}
               {hasReturn && (
                 <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<PDFIcon />}
+              size="sm"
+              variant="outline"
                   onClick={e => {
                     e.stopPropagation();
                     onViewPDF(hasReturn.id, 'return', 'Preberací protokol');
                   }}
-                  sx={{ flex: 1 }}
+                  className="flex-1"
                 >
+                  <PDFIcon className="w-4 h-4 mr-2" />
                   PDF
                 </Button>
               )}
               {((hasHandover?.vehicleImages?.length ?? 0) > 0 ||
                 (hasReturn?.vehicleImages?.length ?? 0) > 0) && (
                 <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<GalleryIcon />}
+              size="sm"
+              variant="outline"
                   onClick={e => {
                     e.stopPropagation();
                     onOpenGallery(rental, hasHandover ? 'handover' : 'return');
                   }}
-                  sx={{ flex: 1 }}
+                  className="flex-1"
                 >
+                  <GalleryIcon className="w-4 h-4 mr-2" />
                   Galéria
                 </Button>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Protocol details when loaded */}
           {protocols[rental.id] && (
-            <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+            <div className="mb-4 p-2 bg-gray-50 rounded">
+              <h6 className="mb-2 font-semibold text-sm">
                 Detaily protokolov:
-              </Typography>
+              </h6>
               {hasHandover && (
-                <Box
-                  sx={{
-                    mb: 1,
-                    p: 1,
-                    bgcolor: 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, color: 'success.dark' }}
-                  >
+                <div className="mb-2 p-2 bg-green-100 rounded">
+                  <span className="text-sm font-medium text-green-800">
                     ✅ Preberací protokol
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </span>
+                  <span className="text-xs text-muted-foreground">
                     Vytvorený:{' '}
                     {format(
                       new Date(hasHandover.createdAt),
                       'dd.MM.yyyy HH:mm',
                       { locale: sk }
                     )}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
               {hasReturn && (
-                <Box
-                  sx={{
-                    mb: 1,
-                    p: 1,
-                    bgcolor: 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, color: 'success.dark' }}
-                  >
+                <div className="mb-2 p-2 bg-green-100 rounded">
+                  <span className="text-sm font-medium text-green-800">
                     ✅ Preberací protokol
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </span>
+                  <span className="text-xs text-muted-foreground">
                     Vytvorený:{' '}
                     {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', {
                       locale: sk,
                     })}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Protocol details when loaded */}
           {protocols[rental.id] && (
-            <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 1, fontWeight: 600, fontSize: '0.75rem' }}
-              >
+            <div className="mb-4 p-2 bg-gray-50 rounded">
+              <h6 className="mb-2 font-semibold text-xs">
                 Detaily protokolov:
-              </Typography>
+              </h6>
               {hasHandover && (
-                <Box
-                  sx={{
-                    mb: 1,
-                    p: 0.5,
-                    bgcolor: 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 500, color: 'success.dark' }}
-                  >
+                <div className="mb-2 p-2 bg-green-100 rounded">
+                  <span className="text-xs font-medium text-green-800">
                     ✅ Preberací protokol
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', fontSize: '0.65rem' }}
-                  >
+                  </span>
+                  <span className="block text-[0.65rem] text-muted-foreground">
                     {format(
                       new Date(hasHandover.createdAt),
                       'dd.MM.yyyy HH:mm',
                       { locale: sk }
                     )}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
               {hasReturn && (
-                <Box
-                  sx={{
-                    mb: 1,
-                    p: 0.5,
-                    bgcolor: 'success.light',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 500, color: 'success.dark' }}
-                  >
+                <div className="mb-2 p-2 bg-green-100 rounded">
+                  <span className="text-xs font-medium text-green-800">
                     ✅ Preberací protokol
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', fontSize: '0.65rem' }}
-                  >
+                  </span>
+                  <span className="block text-[0.65rem] text-muted-foreground">
                     {format(new Date(hasReturn.createdAt), 'dd.MM.yyyy HH:mm', {
                       locale: sk,
                     })}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Actions */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              justifyContent: 'flex-end',
-            }}
-          >
-            <Tooltip title="Upraviť">
-              <IconButton
-                size="small"
+          <div className="flex gap-2 justify-end">
+            <Tooltip>
+              <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={e => {
                   e.stopPropagation();
                   onEdit(rental);
                 }}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-8 h-8 p-0"
               >
-                <EditIcon fontSize="small" />
-              </IconButton>
+                <EditIcon className="w-4 h-4" />
+              </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vymazať</p>
+              </TooltipContent>
             </Tooltip>
-            <Tooltip title="Vymazať">
-              <IconButton
-                size="small"
+            <Tooltip>
+              <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={e => {
                   e.stopPropagation();
                   onDelete(rental.id);
                 }}
-                sx={{
-                  bgcolor: 'error.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'error.dark' },
-                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-8 h-8 p-0"
               >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+                <DeleteIcon className="w-4 h-4" />
+              </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vymazať</p>
+              </TooltipContent>
             </Tooltip>
-          </Box>
+          </div>
         </CardContent>
       </Card>
     );
@@ -845,25 +678,17 @@ const RentalCardView: React.FC<RentalCardViewProps> = ({
     }
   };
 
-  const getGridSize = () => {
-    switch (viewMode) {
-      case 'compact':
-        return { xs: 12, sm: 6, md: 4, lg: 3, xl: 2 };
-      case 'detailed':
-        return { xs: 12, sm: 12, md: 6, lg: 4, xl: 3 };
-      default:
-        return { xs: 12, sm: 6, md: 4, lg: 3, xl: 2 };
-    }
-  };
 
   return (
-    <Grid container spacing={{ xs: 1, md: 2 }}>
-      {rentals.map(rental => (
-        <Grid item key={rental.id} {...getGridSize()}>
-          {renderCard(rental)}
-        </Grid>
-      ))}
-    </Grid>
+    <TooltipProvider>
+      <div className="grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {rentals.map(rental => (
+          <div key={rental.id}>
+            {renderCard(rental)}
+          </div>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 };
 

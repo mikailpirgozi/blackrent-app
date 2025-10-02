@@ -280,8 +280,8 @@ export const useRentalProtocols = ({
         });
 
         const protocolData: ProtocolsData = {
-          handover: latestHandover,
-          return: latestReturn,
+          handover: latestHandover!,
+          return: latestReturn!,
         };
 
         logger.debug('🔄 Setting protocols state for rental', {
@@ -564,6 +564,6 @@ export const useRentalProtocols = ({
     handleViewGallery,
 
     // Callback
-    onProtocolUpdate,
+    onProtocolUpdate: onProtocolUpdate ?? (() => {}),
   };
 };

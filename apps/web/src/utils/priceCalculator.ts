@@ -12,7 +12,7 @@ export interface PriceBreakdown {
   extraKmCharge: number;
   finalPrice: number;
   hasDiscount: boolean;
-  discountPercentage?: number;
+  discountPercentage: number | undefined;
 }
 
 /**

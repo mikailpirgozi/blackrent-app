@@ -9,34 +9,65 @@
  */
 
 import {
-  Block as BlockIcon,
-  DirectionsCar as RentedIcon,
-  Build as ServiceIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
+  Square as BlockIcon,
+  Car as RentedIcon,
+  Wrench as ServiceIcon,
+  AlertTriangle as WarningIcon,
+} from 'lucide-react';
 import {
   Alert,
-  Autocomplete,
-  Box,
+  AlertDescription,
+} from '@/components/ui/alert';
+import {
   Button,
-  Chip,
+} from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+} from '@/components/ui/card';
+import {
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
+} from '@/components/ui/dialog';
+import {
+  Input,
+} from '@/components/ui/input';
+import {
+  Label,
+} from '@/components/ui/label';
+import {
   Select,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Textarea,
+} from '@/components/ui/textarea';
+import {
+  Badge,
+} from '@/components/ui/badge';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 import { addDays, format, isAfter } from 'date-fns';
-import { sk } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
@@ -48,8 +79,8 @@ interface AddUnavailabilityModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  preselectedVehicle?: Vehicle;
-  preselectedDate?: Date;
+  preselectedVehicle?: Vehicle | undefined;
+  preselectedDate?: Date | undefined;
   editingUnavailability?: {
     id: string;
     vehicleId: string;
@@ -57,10 +88,10 @@ interface AddUnavailabilityModalProps {
     endDate: Date;
     type: string;
     reason: string;
-    notes?: string;
-    priority?: number;
-    recurring?: boolean;
-  };
+    notes?: string | undefined;
+    priority?: number | undefined;
+    recurring?: boolean | undefined;
+  } | undefined;
 }
 
 interface UnavailabilityFormData {
@@ -352,216 +383,262 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
   );
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={sk}>
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            pb: 1,
-          }}
-        >
-          <BlockIcon color="primary" />
-          <Typography variant="h6" component="span">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BlockIcon className="h-5 w-5 text-primary" />
             {editingUnavailability
               ? '✏️ Upraviť nedostupnosť'
               : '🚫 Pridať nedostupnosť vozidla'}
-          </Typography>
-        </DialogTitle>
+          </DialogTitle>
+          <DialogDescription>
+            {editingUnavailability
+              ? 'Upravte informácie o nedostupnosti vozidla'
+              : 'Pridajte novú nedostupnosť pre vybrané vozidlo'}
+          </DialogDescription>
+        </DialogHeader>
 
-        <DialogContent sx={{ pt: 2 }}>
+        <div className="space-y-6">
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-1 gap-6">
             {/* Vehicle Selection */}
-            <Grid item xs={12}>
-              <Autocomplete
-                value={selectedVehicle || null}
-                onChange={(_, newValue) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    vehicleId: newValue?.id || '',
-                  }));
-                }}
-                options={availableVehicles}
-                getOptionLabel={(vehicle: Vehicle) =>
-                  `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`
-                }
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Vozidlo *"
-                    placeholder="Vyberte vozidlo..."
-                    error={!formData.vehicleId}
-                  />
-                )}
-                renderOption={(props, vehicle) => (
-                  <Box component="li" {...props}>
-                    <Box>
-                      <Typography variant="body1">
-                        {vehicle.brand} {vehicle.model}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {vehicle.licensePlate} • {vehicle.company}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
-              />
-            </Grid>
+            <div className="space-y-2">
+              <Label htmlFor="vehicle-select">Vozidlo *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      "w-full justify-between",
+                      !formData.vehicleId && "text-muted-foreground"
+                    )}
+                  >
+                    {selectedVehicle
+                      ? `${selectedVehicle.brand} ${selectedVehicle.model} (${selectedVehicle.licensePlate})`
+                      : "Vyberte vozidlo..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Hľadať vozidlo..." />
+                    <CommandList>
+                      <CommandEmpty>Žiadne vozidlo sa nenašlo.</CommandEmpty>
+                      <CommandGroup>
+                        {availableVehicles.map((vehicle: Vehicle) => (
+                          <CommandItem
+                            key={vehicle.id}
+                            value={`${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}`}
+                            onSelect={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                vehicleId: vehicle.id,
+                              }));
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {vehicle.brand} {vehicle.model}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {vehicle.licensePlate} • {vehicle.company}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {!formData.vehicleId && (
+                <p className="text-sm text-red-500">Vozidlo je povinné</p>
+              )}
+            </div>
 
             {/* Type Selection */}
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Typ nedostupnosti *</InputLabel>
-                <Select
-                  value={formData.type}
-                  onChange={e =>
-                    setFormData(prev => ({
-                      ...prev,
-                      type: e.target.value as
-                        | 'rented'
-                        | 'service'
-                        | 'maintenance'
-                        | 'repair'
-                        | 'blocked',
-                    }))
-                  }
-                  label="Typ nedostupnosti *"
-                >
+            <div className="space-y-2">
+              <Label htmlFor="type-select">Typ nedostupnosti *</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) =>
+                  setFormData(prev => ({
+                    ...prev,
+                    type: value as
+                      | 'rented'
+                      | 'service'
+                      | 'maintenance'
+                      | 'repair'
+                      | 'blocked',
+                  }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Vyberte typ nedostupnosti..." />
+                </SelectTrigger>
+                <SelectContent>
                   {UNAVAILABILITY_TYPES.map(type => (
-                    <MenuItem key={type.value} value={type.value}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <Box sx={{ color: type.color }}>{type.icon}</Box>
-                        <Box>
-                          <Typography variant="body1">{type.label}</Typography>
-                          <Typography variant="body2" color="text.secondary">
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <div style={{ color: type.color }}>{type.icon}</div>
+                        <div>
+                          <div className="font-medium">{type.label}</div>
+                          <div className="text-sm text-muted-foreground">
                             {type.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </MenuItem>
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Date Range */}
-            <Grid item xs={6}>
-              <DatePicker
-                label="Dátum začiatku *"
-                value={formData.startDate}
-                onChange={date =>
-                  setFormData(prev => ({
-                    ...prev,
-                    startDate: date,
-                  }))
-                }
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    error: !formData.startDate,
-                  },
-                }}
-              />
-            </Grid>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Dátum začiatku *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.startDate && "text-muted-foreground"
+                      )}
+                    >
+                      {formData.startDate ? (
+                        format(formData.startDate, 'dd.MM.yyyy')
+                      ) : (
+                        "Vyberte dátum začiatku"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.startDate || undefined}
+                      onSelect={(date) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          startDate: date || null,
+                        }))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {!formData.startDate && (
+                  <p className="text-sm text-red-500">Dátum začiatku je povinný</p>
+                )}
+              </div>
 
-            <Grid item xs={6}>
-              <DatePicker
-                label="Dátum konca *"
-                value={formData.endDate}
-                onChange={date =>
-                  setFormData(prev => ({
-                    ...prev,
-                    endDate: date,
-                  }))
-                }
-                minDate={formData.startDate || undefined}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    error: !formData.endDate,
-                  },
-                }}
-              />
-            </Grid>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">Dátum konca *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.endDate && "text-muted-foreground"
+                      )}
+                    >
+                      {formData.endDate ? (
+                        format(formData.endDate, 'dd.MM.yyyy')
+                      ) : (
+                        "Vyberte dátum konca"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.endDate || undefined}
+                      onSelect={(date) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          endDate: date || null,
+                        }))
+                      }
+                      disabled={(date) =>
+                        formData.startDate ? date < formData.startDate : false
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {!formData.endDate && (
+                  <p className="text-sm text-red-500">Dátum konca je povinný</p>
+                )}
+              </div>
+            </div>
 
             {/* Reason */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Dôvod *"
+            <div className="space-y-2">
+              <Label htmlFor="reason">Dôvod *</Label>
+              <Input
+                id="reason"
                 value={formData.reason}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     reason: e.target.value,
                   }))
                 }
-                error={!formData.reason}
-                helperText="Stručný popis dôvodu nedostupnosti"
+                placeholder="Stručný popis dôvodu nedostupnosti"
+                className={cn(!formData.reason && "border-red-500")}
               />
-            </Grid>
+              {!formData.reason && (
+                <p className="text-sm text-red-500">Dôvod je povinný</p>
+              )}
+            </div>
 
             {/* Priority */}
-            <Grid item xs={6}>
-              <FormControl fullWidth>
-                <InputLabel>Priorita</InputLabel>
-                <Select
-                  value={formData.priority}
-                  onChange={e =>
-                    setFormData(prev => ({
-                      ...prev,
-                      priority: e.target.value as 1 | 2 | 3,
-                    }))
-                  }
-                  label="Priorita"
-                >
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priorita</Label>
+              <Select
+                value={formData.priority.toString()}
+                onValueChange={(value) =>
+                  setFormData(prev => ({
+                    ...prev,
+                    priority: parseInt(value) as 1 | 2 | 3,
+                  }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Vyberte prioritu..." />
+                </SelectTrigger>
+                <SelectContent>
                   {PRIORITY_LEVELS.map(priority => (
-                    <MenuItem key={priority.value} value={priority.value}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <Box
-                          sx={{
-                            width: 12,
-                            height: 12,
-                            borderRadius: '50%',
-                            backgroundColor: priority.color,
-                          }}
+                    <SelectItem key={priority.value} value={priority.value.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: priority.color }}
                         />
                         {priority.label}
-                      </Box>
-                    </MenuItem>
+                      </div>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Notes */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
+            <div className="space-y-2">
+              <Label htmlFor="notes">Poznámky</Label>
+              <Textarea
+                id="notes"
                 rows={3}
-                label="Poznámky"
                 value={formData.notes}
-                onChange={e =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData(prev => ({
                     ...prev,
                     notes: e.target.value,
@@ -569,137 +646,111 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 }
                 placeholder="Dodatočné informácie..."
               />
-            </Grid>
+            </div>
 
             {/* Existing Unavailabilities */}
             {selectedVehicle && existingUnavailabilities.length > 0 && (
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: 'warning.light',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'warning.main',
-                  }}
-                >
-                  <Typography
-                    variant="subtitle2"
-                    gutterBottom
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                  >
-                    <WarningIcon fontSize="small" />
-                    Existujúce nedostupnosti pre toto vozidlo:
-                  </Typography>
-                  <Box
-                    sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
-                  >
-                    {existingUnavailabilities
-                      .slice(0, 3)
-                      .map(
-                        (unavail: Record<string, unknown>, index: number) => (
-                          <Box
-                            key={index}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <Chip
-                              label={String(unavail.type || 'N/A')}
-                              size="small"
-                              color="warning"
-                            />
-                            <Typography variant="body2">
-                              {format(
-                                new Date(String(unavail.start_date)),
-                                'dd.MM.yyyy'
-                              )}{' '}
-                              -{' '}
-                              {format(
-                                new Date(String(unavail.end_date)),
-                                'dd.MM.yyyy'
-                              )}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {String(unavail.reason || 'N/A')}
-                            </Typography>
-                          </Box>
-                        )
+              <div className="space-y-2">
+                <Alert>
+                  <WarningIcon className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium mb-2">
+                      Existujúce nedostupnosti pre toto vozidlo:
+                    </div>
+                    <div className="space-y-2">
+                      {existingUnavailabilities
+                        .slice(0, 3)
+                        .map(
+                          (unavail: Record<string, unknown>, index: number) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2"
+                            >
+                              <Badge variant="outline" className="text-xs">
+                                {String(unavail.type || 'N/A')}
+                              </Badge>
+                              <span className="text-sm">
+                                {format(
+                                  new Date(String(unavail.start_date)),
+                                  'dd.MM.yyyy'
+                                )}{' '}
+                                -{' '}
+                                {format(
+                                  new Date(String(unavail.end_date)),
+                                  'dd.MM.yyyy'
+                                )}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {String(unavail.reason || 'N/A')}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      {existingUnavailabilities.length > 3 && (
+                        <div className="text-sm text-muted-foreground">
+                          ... a ďalších {existingUnavailabilities.length - 3}{' '}
+                          nedostupností
+                        </div>
                       )}
-                    {existingUnavailabilities.length > 3 && (
-                      <Typography variant="body2" color="text.secondary">
-                        ... a ďalších {existingUnavailabilities.length - 3}{' '}
-                        nedostupností
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </Grid>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              </div>
             )}
 
             {/* Summary */}
             {selectedVehicle && formData.startDate && formData.endDate && (
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'grey.200',
-                  }}
-                >
-                  <Typography variant="subtitle2" gutterBottom>
-                    Súhrn nedostupnosti:
-                  </Typography>
-                  <Box
-                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}
-                  >
-                    <Chip
-                      label={`${selectedVehicle.brand} ${selectedVehicle.model}`}
-                      size="small"
-                      color="primary"
-                    />
-                    <Chip
-                      label={selectedType?.label}
-                      size="small"
-                      sx={{ bgcolor: selectedType?.color, color: 'white' }}
-                    />
-                    <Chip
-                      label={`${format(formData.startDate, 'dd.MM.yyyy')} - ${format(formData.endDate, 'dd.MM.yyyy')}`}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {formData.reason}
-                  </Typography>
-                </Box>
-              </Grid>
+              <div className="space-y-2">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="font-medium mb-2">
+                      Súhrn nedostupnosti:
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Badge variant="default">
+                        {selectedVehicle.brand} {selectedVehicle.model}
+                      </Badge>
+                      <Badge
+                        variant="secondary"
+                        style={{ 
+                          backgroundColor: selectedType?.color, 
+                          color: 'white' 
+                        }}
+                      >
+                        {selectedType?.label}
+                      </Badge>
+                      <Badge variant="outline">
+                        {format(formData.startDate, 'dd.MM.yyyy')} - {format(formData.endDate, 'dd.MM.yyyy')}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {formData.reason}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
-          </Grid>
-        </DialogContent>
+          </div>
+        </div>
 
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button onClick={handleClose} disabled={loading}>
-            Zrušiť
-          </Button>
-
-          {editingUnavailability && (
-            <Button
-              color="error"
-              onClick={handleDelete}
-              disabled={loading}
-              sx={{ mr: 'auto' }}
-            >
-              {loading ? 'Ruším...' : 'Zrušiť nedostupnosť'}
+        <DialogFooter className="flex justify-between">
+          <div className="flex gap-2">
+            <Button onClick={handleClose} disabled={loading} variant="outline">
+              Zrušiť
             </Button>
-          )}
+
+            {editingUnavailability && (
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                {loading ? 'Ruším...' : 'Zrušiť nedostupnosť'}
+              </Button>
+            )}
+          </div>
 
           <Button
-            variant="contained"
             onClick={handleSubmit}
             disabled={
               loading ||
@@ -717,9 +768,9 @@ const AddUnavailabilityModal: React.FC<AddUnavailabilityModalProps> = ({
                 ? 'Uložiť zmeny'
                 : 'Vytvoriť nedostupnosť'}
           </Button>
-        </DialogActions>
-      </Dialog>
-    </LocalizationProvider>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

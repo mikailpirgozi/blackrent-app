@@ -1,35 +1,30 @@
 // 👁️ Lazy Detail View - Heavy component for performance testing
 // This represents a complex detail view component that should be lazy loaded
 
+import React, { useEffect, useState } from 'react';
 import {
-  Assessment as AssessmentIcon,
-  ExpandMore as ExpandMoreIcon,
-  Info as InfoIcon,
-  Timeline as TimelineIcon,
-} from '@mui/icons-material';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import {
   Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Grid,
-  List,
-  ListItem,
-  ListItemText,
-  Typography,
-} from '@mui/material';
-import React, { useEffect, useState } from 'react';
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
+import { Separator } from '../ui/separator';
+import { Progress } from '../ui/progress';
+import {
+  BarChart3,
+  Info,
+  Clock,
+} from 'lucide-react';
 
 import { OptimizedImage } from './OptimizedImage';
 
@@ -186,24 +181,23 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
 
   if (loading) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogContent>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            py={6}
-          >
-            <CircularProgress size={60} />
-            <Box ml={3}>
-              <Typography variant="h6">
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          onClose();
+        }
+      }}>
+        <DialogContent className="max-w-4xl">
+          <div className="flex justify-center items-center py-12">
+            <Progress className="w-16 h-16" />
+            <div className="ml-6">
+              <h3 className="text-lg font-semibold">
                 Načítavam detailné informácie...
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h3>
+              <p className="text-sm text-muted-foreground">
                 Spracovávam komplexné dáta...
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -212,31 +206,39 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
   if (!detailData) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            <InfoIcon />
-          </Avatar>
-          <Box>
-            <Typography variant="h5">{detailData.title}</Typography>
-            <Typography variant="subtitle2" color="text.secondary">
-              {detailData.subtitle}
-            </Typography>
-          </Box>
-          <Box ml="auto">
-            <Chip
-              label={detailData.status}
-              color={detailData.status === 'active' ? 'success' : 'default'}
-            />
-          </Box>
-        </Box>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        onClose();
+      }
+    }}>
+      <DialogContent className="max-w-6xl w-full">
+        <DialogHeader>
+          <DialogTitle>
+            <div className="flex items-center gap-4">
+              <Avatar className="bg-blue-500">
+                <AvatarFallback>
+                  <Info className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold">{detailData.title}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {detailData.subtitle}
+                </p>
+              </div>
+              <Badge
+                variant={detailData.status === 'active' ? 'default' : 'secondary'}
+                className={detailData.status === 'active' ? 'bg-green-500' : ''}
+              >
+                {detailData.status}
+              </Badge>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent>
-        <Grid container spacing={3}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Main Content */}
-          <Grid item xs={12} md={8}>
+          <div className="md:col-span-2 space-y-6">
             {/* Image */}
             {detailData.image && (
               <OptimizedImage
@@ -251,202 +253,216 @@ const LazyDetailView: React.FC<LazyDetailViewProps> = ({
             )}
 
             {/* Description */}
-            <Card sx={{ mt: 2 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Popis</CardTitle>
+              </CardHeader>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Popis
-                </Typography>
-                <Typography variant="body1">
+                <p className="text-sm leading-relaxed">
                   {detailData.description}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
 
             {/* Timeline */}
-            <Card sx={{ mt: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <TimelineIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
                   História zmien
-                </Typography>
-                <List>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
                   {detailData.timeline.map((item, index: number) => (
-                    <React.Fragment key={index}>
-                      <ListItem>
-                        <ListItemText
-                          primary={item.event || item.action}
-                          secondary={new Date(
-                            item.date || item.timestamp
-                          ).toLocaleDateString('sk')}
-                        />
-                        <Chip
-                          size="small"
-                          label={item.type || 'info'}
-                          color={
+                    <div key={index}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{item.event || item.action}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(item.date || item.timestamp).toLocaleDateString('sk')}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={
                             item.type === 'success'
-                              ? 'success'
+                              ? 'default'
                               : item.type === 'warning'
-                                ? 'warning'
-                                : 'info'
+                                ? 'secondary'
+                                : 'outline'
                           }
-                        />
-                      </ListItem>
-                      {index < detailData.timeline.length - 1 && <Divider />}
-                    </React.Fragment>
+                          className={
+                            item.type === 'success'
+                              ? 'bg-green-500'
+                              : item.type === 'warning'
+                                ? 'bg-yellow-500'
+                                : ''
+                          }
+                        >
+                          {item.type || 'info'}
+                        </Badge>
+                      </div>
+                      {index < detailData.timeline.length - 1 && (
+                        <Separator className="mt-4" />
+                      )}
+                    </div>
                   ))}
-                </List>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
           {/* Sidebar */}
-          <Grid item xs={12} md={4}>
+          <div className="space-y-6">
             {/* Metadata */}
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Informácie
-                </Typography>
-                <Box sx={{ '& > *': { mb: 1 } }}>
-                  <Typography variant="body2">
-                    <strong>Kategória:</strong> {detailData.category || 'N/A'}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Zobrazenia:</strong>{' '}
+              <CardHeader>
+                <CardTitle>Informácie</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <span className="font-medium">Kategória:</span>{' '}
+                  <span className="text-sm text-muted-foreground">
+                    {detailData.category || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Zobrazenia:</span>{' '}
+                  <span className="text-sm text-muted-foreground">
                     {detailData.metadata?.views || 0}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Hodnotenie:</strong>{' '}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Hodnotenie:</span>{' '}
+                  <span className="text-sm text-muted-foreground">
                     {detailData.metadata?.rating || 0}/5
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Vytvorené:</strong>{' '}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Vytvorené:</span>{' '}
+                  <span className="text-sm text-muted-foreground">
                     {detailData.metadata?.createdAt
                       ? new Date(
                           detailData.metadata.createdAt
                         ).toLocaleDateString('sk')
                       : new Date(detailData.created).toLocaleDateString('sk')}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               </CardContent>
             </Card>
 
             {/* Analytics */}
-            <Card sx={{ mt: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <AssessmentIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
                   Analytika
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Box textAlign="center">
-                      <Typography variant="h4" color="primary.main">
-                        {detailData.analytics?.totalViews?.toLocaleString() ||
-                          0}
-                      </Typography>
-                      <Typography variant="caption">
-                        Celkové zobrazenia
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box textAlign="center">
-                      <Typography variant="h4" color="secondary.main">
-                        {detailData.analytics?.uniqueVisitors || 0}
-                      </Typography>
-                      <Typography variant="caption">
-                        Unikátni návštevníci
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box textAlign="center">
-                      <Typography variant="body1">
-                        {detailData.analytics?.averageTime || 'N/A'}
-                      </Typography>
-                      <Typography variant="caption">Priemerný čas</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box textAlign="center">
-                      <Typography variant="body1">
-                        {detailData.analytics?.bounceRate || 'N/A'}
-                      </Typography>
-                      <Typography variant="caption">Bounce rate</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-blue-600">
+                      {detailData.analytics?.totalViews?.toLocaleString() || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Celkové zobrazenia
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-green-600">
+                      {detailData.analytics?.uniqueVisitors || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Unikátni návštevníci
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-semibold">
+                      {detailData.analytics?.averageTime || 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Priemerný čas</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-semibold">
+                      {detailData.analytics?.bounceRate || 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Bounce rate</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* Related Items */}
-            <Card sx={{ mt: 2 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Súvisiace položky</CardTitle>
+              </CardHeader>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Súvisiace položky
-                </Typography>
-                {detailData.relatedItems.map(item => (
-                  <Box key={item.id} sx={{ display: 'flex', gap: 2, mb: 1 }}>
-                    {item.image && (
-                      <OptimizedImage
-                        src={item.image}
-                        alt={item.title}
-                        width={60}
-                        height={60}
-                        aspectRatio={1}
-                        placeholder="icon"
-                        lazy={true}
-                      />
-                    )}
-                    <Box>
-                      <Typography variant="body2" fontWeight="medium">
-                        {item.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        ID: {item.id} | {item.type} | {item.status}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
+                <div className="space-y-3">
+                  {detailData.relatedItems.map(item => (
+                    <div key={item.id} className="flex gap-3">
+                      {item.image && (
+                        <OptimizedImage
+                          src={item.image}
+                          alt={item.title}
+                          width={60}
+                          height={60}
+                          aspectRatio={1}
+                          placeholder="icon"
+                          lazy={true}
+                        />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {item.id} | {item.type} | {item.status}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* Advanced sections with accordions */}
-        <Box sx={{ mt: 3 }}>
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">Pokročilé nastavenia</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography>
-                Tu by boli pokročilé nastavenia a konfigurácie pre túto položku.
-                Tento obsah sa načítava iba keď používateľ rozbalí sekciu.
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
+        <div className="mt-6">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="advanced">
+              <AccordionTrigger className="text-lg font-semibold">
+                Pokročilé nastavenia
+              </AccordionTrigger>
+              <AccordionContent>
+                <p className="text-sm text-muted-foreground">
+                  Tu by boli pokročilé nastavenia a konfigurácie pre túto položku.
+                  Tento obsah sa načítava iba keď používateľ rozbalí sekciu.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
 
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">Technické detaily</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography>
-                Technické informácie, logy, a diagnostické dáta. Tieto dáta sa
-                načítavajú iba na požiadanie.
-              </Typography>
-            </AccordionDetails>
+            <AccordionItem value="technical">
+              <AccordionTrigger className="text-lg font-semibold">
+                Technické detaily
+              </AccordionTrigger>
+              <AccordionContent>
+                <p className="text-sm text-muted-foreground">
+                  Technické informácie, logy, a diagnostické dáta. Tieto dáta sa
+                  načítavajú iba na požiadanie.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
-        </Box>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end mt-6">
+          <Button onClick={onClose}>
+            Zavrieť
+          </Button>
+        </div>
       </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose} variant="contained">
-          Zavrieť
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

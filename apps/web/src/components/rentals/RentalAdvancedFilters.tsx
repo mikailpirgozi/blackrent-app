@@ -1,32 +1,30 @@
+// Lucide icons (replacing MUI icons)
 import {
-  CalendarToday as CalendarIcon,
-  DirectionsCar as CarIcon,
-  Clear as ClearIcon,
+  Calendar as CalendarIcon,
+  Car as CarIcon,
+  X as ClearIcon,
   Euro as EuroIcon,
-  ExpandMore as ExpandMoreIcon,
-  FilterList as FilterListIcon,
-  Payment as PaymentIcon,
-  Person as PersonIcon,
-  Assignment as ProtocolIcon,
+  Filter as FilterListIcon,
+  CreditCard as PaymentIcon,
+  User as PersonIcon,
+  FileText as ProtocolIcon,
   Save as SaveIcon,
-} from '@mui/icons-material';
+} from 'lucide-react';
+
+// shadcn/ui components
 import {
   Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Chip,
-  Divider,
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import React from 'react';
 
 export interface FilterState {
@@ -144,537 +142,423 @@ const RentalAdvancedFilters: React.FC<RentalAdvancedFiltersProps> = ({
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: 'background.paper',
-        borderRadius: 2,
-        p: { xs: 2, md: 3 },
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        border: '1px solid',
-        borderColor: 'divider',
-      }}
-    >
+    <div className="bg-background border rounded-lg p-4 md:p-6 shadow-sm">
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'stretch', sm: 'center' },
-          justifyContent: 'space-between',
-          mb: 3,
-          gap: { xs: 2, sm: 0 },
-        }}
-      >
-        <Typography
-          variant="h6"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            fontSize: { xs: '1.1rem', md: '1.25rem' },
-          }}
-        >
-          <FilterListIcon color="primary" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 gap-4 sm:gap-0">
+        <h3 className="flex items-center gap-2 text-lg md:text-xl font-semibold">
+          <FilterListIcon className="w-5 h-5 text-primary" />
           Rozšírené filtre
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            justifyContent: { xs: 'center', sm: 'flex-end' },
-          }}
-        >
-          <Tooltip title="Uložiť preset">
-            <IconButton size="small" onClick={onSavePreset} color="primary">
-              <SaveIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Vymazať všetky filtre">
-            <IconButton size="small" onClick={onReset} color="error">
-              <ClearIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+        </h3>
+        <div className="flex gap-2 justify-center sm:justify-end">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" onClick={onSavePreset}>
+                  <SaveIcon className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Uložiť preset</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" onClick={onReset}>
+                  <ClearIcon className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Vymazať všetky filtre</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
 
       {/* Rýchle filtre */}
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            mb: 2,
-            fontWeight: 600,
-            fontSize: { xs: '0.875rem', md: '1rem' },
-          }}
-        >
+      <div className="mb-6">
+        <h4 className="text-sm md:text-base font-semibold mb-4">
           Rýchle filtre
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: { xs: 0.5, md: 1 },
-            justifyContent: { xs: 'center', md: 'flex-start' },
-          }}
-        >
-          <Chip
-            label="Dnes"
+        </h4>
+        <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+          <Badge
+            variant={filters.timeFilter === 'today' ? 'default' : 'outline'}
+            className="cursor-pointer hover:bg-primary/10"
             onClick={() => handleQuickFilter('today')}
-            color={filters.timeFilter === 'today' ? 'primary' : 'default'}
-            variant={filters.timeFilter === 'today' ? 'filled' : 'outlined'}
-            size="small"
-          />
-          <Chip
-            label="Posledný týždeň"
+          >
+            Dnes
+          </Badge>
+          <Badge
+            variant={filters.timeFilter === 'week' ? 'default' : 'outline'}
+            className="cursor-pointer hover:bg-primary/10"
             onClick={() => handleQuickFilter('week')}
-            color={filters.timeFilter === 'week' ? 'primary' : 'default'}
-            variant={filters.timeFilter === 'week' ? 'filled' : 'outlined'}
-            size="small"
-          />
-          <Chip
-            label="Posledný mesiac"
+          >
+            Posledný týždeň
+          </Badge>
+          <Badge
+            variant={filters.timeFilter === 'month' ? 'default' : 'outline'}
+            className="cursor-pointer hover:bg-primary/10"
             onClick={() => handleQuickFilter('month')}
-            color={filters.timeFilter === 'month' ? 'primary' : 'default'}
-            variant={filters.timeFilter === 'month' ? 'filled' : 'outlined'}
-            size="small"
-          />
-          <Chip
-            label="Aktívne"
+          >
+            Posledný mesiac
+          </Badge>
+          <Badge
+            variant={filters.showOnlyActive ? 'default' : 'outline'}
+            className="cursor-pointer hover:bg-primary/10"
             onClick={() => handleQuickFilter('active')}
-            color={filters.showOnlyActive ? 'success' : 'default'}
-            variant={filters.showOnlyActive ? 'filled' : 'outlined'}
-            size="small"
-          />
-          <Chip
-            label="Po termíne"
+          >
+            Aktívne
+          </Badge>
+          <Badge
+            variant={filters.showOnlyOverdue ? 'destructive' : 'outline'}
+            className="cursor-pointer hover:bg-destructive/10"
             onClick={() => handleQuickFilter('overdue')}
-            color={filters.showOnlyOverdue ? 'error' : 'default'}
-            variant={filters.showOnlyOverdue ? 'filled' : 'outlined'}
-            size="small"
-          />
-          <Chip
-            label="Dokončené"
+          >
+            Po termíne
+          </Badge>
+          <Badge
+            variant={filters.showOnlyCompleted ? 'default' : 'outline'}
+            className="cursor-pointer hover:bg-primary/10"
             onClick={() => handleQuickFilter('completed')}
-            color={filters.showOnlyCompleted ? 'default' : 'default'}
-            variant={filters.showOnlyCompleted ? 'filled' : 'outlined'}
-            size="small"
-          />
-        </Box>
-      </Box>
+          >
+            Dokončené
+          </Badge>
+        </div>
+      </div>
 
-      <Divider sx={{ my: 2 }} />
+      <Separator className="my-4" />
 
       {/* Rozšírené filtre v accordionoch */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Accordion type="single" collapsible defaultValue="basic-info" className="space-y-4">
         {/* Základné informácie */}
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <PersonIcon fontSize="small" />
+        <AccordionItem value="basic-info">
+          <AccordionTrigger className="text-base font-medium">
+            <div className="flex items-center gap-2">
+              <PersonIcon className="w-4 h-4" />
               Základné informácie
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Stav prenájmu</InputLabel>
-                  <Select
-                    value={filters.status}
-                    onChange={e => handleFilterChange('status', e.target.value)}
-                    label="Stav prenájmu"
-                  >
-                    <MenuItem value="all">Všetky stavy</MenuItem>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="filter-status">Stav prenájmu</Label>
+                <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky stavy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky stavy</SelectItem>
                     {availableStatuses.map(status => (
-                      <MenuItem key={status} value={status}>
+                      <SelectItem key={status} value={status}>
                         {status}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Spôsob platby</InputLabel>
-                  <Select
-                    value={filters.paymentMethod}
-                    onChange={e =>
-                      handleFilterChange('paymentMethod', e.target.value)
-                    }
-                    label="Spôsob platby"
-                  >
-                    <MenuItem value="all">Všetky spôsoby</MenuItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filter-payment-method">Spôsob platby</Label>
+                <Select value={filters.paymentMethod} onValueChange={(value) => handleFilterChange('paymentMethod', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky spôsoby" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky spôsoby</SelectItem>
                     {availablePaymentMethods.map(method => (
-                      <MenuItem key={method} value={method}>
+                      <SelectItem key={method} value={method}>
                         {method}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Firma/požičovňa</InputLabel>
-                  <Select
-                    value={filters.company}
-                    onChange={e =>
-                      handleFilterChange('company', e.target.value)
-                    }
-                    label="Firma/požičovňa"
-                  >
-                    <MenuItem value="all">Všetky firmy</MenuItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filter-company">Firma/požičovňa</Label>
+                <Select value={filters.company} onValueChange={(value) => handleFilterChange('company', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky firmy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky firmy</SelectItem>
                     {availableCompanies.map(company => (
-                      <MenuItem key={company} value={company}>
+                      <SelectItem key={company} value={company}>
                         {company}
-                      </MenuItem>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Stav protokolov</InputLabel>
-                  <Select
-                    value={filters.protocolStatus}
-                    onChange={e =>
-                      handleFilterChange('protocolStatus', e.target.value)
-                    }
-                    label="Stav protokolov"
-                  >
-                    <MenuItem value="all">Všetky</MenuItem>
-                    <MenuItem value="handover">Len preberací</MenuItem>
-                    <MenuItem value="return">Len vrátenie</MenuItem>
-                    <MenuItem value="both">Oba protokoly</MenuItem>
-                    <MenuItem value="none">Bez protokolov</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filter-protocol-status">Stav protokolov</Label>
+                <Select value={filters.protocolStatus} onValueChange={(value) => handleFilterChange('protocolStatus', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky</SelectItem>
+                    <SelectItem value="handover">Len preberací</SelectItem>
+                    <SelectItem value="return">Len vrátenie</SelectItem>
+                    <SelectItem value="both">Oba protokoly</SelectItem>
+                    <SelectItem value="none">Bez protokolov</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-        {/* Časové filtre */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <CalendarIcon fontSize="small" />
-              Časové filtre
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  label="Od dátumu"
-                  value={filters.dateFrom}
-                  onChange={e => handleFilterChange('dateFrom', e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  label="Do dátumu"
-                  value={filters.dateTo}
-                  onChange={e => handleFilterChange('dateTo', e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+          {/* Časové filtre */}
+          <AccordionItem value="time-filters">
+            <AccordionTrigger className="text-base font-medium">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                Časové filtre
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="filter-date-from">Dátum od</Label>
+                  <Input
+                    id="filter-date-from"
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('dateFrom', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-date-to">Dátum do</Label>
+                  <Input
+                    id="filter-date-to"
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('dateTo', e.target.value)}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {/* Cenové filtre */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <EuroIcon fontSize="small" />
-              Cenové filtre
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  label="Minimálna cena (€)"
-                  value={filters.priceMin}
-                  onChange={e => handleFilterChange('priceMin', e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <EuroIcon
-                        fontSize="small"
-                        sx={{ mr: 1, color: 'text.secondary' }}
-                      />
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  label="Maximálna cena (€)"
-                  value={filters.priceMax}
-                  onChange={e => handleFilterChange('priceMax', e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <EuroIcon
-                        fontSize="small"
-                        sx={{ mr: 1, color: 'text.secondary' }}
-                      />
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Cenový rozsah</InputLabel>
-                  <Select
-                    value={filters.priceRange}
-                    onChange={e =>
-                      handleFilterChange('priceRange', e.target.value)
-                    }
-                    label="Cenový rozsah"
-                  >
-                    <MenuItem value="all">Všetky ceny</MenuItem>
-                    <MenuItem value="low">Nízke (0-50€)</MenuItem>
-                    <MenuItem value="medium">Stredné (50-200€)</MenuItem>
-                    <MenuItem value="high">Vysoké (200€+)</MenuItem>
-                    <MenuItem value="custom">Vlastný rozsah</MenuItem>
+          {/* Cenové filtre */}
+          <AccordionItem value="price-filters">
+            <AccordionTrigger className="text-base font-medium">
+              <div className="flex items-center gap-2">
+                <EuroIcon className="w-4 h-4" />
+                Cenové filtre
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="filter-price-min">Minimálna cena (€)</Label>
+                  <div className="relative">
+                    <EuroIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="filter-price-min"
+                      type="number"
+                      className="pl-10"
+                      value={filters.priceMin}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('priceMin', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="filter-price-max">Maximálna cena (€)</Label>
+                  <div className="relative">
+                    <EuroIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="filter-price-max"
+                      type="number"
+                      className="pl-10"
+                      value={filters.priceMax}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('priceMax', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="filter-price-range">Cenový rozsah</Label>
+                  <Select value={filters.priceRange} onValueChange={(value) => handleFilterChange('priceRange', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky ceny" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Všetky ceny</SelectItem>
+                      <SelectItem value="low">Nízke (0-50€)</SelectItem>
+                      <SelectItem value="medium">Stredné (50-200€)</SelectItem>
+                      <SelectItem value="high">Vysoké (200€+)</SelectItem>
+                      <SelectItem value="custom">Vlastný rozsah</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {/* Informácie o zákazníkovi */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <PersonIcon fontSize="small" />
-              Zákazník
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Meno zákazníka"
-                  value={filters.customerName}
-                  onChange={e =>
-                    handleFilterChange('customerName', e.target.value)
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Email zákazníka"
-                  value={filters.customerEmail}
-                  onChange={e =>
-                    handleFilterChange('customerEmail', e.target.value)
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Telefón zákazníka"
-                  value={filters.customerPhone}
-                  onChange={e =>
-                    handleFilterChange('customerPhone', e.target.value)
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Firma zákazníka"
-                  value={filters.customerCompany}
-                  onChange={e =>
-                    handleFilterChange('customerCompany', e.target.value)
-                  }
-                />
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+          {/* Informácie o zákazníkovi */}
+          <AccordionItem value="customer-info">
+            <AccordionTrigger className="text-base font-medium">
+              <div className="flex items-center gap-2">
+                <PersonIcon className="w-4 h-4" />
+                Zákazník
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="filter-customer-name">Meno zákazníka</Label>
+                  <Input
+                    id="filter-customer-name"
+                    value={filters.customerName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerName', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-customer-email">Email zákazníka</Label>
+                  <Input
+                    id="filter-customer-email"
+                    type="email"
+                    value={filters.customerEmail}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerEmail', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-customer-phone">Telefón zákazníka</Label>
+                  <Input
+                    id="filter-customer-phone"
+                    type="tel"
+                    value={filters.customerPhone}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerPhone', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-customer-company">Firma zákazníka</Label>
+                  <Input
+                    id="filter-customer-company"
+                    value={filters.customerCompany}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('customerCompany', e.target.value)}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {/* Informácie o vozidle */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <CarIcon fontSize="small" />
-              Vozidlo
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Značka vozidla</InputLabel>
-                  <Select
-                    value={filters.vehicleBrand}
-                    onChange={e =>
-                      handleFilterChange('vehicleBrand', e.target.value)
-                    }
-                    label="Značka vozidla"
-                  >
-                    <MenuItem value="all">Všetky značky</MenuItem>
-                    {availableVehicleBrands.map(brand => (
-                      <MenuItem key={brand} value={brand}>
-                        {brand}
-                      </MenuItem>
-                    ))}
+          {/* Informácie o vozidle */}
+          <AccordionItem value="vehicle-info">
+            <AccordionTrigger className="text-base font-medium">
+              <div className="flex items-center gap-2">
+                <CarIcon className="w-4 h-4" />
+                Vozidlo
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="filter-vehicle-brand">Značka vozidla</Label>
+                  <Select value={filters.vehicleBrand} onValueChange={(value) => handleFilterChange('vehicleBrand', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky značky" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Všetky značky</SelectItem>
+                      {availableVehicleBrands.map(brand => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Model vozidla"
-                  value={filters.vehicleModel}
-                  onChange={e =>
-                    handleFilterChange('vehicleModel', e.target.value)
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="ŠPZ"
-                  value={filters.licensePlate}
-                  onChange={e =>
-                    handleFilterChange('licensePlate', e.target.value)
-                  }
-                />
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+                </div>
+                <div>
+                  <Label htmlFor="filter-vehicle-model">Model vozidla</Label>
+                  <Input
+                    id="filter-vehicle-model"
+                    value={filters.vehicleModel}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('vehicleModel', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filter-license-plate">ŠPZ</Label>
+                  <Input
+                    id="filter-license-plate"
+                    value={filters.licensePlate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange('licensePlate', e.target.value)}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {/* Poistka */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <ProtocolIcon fontSize="small" />
-              Poistka
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Poisťovňa</InputLabel>
-                  <Select
-                    value={filters.insuranceCompany}
-                    onChange={e =>
-                      handleFilterChange('insuranceCompany', e.target.value)
-                    }
-                    label="Poisťovňa"
-                  >
-                    <MenuItem value="all">Všetky poisťovne</MenuItem>
-                    {availableInsuranceCompanies.map(company => (
-                      <MenuItem key={company} value={company}>
-                        {company}
-                      </MenuItem>
-                    ))}
+          {/* Poistka */}
+          <AccordionItem value="insurance-info">
+            <AccordionTrigger className="text-base font-medium">
+              <div className="flex items-center gap-2">
+                <ProtocolIcon className="w-4 h-4" />
+                Poistka
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="filter-insurance-company">Poisťovňa</Label>
+                  <Select value={filters.insuranceCompany} onValueChange={(value) => handleFilterChange('insuranceCompany', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky poisťovne" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Všetky poisťovne</SelectItem>
+                      {availableInsuranceCompanies.map(company => (
+                        <SelectItem key={company} value={company}>
+                          {company}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Typ poistky</InputLabel>
-                  <Select
-                    value={filters.insuranceType}
-                    onChange={e =>
-                      handleFilterChange('insuranceType', e.target.value)
-                    }
-                    label="Typ poistky"
-                  >
-                    <MenuItem value="all">Všetky typy</MenuItem>
-                    {availableInsuranceTypes.map(type => (
-                      <MenuItem key={type} value={type}>
-                        {type}
-                      </MenuItem>
-                    ))}
+                </div>
+                <div>
+                  <Label htmlFor="filter-insurance-type">Typ poistky</Label>
+                  <Select value={filters.insuranceType} onValueChange={(value) => handleFilterChange('insuranceType', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Všetky typy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Všetky typy</SelectItem>
+                      {availableInsuranceTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {/* Stav platby */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography
-              variant="subtitle1"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <PaymentIcon fontSize="small" />
-              Stav platby
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Stav platby</InputLabel>
-                  <Select
-                    value={filters.paymentStatus}
-                    onChange={e =>
-                      handleFilterChange('paymentStatus', e.target.value)
-                    }
-                    label="Stav platby"
-                  >
-                    <MenuItem value="all">Všetky stavy</MenuItem>
-                    <MenuItem value="paid">Uhradené</MenuItem>
-                    <MenuItem value="unpaid">Neuhradené</MenuItem>
-                    <MenuItem value="partial">Čiastočne uhradené</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
-      </Box>
-    </Box>
+          {/* Stav platby */}
+          <AccordionItem value="payment-status">
+            <AccordionTrigger className="text-base font-medium">
+              <div className="flex items-center gap-2">
+                <PaymentIcon className="w-4 h-4" />
+                Stav platby
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div>
+                <Label htmlFor="filter-payment-status">Stav platby</Label>
+                <Select value={filters.paymentStatus} onValueChange={(value) => handleFilterChange('paymentStatus', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Všetky stavy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všetky stavy</SelectItem>
+                    <SelectItem value="paid">Uhradené</SelectItem>
+                    <SelectItem value="unpaid">Neuhradené</SelectItem>
+                    <SelectItem value="partial">Čiastočne uhradené</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+      </Accordion>
+    </div>
   );
 };
 
