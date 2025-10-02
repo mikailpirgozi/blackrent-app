@@ -186,8 +186,8 @@ export function createClonedRental(
     approvalStatus: 'pending' as const,
 
     // Resetované protokoly
-    handoverProtocolId: '',
-    returnProtocolId: '',
+    handoverProtocolId: undefined,
+    returnProtocolId: undefined,
 
     // Resetované merania a náklady (budú sa vyplňovať nové)
     fuelLevel: 0,
