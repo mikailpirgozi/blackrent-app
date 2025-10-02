@@ -26,8 +26,7 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install deps (web app)
-        working-directory: apps/web
+      - name: Install deps (monorepo root)
         run: pnpm install --frozen-lockfile
 
       - name: Lint
