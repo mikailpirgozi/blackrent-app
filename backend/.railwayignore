@@ -1,27 +1,42 @@
-# Railway Ignore File - Deploy LEN backend
-# Ignoruje všetko mimo backend priečinka
+# Railway Ignore File - Backend Only
+# Minimize upload size
 
-# Ignore root level files
-/.git
-/.github
-/apps
-/customer-website
-/docs
-/scripts
-/*.md
-/*.log
+# Development dependencies (Railway installs from package.json)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Keep backend files
-!backend/**
+# Build outputs (Railway rebuilds)
+dist/
+build/
+*.tsbuildinfo
 
-# Ignore dev files
-node_modules
+# Environment files
+.env
 .env.local
-.DS_Store
-*.log
-dist
-build
+.env.*.local
 
-# Ignore source maps
-*.map
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+.cache/
 
