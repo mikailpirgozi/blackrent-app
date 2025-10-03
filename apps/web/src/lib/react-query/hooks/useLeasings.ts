@@ -183,6 +183,7 @@ async function createLeasing(input: CreateLeasingInput): Promise<Leasing> {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
     body: JSON.stringify(input),
+    cache: 'no-store', // 🔥 CRITICAL: No browser cache for mutations
   });
 
   logger.debug('📥 API Response status:', response.status);
@@ -216,6 +217,7 @@ async function updateLeasing(input: UpdateLeasingInput): Promise<Leasing> {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
     body: JSON.stringify(dataWithoutId),
+    cache: 'no-store', // 🔥 CRITICAL: No browser cache for mutations
   });
 
   logger.debug('📥 UPDATE LEASING Response status:', response.status);
@@ -244,6 +246,7 @@ async function deleteLeasing(id: string): Promise<void> {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
+    cache: 'no-store', // 🔥 CRITICAL: No browser cache for mutations
   });
   if (!response.ok) throw new Error('Failed to delete leasing');
 }
@@ -262,6 +265,7 @@ async function markPaymentAsPaid(
         Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
       },
       body: JSON.stringify({ paidDate }),
+      cache: 'no-store', // 🔥 CRITICAL: No browser cache for mutations
     }
   );
   if (!response.ok) throw new Error('Failed to mark payment');
@@ -280,6 +284,7 @@ async function unmarkPayment(
       headers: {
         Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
       },
+      cache: 'no-store', // 🔥 CRITICAL: No browser cache for mutations
     }
   );
   if (!response.ok) throw new Error('Failed to unmark payment');
@@ -300,6 +305,7 @@ async function bulkMarkPayments(
         Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
       },
       body: JSON.stringify(input),
+      cache: 'no-store', // 🔥 CRITICAL: No browser cache for mutations
     }
   );
   if (!response.ok) throw new Error('Failed to bulk mark payments');
