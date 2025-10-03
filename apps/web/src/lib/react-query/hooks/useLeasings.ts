@@ -39,13 +39,30 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
   if (filters?.status) params.append('status', filters.status);
   if (filters?.searchQuery) params.append('searchQuery', filters.searchQuery);
 
-  const response = await fetch(`${API_BASE}?${params.toString()}`, {
+  const url = `${API_BASE}?${params.toString()}`;
+  console.log('🔍 FETCHING LEASINGS:', url);
+
+  const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
   });
+  
+  console.log('📡 LEASINGS Response:', { 
+    ok: response.ok, 
+    status: response.status,
+    url 
+  });
+
   if (!response.ok) throw new Error('Failed to fetch leasings');
   const data = await response.json();
+  
+  console.log('📊 LEASINGS Data:', {
+    count: data.data?.length,
+    sample: data.data?.[0],
+    fullResponse: data
+  });
+
   return data.data;
 }
 
