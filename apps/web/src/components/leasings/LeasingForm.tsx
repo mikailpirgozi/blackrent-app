@@ -130,6 +130,8 @@ export function LeasingForm({
     processingFee?: number;
     monthlyFee?: number;
     paymentType?: PaymentType;
+    interestRate?: number; // 🔥 PRIDANÉ
+    monthlyPayment?: number; // 🔥 PRIDANÉ
   }>({});
 
   const { data: vehicles } = useVehicles();
@@ -265,13 +267,15 @@ export function LeasingForm({
     } = watchedValues;
 
     if (initialLoanAmount && totalInstallments && paymentType) {
-      // 🔍 Detekuj zmenu vstupných parametrov
+      // 🔍 Detekuj zmenu vstupných parametrov (vrátane úroku a splátky)
       const inputsChanged =
         prevInputs.current.initialLoanAmount !== initialLoanAmount ||
         prevInputs.current.totalInstallments !== totalInstallments ||
         prevInputs.current.processingFee !== processingFee ||
         prevInputs.current.monthlyFee !== monthlyFee ||
-        prevInputs.current.paymentType !== paymentType;
+        prevInputs.current.paymentType !== paymentType ||
+        prevInputs.current.interestRate !== interestRate ||
+        prevInputs.current.monthlyPayment !== monthlyPayment;
 
       // ✅ FIX: Ak sa vstupy nezmenili, nepokračuj (zabráni nekonečnému loopu)
       if (!inputsChanged) {
@@ -285,19 +289,18 @@ export function LeasingForm({
         processingFee: processingFee || 0,
         monthlyFee: monthlyFee || 0,
         paymentType: paymentType as PaymentType,
+        interestRate: interestRate,
+        monthlyPayment: monthlyPayment,
       };
 
       try {
-        // Ak sa zmenili vstupné parametre, RESETUJ vypočítané hodnoty
-        // aby solver mohol vypočítať nové hodnoty
-        const effectiveInterestRate = undefined;
-        const effectiveMonthlyPayment = undefined;
-
+        // 🔥 POUŽIŤ reálne hodnoty z formulára (nie undefined)
+        // Solver automaticky dopočíta chýbajúce hodnoty
         const result = solveLeasingData({
           loanAmount: initialLoanAmount,
           processingFee: processingFee || 0,
-          interestRate: effectiveInterestRate,
-          monthlyPayment: effectiveMonthlyPayment,
+          interestRate: interestRate, // 🔥 Použiť reálnu hodnotu
+          monthlyPayment: monthlyPayment, // 🔥 Použiť reálnu hodnotu
           totalInstallments,
           paymentType: paymentType as PaymentType,
           monthlyFee: monthlyFee || 0,
@@ -336,13 +339,15 @@ export function LeasingForm({
         console.error('Calculation error:', error);
       }
     }
-    // ✅ FIX: Sleduj len KONKRÉTNE hodnoty, nie celý watchedValues objekt
+    // ✅ FIX: Sleduj VŠETKY polia ktoré ovplyvňujú výpočet
   }, [
     watchedValues.initialLoanAmount,
     watchedValues.totalInstallments,
     watchedValues.processingFee,
     watchedValues.monthlyFee,
     watchedValues.paymentType,
+    watchedValues.interestRate, // 🔥 PRIDANÉ: Sleduj aj zmeny úroku
+    watchedValues.monthlyPayment, // 🔥 PRIDANÉ: Sleduj aj zmeny splátky
     setValue,
   ]);
 
