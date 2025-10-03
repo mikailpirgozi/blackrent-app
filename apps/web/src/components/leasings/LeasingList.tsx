@@ -28,6 +28,7 @@ export default function LeasingList() {
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<LeasingFilters>({});
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: leasings, isLoading, refetch } = useLeasings(filters);
   const { data: dashboard, refetch: refetchDashboard } = useLeasingDashboard();
@@ -36,10 +37,13 @@ export default function LeasingList() {
     setIsFormOpen(false);
     // 🔥 FORCE REFRESH: Explicitný refetch po create/update
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all }),
+      queryClient.refetchQueries({ queryKey: queryKeys.leasings.all }),
       refetch(),
       refetchDashboard(),
-      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all }),
     ]);
+    // Force re-render všetkých cards
+    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -74,7 +78,10 @@ export default function LeasingList() {
         ) : leasings && leasings.length > 0 ? (
           // Leasing cards
           leasings.map(leasing => (
-            <LeasingCard key={leasing.id} leasing={leasing} />
+            <LeasingCard
+              key={`${leasing.id}-${refreshKey}-${leasing.updatedAt}`}
+              leasing={leasing}
+            />
           ))
         ) : (
           // Empty state

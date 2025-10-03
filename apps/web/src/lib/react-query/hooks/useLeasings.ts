@@ -49,6 +49,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
+    cache: 'no-store', // 🔥 CRITICAL: No browser cache
   });
 
   logger.debug('📡 LEASINGS Response:', {
@@ -60,10 +61,19 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
   if (!response.ok) throw new Error('Failed to fetch leasings');
   const data = await response.json();
 
-  logger.debug('📊 LEASINGS Data:', {
+  logger.debug('📊 LEASINGS Data FRESH:', {
     count: data.data?.length,
     sample: data.data?.[0],
-    fullResponse: data,
+    sampleFields: data.data?.[0]
+      ? {
+          id: data.data[0].id,
+          company: data.data[0].leasingCompany,
+          amount: data.data[0].initialLoanAmount,
+          balance: data.data[0].currentBalance,
+          monthlyPayment: data.data[0].totalMonthlyPayment,
+          updated: data.data[0].updatedAt,
+        }
+      : null,
   });
 
   return data.data;
