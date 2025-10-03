@@ -8351,6 +8351,8 @@ export class PostgresDatabase {
         price: row.price ? parseFloat(row.price) : undefined,
         notes: row.notes || undefined,
         filePath: row.file_path || undefined,
+        country: row.country || undefined, // 🌍 Krajina pre dialničné známky
+        isRequired: row.is_required || undefined, // ⚠️ Povinná dialničná známka
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       }));

@@ -41,7 +41,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
 
   const response = await fetch(`${API_BASE}?${params.toString()}`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
   });
   if (!response.ok) throw new Error('Failed to fetch leasings');
@@ -51,7 +51,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
 
 async function fetchLeasing(id: string): Promise<LeasingDetailResponse> {
   const headers = {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
+    Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
   };
 
   const [leasing, schedule, documents] = await Promise.all([
@@ -74,7 +74,7 @@ async function fetchPaymentSchedule(
 ): Promise<PaymentScheduleItem[]> {
   const response = await fetch(`${API_BASE}/${leasingId}/schedule`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
   });
   if (!response.ok) throw new Error('Failed to fetch payment schedule');
@@ -85,7 +85,7 @@ async function fetchPaymentSchedule(
 async function fetchDashboard(): Promise<LeasingDashboard> {
   const response = await fetch(`${API_BASE}/dashboard`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
   });
   if (!response.ok) throw new Error('Failed to fetch dashboard');
@@ -100,7 +100,7 @@ async function createLeasing(input: CreateLeasingInput): Promise<Leasing> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
     body: JSON.stringify(input),
   });
@@ -128,7 +128,7 @@ async function updateLeasing(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
     body: JSON.stringify(input),
   });
@@ -141,7 +141,7 @@ async function deleteLeasing(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/${id}`, {
     method: 'DELETE',
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
   });
   if (!response.ok) throw new Error('Failed to delete leasing');
@@ -158,7 +158,7 @@ async function markPaymentAsPaid(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
       },
       body: JSON.stringify({ paidDate }),
     }
@@ -177,7 +177,7 @@ async function unmarkPayment(
     {
       method: 'DELETE',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
       },
     }
   );
@@ -194,7 +194,7 @@ async function bulkMarkPayments(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
     body: JSON.stringify(input),
   });

@@ -74,6 +74,15 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
     const { id } = req.params;
     const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired } = req.body;
 
+    console.log('🔍 UPDATE VEHICLE DOCUMENT REQUEST:', {
+      id,
+      vehicleId,
+      documentType,
+      country,
+      isRequired,
+      fullBody: req.body
+    });
+
     if (!vehicleId || !documentType || !validTo) {
       return res.status(400).json({
         success: false,
@@ -93,6 +102,8 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
       country, // 🌍 Krajina pre dialničné známky
       isRequired, // ⚠️ Povinná dialničná známka
     });
+
+    console.log('✅ UPDATE VEHICLE DOCUMENT RESPONSE:', updatedDocument);
 
     res.json({
       success: true,

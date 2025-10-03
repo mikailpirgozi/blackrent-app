@@ -381,6 +381,16 @@ export default function VehicleCentricInsuranceList() {
     // Add vehicle documents (exclude technical certificates from main list)
     if (vehicleDocuments) {
       vehicleDocuments.forEach(doc => {
+        // 🔍 DEBUG: Log vignette documents
+        if (doc.documentType === 'vignette') {
+          console.log('🔍 VIGNETTE DOCUMENT from API:', {
+            id: doc.id,
+            country: doc.country,
+            isRequired: doc.isRequired,
+            fullDoc: doc,
+          });
+        }
+
         docs.push({
           id: doc.id,
           vehicleId: doc.vehicleId,
@@ -955,6 +965,13 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
           };
 
           if (isValidDocumentType(data.type)) {
+            console.log('🔍 DEBUG handleSave - data object:', {
+              dataCountry: data.country,
+              dataIsRequired: data.isRequired,
+              dataType: data.type,
+              fullData: data,
+            });
+
             const vehicleDocData = {
               id: editingDocument.id || '',
               vehicleId: data.vehicleId,
@@ -966,6 +983,10 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
               notes: data.notes || '',
               filePath: data.filePath || '',
               kmState: data.kmState || 0, // 🚗 Stav kilometrov pre STK/EK
+              ...(data.country && { country: data.country }), // 🌍 Krajina pre dialničné známky
+              ...(data.isRequired !== undefined && {
+                isRequired: data.isRequired,
+              }), // ⚠️ Povinná dialničná známka
             };
             console.log(
               '🔵 BEFORE MUTATION: Calling updateVehicleDocumentMutation.mutate with:',

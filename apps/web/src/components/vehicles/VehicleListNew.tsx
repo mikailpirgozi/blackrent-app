@@ -58,6 +58,7 @@ import { EnhancedLoading } from '../common/EnhancedLoading';
 import InvestorCard from './components/InvestorCard';
 import OwnerCard from './components/OwnerCard';
 import VehicleActions from './components/VehicleActions';
+import QuickFilters from './components/QuickFilters';
 import VehicleDialogs from './components/VehicleDialogs';
 import VehicleImportExport from './components/VehicleImportExport';
 import VehicleKmHistory from './components/VehicleKmHistory';
@@ -904,6 +905,24 @@ export default function VehicleListNew() {
 
           {/* TAB 0 - VOZIDLÁ */}
           <TabsContent value="0" className="pt-6">
+            {/* Quick Status Filters */}
+            <QuickFilters
+              showAvailable={showAvailable}
+              setShowAvailable={setShowAvailable}
+              showRented={showRented}
+              setShowRented={setShowRented}
+              showMaintenance={showMaintenance}
+              setShowMaintenance={setShowMaintenance}
+              showTransferred={showTransferred}
+              setShowTransferred={setShowTransferred}
+              showPrivate={showPrivate}
+              setShowPrivate={setShowPrivate}
+              showRemoved={showRemoved}
+              setShowRemoved={setShowRemoved}
+              showTempRemoved={showTempRemoved}
+              setShowTempRemoved={setShowTempRemoved}
+            />
+
             {/* Results Count */}
             <div className="mb-4 flex items-center gap-2">
               <UnifiedTypography
