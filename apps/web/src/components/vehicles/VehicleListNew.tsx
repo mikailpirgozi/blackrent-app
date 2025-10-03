@@ -225,10 +225,6 @@ export default function VehicleListNew() {
     email: '',
     phone: '',
     notes: '',
-    isActive: true,
-    companyId: '',
-    investmentAmount: 0,
-    investmentDate: new Date().toISOString().split('T')[0],
   });
 
   // Handlers
@@ -358,34 +354,13 @@ export default function VehicleListNew() {
     try {
       console.log('🤝 Creating new investor:', newInvestorData);
 
-      // Priprav dáta pre backend podľa databázovej schémy
-      const investorPayload = {
-        company_id: parseInt(newInvestorData.companyId), // POVINNÉ
-        investor_name: `${newInvestorData.firstName.trim()} ${newInvestorData.lastName.trim()}`, // POVINNÉ
-        ...(newInvestorData.email?.trim() && {
-          investor_email: newInvestorData.email.trim(),
-        }),
-        ...(newInvestorData.phone?.trim() && {
-          investor_phone: newInvestorData.phone.trim(),
-        }),
-        investment_amount: newInvestorData.investmentAmount || 0, // POVINNÉ
-        investment_date: newInvestorData.investmentDate, // POVINNÉ
-        investment_currency: 'EUR',
-        status: 'active',
-        ...(newInvestorData.notes?.trim() && {
-          notes: newInvestorData.notes.trim(),
-        }),
-      };
-
-      console.log('📤 Sending investor payload:', investorPayload);
-
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify(investorPayload),
+        body: JSON.stringify(newInvestorData),
       });
 
       console.log('📡 API Response status:', response.status);
@@ -401,10 +376,6 @@ export default function VehicleListNew() {
           email: '',
           phone: '',
           notes: '',
-          isActive: true,
-          companyId: '',
-          investmentAmount: 0,
-          investmentDate: new Date().toISOString().split('T')[0],
         });
         // Refresh data
         window.location.reload();
@@ -1142,7 +1113,6 @@ export default function VehicleListNew() {
         onInvestorDataChange={(field, value) =>
           setNewInvestorData(prev => ({ ...prev, [field]: value }))
         }
-        companies={companies}
         // Assign Share Dialog
         assignShareDialogOpen={assignShareDialogOpen}
         selectedInvestorForShare={

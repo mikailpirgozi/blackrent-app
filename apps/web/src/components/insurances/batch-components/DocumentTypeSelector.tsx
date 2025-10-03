@@ -125,12 +125,19 @@ export function DocumentTypeSelector({
           {DOCUMENT_TYPES.map(type => {
             const isSelected = selectedTypes.has(type.key);
             return (
-              <button
+              <div
                 key={type.key}
-                type="button"
                 onClick={() => onToggle(type.key)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(type.key);
+                  }
+                }}
                 className={cn(
-                  'flex items-center gap-3 p-4 rounded-lg border-2 transition-all duration-200',
+                  'flex items-center gap-3 p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer',
                   isSelected
                     ? 'border-transparent shadow-md'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
@@ -145,8 +152,9 @@ export function DocumentTypeSelector({
               >
                 <Checkbox
                   checked={isSelected}
+                  onCheckedChange={() => onToggle(type.key)}
                   className={cn(
-                    'h-5 w-5',
+                    'h-5 w-5 pointer-events-none',
                     isSelected &&
                       'border-white data-[state=checked]:bg-white data-[state=checked]:text-blue-600'
                   )}
@@ -168,7 +176,7 @@ export function DocumentTypeSelector({
                 >
                   {type.label}
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>

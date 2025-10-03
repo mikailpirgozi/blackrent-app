@@ -695,6 +695,9 @@ export default function VehicleCentricInsuranceList() {
           enforcementCompany?: string;
           fineAmount?: number;
           fineAmountLate?: number;
+          // Vignette fields
+          vignetteCountry?: string;
+          isRequired?: boolean;
         };
       }>
     ) => {
@@ -850,6 +853,13 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
               notes: data.notes || '',
               filePath: data.filePaths?.[0] || '',
               kmState: data.kmState || 0,
+              // 🌍 Vignette fields
+              ...(type === 'vignette' &&
+                data.vignetteCountry && { country: data.vignetteCountry }),
+              ...(type === 'vignette' &&
+                data.isRequired !== undefined && {
+                  isRequired: data.isRequired,
+                }),
             };
 
             await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
