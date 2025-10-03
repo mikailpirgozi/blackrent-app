@@ -88,13 +88,19 @@ async function fetchLeasing(id: string): Promise<LeasingDetailResponse> {
 
   try {
     const [leasing, schedule, documents] = await Promise.all([
-      fetch(`${apiBase}/${id}`, { headers })
+      fetch(`${apiBase}/${id}`, {
+        headers,
+        cache: 'no-store', // 🔥 CRITICAL: No browser cache
+      })
         .then(r => {
           if (!r.ok) throw new Error(`Failed to fetch leasing: ${r.status}`);
           return r.json();
         })
         .then(d => d.data),
-      fetch(`${apiBase}/${id}/schedule`, { headers })
+      fetch(`${apiBase}/${id}/schedule`, {
+        headers,
+        cache: 'no-store', // 🔥 CRITICAL: No browser cache for payment schedule
+      })
         .then(r => {
           if (!r.ok) {
             logger.debug(`⚠️ Failed to fetch schedule: ${r.status}`);
@@ -107,7 +113,10 @@ async function fetchLeasing(id: string): Promise<LeasingDetailResponse> {
           logger.debug('⚠️ Schedule fetch error:', err);
           return [];
         }),
-      fetch(`${apiBase}/${id}/documents`, { headers })
+      fetch(`${apiBase}/${id}/documents`, {
+        headers,
+        cache: 'no-store', // 🔥 CRITICAL: No browser cache
+      })
         .then(r => {
           if (!r.ok) {
             logger.debug(`⚠️ Failed to fetch documents: ${r.status}`);
@@ -144,6 +153,7 @@ async function fetchPaymentSchedule(
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
+    cache: 'no-store', // 🔥 CRITICAL: No browser cache
   });
   if (!response.ok) throw new Error('Failed to fetch payment schedule');
   const data = await response.json();
@@ -155,6 +165,7 @@ async function fetchDashboard(): Promise<LeasingDashboard> {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
+    cache: 'no-store', // 🔥 CRITICAL: No browser cache
   });
   if (!response.ok) throw new Error('Failed to fetch dashboard');
   const data = await response.json();
