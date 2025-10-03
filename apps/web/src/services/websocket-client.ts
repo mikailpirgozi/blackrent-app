@@ -5,6 +5,7 @@ import { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
 import { Customer, Rental, Vehicle } from '../types';
+import type { Leasing } from '@/types/leasing-types';
 import { getBaseUrl } from '../utils/apiUrl';
 
 // Event typy pre TypeScript
@@ -66,6 +67,38 @@ export interface WebSocketEvents {
     protocolId: string;
     updatedBy: string;
     changes?: string[];
+    timestamp: string;
+    message: string;
+  }) => void;
+
+  // Leasing events
+  'leasing:created': (_data: {
+    leasing: Leasing;
+    createdBy: string;
+    timestamp: string;
+    message: string;
+  }) => void;
+
+  'leasing:updated': (_data: {
+    leasing: Leasing;
+    updatedBy: string;
+    changes?: string[];
+    timestamp: string;
+    message: string;
+  }) => void;
+
+  'leasing:deleted': (_data: {
+    leasingId: string;
+    vehicleId?: string;
+    deletedBy: string;
+    timestamp: string;
+    message: string;
+  }) => void;
+
+  'leasing:payment-marked': (_data: {
+    leasingId: string;
+    installmentNumber: number;
+    markedBy: string;
     timestamp: string;
     message: string;
   }) => void;
@@ -150,7 +183,9 @@ export class WebSocketClient {
     // Skús pripojenie s timeout
     const connectTimeout = window.setTimeout(() => {
       if (this.socket && !this.socket.connected) {
-        console.log('⏰ WebSocket connection timeout, trying polling fallback...');
+        console.log(
+          '⏰ WebSocket connection timeout, trying polling fallback...'
+        );
         this.socket.disconnect();
         this.socket.io.opts.transports = ['polling']; // Fallback na polling
         this.socket.connect();
@@ -162,9 +197,12 @@ export class WebSocketClient {
       console.log('✅ WebSocket connected successfully');
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       window.clearTimeout(connectTimeout);
-      console.log('❌ WebSocket connection failed, will retry...', error.message);
+      console.log(
+        '❌ WebSocket connection failed, will retry...',
+        error.message
+      );
     });
 
     // Pripoj sa
@@ -358,7 +396,7 @@ export class WebSocketClient {
    */
   reconnect() {
     this.disconnect();
-      window.setTimeout(() => {
+    window.setTimeout(() => {
       this.connect();
     }, 1000);
   }

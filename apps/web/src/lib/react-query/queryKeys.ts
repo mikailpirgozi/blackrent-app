@@ -94,6 +94,21 @@ export const queryKeys = {
     detail: (id: string) => ['settlements', 'detail', id] as const,
   },
 
+  // Leasings
+  leasings: {
+    all: ['leasings'] as const,
+    lists: () => [...queryKeys.leasings.all, 'list'] as const,
+    list: (filters?: unknown) =>
+      [...queryKeys.leasings.lists(), filters] as const,
+    details: () => [...queryKeys.leasings.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.leasings.details(), id] as const,
+    dashboard: () => ['leasings', 'dashboard'] as const,
+    schedule: (id: string) => ['leasings', 'schedule', id] as const,
+    documents: (id: string) => ['leasings', 'documents', id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['leasings', 'byVehicle', vehicleId] as const,
+  },
+
   // Insurances
   insurances: {
     all: ['insurances'] as const,

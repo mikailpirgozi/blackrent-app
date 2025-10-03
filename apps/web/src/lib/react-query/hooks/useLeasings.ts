@@ -19,6 +19,7 @@ import type {
   UpdateLeasingInput,
 } from '@/types/leasing-types';
 import { getApiBaseUrl } from '@/utils/apiUrl';
+import { queryKeys } from '../queryKeys';
 
 // ===================================================================
 // API BASE URL
@@ -232,7 +233,7 @@ async function bulkMarkPayments(
 
 export function useLeasings(filters?: LeasingFilters) {
   return useQuery({
-    queryKey: ['leasings', filters],
+    queryKey: queryKeys.leasings.list(filters),
     queryFn: () => fetchLeasings(filters),
     staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
     gcTime: 0, // ✅ CRITICAL FIX: No GC cache
@@ -242,7 +243,7 @@ export function useLeasings(filters?: LeasingFilters) {
 
 export function useLeasing(id: string | undefined) {
   return useQuery({
-    queryKey: ['leasing', id],
+    queryKey: id ? queryKeys.leasings.detail(id) : ['leasing', 'undefined'],
     queryFn: () => fetchLeasing(id!),
     enabled: !!id,
     staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
@@ -253,7 +254,9 @@ export function useLeasing(id: string | undefined) {
 
 export function usePaymentSchedule(leasingId: string | undefined) {
   return useQuery({
-    queryKey: ['payment-schedule', leasingId],
+    queryKey: leasingId
+      ? queryKeys.leasings.schedule(leasingId)
+      : ['payment-schedule', 'undefined'],
     queryFn: () => fetchPaymentSchedule(leasingId!),
     enabled: !!leasingId,
     staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
@@ -264,7 +267,7 @@ export function usePaymentSchedule(leasingId: string | undefined) {
 
 export function useLeasingDashboard() {
   return useQuery({
-    queryKey: ['leasing-dashboard'],
+    queryKey: queryKeys.leasings.dashboard(),
     queryFn: fetchDashboard,
     staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
     gcTime: 0,
@@ -283,23 +286,31 @@ export function useCreateLeasing() {
     mutationFn: createLeasing,
     onMutate: async newLeasing => {
       // ⚡ OPTIMISTIC UPDATE: Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['leasings'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.leasings.all });
 
       // Snapshot previous value
-      const previousLeasings = queryClient.getQueryData(['leasings']);
+      const previousLeasings = queryClient.getQueryData(
+        queryKeys.leasings.lists()
+      );
 
       // Optimistically update - add new leasing to the start of list
-      queryClient.setQueryData(['leasings'], (old: Leasing[] = []) => [
-        { ...newLeasing, id: `temp-${Date.now()}` } as Leasing,
-        ...old,
-      ]);
+      queryClient.setQueryData(
+        queryKeys.leasings.lists(),
+        (old: Leasing[] = []) => [
+          { ...newLeasing, id: `temp-${Date.now()}` } as Leasing,
+          ...old,
+        ]
+      );
 
       return { previousLeasings };
     },
     onError: (_err, _newLeasing, context) => {
       // ↩️ ROLLBACK: Restore previous data on error
       if (context?.previousLeasings) {
-        queryClient.setQueryData(['leasings'], context.previousLeasings);
+        queryClient.setQueryData(
+          queryKeys.leasings.lists(),
+          context.previousLeasings
+        );
       }
     },
     onSuccess: data => {
@@ -312,8 +323,11 @@ export function useCreateLeasing() {
     },
     onSettled: () => {
       // 🔄 INVALIDATE: Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['leasings'] });
-      queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
     },
   });
 }
@@ -324,9 +338,14 @@ export function useUpdateLeasing(id: string) {
   return useMutation({
     mutationFn: (input: UpdateLeasingInput) => updateLeasing(id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leasing', id] });
-      queryClient.invalidateQueries({ queryKey: ['leasings'] });
-      queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(id),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
     },
   });
 }
@@ -337,8 +356,11 @@ export function useDeleteLeasing() {
   return useMutation({
     mutationFn: deleteLeasing,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leasings'] });
-      queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
     },
   });
 }
@@ -356,11 +378,16 @@ export function useMarkPayment(leasingId: string) {
     }) => markPaymentAsPaid(leasingId, installmentNumber, paidDate),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['payment-schedule', leasingId],
+        queryKey: queryKeys.leasings.schedule(leasingId),
       });
-      queryClient.invalidateQueries({ queryKey: ['leasing', leasingId] });
-      queryClient.invalidateQueries({ queryKey: ['leasings'] });
-      queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(leasingId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
     },
   });
 }
@@ -373,11 +400,16 @@ export function useUnmarkPayment(leasingId: string) {
       unmarkPayment(leasingId, installmentNumber),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['payment-schedule', leasingId],
+        queryKey: queryKeys.leasings.schedule(leasingId),
       });
-      queryClient.invalidateQueries({ queryKey: ['leasing', leasingId] });
-      queryClient.invalidateQueries({ queryKey: ['leasings'] });
-      queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(leasingId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
     },
   });
 }
@@ -390,11 +422,16 @@ export function useBulkMarkPayments(leasingId: string) {
       bulkMarkPayments(leasingId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['payment-schedule', leasingId],
+        queryKey: queryKeys.leasings.schedule(leasingId),
       });
-      queryClient.invalidateQueries({ queryKey: ['leasing', leasingId] });
-      queryClient.invalidateQueries({ queryKey: ['leasings'] });
-      queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(leasingId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
     },
   });
 }

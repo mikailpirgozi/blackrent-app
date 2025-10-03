@@ -2,6 +2,7 @@ import { getWebSocketClient } from '@/services/websocket-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import type { Customer, Rental, Vehicle } from '../../types';
+import type { Leasing } from '@/types/leasing-types';
 import { useBulkCacheInvalidation } from './hooks/useBulkCache';
 import { queryKeys } from './queryKeys';
 
@@ -167,6 +168,114 @@ export function useWebSocketInvalidation() {
       });
     };
 
+    // Leasing events
+    const handleLeasingCreated = (data: {
+      leasing: Leasing;
+      createdBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
+      console.log('🔄 WebSocket: Leasing created, invalidating queries', data);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+      // Invalidate vehicle if leasing is associated
+      if (data.leasing.vehicleId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.leasings.byVehicle(data.leasing.vehicleId),
+        });
+      }
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
+    };
+
+    const handleLeasingUpdated = (data: {
+      leasing: Leasing;
+      updatedBy: string;
+      changes?: string[];
+      timestamp: string;
+      message: string;
+    }) => {
+      console.log('🔄 WebSocket: Leasing updated, invalidating queries', data);
+      if (data.leasing.id) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.leasings.detail(data.leasing.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.leasings.schedule(data.leasing.id),
+        });
+      }
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
+    };
+
+    const handleLeasingDeleted = (data: {
+      leasingId: string;
+      vehicleId?: string;
+      deletedBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
+      console.log('🔄 WebSocket: Leasing deleted, invalidating queries', data);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+      // Invalidate vehicle leasing cache
+      if (data.vehicleId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.leasings.byVehicle(data.vehicleId),
+        });
+      }
+      // Invalidate BULK cache for AppContext refresh
+      invalidateBulkCache();
+    };
+
+    const handlePaymentMarked = (data: {
+      leasingId: string;
+      installmentNumber: number;
+      markedBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
+      console.log(
+        '🔄 WebSocket: Leasing payment marked, invalidating queries',
+        data
+      );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(data.leasingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.schedule(data.leasingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+    };
+
     // Register all listeners
     client.on('rental:created', handleRentalCreated);
     client.on('rental:updated', handleRentalUpdated);
@@ -178,6 +287,11 @@ export function useWebSocketInvalidation() {
     client.on('protocol:updated', handleProtocolUpdated);
 
     client.on('customer:created', handleCustomerCreated);
+
+    client.on('leasing:created', handleLeasingCreated);
+    client.on('leasing:updated', handleLeasingUpdated);
+    client.on('leasing:deleted', handleLeasingDeleted);
+    client.on('leasing:payment-marked', handlePaymentMarked);
 
     return () => {
       console.log('🔌 Cleaning up WebSocket invalidation listeners');
@@ -193,6 +307,11 @@ export function useWebSocketInvalidation() {
       client.off('protocol:updated', handleProtocolUpdated);
 
       client.off('customer:created', handleCustomerCreated);
+
+      client.off('leasing:created', handleLeasingCreated);
+      client.off('leasing:updated', handleLeasingUpdated);
+      client.off('leasing:deleted', handleLeasingDeleted);
+      client.off('leasing:payment-marked', handlePaymentMarked);
     };
   }, [queryClient, invalidateBulkCache]);
 }
