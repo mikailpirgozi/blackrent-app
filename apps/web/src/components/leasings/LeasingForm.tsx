@@ -75,7 +75,7 @@ const leasingFormSchema = z.object({
 
   interestRate: z.number().nonnegative().optional(),
   rpmn: z.number().nonnegative().optional(),
-  monthlyPayment: z.number().positive().optional(),
+  monthlyPayment: z.number().nonnegative().optional(), // ✅ FIX: Changed from positive() to nonnegative() - allow 0
 
   earlyRepaymentPenalty: z.number().nonnegative().default(0),
   earlyRepaymentPenaltyType: z
