@@ -40,7 +40,12 @@ export function PaymentScheduleTable({
   const unmarkMutation = useUnmarkPayment(leasingId);
   const bulkMarkMutation = useBulkMarkPayments(leasingId);
 
-  const formatMoney = (amount: number) => `${amount.toFixed(2)} €`;
+  const formatMoney = (amount: number | string) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '0.00 €';
+    return `${numAmount.toFixed(2)} €`;
+  };
+
   const formatDate = (date: Date | string) =>
     new Date(date).toLocaleDateString('sk-SK');
 
