@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +17,7 @@ import {
   useLeasings,
   useLeasingDashboard,
 } from '@/lib/react-query/hooks/useLeasings';
+import { queryKeys } from '@/lib/react-query/queryKeys';
 import type { LeasingFilters } from '@/types/leasing-types';
 import { LeasingDashboard } from './LeasingDashboard';
 import { LeasingFiltersForm } from './LeasingFiltersForm';
@@ -23,11 +25,22 @@ import { LeasingCard } from './LeasingCard';
 import { LeasingForm } from './LeasingForm';
 
 export default function LeasingList() {
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<LeasingFilters>({});
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const { data: leasings, isLoading } = useLeasings(filters);
-  const { data: dashboard } = useLeasingDashboard();
+  const { data: leasings, isLoading, refetch } = useLeasings(filters);
+  const { data: dashboard, refetch: refetchDashboard } = useLeasingDashboard();
+
+  const handleFormSuccess = async () => {
+    setIsFormOpen(false);
+    // 🔥 FORCE REFRESH: Explicitný refetch po create/update
+    await Promise.all([
+      refetch(),
+      refetchDashboard(),
+      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all }),
+    ]);
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -86,7 +99,7 @@ export default function LeasingList() {
         <LeasingForm
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
-          onSuccess={() => setIsFormOpen(false)}
+          onSuccess={handleFormSuccess}
         />
       )}
     </div>

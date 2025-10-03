@@ -12,6 +12,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
 import { cacheResponse, invalidateCache } from '../middleware/cache-middleware';
+import { invalidateRelatedCache } from '../utils/cache-service';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import { getWebSocketService } from '../services/websocket-service';
@@ -194,7 +195,7 @@ router.post(
       console.log('✅ Leasing created successfully:', leasing.id);
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'create');
       
       // 🔴 WebSocket: Broadcast leasing created
       const wsService = getWebSocketService();
@@ -273,7 +274,7 @@ router.put(
       console.log('✅ Leasing updated successfully:', leasing.id);
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'update');
       
       // 🔴 WebSocket: Broadcast leasing updated
       const wsService = getWebSocketService();
@@ -335,7 +336,7 @@ router.delete(
       }
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'delete');
       
       // 🔴 WebSocket: Broadcast leasing deleted
       const wsService = getWebSocketService();
@@ -419,7 +420,7 @@ router.post(
       }
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'update');
       
       // 🔴 WebSocket: Broadcast payment marked
       const wsService = getWebSocketService();
@@ -464,7 +465,7 @@ router.delete(
       }
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'update');
       
       res.json({
         success: true,
@@ -498,7 +499,7 @@ router.post(
       const payments = await postgresDatabase.bulkMarkPayments(id, input.installmentNumbers, input.paidDate);
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'update');
       
       res.json({
         success: true,
@@ -565,7 +566,7 @@ router.post(
       const document = await postgresDatabase.createLeasingDocument(id, input);
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'update');
       
       res.status(201).json({
         success: true,
@@ -603,7 +604,7 @@ router.delete(
       }
       
       // Invaliduj cache
-      await invalidateCache('expenses');
+      invalidateRelatedCache('expense', 'update');
       
       res.json({
         success: true,
