@@ -68,8 +68,8 @@ export default function VehicleListNew() {
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
 
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
-  const mobileScrollRef = React.useRef<any>(null);
-  const desktopScrollRef = React.useRef<any>(null);
+  const mobileScrollRef = React.useRef<HTMLDivElement>(null);
+  const desktopScrollRef = React.useRef<HTMLDivElement>(null);
   const savedScrollPosition = React.useRef<number>(0);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Pre načítanie ďalších vozidiel
@@ -125,7 +125,7 @@ export default function VehicleListNew() {
   const [showAvailable, setShowAvailable] = useState(true);
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
-  const [showOther, setShowOther] = useState(true);
+  const [showTransferred, setShowTransferred] = useState(true); // 🔄 Prepisané vozidlá
   const [showPrivate, setShowPrivate] = useState(false); // 🏠 Súkromné vozidlá defaultne skryté
   const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
   const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
@@ -136,32 +136,42 @@ export default function VehicleListNew() {
   const deleteVehicleMutation = useDeleteVehicle();
 
   // Pripravíme filters pre React Query
-  const vehicleFilters: VehicleFilters = useMemo(
-    () => {
-      const filters: VehicleFilters = {};
-      
-      if (filterStatus !== 'all') {
-        filters.status = filterStatus;
-      }
-      
-      if (filterCompany !== 'all') {
-        filters.company = filterCompany;
-      }
-      
-      if (filterCategory !== 'all') {
-        filters.category = filterCategory;
-      }
-      
-      if (filterBrand !== 'all' || filterModel !== 'all') {
-        const brandPart = filterBrand !== 'all' ? filterBrand : '';
-        const modelPart = filterModel !== 'all' ? filterModel : '';
-        filters.search = `${brandPart} ${modelPart}`.trim();
-      }
-      
-      return filters;
-    },
-    [filterStatus, filterCompany, filterCategory, filterBrand, filterModel]
-  );
+  const vehicleFilters: VehicleFilters = useMemo(() => {
+    const filters: VehicleFilters = {};
+
+    if (filterStatus !== 'all') {
+      filters.status = filterStatus;
+    }
+
+    if (filterCompany !== 'all') {
+      filters.company = filterCompany;
+    }
+
+    if (filterCategory !== 'all') {
+      filters.category = filterCategory;
+    }
+
+    if (filterBrand !== 'all' || filterModel !== 'all') {
+      const brandPart = filterBrand !== 'all' ? filterBrand : '';
+      const modelPart = filterModel !== 'all' ? filterModel : '';
+      filters.search = `${brandPart} ${modelPart}`.trim();
+    }
+
+    // ✅ CRITICAL FIX: Include removed/private vehicles based on checkboxes
+    filters.includeRemoved = showRemoved || showTempRemoved;
+    filters.includePrivate = showPrivate;
+
+    return filters;
+  }, [
+    filterStatus,
+    filterCompany,
+    filterCategory,
+    filterBrand,
+    filterModel,
+    showRemoved,
+    showTempRemoved,
+    showPrivate,
+  ]);
 
   // Používame React Query pre načítanie vozidiel
   const { data: vehicles = [], isLoading: vehiclesLoading } =
@@ -575,10 +585,10 @@ export default function VehicleListNew() {
     if (showAvailable) statusFilters.push('available');
     if (showRented) statusFilters.push('rented');
     if (showMaintenance) statusFilters.push('maintenance');
-    if (showOther) statusFilters.push('other' as VehicleStatus);
+    if (showTransferred) statusFilters.push('transferred');
     if (showPrivate) statusFilters.push('private');
     if (showRemoved) statusFilters.push('removed');
-    if (showTempRemoved) statusFilters.push('temp_removed' as VehicleStatus);
+    if (showTempRemoved) statusFilters.push('temporarily_removed');
 
     if (statusFilters.length > 0) {
       filtered = filtered.filter(v => statusFilters.includes(v.status));
@@ -591,7 +601,7 @@ export default function VehicleListNew() {
     showAvailable,
     showRented,
     showMaintenance,
-    showOther,
+    showTransferred,
     showPrivate,
     showRemoved,
     showTempRemoved,
@@ -637,7 +647,10 @@ export default function VehicleListNew() {
     showAvailable,
     showRented,
     showMaintenance,
-    showOther,
+    showTransferred,
+    showPrivate,
+    showRemoved,
+    showTempRemoved,
   ]);
 
   // 🎯 INFINITE SCROLL PRESERVATION: Obnoviť pozíciu po načítaní nových vozidiel
@@ -650,7 +663,7 @@ export default function VehicleListNew() {
 
   // Infinite scroll event handler
   const handleScroll = useCallback(
-    (e: React.UIEvent<any>) => {
+    (e: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
       // Load more when user scrolls to 80% of the content
@@ -765,7 +778,10 @@ export default function VehicleListNew() {
     <div className="p-1 sm:p-2 md:p-3">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 flex-col sm:flex-row gap-2 sm:gap-0">
-        <UnifiedTypography variant="h4" className="font-bold text-blue-600 text-2xl sm:text-3xl">
+        <UnifiedTypography
+          variant="h4"
+          className="font-bold text-blue-600 text-2xl sm:text-3xl"
+        >
           🚗 Databáza vozidiel
         </UnifiedTypography>
 
@@ -853,8 +869,8 @@ export default function VehicleListNew() {
         setShowRented={setShowRented}
         showMaintenance={showMaintenance}
         setShowMaintenance={setShowMaintenance}
-        showOther={showOther}
-        setShowOther={setShowOther}
+        showTransferred={showTransferred}
+        setShowTransferred={setShowTransferred}
         showPrivate={showPrivate}
         setShowPrivate={setShowPrivate}
         showRemoved={showRemoved}
@@ -868,7 +884,10 @@ export default function VehicleListNew() {
 
       {/* 🎯 TABS NAVIGATION */}
       <div className="border-b border-border mb-6">
-        <Tabs value={currentTab.toString()} onValueChange={(value) => setCurrentTab(parseInt(value))}>
+        <Tabs
+          value={currentTab.toString()}
+          onValueChange={value => setCurrentTab(parseInt(value))}
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="0">Vozidlá</TabsTrigger>
             <TabsTrigger value="1">👤 Majitelia</TabsTrigger>
@@ -877,167 +896,185 @@ export default function VehicleListNew() {
 
           {/* TAB 0 - VOZIDLÁ */}
           <TabsContent value="0" className="pt-6">
-        {/* Results Count */}
-        <div className="mb-4 flex items-center gap-2">
-          <UnifiedTypography variant="body2" className="text-muted-foreground">
-            Zobrazených {vehiclesToDisplay.length} z {filteredVehicles.length}{' '}
-            vozidiel
-            {filteredVehicles.length !== vehicles.length &&
-              ` (filtrovaných z ${vehicles.length})`}
-          </UnifiedTypography>
-          {isLoading && (
-            <EnhancedLoading
-              variant="inline"
-              message="Aktualizujem zoznam..."
-              showMessage={false}
-            />
-          )}
-          {isLoadingMore && (
-            <EnhancedLoading
-              variant="inline"
-              message="Načítavam ďalšie..."
-              showMessage={true}
-            />
-          )}
-        </div>
+            {/* Results Count */}
+            <div className="mb-4 flex items-center gap-2">
+              <UnifiedTypography
+                variant="body2"
+                className="text-muted-foreground"
+              >
+                Zobrazených {vehiclesToDisplay.length} z{' '}
+                {filteredVehicles.length} vozidiel
+                {filteredVehicles.length !== vehicles.length &&
+                  ` (filtrovaných z ${vehicles.length})`}
+              </UnifiedTypography>
+              {isLoading && (
+                <EnhancedLoading
+                  variant="inline"
+                  message="Aktualizujem zoznam..."
+                  showMessage={false}
+                />
+              )}
+              {isLoadingMore && (
+                <EnhancedLoading
+                  variant="inline"
+                  message="Načítavam ďalšie..."
+                  showMessage={true}
+                />
+              )}
+            </div>
 
-        {/* Vehicle List */}
-        <VehicleTable
-          vehiclesToDisplay={vehiclesToDisplay}
-          filteredVehicles={filteredVehicles}
-          displayedVehicles={displayedVehicles}
-          hasMore={hasMore}
-          isLoadingMore={isLoadingMore}
-          selectedVehicles={selectedVehicles}
-          mobileScrollRef={mobileScrollRef}
-          desktopScrollRef={desktopScrollRef}
-          onScroll={handleScroll}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onVehicleSelect={handleVehicleSelect}
-          onLoadMore={loadMoreVehicles}
-          onKmHistory={handleKmHistory}
-        />
+            {/* Vehicle List */}
+            <VehicleTable
+              vehiclesToDisplay={vehiclesToDisplay}
+              filteredVehicles={filteredVehicles}
+              displayedVehicles={displayedVehicles}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              selectedVehicles={selectedVehicles}
+              mobileScrollRef={mobileScrollRef}
+              desktopScrollRef={desktopScrollRef}
+              onScroll={handleScroll}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onVehicleSelect={handleVehicleSelect}
+              onLoadMore={loadMoreVehicles}
+              onKmHistory={handleKmHistory}
+            />
           </TabsContent>
 
           {/* TAB 1 - MAJITELIA */}
           <TabsContent value="1" className="pt-6">
-        <div className="mb-6">
-          <UnifiedTypography variant="h6">👤 Správa majiteľov vozidiel</UnifiedTypography>
-        </div>
-
-        {/* Owners List - Nový dizajn */}
-        <Card>
-          <CardContent>
-            <div className="mb-4">
-              <UnifiedTypography variant="body2" className="text-muted-foreground mb-4">
-                Zoznam majiteľov vozidiel. Kliknite na majiteľa pre
-                zobrazenie/skrytie jeho vozidiel.
+            <div className="mb-6">
+              <UnifiedTypography variant="h6">
+                👤 Správa majiteľov vozidiel
               </UnifiedTypography>
             </div>
 
-            {/* Zoznam majiteľov zoskupených podľa firmy */}
-            {companies
-              ?.filter(company => company.isActive !== false) // Filtrovanie aktívnych firiem
-              ?.map(company => {
-                // Nájdi vozidlá pre túto firmu
-                const companyVehicles = filteredVehicles.filter(
-                  v => v.ownerCompanyId === company.id
-                );
+            {/* Owners List - Nový dizajn */}
+            <Card>
+              <CardContent>
+                <div className="mb-4">
+                  <UnifiedTypography
+                    variant="body2"
+                    className="text-muted-foreground mb-4"
+                  >
+                    Zoznam majiteľov vozidiel. Kliknite na majiteľa pre
+                    zobrazenie/skrytie jeho vozidiel.
+                  </UnifiedTypography>
+                </div>
 
-                if (companyVehicles.length === 0) return null;
+                {/* Zoznam majiteľov zoskupených podľa firmy */}
+                {companies
+                  ?.filter(company => company.isActive !== false) // Filtrovanie aktívnych firiem
+                  ?.map(company => {
+                    // Nájdi vozidlá pre túto firmu
+                    const companyVehicles = filteredVehicles.filter(
+                      v => v.ownerCompanyId === company.id
+                    );
 
-                return (
-                  <OwnerCard
-                    key={company.id}
-                    company={company as unknown as Record<string, unknown>}
-                    vehicles={companyVehicles}
-                    onVehicleUpdate={handleSaveCompany}
-                    onVehicleEdit={handleEdit}
-                  />
-                );
-              })
-              ?.filter(Boolean)}
+                    if (companyVehicles.length === 0) return null;
 
-            {companies?.filter(c => c.isActive !== false).length === 0 && (
-              <UnifiedTypography
-                variant="body2"
-                className="text-center py-8 text-muted-foreground"
-              >
-                Žiadni aktívni majitelia vozidiel
-              </UnifiedTypography>
-            )}
-          </CardContent>
-        </Card>
+                    return (
+                      <OwnerCard
+                        key={company.id}
+                        company={company as unknown as Record<string, unknown>}
+                        vehicles={companyVehicles}
+                        onVehicleUpdate={handleSaveCompany}
+                        onVehicleEdit={handleEdit}
+                      />
+                    );
+                  })
+                  ?.filter(Boolean)}
+
+                {companies?.filter(c => c.isActive !== false).length === 0 && (
+                  <UnifiedTypography
+                    variant="body2"
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    Žiadni aktívni majitelia vozidiel
+                  </UnifiedTypography>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* TAB 2 - POUŽÍVATELIA (SPOLUINVESTORI) */}
           <TabsContent value="2" className="pt-6">
-        <div className="mb-6">
-          <UnifiedTypography variant="h6">🤝 Správa spoluinvestorov</UnifiedTypography>
-        </div>
+            <div className="mb-6">
+              <UnifiedTypography variant="h6">
+                🤝 Správa spoluinvestorov
+              </UnifiedTypography>
+            </div>
 
-        <UnifiedTypography variant="body2" className="text-muted-foreground mb-6">
-          Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k viacerým
-          firmám.
-        </UnifiedTypography>
-
-        {/* Investors List */}
-        <Card>
-          <CardContent>
-            <UnifiedTypography variant="body2" className="text-muted-foreground mb-4">
-              Zoznam všetkých spoluinvestorov a ich podiely vo firmách.
+            <UnifiedTypography
+              variant="body2"
+              className="text-muted-foreground mb-6"
+            >
+              Spoluinvestori s % podielmi vo firmách. Môžu byť priradení k
+              viacerým firmám.
             </UnifiedTypography>
 
-            {loadingInvestors ? (
-              <div className="flex justify-center py-8">
-                <EnhancedLoading
-                  variant="page"
-                  showMessage={true}
-                  message="Načítavam spoluinvestorov..."
-                />
-              </div>
-            ) : investors.length > 0 ? (
-              investors.map(investor => {
-                // Nájdi podiely tohto investora
-                const investorShares_filtered = investorShares.filter(
-                  share => share.investorId === investor.id
-                );
+            {/* Investors List */}
+            <Card>
+              <CardContent>
+                <UnifiedTypography
+                  variant="body2"
+                  className="text-muted-foreground mb-4"
+                >
+                  Zoznam všetkých spoluinvestorov a ich podiely vo firmách.
+                </UnifiedTypography>
 
-                return (
-                  <InvestorCard
-                    key={investor.id}
-                    investor={investor as unknown as Record<string, unknown>}
-                    shares={
-                      investorShares_filtered as unknown as Record<
-                        string,
-                        unknown
-                      >[]
-                    }
-                    companies={
-                      companies as unknown as Record<string, unknown>[]
-                    }
-                    onShareUpdate={loadInvestors}
-                    onAssignShare={investor => {
-                      setSelectedInvestorForShare(
-                        investor as unknown as InvestorData
-                      );
-                      setAssignShareDialogOpen(true);
-                    }}
-                  />
-                );
-              })
-            ) : (
-              <UnifiedTypography
-                variant="body2"
-                className="text-center py-8 text-muted-foreground"
-              >
-                Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora" pre
-                vytvorenie nového.
-              </UnifiedTypography>
-            )}
-          </CardContent>
-        </Card>
+                {loadingInvestors ? (
+                  <div className="flex justify-center py-8">
+                    <EnhancedLoading
+                      variant="page"
+                      showMessage={true}
+                      message="Načítavam spoluinvestorov..."
+                    />
+                  </div>
+                ) : investors.length > 0 ? (
+                  investors.map(investor => {
+                    // Nájdi podiely tohto investora
+                    const investorShares_filtered = investorShares.filter(
+                      share => share.investorId === investor.id
+                    );
+
+                    return (
+                      <InvestorCard
+                        key={investor.id}
+                        investor={
+                          investor as unknown as Record<string, unknown>
+                        }
+                        shares={
+                          investorShares_filtered as unknown as Record<
+                            string,
+                            unknown
+                          >[]
+                        }
+                        companies={
+                          companies as unknown as Record<string, unknown>[]
+                        }
+                        onShareUpdate={loadInvestors}
+                        onAssignShare={investor => {
+                          setSelectedInvestorForShare(
+                            investor as unknown as InvestorData
+                          );
+                          setAssignShareDialogOpen(true);
+                        }}
+                      />
+                    );
+                  })
+                ) : (
+                  <UnifiedTypography
+                    variant="body2"
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    Žiadni spoluinvestori. Kliknite na "Pridať spoluinvestora"
+                    pre vytvorenie nového.
+                  </UnifiedTypography>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

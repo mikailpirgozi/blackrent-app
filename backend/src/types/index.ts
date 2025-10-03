@@ -1,5 +1,120 @@
 import type { Request } from 'express';
 
+// ===================================================================
+// LEASING TYPES
+// ===================================================================
+
+/**
+ * Typ splácania leasingu
+ */
+export type PaymentType = 'anuita' | 'lineárne' | 'len_úrok';
+
+/**
+ * Kategória úveru
+ */
+export type LoanCategory = 'autoúver' | 'operatívny_leasing' | 'pôžička';
+
+/**
+ * Typ pokuty za predčasné splatenie
+ */
+export type EarlyRepaymentPenaltyType = 'percent_principal' | 'fixed_amount';
+
+/**
+ * Typ dokumentu leasingu
+ */
+export type LeasingDocumentType = 'contract' | 'payment_schedule' | 'photo' | 'other';
+
+/**
+ * Hlavná tabuľka leasing
+ */
+export interface Leasing {
+  id: string;
+  vehicleId: string;
+  
+  // Základné info
+  leasingCompany: string;
+  loanCategory: LoanCategory;
+  paymentType: PaymentType;
+  
+  // Finančné údaje
+  initialLoanAmount: number;
+  currentBalance: number;
+  interestRate?: number;
+  rpmn?: number;
+  monthlyPayment?: number;
+  monthlyFee: number;
+  processingFee: number;
+  totalMonthlyPayment?: number;
+  
+  // Splátky
+  totalInstallments: number;
+  remainingInstallments: number;
+  paidInstallments: number;
+  firstPaymentDate: Date | string;
+  lastPaymentDate?: Date | string;
+  lastPaidDate?: Date | string;
+  
+  // Predčasné splatenie
+  earlyRepaymentPenalty: number;
+  earlyRepaymentPenaltyType: EarlyRepaymentPenaltyType;
+  
+  // Nadobúdacia cena
+  acquisitionPriceWithoutVAT?: number;
+  acquisitionPriceWithVAT?: number;
+  isNonDeductible: boolean;
+  
+  // Document URLs
+  contractDocumentUrl?: string;
+  paymentScheduleUrl?: string;
+  photosZipUrl?: string;
+  
+  // Metadata
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/**
+ * Položka splátkového kalendára
+ */
+export interface PaymentScheduleItem {
+  id: string;
+  leasingId: string;
+  
+  installmentNumber: number;
+  dueDate: Date | string;
+  
+  principal: number;
+  interest: number;
+  monthlyFee: number;
+  totalPayment: number;
+  remainingBalance: number;
+  
+  isPaid: boolean;
+  paidDate?: Date | string;
+  
+  createdAt: Date | string;
+}
+
+/**
+ * Dokument spojený s leasingom
+ */
+export interface LeasingDocument {
+  id: string;
+  leasingId: string;
+  
+  type: LeasingDocumentType;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  mimeType: string;
+  
+  uploadedAt: Date | string;
+}
+
+// ===================================================================
+// VEHICLE TYPES
+// ===================================================================
+
 // 🚗 VEHICLE CATEGORIES: Typy kategórií vozidiel pre lepšie filtrovanie
 export type VehicleCategory = 
   | 'nizka-trieda'      // 🚗 Nízka trieda (Škoda Fabia, Hyundai i20, Dacia Logan)

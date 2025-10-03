@@ -16,6 +16,7 @@ import {
   Mail as MailIcon,
   Receipt as ReceiptLongOutlined,
   Shield as SecurityOutlined,
+  CreditCard as CreditCardIcon,
 } from 'lucide-react';
 
 // shadcn/ui components
@@ -23,10 +24,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import {
-  Sheet,
-  SheetContent,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +49,6 @@ import RealTimeNotifications from './common/RealTimeNotifications';
 import { SuccessToast } from './common/SuccessToast';
 import UserProfile from './users/UserProfile';
 
-
 // Sidebar width is handled by Tailwind classes (w-64 = 16rem = 256px)
 
 interface LayoutProps {
@@ -73,7 +70,7 @@ export default function Layout({ children }: LayoutProps) {
   const { user } = state || {};
   const { isDarkMode, toggleTheme } = useThemeMode();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
-  
+
   React.useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 900);
@@ -105,7 +102,7 @@ export default function Layout({ children }: LayoutProps) {
     setDialogOpen(null);
   };
 
-    // Pôvodné menu položky ako v backup verzii
+  // Pôvodné menu položky ako v backup verzii
   const allMenuItems = [
     {
       text: 'Dashboard',
@@ -136,6 +133,12 @@ export default function Layout({ children }: LayoutProps) {
       icon: <CalendarToday />,
       path: '/availability',
       resource: 'vehicles' as const,
+    },
+    {
+      text: 'Leasingy',
+      icon: <CreditCardIcon />,
+      path: '/leasings',
+      resource: 'finances' as const,
     },
     {
       text: 'Náklady',
@@ -176,8 +179,8 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   // Filtruj menu items podľa permissions ako v pôvodnej verzii
-  const menuItems = allMenuItems.filter(item =>
-    hasPermission(item.resource, 'read').hasAccess
+  const menuItems = allMenuItems.filter(
+    item => hasPermission(item.resource, 'read').hasAccess
   );
 
   const drawer = (
@@ -213,14 +216,20 @@ export default function Layout({ children }: LayoutProps) {
                   setMobileOpen(false);
                 }}
               >
-                <span className={`mr-3 flex-shrink-0 text-lg ${
-                  location.pathname === item.path ? 'text-white' : ''
-                }`}>
+                <span
+                  className={`mr-3 flex-shrink-0 text-lg ${
+                    location.pathname === item.path ? 'text-white' : ''
+                  }`}
+                >
                   {item.icon}
                 </span>
-                <span className={`text-sm font-bold ${
-                  location.pathname === item.path ? 'text-white' : 'font-medium'
-                }`}>
+                <span
+                  className={`text-sm font-bold ${
+                    location.pathname === item.path
+                      ? 'text-white'
+                      : 'font-medium'
+                  }`}
+                >
                   {item.text}
                 </span>
               </Button>
@@ -257,16 +266,20 @@ export default function Layout({ children }: LayoutProps) {
         <header className="fixed top-0 left-64 right-0 z-50 bg-background border-b border-border h-16">
           <div className="flex items-center justify-between px-4 py-2 h-full">
             <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-foreground">
-                BlackRent
-              </h1>
-              <Badge variant="default" className="bg-blue-600 text-white text-xs font-semibold">
+              <h1 className="text-lg font-bold text-foreground">BlackRent</h1>
+              <Badge
+                variant="default"
+                className="bg-blue-600 text-white text-xs font-semibold"
+              >
                 Pro
               </Badge>
             </div>
 
             <div className="flex items-center gap-3">
-              <Badge variant={user?.role === 'admin' ? 'default' : 'secondary'} className="text-xs">
+              <Badge
+                variant={user?.role === 'admin' ? 'default' : 'secondary'}
+                className="text-xs"
+              >
                 {user?.role === 'admin' ? 'Admin' : 'User'}
               </Badge>
 
@@ -280,7 +293,11 @@ export default function Layout({ children }: LayoutProps) {
                 onClick={toggleTheme}
                 className="rounded-lg"
               >
-                {isDarkMode ? <LightMode className="h-4 w-4" /> : <DarkMode className="h-4 w-4" />}
+                {isDarkMode ? (
+                  <LightMode className="h-4 w-4" />
+                ) : (
+                  <DarkMode className="h-4 w-4" />
+                )}
               </Button>
 
               {/* User Menu */}
@@ -290,17 +307,29 @@ export default function Layout({ children }: LayoutProps) {
                     <AccountCircle className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 rounded-xl border shadow-lg">
-                  <DropdownMenuItem onClick={() => handleOpenDialog('profile')} className="flex items-center gap-2">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-48 rounded-xl border shadow-lg"
+                >
+                  <DropdownMenuItem
+                    onClick={() => handleOpenDialog('profile')}
+                    className="flex items-center gap-2"
+                  >
                     <AccountCircle className="h-4 w-4" />
                     Môj profil
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleOpenDialog('changePassword')} className="flex items-center gap-2">
+                  <DropdownMenuItem
+                    onClick={() => handleOpenDialog('changePassword')}
+                    className="flex items-center gap-2"
+                  >
                     <LockIcon className="h-4 w-4" />
                     Zmeniť heslo
                   </DropdownMenuItem>
                   <Separator />
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="flex items-center gap-2"
+                  >
                     <Logout className="h-4 w-4" />
                     Odhlásiť sa
                   </DropdownMenuItem>
@@ -313,10 +342,13 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Mobile AppBar */}
       {isMobile && (
-        <header className={`fixed top-0 left-0 right-0 z-50 h-16 ${isDarkMode 
-          ? 'bg-gradient-to-r from-slate-800 to-slate-700' 
-          : 'bg-gradient-to-r from-blue-500 to-purple-600'
-        } shadow-lg`}>
+        <header
+          className={`fixed top-0 left-0 right-0 z-50 h-16 ${
+            isDarkMode
+              ? 'bg-gradient-to-r from-slate-800 to-slate-700'
+              : 'bg-gradient-to-r from-blue-500 to-purple-600'
+          } shadow-lg`}
+        >
           <div className="flex items-center px-4 py-3 h-full">
             <Button
               variant="ghost"
@@ -335,21 +367,38 @@ export default function Layout({ children }: LayoutProps) {
               onClick={toggleTheme}
               className="text-white hover:bg-white/20 mr-2"
             >
-              {isDarkMode ? <LightMode className="h-4 w-4" /> : <DarkMode className="h-4 w-4" />}
+              {isDarkMode ? (
+                <LightMode className="h-4 w-4" />
+              ) : (
+                <DarkMode className="h-4 w-4" />
+              )}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white hover:bg-white/20"
+                >
                   <AccountCircle className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl border shadow-lg">
-                <DropdownMenuItem onClick={() => handleOpenDialog('changePassword')} className="flex items-center gap-2">
+              <DropdownMenuContent
+                align="end"
+                className="w-48 rounded-xl border shadow-lg"
+              >
+                <DropdownMenuItem
+                  onClick={() => handleOpenDialog('changePassword')}
+                  className="flex items-center gap-2"
+                >
                   <LockIcon className="h-4 w-4" />
                   Zmeniť heslo
                 </DropdownMenuItem>
                 <Separator />
-                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="flex items-center gap-2"
+                >
                   <Logout className="h-4 w-4" />
                   Odhlásiť sa
                 </DropdownMenuItem>
@@ -373,9 +422,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="md:pl-64 pt-16 min-h-screen">
-        <div className="p-6 md:p-8">
-          {children}
-        </div>
+        <div className="p-6 md:p-8">{children}</div>
       </main>
 
       {/* Dialogs */}

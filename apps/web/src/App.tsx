@@ -21,11 +21,7 @@ import { EnhancedLoading } from './components/common/EnhancedLoading';
 import OfflineIndicator from './components/common/OfflineIndicator';
 
 // Lazy imports pre code splitting a lepšie performance
-import {
-  Route,
-  BrowserRouter as Router,
-  Routes,
-} from 'react-router-dom';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
@@ -35,7 +31,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { initializeCriticalResources } from './utils/criticalResources';
 import { logger } from './utils/smartLogger';
 
-const PremiumDashboard = lazy(() => import('./components/dashboard/PremiumDashboard'));
+const PremiumDashboard = lazy(
+  () => import('./components/dashboard/PremiumDashboard')
+);
 const VehicleList = lazy(() => import('./components/vehicles/VehicleListNew'));
 const RentalList = lazy(() => import('./components/rentals/RentalList'));
 const EmailManagementDashboard = lazy(
@@ -58,6 +56,7 @@ const SettlementList = lazy(
 const SmartAvailabilityPage = lazy(
   () => import('./pages/SmartAvailabilityPage')
 );
+const LeasingList = lazy(() => import('./components/leasings/LeasingList'));
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
@@ -75,7 +74,6 @@ const WebSocketIntegrationWrapper: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-
   // Initialize performance optimizations
   React.useEffect(() => {
     // Initialize critical resources only
@@ -111,8 +109,8 @@ const AppContent: React.FC = () => {
                       v7_relativeSplatPath: true,
                     }}
                   >
-                  <div className="flex flex-col min-h-screen">
-                    <Routes>
+                    <div className="flex flex-col min-h-screen">
+                      <Routes>
                         <Route path="/login" element={<LoginForm />} />
                         <Route
                           path="/"
@@ -235,6 +233,21 @@ const AppContent: React.FC = () => {
                         />
 
                         <Route
+                          path="/leasings"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <LeasingList />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
+
+                        <Route
                           path="/settlements"
                           element={
                             <ProtectedRoute>
@@ -279,7 +292,6 @@ const AppContent: React.FC = () => {
                           }
                         />
 
-
                         {/* NEW SMART AVAILABILITY - Optimized replacement */}
                         <Route
                           path="/availability"
@@ -310,9 +322,8 @@ const AppContent: React.FC = () => {
                             </ProtectedRoute>
                           }
                         />
-
                       </Routes>
-                  </div>
+                    </div>
                   </Router>
                 </AppProvider>
               </PermissionsProvider>

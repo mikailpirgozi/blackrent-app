@@ -308,8 +308,18 @@ class ApiService {
   }
 
   // Vozidlá
-  async getVehicles(): Promise<Vehicle[]> {
-    return this.request<Vehicle[]>('/vehicles');
+  async getVehicles(options?: {
+    includeRemoved?: boolean;
+    includePrivate?: boolean;
+  }): Promise<Vehicle[]> {
+    const params = new URLSearchParams();
+    if (options?.includeRemoved) params.append('includeRemoved', 'true');
+    if (options?.includePrivate) params.append('includePrivate', 'true');
+
+    const url = params.toString()
+      ? `/vehicles?${params.toString()}`
+      : '/vehicles';
+    return this.request<Vehicle[]>(url);
   }
 
   async getVehicle(id: string): Promise<Vehicle> {

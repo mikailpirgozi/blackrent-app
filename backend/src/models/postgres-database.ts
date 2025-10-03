@@ -2066,6 +2066,208 @@ export class PostgresDatabase {
         logger.migration('⚠️ Migrácia 27 chyba:', errorObj.message);
       }
 
+      // Migrácia 31: Leasing Management System - Evidencia leasingov vozidiel
+      try {
+        logger.migration('📋 Migrácia 31: Vytváram Leasing Management System tabuľky...');
+        
+        // 31.1: Vytvor leasings tabuľku
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS leasings (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            vehicle_id VARCHAR(50) NOT NULL,
+            
+            -- Základné informácie
+            leasing_company VARCHAR(255) NOT NULL,
+            loan_category VARCHAR(50) NOT NULL CHECK (loan_category IN ('autoúver', 'operatívny_leasing', 'pôžička')),
+            payment_type VARCHAR(20) NOT NULL DEFAULT 'anuita' CHECK (payment_type IN ('anuita', 'lineárne', 'len_úrok')),
+            
+            -- Finančné údaje (DECIMAL pre presné výpočty peňazí)
+            initial_loan_amount DECIMAL(10, 2) NOT NULL,
+            current_balance DECIMAL(10, 2) NOT NULL,
+            interest_rate DECIMAL(5, 3), -- Úroková sadzba % p.a. (voliteľné)
+            rpmn DECIMAL(5, 3), -- RPMN % (voliteľné)
+            monthly_payment DECIMAL(10, 2), -- Mesačná splátka (voliteľné, môže byť vypočítané)
+            monthly_fee DECIMAL(10, 2) NOT NULL DEFAULT 0, -- Mesačný poplatok
+            processing_fee DECIMAL(10, 2) NOT NULL DEFAULT 0, -- Poplatok za spracovanie úveru (jednorazový)
+            total_monthly_payment DECIMAL(10, 2), -- Celková mesačná splátka (vypočítané)
+            
+            -- Splátky
+            total_installments INTEGER NOT NULL CHECK (total_installments > 0),
+            remaining_installments INTEGER NOT NULL CHECK (remaining_installments >= 0),
+            paid_installments INTEGER NOT NULL DEFAULT 0 CHECK (paid_installments >= 0),
+            first_payment_date DATE NOT NULL,
+            last_payment_date DATE, -- Dátum poslednej splátky (vypočítané alebo zadané)
+            last_paid_date DATE, -- Dátum poslednej úhrady (tracking)
+            
+            -- Predčasné splatenie
+            early_repayment_penalty DECIMAL(5, 2) NOT NULL DEFAULT 0, -- % z istiny
+            early_repayment_penalty_type VARCHAR(20) NOT NULL DEFAULT 'percent_principal' 
+              CHECK (early_repayment_penalty_type IN ('percent_principal', 'fixed_amount')),
+            
+            -- Nadobúdacia cena vozidla (voliteľné)
+            acquisition_price_without_vat DECIMAL(10, 2),
+            acquisition_price_with_vat DECIMAL(10, 2),
+            is_non_deductible BOOLEAN NOT NULL DEFAULT FALSE,
+            
+            -- Dokumenty (R2 storage URLs)
+            contract_document_url TEXT,
+            payment_schedule_url TEXT,
+            photos_zip_url TEXT,
+            
+            -- Metadata
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            
+            -- Constraints
+            CONSTRAINT check_remaining_installments 
+              CHECK (remaining_installments <= total_installments),
+            CONSTRAINT check_paid_installments 
+              CHECK (paid_installments <= total_installments),
+            CONSTRAINT check_balance_positive 
+              CHECK (current_balance >= 0)
+          )
+        `);
+        logger.migration('   ✅ leasings tabuľka vytvorená');
+        
+        // 31.2: Vytvor indexy pre leasings
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasings_vehicle_id ON leasings(vehicle_id)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasings_company ON leasings(leasing_company)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasings_first_payment_date ON leasings(first_payment_date)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasings_created_at ON leasings(created_at)
+        `);
+        logger.migration('   ✅ Indexy pre leasings vytvorené');
+        
+        // 31.3: Vytvor payment_schedule tabuľku
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS payment_schedule (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            leasing_id UUID NOT NULL REFERENCES leasings(id) ON DELETE CASCADE,
+            
+            -- Identifikácia splátky
+            installment_number INTEGER NOT NULL CHECK (installment_number > 0),
+            due_date DATE NOT NULL,
+            
+            -- Finančné údaje splátky
+            principal DECIMAL(10, 2) NOT NULL CHECK (principal >= 0), -- Istina
+            interest DECIMAL(10, 2) NOT NULL CHECK (interest >= 0), -- Úrok
+            monthly_fee DECIMAL(10, 2) NOT NULL DEFAULT 0 CHECK (monthly_fee >= 0), -- Mesačný poplatok
+            total_payment DECIMAL(10, 2) NOT NULL CHECK (total_payment >= 0), -- Celková splátka
+            remaining_balance DECIMAL(10, 2) NOT NULL CHECK (remaining_balance >= 0), -- Zostatok po tejto splátke
+            
+            -- Tracking úhrad
+            is_paid BOOLEAN NOT NULL DEFAULT FALSE,
+            paid_date DATE,
+            
+            -- Metadata
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            
+            -- Unique constraint - jedna splátka na leasing
+            CONSTRAINT unique_leasing_installment UNIQUE (leasing_id, installment_number),
+            
+            -- Check constraints
+            CONSTRAINT check_paid_date CHECK (
+              (is_paid = TRUE AND paid_date IS NOT NULL) OR 
+              (is_paid = FALSE AND paid_date IS NULL)
+            )
+          )
+        `);
+        logger.migration('   ✅ payment_schedule tabuľka vytvorená');
+        
+        // 31.4: Vytvor indexy pre payment_schedule
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_payment_schedule_leasing_id ON payment_schedule(leasing_id)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_payment_schedule_due_date ON payment_schedule(due_date)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_payment_schedule_is_paid ON payment_schedule(is_paid)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_payment_schedule_is_paid_due_date ON payment_schedule(is_paid, due_date)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_payment_schedule_leasing_installment ON payment_schedule(leasing_id, installment_number)
+        `);
+        logger.migration('   ✅ Indexy pre payment_schedule vytvorené');
+        
+        // 31.5: Vytvor leasing_documents tabuľku
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS leasing_documents (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            leasing_id UUID NOT NULL REFERENCES leasings(id) ON DELETE CASCADE,
+            
+            -- Document metadata
+            type VARCHAR(50) NOT NULL CHECK (type IN ('contract', 'payment_schedule', 'photo', 'other')),
+            file_name VARCHAR(500) NOT NULL,
+            file_url TEXT NOT NULL,
+            file_size BIGINT NOT NULL CHECK (file_size > 0), -- bytes
+            mime_type VARCHAR(100) NOT NULL,
+            
+            -- Metadata
+            uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            
+            -- Constraints
+            CONSTRAINT valid_file_name CHECK (LENGTH(file_name) > 0),
+            CONSTRAINT valid_file_url CHECK (LENGTH(file_url) > 0)
+          )
+        `);
+        logger.migration('   ✅ leasing_documents tabuľka vytvorená');
+        
+        // 31.6: Vytvor indexy pre leasing_documents
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasing_documents_leasing_id ON leasing_documents(leasing_id)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasing_documents_type ON leasing_documents(type)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasing_documents_leasing_type ON leasing_documents(leasing_id, type)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_leasing_documents_uploaded_at ON leasing_documents(uploaded_at)
+        `);
+        logger.migration('   ✅ Indexy pre leasing_documents vytvorené');
+        
+        // 31.7: Vytvor trigger pre auto-update updated_at
+        await client.query(`
+          CREATE OR REPLACE FUNCTION update_leasings_updated_at()
+          RETURNS TRIGGER AS $$
+          BEGIN
+            NEW.updated_at = NOW();
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+        `);
+        
+        await client.query(`
+          DROP TRIGGER IF EXISTS trigger_update_leasings_updated_at ON leasings;
+          CREATE TRIGGER trigger_update_leasings_updated_at
+            BEFORE UPDATE ON leasings
+            FOR EACH ROW
+            EXECUTE FUNCTION update_leasings_updated_at();
+        `);
+        logger.migration('   ✅ Trigger pre auto-update timestamp vytvorený');
+        
+        logger.migration('✅ Migrácia 31: 🚗 Leasing Management System úspešne vytvorený!');
+        logger.migration('   🚗 Leasings tabuľka - hlavná evidencia leasingov');
+        logger.migration('   💰 Payment schedule - splátkový kalendár s tracking');
+        logger.migration('   📄 Leasing documents - zmluvy, fotky, kalendáre');
+        logger.migration('   🔍 Optimalizované indexy pre rýchle vyhľadávanie');
+        logger.migration('   ⚡ Auto-update triggers pre timestamp tracking');
+        
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 31 chyba:', errorObj.message);
+      }
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.migration('⚠️ Migrácie celkovo preskočené:', errorMessage);
@@ -9460,6 +9662,276 @@ export class PostgresDatabase {
       createdAt: new Date(String(row.created_at)),
       updatedAt: new Date(String(row.updated_at)),
       createdBy: toString(row.created_by) || undefined
+    };
+  }
+
+  // ===================================================================
+  // LEASING METHODS
+  // ===================================================================
+
+  async getLeasings(filters: {
+    vehicleId?: string;
+    leasingCompany?: string;
+    loanCategory?: string;
+    status?: 'active' | 'completed';
+    searchQuery?: string;
+    page?: number;
+    pageSize?: number;
+  } = {}): Promise<any[]> {
+    let query = `
+      SELECT 
+        id, vehicle_id as "vehicleId", leasing_company as "leasingCompany",
+        loan_category as "loanCategory", payment_type as "paymentType",
+        initial_loan_amount as "initialLoanAmount", current_balance as "currentBalance",
+        interest_rate as "interestRate", rpmn, monthly_payment as "monthlyPayment",
+        monthly_fee as "monthlyFee", processing_fee as "processingFee", 
+        total_monthly_payment as "totalMonthlyPayment",
+        total_installments as "totalInstallments", remaining_installments as "remainingInstallments",
+        paid_installments as "paidInstallments", first_payment_date as "firstPaymentDate",
+        last_payment_date as "lastPaymentDate", last_paid_date as "lastPaidDate", 
+        early_repayment_penalty as "earlyRepaymentPenalty",
+        early_repayment_penalty_type as "earlyRepaymentPenaltyType",
+        acquisition_price_without_vat as "acquisitionPriceWithoutVAT",
+        acquisition_price_with_vat as "acquisitionPriceWithVAT",
+        is_non_deductible as "isNonDeductible",
+        contract_document_url as "contractDocumentUrl",
+        payment_schedule_url as "paymentScheduleUrl",
+        photos_zip_url as "photosZipUrl",
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM leasings WHERE 1=1
+    `;
+    
+    const params: any[] = [];
+    let paramIndex = 1;
+    
+    if (filters.vehicleId) {
+      query += ` AND vehicle_id = $${paramIndex++}`;
+      params.push(filters.vehicleId);
+    }
+    
+    if (filters.leasingCompany) {
+      query += ` AND leasing_company ILIKE $${paramIndex++}`;
+      params.push(`%${filters.leasingCompany}%`);
+    }
+    
+    if (filters.status === 'active') {
+      query += ` AND remaining_installments > 0`;
+    } else if (filters.status === 'completed') {
+      query += ` AND remaining_installments = 0`;
+    }
+    
+    query += ` ORDER BY created_at DESC`;
+    
+    const pageSize = filters.pageSize || 20;
+    const page = filters.page || 1;
+    const offset = (page - 1) * pageSize;
+    
+    query += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    params.push(pageSize, offset);
+    
+    const result = await this.pool.query(query, params);
+    return result.rows;
+  }
+
+  async getLeasing(id: string): Promise<any | null> {
+    const result = await this.pool.query(
+      `SELECT 
+        id, vehicle_id as "vehicleId", leasing_company as "leasingCompany",
+        loan_category as "loanCategory", payment_type as "paymentType",
+        initial_loan_amount as "initialLoanAmount", current_balance as "currentBalance",
+        interest_rate as "interestRate", rpmn, monthly_payment as "monthlyPayment",
+        monthly_fee as "monthlyFee", processing_fee as "processingFee",
+        total_monthly_payment as "totalMonthlyPayment",
+        total_installments as "totalInstallments", remaining_installments as "remainingInstallments",
+        paid_installments as "paidInstallments", first_payment_date as "firstPaymentDate",
+        last_payment_date as "lastPaymentDate", last_paid_date as "lastPaidDate", 
+        early_repayment_penalty as "earlyRepaymentPenalty",
+        early_repayment_penalty_type as "earlyRepaymentPenaltyType",
+        acquisition_price_without_vat as "acquisitionPriceWithoutVAT",
+        acquisition_price_with_vat as "acquisitionPriceWithVAT",
+        is_non_deductible as "isNonDeductible",
+        contract_document_url as "contractDocumentUrl",
+        payment_schedule_url as "paymentScheduleUrl",
+        photos_zip_url as "photosZipUrl",
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM leasings WHERE id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async createLeasing(input: any): Promise<any> {
+    const result = await this.pool.query(
+      `INSERT INTO leasings (
+        vehicle_id, leasing_company, loan_category, payment_type,
+        initial_loan_amount, current_balance, interest_rate, rpmn,
+        monthly_payment, monthly_fee, processing_fee, total_monthly_payment,
+        total_installments, remaining_installments, paid_installments,
+        first_payment_date, last_payment_date, early_repayment_penalty, early_repayment_penalty_type,
+        acquisition_price_without_vat, acquisition_price_with_vat, is_non_deductible
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+      ) RETURNING id`,
+      [
+        input.vehicleId, input.leasingCompany, input.loanCategory, input.paymentType,
+        input.initialLoanAmount, input.currentBalance || input.initialLoanAmount,
+        input.interestRate, input.rpmn, input.monthlyPayment, input.monthlyFee,
+        input.processingFee || 0, input.totalMonthlyPayment, input.totalInstallments,
+        input.totalInstallments, 0, input.firstPaymentDate, input.lastPaymentDate,
+        input.earlyRepaymentPenalty || 0, input.earlyRepaymentPenaltyType || 'percent_principal',
+        input.acquisitionPriceWithoutVAT, input.acquisitionPriceWithVAT, input.isNonDeductible || false
+      ]
+    );
+    return this.getLeasing(result.rows[0].id);
+  }
+
+  async updateLeasing(id: string, input: any): Promise<any | null> {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+    
+    Object.entries(input).forEach(([key, value]) => {
+      if (value !== undefined) {
+        const snakeKey = key.replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`);
+        fields.push(`${snakeKey} = $${paramIndex++}`);
+        values.push(value);
+      }
+    });
+    
+    if (fields.length === 0) return this.getLeasing(id);
+    
+    values.push(id);
+    await this.pool.query(
+      `UPDATE leasings SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramIndex}`,
+      values
+    );
+    return this.getLeasing(id);
+  }
+
+  async deleteLeasing(id: string): Promise<boolean> {
+    const result = await this.pool.query('DELETE FROM leasings WHERE id = $1', [id]);
+    return result.rowCount! > 0;
+  }
+
+  async getPaymentSchedule(leasingId: string): Promise<any[]> {
+    const result = await this.pool.query(
+      `SELECT 
+        id, leasing_id as "leasingId", installment_number as "installmentNumber",
+        due_date as "dueDate", principal, interest, monthly_fee as "monthlyFee",
+        total_payment as "totalPayment", remaining_balance as "remainingBalance",
+        is_paid as "isPaid", paid_date as "paidDate", created_at as "createdAt"
+      FROM payment_schedule WHERE leasing_id = $1 ORDER BY installment_number ASC`,
+      [leasingId]
+    );
+    return result.rows;
+  }
+
+  async markPaymentAsPaid(leasingId: string, installmentNumber: number, paidDate?: Date | string): Promise<any | null> {
+    const date = paidDate || new Date();
+    const result = await this.pool.query(
+      `UPDATE payment_schedule SET is_paid = true, paid_date = $1 
+       WHERE leasing_id = $2 AND installment_number = $3 RETURNING *`,
+      [date, leasingId, installmentNumber]
+    );
+    if (result.rows.length === 0) return null;
+    await this.updateLeasingCounters(leasingId);
+    return result.rows[0];
+  }
+
+  async unmarkPayment(leasingId: string, installmentNumber: number): Promise<any | null> {
+    const result = await this.pool.query(
+      `UPDATE payment_schedule SET is_paid = false, paid_date = NULL 
+       WHERE leasing_id = $1 AND installment_number = $2 RETURNING *`,
+      [leasingId, installmentNumber]
+    );
+    if (result.rows.length === 0) return null;
+    await this.updateLeasingCounters(leasingId);
+    return result.rows[0];
+  }
+
+  async bulkMarkPayments(leasingId: string, installmentNumbers: number[], paidDate?: Date | string): Promise<any[]> {
+    const date = paidDate || new Date();
+    const result = await this.pool.query(
+      `UPDATE payment_schedule SET is_paid = true, paid_date = $1 
+       WHERE leasing_id = $2 AND installment_number = ANY($3) RETURNING *`,
+      [date, leasingId, installmentNumbers]
+    );
+    await this.updateLeasingCounters(leasingId);
+    return result.rows;
+  }
+
+  private async updateLeasingCounters(leasingId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE leasings SET
+        paid_installments = (SELECT COUNT(*) FROM payment_schedule WHERE leasing_id = $1 AND is_paid = true),
+        remaining_installments = (SELECT COUNT(*) FROM payment_schedule WHERE leasing_id = $1 AND is_paid = false),
+        current_balance = (SELECT COALESCE(remaining_balance, 0) FROM payment_schedule 
+                          WHERE leasing_id = $1 AND is_paid = true ORDER BY installment_number DESC LIMIT 1),
+        last_paid_date = (SELECT MAX(paid_date) FROM payment_schedule WHERE leasing_id = $1 AND is_paid = true)
+      WHERE id = $1`,
+      [leasingId]
+    );
+  }
+
+  async getLeasingDocuments(leasingId: string): Promise<any[]> {
+    const result = await this.pool.query(
+      `SELECT id, leasing_id as "leasingId", type, file_name as "fileName",
+       file_url as "fileUrl", file_size as "fileSize", mime_type as "mimeType",
+       uploaded_at as "uploadedAt"
+      FROM leasing_documents WHERE leasing_id = $1 ORDER BY uploaded_at DESC`,
+      [leasingId]
+    );
+    return result.rows;
+  }
+
+  async createLeasingDocument(leasingId: string, input: any): Promise<any> {
+    const result = await this.pool.query(
+      `INSERT INTO leasing_documents (leasing_id, type, file_name, file_url, file_size, mime_type)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [leasingId, input.type, input.fileName, input.fileUrl, input.fileSize, input.mimeType]
+    );
+    return result.rows[0];
+  }
+
+  async deleteLeasingDocument(leasingId: string, documentId: string): Promise<boolean> {
+    const result = await this.pool.query(
+      'DELETE FROM leasing_documents WHERE id = $1 AND leasing_id = $2',
+      [documentId, leasingId]
+    );
+    return result.rowCount! > 0;
+  }
+
+  async getLeasingDashboard(): Promise<any> {
+    const totalDebt = await this.pool.query(
+      'SELECT SUM(current_balance) as total FROM leasings WHERE remaining_installments > 0'
+    );
+    const monthlyCosts = await this.pool.query(
+      'SELECT SUM(total_monthly_payment) as total FROM leasings WHERE remaining_installments > 0'
+    );
+    const upcoming = await this.pool.query(
+      `SELECT 
+        COUNT(*) FILTER (WHERE due_date <= NOW() + INTERVAL '7 days' AND due_date > NOW() AND is_paid = false) as within_7_days,
+        COUNT(*) FILTER (WHERE due_date <= NOW() + INTERVAL '14 days' AND due_date > NOW() AND is_paid = false) as within_14_days,
+        COUNT(*) FILTER (WHERE due_date <= NOW() + INTERVAL '30 days' AND due_date > NOW() AND is_paid = false) as within_30_days
+      FROM payment_schedule`
+    );
+    const overdue = await this.pool.query(
+      `SELECT * FROM payment_schedule WHERE is_paid = false AND due_date < NOW()`
+    );
+    const active = await this.pool.query('SELECT COUNT(*) as count FROM leasings WHERE remaining_installments > 0');
+    const completed = await this.pool.query('SELECT COUNT(*) as count FROM leasings WHERE remaining_installments = 0');
+    
+    return {
+      totalDebt: parseFloat(totalDebt.rows[0]?.total || '0'),
+      monthlyTotalCost: parseFloat(monthlyCosts.rows[0]?.total || '0'),
+      upcomingPayments: {
+        within7Days: parseInt(upcoming.rows[0]?.within_7_days || '0'),
+        within14Days: parseInt(upcoming.rows[0]?.within_14_days || '0'),
+        within30Days: parseInt(upcoming.rows[0]?.within_30_days || '0'),
+      },
+      overduePayments: overdue.rows,
+      activeLeasingsCount: parseInt(active.rows[0]?.count || '0'),
+      completedLeasingsCount: parseInt(completed.rows[0]?.count || '0'),
     };
   }
 

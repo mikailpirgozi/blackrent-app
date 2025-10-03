@@ -16,13 +16,19 @@ export interface VehicleFilters {
   company?: string;
   search?: string;
   category?: string;
+  includeRemoved?: boolean;
+  includePrivate?: boolean;
 }
 
 // GET vehicles
 export function useVehicles(filters?: VehicleFilters) {
   return useQuery({
     queryKey: queryKeys.vehicles.list(filters as Record<string, unknown>),
-    queryFn: () => apiService.getVehicles(),
+    queryFn: () =>
+      apiService.getVehicles({
+        includeRemoved: filters?.includeRemoved,
+        includePrivate: filters?.includePrivate,
+      }),
     staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
     gcTime: 0, // ✅ CRITICAL FIX: No GC cache
     refetchOnMount: 'always', // ✅ Vždy refetch pri mount

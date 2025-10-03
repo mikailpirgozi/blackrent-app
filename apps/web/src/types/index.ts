@@ -275,6 +275,8 @@ export interface Insurance {
   validTo: Date;
   price: number;
   company: string;
+  insurerId?: string | null; // ID poisťovne
+  brokerCompany?: string; // 🆕 Maklerská spoločnosť (voliteľné)
   paymentFrequency: PaymentFrequency;
   filePath?: string; // Zachováme pre backward compatibility
   filePaths?: string[]; // Nové pole pre viacero súborov

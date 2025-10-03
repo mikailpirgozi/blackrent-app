@@ -38,10 +38,10 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
-        timeout: 5000, // Rýchlejší timeout
+        timeout: 30000, // 30 sekúnd timeout
         // ✅ CRITICAL FIX: Disable proxy cache pre fresh data
         configure: (proxy, _options) => {
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
+          proxy.on('proxyReq', (proxyReq, _req, _res) => {
             // Add cache-busting headers
             proxyReq.setHeader(
               'Cache-Control',

@@ -1,12 +1,6 @@
 import { FileText, Paperclip, Wrench, Truck, Shield } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-} from '@/components/ui/alert';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -14,18 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Input,
-} from '@/components/ui/input';
-import {
-  Label,
-} from '@/components/ui/label';
-import {
-  Badge,
-} from '@/components/ui/badge';
-import {
-  Separator,
-} from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -33,16 +19,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import {
-  Textarea,
-} from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 // Unified design system imports
-import {
-  UnifiedButton,
-} from '@/components/ui';
+// UnifiedButton removed - not used
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useInsurers } from '../../lib/react-query/hooks/useInsurers';
@@ -67,6 +49,7 @@ export interface UnifiedDocumentData {
   // Insurance specific
   policyNumber?: string | undefined;
   company?: string | undefined;
+  brokerCompany?: string | undefined; // 🆕 Maklerská spoločnosť
   paymentFrequency?: PaymentFrequency | undefined;
 
   // Vehicle document specific
@@ -115,9 +98,17 @@ const getDocumentTypeInfo = (type: string) => {
         color: '#9c27b0',
       };
     case 'stk':
-      return { label: 'STK', icon: <Wrench className="h-4 w-4" />, color: '#388e3c' };
+      return {
+        label: 'STK',
+        icon: <Wrench className="h-4 w-4" />,
+        color: '#388e3c',
+      };
     case 'ek':
-      return { label: 'EK', icon: <FileText className="h-4 w-4" />, color: '#f57c00' };
+      return {
+        label: 'EK',
+        icon: <FileText className="h-4 w-4" />,
+        color: '#f57c00',
+      };
     case 'vignette':
       return {
         label: 'Dialničná známka',
@@ -132,7 +123,11 @@ const getDocumentTypeInfo = (type: string) => {
         color: '#1976d2',
       };
     default:
-      return { label: 'Dokument', icon: <Paperclip className="h-4 w-4" />, color: '#666' };
+      return {
+        label: 'Dokument',
+        icon: <Paperclip className="h-4 w-4" />,
+        color: '#666',
+      };
   }
 };
 
@@ -152,6 +147,7 @@ export default function UnifiedDocumentForm({
       type: document?.type || 'insurance_pzp',
       policyNumber: document?.policyNumber || '',
       company: document?.company || '',
+      brokerCompany: document?.brokerCompany || '', // 🆕 Maklerská spoločnosť
       paymentFrequency: document?.paymentFrequency || 'yearly',
       documentNumber: document?.documentNumber || '',
       notes: document?.notes || '',
@@ -275,6 +271,7 @@ export default function UnifiedDocumentForm({
         type: document.type,
         policyNumber: document.policyNumber || '',
         company: document.company || '',
+        brokerCompany: document.brokerCompany || '', // 🆕 Maklerská spoločnosť
         paymentFrequency: document.paymentFrequency || 'yearly',
         documentNumber: document.documentNumber || '',
         notes: document.notes || '',
@@ -380,651 +377,710 @@ export default function UnifiedDocumentForm({
   return (
     <>
       <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-6">
-            {typeInfo.icon}
-            <h2 className="text-xl font-semibold" style={{ color: typeInfo.color }}>
-              {document?.id ? 'Upraviť' : 'Pridať'} {typeInfo.label}
-            </h2>
-          </div>
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-6">
+          {typeInfo.icon}
+          <h2
+            className="text-xl font-semibold"
+            style={{ color: typeInfo.color }}
+          >
+            {document?.id ? 'Upraviť' : 'Pridať'} {typeInfo.label}
+          </h2>
+        </div>
 
-          <div className="grid grid-cols-1 gap-6">
-            {/* Základné informácie */}
-            <div className="col-span-1">
-              <Card>
-                <CardContent>
-                  <h3 className="text-lg font-semibold mb-4">
-                    Základné informácie
-                  </h3>
+        <div className="grid grid-cols-1 gap-6">
+          {/* Základné informácie */}
+          <div className="col-span-1">
+            <Card>
+              <CardContent>
+                <h3 className="text-lg font-semibold mb-4">
+                  Základné informácie
+                </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="col-span-1 md:col-span-1">
-                      <div className="space-y-2">
-                        <Label htmlFor="vehicle-select">Vozidlo *</Label>
-                        <Select
-                          value={formData.vehicleId}
-                          onValueChange={(value) =>
-                            setFormData(prev => ({
-                              ...prev,
-                              vehicleId: value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Vyberte vozidlo..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {vehicles.slice().sort((a, b) => {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="col-span-1 md:col-span-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="vehicle-select">Vozidlo *</Label>
+                      <Select
+                        value={formData.vehicleId}
+                        onValueChange={value =>
+                          setFormData(prev => ({
+                            ...prev,
+                            vehicleId: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Vyberte vozidlo..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vehicles
+                            .slice()
+                            .sort((a, b) => {
                               const aText = `${a.brand} ${a.model} (${a.licensePlate})`;
                               const bText = `${b.brand} ${b.model} (${b.licensePlate})`;
                               return aText.localeCompare(bText, 'sk', {
                                 sensitivity: 'base',
                               });
-                            }).map((vehicle) => (
+                            })
+                            .map(vehicle => (
                               <SelectItem key={vehicle.id} value={vehicle.id}>
                                 {`${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`}
                               </SelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.vehicleId && (
-                          <p className="text-sm text-red-500">
-                            {errors.vehicleId}
-                          </p>
-                        )}
-                      </div>
+                        </SelectContent>
+                      </Select>
+                      {errors.vehicleId && (
+                        <p className="text-sm text-red-500">
+                          {errors.vehicleId}
+                        </p>
+                      )}
                     </div>
-
-                    <div className="col-span-1 md:col-span-1">
-                      <div className="space-y-2">
-                        <Label htmlFor="document-type">Typ dokumentu *</Label>
-                        <Select
-                          value={formData.type}
-                          onValueChange={(value) =>
-                            setFormData(prev => ({
-                              ...prev,
-                              type: value as UnifiedDocumentData['type'],
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Vyberte typ dokumentu..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="insurance_pzp">
-                              Poistka - PZP
-                            </SelectItem>
-                            <SelectItem value="insurance_kasko">
-                              Poistka - Kasko
-                            </SelectItem>
-                            <SelectItem value="insurance_pzp_kasko">
-                              Poistka - PZP + Kasko
-                            </SelectItem>
-                            <SelectItem value="stk">STK</SelectItem>
-                            <SelectItem value="ek">EK</SelectItem>
-                            <SelectItem value="vignette">Dialničná známka</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Insurance specific fields */}
-                    {isInsurance && (
-                      <>
-                        <div className="col-span-1 md:col-span-1">
-                          <div className="space-y-2">
-                            <Label htmlFor="policy-number">Číslo poistky *</Label>
-                            <Input
-                              id="policy-number"
-                              value={formData.policyNumber}
-                              onChange={(e) =>
-                                setFormData(prev => ({
-                                  ...prev,
-                                  policyNumber: e.target.value,
-                                }))
-                              }
-                              className={cn(errors.policyNumber && "border-red-500")}
-                            />
-                            {errors.policyNumber && (
-                              <p className="text-sm text-red-500">
-                                {errors.policyNumber}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="col-span-1 md:col-span-1">
-                          <div className="space-y-2">
-                            <Label htmlFor="company">Poisťovňa *</Label>
-                            <Select
-                              value={formData.company || ''}
-                              onValueChange={(value) => {
-                                if (value === '__add_new__') {
-                                  setAddingInsurer(true);
-                                } else {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    company: value,
-                                  }));
-                                }
-                              }}
-                            >
-                              <SelectTrigger className={cn("w-full", errors.company && "border-red-500")}>
-                                <SelectValue placeholder="Vyberte poisťovňu..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {insurers.map(insurer => (
-                                  <SelectItem key={insurer.id} value={insurer.name}>
-                                    {insurer.name}
-                                  </SelectItem>
-                                ))}
-                                <SelectItem value="__add_new__">
-                                  <em>+ Pridať novú poisťovňu</em>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {errors.company && (
-                              <p className="text-sm text-red-500 mt-1">
-                                {errors.company}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="col-span-1 md:col-span-1">
-                          <div className="space-y-2">
-                            <Label htmlFor="payment-frequency">Frekvencia platenia</Label>
-                            <Select
-                              value={formData.paymentFrequency || 'yearly'}
-                              onValueChange={(value) =>
-                                setFormData(prev => ({
-                                  ...prev,
-                                  paymentFrequency: value as PaymentFrequency,
-                                }))
-                              }
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Vyberte frekvenciu..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="monthly">
-                                  Mesačne (platnosť +1 mesiac)
-                                </SelectItem>
-                                <SelectItem value="quarterly">
-                                  Štvrťročne (platnosť +3 mesiace)
-                                </SelectItem>
-                                <SelectItem value="biannual">
-                                  Polročne (platnosť +6 mesiacov)
-                                </SelectItem>
-                                <SelectItem value="yearly">
-                                  Ročne (platnosť +1 rok)
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* 🟢 BIELA KARTA: Samostatná sekcia len pre PZP poistky */}
-            {isPZP && (
-              <div className="col-span-1">
-                <Card>
-                  <CardContent>
-                    <div className="flex items-center gap-2 mb-4">
-                      <h3 className="text-lg font-semibold">
-                        🟢 Platnosť bielej karty
-                      </h3>
-                      <Badge variant="outline" className="text-xs">
-                        Automatické
-                      </Badge>
+                  <div className="col-span-1 md:col-span-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="document-type">Typ dokumentu *</Label>
+                      <Select
+                        value={formData.type}
+                        onValueChange={value =>
+                          setFormData(prev => ({
+                            ...prev,
+                            type: value as UnifiedDocumentData['type'],
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Vyberte typ dokumentu..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="insurance_pzp">
+                            Poistka - PZP
+                          </SelectItem>
+                          <SelectItem value="insurance_kasko">
+                            Poistka - Kasko
+                          </SelectItem>
+                          <SelectItem value="insurance_pzp_kasko">
+                            Poistka - PZP + Kasko
+                          </SelectItem>
+                          <SelectItem value="stk">STK</SelectItem>
+                          <SelectItem value="ek">EK</SelectItem>
+                          <SelectItem value="vignette">
+                            Dialničná známka
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
 
-                    <Alert className="mb-4">
-                      <AlertDescription>
-                        💡 Platnosť zelenej karty sa automaticky nastaví podľa
-                        platnosti poistky. Môžete ju však upraviť podľa potreby.
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Insurance specific fields */}
+                  {isInsurance && (
+                    <>
                       <div className="col-span-1 md:col-span-1">
                         <div className="space-y-2">
-                          <Label htmlFor="green-card-from">Biela karta platná od</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !formData.greenCardValidFrom && "text-muted-foreground"
-                                )}
-                              >
-                                {formData.greenCardValidFrom ? (
-                                  new Date(formData.greenCardValidFrom).toLocaleDateString('sk-SK')
-                                ) : (
-                                  "Vyberte dátum"
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={formData.greenCardValidFrom ? new Date(formData.greenCardValidFrom) : undefined}
-                                onSelect={(date) =>
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    greenCardValidFrom: date || undefined,
-                                  }))
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <Label htmlFor="policy-number">Číslo poistky *</Label>
+                          <Input
+                            id="policy-number"
+                            value={formData.policyNumber}
+                            onChange={e =>
+                              setFormData(prev => ({
+                                ...prev,
+                                policyNumber: e.target.value,
+                              }))
+                            }
+                            className={cn(
+                              errors.policyNumber && 'border-red-500'
+                            )}
+                          />
+                          {errors.policyNumber && (
+                            <p className="text-sm text-red-500">
+                              {errors.policyNumber}
+                            </p>
+                          )}
                         </div>
                       </div>
 
                       <div className="col-span-1 md:col-span-1">
                         <div className="space-y-2">
-                          <Label htmlFor="green-card-to">Biela karta platná do</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !formData.greenCardValidTo && "text-muted-foreground"
-                                )}
-                              >
-                                {formData.greenCardValidTo ? (
-                                  new Date(formData.greenCardValidTo).toLocaleDateString('sk-SK')
-                                ) : (
-                                  "Vyberte dátum"
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={formData.greenCardValidTo ? new Date(formData.greenCardValidTo) : undefined}
-                                onSelect={(date) => {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    greenCardValidTo: date || undefined,
-                                  }));
-                                  setGreenCardManuallyEdited(true);
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <Label htmlFor="company">Poisťovňa *</Label>
+                          <Select
+                            value={formData.company || ''}
+                            onValueChange={value => {
+                              if (value === '__add_new__') {
+                                setAddingInsurer(true);
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  company: value,
+                                }));
+                              }
+                            }}
+                          >
+                            <SelectTrigger
+                              className={cn(
+                                'w-full',
+                                errors.company && 'border-red-500'
+                              )}
+                            >
+                              <SelectValue placeholder="Vyberte poisťovňu..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {insurers.map(insurer => (
+                                <SelectItem
+                                  key={insurer.id}
+                                  value={insurer.name}
+                                >
+                                  {insurer.name}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="__add_new__">
+                                <em>+ Pridať novú poisťovňu</em>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {errors.company && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.company}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
 
-            {/* Platnosť a cena */}
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="broker-company">
+                            Maklerská spoločnosť
+                          </Label>
+                          <Input
+                            id="broker-company"
+                            value={formData.brokerCompany || ''}
+                            onChange={e =>
+                              setFormData(prev => ({
+                                ...prev,
+                                brokerCompany: e.target.value,
+                              }))
+                            }
+                            placeholder="Napr. XY Broker s.r.o."
+                          />
+                          <p className="text-sm text-gray-500">
+                            Makler ktorý sprostredkoval poistku (voliteľné)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-frequency">
+                            Frekvencia platenia
+                          </Label>
+                          <Select
+                            value={formData.paymentFrequency || 'yearly'}
+                            onValueChange={value =>
+                              setFormData(prev => ({
+                                ...prev,
+                                paymentFrequency: value as PaymentFrequency,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Vyberte frekvenciu..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="monthly">
+                                Mesačne (platnosť +1 mesiac)
+                              </SelectItem>
+                              <SelectItem value="quarterly">
+                                Štvrťročne (platnosť +3 mesiace)
+                              </SelectItem>
+                              <SelectItem value="biannual">
+                                Polročne (platnosť +6 mesiacov)
+                              </SelectItem>
+                              <SelectItem value="yearly">
+                                Ročne (platnosť +1 rok)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 🟢 BIELA KARTA: Samostatná sekcia len pre PZP poistky */}
+          {isPZP && (
             <div className="col-span-1">
               <Card>
                 <CardContent>
-                  <h3 className="text-lg font-semibold mb-4">
-                    Platnosť a cena
-                  </h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-lg font-semibold">
+                      🟢 Platnosť bielej karty
+                    </h3>
+                    <Badge variant="outline" className="text-xs">
+                      Automatické
+                    </Badge>
+                  </div>
 
-                  {/* 💡 Informačný alert pre automatické dopĺňanie */}
-                  {isInsurance && (
-                    <Alert className="mb-4">
-                      <AlertDescription>
-                        💡 <strong>Automatické dopĺňanie:</strong> Dátum "Platné
-                        do" sa automaticky vypočíta na základě dátumu "Platné
-                        od" a frekvencie platenia.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      💡 Platnosť zelenej karty sa automaticky nastaví podľa
+                      platnosti poistky. Môžete ju však upraviť podľa potreby.
+                    </AlertDescription>
+                  </Alert>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-1 md:col-span-1">
                       <div className="space-y-2">
-                        <Label htmlFor="valid-from">Platné od</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !formData.validFrom && "text-muted-foreground"
-                              )}
-                            >
-                              {formData.validFrom ? (
-                                new Date(formData.validFrom).toLocaleDateString('sk-SK')
-                              ) : (
-                                "Vyberte dátum"
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={formData.validFrom ? new Date(formData.validFrom) : undefined}
-                              onSelect={(date) =>
-                                setFormData(prev => ({
-                                  ...prev,
-                                  validFrom: date || undefined,
-                                }))
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-
-                    <div className="col-span-1 md:col-span-1">
-                      <div className="space-y-2">
-                        <Label htmlFor="valid-to">
-                          {isInsurance ? 'Platné do (automaticky)' : 'Platné do'}
+                        <Label htmlFor="green-card-from">
+                          Biela karta platná od
                         </Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !formData.validTo && "text-muted-foreground",
-                                isInsurance && "bg-gray-100 text-gray-600"
+                                'w-full justify-start text-left font-normal',
+                                !formData.greenCardValidFrom &&
+                                  'text-muted-foreground'
                               )}
-                              disabled={isInsurance}
                             >
-                              {formData.validTo ? (
-                                new Date(formData.validTo).toLocaleDateString('sk-SK')
-                              ) : (
-                                "Vyberte dátum"
-                              )}
+                              {formData.greenCardValidFrom
+                                ? new Date(
+                                    formData.greenCardValidFrom
+                                  ).toLocaleDateString('sk-SK')
+                                : 'Vyberte dátum'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={formData.validTo ? new Date(formData.validTo) : undefined}
-                              onSelect={(date) =>
+                              selected={
+                                formData.greenCardValidFrom
+                                  ? new Date(formData.greenCardValidFrom)
+                                  : undefined
+                              }
+                              onSelect={date =>
                                 setFormData(prev => ({
                                   ...prev,
-                                  validTo: date || new Date(),
+                                  greenCardValidFrom: date || undefined,
                                 }))
                               }
                               initialFocus
                             />
                           </PopoverContent>
                         </Popover>
-                        {isInsurance && (
-                          <p className="text-sm text-gray-500">
-                            Automaticky vypočítané podľa frekvencie platenia
-                          </p>
-                        )}
-                        {errors.validTo && !isInsurance && (
-                          <p className="text-sm text-red-500">
-                            {errors.validTo}
-                          </p>
-                        )}
                       </div>
                     </div>
 
                     <div className="col-span-1 md:col-span-1">
                       <div className="space-y-2">
-                        <Label htmlFor="price">Cena (€)</Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={formData.price || ''}
-                          onChange={(e) =>
-                            setFormData(prev => ({
-                              ...prev,
-                              price: parseFloat(e.target.value) || 0,
-                            }))
-                          }
-                          className={cn(errors.price && "border-red-500")}
-                        />
-                        {errors.price && (
-                          <p className="text-sm text-red-500">
-                            {errors.price}
-                          </p>
-                        )}
+                        <Label htmlFor="green-card-to">
+                          Biela karta platná do
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !formData.greenCardValidTo &&
+                                  'text-muted-foreground'
+                              )}
+                            >
+                              {formData.greenCardValidTo
+                                ? new Date(
+                                    formData.greenCardValidTo
+                                  ).toLocaleDateString('sk-SK')
+                                : 'Vyberte dátum'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={
+                                formData.greenCardValidTo
+                                  ? new Date(formData.greenCardValidTo)
+                                  : undefined
+                              }
+                              onSelect={date => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  greenCardValidTo: date || undefined,
+                                }));
+                                setGreenCardManuallyEdited(true);
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+          )}
 
-            {/* 🚗 STAV KM: Pre Kasko poistky, STK a EK */}
-            {hasKmField && (
-              <div className="col-span-1">
-                <Card>
-                  <CardContent>
-                    <div className="flex items-center gap-2 mb-4">
-                      <h3 className="text-lg font-semibold">
-                        🚗 Stav kilometrov
-                      </h3>
-                      <Badge variant="outline" className="text-xs">
-                        {isKasko ? 'Kasko' : 'Kontrola'}
-                      </Badge>
-                    </div>
+          {/* Platnosť a cena */}
+          <div className="col-span-1">
+            <Card>
+              <CardContent>
+                <h3 className="text-lg font-semibold mb-4">Platnosť a cena</h3>
 
-                    <Alert className="mb-4">
-                      <AlertDescription>
-                        💡{' '}
-                        {isKasko
-                          ? 'Zadajte stav kilometrov pri uzatváraní Kasko poistky pre evidenciu.'
-                          : 'Zadajte stav kilometrov pri STK/EK kontrole.'}
-                      </AlertDescription>
-                    </Alert>
+                {/* 💡 Informačný alert pre automatické dopĺňanie */}
+                {isInsurance && (
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      💡 <strong>Automatické dopĺňanie:</strong> Dátum "Platné
+                      do" sa automaticky vypočíta na základě dátumu "Platné od"
+                      a frekvencie platenia.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="col-span-1 md:col-span-1">
-                        <div className="space-y-2">
-                          <Label htmlFor="km-state">Stav kilometrov</Label>
-                          <Input
-                            id="km-state"
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={formData.kmState || ''}
-                            onChange={(e) =>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="col-span-1 md:col-span-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="valid-from">Platné od</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !formData.validFrom && 'text-muted-foreground'
+                            )}
+                          >
+                            {formData.validFrom
+                              ? new Date(formData.validFrom).toLocaleDateString(
+                                  'sk-SK'
+                                )
+                              : 'Vyberte dátum'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              formData.validFrom
+                                ? new Date(formData.validFrom)
+                                : undefined
+                            }
+                            onSelect={date =>
                               setFormData(prev => ({
                                 ...prev,
-                                kmState: parseInt(e.target.value) || undefined,
+                                validFrom: date || undefined,
                               }))
                             }
-                            placeholder="Napríklad: 125000"
+                            initialFocus
                           />
-                          <p className="text-sm text-gray-500">
-                            Zadajte aktuálny stav kilometrov
-                          </p>
-                        </div>
-                      </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                  </div>
 
-            {/* Vehicle document specific fields */}
-            {!isInsurance && (
-              <div className="col-span-1">
-                <Card>
-                  <CardContent>
-                    <h3 className="text-lg font-semibold mb-4">
-                      Dodatočné informácie
+                  <div className="col-span-1 md:col-span-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="valid-to">
+                        {isInsurance ? 'Platné do (automaticky)' : 'Platné do'}
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !formData.validTo && 'text-muted-foreground',
+                              isInsurance && 'bg-gray-100 text-gray-600'
+                            )}
+                            disabled={isInsurance}
+                          >
+                            {formData.validTo
+                              ? new Date(formData.validTo).toLocaleDateString(
+                                  'sk-SK'
+                                )
+                              : 'Vyberte dátum'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              formData.validTo
+                                ? new Date(formData.validTo)
+                                : undefined
+                            }
+                            onSelect={date =>
+                              setFormData(prev => ({
+                                ...prev,
+                                validTo: date || new Date(),
+                              }))
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {isInsurance && (
+                        <p className="text-sm text-gray-500">
+                          Automaticky vypočítané podľa frekvencie platenia
+                        </p>
+                      )}
+                      {errors.validTo && !isInsurance && (
+                        <p className="text-sm text-red-500">{errors.validTo}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="col-span-1 md:col-span-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Cena (€)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.price || ''}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            price: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className={cn(errors.price && 'border-red-500')}
+                      />
+                      {errors.price && (
+                        <p className="text-sm text-red-500">{errors.price}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 🚗 STAV KM: Pre Kasko poistky, STK a EK */}
+          {hasKmField && (
+            <div className="col-span-1">
+              <Card>
+                <CardContent>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-lg font-semibold">
+                      🚗 Stav kilometrov
                     </h3>
+                    <Badge variant="outline" className="text-xs">
+                      {isKasko ? 'Kasko' : 'Kontrola'}
+                    </Badge>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="col-span-1 md:col-span-1">
-                        <div className="space-y-2">
-                          <Label htmlFor="document-number">Číslo dokumentu</Label>
-                          <Input
-                            id="document-number"
-                            value={formData.documentNumber}
-                            onChange={(e) =>
-                              setFormData(prev => ({
-                                ...prev,
-                                documentNumber: e.target.value,
-                              }))
-                            }
-                            placeholder="Napríklad: ABC123456"
-                          />
-                          <p className="text-sm text-gray-500">
-                            Zadajte číslo dokumentu alebo poistky
-                          </p>
-                        </div>
-                      </div>
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      💡{' '}
+                      {isKasko
+                        ? 'Zadajte stav kilometrov pri uzatváraní Kasko poistky pre evidenciu.'
+                        : 'Zadajte stav kilometrov pri STK/EK kontrole.'}
+                    </AlertDescription>
+                  </Alert>
 
-                      <div className="col-span-1 md:col-span-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="notes">Poznámky</Label>
-                          <Textarea
-                            id="notes"
-                            rows={3}
-                            value={formData.notes}
-                            onChange={(e) =>
-                              setFormData(prev => ({
-                                ...prev,
-                                notes: e.target.value,
-                              }))
-                            }
-                            placeholder="Zadajte poznámky..."
-                          />
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="km-state">Stav kilometrov</Label>
+                        <Input
+                          id="km-state"
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={formData.kmState || ''}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              kmState: parseInt(e.target.value) || undefined,
+                            }))
+                          }
+                          placeholder="Napríklad: 125000"
+                        />
+                        <p className="text-sm text-gray-500">
+                          Zadajte aktuálny stav kilometrov
+                        </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-            {/* File Upload */}
+          {/* Vehicle document specific fields */}
+          {!isInsurance && (
             <div className="col-span-1">
               <Card>
                 <CardContent>
                   <h3 className="text-lg font-semibold mb-4">
-                    Priložený súbor
+                    Dodatočné informácie
                   </h3>
 
-                  {formData.filePaths && formData.filePaths.length > 0 && (
-                    <Alert className="mb-4">
-                      <AlertDescription>
-                        {formData.filePaths.length === 1
-                          ? 'Súbor už je priložený. Môžete pridať viac súborov.'
-                          : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <R2FileUpload
-                    type="document"
-                    entityId={formData.vehicleId || 'temp'}
-                    onUploadSuccess={handleFileUploadSuccess}
-                    onUploadError={error =>
-                      console.error('Upload error:', error)
-                    }
-                    acceptedTypes={[
-                      'image/jpeg',
-                      'image/png',
-                      'image/webp',
-                      'application/pdf',
-                    ]}
-                    maxSize={10}
-                    multiple={true}
-                    label="Nahrať súbory (PDF, JPG, PNG) - môžete vybrať viacero"
-                  />
-
-                  {formData.filePaths && formData.filePaths.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600 mb-2">
-                        Priložené súbory ({formData.filePaths.length}):
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.filePaths.map((filePath, index) => (
-                          <Badge
-                            key={index}
-                            variant="outline"
-                            className="cursor-pointer hover:bg-gray-100 px-3 py-1"
-                            onClick={() => window.open(filePath, '_blank')}
-                          >
-                            {`${index + 1}. ${filePath.split('/').pop()}`}
-                            <button
-                              className="ml-2 hover:text-red-500"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Odstráň súbor z filePaths
-                                setFormData(prev => {
-                                  const updatedPaths =
-                                    prev.filePaths?.filter(
-                                      (_, i) => i !== index
-                                    ) || [];
-                                  return {
-                                    ...prev,
-                                    filePaths: updatedPaths,
-                                    filePath: updatedPaths[0] || '', // Zachováme pre backward compatibility
-                                  };
-                                });
-                              }}
-                            >
-                              ×
-                            </button>
-                          </Badge>
-                        ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="document-number">Číslo dokumentu</Label>
+                        <Input
+                          id="document-number"
+                          value={formData.documentNumber}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              documentNumber: e.target.value,
+                            }))
+                          }
+                          placeholder="Napríklad: ABC123456"
+                        />
+                        <p className="text-sm text-gray-500">
+                          Zadajte číslo dokumentu alebo poistky
+                        </p>
                       </div>
                     </div>
-                  )}
+
+                    <div className="col-span-1 md:col-span-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">Poznámky</Label>
+                        <Textarea
+                          id="notes"
+                          rows={3}
+                          value={formData.notes}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              notes: e.target.value,
+                            }))
+                          }
+                          placeholder="Zadajte poznámky..."
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
-          </div>
+          )}
 
-          <Separator className="my-6" />
+          {/* File Upload */}
+          <div className="col-span-1">
+            <Card>
+              <CardContent>
+                <h3 className="text-lg font-semibold mb-4">Priložený súbor</h3>
 
-          {/* Action buttons */}
-          <div className="flex gap-4 justify-end" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 9999 }}>
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🔴 CANCEL BUTTON CLICKED');
-                onCancel();
-              }}
-              onMouseDown={() => console.log('🟡 CANCEL MOUSE DOWN')}
-              className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
-              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-            >
-              Zrušiť
-            </button>
-            <button
-              type="button"
-              onClick={(e: React.MouseEvent) => {
-                console.log('🔵 SAVE BUTTON CLICKED - Event:', e);
-                console.log('🔵 formData:', formData);
-                e.preventDefault();
-                e.stopPropagation();
-                onSave(formData);
-              }}
-              onMouseDown={() => console.log('🟡 SAVE MOUSE DOWN on save button')}
-              onMouseUp={() => console.log('🟡 SAVE MOUSE UP on save button')}
-              onMouseEnter={() => console.log('🟡 SAVE MOUSE ENTER on save button')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              style={{ pointerEvents: 'auto', zIndex: 9999, cursor: 'pointer' }}
-            >
-              {document?.id ? 'Uložiť zmeny' : 'Pridať dokument'}
-            </button>
+                {formData.filePaths && formData.filePaths.length > 0 && (
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      {formData.filePaths.length === 1
+                        ? 'Súbor už je priložený. Môžete pridať viac súborov.'
+                        : `${formData.filePaths.length} súborov je už priložených. Môžete pridať viac súborov.`}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <R2FileUpload
+                  type="document"
+                  entityId={formData.vehicleId || 'temp'}
+                  onUploadSuccess={handleFileUploadSuccess}
+                  onUploadError={error => console.error('Upload error:', error)}
+                  acceptedTypes={[
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                    'application/pdf',
+                  ]}
+                  maxSize={10}
+                  multiple={true}
+                  label="Nahrať súbory (PDF, JPG, PNG) - môžete vybrať viacero"
+                />
+
+                {formData.filePaths && formData.filePaths.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Priložené súbory ({formData.filePaths.length}):
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.filePaths.map((filePath, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="cursor-pointer hover:bg-gray-100 px-3 py-1"
+                          onClick={() => window.open(filePath, '_blank')}
+                        >
+                          {`${index + 1}. ${filePath.split('/').pop()}`}
+                          <button
+                            className="ml-2 hover:text-red-500"
+                            onClick={e => {
+                              e.stopPropagation();
+                              // Odstráň súbor z filePaths
+                              setFormData(prev => {
+                                const updatedPaths =
+                                  prev.filePaths?.filter(
+                                    (_, i) => i !== index
+                                  ) || [];
+                                return {
+                                  ...prev,
+                                  filePaths: updatedPaths,
+                                  filePath: updatedPaths[0] || '', // Zachováme pre backward compatibility
+                                };
+                              });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
+
+        <Separator className="my-6" />
+
+        {/* Action buttons */}
+        <div
+          className="flex gap-4 justify-end"
+          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 9999 }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              console.log('🔴 CANCEL BUTTON CLICKED');
+              onCancel();
+            }}
+            onMouseDown={() => console.log('🟡 CANCEL MOUSE DOWN')}
+            className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+            style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+          >
+            Zrušiť
+          </button>
+          <button
+            type="button"
+            onClick={(e: React.MouseEvent) => {
+              console.log('🔵 SAVE BUTTON CLICKED - Event:', e);
+              console.log('🔵 formData:', formData);
+              e.preventDefault();
+              e.stopPropagation();
+              onSave(formData);
+            }}
+            onMouseDown={() => console.log('🟡 SAVE MOUSE DOWN on save button')}
+            onMouseUp={() => console.log('🟡 SAVE MOUSE UP on save button')}
+            onMouseEnter={() =>
+              console.log('🟡 SAVE MOUSE ENTER on save button')
+            }
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            style={{ pointerEvents: 'auto', zIndex: 9999, cursor: 'pointer' }}
+          >
+            {document?.id ? 'Uložiť zmeny' : 'Pridať dokument'}
+          </button>
+        </div>
+      </div>
 
       {/* Dialóg pre pridanie novej poistovne */}
       {addingInsurer && (
@@ -1032,7 +1088,10 @@ export default function UnifiedDocumentForm({
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setAddingInsurer(false)}
         >
-          <Card className="min-w-[400px] m-2" onClick={e => e.stopPropagation()}>
+          <Card
+            className="min-w-[400px] m-2"
+            onClick={e => e.stopPropagation()}
+          >
             <CardContent>
               <h3 className="text-lg font-semibold mb-4">
                 Pridať novú poisťovňu
@@ -1042,7 +1101,7 @@ export default function UnifiedDocumentForm({
                 <Input
                   id="new-insurer-name"
                   value={newInsurerName}
-                  onChange={(e) => setNewInsurerName(e.target.value)}
+                  onChange={e => setNewInsurerName(e.target.value)}
                   autoFocus
                   placeholder="Zadajte názov poisťovne..."
                 />
@@ -1093,7 +1152,7 @@ export default function UnifiedDocumentForm({
                         } else {
                           // Handle error silently or show user-friendly message
                         }
-                      } catch (error) {
+                      } catch (_error) {
                         // Handle error silently or show user-friendly message
                       }
                     }

@@ -60,8 +60,10 @@ fi
 
 # Spustenie frontendu
 echo "🎨 Spúšťam frontend aplikáciu..."
-npm run dev > logs/frontend.log 2>&1 &
+cd apps/web
+npm run dev > ../../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
+cd ../..
 
 # Čakanie na frontend
 echo "⏳ Čakám na frontend..."

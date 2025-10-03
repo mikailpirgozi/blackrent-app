@@ -20,7 +20,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '../../lib/utils';
 import { addDays, format, isAfter, isValid, parseISO } from 'date-fns';
 import { sk } from 'date-fns/locale';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type { UnifiedDocumentData } from '../common/UnifiedDocumentForm';
 
 import {
@@ -35,6 +36,7 @@ import {
   useVehicleDocuments,
   useVehicles,
 } from '../../lib/react-query/hooks';
+import { useCustomers } from '../../lib/react-query/hooks/useCustomers';
 import type {
   DocumentType,
   Insurance,
@@ -43,6 +45,8 @@ import type {
   VehicleDocument,
 } from '../../types';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
+import BatchDocumentForm from './BatchDocumentForm';
+import { getDocumentTypeConfig } from './documentTypeConfig';
 
 import InsuranceClaimList from './InsuranceClaimList';
 
@@ -179,67 +183,26 @@ const getExpiryStatus = (
 };
 
 const getDocumentTypeInfo = (type: string) => {
-  switch (type) {
-    case 'insurance_pzp':
-      return {
-        label: 'Poistka - PZP',
-        icon: <UnifiedIcon name="security" size={20} />,
-        color: '#1976d2',
-      };
-    case 'insurance_kasko':
-      return {
-        label: 'Poistka - Kasko',
-        icon: <UnifiedIcon name="security" size={20} />,
-        color: '#2196f3',
-      };
-    case 'insurance_pzp_kasko':
-      return {
-        label: 'Poistka - PZP + Kasko',
-        icon: <UnifiedIcon name="security" size={20} />,
-        color: '#9c27b0',
-      };
-    case 'stk':
-      return {
-        label: 'STK',
-        icon: <UnifiedIcon name="build" size={20} />,
-        color: '#388e3c',
-      };
-    case 'ek':
-      return {
-        label: 'EK',
-        icon: <UnifiedIcon name="assignment" size={20} />,
-        color: '#f57c00',
-      };
-    case 'vignette':
-      return {
-        label: 'Dialničná',
-        icon: <UnifiedIcon name="truck" size={20} />,
-        color: '#7b1fa2',
-      };
-    case 'technical_certificate':
-      return {
-        label: 'Technický preukaz',
-        icon: <UnifiedIcon name="file" size={20} />,
-        color: '#9c27b0',
-      };
-    default:
-      return {
-        label: type,
-        icon: <UnifiedIcon name="report" size={20} />,
-        color: '#666',
-      };
-  }
+  const config = getDocumentTypeConfig(type);
+  const IconComponent = config.icon as unknown as React.ComponentType<{
+    className?: string;
+  }>;
+
+  return {
+    label: config.label,
+    icon: <IconComponent className="h-5 w-5" />,
+    color: config.color,
+    gradientFrom: config.gradientFrom,
+    gradientTo: config.gradientTo,
+  };
 };
 
 export default function VehicleCentricInsuranceList() {
   // React Query hooks for data
   const { data: vehicles = [] } = useVehicles();
   const { data: insurers = [] } = useInsurers();
-  const {
-    data: vehicleDocuments = [],
-    isLoading: _vehicleDocsLoading,
-    dataUpdatedAt,
-  } = useVehicleDocuments();
+  const { data: customers = [] } = useCustomers();
+  const { data: vehicleDocuments = [], dataUpdatedAt } = useVehicleDocuments();
 
   // 🔍 DEBUG: Log when vehicleDocuments change
   useEffect(() => {
@@ -693,6 +656,217 @@ export default function VehicleCentricInsuranceList() {
       }
     }
   };
+
+  const handleBatchSave = useCallback(
+    async (
+      documents: Array<{
+        type: string;
+        data: {
+          vehicleId?: string;
+          validFrom?: Date;
+          validTo?: Date;
+          price?: number;
+          documentNumber?: string;
+          notes?: string;
+          filePaths?: string[];
+          policyNumber?: string;
+          company?: string;
+          brokerCompany?: string; // 🆕 Maklerská spoločnosť
+          paymentFrequency?: PaymentFrequency;
+          greenCardValidFrom?: Date;
+          greenCardValidTo?: Date;
+          kmState?: number;
+          // Service book fields
+          serviceDate?: Date;
+          serviceDescription?: string;
+          serviceKm?: number;
+          serviceProvider?: string;
+          // Fines fields
+          fineDate?: Date;
+          customerId?: string;
+          isPaid?: boolean;
+          ownerPaidDate?: Date;
+          customerPaidDate?: Date;
+          country?: string;
+          enforcementCompany?: string;
+          fineAmount?: number;
+          fineAmountLate?: number;
+        };
+      }>
+    ) => {
+      console.log('🟢 handleBatchSave CALLED with documents:', documents);
+
+      try {
+        // Process each document
+        for (const doc of documents) {
+          const { type, data } = doc;
+
+          // Determine if it's insurance or vehicle document
+          const isInsurance =
+            type === 'insurance_pzp' ||
+            type === 'insurance_kasko' ||
+            type === 'insurance_pzp_kasko' ||
+            type === 'insurance_leasing';
+
+          if (isInsurance) {
+            // Create insurance
+            const selectedInsurer = insurers.find(
+              insurer => insurer.name === data.company
+            );
+
+            let insuranceType = 'Poistenie';
+            if (type === 'insurance_kasko') insuranceType = 'Kasko poistenie';
+            else if (type === 'insurance_pzp') insuranceType = 'PZP poistenie';
+            else if (type === 'insurance_pzp_kasko')
+              insuranceType = 'PZP + Kasko poistenie';
+            else if (type === 'insurance_leasing')
+              insuranceType = 'Leasingová poistka';
+
+            if (!data.vehicleId || !data.validTo) {
+              console.error('Missing required fields for insurance');
+              continue;
+            }
+
+            const insuranceData = {
+              id: uuidv4(),
+              vehicleId: data.vehicleId,
+              type: insuranceType,
+              policyNumber: data.policyNumber || '',
+              validFrom: data.validFrom || new Date(),
+              validTo: data.validTo,
+              price: data.price || 0,
+              company: data.company || '',
+              insurerId: selectedInsurer?.id || null,
+              brokerCompany: data.brokerCompany || '', // 🆕 Maklerská spoločnosť
+              paymentFrequency: data.paymentFrequency || 'yearly',
+              filePath: data.filePaths?.[0] || '',
+              filePaths: data.filePaths || [],
+              greenCardValidFrom: data.greenCardValidFrom,
+              greenCardValidTo: data.greenCardValidTo,
+              kmState: data.kmState || 0,
+            };
+
+            await createInsuranceMutation.mutateAsync(insuranceData);
+          } else if (type === 'service_book') {
+            // Service Book - special handling
+            if (!data.vehicleId || !data.serviceDate) {
+              console.error('Missing required fields for service book');
+              continue;
+            }
+
+            const serviceNotes = `
+📋 SERVISNÁ KNIŽKA
+
+Servis: ${data.serviceProvider || 'N/A'}
+Dátum servisu: ${data.serviceDate ? new Date(data.serviceDate).toLocaleDateString('sk-SK') : 'N/A'}
+Stav KM: ${data.serviceKm || 'N/A'} km
+
+Popis vykonaných prác:
+${data.serviceDescription || 'Bez popisu'}
+            `.trim();
+
+            const vehicleDocData = {
+              id: uuidv4(),
+              vehicleId: data.vehicleId,
+              documentType: 'stk' as DocumentType, // Temporary mapping
+              validFrom: data.serviceDate,
+              validTo: data.serviceDate, // Same as validFrom for service book
+              documentNumber: `SERVIS-${Date.now()}`,
+              price: data.price || 0,
+              notes: serviceNotes,
+              filePath: data.filePaths?.[0] || '',
+              kmState: data.serviceKm || 0,
+            };
+
+            await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
+          } else if (type === 'fines_record') {
+            // Fines - special handling
+            if (!data.vehicleId || !data.fineDate) {
+              console.error('Missing required fields for fine');
+              continue;
+            }
+
+            // Get customer name
+            const customer = customers?.find(c => c.id === data.customerId);
+            const customerName = customer
+              ? customer.name || customer.email
+              : 'Neznámy zákazník';
+
+            const fineNotes = `
+🚨 POKUTA
+
+Krajina: ${data.country || 'Neznáma'}
+Vymáhajúca spoločnosť: ${data.enforcementCompany || 'N/A'}
+Zákazník: ${customerName}
+
+Sumy:
+- Pri včasnej platbe: ${data.fineAmount || 0}€
+- Po splatnosti: ${data.fineAmountLate || data.fineAmount || 0}€
+
+Stav úhrad:
+- Majiteľ zaplatil: ${data.ownerPaidDate ? '✅ Áno (' + new Date(data.ownerPaidDate).toLocaleDateString('sk-SK') + ')' : '❌ Nie'}
+- Zákazník zaplatil: ${data.customerPaidDate ? '✅ Áno (' + new Date(data.customerPaidDate).toLocaleDateString('sk-SK') + ')' : '❌ Nie'}
+
+Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Čaká na úhradu'}
+            `.trim();
+
+            const vehicleDocData = {
+              id: uuidv4(),
+              vehicleId: data.vehicleId,
+              documentType: 'stk' as DocumentType, // Temporary mapping
+              validFrom: data.fineDate,
+              validTo: data.fineDate, // Same as validFrom for fines
+              documentNumber: `POKUTA-${Date.now()}`,
+              price: data.fineAmount || 0,
+              notes: fineNotes,
+              filePath: data.filePaths?.[0] || '',
+              kmState: 0,
+            };
+
+            await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
+          } else {
+            // Regular vehicle documents (STK, EK, Vignette)
+            let documentType: DocumentType = 'stk';
+            if (type === 'ek') documentType = 'ek';
+            else if (type === 'vignette') documentType = 'vignette';
+
+            if (!data.vehicleId || !data.validTo) {
+              console.error('Missing required fields for vehicle document');
+              continue;
+            }
+
+            const vehicleDocData = {
+              id: uuidv4(),
+              vehicleId: data.vehicleId,
+              documentType,
+              validFrom: data.validFrom || new Date(),
+              validTo: data.validTo,
+              documentNumber: data.documentNumber || '',
+              price: data.price || 0,
+              notes: data.notes || '',
+              filePath: data.filePaths?.[0] || '',
+              kmState: data.kmState || 0,
+            };
+
+            await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
+          }
+        }
+
+        // Close dialog on success
+        setOpenDialog(false);
+        setEditingDocument(null);
+      } catch (error) {
+        console.error('Chyba pri ukladaní dokumentov:', error);
+        window.alert('Chyba pri ukladaní dokumentov');
+      }
+    },
+    [
+      createInsuranceMutation,
+      createVehicleDocumentMutation,
+      insurers,
+      customers,
+    ]
+  );
 
   const handleSave = useCallback(
     (data: UnifiedDocumentData) => {
@@ -1492,27 +1666,36 @@ export default function VehicleCentricInsuranceList() {
       )}
 
       {/* Document Form Dialog */}
-      {activeTab === 0 && (
-        <UnifiedDialog
-          open={openDialog}
-          onClose={() => setOpenDialog(false)}
-          maxWidth="lg"
-          fullWidth
-          fullScreen={isMobile}
-          keepMounted={false}
-          title={editingDocument ? 'Upraviť dokument' : 'Pridať dokument'}
-          subtitle={
-            editingDocument
-              ? 'Upravte údaje dokumentu'
-              : 'Vyplňte údaje nového dokumentu'
-          }
-        >
-          <UnifiedDocumentForm
-            document={editingDocument}
-            onSave={handleSave}
-            onCancel={() => setOpenDialog(false)}
-          />
-        </UnifiedDialog>
+      {activeTab === 0 && openDialog && (
+        <>
+          {editingDocument ? (
+            // Edit mode - use old UnifiedDocumentForm
+            <UnifiedDialog
+              open={openDialog}
+              onClose={() => setOpenDialog(false)}
+              maxWidth="lg"
+              fullWidth
+              fullScreen={isMobile}
+              keepMounted={false}
+              title="Upraviť dokument"
+              subtitle="Upravte údaje dokumentu"
+            >
+              <UnifiedDocumentForm
+                document={editingDocument}
+                onSave={handleSave}
+                onCancel={() => setOpenDialog(false)}
+              />
+            </UnifiedDialog>
+          ) : (
+            // Add mode - use new BatchDocumentForm (full screen overlay)
+            <div className="fixed inset-0 z-50 bg-white overflow-auto">
+              <BatchDocumentForm
+                onSave={handleBatchSave}
+                onCancel={() => setOpenDialog(false)}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

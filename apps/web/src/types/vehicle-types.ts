@@ -29,7 +29,7 @@ export interface VehicleFiltersState {
   showAvailable: boolean;
   showRented: boolean;
   showMaintenance: boolean;
-  showOther: boolean;
+  showTransferred: boolean;
   showPrivate: boolean;
   showRemoved: boolean;
   showTempRemoved: boolean;

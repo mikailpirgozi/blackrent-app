@@ -28,7 +28,7 @@ interface FilterOptions {
   showAvailable?: boolean;
   showRented?: boolean;
   showMaintenance?: boolean;
-  showOther?: boolean;
+  showTransferred?: boolean; // 🔄 Prepisané vozidlá
   showRemoved?: boolean; // 🗑️ Vyradené vozidlá
   showTempRemoved?: boolean; // ⏸️ Dočasne vyradené vozidlá
 
