@@ -355,13 +355,31 @@ export default function VehicleListNew() {
     try {
       console.log('🤝 Creating new investor:', newInvestorData);
 
+      // Priprav dáta pre backend - odstráň prázdne hodnoty
+      const investorPayload = {
+        firstName: newInvestorData.firstName.trim(),
+        lastName: newInvestorData.lastName.trim(),
+        ...(newInvestorData.email?.trim() && {
+          email: newInvestorData.email.trim(),
+        }),
+        ...(newInvestorData.phone?.trim() && {
+          phone: newInvestorData.phone.trim(),
+        }),
+        ...(newInvestorData.notes?.trim() && {
+          notes: newInvestorData.notes.trim(),
+        }),
+        isActive: true,
+      };
+
+      console.log('📤 Sending investor payload:', investorPayload);
+
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
         },
-        body: JSON.stringify(newInvestorData),
+        body: JSON.stringify(investorPayload),
       });
 
       console.log('📡 API Response status:', response.status);
