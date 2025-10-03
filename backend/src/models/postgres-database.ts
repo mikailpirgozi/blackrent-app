@@ -8368,14 +8368,16 @@ export class PostgresDatabase {
     price?: number;
     notes?: string;
     filePath?: string;
+    country?: string; // 🌍 Krajina pre dialničné známky
+    isRequired?: boolean; // ⚠️ Povinná dialničná známka
   }): Promise<VehicleDocument> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at`,
-        [parseInt(documentData.vehicleId), documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null]
+        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, created_at`,
+        [parseInt(documentData.vehicleId), documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false]
       );
 
       const row = result.rows[0];
@@ -8389,6 +8391,8 @@ export class PostgresDatabase {
         price: row.price ? parseFloat(row.price) : undefined,
         notes: row.notes || undefined,
         filePath: row.file_path || undefined,
+        country: row.country || undefined, // 🌍 Krajina
+        isRequired: row.is_required || undefined, // ⚠️ Povinná
         createdAt: new Date(row.created_at),
         updatedAt: undefined
       };
@@ -8406,15 +8410,17 @@ export class PostgresDatabase {
     price?: number;
     notes?: string;
     filePath?: string;
+    country?: string; // 🌍 Krajina pre dialničné známky
+    isRequired?: boolean; // ⚠️ Povinná dialničná známka
   }): Promise<VehicleDocument> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
         `UPDATE vehicle_documents 
-         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $9 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, created_at, updated_at`,
-        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, id]
+         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, country = $9, is_required = $10, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $11 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, created_at, updated_at`,
+        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false, id]
       );
 
       if (result.rows.length === 0) {
@@ -8432,6 +8438,8 @@ export class PostgresDatabase {
         price: row.price ? parseFloat(row.price) : undefined,
         notes: row.notes || undefined,
         filePath: row.file_path || undefined,
+        country: row.country || undefined, // 🌍 Krajina
+        isRequired: row.is_required || undefined, // ⚠️ Povinná
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       };

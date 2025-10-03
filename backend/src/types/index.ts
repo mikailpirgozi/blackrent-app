@@ -371,6 +371,8 @@ export interface VehicleDocument {
   price?: number;
   notes?: string;
   filePath?: string;
+  country?: string; // 🌍 Krajina pre dialničné známky (SK, CZ, AT, HU, SI)
+  isRequired?: boolean; // ⚠️ Povinná/dobrovoľná dialničná známka
   createdAt: Date;
   updatedAt?: Date;
 }
