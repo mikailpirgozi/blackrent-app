@@ -18,12 +18,13 @@ import type {
   PaymentScheduleItem,
   UpdateLeasingInput,
 } from '@/types/leasing-types';
+import { getApiBaseUrl } from '@/utils/apiUrl';
 
 // ===================================================================
 // API BASE URL
 // ===================================================================
 
-const API_BASE = '/api/leasings';
+const getApiBase = () => `${getApiBaseUrl()}/leasings`;
 
 // ===================================================================
 // API FUNCTIONS
@@ -39,7 +40,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
   if (filters?.status) params.append('status', filters.status);
   if (filters?.searchQuery) params.append('searchQuery', filters.searchQuery);
 
-  const url = `${API_BASE}?${params.toString()}`;
+  const url = `${getApiBase()}?${params.toString()}`;
   console.log('🔍 FETCHING LEASINGS:', url);
 
   const response = await fetch(url, {
@@ -47,20 +48,20 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
   });
-  
-  console.log('📡 LEASINGS Response:', { 
-    ok: response.ok, 
+
+  console.log('📡 LEASINGS Response:', {
+    ok: response.ok,
     status: response.status,
-    url 
+    url,
   });
 
   if (!response.ok) throw new Error('Failed to fetch leasings');
   const data = await response.json();
-  
+
   console.log('📊 LEASINGS Data:', {
     count: data.data?.length,
     sample: data.data?.[0],
-    fullResponse: data
+    fullResponse: data,
   });
 
   return data.data;
@@ -71,14 +72,15 @@ async function fetchLeasing(id: string): Promise<LeasingDetailResponse> {
     Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
   };
 
+  const apiBase = getApiBase();
   const [leasing, schedule, documents] = await Promise.all([
-    fetch(`${API_BASE}/${id}`, { headers })
+    fetch(`${apiBase}/${id}`, { headers })
       .then(r => r.json())
       .then(d => d.data),
-    fetch(`${API_BASE}/${id}/schedule`, { headers })
+    fetch(`${apiBase}/${id}/schedule`, { headers })
       .then(r => r.json())
       .then(d => d.data),
-    fetch(`${API_BASE}/${id}/documents`, { headers })
+    fetch(`${apiBase}/${id}/documents`, { headers })
       .then(r => r.json())
       .then(d => d.data),
   ]);
@@ -89,7 +91,7 @@ async function fetchLeasing(id: string): Promise<LeasingDetailResponse> {
 async function fetchPaymentSchedule(
   leasingId: string
 ): Promise<PaymentScheduleItem[]> {
-  const response = await fetch(`${API_BASE}/${leasingId}/schedule`, {
+  const response = await fetch(`${getApiBase()}/${leasingId}/schedule`, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
@@ -100,7 +102,7 @@ async function fetchPaymentSchedule(
 }
 
 async function fetchDashboard(): Promise<LeasingDashboard> {
-  const response = await fetch(`${API_BASE}/dashboard`, {
+  const response = await fetch(`${getApiBase()}/dashboard`, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
@@ -111,9 +113,10 @@ async function fetchDashboard(): Promise<LeasingDashboard> {
 }
 
 async function createLeasing(input: CreateLeasingInput): Promise<Leasing> {
-  console.log('📤 API Request:', API_BASE, input);
+  const apiBase = getApiBase();
+  console.log('📤 API Request:', apiBase, input);
 
-  const response = await fetch(API_BASE, {
+  const response = await fetch(apiBase, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -141,7 +144,7 @@ async function updateLeasing(
   id: string,
   input: UpdateLeasingInput
 ): Promise<Leasing> {
-  const response = await fetch(`${API_BASE}/${id}`, {
+  const response = await fetch(`${getApiBase()}/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -155,7 +158,7 @@ async function updateLeasing(
 }
 
 async function deleteLeasing(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/${id}`, {
+  const response = await fetch(`${getApiBase()}/${id}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
@@ -170,7 +173,7 @@ async function markPaymentAsPaid(
   paidDate?: Date
 ): Promise<PaymentScheduleItem> {
   const response = await fetch(
-    `${API_BASE}/${leasingId}/schedule/${installmentNumber}/pay`,
+    `${getApiBase()}/${leasingId}/schedule/${installmentNumber}/pay`,
     {
       method: 'POST',
       headers: {
@@ -190,7 +193,7 @@ async function unmarkPayment(
   installmentNumber: number
 ): Promise<PaymentScheduleItem> {
   const response = await fetch(
-    `${API_BASE}/${leasingId}/schedule/${installmentNumber}/pay`,
+    `${getApiBase()}/${leasingId}/schedule/${installmentNumber}/pay`,
     {
       method: 'DELETE',
       headers: {
@@ -207,14 +210,17 @@ async function bulkMarkPayments(
   leasingId: string,
   input: BulkPaymentMarkInput
 ): Promise<PaymentScheduleItem[]> {
-  const response = await fetch(`${API_BASE}/${leasingId}/schedule/bulk-pay`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-    },
-    body: JSON.stringify(input),
-  });
+  const response = await fetch(
+    `${getApiBase()}/${leasingId}/schedule/bulk-pay`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+      },
+      body: JSON.stringify(input),
+    }
+  );
   if (!response.ok) throw new Error('Failed to bulk mark payments');
   const data = await response.json();
   return data.data;

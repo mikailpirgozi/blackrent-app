@@ -4,7 +4,7 @@
  * ===================================================================
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/command';
 import {
   useCreateLeasing,
+  useLeasing,
   useUpdateLeasing,
 } from '@/lib/react-query/hooks/useLeasings';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
@@ -121,7 +122,17 @@ export function LeasingForm({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [lastDateCalendarOpen, setLastDateCalendarOpen] = useState(false);
 
+  // 🎯 Track previous input values - na detekciu zmeny vstupných parametrov
+  const prevInputs = useRef<{
+    initialLoanAmount?: number;
+    totalInstallments?: number;
+    processingFee?: number;
+    monthlyFee?: number;
+    paymentType?: PaymentType;
+  }>({});
+
   const { data: vehicles } = useVehicles();
+  const { data: existingLeasing } = useLeasing(leasingId);
   const createMutation = useCreateLeasing();
   const updateMutation = useUpdateLeasing(leasingId || '');
 
@@ -185,7 +196,61 @@ export function LeasingForm({
   // Watch form values pre real-time výpočty
   const watchedValues = watch();
 
-  // Real-time výpočty
+  // Load existing leasing data for edit mode
+  useEffect(() => {
+    if (leasingId && existingLeasing?.leasing && open) {
+      const l = existingLeasing.leasing;
+
+      // Parse numeric strings to numbers
+      const parseNum = (val: any) =>
+        typeof val === 'string' ? parseFloat(val) : val;
+
+      setValue('vehicleId', l.vehicleId);
+      setValue('leasingCompany', l.leasingCompany);
+      setValue('loanCategory', l.loanCategory as any);
+      setValue('paymentType', l.paymentType as any);
+      setValue('initialLoanAmount', parseNum(l.initialLoanAmount));
+      setValue('totalInstallments', l.totalInstallments);
+      setValue(
+        'firstPaymentDate',
+        l.firstPaymentDate
+          ? format(new Date(l.firstPaymentDate), 'yyyy-MM-dd')
+          : ''
+      );
+      setValue(
+        'lastPaymentDate',
+        l.lastPaymentDate
+          ? format(new Date(l.lastPaymentDate), 'yyyy-MM-dd')
+          : ''
+      );
+      setValue('monthlyFee', parseNum(l.monthlyFee) || 0);
+      setValue('processingFee', parseNum(l.processingFee) || 0);
+      setValue('interestRate', parseNum(l.interestRate) || undefined);
+      setValue('monthlyPayment', parseNum(l.monthlyPayment) || undefined);
+      setValue('rpmn', parseNum(l.rpmn) || undefined);
+      setValue('earlyRepaymentPenalty', parseNum(l.earlyRepaymentPenalty) || 0);
+      setValue(
+        'earlyRepaymentPenaltyType',
+        (l.earlyRepaymentPenaltyType as any) || 'percent_principal'
+      );
+      setValue(
+        'acquisitionPriceWithoutVAT',
+        parseNum(l.acquisitionPriceWithoutVAT) || undefined
+      );
+      setValue(
+        'acquisitionPriceWithVAT',
+        parseNum(l.acquisitionPriceWithVAT) || undefined
+      );
+      setValue('isNonDeductible', l.isNonDeductible || false);
+
+      setSelectedVehicle(l.vehicleId);
+      setSelectedCompany(l.leasingCompany);
+
+      console.log('✅ Leasing data loaded for editing:', l.id);
+    }
+  }, [leasingId, existingLeasing, open, setValue]);
+
+  // Real-time výpočty a automatické vyplnenie polí
   useEffect(() => {
     const {
       initialLoanAmount,
@@ -195,15 +260,44 @@ export function LeasingForm({
       paymentType,
       monthlyFee,
       processingFee,
+      rpmn,
     } = watchedValues;
 
     if (initialLoanAmount && totalInstallments && paymentType) {
+      // 🔍 Detekuj zmenu vstupných parametrov
+      const inputsChanged =
+        prevInputs.current.initialLoanAmount !== initialLoanAmount ||
+        prevInputs.current.totalInstallments !== totalInstallments ||
+        prevInputs.current.processingFee !== processingFee ||
+        prevInputs.current.monthlyFee !== monthlyFee ||
+        prevInputs.current.paymentType !== paymentType;
+
+      // Ulož aktuálne hodnoty pre ďalšie porovnanie
+      prevInputs.current = {
+        initialLoanAmount,
+        totalInstallments,
+        processingFee: processingFee || 0,
+        monthlyFee: monthlyFee || 0,
+        paymentType: paymentType as PaymentType,
+      };
+
       try {
+        // Ak sa zmenili vstupné parametre, RESETUJ vypočítané hodnoty
+        // aby solver mohol vypočítať nové hodnoty
+        let effectiveInterestRate = interestRate;
+        let effectiveMonthlyPayment = monthlyPayment;
+
+        if (inputsChanged) {
+          // Reset vypočítaných polí pre nový prepočet
+          effectiveInterestRate = undefined;
+          effectiveMonthlyPayment = undefined;
+        }
+
         const result = solveLeasingData({
           loanAmount: initialLoanAmount,
           processingFee: processingFee || 0,
-          interestRate: interestRate || undefined,
-          monthlyPayment: monthlyPayment || undefined,
+          interestRate: effectiveInterestRate || undefined,
+          monthlyPayment: effectiveMonthlyPayment || undefined,
           totalInstallments,
           paymentType: paymentType as PaymentType,
           monthlyFee: monthlyFee || 0,
@@ -217,12 +311,39 @@ export function LeasingForm({
             rpmn: result.rpmn,
             effectiveLoanAmount: result.effectiveLoanAmount,
           });
+
+          // 🎯 AUTO-FILL & AUTO-UPDATE: Automaticky vyplň a aktualizuj vypočítané hodnoty
+
+          // Úroková sadzba - aktualizuj vždy keď máme vypočítanú hodnotu
+          if (result.interestRate && !isNaN(result.interestRate)) {
+            const newRate = Number(result.interestRate.toFixed(3));
+            // Aktualizuj len ak sa líši od aktuálnej hodnoty (zabráni nekonečnému loopu)
+            if (Math.abs((interestRate || 0) - newRate) > 0.001) {
+              setValue('interestRate', newRate, { shouldValidate: false });
+            }
+          }
+
+          // Mesačná splátka - aktualizuj vždy keď máme vypočítanú hodnotu
+          if (result.monthlyPayment && !isNaN(result.monthlyPayment)) {
+            const newPayment = Number(result.monthlyPayment.toFixed(2));
+            if (Math.abs((monthlyPayment || 0) - newPayment) > 0.01) {
+              setValue('monthlyPayment', newPayment, { shouldValidate: false });
+            }
+          }
+
+          // RPMN - aktualizuj vždy
+          if (result.rpmn && !isNaN(result.rpmn)) {
+            const newRpmn = Number(result.rpmn.toFixed(3));
+            if (Math.abs((rpmn || 0) - newRpmn) > 0.001) {
+              setValue('rpmn', newRpmn, { shouldValidate: false });
+            }
+          }
         }
       } catch (error) {
         console.error('Calculation error:', error);
       }
     }
-  }, [watchedValues]);
+  }, [watchedValues, setValue]);
 
   // Auto-fill penalty rate pri zmene spoločnosti
   useEffect(() => {
@@ -339,13 +460,29 @@ export function LeasingForm({
 
   const onSubmit = async (data: LeasingFormData) => {
     try {
+      // 🔧 FIX: Filter out undefined/NaN values and use calculated values
       const input = {
         ...data,
-        // Použij vypočítané hodnoty ak neboli zadané
-        interestRate: data.interestRate || calculated.interestRate,
-        monthlyPayment: data.monthlyPayment || calculated.monthlyPayment,
-        totalMonthlyPayment: calculated.totalMonthlyPayment,
-        rpmn: calculated.rpmn, // Vypočítané RPMN
+        // Použij vypočítané hodnoty ak neboli zadané, ale len ak nie sú NaN
+        interestRate:
+          data.interestRate ||
+          (calculated.interestRate && !isNaN(calculated.interestRate)
+            ? calculated.interestRate
+            : undefined),
+        monthlyPayment:
+          data.monthlyPayment ||
+          (calculated.monthlyPayment && !isNaN(calculated.monthlyPayment)
+            ? calculated.monthlyPayment
+            : undefined),
+        totalMonthlyPayment:
+          calculated.totalMonthlyPayment &&
+          !isNaN(calculated.totalMonthlyPayment)
+            ? calculated.totalMonthlyPayment
+            : undefined,
+        rpmn:
+          calculated.rpmn && !isNaN(calculated.rpmn)
+            ? calculated.rpmn
+            : undefined,
       };
 
       console.log('📝 Submitting leasing data:', input);
@@ -689,7 +826,7 @@ export function LeasingForm({
                     {...register('interestRate', { valueAsNumber: true })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Voliteľné - môže byť vypočítané
+                    Auto-vypočítané - aktualizuje sa pri zmene údajov
                   </p>
                 </div>
 
@@ -703,7 +840,7 @@ export function LeasingForm({
                     {...register('monthlyPayment', { valueAsNumber: true })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Voliteľné - môže byť vypočítané
+                    Auto-vypočítané - aktualizuje sa pri zmene údajov
                   </p>
                 </div>
 
@@ -716,88 +853,96 @@ export function LeasingForm({
                     placeholder="5.2"
                     {...register('rpmn', { valueAsNumber: true })}
                   />
-                  <p className="text-xs text-muted-foreground">Voliteľné</p>
+                  <p className="text-xs text-muted-foreground">
+                    Auto-vypočítané - aktualizuje sa pri zmene údajov
+                  </p>
                 </div>
               </div>
 
               {/* Real-time calculation preview */}
-              {calculated.totalMonthlyPayment && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calculator className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      Vypočítané hodnoty:
-                    </span>
-                  </div>
-                  <div className="grid gap-2 text-sm">
-                    {/* Efektívna výška úveru (ak je processing fee) */}
-                    {calculated.effectiveLoanAmount &&
-                      calculated.effectiveLoanAmount >
-                        (watchedValues.initialLoanAmount || 0) && (
-                        <div className="flex justify-between bg-blue-100 dark:bg-blue-900 p-2 rounded">
-                          <span className="text-blue-700 dark:text-blue-300">
-                            Efektívna výška úveru:
-                          </span>
-                          <span className="font-bold text-blue-900 dark:text-blue-100">
-                            {calculated.effectiveLoanAmount.toFixed(2)} €
-                          </span>
-                        </div>
-                      )}
-
-                    {calculated.monthlyPayment &&
-                      !watchedValues.monthlyPayment && (
-                        <div className="flex justify-between">
-                          <span className="text-blue-700 dark:text-blue-300">
-                            Mesačná splátka:
-                          </span>
-                          <span className="font-semibold text-blue-900 dark:text-blue-100">
-                            {calculated.monthlyPayment.toFixed(2)} €
-                          </span>
-                        </div>
-                      )}
-                    {calculated.interestRate && !watchedValues.interestRate && (
-                      <div className="flex justify-between">
-                        <span className="text-blue-700 dark:text-blue-300">
-                          Úroková sadzba:
-                        </span>
-                        <span className="font-semibold text-blue-900 dark:text-blue-100">
-                          {calculated.interestRate.toFixed(3)}% p.a.
-                        </span>
-                      </div>
-                    )}
-
-                    {/* RPMN - VŽDY zobraz ak je vypočítané */}
-                    {calculated.rpmn && (
-                      <div className="flex justify-between bg-amber-100 dark:bg-amber-900 p-2 rounded">
-                        <span className="text-amber-700 dark:text-amber-300 font-medium">
-                          RPMN:
-                        </span>
-                        <span className="font-bold text-amber-900 dark:text-amber-100">
-                          {calculated.rpmn.toFixed(3)}% p.a.
-                        </span>
-                      </div>
-                    )}
-
-                    <Separator className="my-1" />
-                    <div className="flex justify-between">
-                      <span className="text-blue-700 dark:text-blue-300">
-                        Celková mesačná splátka:
-                      </span>
-                      <span className="font-bold text-lg text-blue-900 dark:text-blue-100">
-                        {calculated.totalMonthlyPayment.toFixed(2)} €
+              {calculated.totalMonthlyPayment &&
+                !isNaN(calculated.totalMonthlyPayment) && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        Vypočítané hodnoty:
                       </span>
                     </div>
-                  </div>
+                    <div className="grid gap-2 text-sm">
+                      {/* Efektívna výška úveru (ak je processing fee) */}
+                      {calculated.effectiveLoanAmount &&
+                        !isNaN(calculated.effectiveLoanAmount) &&
+                        calculated.effectiveLoanAmount >
+                          (watchedValues.initialLoanAmount || 0) && (
+                          <div className="flex justify-between bg-blue-100 dark:bg-blue-900 p-2 rounded">
+                            <span className="text-blue-700 dark:text-blue-300">
+                              Efektívna výška úveru:
+                            </span>
+                            <span className="font-bold text-blue-900 dark:text-blue-100">
+                              {calculated.effectiveLoanAmount.toFixed(2)} €
+                            </span>
+                          </div>
+                        )}
 
-                  {/* Info text */}
-                  {calculated.rpmn &&
-                    calculated.rpmn > (watchedValues.interestRate || 0) && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                        💡 RPMN je vyššie ako úrok kvôli poplatkom
-                      </p>
-                    )}
-                </div>
-              )}
+                      {calculated.monthlyPayment &&
+                        !isNaN(calculated.monthlyPayment) &&
+                        !watchedValues.monthlyPayment && (
+                          <div className="flex justify-between">
+                            <span className="text-blue-700 dark:text-blue-300">
+                              Mesačná splátka:
+                            </span>
+                            <span className="font-semibold text-blue-900 dark:text-blue-100">
+                              {calculated.monthlyPayment.toFixed(2)} €
+                            </span>
+                          </div>
+                        )}
+                      {calculated.interestRate &&
+                        !isNaN(calculated.interestRate) &&
+                        !watchedValues.interestRate && (
+                          <div className="flex justify-between">
+                            <span className="text-blue-700 dark:text-blue-300">
+                              Úroková sadzba:
+                            </span>
+                            <span className="font-semibold text-blue-900 dark:text-blue-100">
+                              {calculated.interestRate.toFixed(3)}% p.a.
+                            </span>
+                          </div>
+                        )}
+
+                      {/* RPMN - VŽDY zobraz ak je vypočítané */}
+                      {calculated.rpmn && !isNaN(calculated.rpmn) && (
+                        <div className="flex justify-between bg-amber-100 dark:bg-amber-900 p-2 rounded">
+                          <span className="text-amber-700 dark:text-amber-300 font-medium">
+                            RPMN:
+                          </span>
+                          <span className="font-bold text-amber-900 dark:text-amber-100">
+                            {calculated.rpmn.toFixed(3)}% p.a.
+                          </span>
+                        </div>
+                      )}
+
+                      <Separator className="my-1" />
+                      <div className="flex justify-between">
+                        <span className="text-blue-700 dark:text-blue-300">
+                          Celková mesačná splátka:
+                        </span>
+                        <span className="font-bold text-lg text-blue-900 dark:text-blue-100">
+                          {calculated.totalMonthlyPayment.toFixed(2)} €
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Info text */}
+                    {calculated.rpmn &&
+                      !isNaN(calculated.rpmn) &&
+                      calculated.rpmn > (watchedValues.interestRate || 0) && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                          💡 RPMN je vyššie ako úrok kvôli poplatkom
+                        </p>
+                      )}
+                  </div>
+                )}
             </CardContent>
           </Card>
 

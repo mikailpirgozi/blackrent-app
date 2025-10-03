@@ -9771,28 +9771,50 @@ export class PostgresDatabase {
   }
 
   async createLeasing(input: any): Promise<any> {
-    const result = await this.pool.query(
-      `INSERT INTO leasings (
-        vehicle_id, leasing_company, loan_category, payment_type,
-        initial_loan_amount, current_balance, interest_rate, rpmn,
-        monthly_payment, monthly_fee, processing_fee, total_monthly_payment,
-        total_installments, remaining_installments, paid_installments,
-        first_payment_date, last_payment_date, early_repayment_penalty, early_repayment_penalty_type,
-        acquisition_price_without_vat, acquisition_price_with_vat, is_non_deductible
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
-      ) RETURNING id`,
-      [
-        input.vehicleId, input.leasingCompany, input.loanCategory, input.paymentType,
-        input.initialLoanAmount, input.currentBalance || input.initialLoanAmount,
-        input.interestRate, input.rpmn, input.monthlyPayment, input.monthlyFee,
-        input.processingFee || 0, input.totalMonthlyPayment, input.totalInstallments,
-        input.totalInstallments, 0, input.firstPaymentDate, input.lastPaymentDate,
-        input.earlyRepaymentPenalty || 0, input.earlyRepaymentPenaltyType || 'percent_principal',
-        input.acquisitionPriceWithoutVAT, input.acquisitionPriceWithVAT, input.isNonDeductible || false
-      ]
-    );
-    return this.getLeasing(result.rows[0].id);
+    try {
+      console.log('🔧 Creating leasing with input:', {
+        vehicleId: input.vehicleId,
+        leasingCompany: input.leasingCompany,
+        loanCategory: input.loanCategory,
+        paymentType: input.paymentType,
+        initialLoanAmount: input.initialLoanAmount,
+        interestRate: input.interestRate,
+        monthlyPayment: input.monthlyPayment,
+        totalMonthlyPayment: input.totalMonthlyPayment,
+        rpmn: input.rpmn,
+      });
+
+      const result = await this.pool.query(
+        `INSERT INTO leasings (
+          vehicle_id, leasing_company, loan_category, payment_type,
+          initial_loan_amount, current_balance, interest_rate, rpmn,
+          monthly_payment, monthly_fee, processing_fee, total_monthly_payment,
+          total_installments, remaining_installments, paid_installments,
+          first_payment_date, last_payment_date, early_repayment_penalty, early_repayment_penalty_type,
+          acquisition_price_without_vat, acquisition_price_with_vat, is_non_deductible
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+        ) RETURNING id`,
+        [
+          input.vehicleId, input.leasingCompany, input.loanCategory, input.paymentType,
+          input.initialLoanAmount, input.currentBalance || input.initialLoanAmount,
+          input.interestRate || null, input.rpmn || null, input.monthlyPayment || null, 
+          input.monthlyFee || 0, input.processingFee || 0, input.totalMonthlyPayment || null, 
+          input.totalInstallments, input.totalInstallments, 0, 
+          input.firstPaymentDate, input.lastPaymentDate || null,
+          input.earlyRepaymentPenalty || 0, input.earlyRepaymentPenaltyType || 'percent_principal',
+          input.acquisitionPriceWithoutVAT || null, input.acquisitionPriceWithVAT || null, 
+          input.isNonDeductible || false
+        ]
+      );
+      
+      console.log('✅ Leasing created with ID:', result.rows[0].id);
+      return this.getLeasing(result.rows[0].id);
+    } catch (error) {
+      console.error('❌ Error creating leasing:', error);
+      console.error('Input data:', JSON.stringify(input, null, 2));
+      throw error;
+    }
   }
 
   async updateLeasing(id: string, input: any): Promise<any | null> {

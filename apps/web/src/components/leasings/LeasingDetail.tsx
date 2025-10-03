@@ -9,6 +9,7 @@ import { Edit, Trash2, AlertCircle } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
@@ -24,6 +25,7 @@ import {
 import { PaymentScheduleTable } from './PaymentScheduleTable';
 import { EarlyRepaymentCard } from './EarlyRepaymentCard';
 import { LeasingDocuments } from './LeasingDocuments';
+import { LeasingForm } from './LeasingForm';
 
 interface LeasingDetailProps {
   leasingId: string;
@@ -39,6 +41,7 @@ export function LeasingDetail({
   const { data, isLoading } = useLeasing(leasingId);
   const deleteMutation = useDeleteLeasing();
   const [activeTab, setActiveTab] = useState('overview');
+  const [editFormOpen, setEditFormOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!window.confirm('Naozaj chceš zmazať tento leasing?')) return;
@@ -47,7 +50,20 @@ export function LeasingDetail({
     onOpenChange(false);
   };
 
-  const formatMoney = (amount: number) => `${amount.toFixed(2)} €`;
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditFormOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    setEditFormOpen(false);
+    // React Query automaticky refetchne dáta
+  };
+
+  const formatMoney = (amount: number | string) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `${num.toFixed(2)} €`;
+  };
   const formatDate = (date: Date | string) =>
     new Date(date).toLocaleDateString('sk-SK');
 
@@ -57,6 +73,7 @@ export function LeasingDetail({
         <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Načítavam...</SheetTitle>
+            <SheetDescription>Načítavam detail leasingu</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-6">
             <Skeleton className="h-32 w-full" />
@@ -74,6 +91,7 @@ export function LeasingDetail({
         <SheetContent className="w-full sm:max-w-3xl">
           <SheetHeader>
             <SheetTitle>Chyba</SheetTitle>
+            <SheetDescription>Leasing sa nepodarilo načítať</SheetDescription>
           </SheetHeader>
           <p className="mt-6 text-center text-muted-foreground">
             Leasing nenájdený
@@ -93,12 +111,17 @@ export function LeasingDetail({
           <div className="flex items-center justify-between">
             <div>
               <SheetTitle>{leasing.leasingCompany}</SheetTitle>
-              <p className="text-sm text-muted-foreground">
+              <SheetDescription className="text-sm text-muted-foreground">
                 {leasing.loanCategory} • {leasing.paymentType}
-              </p>
+              </SheetDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="icon">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleEdit}
+                title="Upraviť leasing"
+              >
                 <Edit className="h-4 w-4" />
               </Button>
               <Button
@@ -253,6 +276,14 @@ export function LeasingDetail({
           </TabsContent>
         </Tabs>
       </SheetContent>
+
+      {/* EDIT FORM DIALOG */}
+      <LeasingForm
+        open={editFormOpen}
+        onOpenChange={setEditFormOpen}
+        onSuccess={handleEditSuccess}
+        leasingId={leasingId}
+      />
     </Sheet>
   );
 }

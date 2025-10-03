@@ -20,7 +20,10 @@ interface LeasingCardProps {
 export function LeasingCard({ leasing }: LeasingCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const formatMoney = (amount: number) => `${amount.toFixed(2)} €`;
+  const formatMoney = (amount: number | string) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `${num.toFixed(2)} €`;
+  };
 
   // Vypočítaj progress
   const progress =
