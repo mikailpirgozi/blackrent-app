@@ -425,14 +425,13 @@ router.delete(
 
 /**
  * GET /api/leasings/:id/schedule - Získaj splátkový kalendár
+ * 🔥 NO CACHE: Payment schedule must be fresh for real-time updates
  */
 router.get(
   '/:id/schedule',
   authenticateToken,
   checkPermission('expenses', 'read'),
-  cacheResponse('expenses', {
-    ttl: 5 * 60 * 1000, // 5 minút
-  }),
+  // 🔥 REMOVED: cacheResponse - payment schedule needs real-time updates
   async (req: Request, res: Response<ApiResponse<PaymentScheduleItem[]>>) => {
     try {
       const { id } = req.params;
