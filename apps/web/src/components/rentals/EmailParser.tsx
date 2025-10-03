@@ -1,4 +1,8 @@
-import { Wand2 as AutoFixHighIcon, X as CloseIcon, Clipboard as ContentPasteIcon } from 'lucide-react';
+import {
+  Wand2 as AutoFixHighIcon,
+  X as CloseIcon,
+  Clipboard as ContentPasteIcon,
+} from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,7 +12,6 @@ import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { Customer, Rental, Vehicle } from '../../types';
-
 
 interface EmailParserProps {
   onParseSuccess: (
@@ -126,14 +129,16 @@ export default function EmailParser({
     // Parsovanie depozitu
     const depositMatch = text.match(/Depozit\s+([\d\s,]+)\s*€/);
     if (depositMatch) {
-      const depositStr = depositMatch[1]?.replace(/\s/g, '').replace(',', '.') || '0';
+      const depositStr =
+        depositMatch[1]?.replace(/\s/g, '').replace(',', '.') || '0';
       data.deposit = parseFloat(depositStr);
     }
 
     // Parsovanie sumy k úhrade
     const totalMatch = text.match(/Suma k úhrade\s+([\d\s,]+)\s*€/);
     if (totalMatch) {
-      const totalStr = totalMatch[1]?.replace(/\s/g, '').replace(',', '.') || '0';
+      const totalStr =
+        totalMatch[1]?.replace(/\s/g, '').replace(',', '.') || '0';
       data.totalAmount = parseFloat(totalStr);
     }
 
@@ -151,7 +156,8 @@ export default function EmailParser({
         console.log('🔍 Parsing vehicle line:', vehicleLine);
 
         // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
-        const parts = vehicleLine?.split(/\s+/).filter(part => part.trim()) || [];
+        const parts =
+          vehicleLine?.split(/\s+/).filter(part => part.trim()) || [];
         console.log('🔍 Vehicle parts:', parts);
 
         // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
@@ -172,10 +178,11 @@ export default function EmailParser({
 
           // Cena a suma sú za ŠPZ
           if (parts.length > spzIndex + 2) {
-            const priceStr = parts[spzIndex + 1]
-              ?.replace(',', '.')
-              ?.replace('€', '')
-              ?.trim() || '0';
+            const priceStr =
+              parts[spzIndex + 1]
+                ?.replace(',', '.')
+                ?.replace('€', '')
+                ?.trim() || '0';
             data.vehiclePrice = parseFloat(priceStr);
           }
 
@@ -214,10 +221,9 @@ export default function EmailParser({
 
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1]
-            ?.replace(',', '.')
-            ?.replace('€', '')
-            ?.trim() || '0';
+          const priceStr =
+            parts[spzIndex + 1]?.replace(',', '.')?.replace('€', '')?.trim() ||
+            '0';
           data.vehiclePrice = parseFloat(priceStr);
         }
 
@@ -370,7 +376,7 @@ export default function EmailParser({
 
       setError('');
       setShowAlert(false);
-    } catch (err) {
+    } catch (_err) {
       setError('Chyba pri parsovaní textu');
       setShowAlert(true);
     }
@@ -598,7 +604,7 @@ export default function EmailParser({
         setError('Clipboard API nie je podporované v tomto prehliadači');
         setShowAlert(true);
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Nepodarilo sa vložiť text zo schránky');
       setShowAlert(true);
     }
@@ -635,23 +641,19 @@ export default function EmailParser({
             rows={8}
             placeholder="Vložte text z emailu - vložte sem text z emailu s detailmi objednávky..."
             value={emailText}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEmailText(e.target.value)}
+            onChange={(
+              e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+            ) => setEmailText(e.target.value)}
             className="w-full"
           />
         </div>
 
         <div className="flex gap-2 mb-4">
-          <Button
-            variant="outline"
-            onClick={handlePaste}
-          >
+          <Button variant="outline" onClick={handlePaste}>
             <ContentPasteIcon className="w-4 h-4 mr-2" />
             Vložiť zo schránky
           </Button>
-          <Button
-            onClick={handleParse}
-            disabled={!emailText.trim()}
-          >
+          <Button onClick={handleParse} disabled={!emailText.trim()}>
             <AutoFixHighIcon className="w-4 h-4 mr-2" />
             Spracovať dáta
           </Button>
@@ -766,10 +768,7 @@ export default function EmailParser({
                   </div>
                 )}
               </div>
-              <Button
-                onClick={handleApplyData}
-                className="mt-4 w-full"
-              >
+              <Button onClick={handleApplyData} className="mt-4 w-full">
                 Použiť dáta v formulári
               </Button>
             </CardContent>

@@ -3,13 +3,7 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import {
-  CheckCircle,
-  Archive,
-  Trash2,
-  X,
-  Eye,
-} from 'lucide-react';
+import { CheckCircle, Archive, Trash2, X, Eye } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 // shadcn/ui components
@@ -17,10 +11,28 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { Spinner } from '@/components/ui/spinner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Typography } from '@/components/ui/typography';
 
 import { useEmailApi } from '../hooks/useEmailApi';
@@ -89,7 +101,7 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
       setEmails(result.emails);
       setTotalEmails(result.totalEmails);
       setTotalPages(result.totalPages);
-    } catch (err) {
+    } catch (_err) {
       // Error handled by hook
     }
   }, [fetchEmails, currentPage, statusFilter, senderFilter]);
@@ -182,7 +194,9 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                     </Typography>
                     <StatusChip
                       status={email.status}
-                      {...(email.action_taken && { actionTaken: email.action_taken })}
+                      {...(email.action_taken && {
+                        actionTaken: email.action_taken,
+                      })}
                     />
                   </div>
 
@@ -199,7 +213,10 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                         {truncateText(email.sender, 25)}
                       </Typography>
                     </div>
-                    <Typography variant="caption" className="text-muted-foreground">
+                    <Typography
+                      variant="caption"
+                      className="text-muted-foreground"
+                    >
                       {new Date(email.received_at).toLocaleDateString('sk')}
                     </Typography>
                   </div>
@@ -207,10 +224,7 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                   {/* Order Number */}
                   {email.order_number && (
                     <div className="mb-4">
-                      <Badge
-                        variant="outline"
-                        className="text-xs"
-                      >
+                      <Badge variant="outline" className="text-xs">
                         📋 {email.order_number}
                       </Badge>
                     </div>
@@ -318,19 +332,21 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
                     <TableCell>
                       <StatusChip
                         status={email.status}
-                        {...(email.action_taken && { actionTaken: email.action_taken })}
+                        {...(email.action_taken && {
+                          actionTaken: email.action_taken,
+                        })}
                       />
                     </TableCell>
                     <TableCell>
                       {email.order_number ? (
-                        <Badge
-                          variant="outline"
-                          className="text-xs"
-                        >
+                        <Badge variant="outline" className="text-xs">
                           {email.order_number}
                         </Badge>
                       ) : (
-                        <Typography variant="body2" className="text-muted-foreground">
+                        <Typography
+                          variant="body2"
+                          className="text-muted-foreground"
+                        >
                           -
                         </Typography>
                       )}
@@ -454,39 +470,48 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious 
+                    <PaginationPrevious
                       href="#"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.preventDefault();
                         if (currentPage > 1) setCurrentPage(currentPage - 1);
                       }}
-                      className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                      className={
+                        currentPage <= 1 ? 'pointer-events-none opacity-50' : ''
+                      }
                     />
                   </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage(page);
-                        }}
-                        isActive={currentPage === page}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    page => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          onClick={e => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
                   <PaginationItem>
-                    <PaginationNext 
+                    <PaginationNext
                       href="#"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.preventDefault();
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                        if (currentPage < totalPages)
+                          setCurrentPage(currentPage + 1);
                       }}
-                      className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                      className={
+                        currentPage >= totalPages
+                          ? 'pointer-events-none opacity-50'
+                          : ''
+                      }
                     />
                   </PaginationItem>
                 </PaginationContent>

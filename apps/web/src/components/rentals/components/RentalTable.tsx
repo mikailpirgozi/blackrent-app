@@ -23,6 +23,7 @@ interface RentalTableProps {
   handleDelete: (id: string) => void;
   handleCloneRental: (rental: Rental) => void;
   handleOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
+  handleCheckProtocols: (rental: Rental) => void;
   getVehicleByRental: (rental: Rental) => Vehicle | undefined;
   protocolStatusMap: Record<
     string,
@@ -41,6 +42,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   handleDelete,
   handleCloneRental,
   handleOpenProtocolMenu,
+  handleCheckProtocols,
   getVehicleByRental,
   protocolStatusMap,
   protocols,
@@ -171,6 +173,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     }
                     onEdit={handleEdit}
                     onOpenProtocolMenu={handleOpenProtocolMenu}
+                    onCheckProtocols={handleCheckProtocols}
                     onClone={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
                     onDelete={id => {
                       const rental = filteredRentals.find(r => r.id === id);

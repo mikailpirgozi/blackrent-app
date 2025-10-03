@@ -10,20 +10,10 @@ import {
   TestTube as TestIcon,
   AlertTriangle as WarningIcon,
 } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-} from '@/components/ui/alert';
-import {
-  Button,
-} from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import {
-  Badge,
-} from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -32,37 +22,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Separator,
-} from '@/components/ui/separator';
-import {
-  Label,
-} from '@/components/ui/label';
-import {
-  Input,
-} from '@/components/ui/input';
-import {
-  Switch,
-} from '@/components/ui/switch';
-import {
-  Typography,
-} from '@/components/ui/typography';
+import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Typography } from '@/components/ui/typography';
 import React, { useEffect, useState } from 'react';
 
-import {
-  pushNotificationService,
-} from '../../services/pushNotifications';
+import { pushNotificationService } from '../../services/pushNotifications';
 
-const PushNotificationManager = ({
-  showAdvanced = false,
-  compact = false,
-}) => {
+const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] =
     useState<NotificationPermission>('default');
-  const [preferences, setPreferences] =
-    useState<any>(null);
+  const [preferences, setPreferences] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -146,7 +120,7 @@ const PushNotificationManager = ({
   };
 
   // Update preferences
-  // @ts-ignore
+  // @ts-expect-error - Legacy function with untyped parameters
   async function handlePreferenceChange(key, value) {
     if (!preferences) return;
 
@@ -186,7 +160,8 @@ const PushNotificationManager = ({
   const getStatusClasses = () => {
     if (!isSupported) return 'bg-red-100 text-red-700 border-red-200';
     if (!isSubscribed) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    if (permission !== 'granted') return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    if (permission !== 'granted')
+      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     return 'bg-green-100 text-green-700 border-green-200';
   };
 
@@ -203,7 +178,8 @@ const PushNotificationManager = ({
     const iconProps = { size: 20 };
     if (!isSupported) return React.createElement(ErrorIcon, iconProps);
     if (!isSubscribed) return React.createElement(NotificationsOff, iconProps);
-    if (permission !== 'granted') return React.createElement(WarningIcon, iconProps);
+    if (permission !== 'granted')
+      return React.createElement(WarningIcon, iconProps);
     return React.createElement(NotificationsActive, iconProps);
   };
 
@@ -378,20 +354,17 @@ const PushNotificationManager = ({
               Nastavte si preferencie pre push notifikácie
             </DialogDescription>
           </DialogHeader>
-          
+
           {preferences && (
             <div className="space-y-4">
-              <Typography
-                variant="subtitle2"
-                className="font-semibold"
-              >
+              <Typography variant="subtitle2" className="font-semibold">
                 Typy notifikácií:
               </Typography>
 
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.rental_requests}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('rental_requests', checked)
                   }
                 />
@@ -401,7 +374,7 @@ const PushNotificationManager = ({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.rental_approvals}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('rental_approvals', checked)
                   }
                 />
@@ -411,7 +384,7 @@ const PushNotificationManager = ({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.rental_reminders}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('rental_reminders', checked)
                   }
                 />
@@ -421,7 +394,7 @@ const PushNotificationManager = ({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.maintenance_alerts}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('maintenance_alerts', checked)
                   }
                 />
@@ -431,7 +404,7 @@ const PushNotificationManager = ({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.payment_reminders}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('payment_reminders', checked)
                   }
                 />
@@ -441,7 +414,7 @@ const PushNotificationManager = ({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.marketing_notifications}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('marketing_notifications', checked)
                   }
                 />
@@ -457,7 +430,7 @@ const PushNotificationManager = ({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={preferences.email_notifications}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     handlePreferenceChange('email_notifications', checked)
                   }
                 />
@@ -473,9 +446,11 @@ const PushNotificationManager = ({
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button onClick={() => setSettingsDialogOpen(false)}>Zavrieť</Button>
+            <Button onClick={() => setSettingsDialogOpen(false)}>
+              Zavrieť
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -488,19 +463,22 @@ const PushNotificationManager = ({
               <TestIcon size={20} />
               Test notifikácie
             </DialogTitle>
-            <DialogDescription>
-              Otestujte si push notifikácie
-            </DialogDescription>
+            <DialogDescription>Otestujte si push notifikácie</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="test-title">Nadpis</Label>
               <Input
                 id="test-title"
                 value={testNotification.title}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  setTestNotification((prev: any) => ({ ...prev, title: e.target.value }))
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
+                  setTestNotification((prev: any) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -511,8 +489,13 @@ const PushNotificationManager = ({
                 id="test-body"
                 className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md resize-none"
                 value={testNotification.body}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  setTestNotification((prev: any) => ({ ...prev, body: e.target.value }))
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
+                  setTestNotification((prev: any) => ({
+                    ...prev,
+                    body: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -522,13 +505,18 @@ const PushNotificationManager = ({
               <Input
                 id="test-icon"
                 value={testNotification.icon}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  setTestNotification((prev: any) => ({ ...prev, icon: e.target.value }))
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
+                  setTestNotification((prev: any) => ({
+                    ...prev,
+                    icon: e.target.value,
+                  }))
                 }
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setTestDialogOpen(false)}>
               Zrušiť

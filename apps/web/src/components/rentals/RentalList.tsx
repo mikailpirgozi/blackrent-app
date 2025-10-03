@@ -32,14 +32,7 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import {
-  Company,
-  Customer,
-  ProtocolImage,
-  ProtocolVideo,
-  Rental,
-  Vehicle,
-} from '../../types';
+import { ProtocolImage, ProtocolVideo, Rental } from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
 
@@ -62,15 +55,12 @@ import {
   createClonedRental,
 } from '../../utils/rentalCloneUtils';
 // import { formatCurrency, formatDate } from '../../utils/rentalHelpers'; // Unused
-import { Can } from '../common/PermissionGuard';
 import {
   DefaultCard,
   ErrorButton,
   PrimaryButton,
   SecondaryButton,
 } from '../ui';
-import { RentalActions } from './components/RentalActions';
-import { RentalExport } from './components/RentalExport';
 import { RentalFilters } from './components/RentalFilters';
 import { RentalProtocols } from './components/RentalProtocols';
 import { RentalStats } from './components/RentalStats';
@@ -98,8 +88,8 @@ export default function RentalList() {
 
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: vehicles = [] } = useVehicles();
-  const { data: customers = [] } = useCustomers();
-  const { data: companies = [] } = useCompanies();
+  // const { data: _customers = [] } = useCustomers();
+  // const { data: _companies = [] } = useCompanies();
   const createRentalMutation = useCreateRental();
   const updateRentalMutation = useUpdateRental();
 
@@ -367,12 +357,12 @@ export default function RentalList() {
     editingRental,
     setEditingRental,
     // importError, // Unused for now
-    setImportError,
+    // setImportError: _setImportError,
     handleAdd,
     handleEdit,
     handleDelete,
     handleCancel,
-    handleViewRental,
+    // handleViewRental: _handleViewRental,
     savedScrollPosition,
     restoreScrollPosition,
   } = useRentalActions({
@@ -429,7 +419,7 @@ export default function RentalList() {
         } else {
           throw new Error(result.error || 'Neočakávaná odpoveď z API');
         }
-      } catch (error) {
+      } catch (_error) {
         logger.error('❌ Clone failed', { error, rentalId: rental.id });
 
         // Fallback na lokálnu logiku ak API zlyhá
@@ -788,7 +778,7 @@ export default function RentalList() {
 
           // Open PDF in new tab
           window.open(pdfUrl, '_blank');
-        } catch (error) {
+        } catch (_error) {
           console.error('❌ Error downloading PDF:', error);
         }
       }
@@ -842,7 +832,7 @@ export default function RentalList() {
           try {
             const parsed = JSON.parse(imageData);
             return Array.isArray(parsed) ? (parsed as ProtocolImage[]) : [];
-          } catch (error) {
+          } catch (_error) {
             console.warn('⚠️ Failed to parse image data as JSON:', imageData);
             return [];
           }
@@ -862,7 +852,7 @@ export default function RentalList() {
           try {
             const parsed = JSON.parse(videoData);
             return Array.isArray(parsed) ? (parsed as ProtocolVideo[]) : [];
-          } catch (error) {
+          } catch (_error) {
             console.warn('⚠️ Failed to parse video data as JSON:', videoData);
             return [];
           }
@@ -907,7 +897,7 @@ export default function RentalList() {
       protocolsHook.galleryOpenRef.current = true;
 
       logger.debug('✅ Gallery opened successfully with protocol data');
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Error opening gallery:', error);
       window.alert('Chyba pri otváraní galérie!');
     }
@@ -1083,7 +1073,7 @@ export default function RentalList() {
 
       {/* 🚀 EXTRACTED: RentalTable komponent */}
       <RentalTable
-        paginatedRentals={searchTerm ? filteredRentals : rentals}
+        filteredRentals={searchTerm ? filteredRentals : rentals}
         isMobile={isMobile}
         handleEdit={handleEdit}
         handleDelete={handleDelete}
@@ -1124,53 +1114,15 @@ export default function RentalList() {
             }
           }
         }}
-        handleViewRental={handleViewRental}
         getVehicleByRental={getVehicleByRental}
         protocolStatusMap={protocolsHook.protocolStatusMap}
         protocols={protocolsHook.protocols}
-        filteredRentals={filteredRentals}
         desktopScrollRef={desktopScrollRef}
         mobileScrollRef={mobileScrollRef}
-        isLoadingProtocolStatus={protocolsHook.isLoadingProtocolStatus}
-        protocolStatusLoaded={protocolsHook.protocolStatusLoaded}
-        handleCheckProtocols={rental => {
+        handleCheckProtocols={(rental: Rental) => {
           protocolsHook.loadProtocolsForRental(rental.id);
         }}
         loadingProtocols={protocolsHook.loadingProtocols}
-        VirtualizedRentalRow={React.Fragment as React.ComponentType<unknown>}
-        onScroll={({ scrollOffset }) => {
-          // 🎯 UNIFIED: Use the new unified scroll handler
-          const windowWithHandler = window as WindowWithHandler;
-          if (windowWithHandler.__unifiedRentalScrollHandler) {
-            // Create a proper Event-like object
-            const scrollEvent = {
-              scrollOffset,
-              target: null,
-              currentTarget: null,
-              bubbles: false,
-              cancelable: false,
-              composed: false,
-              defaultPrevented: false,
-              eventPhase: 0,
-              isTrusted: false,
-              preventDefault: () => {},
-              stopImmediatePropagation: () => {},
-              stopPropagation: () => {},
-              timeStamp: Date.now(),
-              type: 'scroll',
-              cancelBubble: false,
-              composedPath: () => [],
-              initEvent: () => {},
-              NONE: 0,
-              CAPTURING_PHASE: 1,
-              AT_TARGET: 2,
-              BUBBLING_PHASE: 3,
-              returnValue: true,
-              srcElement: null,
-            } as unknown as any;
-            windowWithHandler.__unifiedRentalScrollHandler(scrollEvent);
-          }
-        }}
       />
 
       {/* Load more button for desktop */}
@@ -1267,7 +1219,7 @@ export default function RentalList() {
             protocolsHook.setSelectedRentalForProtocol(null);
 
             logger.debug('✅ Handover protocol UI updated successfully');
-          } catch (error) {
+          } catch (_error) {
             console.error('❌ Error updating handover protocol UI:', error);
             window.alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
           }
@@ -1297,7 +1249,7 @@ export default function RentalList() {
             protocolsHook.setSelectedRentalForProtocol(null);
 
             logger.debug('✅ Return protocol UI updated successfully');
-          } catch (error) {
+          } catch (_error) {
             console.error('❌ Error updating return protocol UI:', error);
             window.alert(
               'Protokol bol uložený, ale UI sa nepodarilo aktualizovať. Obnovte stránku.'

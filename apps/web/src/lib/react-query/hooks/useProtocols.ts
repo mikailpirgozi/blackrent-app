@@ -8,7 +8,9 @@ export function useAllProtocols() {
   return useQuery({
     queryKey: queryKeys.protocols.list(),
     queryFn: () => apiService.getAllProtocolsForStats(),
-    staleTime: 1 * 60 * 1000, // 1 minúta
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (bolo 1 min)
+    gcTime: 0,
+    refetchOnMount: 'always',
     refetchInterval: 60000, // Auto-refresh každú minútu
   });
 }
@@ -19,7 +21,9 @@ export function useProtocolsByRental(rentalId: string) {
     queryKey: queryKeys.protocols.byRental(rentalId),
     queryFn: () => apiService.getProtocolsByRental(rentalId),
     enabled: !!rentalId,
-    staleTime: 30000, // 30 sekúnd
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (bolo 30s)
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 }
 

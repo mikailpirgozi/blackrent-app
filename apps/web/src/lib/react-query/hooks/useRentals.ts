@@ -21,7 +21,9 @@ export function useRentals(filters?: RentalFilters) {
   return useQuery({
     queryKey: queryKeys.rentals.list(filters as Record<string, unknown>),
     queryFn: () => apiService.getRentals(),
-    staleTime: 1 * 60 * 1000, // 1 minúta - rentals sa menia často
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (bolo 1 min)
+    gcTime: 0,
+    refetchOnMount: 'always',
     refetchInterval: 30000, // Auto-refresh každých 30 sekúnd
     select: (data: Rental[]) => {
       if (!filters) return data;
@@ -64,6 +66,9 @@ export function useRental(id: string) {
     queryKey: queryKeys.rentals.detail(id),
     queryFn: () => apiService.getRental(id),
     enabled: !!id,
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
@@ -136,11 +141,11 @@ export function useCreateRental() {
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-created', { detail: data }));
-      
+
       // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
       window.dispatchEvent(
-        new CustomEvent('rental-optimistic-update', { 
-          detail: { rental: data, action: 'create' } 
+        new CustomEvent('rental-optimistic-update', {
+          detail: { rental: data, action: 'create' },
         })
       );
     },
@@ -196,11 +201,11 @@ export function useUpdateRental() {
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-updated', { detail: data }));
-      
+
       // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
       window.dispatchEvent(
-        new CustomEvent('rental-optimistic-update', { 
-          detail: { rental: data, action: 'update' } 
+        new CustomEvent('rental-optimistic-update', {
+          detail: { rental: data, action: 'update' },
         })
       );
     },
@@ -257,11 +262,11 @@ export function useDeleteRental() {
       window.dispatchEvent(
         new CustomEvent('rental-deleted', { detail: { id: deletedId } })
       );
-      
+
       // ⚡ OPTIMISTIC UPDATE: Trigger event for useInfiniteRentals
       window.dispatchEvent(
-        new CustomEvent('rental-optimistic-update', { 
-          detail: { rental: { id: deletedId }, action: 'delete' } 
+        new CustomEvent('rental-optimistic-update', {
+          detail: { rental: { id: deletedId }, action: 'delete' },
         })
       );
     },

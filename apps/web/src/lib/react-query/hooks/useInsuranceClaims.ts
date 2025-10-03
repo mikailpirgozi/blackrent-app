@@ -17,7 +17,9 @@ export function useInsuranceClaims(filters?: InsuranceClaimFilters) {
   return useQuery({
     queryKey: queryKeys.insuranceClaims.list(filters),
     queryFn: () => apiService.getInsuranceClaims(),
-    staleTime: 2 * 60 * 1000, // 2 minúty
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (bolo 2 min)
+    gcTime: 0,
+    refetchOnMount: 'always',
     select: data => {
       if (!filters) return data;
 

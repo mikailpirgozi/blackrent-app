@@ -82,7 +82,7 @@ const BasicUserManagement: React.FC = () => {
       const date = new Date(dateValue);
       if (isNaN(date.getTime())) return fallback;
       return format(date, formatString, { locale: sk });
-    } catch (error) {
+    } catch (_error) {
       return fallback;
     }
   };
@@ -177,7 +177,7 @@ const BasicUserManagement: React.FC = () => {
         );
         setInvestors([]);
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn('Error loading investors (non-critical):', error);
       setInvestors([]);
     } finally {
@@ -196,7 +196,12 @@ const BasicUserManagement: React.FC = () => {
       const now = new Date().toISOString();
       const storageKey = `user_last_login_${state.user.username}`;
       localStorage.setItem(storageKey, now);
-      console.log('📝 Tracked login for user:', state.user.username, 'at:', now);
+      console.log(
+        '📝 Tracked login for user:',
+        state.user.username,
+        'at:',
+        now
+      );
     }
   }, [state.user?.username]);
 
@@ -237,7 +242,7 @@ const BasicUserManagement: React.FC = () => {
       resetUserForm();
       setError(null);
       console.log('🎉 User creation process completed successfully!');
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ User creation error:', error);
       setError('Chyba pri vytváraní používateľa');
     } finally {
@@ -288,7 +293,7 @@ const BasicUserManagement: React.FC = () => {
       setSelectedUser(null);
       resetUserForm();
       setError(null);
-    } catch (error) {
+    } catch (_error) {
       console.error('Error updating user:', error);
       setError('Chyba pri úprave používateľa');
     }
@@ -303,7 +308,7 @@ const BasicUserManagement: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
       setError(null);
-    } catch (error) {
+    } catch (_error) {
       console.error('Error deleting user:', error);
       setError('Chyba pri mazaní používateľa');
     }
@@ -368,20 +373,20 @@ const BasicUserManagement: React.FC = () => {
   // Funkcia na detekciu online statusu (reálna implementácia)
   const isUserOnline = (user: User) => {
     if (!user.isActive) return false;
-    
+
     // Ak je to aktuálny používateľ, je určite online
     if (user.username === state.user?.username) {
       return true;
     }
-    
+
     // Pre ostatných používateľov skontroluj localStorage tracking
     const lastLoginData = getRealLastLogin(user);
     if (!lastLoginData) return false;
-    
+
     const lastLogin = new Date(lastLoginData);
     const now = new Date();
     const diffInMinutes = (now.getTime() - lastLogin.getTime()) / (1000 * 60);
-    
+
     // Online ak sa prihlásil v posledných 30 minútach
     return diffInMinutes <= 30;
   };
@@ -396,7 +401,7 @@ const BasicUserManagement: React.FC = () => {
     // Fallback: localStorage tracking
     const storageKey = `user_last_login_${user.username}`;
     const storedLogin = localStorage.getItem(storageKey);
-    
+
     if (storedLogin) {
       return storedLogin;
     }
@@ -414,28 +419,30 @@ const BasicUserManagement: React.FC = () => {
   // Funkcia na formátovanie posledného prihlásenia
   const formatLastLogin = (user: User) => {
     const lastLoginData = getRealLastLogin(user);
-    
+
     if (!lastLoginData) {
       return user.isActive ? 'Nedávno' : 'Nikdy';
     }
-    
+
     try {
       const lastLogin = new Date(lastLoginData);
-      
+
       if (isNaN(lastLogin.getTime())) {
         return 'Neznámy dátum';
       }
-      
+
       const now = new Date();
       const diffInMinutes = (now.getTime() - lastLogin.getTime()) / (1000 * 60);
-      
+
       if (diffInMinutes < 1) return 'Práve teraz';
       if (diffInMinutes < 60) return `Pred ${Math.round(diffInMinutes)} min`;
-      if (diffInMinutes < 1440) return `Pred ${Math.round(diffInMinutes / 60)} hod`;
-      if (diffInMinutes < 10080) return `Pred ${Math.round(diffInMinutes / 1440)} dňami`;
-      
+      if (diffInMinutes < 1440)
+        return `Pred ${Math.round(diffInMinutes / 60)} hod`;
+      if (diffInMinutes < 10080)
+        return `Pred ${Math.round(diffInMinutes / 1440)} dňami`;
+
       return formatDate(lastLoginData, 'dd.MM.yyyy HH:mm', 'Neznámy');
-    } catch (error) {
+    } catch (_error) {
       return 'Chyba dát';
     }
   };
@@ -448,7 +455,9 @@ const BasicUserManagement: React.FC = () => {
           <div className="flex items-center gap-3 flex-1">
             <div className="relative">
               <Avatar className="h-10 w-10">
-                {user.firstName?.[0] || user.username?.[0]?.toUpperCase() || '?'}
+                {user.firstName?.[0] ||
+                  user.username?.[0]?.toUpperCase() ||
+                  '?'}
               </Avatar>
               {/* Online status indicator */}
               {isUserOnline(user) && (
@@ -533,7 +542,10 @@ const BasicUserManagement: React.FC = () => {
               {user.isActive ? 'Aktívny' : 'Neaktívny'}
             </Badge>
             {isUserOnline(user) && (
-              <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+              <Badge
+                variant="outline"
+                className="text-xs bg-green-100 text-green-800 border-green-200"
+              >
                 🟢 Online
               </Badge>
             )}
@@ -541,9 +553,7 @@ const BasicUserManagement: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <Typography
-                className="block font-medium text-muted-foreground text-xs"
-              >
+              <Typography className="block font-medium text-muted-foreground text-xs">
                 Posledné prihlásenie:
               </Typography>
               <Typography className="text-sm">
@@ -551,9 +561,7 @@ const BasicUserManagement: React.FC = () => {
               </Typography>
             </div>
             <div>
-              <Typography
-                className="block font-medium text-muted-foreground text-xs"
-              >
+              <Typography className="block font-medium text-muted-foreground text-xs">
                 Vytvorený:
               </Typography>
               <Typography className="text-sm">
@@ -568,7 +576,9 @@ const BasicUserManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className={`p-4 ${isMobile ? 'bg-transparent' : 'bg-background'} rounded-lg min-h-[calc(100vh-200px)]`}>
+      <div
+        className={`p-4 ${isMobile ? 'bg-transparent' : 'bg-background'} rounded-lg min-h-[calc(100vh-200px)]`}
+      >
         <Skeleton className="h-10 w-3/5 mb-6" />
         {isMobile ? (
           // Mobile loading cards
@@ -598,9 +608,13 @@ const BasicUserManagement: React.FC = () => {
   }
 
   return (
-    <div className={`p-4 ${isMobile ? 'bg-transparent' : 'bg-background'} rounded-lg min-h-[calc(100vh-200px)]`}>
+    <div
+      className={`p-4 ${isMobile ? 'bg-transparent' : 'bg-background'} rounded-lg min-h-[calc(100vh-200px)]`}
+    >
       {/* Header */}
-      <div className={`flex justify-between items-center mb-6 ${isMobile ? 'flex-col gap-4 pb-4 border-b' : 'flex-row'}`}>
+      <div
+        className={`flex justify-between items-center mb-6 ${isMobile ? 'flex-col gap-4 pb-4 border-b' : 'flex-row'}`}
+      >
         <Typography
           variant="h4"
           className={`font-bold text-primary ${isMobile ? 'text-xl text-center' : 'text-2xl text-left'}`}
@@ -611,7 +625,9 @@ const BasicUserManagement: React.FC = () => {
           onClick={() => setUserDialogOpen(true)}
           className={`${isMobile ? 'w-full py-3 text-sm' : 'py-2 text-base'}`}
         >
-          <PersonAddIcon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} mr-2`} />
+          <PersonAddIcon
+            className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} mr-2`}
+          />
           Pridať používateľa
         </Button>
       </div>
@@ -626,9 +642,7 @@ const BasicUserManagement: React.FC = () => {
       <Card>
         <CardContent>
           <div className="flex items-center justify-between mb-4">
-            <Typography variant="h6">
-              Používatelia ({users.length})
-            </Typography>
+            <Typography variant="h6">Používatelia ({users.length})</Typography>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -668,7 +682,10 @@ const BasicUserManagement: React.FC = () => {
                 {isMobile ? (
                   <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
                     {sortedUsers.length === 0 ? (
-                      <Typography variant="body2" className="text-center py-8 text-muted-foreground">
+                      <Typography
+                        variant="body2"
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         Žiadni používatelia
                       </Typography>
                     ) : (
@@ -700,7 +717,8 @@ const BasicUserManagement: React.FC = () => {
                                 <div className="relative">
                                   <Avatar className="h-8 w-8">
                                     {(user.firstName?.[0] ||
-                                      user.username?.[0]?.toUpperCase()) ?? '?'}
+                                      user.username?.[0]?.toUpperCase()) ??
+                                      '?'}
                                   </Avatar>
                                   {/* Online status indicator */}
                                   {isUserOnline(user) && (
@@ -708,12 +726,18 @@ const BasicUserManagement: React.FC = () => {
                                   )}
                                 </div>
                                 <div>
-                                  <Typography variant="body2" className="font-medium">
+                                  <Typography
+                                    variant="body2"
+                                    className="font-medium"
+                                  >
                                     {user.firstName && user.lastName
                                       ? `${user.firstName} ${user.lastName}`
                                       : user.username}
                                   </Typography>
-                                  <Typography variant="caption" className="text-muted-foreground font-mono block mt-1">
+                                  <Typography
+                                    variant="caption"
+                                    className="text-muted-foreground font-mono block mt-1"
+                                  >
                                     @{user.username}
                                   </Typography>
                                 </div>
@@ -740,13 +764,18 @@ const BasicUserManagement: React.FC = () => {
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
                                 <Badge
-                                  variant={user.isActive ? 'default' : 'destructive'}
+                                  variant={
+                                    user.isActive ? 'default' : 'destructive'
+                                  }
                                   className="text-xs"
                                 >
                                   {user.isActive ? 'Aktívny' : 'Neaktívny'}
                                 </Badge>
                                 {isUserOnline(user) && (
-                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-green-100 text-green-800 border-green-200"
+                                  >
                                     🟢 Online
                                   </Badge>
                                 )}
@@ -822,13 +851,16 @@ const BasicUserManagement: React.FC = () => {
 
       {/* Create User Dialog */}
       <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-md'}`}>
+        <DialogContent
+          className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-md'}`}
+        >
           <DialogHeader>
             <DialogTitle className={isMobile ? 'text-xl' : 'text-2xl'}>
               Pridať používateľa
             </DialogTitle>
             <DialogDescription>
-              Vyplňte údaje pre nového používateľa. Všetky polia označené hviezdičkou sú povinné.
+              Vyplňte údaje pre nového používateľa. Všetky polia označené
+              hviezdičkou sú povinné.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -838,7 +870,9 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="username"
                   value={userForm.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, username: e.target.value }))
                   }
                   required
@@ -850,7 +884,9 @@ const BasicUserManagement: React.FC = () => {
                   id="email"
                   type="email"
                   value={userForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, email: e.target.value }))
                   }
                   required
@@ -861,8 +897,13 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="firstName"
                   value={userForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
+                    setUserForm(prev => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -871,7 +912,9 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="lastName"
                   value={userForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, lastName: e.target.value }))
                   }
                 />
@@ -882,7 +925,9 @@ const BasicUserManagement: React.FC = () => {
                   id="password"
                   type="password"
                   value={userForm.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, password: e.target.value }))
                   }
                   required
@@ -892,7 +937,7 @@ const BasicUserManagement: React.FC = () => {
                 <Label htmlFor="role">Rola</Label>
                 <Select
                   value={userForm.role}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setUserForm(prev => ({ ...prev, role: value }))
                   }
                 >
@@ -910,10 +955,12 @@ const BasicUserManagement: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="investor">Priradenie k investorovi (voliteľné)</Label>
+              <Label htmlFor="investor">
+                Priradenie k investorovi (voliteľné)
+              </Label>
               <Select
                 value={userForm.linkedInvestorId}
-                onValueChange={(value) =>
+                onValueChange={value =>
                   setUserForm(prev => ({
                     ...prev,
                     linkedInvestorId: value,
@@ -955,7 +1002,9 @@ const BasicUserManagement: React.FC = () => {
               )}
             </div>
           </div>
-          <DialogFooter className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}>
+          <DialogFooter
+            className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}
+          >
             <Button
               variant="outline"
               onClick={() => {
@@ -986,13 +1035,16 @@ const BasicUserManagement: React.FC = () => {
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-md'}`}>
+        <DialogContent
+          className={`${isMobile ? 'max-w-full h-full overflow-y-auto' : 'max-w-md'}`}
+        >
           <DialogHeader>
             <DialogTitle className={isMobile ? 'text-xl' : 'text-2xl'}>
               Upraviť používateľa
             </DialogTitle>
             <DialogDescription>
-              Upravte údaje používateľa {selectedUser?.username}. Nechajte pole hesla prázdne pre zachovanie aktuálneho hesla.
+              Upravte údaje používateľa {selectedUser?.username}. Nechajte pole
+              hesla prázdne pre zachovanie aktuálneho hesla.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1002,7 +1054,9 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="edit-username"
                   value={userForm.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, username: e.target.value }))
                   }
                   required
@@ -1014,7 +1068,9 @@ const BasicUserManagement: React.FC = () => {
                   id="edit-email"
                   type="email"
                   value={userForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, email: e.target.value }))
                   }
                   required
@@ -1025,8 +1081,13 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="edit-firstName"
                   value={userForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
+                    setUserForm(prev => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1035,18 +1096,24 @@ const BasicUserManagement: React.FC = () => {
                 <Input
                   id="edit-lastName"
                   value={userForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, lastName: e.target.value }))
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="edit-password">Nové heslo (nechajte prázdne pre zachovanie)</Label>
+                <Label htmlFor="edit-password">
+                  Nové heslo (nechajte prázdne pre zachovanie)
+                </Label>
                 <Input
                   id="edit-password"
                   type="password"
                   value={userForm.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, password: e.target.value }))
                   }
                 />
@@ -1055,7 +1122,7 @@ const BasicUserManagement: React.FC = () => {
                 <Label htmlFor="edit-role">Rola</Label>
                 <Select
                   value={userForm.role}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setUserForm(prev => ({ ...prev, role: value }))
                   }
                 >
@@ -1072,7 +1139,9 @@ const BasicUserManagement: React.FC = () => {
               </div>
             </div>
           </div>
-          <DialogFooter className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}>
+          <DialogFooter
+            className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}
+          >
             <Button
               variant="outline"
               onClick={() => {
@@ -1102,17 +1171,20 @@ const BasicUserManagement: React.FC = () => {
               Potvrdiť vymazanie
             </DialogTitle>
             <DialogDescription>
-              Táto akcia je nevratná. Používateľ {selectedUser?.username} bude trvalo vymazaný zo systému.
+              Táto akcia je nevratná. Používateľ {selectedUser?.username} bude
+              trvalo vymazaný zo systému.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Typography className={isMobile ? 'text-sm' : 'text-base'}>
               Naozaj chcete vymazať používateľa{' '}
-              <strong>{selectedUser?.username}</strong>? Táto akcia sa nedá vrátiť
-              späť.
+              <strong>{selectedUser?.username}</strong>? Táto akcia sa nedá
+              vrátiť späť.
             </Typography>
           </div>
-          <DialogFooter className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}>
+          <DialogFooter
+            className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}
+          >
             <Button
               variant="outline"
               onClick={() => {

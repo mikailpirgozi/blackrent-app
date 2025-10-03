@@ -58,7 +58,9 @@ export function useAvailabilityCalendar(month: Date) {
       console.log('✅ Calendar data loaded:', calendarData);
       return calendarData;
     },
-    staleTime: 1 * 60 * 1000, // 1 minúta - availability sa mení často
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (bolo 1 min)
+    gcTime: 0,
+    refetchOnMount: 'always', // ✅ Availability musí byť vždy fresh!
     refetchInterval: 30000, // Auto-refresh každých 30 sekúnd
     refetchOnWindowFocus: true, // Refresh pri focus
     retry: (failureCount, error) => {

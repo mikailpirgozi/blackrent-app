@@ -153,8 +153,9 @@ export function useBulkDataLoader() {
 
       return bulkData;
     },
-    staleTime: 5 * 60 * 1000, // 5 minút
-    gcTime: 10 * 60 * 1000, // 10 minút (predtým cacheTime)
+    staleTime: 0, // ✅ FIX: 0s pre okamžité updates (bolo 5 min)
+    gcTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

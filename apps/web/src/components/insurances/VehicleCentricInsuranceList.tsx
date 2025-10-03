@@ -43,6 +43,7 @@ import type {
   PaymentFrequency,
   Vehicle,
   VehicleDocument,
+  VignetteCountry,
 } from '../../types';
 import UnifiedDocumentForm from '../common/UnifiedDocumentForm';
 import BatchDocumentForm from './BatchDocumentForm';
@@ -865,7 +866,9 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
               kmState: data.kmState || 0,
               // 🌍 Vignette fields
               ...(type === 'vignette' &&
-                data.vignetteCountry && { country: data.vignetteCountry }),
+                data.vignetteCountry && {
+                  country: data.vignetteCountry as VignetteCountry,
+                }),
               ...(type === 'vignette' &&
                 data.isRequired !== undefined && {
                   isRequired: data.isRequired,

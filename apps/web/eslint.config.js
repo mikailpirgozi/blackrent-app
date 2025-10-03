@@ -21,6 +21,13 @@ export default [
       '*.config.js',
       '*.config.ts',
       'public/sw.js',
+      'public/sw-dev.js',
+      'apps/web/**',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/__tests__/**',
+      'src/test/**',
+      'src/setupTests.ts',
       '.eslintrc.cjs'
     ]
   },
@@ -45,7 +52,9 @@ export default [
         global: 'readonly',
         require: 'readonly',
         module: 'readonly',
-        exports: 'readonly'
+        exports: 'readonly',
+        self: 'readonly',
+        caches: 'readonly'
       }
     },
     rules: {

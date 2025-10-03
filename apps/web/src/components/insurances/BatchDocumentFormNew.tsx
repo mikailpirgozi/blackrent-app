@@ -515,7 +515,7 @@ function DocumentSectionForm({
   onRemoveFile,
   isInsurance,
   isPZP,
-  isKasko,
+  isKasko: _isKasko,
   isLeasing,
   hasKmField,
   insurers,
@@ -524,7 +524,6 @@ function DocumentSectionForm({
   // Special cases: service_book and fines_record have different UI
   const isServiceBook = section.key === 'service_book';
   const isFines = section.key === 'fines_record';
-  const _isKasko = section.key === 'kasko';
 
   return (
     <Card

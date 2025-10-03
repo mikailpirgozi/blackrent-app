@@ -43,7 +43,7 @@ export function parseEmailText(text: string): ParsedEmailData {
   // Parsovanie čísla objednávky
   const orderNumberMatch = text.match(/Číslo objednávky\s+([A-Z]+\d+)/i);
   if (orderNumberMatch) {
-    data.orderNumber = orderNumberMatch[1]!!;
+    data.orderNumber = orderNumberMatch[1]!;
   }
 
   // Parsovanie dátumu objednávky
@@ -51,13 +51,13 @@ export function parseEmailText(text: string): ParsedEmailData {
     /Objednávka prijatá\s+(\d{2}\.\d{2}\.\d{4})/
   );
   if (orderDateMatch) {
-    data.orderDate = orderDateMatch[1]!!;
+    data.orderDate = orderDateMatch[1]!;
   }
 
   // Parsovanie spôsobu úhrady
   const paymentMethodMatch = text.match(/Spôsob úhrady\s+(.+)/);
   if (paymentMethodMatch) {
-    data.paymentMethod = paymentMethodMatch[1]!!.trim();
+    data.paymentMethod = paymentMethodMatch[1]!.trim();
   }
 
   // Parsovanie odoberateľa (zákazníka)
@@ -132,7 +132,10 @@ export function parseEmailText(text: string): ParsedEmailData {
     logger.debug('🚗 Parsing vehicle line:', vehicleMatch[1]!);
 
     // Ak obsahuje tabuľkový formát
-    if (vehicleMatch[1]!.includes('Cena') || vehicleMatch[1]!.includes('Spolu')) {
+    if (
+      vehicleMatch[1]!.includes('Cena') ||
+      vehicleMatch[1]!.includes('Spolu')
+    ) {
       const parts = vehicleMatch[1]!.split(/\s+/).filter(part => part.trim());
       logger.debug('🔍 Vehicle parts (table format):', parts);
 
@@ -154,8 +157,7 @@ export function parseEmailText(text: string): ParsedEmailData {
 
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1]!
-            .replace(',', '.')
+          const priceStr = parts[spzIndex + 1]!.replace(',', '.')
             .replace('€', '')
             .trim();
           data.vehiclePrice = parseFloat(priceStr);
@@ -194,8 +196,7 @@ export function parseEmailText(text: string): ParsedEmailData {
 
         // Cena a suma sú za ŠPZ
         if (parts.length > spzIndex + 2) {
-          const priceStr = parts[spzIndex + 1]!
-            .replace(',', '.')
+          const priceStr = parts[spzIndex + 1]!.replace(',', '.')
             .replace('€', '')
             .trim();
           data.vehiclePrice = parseFloat(priceStr);

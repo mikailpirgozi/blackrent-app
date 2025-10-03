@@ -234,7 +234,9 @@ export function useLeasings(filters?: LeasingFilters) {
   return useQuery({
     queryKey: ['leasings', filters],
     queryFn: () => fetchLeasings(filters),
-    staleTime: 5 * 60 * 1000, // 5 minút
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
+    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
+    refetchOnMount: 'always', // ✅ FIX: Vždy refetch pri mounte
   });
 }
 
@@ -243,7 +245,9 @@ export function useLeasing(id: string | undefined) {
     queryKey: ['leasing', id],
     queryFn: () => fetchLeasing(id!),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
@@ -252,7 +256,9 @@ export function usePaymentSchedule(leasingId: string | undefined) {
     queryKey: ['payment-schedule', leasingId],
     queryFn: () => fetchPaymentSchedule(leasingId!),
     enabled: !!leasingId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
@@ -260,7 +266,9 @@ export function useLeasingDashboard() {
   return useQuery({
     queryKey: ['leasing-dashboard'],
     queryFn: fetchDashboard,
-    staleTime: 2 * 60 * 1000, // 2 minúty
+    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
@@ -273,7 +281,37 @@ export function useCreateLeasing() {
 
   return useMutation({
     mutationFn: createLeasing,
-    onSuccess: () => {
+    onMutate: async newLeasing => {
+      // ⚡ OPTIMISTIC UPDATE: Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: ['leasings'] });
+
+      // Snapshot previous value
+      const previousLeasings = queryClient.getQueryData(['leasings']);
+
+      // Optimistically update - add new leasing to the start of list
+      queryClient.setQueryData(['leasings'], (old: Leasing[] = []) => [
+        { ...newLeasing, id: `temp-${Date.now()}` } as Leasing,
+        ...old,
+      ]);
+
+      return { previousLeasings };
+    },
+    onError: (_err, _newLeasing, context) => {
+      // ↩️ ROLLBACK: Restore previous data on error
+      if (context?.previousLeasings) {
+        queryClient.setQueryData(['leasings'], context.previousLeasings);
+      }
+    },
+    onSuccess: data => {
+      console.log('✅ Leasing created:', data);
+
+      // Trigger WebSocket notification (if needed)
+      window.dispatchEvent(
+        new CustomEvent('leasing-created', { detail: data })
+      );
+    },
+    onSettled: () => {
+      // 🔄 INVALIDATE: Always refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['leasings'] });
       queryClient.invalidateQueries({ queryKey: ['leasing-dashboard'] });
     },

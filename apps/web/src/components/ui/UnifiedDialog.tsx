@@ -1,9 +1,9 @@
 /**
  * 🪟 UNIFIED DIALOG COMPONENT
- * 
+ *
  * Konzistentný dialog pre celú BlackRent aplikáciu
  * Nahradí všetky MUI Dialog implementácie
- * 
+ *
  * Features:
  * - Modal a non-modal dialogs
  * - Fullscreen support
@@ -30,18 +30,18 @@ export interface UnifiedDialogProps {
   open?: boolean;
   onClose?: () => void;
   onOpenChange?: (open: boolean) => void;
-  
+
   // Content
   title?: string;
   subtitle?: string;
   children?: React.ReactNode;
-  
+
   // Configuration
   fullScreen?: boolean;
   fullWidth?: boolean;
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
   scroll?: 'body' | 'paper';
-  
+
   // Actions
   actions?: React.ReactNode;
   onConfirm?: () => void;
@@ -50,11 +50,11 @@ export interface UnifiedDialogProps {
   cancelText?: string;
   confirmDisabled?: boolean;
   cancelDisabled?: boolean;
-  
+
   // States
   loading?: boolean;
   disabled?: boolean;
-  
+
   // MUI compatibility
   TransitionComponent?: React.ComponentType<any>;
   TransitionProps?: any;
@@ -67,7 +67,7 @@ export interface UnifiedDialogProps {
   hideBackdrop?: boolean;
   keepMounted?: boolean;
   sx?: Record<string, unknown>;
-  
+
   // Styling
   className?: string;
   contentClassName?: string;
@@ -75,71 +75,74 @@ export interface UnifiedDialogProps {
 }
 
 export const UnifiedDialog = forwardRef<HTMLDivElement, UnifiedDialogProps>(
-  ({
-    open = false,
-    onClose,
-    onOpenChange,
-    title,
-    subtitle,
-    children,
-    fullScreen = false,
-    fullWidth = false,
-    maxWidth = 'sm',
-    scroll = 'paper',
-    actions,
-    onConfirm,
-    onCancel,
-    confirmText = 'Potvrdiť',
-    cancelText = 'Zrušiť',
-    confirmDisabled = false,
-    cancelDisabled = false,
-    loading = false,
-    disabled = false,
-    TransitionComponent,
-    TransitionProps,
-    BackdropComponent,
-    BackdropProps,
-    PaperComponent,
-    PaperProps,
-    disableBackdropClick = false,
-    disableEscapeKeyDown = false,
-    hideBackdrop = false,
-    keepMounted = false,
-    sx,
-    className,
-    contentClassName,
-    paperClassName,
-    ...props
-  }, ref) => {
+  (
+    {
+      open = false,
+      onClose,
+      onOpenChange,
+      title,
+      subtitle,
+      children,
+      fullScreen = false,
+      fullWidth = false,
+      maxWidth = 'sm',
+      scroll = 'paper',
+      actions,
+      onConfirm,
+      onCancel,
+      confirmText = 'Potvrdiť',
+      cancelText = 'Zrušiť',
+      confirmDisabled = false,
+      cancelDisabled = false,
+      loading = false,
+      disabled: _disabled = false,
+      TransitionComponent: _TransitionComponent,
+      TransitionProps: _TransitionProps,
+      BackdropComponent: _BackdropComponent,
+      BackdropProps: _BackdropProps,
+      PaperComponent: _PaperComponent,
+      PaperProps: _PaperProps,
+      disableBackdropClick: _disableBackdropClick = false,
+      disableEscapeKeyDown = false,
+      hideBackdrop: _hideBackdrop = false,
+      keepMounted: _keepMounted = false,
+      sx,
+      className,
+      contentClassName,
+      paperClassName,
+      ...props
+    },
+    ref
+  ) => {
     const [isOpen, setIsOpen] = useState(open);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    
+
     // Sync with external open state
     useEffect(() => {
       setIsOpen(open);
     }, [open]);
-    
+
     // Handle open change
     const handleOpenChange = (newOpen: boolean) => {
       setIsOpen(newOpen);
       onOpenChange?.(newOpen);
-      
+
       if (!newOpen) {
         onClose?.();
       }
     };
-    
+
     // Handle confirm
     const handleConfirm = () => {
       onConfirm?.();
     };
-    
+
     // Handle cancel
     const handleCancel = () => {
       onCancel?.();
       handleOpenChange(false);
     };
-    
+
     // Handle escape key
     useEffect(() => {
       const handleEscape = (e: KeyboardEvent) => {
@@ -147,30 +150,37 @@ export const UnifiedDialog = forwardRef<HTMLDivElement, UnifiedDialogProps>(
           handleOpenChange(false);
         }
       };
-      
+
       if (isOpen) {
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
       }
       return undefined;
     }, [isOpen, disableEscapeKeyDown]);
-    
+
     // Max width classes
     const getMaxWidthClass = () => {
       if (fullWidth) return 'max-w-full';
       if (fullScreen) return 'max-w-full h-full';
-      
+
       switch (maxWidth) {
-        case 'xs': return 'max-w-xs';
-        case 'sm': return 'max-w-md';
-        case 'md': return 'max-w-2xl';
-        case 'lg': return 'max-w-5xl';
-        case 'xl': return 'max-w-7xl';
-        case false: return 'max-w-none';
-        default: return 'max-w-md';
+        case 'xs':
+          return 'max-w-xs';
+        case 'sm':
+          return 'max-w-md';
+        case 'md':
+          return 'max-w-2xl';
+        case 'lg':
+          return 'max-w-5xl';
+        case 'xl':
+          return 'max-w-7xl';
+        case false:
+          return 'max-w-none';
+        default:
+          return 'max-w-md';
       }
     };
-    
+
     // Default actions if none provided
     const defaultActions = (
       <div className="flex justify-end gap-2">
@@ -181,17 +191,14 @@ export const UnifiedDialog = forwardRef<HTMLDivElement, UnifiedDialogProps>(
         >
           {cancelText}
         </Button>
-        <Button
-          onClick={handleConfirm}
-          disabled={confirmDisabled || loading}
-        >
+        <Button onClick={handleConfirm} disabled={confirmDisabled || loading}>
           {loading ? 'Načítava...' : confirmText}
         </Button>
       </div>
     );
-    
+
     const finalActions = actions || defaultActions;
-    
+
     return (
       <ShadcnDialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent
@@ -219,7 +226,7 @@ export const UnifiedDialog = forwardRef<HTMLDivElement, UnifiedDialogProps>(
                   </DialogDescription>
                 )}
               </div>
-              
+
               {/* Fullscreen toggle */}
               {!fullScreen && (
                 <Button
@@ -237,7 +244,7 @@ export const UnifiedDialog = forwardRef<HTMLDivElement, UnifiedDialogProps>(
               )}
             </DialogHeader>
           )}
-          
+
           {/* Content */}
           <div
             className={cn(
@@ -249,7 +256,7 @@ export const UnifiedDialog = forwardRef<HTMLDivElement, UnifiedDialogProps>(
           >
             {children}
           </div>
-          
+
           {/* Footer */}
           {finalActions && (
             <DialogFooter className="flex-shrink-0">
@@ -275,14 +282,20 @@ export interface UnifiedDialogWithTriggerProps extends UnifiedDialogProps {
   triggerSize?: 'sm' | 'default' | 'lg';
 }
 
-export const UnifiedDialogWithTrigger = forwardRef<HTMLDivElement, UnifiedDialogWithTriggerProps>(
-  ({
-    trigger,
-    triggerText = 'Otvoriť dialog',
-    triggerVariant = 'default',
-    triggerSize = 'default',
-    ...dialogProps
-  }, ref) => {
+export const UnifiedDialogWithTrigger = forwardRef<
+  HTMLDivElement,
+  UnifiedDialogWithTriggerProps
+>(
+  (
+    {
+      trigger,
+      triggerText = 'Otvoriť dialog',
+      triggerVariant = 'default',
+      triggerSize = 'default',
+      ...dialogProps
+    },
+    ref
+  ) => {
     return (
       <ShadcnDialog>
         <DialogTrigger asChild>

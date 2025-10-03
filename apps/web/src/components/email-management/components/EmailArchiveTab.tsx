@@ -3,12 +3,7 @@
  * Extrahované z pôvodného EmailManagementDashboard.tsx
  */
 
-import {
-  Archive,
-  Trash2,
-  RefreshCw,
-  Eye,
-} from 'lucide-react';
+import { Archive, Trash2, RefreshCw, Eye } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 // shadcn/ui components
@@ -16,10 +11,28 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { Spinner } from '@/components/ui/spinner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Typography } from '@/components/ui/typography';
 
 import { useEmailApi } from '../hooks/useEmailApi';
@@ -87,7 +100,7 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
         const result = await fetchArchivedEmails(offset, senderFilter);
         setArchivedEmails(result.emails);
         setArchivePagination(result.pagination);
-      } catch (err) {
+      } catch (_err) {
         // Error handled by hook
       } finally {
         setArchiveLoading(false);
@@ -239,7 +252,9 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                         </Typography>
                         <StatusChip
                           status={email.status}
-                          {...(email.action_taken && { actionTaken: email.action_taken })}
+                          {...(email.action_taken && {
+                            actionTaken: email.action_taken,
+                          })}
                         />
                       </div>
 
@@ -256,7 +271,10 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                             {truncateText(email.sender, 25)}
                           </Typography>
                         </div>
-                        <Typography variant="caption" className="text-muted-foreground">
+                        <Typography
+                          variant="caption"
+                          className="text-muted-foreground"
+                        >
                           {new Date(email.received_at).toLocaleDateString('sk')}
                         </Typography>
                       </div>
@@ -264,10 +282,7 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                       {/* Order Number */}
                       {email.order_number && (
                         <div className="mb-4">
-                          <Badge
-                            variant="outline"
-                            className="text-xs"
-                          >
+                          <Badge variant="outline" className="text-xs">
                             📋 {email.order_number}
                           </Badge>
                         </div>
@@ -311,10 +326,16 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[200px]">Predmet</TableHead>
-                      <TableHead className="min-w-[150px]">Odosielateľ</TableHead>
-                      <TableHead className="min-w-[120px]">Archivované</TableHead>
+                      <TableHead className="min-w-[150px]">
+                        Odosielateľ
+                      </TableHead>
+                      <TableHead className="min-w-[120px]">
+                        Archivované
+                      </TableHead>
                       <TableHead className="min-w-[100px]">Status</TableHead>
-                      <TableHead className="min-w-[120px]">Objednávka</TableHead>
+                      <TableHead className="min-w-[120px]">
+                        Objednávka
+                      </TableHead>
                       <TableHead className="min-w-[150px]">Akcie</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -345,15 +366,14 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                         <TableCell>
                           <StatusChip
                             status={email.status}
-                            {...(email.action_taken && { actionTaken: email.action_taken })}
+                            {...(email.action_taken && {
+                              actionTaken: email.action_taken,
+                            })}
                           />
                         </TableCell>
                         <TableCell>
                           {email.order_number ? (
-                            <Badge
-                              variant="outline"
-                              className="text-xs"
-                            >
+                            <Badge variant="outline" className="text-xs">
                               {email.order_number}
                             </Badge>
                           ) : (
@@ -417,42 +437,86 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
+                        <PaginationPrevious
                           href="#"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.preventDefault();
-                            const currentPage = Math.floor(archivePagination.offset / archivePagination.limit) + 1;
-                            if (currentPage > 1) handlePageChange(currentPage - 1);
+                            const currentPage =
+                              Math.floor(
+                                archivePagination.offset /
+                                  archivePagination.limit
+                              ) + 1;
+                            if (currentPage > 1)
+                              handlePageChange(currentPage - 1);
                           }}
-                          className={Math.floor(archivePagination.offset / archivePagination.limit) + 1 <= 1 ? 'pointer-events-none opacity-50' : ''}
+                          className={
+                            Math.floor(
+                              archivePagination.offset / archivePagination.limit
+                            ) +
+                              1 <=
+                            1
+                              ? 'pointer-events-none opacity-50'
+                              : ''
+                          }
                         />
                       </PaginationItem>
-                      
-                      {Array.from({ length: Math.ceil(archivePagination.total / archivePagination.limit) }, (_, i) => i + 1).map((page) => (
+
+                      {Array.from(
+                        {
+                          length: Math.ceil(
+                            archivePagination.total / archivePagination.limit
+                          ),
+                        },
+                        (_, i) => i + 1
+                      ).map(page => (
                         <PaginationItem key={page}>
                           <PaginationLink
                             href="#"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               handlePageChange(page);
                             }}
-                            isActive={Math.floor(archivePagination.offset / archivePagination.limit) + 1 === page}
+                            isActive={
+                              Math.floor(
+                                archivePagination.offset /
+                                  archivePagination.limit
+                              ) +
+                                1 ===
+                              page
+                            }
                           >
                             {page}
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      
+
                       <PaginationItem>
-                        <PaginationNext 
+                        <PaginationNext
                           href="#"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.preventDefault();
-                            const currentPage = Math.floor(archivePagination.offset / archivePagination.limit) + 1;
-                            const totalPages = Math.ceil(archivePagination.total / archivePagination.limit);
-                            if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                            const currentPage =
+                              Math.floor(
+                                archivePagination.offset /
+                                  archivePagination.limit
+                              ) + 1;
+                            const totalPages = Math.ceil(
+                              archivePagination.total / archivePagination.limit
+                            );
+                            if (currentPage < totalPages)
+                              handlePageChange(currentPage + 1);
                           }}
-                          className={Math.floor(archivePagination.offset / archivePagination.limit) + 1 >= Math.ceil(archivePagination.total / archivePagination.limit) ? 'pointer-events-none opacity-50' : ''}
+                          className={
+                            Math.floor(
+                              archivePagination.offset / archivePagination.limit
+                            ) +
+                              1 >=
+                            Math.ceil(
+                              archivePagination.total / archivePagination.limit
+                            )
+                              ? 'pointer-events-none opacity-50'
+                              : ''
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>

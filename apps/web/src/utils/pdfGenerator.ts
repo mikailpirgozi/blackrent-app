@@ -49,7 +49,7 @@ class PDFGenerator {
     } catch (error) {
       console.warn(
         `⚠️ Warning: Could not set font ${font} ${style}, using helvetica:`,
-        error: unknown
+        error
       );
       try {
         this.doc.setFont('helvetica', style);
@@ -413,7 +413,7 @@ class PDFGenerator {
         console.error(
           '❌ Error processing image:',
           (image as Record<string, unknown>).url as string,
-          error: unknown
+          error
         );
         const placeholder = this.createImagePlaceholder(
           maxWidth,
@@ -557,7 +557,7 @@ class PDFGenerator {
         console.error(
           '❌ Error processing document:',
           (image as Record<string, unknown>).url as string,
-          error: unknown
+          error
         );
         const placeholder = this.createImagePlaceholder(
           maxWidth,
@@ -776,12 +776,12 @@ class PDFGenerator {
           rowHeight = 0;
           signaturesInRow = 0;
         }
-        } catch (error) {
-          console.error(
-            '❌ Error processing signature:',
+      } catch (error) {
+        console.error(
+          '❌ Error processing signature:',
           ((signature as Record<string, unknown>).url as string) ||
             ((signature as Record<string, unknown>).signature as string),
-          error: unknown
+          error
         );
         const placeholder = this.createImagePlaceholder(
           maxWidth,

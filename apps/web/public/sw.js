@@ -1,7 +1,7 @@
 // 🚀 BlackRent Service Worker - Enhanced Performance & PWA Experience
 // Provides offline support, intelligent caching, and performance optimizations
 
-const CACHE_VERSION = '2.2.0'; // ✅ BUMPED: Force update pre NO_CACHE fix
+const CACHE_VERSION = '2.3.0'; // ✅ BUMPED: Force update - kompletná oprava cache pre všetky moduly
 const CACHE_NAME = `blackrent-v${CACHE_VERSION}`;
 const API_CACHE = `blackrent-api-v${CACHE_VERSION}`;
 const IMAGE_CACHE = `blackrent-images-v${CACHE_VERSION}`;
@@ -45,31 +45,34 @@ const IMAGE_PATTERNS = [
 
 // API endpoints with different cache strategies
 const API_CACHE_STRATEGIES = {
-  // Long cache (1 hour)
+  // Long cache (1 hour) - STATICKÉ dáta ktoré sa VEĽMI zriedka menia
   LONG_CACHE: [
-    '/api/companies',
-    '/api/users',
+    '/api/statistics',      // Štatistiky - recalculated rarely
   ],
-  // Medium cache (15 minutes)
+  // Medium cache (15 minutes) - Semi-statické dáta
   MEDIUM_CACHE: [
-    // PRÁZDNE - statické endpointy môžu byť pridané neskôr
+    '/api/companies',       // Firmy - menia sa zriedka (✅ FIX: 1h → 15min)
+    '/api/users',           // Useri - menia sa občas (✅ FIX: 1h → 15min)
   ],
-  // Short cache (5 minutes)
+  // Short cache (5 minutes) - Dáta ktoré sa menia častejšie
   SHORT_CACHE: [
-    '/api/rentals',
-    '/api/availability',
+    // PRÁZDNE - všetky často menené entity sú v NO_CACHE
   ],
-  // No cache (always network) - ✅ REAL-TIME SEKCIE
+  // No cache (always network) - ✅ REAL-TIME SEKCIE - všetko čo sa CRUD-uje
   NO_CACHE: [
     '/api/auth',
     '/api/logout',
+    '/api/rentals',         // ✅ Prenájmy - KRITICKÉ (FIX: SHORT_CACHE → NO_CACHE)
+    '/api/availability',    // ✅ Dostupnosť - KRITICKÉ (FIX: SHORT_CACHE → NO_CACHE)
+    '/api/protocols',       // ✅ Protokoly - real-time updates (FIX: pridané)
     '/api/insurances',      // ✅ Poisťovne - real-time updates
+    '/api/insurance-claims', // ✅ Poistné udalosti - real-time updates (FIX: pridané)
     '/api/expenses',        // ✅ Náklady - real-time updates
     '/api/settlements',     // ✅ Vyúčtovanie - real-time updates
     '/api/vehicles',        // ✅ Vozidlá - real-time updates
     '/api/customers',       // ✅ Zákazníci - real-time updates
-    '/api/insurance-claims', // ✅ Poistné udalosti - real-time updates
     '/api/vehicle-documents', // ✅ Vehicle documents (STK/EK) - real-time updates
+    '/api/leasings',        // ✅ Leasingy - real-time updates (FIX: pridané 2025-01-03)
   ],
 };
 

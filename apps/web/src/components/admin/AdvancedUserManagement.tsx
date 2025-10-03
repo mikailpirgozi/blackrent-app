@@ -4,7 +4,7 @@
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { useCallback, useEffect, useState } from 'react';
-import { 
+import {
   Plus,
   BarChart3,
   Shield,
@@ -15,7 +15,7 @@ import {
   UserPlus,
   Lock,
   Clock,
-  Eye
+  Eye,
 } from 'lucide-react';
 
 import { Alert, AlertDescription } from '../ui/alert';
@@ -23,17 +23,46 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { Separator } from '../ui/separator';
 import { Skeleton } from '../ui/skeleton';
 import { Switch } from '../ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
 import { Textarea } from '../ui/textarea';
 
 import { useAuth } from '../../context/AuthContext';
@@ -290,7 +319,7 @@ const AdvancedUserManagement: React.FC = () => {
       } else {
         setCompanies([]);
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn('Chyba pri načítavaní firiem');
       setCompanies([]);
     }
@@ -313,7 +342,7 @@ const AdvancedUserManagement: React.FC = () => {
       } else {
         setUserPermissions([]);
       }
-    } catch (error) {
+    } catch (_error) {
       setUserPermissions([]);
     }
   };
@@ -418,7 +447,7 @@ const AdvancedUserManagement: React.FC = () => {
           await loadActivityLog();
           break;
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Error loading data:', error);
       setError('Chyba pri načítavaní dát');
     } finally {
@@ -463,7 +492,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní používateľa');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Chyba pri vytváraní používateľa');
     }
   };
@@ -487,7 +516,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní role');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Chyba pri vytváraní role');
     }
   };
@@ -514,7 +543,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní oddelenia');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Chyba pri vytváraní oddelenia');
     }
   };
@@ -538,7 +567,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní tímu');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Chyba pri vytváraní tímu');
     }
   };
@@ -628,7 +657,7 @@ const AdvancedUserManagement: React.FC = () => {
       setEditingUser(null);
       setUserPermissions([]);
       await loadUsers(); // Reload users to show changes
-    } catch (error) {
+    } catch (_error) {
       setError('Chyba pri úprave používateľa');
     }
   };
@@ -666,7 +695,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri deaktivácii používateľa');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Chyba pri deaktivácii používateľa');
     }
   };
@@ -748,7 +777,9 @@ const AdvancedUserManagement: React.FC = () => {
       <div className="w-full space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold">Pokročilé správa používateľov</h1>
+          <h1 className="text-3xl font-semibold">
+            Pokročilé správa používateľov
+          </h1>
           <p className="text-muted-foreground">
             Multi-tenant user management s pokročilými rolami a oprávneniami
           </p>
@@ -767,7 +798,10 @@ const AdvancedUserManagement: React.FC = () => {
 
         {/* Tabs */}
         <Card>
-          <Tabs value={currentTab.toString()} onValueChange={(value) => setCurrentTab(parseInt(value))}>
+          <Tabs
+            value={currentTab.toString()}
+            onValueChange={value => setCurrentTab(parseInt(value))}
+          >
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="0" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
@@ -823,7 +857,9 @@ const AdvancedUserManagement: React.FC = () => {
                       </div>
 
                       <Badge variant="outline" className="text-sm">
-                        {String(organization.subscriptionPlan || 'Unknown').toUpperCase()}
+                        {String(
+                          organization.subscriptionPlan || 'Unknown'
+                        ).toUpperCase()}
                       </Badge>
 
                       <div className="space-y-2 text-sm">
@@ -888,9 +924,7 @@ const AdvancedUserManagement: React.FC = () => {
                         <div className="text-3xl font-bold text-orange-500">
                           {String(stats.totalTeams || 0)}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Tímov
-                        </p>
+                        <p className="text-sm text-muted-foreground">Tímov</p>
                       </div>
                     </div>
                   )}
@@ -902,7 +936,9 @@ const AdvancedUserManagement: React.FC = () => {
           {/* Users Management */}
           <TabsContent value="1" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Používatelia ({users.length})</h2>
+              <h2 className="text-xl font-semibold">
+                Používatelia ({users.length})
+              </h2>
               <Button
                 onClick={() => {
                   setUserDialogOpen(true);
@@ -965,9 +1001,13 @@ const AdvancedUserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         {user.lastLoginAt
-                          ? format(new Date(user.lastLoginAt), 'dd.MM.yyyy HH:mm', {
-                              locale: sk,
-                            })
+                          ? format(
+                              new Date(user.lastLoginAt),
+                              'dd.MM.yyyy HH:mm',
+                              {
+                                locale: sk,
+                              }
+                            )
                           : 'Nikdy'}
                       </TableCell>
                       <TableCell>
@@ -1035,8 +1075,12 @@ const AdvancedUserManagement: React.FC = () => {
                   <CardContent className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-semibold text-lg">{role.displayName}</h3>
-                        <p className="text-sm text-muted-foreground">{role.name}</p>
+                        <h3 className="font-semibold text-lg">
+                          {role.displayName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {role.name}
+                        </p>
                       </div>
                       <Badge variant="outline" className="text-xs">
                         {getRoleLevel(role.level)}
@@ -1050,10 +1094,14 @@ const AdvancedUserManagement: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1">
                         {role.isSystem && (
-                          <Badge variant="secondary" className="text-xs">Systémová</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Systémová
+                          </Badge>
                         )}
                         {!role.isActive && (
-                          <Badge variant="destructive" className="text-xs">Neaktívna</Badge>
+                          <Badge variant="destructive" className="text-xs">
+                            Neaktívna
+                          </Badge>
                         )}
                       </div>
 
@@ -1077,7 +1125,9 @@ const AdvancedUserManagement: React.FC = () => {
           {/* Departments Management */}
           <TabsContent value="3" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Oddelenia ({departments.length})</h2>
+              <h2 className="text-xl font-semibold">
+                Oddelenia ({departments.length})
+              </h2>
               <Button onClick={() => setDepartmentDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Pridať oddelenie
@@ -1166,7 +1216,9 @@ const AdvancedUserManagement: React.FC = () => {
 
           {/* Activity Log */}
           <TabsContent value="5" className="space-y-6">
-            <h2 className="text-xl font-semibold">Audit Log ({activityLog.length})</h2>
+            <h2 className="text-xl font-semibold">
+              Audit Log ({activityLog.length})
+            </h2>
 
             <Card>
               <Table>
@@ -1184,9 +1236,13 @@ const AdvancedUserManagement: React.FC = () => {
                   {activityLog.map(log => (
                     <TableRow key={log.id}>
                       <TableCell>
-                        {format(new Date(log.createdAt), 'dd.MM.yyyy HH:mm:ss', {
-                          locale: sk,
-                        })}
+                        {format(
+                          new Date(log.createdAt),
+                          'dd.MM.yyyy HH:mm:ss',
+                          {
+                            locale: sk,
+                          }
+                        )}
                       </TableCell>
                       <TableCell>{log.userId}</TableCell>
                       <TableCell>
@@ -1225,7 +1281,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="username"
                   value={userForm.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, username: e.target.value }))
                   }
                 />
@@ -1236,7 +1294,9 @@ const AdvancedUserManagement: React.FC = () => {
                   id="email"
                   type="email"
                   value={userForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, email: e.target.value }))
                   }
                 />
@@ -1246,8 +1306,13 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="firstName"
                   value={userForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setUserForm(prev => ({ ...prev, firstName: e.target.value }))
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
+                    setUserForm(prev => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1256,7 +1321,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="lastName"
                   value={userForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, lastName: e.target.value }))
                   }
                 />
@@ -1267,7 +1334,9 @@ const AdvancedUserManagement: React.FC = () => {
                   id="password"
                   type="password"
                   value={userForm.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, password: e.target.value }))
                   }
                 />
@@ -1277,7 +1346,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="phone"
                   value={userForm.phone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUserForm(prev => ({ ...prev, phone: e.target.value }))
                   }
                 />
@@ -1286,7 +1357,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Label htmlFor="role">Rola</Label>
                 <Select
                   value={userForm.roleId}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setUserForm(prev => ({ ...prev, roleId: value }))
                   }
                 >
@@ -1306,7 +1377,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Label htmlFor="department">Oddelenie</Label>
                 <Select
                   value={userForm.departmentId}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setUserForm(prev => ({ ...prev, departmentId: value }))
                   }
                 >
@@ -1325,12 +1396,13 @@ const AdvancedUserManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setUserDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setUserDialogOpen(false)}
+              >
                 Zrušiť
               </Button>
-              <Button onClick={handleCreateUser}>
-                Vytvoriť
-              </Button>
+              <Button onClick={handleCreateUser}>Vytvoriť</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1347,9 +1419,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="role-name"
                   value={roleForm.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setRoleForm(prev => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setRoleForm(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -1357,7 +1429,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="role-display-name"
                   value={roleForm.displayName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setRoleForm(prev => ({
                       ...prev,
                       displayName: e.target.value,
@@ -1371,7 +1445,9 @@ const AdvancedUserManagement: React.FC = () => {
                   id="role-description"
                   rows={3}
                   value={roleForm.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setRoleForm(prev => ({
                       ...prev,
                       description: e.target.value,
@@ -1387,7 +1463,9 @@ const AdvancedUserManagement: React.FC = () => {
                   min="1"
                   max="10"
                   value={roleForm.level}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setRoleForm(prev => ({
                       ...prev,
                       level: parseInt(e.target.value) || 1,
@@ -1397,18 +1475,22 @@ const AdvancedUserManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setRoleDialogOpen(false)}
+              >
                 Zrušiť
               </Button>
-              <Button onClick={handleCreateRole}>
-                Vytvoriť
-              </Button>
+              <Button onClick={handleCreateRole}>Vytvoriť</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Department Dialog */}
-        <Dialog open={departmentDialogOpen} onOpenChange={setDepartmentDialogOpen}>
+        <Dialog
+          open={departmentDialogOpen}
+          onOpenChange={setDepartmentDialogOpen}
+        >
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>Pridať oddelenie</DialogTitle>
@@ -1419,8 +1501,13 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="dept-name"
                   value={departmentForm.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setDepartmentForm(prev => ({ ...prev, name: e.target.value }))
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
+                    setDepartmentForm(prev => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1430,7 +1517,9 @@ const AdvancedUserManagement: React.FC = () => {
                   id="dept-description"
                   rows={3}
                   value={departmentForm.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setDepartmentForm(prev => ({
                       ...prev,
                       description: e.target.value,
@@ -1445,7 +1534,11 @@ const AdvancedUserManagement: React.FC = () => {
                     id="dept-budget"
                     type="number"
                     value={departmentForm.monthlyBudget}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(
+                      e: React.ChangeEvent<
+                        HTMLInputElement | HTMLTextAreaElement
+                      >
+                    ) =>
                       setDepartmentForm(prev => ({
                         ...prev,
                         monthlyBudget: e.target.value,
@@ -1459,7 +1552,11 @@ const AdvancedUserManagement: React.FC = () => {
                     id="dept-vehicles"
                     type="number"
                     value={departmentForm.vehicleLimit}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                    onChange={(
+                      e: React.ChangeEvent<
+                        HTMLInputElement | HTMLTextAreaElement
+                      >
+                    ) =>
                       setDepartmentForm(prev => ({
                         ...prev,
                         vehicleLimit: e.target.value,
@@ -1470,12 +1567,13 @@ const AdvancedUserManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDepartmentDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setDepartmentDialogOpen(false)}
+              >
                 Zrušiť
               </Button>
-              <Button onClick={handleCreateDepartment}>
-                Vytvoriť
-              </Button>
+              <Button onClick={handleCreateDepartment}>Vytvoriť</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1492,9 +1590,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="team-name"
                   value={teamForm.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setTeamForm(prev => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setTeamForm(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -1503,7 +1601,9 @@ const AdvancedUserManagement: React.FC = () => {
                   id="team-description"
                   rows={3}
                   value={teamForm.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setTeamForm(prev => ({
                       ...prev,
                       description: e.target.value,
@@ -1515,7 +1615,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Label htmlFor="team-lead">Vedúci tímu</Label>
                 <Select
                   value={teamForm.teamLeadId}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setTeamForm(prev => ({
                       ...prev,
                       teamLeadId: value,
@@ -1541,12 +1641,13 @@ const AdvancedUserManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setTeamDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setTeamDialogOpen(false)}
+              >
                 Zrušiť
               </Button>
-              <Button onClick={handleCreateTeam}>
-                Vytvoriť
-              </Button>
+              <Button onClick={handleCreateTeam}>Vytvoriť</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1563,9 +1664,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-firstName"
                   value={editForm.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setEditForm({ ...editForm, firstName: e.target.value })
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditForm({ ...editForm, firstName: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -1573,9 +1674,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-lastName"
                   value={editForm.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setEditForm({ ...editForm, lastName: e.target.value })
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditForm({ ...editForm, lastName: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -1584,9 +1685,9 @@ const AdvancedUserManagement: React.FC = () => {
                   id="edit-email"
                   type="email"
                   value={editForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setEditForm({ ...editForm, email: e.target.value })
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditForm({ ...editForm, email: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -1594,9 +1695,9 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-phone"
                   value={editForm.phone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setEditForm({ ...editForm, phone: e.target.value })
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditForm({ ...editForm, phone: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -1604,16 +1705,16 @@ const AdvancedUserManagement: React.FC = () => {
                 <Input
                   id="edit-jobTitle"
                   value={editForm.jobTitle}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setEditForm({ ...editForm, jobTitle: e.target.value })
-                  }
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditForm({ ...editForm, jobTitle: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Rola</Label>
                 <Select
                   value={editForm.roleId}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setEditForm({ ...editForm, roleId: value })
                   }
                 >
@@ -1633,7 +1734,7 @@ const AdvancedUserManagement: React.FC = () => {
                 <Label htmlFor="edit-department">Oddelenie</Label>
                 <Select
                   value={editForm.departmentId}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setEditForm({ ...editForm, departmentId: value })
                   }
                 >
@@ -1650,7 +1751,6 @@ const AdvancedUserManagement: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-
             </div>
 
             {/* Permissions Section */}
@@ -1709,42 +1809,105 @@ const AdvancedUserManagement: React.FC = () => {
                               <div className="flex gap-4">
                                 <div className="flex items-center space-x-2">
                                   <Switch
-                                    checked={permissions[resource]?.read || false}
+                                    checked={
+                                      permissions[resource]?.read || false
+                                    }
                                     onCheckedChange={(checked: boolean) => {
-                                      const newPermissions = [...userPermissions];
-                                      const existingIndex = newPermissions.findIndex(
-                                        p => p.companyId === company.id
-                                      );
+                                      const newPermissions = [
+                                        ...userPermissions,
+                                      ];
+                                      const existingIndex =
+                                        newPermissions.findIndex(
+                                          p => p.companyId === company.id
+                                        );
 
                                       if (existingIndex >= 0) {
-                                        const permissions = newPermissions[existingIndex]?.permissions;
-                                        if (permissions && !permissions[resource]) {
+                                        const permissions =
+                                          newPermissions[existingIndex]
+                                            ?.permissions;
+                                        if (
+                                          permissions &&
+                                          !permissions[resource]
+                                        ) {
                                           permissions[resource] = {};
                                         }
                                         if (permissions) {
-                                          (permissions[resource] as { read?: boolean }).read = checked;
+                                          (
+                                            permissions[resource] as {
+                                              read?: boolean;
+                                            }
+                                          ).read = checked;
                                         }
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: { read: false, write: false, delete: false },
-                                            rentals: { read: false, write: false, delete: false },
-                                            expenses: { read: false, write: false, delete: false },
-                                            customers: { read: false, write: false, delete: false },
-                                            insurances: { read: false, write: false, delete: false },
-                                            protocols: { read: false, write: false, delete: false },
-                                            settlements: { read: false, write: false, delete: false },
-                                            maintenance: { read: false, write: false, delete: false },
-                                            statistics: { read: false, write: false, delete: false },
+                                            vehicles: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            rentals: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            expenses: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            customers: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            insurances: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            protocols: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            settlements: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            maintenance: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            statistics: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
                                           },
                                         };
-                                        const permissionsObj = newPerm.permissions as Record<string, { read?: boolean; write?: boolean; delete?: boolean }>;
+                                        const permissionsObj =
+                                          newPerm.permissions as Record<
+                                            string,
+                                            {
+                                              read?: boolean;
+                                              write?: boolean;
+                                              delete?: boolean;
+                                            }
+                                          >;
                                         if (!permissionsObj[resource]) {
-                                          permissionsObj[resource] = { read: false, write: false, delete: false };
+                                          permissionsObj[resource] = {
+                                            read: false,
+                                            write: false,
+                                            delete: false,
+                                          };
                                         }
-                                        const resourcePerms = permissionsObj[resource];
+                                        const resourcePerms =
+                                          permissionsObj[resource];
                                         if (resourcePerms) {
                                           resourcePerms.read = checked;
                                         }
@@ -1758,42 +1921,105 @@ const AdvancedUserManagement: React.FC = () => {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <Switch
-                                    checked={permissions[resource]?.write || false}
+                                    checked={
+                                      permissions[resource]?.write || false
+                                    }
                                     onCheckedChange={(checked: boolean) => {
-                                      const newPermissions = [...userPermissions];
-                                      const existingIndex = newPermissions.findIndex(
-                                        p => p.companyId === company.id
-                                      );
+                                      const newPermissions = [
+                                        ...userPermissions,
+                                      ];
+                                      const existingIndex =
+                                        newPermissions.findIndex(
+                                          p => p.companyId === company.id
+                                        );
 
                                       if (existingIndex >= 0) {
-                                        const permissions = newPermissions[existingIndex]?.permissions;
-                                        if (permissions && !permissions[resource]) {
+                                        const permissions =
+                                          newPermissions[existingIndex]
+                                            ?.permissions;
+                                        if (
+                                          permissions &&
+                                          !permissions[resource]
+                                        ) {
                                           permissions[resource] = {};
                                         }
                                         if (permissions) {
-                                          (permissions[resource] as { write?: boolean }).write = checked;
+                                          (
+                                            permissions[resource] as {
+                                              write?: boolean;
+                                            }
+                                          ).write = checked;
                                         }
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: { read: false, write: false, delete: false },
-                                            rentals: { read: false, write: false, delete: false },
-                                            expenses: { read: false, write: false, delete: false },
-                                            customers: { read: false, write: false, delete: false },
-                                            insurances: { read: false, write: false, delete: false },
-                                            protocols: { read: false, write: false, delete: false },
-                                            settlements: { read: false, write: false, delete: false },
-                                            maintenance: { read: false, write: false, delete: false },
-                                            statistics: { read: false, write: false, delete: false },
+                                            vehicles: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            rentals: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            expenses: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            customers: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            insurances: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            protocols: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            settlements: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            maintenance: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            statistics: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
                                           },
                                         };
-                                        const permissionsObj = newPerm.permissions as Record<string, { read?: boolean; write?: boolean; delete?: boolean }>;
+                                        const permissionsObj =
+                                          newPerm.permissions as Record<
+                                            string,
+                                            {
+                                              read?: boolean;
+                                              write?: boolean;
+                                              delete?: boolean;
+                                            }
+                                          >;
                                         if (!permissionsObj[resource]) {
-                                          permissionsObj[resource] = { read: false, write: false, delete: false };
+                                          permissionsObj[resource] = {
+                                            read: false,
+                                            write: false,
+                                            delete: false,
+                                          };
                                         }
-                                        const resourcePerms = permissionsObj[resource];
+                                        const resourcePerms =
+                                          permissionsObj[resource];
                                         if (resourcePerms) {
                                           resourcePerms.write = checked;
                                         }
@@ -1807,42 +2033,105 @@ const AdvancedUserManagement: React.FC = () => {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <Switch
-                                    checked={permissions[resource]?.delete || false}
+                                    checked={
+                                      permissions[resource]?.delete || false
+                                    }
                                     onCheckedChange={(checked: boolean) => {
-                                      const newPermissions = [...userPermissions];
-                                      const existingIndex = newPermissions.findIndex(
-                                        p => p.companyId === company.id
-                                      );
+                                      const newPermissions = [
+                                        ...userPermissions,
+                                      ];
+                                      const existingIndex =
+                                        newPermissions.findIndex(
+                                          p => p.companyId === company.id
+                                        );
 
                                       if (existingIndex >= 0) {
-                                        const permissions = newPermissions[existingIndex]?.permissions;
-                                        if (permissions && !permissions[resource]) {
+                                        const permissions =
+                                          newPermissions[existingIndex]
+                                            ?.permissions;
+                                        if (
+                                          permissions &&
+                                          !permissions[resource]
+                                        ) {
                                           permissions[resource] = {};
                                         }
                                         if (permissions) {
-                                          (permissions[resource] as { delete?: boolean }).delete = checked;
+                                          (
+                                            permissions[resource] as {
+                                              delete?: boolean;
+                                            }
+                                          ).delete = checked;
                                         }
                                       } else {
                                         const newPerm = {
                                           companyId: company.id,
                                           companyName: company.name,
                                           permissions: {
-                                            vehicles: { read: false, write: false, delete: false },
-                                            rentals: { read: false, write: false, delete: false },
-                                            expenses: { read: false, write: false, delete: false },
-                                            customers: { read: false, write: false, delete: false },
-                                            insurances: { read: false, write: false, delete: false },
-                                            protocols: { read: false, write: false, delete: false },
-                                            settlements: { read: false, write: false, delete: false },
-                                            maintenance: { read: false, write: false, delete: false },
-                                            statistics: { read: false, write: false, delete: false },
+                                            vehicles: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            rentals: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            expenses: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            customers: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            insurances: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            protocols: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            settlements: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            maintenance: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
+                                            statistics: {
+                                              read: false,
+                                              write: false,
+                                              delete: false,
+                                            },
                                           },
                                         };
-                                        const permissionsObj = newPerm.permissions as Record<string, { read?: boolean; write?: boolean; delete?: boolean }>;
+                                        const permissionsObj =
+                                          newPerm.permissions as Record<
+                                            string,
+                                            {
+                                              read?: boolean;
+                                              write?: boolean;
+                                              delete?: boolean;
+                                            }
+                                          >;
                                         if (!permissionsObj[resource]) {
-                                          permissionsObj[resource] = { read: false, write: false, delete: false };
+                                          permissionsObj[resource] = {
+                                            read: false,
+                                            write: false,
+                                            delete: false,
+                                          };
                                         }
-                                        const resourcePerms = permissionsObj[resource];
+                                        const resourcePerms =
+                                          permissionsObj[resource];
                                         if (resourcePerms) {
                                           resourcePerms.delete = checked;
                                         }
@@ -1868,9 +2157,7 @@ const AdvancedUserManagement: React.FC = () => {
               <Button variant="outline" onClick={handleCancelEdit}>
                 Zrušiť
               </Button>
-              <Button onClick={handleSaveEditUser}>
-                Uložiť
-              </Button>
+              <Button onClick={handleSaveEditUser}>Uložiť</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

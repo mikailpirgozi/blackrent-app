@@ -9,20 +9,10 @@ import {
   RefreshCw as RefreshIcon,
   Zap as SpeedIcon,
 } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-} from '@/components/ui/alert';
-import {
-  Button,
-} from '@/components/ui/button';
-import {
-  Badge,
-} from '@/components/ui/badge';
-import {
-  Collapsible,
-  CollapsibleContent,
-} from '@/components/ui/collapsible';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -31,12 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Separator,
-} from '@/components/ui/separator';
-import {
-  Typography,
-} from '@/components/ui/typography';
+import { Separator } from '@/components/ui/separator';
+import { Typography } from '@/components/ui/typography';
 import { useEffect, useState } from 'react';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger, LogEntry } from '../../utils/mobileLogger';
@@ -156,14 +142,21 @@ const MobileDebugPanel = () => {
 
       {/* Debug Panel Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={`max-w-4xl w-full ${isMobile ? 'h-screen max-h-screen' : 'max-h-[80vh]'} bg-gray-900 text-white border-gray-700`}>
+        <DialogContent
+          className={`max-w-4xl w-full ${isMobile ? 'h-screen max-h-screen' : 'max-h-[80vh]'} bg-gray-900 text-white border-gray-700`}
+        >
           <DialogHeader className="bg-gray-800 border-b border-gray-600">
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BugIcon size={20} />
                 <Typography variant="h6">📱 Mobile Debug Panel</Typography>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setOpen(false)} className="text-white hover:bg-gray-700">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setOpen(false)}
+                className="text-white hover:bg-gray-700"
+              >
                 <CloseIcon size={16} />
               </Button>
             </DialogTitle>
@@ -172,24 +165,39 @@ const MobileDebugPanel = () => {
             </DialogDescription>
           </DialogHeader>
 
-        <div className="p-2 overflow-auto">
+          <div className="p-2 overflow-auto">
             {/* Stats Section */}
             {stats && (
               <div className="mb-6">
-                <Typography variant="h6" className="mb-3 flex items-center gap-2">
+                <Typography
+                  variant="h6"
+                  className="mb-3 flex items-center gap-2"
+                >
                   <SpeedIcon size={20} /> Štatistiky
                 </Typography>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="text-white border-gray-600">
+                  <Badge
+                    variant="outline"
+                    className="text-white border-gray-600"
+                  >
                     📝 Celkom: {String(stats.totalLogs)}
                   </Badge>
-                  <Badge variant="outline" className="text-orange-400 border-gray-600">
+                  <Badge
+                    variant="outline"
+                    className="text-orange-400 border-gray-600"
+                  >
                     ⚠️ Warnings: {String(stats.warningCount)}
                   </Badge>
-                  <Badge variant="outline" className="text-red-400 border-gray-600">
+                  <Badge
+                    variant="outline"
+                    className="text-red-400 border-gray-600"
+                  >
                     ❌ Errors: {String(stats.errorCount)}
                   </Badge>
-                  <Badge variant="outline" className="text-blue-400 border-gray-600">
+                  <Badge
+                    variant="outline"
+                    className="text-blue-400 border-gray-600"
+                  >
                     🕐 Recent: {String(stats.recentLogs)}
                   </Badge>
                 </div>
@@ -201,146 +209,142 @@ const MobileDebugPanel = () => {
               <Typography variant="h6" className="mb-3 flex items-center gap-2">
                 <MemoryIcon size={20} /> Pamäť
               </Typography>
-            {(
-              window.performance as any & {
-                memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
-              }
-            ).memory ? (
+              {(
+                window.performance as typeof window.performance & {
+                  memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+                }
+              ).memory ? (
+                <Alert className="bg-blue-900/50 border-blue-700">
+                  <AlertDescription className="text-white">
+                    Použitá:{' '}
+                    {Math.round(
+                      (
+                        window.performance as typeof window.performance & {
+                          memory: {
+                            usedJSHeapSize: number;
+                            jsHeapSizeLimit: number;
+                          };
+                        }
+                      ).memory.usedJSHeapSize /
+                        1024 /
+                        1024
+                    )}{' '}
+                    MB / Limit:{' '}
+                    {Math.round(
+                      (
+                        window.performance as typeof window.performance & {
+                          memory: {
+                            usedJSHeapSize: number;
+                            jsHeapSizeLimit: number;
+                          };
+                        }
+                      ).memory.jsHeapSizeLimit /
+                        1024 /
+                        1024
+                    )}{' '}
+                    MB
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert className="bg-yellow-900/50 border-yellow-700">
+                  <AlertDescription className="text-white">
+                    Memory API nie je dostupné
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <Separator className="my-4 border-gray-600" />
+
+            {/* Logs Section */}
+            <Typography variant="h6" className="mb-3">
+              📋 Posledné logy ({logs.length})
+            </Typography>
+
+            {logs.length === 0 ? (
               <Alert className="bg-blue-900/50 border-blue-700">
                 <AlertDescription className="text-white">
-                  Použitá:{' '}
-                  {Math.round(
-                    (
-                      window.performance as any & {
-                        memory: {
-                          usedJSHeapSize: number;
-                          jsHeapSizeLimit: number;
-                        };
-                      }
-                    ).memory.usedJSHeapSize /
-                      1024 /
-                      1024
-                  )}{' '}
-                  MB / Limit:{' '}
-                  {Math.round(
-                    (
-                      window.performance as any & {
-                        memory: {
-                          usedJSHeapSize: number;
-                          jsHeapSizeLimit: number;
-                        };
-                      }
-                    ).memory.jsHeapSizeLimit /
-                      1024 /
-                      1024
-                  )}{' '}
-                  MB
+                  Žiadne logy k dispozícii
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert className="bg-yellow-900/50 border-yellow-700">
-                <AlertDescription className="text-white">
-                  Memory API nie je dostupné
-                </AlertDescription>
-              </Alert>
-            )}
-            </div>
-
-          <Separator className="my-4 border-gray-600" />
-
-          {/* Logs Section */}
-          <Typography variant="h6" className="mb-3">
-            📋 Posledné logy ({logs.length})
-          </Typography>
-
-          {logs.length === 0 ? (
-            <Alert className="bg-blue-900/50 border-blue-700">
-              <AlertDescription className="text-white">
-                Žiadne logy k dispozícii
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="max-h-96 overflow-auto">
-              {logs.map((log, index) => (
-                <div key={index} className="mb-2">
-                  <div
-                    className={`p-3 rounded cursor-pointer ${
-                      log.level === 'ERROR' || log.level === 'CRITICAL'
-                        ? 'bg-red-900/50 border border-red-700'
-                        : 'bg-gray-800 border border-gray-600'
-                    }`}
-                    onClick={() =>
-                      setExpandedLog(expandedLog === index ? null : index)
-                    }
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Typography variant="caption" className="text-gray-400">
-                        {formatTime(log.timestamp)}
-                      </Typography>
-                      <Badge
-                        className={`${getLevelColor(log.level)} text-white font-bold`}
-                      >
-                        {getLevelEmoji(log.level)} {log.level}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="text-gray-300 border-gray-600"
-                      >
-                        {log.category}
-                      </Badge>
-                      {expandedLog === index ? (
-                        <ExpandLessIcon size={16} />
-                      ) : (
-                        <ExpandMoreIcon size={16} />
-                      )}
-                    </div>
-                    <Typography variant="body2" className="font-medium">
-                      {log.message}
-                    </Typography>
-                  </div>
-
-                  <Collapsible open={expandedLog === index}>
-                    <CollapsibleContent>
-                      <div className="mt-2 p-4 bg-gray-900 rounded">
-                        {log.data && (
-                          <div className="mb-3">
-                            <Typography
-                              variant="caption"
-                              className="text-gray-400 font-bold"
-                            >
-                              Data:
-                            </Typography>
-                            <pre
-                              className="text-xs text-blue-300 bg-gray-800 p-2 rounded overflow-auto max-h-48"
-                            >
-                              {JSON.stringify(log.data, null, 2)}
-                            </pre>
-                          </div>
-                        )}
-
-                        {log.stackTrace && (
-                          <div>
-                            <Typography
-                              variant="caption"
-                              className="text-gray-400 font-bold"
-                            >
-                              Stack Trace:
-                            </Typography>
-                            <pre
-                              className="text-xs text-orange-400 bg-gray-800 p-2 rounded overflow-auto max-h-36"
-                            >
-                              {log.stackTrace}
-                            </pre>
-                          </div>
+              <div className="max-h-96 overflow-auto">
+                {logs.map((log, index) => (
+                  <div key={index} className="mb-2">
+                    <div
+                      className={`p-3 rounded cursor-pointer ${
+                        log.level === 'ERROR' || log.level === 'CRITICAL'
+                          ? 'bg-red-900/50 border border-red-700'
+                          : 'bg-gray-800 border border-gray-600'
+                      }`}
+                      onClick={() =>
+                        setExpandedLog(expandedLog === index ? null : index)
+                      }
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Typography variant="caption" className="text-gray-400">
+                          {formatTime(log.timestamp)}
+                        </Typography>
+                        <Badge
+                          className={`${getLevelColor(log.level)} text-white font-bold`}
+                        >
+                          {getLevelEmoji(log.level)} {log.level}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-gray-300 border-gray-600"
+                        >
+                          {log.category}
+                        </Badge>
+                        {expandedLog === index ? (
+                          <ExpandLessIcon size={16} />
+                        ) : (
+                          <ExpandMoreIcon size={16} />
                         )}
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                      <Typography variant="body2" className="font-medium">
+                        {log.message}
+                      </Typography>
+                    </div>
+
+                    <Collapsible open={expandedLog === index}>
+                      <CollapsibleContent>
+                        <div className="mt-2 p-4 bg-gray-900 rounded">
+                          {log.data && (
+                            <div className="mb-3">
+                              <Typography
+                                variant="caption"
+                                className="text-gray-400 font-bold"
+                              >
+                                Data:
+                              </Typography>
+                              <pre className="text-xs text-blue-300 bg-gray-800 p-2 rounded overflow-auto max-h-48">
+                                {JSON.stringify(log.data, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+
+                          {log.stackTrace && (
+                            <div>
+                              <Typography
+                                variant="caption"
+                                className="text-gray-400 font-bold"
+                              >
+                                Stack Trace:
+                              </Typography>
+                              <pre className="text-xs text-orange-400 bg-gray-800 p-2 rounded overflow-auto max-h-36">
+                                {log.stackTrace}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
 
         <DialogFooter className="bg-gray-800 border-t border-gray-600 p-4 flex gap-2">

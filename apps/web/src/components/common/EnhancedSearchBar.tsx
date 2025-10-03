@@ -9,14 +9,7 @@
  * - Mobile-optimized UX
  */
 
-import {
-  X,
-  Filter,
-  History,
-  Search,
-  TrendingUp,
-  Loader2,
-} from 'lucide-react';
+import { X, Filter, History, Search, TrendingUp, Loader2 } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -130,8 +123,8 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   });
 
   // Local state
-  const inputRef = useRef<any>(null);
-  const suggestionsRef = useRef<any>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Notify parent of changes
   useEffect(() => {
@@ -147,7 +140,7 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
   }, [activeQuickFilter, onQuickFilterChange]);
 
   // Handle input change
-  const handleInputChange = (e: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
 
@@ -232,8 +225,8 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
               key={filter.id}
               variant={activeQuickFilter === filter.id ? 'default' : 'outline'}
               className={`cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                activeQuickFilter === filter.id 
-                  ? 'bg-primary text-primary-foreground' 
+                activeQuickFilter === filter.id
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background border-border'
               }`}
               onClick={() => handleQuickFilterSelect(filter.id)}
@@ -292,80 +285,83 @@ const EnhancedSearchBar: React.FC<EnhancedSearchBarProps> = ({
       )}
 
       {/* Suggestions Dropdown */}
-      {showSuggestions && (suggestions.length > 0 || searchHistory.length > 0) && (
-        <div
-          ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 z-50 max-h-96 overflow-auto mt-1 bg-background border border-border rounded-lg shadow-lg"
-        >
-          <div className="py-1">
-            {/* Search History */}
-            {searchHistory.length > 0 && !query && (
-              <>
-                <div className="px-3 py-2 bg-muted/50">
-                  <div className="flex items-center text-xs font-semibold text-muted-foreground">
-                    <History className="h-3 w-3 mr-2" />
-                    Posledné vyhľadávania
+      {showSuggestions &&
+        (suggestions.length > 0 || searchHistory.length > 0) && (
+          <div
+            ref={suggestionsRef}
+            className="absolute top-full left-0 right-0 z-50 max-h-96 overflow-auto mt-1 bg-background border border-border rounded-lg shadow-lg"
+          >
+            <div className="py-1">
+              {/* Search History */}
+              {searchHistory.length > 0 && !query && (
+                <>
+                  <div className="px-3 py-2 bg-muted/50">
+                    <div className="flex items-center text-xs font-semibold text-muted-foreground">
+                      <History className="h-3 w-3 mr-2" />
+                      Posledné vyhľadávania
+                    </div>
                   </div>
-                </div>
-                {searchHistory.slice(0, 5).map((historyItem, index) => (
-                  <div
-                    key={`history-${index}`}
-                    className="flex items-center px-3 py-2 hover:bg-muted cursor-pointer"
-                    onClick={() =>
-                      handleSuggestionSelect({
-                        id: `history-${index}`,
-                        text: historyItem,
-                        type: 'recent',
-                      })
-                    }
-                  >
+                  {searchHistory.slice(0, 5).map((historyItem, index) => (
+                    <div
+                      key={`history-${index}`}
+                      className="flex items-center px-3 py-2 hover:bg-muted cursor-pointer"
+                      onClick={() =>
+                        handleSuggestionSelect({
+                          id: `history-${index}`,
+                          text: historyItem,
+                          type: 'recent',
+                        })
+                      }
+                    >
+                      <History className="h-4 w-4 mr-3 text-muted-foreground" />
+                      <span className="text-sm">{historyItem}</span>
+                    </div>
+                  ))}
+                  <Separator />
+                </>
+              )}
+
+              {/* Suggestions */}
+              {suggestions.map(suggestion => (
+                <div
+                  key={suggestion.id}
+                  className="flex items-center px-3 py-2 hover:bg-muted cursor-pointer"
+                  onClick={() => handleSuggestionSelect(suggestion)}
+                >
+                  {suggestion.type === 'recent' ? (
                     <History className="h-4 w-4 mr-3 text-muted-foreground" />
-                    <span className="text-sm">{historyItem}</span>
+                  ) : (
+                    <TrendingUp className="h-4 w-4 mr-3 text-primary" />
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{suggestion.text}</div>
+                    {suggestion.category && (
+                      <div className="text-xs text-muted-foreground">
+                        {suggestion.category}
+                      </div>
+                    )}
                   </div>
-                ))}
-                <Separator />
-              </>
-            )}
 
-            {/* Suggestions */}
-            {suggestions.map(suggestion => (
-              <div
-                key={suggestion.id}
-                className="flex items-center px-3 py-2 hover:bg-muted cursor-pointer"
-                onClick={() => handleSuggestionSelect(suggestion)}
-              >
-                {suggestion.type === 'recent' ? (
-                  <History className="h-4 w-4 mr-3 text-muted-foreground" />
-                ) : (
-                  <TrendingUp className="h-4 w-4 mr-3 text-primary" />
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium">{suggestion.text}</div>
-                  {suggestion.category && (
-                    <div className="text-xs text-muted-foreground">{suggestion.category}</div>
+                  {suggestion.count && (
+                    <Badge variant="secondary" className="ml-2">
+                      {suggestion.count}
+                    </Badge>
                   )}
                 </div>
+              ))}
 
-                {suggestion.count && (
-                  <Badge variant="secondary" className="ml-2">
-                    {suggestion.count}
-                  </Badge>
-                )}
-              </div>
-            ))}
-
-            {/* No suggestions */}
-            {query && suggestions.length === 0 && (
-              <div className="px-3 py-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Žiadne návrhy pre "{query}"
-                </p>
-              </div>
-            )}
+              {/* No suggestions */}
+              {query && suggestions.length === 0 && (
+                <div className="px-3 py-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Žiadne návrhy pre "{query}"
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };

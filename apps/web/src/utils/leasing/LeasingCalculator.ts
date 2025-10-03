@@ -365,9 +365,9 @@ export function calculateMonthlyPayment(
 }
 
 /**
- * Univerzálna funkcia pre generovanie splátkového kalendára
+ * Univerzálna funkcia pre generovanie splátkového kalendára (legacy)
  */
-export function generatePaymentSchedule(
+export function generatePaymentScheduleLegacy(
   loanAmount: number,
   interestRate: number,
   totalInstallments: number,
@@ -427,5 +427,5 @@ export default {
 
   // Univerzálne
   calculateMonthlyPayment,
-  generatePaymentSchedule,
+  generatePaymentScheduleLegacy,
 };

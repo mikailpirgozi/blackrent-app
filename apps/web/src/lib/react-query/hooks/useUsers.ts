@@ -102,7 +102,8 @@ export function useUserStats() {
   return useQuery({
     queryKey: queryKeys.users.stats(),
     queryFn: () => apiService.getUserStats(),
-    staleTime: 5 * 60 * 1000, // 5 minút
+    staleTime: 30 * 1000, // ✅ FIX: 30s (bolo 5 min) - stats sa prepočítavajú častejšie
+    refetchOnMount: 'always',
   });
 }
 
@@ -122,7 +123,11 @@ export function useCreateUser() {
       const optimisticUser = {
         id: `temp-${Date.now()}`,
         ...newUser,
-        permissions: newUser.permissions?.map(p => ({ resource: p as any, actions: ['read'] as const })) || [],
+        permissions:
+          newUser.permissions?.map(p => ({
+            resource: p as any,
+            actions: ['read'] as const,
+          })) || [],
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),

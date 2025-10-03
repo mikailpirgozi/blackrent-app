@@ -34,7 +34,7 @@ export function formatDate(date: string | Date): string {
     const year = dateObj.getFullYear();
 
     return `${day}.${month}.${year}`;
-  } catch (error) {
+  } catch (_error) {
     return 'N/A';
   }
 }
@@ -94,7 +94,7 @@ export function formatDateTime(date: string | Date): string {
     }
 
     return 'N/A';
-  } catch (error) {
+  } catch (_error) {
     return 'N/A';
   }
 }
@@ -136,7 +136,7 @@ export function formatTime(date: string | Date): string {
     const minute = String(dateObj.getMinutes()).padStart(2, '0');
 
     return `${hour}:${minute}`;
-  } catch (error) {
+  } catch (_error) {
     return 'N/A';
   }
 }
@@ -213,7 +213,7 @@ export function formatDuration(
     if (diffDays === 1) return '1 deň';
     if (diffDays < 5) return `${diffDays} dni`;
     return `${diffDays} dní`;
-  } catch (error) {
+  } catch (_error) {
     return 'N/A';
   }
 }
