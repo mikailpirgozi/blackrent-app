@@ -322,6 +322,58 @@ export function useWebSocketInvalidation() {
       });
     };
 
+    const handlePaymentUnmarked = (data: {
+      leasingId: string;
+      installmentNumber: number;
+      unmarkedBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
+      logger.debug(
+        'WebSocket: Leasing payment unmarked, invalidating queries',
+        { data },
+        'websocket'
+      );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(data.leasingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.schedule(data.leasingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+    };
+
+    const handleBulkPaymentMarked = (data: {
+      leasingId: string;
+      installmentNumbers: number[];
+      markedBy: string;
+      timestamp: string;
+      message: string;
+    }) => {
+      logger.debug(
+        'WebSocket: Leasing bulk payment marked, invalidating queries',
+        { data },
+        'websocket'
+      );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.detail(data.leasingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.schedule(data.leasingId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leasings.dashboard(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+    };
+
     // Register all listeners
     client.on('rental:created', handleRentalCreated);
     client.on('rental:updated', handleRentalUpdated);
@@ -338,6 +390,8 @@ export function useWebSocketInvalidation() {
     client.on('leasing:updated', handleLeasingUpdated);
     client.on('leasing:deleted', handleLeasingDeleted);
     client.on('leasing:payment-marked', handlePaymentMarked);
+    client.on('leasing:payment-unmarked', handlePaymentUnmarked);
+    client.on('leasing:bulk-payment-marked', handleBulkPaymentMarked);
 
     return () => {
       logger.debug(
@@ -362,6 +416,8 @@ export function useWebSocketInvalidation() {
       client.off('leasing:updated', handleLeasingUpdated);
       client.off('leasing:deleted', handleLeasingDeleted);
       client.off('leasing:payment-marked', handlePaymentMarked);
+      client.off('leasing:payment-unmarked', handlePaymentUnmarked);
+      client.off('leasing:bulk-payment-marked', handleBulkPaymentMarked);
     };
   }, [queryClient, invalidateBulkCache]);
 }
