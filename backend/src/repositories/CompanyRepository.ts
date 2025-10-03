@@ -262,7 +262,8 @@ export class CompanyRepository extends BaseRepository {
   async getCompanyInvestors(): Promise<CompanyInvestor[]> {
     const client = await this.getClient();
     try {
-      const result = await client.query('SELECT * FROM company_investors ORDER BY last_name, first_name');
+      // Existujúca tabuľka má investor_name namiesto first_name/last_name
+      const result = await client.query('SELECT * FROM company_investors ORDER BY investor_name');
       return result.rows.map(row => this.mapRowToCompanyInvestor(row));
     } finally {
       this.releaseClient(client);
@@ -280,21 +281,33 @@ export class CompanyRepository extends BaseRepository {
     personalId?: string;
     address?: string;
     notes?: string;
+    companyId?: number;
+    investmentAmount?: number;
+    investmentDate?: string;
   }): Promise<CompanyInvestor> {
     return this.executeTransaction(async (client) => {
+      // Existujúca tabuľka má iné názvy stĺpcov!
+      // company_id, investor_name, investor_email, investor_phone, investment_amount, investment_date
+      const investorName = `${investorData.firstName} ${investorData.lastName}`;
+      const companyId = investorData.companyId || 11; // Default company if not specified
+      const investmentAmount = investorData.investmentAmount || 0.01; // Minimálna suma
+      const investmentDate = investorData.investmentDate || new Date().toISOString().split('T')[0];
+      
       const result = await client.query(
         `INSERT INTO company_investors (
-          first_name, last_name, email, phone, personal_id, address, notes, is_active
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+          company_id, investor_name, investor_email, investor_phone, 
+          investment_amount, investment_date, investment_currency, status, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
         [
-          investorData.firstName,
-          investorData.lastName,
+          companyId,
+          investorName,
           investorData.email || null,
           investorData.phone || null,
-          investorData.personalId || null,
-          investorData.address || null,
-          investorData.notes || null,
-          true
+          investmentAmount,
+          investmentDate,
+          'EUR',
+          'active',
+          investorData.notes || null
         ]
       );
 
@@ -321,11 +334,46 @@ export class CompanyRepository extends BaseRepository {
       const values = [];
       let paramIndex = 1;
 
+      // Map frontend fields to database columns
+      const fieldMapping: Record<string, string> = {
+        'firstName': 'investor_name', // Partial update - will need special handling
+        'lastName': 'investor_name',  // Partial update - will need special handling  
+        'email': 'investor_email',
+        'phone': 'investor_phone',
+        'personalId': 'legal_entity_id',
+        'notes': 'notes',
+        'isActive': 'status', // Maps to 'active'/'inactive'
+      };
+
+      // Špeciálne spracovanie pre firstName/lastName -> investor_name
+      if (updateData.firstName || updateData.lastName) {
+        const currentInvestor = await client.query('SELECT investor_name FROM company_investors WHERE id = $1', [id]);
+        if (currentInvestor.rows.length > 0) {
+          const currentName = currentInvestor.rows[0].investor_name;
+          const currentParts = currentName.split(' ');
+          const newFirstName = updateData.firstName || currentParts[0] || '';
+          const newLastName = updateData.lastName || currentParts.slice(1).join(' ') || '';
+          fields.push(`investor_name = $${paramIndex}`);
+          values.push(`${newFirstName} ${newLastName}`.trim());
+          paramIndex++;
+        }
+      }
+
+      // Spracuj ostatné polia
       Object.entries(updateData).forEach(([key, value]) => {
-        const dbField = this.camelToSnake(key);
-        fields.push(`${dbField} = $${paramIndex}`);
-        values.push(value);
-        paramIndex++;
+        if (key === 'firstName' || key === 'lastName') return; // Už spracované
+        
+        const dbField = fieldMapping[key];
+        if (dbField) {
+          if (key === 'isActive') {
+            fields.push(`status = $${paramIndex}`);
+            values.push(value ? 'active' : 'inactive');
+          } else {
+            fields.push(`${dbField} = $${paramIndex}`);
+            values.push(value);
+          }
+          paramIndex++;
+        }
       });
 
       if (fields.length === 0) return;
@@ -659,15 +707,21 @@ export class CompanyRepository extends BaseRepository {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToCompanyInvestor(row: any): CompanyInvestor {
+    // Existujúca tabuľka má investor_name namiesto first_name/last_name
+    // Rozdelíme investor_name na firstName a lastName
+    const nameParts = (row.investor_name || row.first_name || '').split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || (row.last_name || '');
+    
     return {
       id: row.id,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      email: row.email || undefined,
-      phone: row.phone || undefined,
-      personalId: row.personal_id || undefined,
+      firstName: firstName,
+      lastName: lastName,
+      email: row.investor_email || row.email || undefined,
+      phone: row.investor_phone || row.phone || undefined,
+      personalId: row.personal_id || row.legal_entity_id || undefined,
       address: row.address || undefined,
-      isActive: Boolean(row.is_active),
+      isActive: row.status === 'active' || Boolean(row.is_active),
       notes: row.notes || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
