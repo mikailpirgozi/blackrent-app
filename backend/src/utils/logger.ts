@@ -1,102 +1,77 @@
 /**
- * 🚀 STRUCTURED LOGGER SYSTÉM PRE BACKEND
- *
- * Poskytuje jednotné JSON logovanie s requestId a kontextom
+ * Production-Safe Logger
+ * Prevents Railway log spam by disabling debug logs in production
  */
 
-type LogLevel = 'info' | 'warn' | 'error';
-
-interface LogContext extends Record<string, any> {
-  requestId?: string;
-}
-
-/**
- * Structured logger helper - všetky logy vo formáte JSON
- * @param level - úroveň logovania (info, warn, error, debug)
- * @param ctx - kontext objektu s requestId a ďalšími údajmi
- * @param msg - hlavná správa
- * @param extra - dodatočné údaje
- */
-export function log(
-  level: LogLevel,
-  ctx: LogContext,
-  msg: string,
-  extra?: any
-): void {
-  const timestamp = new Date().toISOString();
-
-  const logEntry = {
-    ts: timestamp,
-    level,
-    requestId: ctx.requestId || 'no-request-id',
-    ...ctx,
-    msg,
-    ...(extra && { extra }),
-  };
-
-  // Výstup podľa úrovne
-  switch (level) {
-    case 'error':
-      console.error(JSON.stringify(logEntry));
-      break;
-    case 'warn':
-      console.warn(JSON.stringify(logEntry));
-      break;
-
-    case 'info':
-    default:
-      console.log(JSON.stringify(logEntry));
-      break;
-  }
-}
-
-// Backward compatibility - zachovaj pôvodný logger pre existujúci kód
+const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 export const logger = {
-  // 🐛 Debug logy - len v development
+  // 🐛 Debug - LEN v development
   debug: (...args: any[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
 
-  // ℹ️ Info logy - vždy
+  // ℹ️ Info - Dôležité info v oboch environments
   info: (...args: any[]) => {
     console.log(...args);
   },
 
-  // ⚠️ Warning logy - vždy
+  // ⚠️ Warning - Vždy
   warn: (...args: any[]) => {
     console.warn(...args);
   },
 
-  // 🚨 Error logy - vždy
+  // ❌ Error - Vždy
   error: (...args: any[]) => {
     console.error(...args);
   },
 
-  // 📊 Performance logy - vždy (dôležité pre monitoring)
-  perf: (...args: any[]) => {
-    console.log(...args);
-  },
-
-  // 🔐 Auth logy - vždy (dôležité pre security debugging)
+  // 🔐 Auth - LEN v development
   auth: (...args: any[]) => {
-    console.log(...args);
-  },
-
-  // 🗄️ Database logy - len v development
-  db: (...args: any[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
 
-  // 🔄 Migration logy - vždy (dôležité pre deployment)
+  // 🗄️ Cache - LEN v development
+  cache: (...args: any[]) => {
+    if (isDevelopment) {
+      console.log(...args);
+    }
+  },
+
+  // 📋 Migration - Vždy (dôležité)
   migration: (...args: any[]) => {
     console.log(...args);
   },
+
+  // 🚀 Startup - Vždy
+  startup: (...args: any[]) => {
+    console.log(...args);
+  },
+
+  // 🗄️ Database - LEN v development
+  db: (...args: any[]) => {
+    if (isDevelopment) {
+      console.log(...args);
+    }
+  },
+};
+
+// Backward compatibility - callable log function
+export const log = (level: string, ...args: any[]) => {
+  if (level === 'error') {
+    logger.error(...args);
+  } else if (level === 'warn') {
+    logger.warn(...args);
+  } else if (level === 'info') {
+    logger.info(...args);
+  } else {
+    logger.debug(...args);
+  }
 };
 
 export default logger;

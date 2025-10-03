@@ -7,6 +7,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { cacheInstances, invalidateRelatedCache } from '../utils/cache-service';
 import type { CacheOptions } from '../utils/cache-service';
+import { logger } from '../utils/logger';
 
 interface CacheMiddlewareOptions extends CacheOptions {
   cacheKey?: (req: Request) => string;
@@ -35,7 +36,7 @@ export const cacheResponse = (cacheName: keyof typeof cacheInstances, options: C
     // Try to get from cache
     const cached = cache.get(cacheKey);
     if (cached) {
-      console.log(`🗄️ Cache HIT: ${cacheKey}`);
+      logger.cache(`🗄️ Cache HIT: ${cacheKey}`);
       return res.json(cached);
     }
     
@@ -47,7 +48,7 @@ export const cacheResponse = (cacheName: keyof typeof cacheInstances, options: C
       // Only cache successful responses
       if (res.statusCode >= 200 && res.statusCode < 300) {
         cache.set(cacheKey, data, options);
-        console.log(`🗄️ Cache SET: ${cacheKey}`);
+        logger.cache(`🗄️ Cache SET: ${cacheKey}`);
       }
       
       return originalJson(data);
@@ -107,7 +108,7 @@ export const userSpecificCache = (req: Request): string => {
  * Cache warming middleware for app startup
  */
 export const warmCache = async (): Promise<void> => {
-  console.log('🔥 Warming cache...');
+  logger.startup('🔥 Warming cache...');
   
   try {
     // Import database here to avoid circular dependencies
@@ -131,9 +132,9 @@ export const warmCache = async (): Promise<void> => {
       }
     ]);
     
-    console.log('🔥 Cache warming completed');
+    logger.startup('🔥 Cache warming completed');
   } catch (error) {
-    console.warn('🔥 Cache warming failed:', error);
+    logger.warn('🔥 Cache warming failed:', error);
   }
 };
 

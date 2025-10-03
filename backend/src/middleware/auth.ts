@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { postgresDatabase } from '../models/postgres-database';
 import type { AuthRequest, JWTPayload } from '../types';
 import { createForbiddenError, createUnauthorizedError } from './errorHandler';
+import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
 
@@ -15,34 +16,34 @@ export const authenticateToken = async (
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
 
-    console.log('🔍 AUTH MIDDLEWARE - Starting auth check');
-    console.log('🔍 AUTH MIDDLEWARE - Auth header exists:', !!authHeader);
-    console.log('🔍 AUTH MIDDLEWARE - Token extracted:', !!token);
+    logger.auth('🔍 AUTH MIDDLEWARE - Starting auth check');
+    logger.auth('🔍 AUTH MIDDLEWARE - Auth header exists:', !!authHeader);
+    logger.auth('🔍 AUTH MIDDLEWARE - Token extracted:', !!token);
 
     if (!token) {
-      console.log('❌ AUTH MIDDLEWARE - No token provided');
+      logger.auth('❌ AUTH MIDDLEWARE - No token provided');
       throw createUnauthorizedError('Access token je potrebný');
     }
 
-    console.log('🔍 AUTH MIDDLEWARE - Verifying JWT token...');
+    logger.auth('🔍 AUTH MIDDLEWARE - Verifying JWT token...');
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    console.log('🔍 AUTH MIDDLEWARE - JWT decoded successfully:', {
+    logger.auth('🔍 AUTH MIDDLEWARE - JWT decoded successfully:', {
       userId: decoded.userId,
       username: decoded.username,
       role: decoded.role,
     });
 
     // Získaj aktuálne údaje používateľa z databázy
-    console.log('🔍 AUTH MIDDLEWARE - Getting user from database...');
+    logger.auth('🔍 AUTH MIDDLEWARE - Getting user from database...');
     const user = await postgresDatabase.getUserById(decoded.userId);
-    console.log('🔍 AUTH MIDDLEWARE - Database user result:', {
+    logger.auth('🔍 AUTH MIDDLEWARE - Database user result:', {
       found: !!user,
       id: user?.id,
       username: user?.username,
     });
 
     if (!user) {
-      console.log('❌ AUTH MIDDLEWARE - User not found in database');
+      logger.auth('❌ AUTH MIDDLEWARE - User not found in database');
       throw createUnauthorizedError('Používateľ nenájdený');
     }
 
@@ -65,7 +66,7 @@ export const authenticateToken = async (
       updatedAt: user.updatedAt,
     };
 
-    console.log('✅ AUTH MIDDLEWARE - Authentication successful');
+    logger.auth('✅ AUTH MIDDLEWARE - Authentication successful');
     next();
   } catch (error) {
     console.error('❌ AUTH MIDDLEWARE ERROR:', error);
