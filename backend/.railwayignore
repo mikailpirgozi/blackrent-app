@@ -1,0 +1,27 @@
+# Railway Ignore File - Deploy LEN backend
+# Ignoruje všetko mimo backend priečinka
+
+# Ignore root level files
+/.git
+/.github
+/apps
+/customer-website
+/docs
+/scripts
+/*.md
+/*.log
+
+# Keep backend files
+!backend/**
+
+# Ignore dev files
+node_modules
+.env.local
+.DS_Store
+*.log
+dist
+build
+
+# Ignore source maps
+*.map
+
