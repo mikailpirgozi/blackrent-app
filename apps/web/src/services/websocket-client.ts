@@ -104,6 +104,22 @@ export interface WebSocketEvents {
     message: string;
   }) => void;
 
+  'leasing:payment-unmarked': (_data: {
+    leasingId: string;
+    installmentNumber: number;
+    unmarkedBy: string;
+    timestamp: string;
+    message: string;
+  }) => void;
+
+  'leasing:bulk-payment-marked': (_data: {
+    leasingId: string;
+    installmentNumbers: number[];
+    markedBy: string;
+    timestamp: string;
+    message: string;
+  }) => void;
+
   // System events
   'system:notification': (_data: {
     type: 'info' | 'warning' | 'error';

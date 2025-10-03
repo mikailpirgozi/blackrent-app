@@ -333,11 +333,39 @@ export function useLeasingUpdates(
       }
     };
 
+    const handlePaymentUnmarked = (data: unknown) => {
+      logger.debug('📢 Leasing payment unmarked:', data);
+      const paymentData = data as { leasingId?: string };
+      // Trigger smart refresh for specific leasing
+      if (paymentData.leasingId) {
+        window.dispatchEvent(
+          new CustomEvent('leasing-list-refresh', {
+            detail: { leasingId: paymentData.leasingId },
+          })
+        );
+      }
+    };
+
+    const handleBulkPaymentMarked = (data: unknown) => {
+      logger.debug('📢 Leasing bulk payment marked:', data);
+      const paymentData = data as { leasingId?: string };
+      // Trigger smart refresh for specific leasing
+      if (paymentData.leasingId) {
+        window.dispatchEvent(
+          new CustomEvent('leasing-list-refresh', {
+            detail: { leasingId: paymentData.leasingId },
+          })
+        );
+      }
+    };
+
     // Register event listeners
     client.on('leasing:created', handleLeasingCreated);
     client.on('leasing:updated', handleLeasingUpdated);
     client.on('leasing:deleted', handleLeasingDeleted);
     client.on('leasing:payment-marked', handlePaymentMarked);
+    client.on('leasing:payment-unmarked', handlePaymentUnmarked);
+    client.on('leasing:bulk-payment-marked', handleBulkPaymentMarked);
 
     return () => {
       // Cleanup
@@ -345,6 +373,8 @@ export function useLeasingUpdates(
       client.off('leasing:updated', handleLeasingUpdated);
       client.off('leasing:deleted', handleLeasingDeleted);
       client.off('leasing:payment-marked', handlePaymentMarked);
+      client.off('leasing:payment-unmarked', handlePaymentUnmarked);
+      client.off('leasing:bulk-payment-marked', handleBulkPaymentMarked);
     };
   }, [client, addNotification, onLeasingChange]);
 }

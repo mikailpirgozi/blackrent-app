@@ -293,6 +293,36 @@ export class WebSocketService {
   }
 
   /**
+   * Leasing platba odznačená (unmarked)
+   */
+  broadcastLeasingPaymentUnmarked(leasingId: string, installmentNumber: number, unmarkedBy: string) {
+    console.log(`📢 Broadcasting leasing payment unmarked: ${leasingId} installment ${installmentNumber} by ${unmarkedBy}`);
+    
+    this.io.emit('leasing:payment-unmarked', {
+      leasingId,
+      installmentNumber,
+      unmarkedBy,
+      timestamp: new Date().toISOString(),
+      message: `${unmarkedBy} zrušil úhradu splátky #${installmentNumber}`
+    });
+  }
+
+  /**
+   * Leasing bulk platby označené
+   */
+  broadcastLeasingBulkPaymentMarked(leasingId: string, installmentNumbers: number[], markedBy: string) {
+    console.log(`📢 Broadcasting leasing bulk payments marked: ${leasingId} installments ${installmentNumbers.join(', ')} by ${markedBy}`);
+    
+    this.io.emit('leasing:bulk-payment-marked', {
+      leasingId,
+      installmentNumbers,
+      markedBy,
+      timestamp: new Date().toISOString(),
+      message: `${markedBy} označil ${installmentNumbers.length} splátok ako zaplatené`
+    });
+  }
+
+  /**
    * Test broadcast pre všetkých klientov
    */
   broadcastTest(message: string) {

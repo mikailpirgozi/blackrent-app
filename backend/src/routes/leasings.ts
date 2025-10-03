@@ -136,14 +136,13 @@ router.get(
 /**
  * GET /api/leasings - Získaj všetky leasingy
  * Query params: vehicleId, leasingCompany, loanCategory, status, searchQuery, page, pageSize
+ * 🔥 NO CACHE: List must be fresh for real-time updates
  */
 router.get(
   '/',
   authenticateToken,
   checkPermission('expenses', 'read'),
-  cacheResponse('expenses', {
-    ttl: 5 * 60 * 1000, // 5 minút
-  }),
+  // 🔥 REMOVED: cacheResponse - list needs real-time updates
   async (req: Request, res: Response<ApiResponse<Leasing[]>>) => {
     try {
       // Validácia query params
@@ -175,14 +174,13 @@ router.get(
 /**
  * GET /api/leasings/dashboard - Dashboard overview
  * MUST BE BEFORE /:id route to avoid matching "dashboard" as UUID
+ * 🔥 NO CACHE: Dashboard stats must be fresh for real-time updates
  */
 router.get(
   '/dashboard',
   authenticateToken,
   checkPermission('expenses', 'read'),
-  cacheResponse('expenses', {
-    ttl: 2 * 60 * 1000, // 2 minúty
-  }),
+  // 🔥 REMOVED: cacheResponse - dashboard needs real-time payment count updates
   async (req: Request, res: Response<ApiResponse<unknown>>) => {
     try {
       const dashboard = await postgresDatabase.getLeasingDashboard();
@@ -526,6 +524,13 @@ router.delete(
       // Invaliduj cache
       invalidateRelatedCache('expenses', 'update');
       
+      // 🔴 WebSocket: Broadcast payment unmarked
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const userName = (req as any).user?.name || 'System';
+        wsService.broadcastLeasingPaymentUnmarked(id, parseInt(installmentNumber), userName);
+      }
+      
       res.json({
         success: true,
         data: payment,
@@ -559,6 +564,13 @@ router.post(
       
       // Invaliduj cache
       invalidateRelatedCache('expenses', 'update');
+      
+      // 🔴 WebSocket: Broadcast bulk payments marked
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const userName = (req as any).user?.name || 'System';
+        wsService.broadcastLeasingBulkPaymentMarked(id, input.installmentNumbers, userName);
+      }
       
       res.json({
         success: true,
