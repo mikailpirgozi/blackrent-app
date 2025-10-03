@@ -168,3 +168,4 @@ Pre otázky a problémy vytvorte issue v GitHub repozitári.
 # Trigger Vercel deployment
 # Force cache bust Fri Oct  3 04:10:35 CEST 2025
 # Force Vercel redeploy Fri Oct  3 04:19:37 CEST 2025
+# Trigger deployment with R2 URL 04:53:54
