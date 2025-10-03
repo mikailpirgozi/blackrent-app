@@ -31,7 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { useInsurers, useVehicles } from '@/lib/react-query/hooks';
-import type { PaymentFrequency } from '@/types';
+import type { PaymentFrequency, VignetteCountry } from '@/types';
 import R2FileUpload from '../common/R2FileUpload';
 
 // Import modular components
@@ -79,6 +79,10 @@ interface DocumentFormData {
   enforcementCompany?: string;
   fineAmount?: number;
   fineAmountLate?: number;
+
+  // Vignette specific
+  vignetteCountry?: VignetteCountry;
+  isRequired?: boolean;
 }
 
 interface DocumentSection {
@@ -664,6 +668,57 @@ function DocumentSectionForm({
                     </div>
                   </div>
 
+                  <Separator />
+                </>
+              )}
+
+              {/* 🌍 VIGNETTE: Country selection */}
+              {section.key === 'vignette' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Krajina dialničnej známky *</Label>
+                      <Select
+                        value={section.data.vignetteCountry || ''}
+                        onValueChange={value =>
+                          onUpdateData(
+                            'vignetteCountry',
+                            value as VignetteCountry
+                          )
+                        }
+                      >
+                        <SelectTrigger className="border-2">
+                          <SelectValue placeholder="Vyberte krajinu..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SK">🇸🇰 Slovensko</SelectItem>
+                          <SelectItem value="CZ">🇨🇿 Česko</SelectItem>
+                          <SelectItem value="AT">🇦🇹 Rakúsko</SelectItem>
+                          <SelectItem value="HU">🇭🇺 Maďarsko</SelectItem>
+                          <SelectItem value="SI">🇸🇮 Slovinsko</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2 flex items-end">
+                      <Label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={section.data.isRequired || false}
+                          onChange={e =>
+                            onUpdateData('isRequired', e.target.checked)
+                          }
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <span>Povinná dialničná známka</span>
+                      </Label>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {section.data.isRequired
+                      ? '⚠️ Táto dialničná známka je označená ako povinná'
+                      : '✓ Táto dialničná známka je dobrovoľná'}
+                  </p>
                   <Separator />
                 </>
               )}

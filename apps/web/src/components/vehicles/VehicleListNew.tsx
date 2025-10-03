@@ -225,6 +225,7 @@ export default function VehicleListNew() {
     email: '',
     phone: '',
     notes: '',
+    isActive: true,
   });
 
   // Handlers
@@ -376,6 +377,7 @@ export default function VehicleListNew() {
           email: '',
           phone: '',
           notes: '',
+          isActive: true,
         });
         // Refresh data
         window.location.reload();
