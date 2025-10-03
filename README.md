@@ -167,3 +167,4 @@ Pre otázky a problémy vytvorte issue v GitHub repozitári.
 # Force Vercel redeploy Thu Jul 31 11:22:56 CEST 2025
 # Trigger Vercel deployment
 # Force cache bust Fri Oct  3 04:10:35 CEST 2025
+# Force Vercel redeploy Fri Oct  3 04:19:37 CEST 2025
