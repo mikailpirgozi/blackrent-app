@@ -18,6 +18,8 @@ export default [
       '../../src 2/**',
       '../../backend/**',
       '../../packages/**',
+      '../../../backend/**',
+      '**/backend/**',
       '*.config.js',
       '*.config.ts',
       'public/sw.js',

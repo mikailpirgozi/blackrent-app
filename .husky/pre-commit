@@ -6,10 +6,11 @@ npx lint-staged
 
 # TypeScript check for frontend
 echo "🔍 TypeScript check (frontend)..."
-npm run build > /dev/null 2>&1 || {
-  echo "❌ Frontend TypeScript errors found! Run 'npm run build' to see details."
+cd apps/web && pnpm typecheck > /dev/null 2>&1 || {
+  echo "❌ Frontend TypeScript errors found! Run 'cd apps/web && pnpm typecheck' to see details."
   exit 1
 }
+cd ../..
 
 # TypeScript check for backend
 echo "🔍 TypeScript check (backend)..."
@@ -17,5 +18,6 @@ cd backend && npm run build > /dev/null 2>&1 || {
   echo "❌ Backend TypeScript errors found! Run 'cd backend && npm run build' to see details."
   exit 1
 }
+cd ..
 
 echo "✅ All checks passed!"

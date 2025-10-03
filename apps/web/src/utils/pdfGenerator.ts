@@ -53,7 +53,7 @@ class PDFGenerator {
       );
       try {
         this.doc.setFont('helvetica', style);
-      } catch (fallbackError) {
+      } catch {
         console.warn('⚠️ Warning: Could not set fallback font, using default');
       }
     }
@@ -333,7 +333,7 @@ class PDFGenerator {
           imgData = await this.loadImageFromUrl(
             (image as Record<string, unknown>).url as string
           );
-        } catch (error) {
+        } catch {
           console.warn(
             '⚠️ CORS error, trying proxy approach:',
             (image as Record<string, unknown>).url as string
@@ -483,7 +483,7 @@ class PDFGenerator {
           imgData = await this.loadImageFromUrl(
             (image as Record<string, unknown>).url as string
           );
-        } catch (error) {
+        } catch {
           console.warn(
             '⚠️ CORS error, trying proxy approach:',
             (image as Record<string, unknown>).url as string
@@ -696,7 +696,7 @@ class PDFGenerator {
             imgData = await this.loadImageFromUrl(
               (signature as Record<string, unknown>).url as string
             );
-          } catch (_error) {
+          } catch {
             console.warn(
               '⚠️ CORS error, trying proxy approach:',
               (signature as Record<string, unknown>).url as string
