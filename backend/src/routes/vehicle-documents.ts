@@ -11,25 +11,32 @@ import { v4 as uuidv4 } from 'uuid';
 const router = Router();
 
 // GET /api/vehicle-documents - Získanie všetkých dokumentov vozidiel alebo pre konkrétne vozidlo
-router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<VehicleDocument[]>>) => {
-  try {
-    const { vehicleId } = req.query;
-    const documents = await postgresDatabase.getVehicleDocuments(vehicleId as string);
-    res.json({
-      success: true,
-      data: documents
-    });
-  } catch (error) {
-    console.error('Get vehicle documents error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Chyba pri získavaní dokumentov vozidiel'
-    });
+router.get('/', 
+  authenticateToken, 
+  checkPermission('vehicles', 'read'),
+  async (req: Request, res: Response<ApiResponse<VehicleDocument[]>>) => {
+    try {
+      const { vehicleId } = req.query;
+      const documents = await postgresDatabase.getVehicleDocuments(vehicleId as string);
+      res.json({
+        success: true,
+        data: documents
+      });
+    } catch (error) {
+      console.error('Get vehicle documents error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní dokumentov vozidiel'
+      });
+    }
   }
-});
+);
 
 // POST /api/vehicle-documents - Vytvorenie nového dokumentu vozidla
-router.post('/', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.post('/', 
+  authenticateToken, 
+  checkPermission('vehicles', 'update'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired } = req.body;
 
@@ -38,6 +45,17 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
         success: false,
         error: 'vehicleId, documentType a validTo sú povinné polia'
       });
+    }
+
+    // 🌍 VALIDATION: Dialničná známka musí mať platnú krajinu
+    if (documentType === 'vignette') {
+      const validCountries = ['SK', 'CZ', 'AT', 'HU', 'SI'];
+      if (!country || !validCountries.includes(country)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pre dialničnú známku je povinná platná krajina (SK, CZ, AT, HU, SI)'
+        });
+      }
     }
 
     const createdDocument = await postgresDatabase.createVehicleDocument({
@@ -69,7 +87,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
 });
 
 // PUT /api/vehicle-documents/:id - Aktualizácia dokumentu vozidla
-router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.put('/:id', 
+  authenticateToken, 
+  checkPermission('vehicles', 'update'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired } = req.body;
@@ -88,6 +109,17 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
         success: false,
         error: 'vehicleId, documentType a validTo sú povinné polia'
       });
+    }
+
+    // 🌍 VALIDATION: Dialničná známka musí mať platnú krajinu
+    if (documentType === 'vignette') {
+      const validCountries = ['SK', 'CZ', 'AT', 'HU', 'SI'];
+      if (!country || !validCountries.includes(country)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pre dialničnú známku je povinná platná krajina (SK, CZ, AT, HU, SI)'
+        });
+      }
     }
 
     const updatedDocument = await postgresDatabase.updateVehicleDocument(id, {
@@ -121,7 +153,10 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
 });
 
 // DELETE /api/vehicle-documents/:id - Vymazanie dokumentu vozidla
-router.delete('/:id', authenticateToken, async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:id', 
+  authenticateToken, 
+  checkPermission('vehicles', 'delete'),
+  async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 

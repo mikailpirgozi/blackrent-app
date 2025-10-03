@@ -2,6 +2,7 @@ import { apiService } from '@/services/api';
 import type { VehicleDocument } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/smartLogger';
+import { queryKeys } from '../queryKeys';
 
 // Declare browser APIs
 declare const CustomEvent: any;
@@ -9,7 +10,9 @@ declare const CustomEvent: any;
 // GET vehicle documents
 export function useVehicleDocuments(vehicleId?: string) {
   return useQuery({
-    queryKey: ['vehicleDocuments', vehicleId],
+    queryKey: vehicleId
+      ? queryKeys.vehicleDocuments.byVehicle(vehicleId)
+      : queryKeys.vehicleDocuments.lists(),
     queryFn: () => {
       logger.debug('🔍 FETCHING VehicleDocuments from API...');
       return apiService.getVehicleDocuments(vehicleId);
@@ -30,13 +33,12 @@ export function useCreateVehicleDocument() {
       apiService.createVehicleDocument(document),
     onMutate: async _newDocument => {
       await queryClient.cancelQueries({
-        queryKey: ['vehicleDocuments'],
+        queryKey: queryKeys.vehicleDocuments.all,
       });
 
-      const previousDocuments = queryClient.getQueryData([
-        'vehicleDocuments',
-        _newDocument.vehicleId,
-      ]);
+      const previousDocuments = queryClient.getQueryData(
+        queryKeys.vehicleDocuments.byVehicle(_newDocument.vehicleId)
+      );
 
       const optimisticDocument = {
         ..._newDocument,
@@ -45,7 +47,7 @@ export function useCreateVehicleDocument() {
       };
 
       queryClient.setQueryData(
-        ['vehicleDocuments', _newDocument.vehicleId],
+        queryKeys.vehicleDocuments.byVehicle(_newDocument.vehicleId),
         (old: VehicleDocument[] = []) => [
           ...old,
           optimisticDocument as VehicleDocument,
@@ -54,7 +56,7 @@ export function useCreateVehicleDocument() {
 
       // Also update the general vehicle documents query
       queryClient.setQueryData(
-        ['vehicleDocuments'],
+        queryKeys.vehicleDocuments.lists(),
         (old: VehicleDocument[] = []) => [
           ...old,
           optimisticDocument as VehicleDocument,
@@ -66,7 +68,7 @@ export function useCreateVehicleDocument() {
     onError: (_err, __newDocument, context) => {
       if (context?.previousDocuments) {
         queryClient.setQueryData(
-          ['vehicleDocuments', __newDocument.vehicleId],
+          queryKeys.vehicleDocuments.byVehicle(__newDocument.vehicleId),
           context.previousDocuments
         );
       }
@@ -80,10 +82,7 @@ export function useCreateVehicleDocument() {
     onSettled: async () => {
       // ✅ FIX: Invalidate ALL vehicleDocuments queries + immediate refetch
       await queryClient.invalidateQueries({
-        predicate: query => {
-          const queryKey = query.queryKey;
-          return Array.isArray(queryKey) && queryKey[0] === 'vehicleDocuments';
-        },
+        queryKey: queryKeys.vehicleDocuments.all,
         refetchType: 'active',
       });
     },
@@ -114,13 +113,9 @@ export function useUpdateVehicleDocument() {
     },
     onSettled: async () => {
       logger.debug('🔄 UPDATE VEHICLE DOCUMENT: Invalidating cache...');
-      // ✅ FIX: Invalidate AND refetch immediately
-      // React Query v5: invalidate alone doesn't refetch if component isn't active
+      // ✅ FIX: Invalidate AND refetch immediately using queryKeys
       await queryClient.invalidateQueries({
-        predicate: query => {
-          const queryKey = query.queryKey;
-          return Array.isArray(queryKey) && queryKey[0] === 'vehicleDocuments';
-        },
+        queryKey: queryKeys.vehicleDocuments.all,
         refetchType: 'active', // Refetch active queries immediately
       });
       logger.debug('✅ All vehicleDocuments queries invalidated + refetched');
@@ -136,12 +131,12 @@ export function useDeleteVehicleDocument() {
     mutationFn: (id: string) => apiService.deleteVehicleDocument(id),
     onMutate: async deletedId => {
       await queryClient.cancelQueries({
-        queryKey: ['vehicleDocuments'],
+        queryKey: queryKeys.vehicleDocuments.all,
       });
 
       // Find document to get vehicleId for cache update
       const allDocuments = queryClient.getQueriesData({
-        queryKey: ['vehicleDocuments'],
+        queryKey: queryKeys.vehicleDocuments.all,
       });
 
       let vehicleId: string | null = null;
@@ -157,19 +152,22 @@ export function useDeleteVehicleDocument() {
         }
       }
 
-      const previousDocuments = queryClient.getQueryData([
-        'vehicleDocuments',
-        vehicleId,
-      ]);
+      const previousDocuments = vehicleId
+        ? queryClient.getQueryData(
+            queryKeys.vehicleDocuments.byVehicle(vehicleId)
+          )
+        : null;
 
-      queryClient.setQueryData(
-        ['vehicleDocuments', vehicleId],
-        (old: VehicleDocument[] = []) => old.filter(d => d.id !== deletedId)
-      );
+      if (vehicleId) {
+        queryClient.setQueryData(
+          queryKeys.vehicleDocuments.byVehicle(vehicleId),
+          (old: VehicleDocument[] = []) => old.filter(d => d.id !== deletedId)
+        );
+      }
 
       // Also update the general vehicle documents query
       queryClient.setQueryData(
-        ['vehicleDocuments'],
+        queryKeys.vehicleDocuments.lists(),
         (old: VehicleDocument[] = []) => old.filter(d => d.id !== deletedId)
       );
 
@@ -178,7 +176,7 @@ export function useDeleteVehicleDocument() {
     onError: (_err, _deletedId, context) => {
       if (context?.previousDocuments && context?.vehicleId) {
         queryClient.setQueryData(
-          ['vehicleDocuments', context.vehicleId],
+          queryKeys.vehicleDocuments.byVehicle(context.vehicleId),
           context.previousDocuments
         );
       }
@@ -194,10 +192,7 @@ export function useDeleteVehicleDocument() {
     onSettled: async () => {
       // ✅ FIX: Invalidate ALL vehicleDocuments queries + immediate refetch
       await queryClient.invalidateQueries({
-        predicate: query => {
-          const queryKey = query.queryKey;
-          return Array.isArray(queryKey) && queryKey[0] === 'vehicleDocuments';
-        },
+        queryKey: queryKeys.vehicleDocuments.all,
         refetchType: 'active',
       });
     },

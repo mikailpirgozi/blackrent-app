@@ -29,7 +29,11 @@ import { useEffect, useState } from 'react';
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useInsurers } from '../../lib/react-query/hooks/useInsurers';
 import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
-import type { PaymentFrequency, VignetteCountry } from '../../types';
+import type {
+  PaymentFrequency,
+  VignetteCountry,
+  UnifiedDocumentType,
+} from '../../types';
 
 import R2FileUpload from './R2FileUpload';
 import { logger } from '@/utils/smartLogger';
@@ -37,15 +41,7 @@ import { logger } from '@/utils/smartLogger';
 export interface UnifiedDocumentData {
   id?: string | undefined;
   vehicleId: string;
-  type:
-    | 'insurance_pzp'
-    | 'insurance_kasko'
-    | 'insurance_pzp_kasko'
-    | 'insurance'
-    | 'stk'
-    | 'ek'
-    | 'vignette'
-    | 'technical_certificate';
+  type: UnifiedDocumentType;
 
   // Insurance specific
   policyNumber?: string | undefined;
@@ -102,6 +98,12 @@ const getDocumentTypeInfo = (type: string) => {
         icon: <Shield className="h-4 w-4" />,
         color: '#9c27b0',
       };
+    case 'insurance_leasing':
+      return {
+        label: 'Leasingová Poistka',
+        icon: <Shield className="h-4 w-4" />,
+        color: '#8b5cf6',
+      };
     case 'stk':
       return {
         label: 'STK',
@@ -119,6 +121,12 @@ const getDocumentTypeInfo = (type: string) => {
         label: 'Dialničná známka',
         icon: <Truck className="h-4 w-4" />,
         color: '#7b1fa2',
+      };
+    case 'technical_certificate':
+      return {
+        label: 'Technický preukaz',
+        icon: <FileText className="h-4 w-4" />,
+        color: '#6366f1',
       };
     // Backward compatibility
     case 'insurance':
@@ -370,16 +378,19 @@ export default function UnifiedDocumentForm({
   const isInsurance =
     formData.type === 'insurance_pzp' ||
     formData.type === 'insurance_kasko' ||
-    formData.type === 'insurance_pzp_kasko';
+    formData.type === 'insurance_pzp_kasko' ||
+    formData.type === 'insurance_leasing';
   const isPZP =
     formData.type === 'insurance_pzp' ||
     formData.type === 'insurance_pzp_kasko'; // PZP alebo PZP+Kasko
   const isKasko =
     formData.type === 'insurance_kasko' ||
-    formData.type === 'insurance_pzp_kasko'; // Kasko alebo PZP+Kasko
+    formData.type === 'insurance_pzp_kasko' ||
+    formData.type === 'insurance_leasing'; // Kasko, PZP+Kasko alebo Leasing
   const hasKmField =
     formData.type === 'insurance_kasko' ||
     formData.type === 'insurance_pzp_kasko' ||
+    formData.type === 'insurance_leasing' ||
     formData.type === 'stk' ||
     formData.type === 'ek';
 
@@ -471,6 +482,9 @@ export default function UnifiedDocumentForm({
                           </SelectItem>
                           <SelectItem value="insurance_pzp_kasko">
                             Poistka - PZP + Kasko
+                          </SelectItem>
+                          <SelectItem value="insurance_leasing">
+                            Leasingová Poistka
                           </SelectItem>
                           <SelectItem value="stk">STK</SelectItem>
                           <SelectItem value="ek">EK</SelectItem>

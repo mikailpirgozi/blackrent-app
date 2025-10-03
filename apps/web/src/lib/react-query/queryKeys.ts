@@ -136,6 +136,21 @@ export const queryKeys = {
       ['insuranceClaims', 'byVehicle', vehicleId] as const,
   },
 
+  // Vehicle Documents (STK, EK, Vignette, Technical Certificate)
+  vehicleDocuments: {
+    all: ['vehicleDocuments'] as const,
+    lists: () => [...queryKeys.vehicleDocuments.all, 'list'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.vehicleDocuments.lists(), filters] as const,
+    details: () => [...queryKeys.vehicleDocuments.all, 'detail'] as const,
+    detail: (id: string) =>
+      [...queryKeys.vehicleDocuments.details(), id] as const,
+    byVehicle: (vehicleId: string) =>
+      ['vehicleDocuments', 'byVehicle', vehicleId] as const,
+    byType: (documentType: string) =>
+      ['vehicleDocuments', 'byType', documentType] as const,
+  },
+
   // BULK API - AppContext cache
   bulk: {
     all: ['bulk'] as const,

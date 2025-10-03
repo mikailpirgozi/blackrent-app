@@ -41,6 +41,7 @@ import type {
   DocumentType,
   Insurance,
   PaymentFrequency,
+  UnifiedDocumentType,
   Vehicle,
   VehicleDocument,
   VignetteCountry,
@@ -56,14 +57,7 @@ import { logger } from '@/utils/smartLogger';
 interface UnifiedDocument {
   id: string;
   vehicleId: string;
-  type:
-    | 'insurance_pzp'
-    | 'insurance_kasko'
-    | 'insurance_pzp_kasko'
-    | 'stk'
-    | 'ek'
-    | 'vignette'
-    | 'technical_certificate';
+  type: UnifiedDocumentType;
   documentNumber?: string | undefined;
   policyNumber?: string | undefined;
   validFrom?: Date | string | undefined;
@@ -329,10 +323,15 @@ export default function VehicleCentricInsuranceList() {
       let insuranceType:
         | 'insurance_pzp'
         | 'insurance_kasko'
-        | 'insurance_pzp_kasko' = 'insurance_pzp';
+        | 'insurance_pzp_kasko'
+        | 'insurance_leasing' = 'insurance_pzp';
 
+      // Check for Leasing insurance first (most specific)
+      if (insurance.type && insurance.type.toLowerCase().includes('leasing')) {
+        insuranceType = 'insurance_leasing';
+      }
       // Check if it's PZP + Kasko (has both green card and km state)
-      if (
+      else if (
         insurance.kmState !== undefined &&
         (insurance.greenCardValidFrom || insurance.greenCardValidTo)
       ) {
@@ -660,7 +659,8 @@ export default function VehicleCentricInsuranceList() {
         if (
           doc.type === 'insurance_pzp' ||
           doc.type === 'insurance_kasko' ||
-          doc.type === 'insurance_pzp_kasko'
+          doc.type === 'insurance_pzp_kasko' ||
+          doc.type === 'insurance_leasing'
         ) {
           await deleteInsuranceMutation.mutateAsync(doc.id);
         } else {
@@ -715,6 +715,12 @@ export default function VehicleCentricInsuranceList() {
     ) => {
       logger.debug('🟢 handleBatchSave CALLED with documents:', documents);
 
+      // 🔒 TRANSACTION-LIKE ERROR HANDLING
+      const createdIds: Array<{ type: 'insurance' | 'document'; id: string }> =
+        [];
+      const errors: Array<{ doc: (typeof documents)[number]; error: Error }> =
+        [];
+
       try {
         // Process each document
         for (const doc of documents) {
@@ -742,7 +748,10 @@ export default function VehicleCentricInsuranceList() {
               insuranceType = 'Leasingová poistka';
 
             if (!data.vehicleId || !data.validTo) {
-              console.error('Missing required fields for insurance');
+              errors.push({
+                doc,
+                error: new Error('Missing required fields for insurance'),
+              });
               continue;
             }
 
@@ -765,7 +774,13 @@ export default function VehicleCentricInsuranceList() {
               kmState: data.kmState || 0,
             };
 
-            await createInsuranceMutation.mutateAsync(insuranceData);
+            try {
+              await createInsuranceMutation.mutateAsync(insuranceData);
+              createdIds.push({ type: 'insurance', id: insuranceData.id });
+            } catch (opError) {
+              errors.push({ doc, error: opError as Error });
+              continue;
+            }
           } else if (type === 'service_book') {
             // Service Book - special handling
             if (!data.vehicleId || !data.serviceDate) {
@@ -880,12 +895,36 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
           }
         }
 
-        // Close dialog on success
-        setOpenDialog(false);
-        setEditingDocument(null);
+        // Show success/error summary
+        if (errors.length === 0) {
+          // All succeeded
+          setOpenDialog(false);
+          setEditingDocument(null);
+          logger.debug(
+            `✅ Batch save completed: ${createdIds.length} documents created`
+          );
+        } else if (createdIds.length > 0) {
+          // Partial success
+          const errorMsg = `Vytvorených ${createdIds.length}/${documents.length} dokumentov. ${errors.length} chýb.`;
+          console.error(errorMsg, errors);
+          window.alert(errorMsg + '\n\nPokračovať?');
+          setOpenDialog(false);
+          setEditingDocument(null);
+        } else {
+          // Total failure
+          throw new Error('Žiadne dokumenty neboli vytvorené');
+        }
       } catch (error) {
-        console.error('Chyba pri ukladaní dokumentov:', error);
-        window.alert('Chyba pri ukladaní dokumentov');
+        console.error('❌ Batch save failed:', error);
+        window.alert(
+          `Chyba pri ukladaní dokumentov: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+        );
+
+        // TODO: Implement rollback - delete successfully created documents
+        // This would require a backend transaction API or manual cleanup
+        logger.warn(
+          '⚠️ ROLLBACK NOT IMPLEMENTED: Some documents may have been created'
+        );
       }
     },
     [
@@ -910,7 +949,8 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
         if (
           editingDocument.type === 'insurance_pzp' ||
           editingDocument.type === 'insurance_kasko' ||
-          editingDocument.type === 'insurance_pzp_kasko'
+          editingDocument.type === 'insurance_pzp_kasko' ||
+          editingDocument.type === 'insurance_leasing'
         ) {
           const selectedInsurer = insurers.find(
             insurer => insurer.name === data.company
@@ -925,7 +965,9 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
                   ? 'PZP poistenie'
                   : data.type === 'insurance_pzp_kasko'
                     ? 'PZP + Kasko poistenie'
-                    : 'Poistenie',
+                    : data.type === 'insurance_leasing'
+                      ? 'Leasingová poistka'
+                      : 'Poistenie',
             policyNumber: data.policyNumber || '',
             validFrom: data.validFrom || new Date(),
             validTo: data.validTo,
@@ -1016,7 +1058,8 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
         if (
           data.type === 'insurance_pzp' ||
           data.type === 'insurance_kasko' ||
-          data.type === 'insurance_pzp_kasko'
+          data.type === 'insurance_pzp_kasko' ||
+          data.type === 'insurance_leasing'
         ) {
           const insuranceData = {
             id: '',
@@ -1028,7 +1071,9 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
                   ? 'PZP poistenie'
                   : data.type === 'insurance_pzp_kasko'
                     ? 'PZP + Kasko poistenie'
-                    : 'Poistenie',
+                    : data.type === 'insurance_leasing'
+                      ? 'Leasingová poistka'
+                      : 'Poistenie',
             policyNumber: data.policyNumber || '',
             validFrom: data.validFrom || new Date(),
             validTo: data.validTo,
@@ -1496,6 +1541,11 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
                     {
                       value: 'insurance_pzp_kasko',
                       label: 'Poistka - PZP + Kasko',
+                      icon: <UnifiedIcon name="security" size={16} />,
+                    },
+                    {
+                      value: 'insurance_leasing',
+                      label: 'Leasingová Poistka',
                       icon: <UnifiedIcon name="security" size={16} />,
                     },
                     {

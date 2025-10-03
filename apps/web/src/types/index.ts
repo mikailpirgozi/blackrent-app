@@ -227,7 +227,23 @@ export interface RecurringExpenseGeneration {
 
 export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
 
-export type DocumentType = 'stk' | 'ek' | 'vignette' | 'technical_certificate';
+// 🔧 UNIFIED DOCUMENT TYPE SYSTEM - Single Source of Truth
+export type InsuranceDocumentType =
+  | 'insurance_pzp'
+  | 'insurance_kasko'
+  | 'insurance_pzp_kasko'
+  | 'insurance_leasing';
+
+export type VehicleDocumentType =
+  | 'stk'
+  | 'ek'
+  | 'vignette'
+  | 'technical_certificate';
+
+export type UnifiedDocumentType = InsuranceDocumentType | VehicleDocumentType;
+
+// 🔄 BACKWARD COMPATIBILITY: Keep old DocumentType for existing code
+export type DocumentType = VehicleDocumentType;
 
 export type VignetteCountry = 'SK' | 'CZ' | 'AT' | 'HU' | 'SI';
 
