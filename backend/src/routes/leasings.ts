@@ -195,7 +195,7 @@ router.post(
       console.log('✅ Leasing created successfully:', leasing.id);
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'create');
+      invalidateRelatedCache('expenses', 'create');
       
       // 🔴 WebSocket: Broadcast leasing created
       const wsService = getWebSocketService();
@@ -274,7 +274,7 @@ router.put(
       console.log('✅ Leasing updated successfully:', leasing.id);
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'update');
+      invalidateRelatedCache('expenses', 'update');
       
       // 🔴 WebSocket: Broadcast leasing updated
       const wsService = getWebSocketService();
@@ -336,7 +336,7 @@ router.delete(
       }
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'delete');
+      invalidateRelatedCache('expenses', 'delete');
       
       // 🔴 WebSocket: Broadcast leasing deleted
       const wsService = getWebSocketService();
@@ -420,7 +420,7 @@ router.post(
       }
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'update');
+      invalidateRelatedCache('expenses', 'update');
       
       // 🔴 WebSocket: Broadcast payment marked
       const wsService = getWebSocketService();
@@ -465,7 +465,7 @@ router.delete(
       }
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'update');
+      invalidateRelatedCache('expenses', 'update');
       
       res.json({
         success: true,
@@ -499,7 +499,7 @@ router.post(
       const payments = await postgresDatabase.bulkMarkPayments(id, input.installmentNumbers, input.paidDate);
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'update');
+      invalidateRelatedCache('expenses', 'update');
       
       res.json({
         success: true,
@@ -566,7 +566,7 @@ router.post(
       const document = await postgresDatabase.createLeasingDocument(id, input);
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'update');
+      invalidateRelatedCache('expenses', 'update');
       
       res.status(201).json({
         success: true,
@@ -604,7 +604,7 @@ router.delete(
       }
       
       // Invaliduj cache
-      invalidateRelatedCache('expense', 'update');
+      invalidateRelatedCache('expenses', 'update');
       
       res.json({
         success: true,
