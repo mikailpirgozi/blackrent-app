@@ -75,19 +75,56 @@ async function fetchLeasing(id: string): Promise<LeasingDetailResponse> {
   };
 
   const apiBase = getApiBase();
-  const [leasing, schedule, documents] = await Promise.all([
-    fetch(`${apiBase}/${id}`, { headers })
-      .then(r => r.json())
-      .then(d => d.data),
-    fetch(`${apiBase}/${id}/schedule`, { headers })
-      .then(r => r.json())
-      .then(d => d.data),
-    fetch(`${apiBase}/${id}/documents`, { headers })
-      .then(r => r.json())
-      .then(d => d.data),
-  ]);
 
-  return { leasing, paymentSchedule: schedule, documents };
+  try {
+    const [leasing, schedule, documents] = await Promise.all([
+      fetch(`${apiBase}/${id}`, { headers })
+        .then(r => {
+          if (!r.ok) throw new Error(`Failed to fetch leasing: ${r.status}`);
+          return r.json();
+        })
+        .then(d => d.data),
+      fetch(`${apiBase}/${id}/schedule`, { headers })
+        .then(r => {
+          if (!r.ok) {
+            logger.debug(`⚠️ Failed to fetch schedule: ${r.status}`);
+            return null;
+          }
+          return r.json();
+        })
+        .then(d => d?.data || [])
+        .catch(err => {
+          logger.debug('⚠️ Schedule fetch error:', err);
+          return [];
+        }),
+      fetch(`${apiBase}/${id}/documents`, { headers })
+        .then(r => {
+          if (!r.ok) {
+            logger.debug(`⚠️ Failed to fetch documents: ${r.status}`);
+            return null;
+          }
+          return r.json();
+        })
+        .then(d => d?.data || [])
+        .catch(err => {
+          logger.debug('⚠️ Documents fetch error:', err);
+          return [];
+        }),
+    ]);
+
+    if (!leasing) {
+      throw new Error('Leasing not found');
+    }
+
+    return {
+      leasing,
+      paymentSchedule: schedule || [],
+      documents: documents || [],
+    };
+  } catch (error) {
+    logger.debug('❌ fetchLeasing error:', error);
+    throw error;
+  }
 }
 
 async function fetchPaymentSchedule(
@@ -360,8 +397,17 @@ export function useUpdateLeasing(id: string) {
   return useMutation({
     mutationFn: (input: UpdateLeasingInput) => updateLeasing({ ...input, id }),
     onSuccess: updatedLeasing => {
-      // 🔥 OPTIMISTIC UPDATE: Set updated data immediately
-      queryClient.setQueryData(queryKeys.leasings.detail(id), updatedLeasing);
+      // 🔥 OPTIMISTIC UPDATE: Update leasing within LeasingDetailResponse structure
+      queryClient.setQueryData(
+        queryKeys.leasings.detail(id),
+        (oldData: LeasingDetailResponse | undefined) => {
+          if (!oldData) return oldData; // Don't create if doesn't exist
+          return {
+            ...oldData,
+            leasing: updatedLeasing, // Update only the leasing part
+          };
+        }
+      );
 
       // Update in list cache
       queryClient.setQueryData(
