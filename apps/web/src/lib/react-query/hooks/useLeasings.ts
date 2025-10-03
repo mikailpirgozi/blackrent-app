@@ -446,7 +446,42 @@ export function useDeleteLeasing() {
 
   return useMutation({
     mutationFn: deleteLeasing,
-    onSuccess: () => {
+    onMutate: async deletedId => {
+      // ⚡ OPTIMISTIC UPDATE: Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: queryKeys.leasings.all });
+
+      // Snapshot previous value
+      const previousLeasings = queryClient.getQueryData(
+        queryKeys.leasings.lists()
+      );
+
+      // Optimistically remove from cache IMMEDIATELY
+      queryClient.setQueryData(
+        queryKeys.leasings.lists(),
+        (old: Leasing[] = []) => old.filter(l => l.id !== deletedId)
+      );
+
+      return { previousLeasings };
+    },
+    onError: (_err, _deletedId, context) => {
+      // ↩️ ROLLBACK: Restore previous data on error
+      if (context?.previousLeasings) {
+        queryClient.setQueryData(
+          queryKeys.leasings.lists(),
+          context.previousLeasings
+        );
+      }
+    },
+    onSuccess: (_data, deletedId) => {
+      logger.debug('✅ Leasing deleted:', deletedId);
+
+      // Trigger WebSocket notification
+      window.dispatchEvent(
+        new CustomEvent('leasing-deleted', { detail: { id: deletedId } })
+      );
+    },
+    onSettled: () => {
+      // 🔄 INVALIDATE: Always refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
       queryClient.invalidateQueries({
         queryKey: queryKeys.leasings.dashboard(),
