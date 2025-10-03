@@ -1,21 +1,21 @@
 import { Plus as AddIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
 import { format } from 'date-fns';
@@ -61,6 +61,8 @@ interface VehicleDialogsProps {
     lastName: string;
     email: string;
     phone: string;
+    notes: string;
+    isActive: boolean;
   };
   onCloseCreateInvestor: () => void;
   onCreateInvestor: () => Promise<void>;
@@ -78,7 +80,10 @@ interface VehicleDialogsProps {
   companies: Record<string, unknown>[];
   onCloseAssignShare: () => void;
   onAssignShare: () => Promise<void>;
-  onShareDataChange: (_field: string, _value: string | number | boolean) => void;
+  onShareDataChange: (
+    _field: string,
+    _value: string | number | boolean
+  ) => void;
 }
 
 const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
@@ -119,7 +124,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
 }) => {
   // Custom responsive logic - no MUI hooks needed
   const [isMobile, setIsMobile] = React.useState(false);
-  
+
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -130,14 +135,22 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
   return (
     <>
       {/* Vehicle Form Dialog */}
-      <Dialog open={openDialog} onOpenChange={(open) => !open && onCloseDialog()}>
-        <DialogContent className={isMobile ? "w-full h-full max-w-none rounded-none overflow-y-auto" : "max-w-5xl w-full"}>
+      <Dialog open={openDialog} onOpenChange={open => !open && onCloseDialog()}>
+        <DialogContent
+          className={
+            isMobile
+              ? 'w-full h-full max-w-none rounded-none overflow-y-auto'
+              : 'max-w-5xl w-full'
+          }
+        >
           <DialogHeader>
             <DialogTitle>
               {editingVehicle ? 'Upraviť vozidlo' : 'Nové vozidlo'}
             </DialogTitle>
             <DialogDescription>
-              {editingVehicle ? 'Upravte údaje o vozidle' : 'Pridajte nové vozidlo do systému'}
+              {editingVehicle
+                ? 'Upravte údaje o vozidle'
+                : 'Pridajte nové vozidlo do systému'}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
@@ -151,7 +164,10 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Ownership History Dialog */}
-      <Dialog open={ownershipHistoryDialog} onOpenChange={(open) => !open && onCloseOwnershipHistory()}>
+      <Dialog
+        open={ownershipHistoryDialog}
+        onOpenChange={open => !open && onCloseOwnershipHistory()}
+      >
         <DialogContent className="max-w-2xl w-full">
           <DialogHeader>
             <DialogTitle>História transferov vlastníctva</DialogTitle>
@@ -164,7 +180,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
           </DialogHeader>
           <div className="mt-4 max-h-96 overflow-y-auto">
             {ownershipHistory.length === 0 ? (
-              <UnifiedTypography variant="body2">Žiadna história transferov</UnifiedTypography>
+              <UnifiedTypography variant="body2">
+                Žiadna história transferov
+              </UnifiedTypography>
             ) : (
               ownershipHistory.map((transfer, index) => (
                 <div
@@ -202,7 +220,10 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Create Company Dialog */}
-      <Dialog open={createCompanyDialogOpen} onOpenChange={(open) => !open && onCloseCreateCompany()}>
+      <Dialog
+        open={createCompanyDialogOpen}
+        onOpenChange={open => !open && onCloseCreateCompany()}
+      >
         <DialogContent className="max-w-2xl w-full">
           <DialogHeader>
             <DialogTitle>🏢 Pridať novú firmu</DialogTitle>
@@ -216,70 +237,86 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="company-name"
                 value={newCompanyData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('name', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onCompanyDataChange('name', e.target.value)}
                 required
                 placeholder="Názov firmy"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="owner-name">Meno majiteľa</Label>
               <Input
                 id="owner-name"
                 value={newCompanyData.ownerName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('ownerName', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onCompanyDataChange('ownerName', e.target.value)}
                 placeholder="Meno majiteľa"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="contact-email">Email</Label>
               <Input
                 id="contact-email"
                 type="email"
                 value={newCompanyData.contactEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('contactEmail', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onCompanyDataChange('contactEmail', e.target.value)}
                 placeholder="email@example.com"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="contact-phone">Telefón</Label>
               <Input
                 id="contact-phone"
                 value={newCompanyData.contactPhone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('contactPhone', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onCompanyDataChange('contactPhone', e.target.value)}
                 placeholder="+421 XXX XXX XXX"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="personal-iban">Osobný IBAN</Label>
               <Input
                 id="personal-iban"
                 value={newCompanyData.personalIban}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('personalIban', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onCompanyDataChange('personalIban', e.target.value)}
                 placeholder="SK89 XXXX XXXX XXXX XXXX XXXX"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="business-iban">Firemný IBAN</Label>
               <Input
                 id="business-iban"
                 value={newCompanyData.businessIban}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('businessIban', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onCompanyDataChange('businessIban', e.target.value)}
                 placeholder="SK89 XXXX XXXX XXXX XXXX XXXX"
               />
             </div>
-            
+
             <div className="col-span-full">
               <Label htmlFor="commission-rate">Provízia (%)</Label>
               <Input
                 id="commission-rate"
                 type="number"
                 value={newCompanyData.defaultCommissionRate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCompanyDataChange('defaultCommissionRate', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
+                  onCompanyDataChange('defaultCommissionRate', e.target.value)
+                }
                 min="0"
                 max="100"
                 step="0.1"
@@ -287,7 +324,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               />
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={onCloseCreateCompany}>
               Zrušiť
@@ -305,12 +342,16 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Create Investor Dialog */}
-      <Dialog open={createInvestorDialogOpen} onOpenChange={(open) => !open && onCloseCreateInvestor()}>
+      <Dialog
+        open={createInvestorDialogOpen}
+        onOpenChange={open => !open && onCloseCreateInvestor()}
+      >
         <DialogContent className="max-w-2xl w-full">
           <DialogHeader>
             <DialogTitle>👤 Pridať spoluinvestora</DialogTitle>
             <DialogDescription>
-              Pridajte nového spoluinvestora ktorý bude môcť vlastniť podiely vo vozidlách
+              Pridajte nového spoluinvestora ktorý bude môcť vlastniť podiely vo
+              vozidlách
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -319,45 +360,53 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               <Input
                 id="first-name"
                 value={newInvestorData.firstName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('firstName', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onInvestorDataChange('firstName', e.target.value)}
                 required
                 placeholder="Krstné meno"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="last-name">Priezvisko *</Label>
               <Input
                 id="last-name"
                 value={newInvestorData.lastName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('lastName', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onInvestorDataChange('lastName', e.target.value)}
                 required
                 placeholder="Priezvisko"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="investor-email">Email</Label>
               <Input
                 id="investor-email"
                 type="email"
                 value={newInvestorData.email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('email', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onInvestorDataChange('email', e.target.value)}
                 placeholder="email@example.com"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="investor-phone">Telefón</Label>
               <Input
                 id="investor-phone"
                 value={newInvestorData.phone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onInvestorDataChange('phone', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onInvestorDataChange('phone', e.target.value)}
                 placeholder="+421 XXX XXX XXX"
               />
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={onCloseCreateInvestor}>
               Zrušiť
@@ -378,7 +427,10 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
       </Dialog>
 
       {/* Assign Share Dialog */}
-      <Dialog open={assignShareDialogOpen} onOpenChange={(open) => !open && onCloseAssignShare()}>
+      <Dialog
+        open={assignShareDialogOpen}
+        onOpenChange={open => !open && onCloseAssignShare()}
+      >
         <DialogContent className="max-w-md w-full">
           <DialogHeader>
             <DialogTitle>🏢 Priradiť podiel k firme</DialogTitle>
@@ -395,9 +447,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div className="col-span-full">
               <Label htmlFor="company-select">Firma *</Label>
-              <Select 
-                value={newShareData.companyId} 
-                onValueChange={(value) => onShareDataChange('companyId', value)}
+              <Select
+                value={newShareData.companyId}
+                onValueChange={value => onShareDataChange('companyId', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Vyberte firmu" />
@@ -416,14 +468,18 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
-              <Label htmlFor="ownership-percentage">Podiel vlastníctva (%) *</Label>
+              <Label htmlFor="ownership-percentage">
+                Podiel vlastníctva (%) *
+              </Label>
               <Input
                 id="ownership-percentage"
                 type="number"
                 value={newShareData.ownershipPercentage}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
                   onShareDataChange(
                     'ownershipPercentage',
                     parseFloat(e.target.value) || 0
@@ -436,14 +492,16 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 placeholder="0.0"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="investment-amount">Investičná suma (€)</Label>
               <Input
                 id="investment-amount"
                 type="number"
                 value={newShareData.investmentAmount}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
                   onShareDataChange(
                     'investmentAmount',
                     parseFloat(e.target.value) || 0
@@ -455,7 +513,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               />
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={onCloseAssignShare}>
               Zrušiť

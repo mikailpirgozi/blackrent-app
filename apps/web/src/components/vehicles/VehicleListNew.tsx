@@ -225,6 +225,7 @@ export default function VehicleListNew() {
     email: '',
     phone: '',
     notes: '',
+    isActive: true,
   });
 
   // Handlers
@@ -363,7 +364,9 @@ export default function VehicleListNew() {
         body: JSON.stringify(newInvestorData),
       });
 
+      console.log('📡 API Response status:', response.status);
       const result = await response.json();
+      console.log('📡 API Response body:', result);
 
       if (result.success) {
         console.log('✅ Investor created successfully');
@@ -374,16 +377,21 @@ export default function VehicleListNew() {
           email: '',
           phone: '',
           notes: '',
+          isActive: true,
         });
         // Refresh data
         window.location.reload();
       } else {
-        console.error('❌ Failed to create investor:', result.error);
-        window.alert(`Chyba pri vytváraní spoluinvestora: ${result.error}`);
+        console.error('❌ Failed to create investor:', result);
+        window.alert(
+          `Chyba pri vytváraní spoluinvestora: ${result.error || result.message || 'Neznáma chyba'}`
+        );
       }
     } catch (error) {
       console.error('❌ Error creating investor:', error);
-      window.alert('Chyba pri vytváraní spoluinvestora');
+      window.alert(
+        `Chyba pri vytváraní spoluinvestora: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+      );
     }
   };
 
