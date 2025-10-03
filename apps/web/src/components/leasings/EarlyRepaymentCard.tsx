@@ -15,18 +15,23 @@ interface EarlyRepaymentCardProps {
 }
 
 export function EarlyRepaymentCard({ leasing }: EarlyRepaymentCardProps) {
-  const formatMoney = (amount: number) => `${amount.toFixed(2)} €`;
+  const formatMoney = (amount: number | undefined) => {
+    if (amount === undefined || amount === null || isNaN(amount))
+      return '0.00 €';
+    return `${amount.toFixed(2)} €`;
+  };
 
   // Vypočítaj predčasné splatenie
   const calculation = calculateEarlyRepayment({
-    currentBalance: leasing.currentBalance,
-    penaltyRate: leasing.earlyRepaymentPenalty,
-    penaltyType: leasing.earlyRepaymentPenaltyType,
+    currentBalance: leasing.currentBalance || 0,
+    penaltyRate: leasing.earlyRepaymentPenalty || 0,
+    penaltyType: leasing.earlyRepaymentPenaltyType || 'percent_principal',
   });
 
   // Vypočítaj úsporu oproti normálnemu splácaniu
-  const remainingPayments =
-    leasing.remainingInstallments * (leasing.totalMonthlyPayment || 0);
+  const remainingInstallments = leasing.remainingInstallments || 0;
+  const totalMonthlyPayment = leasing.totalMonthlyPayment || 0;
+  const remainingPayments = remainingInstallments * totalMonthlyPayment;
   const savings = remainingPayments - calculation.totalAmount;
   const savingsPercentage =
     remainingPayments > 0 ? (savings / remainingPayments) * 100 : 0;

@@ -134,140 +134,152 @@ export function PaymentScheduleTable({
 
       {/* Table */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={
-                    selectedItems.length === unpaidCount && unpaidCount > 0
-                  }
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
-              <TableHead className="w-16">#</TableHead>
-              <TableHead>Splatnosť</TableHead>
-              <TableHead className="text-right">Istina</TableHead>
-              <TableHead className="text-right">Úrok</TableHead>
-              <TableHead className="text-right">Poplatok</TableHead>
-              <TableHead className="text-right">Celkom</TableHead>
-              <TableHead className="text-right">Zostatok</TableHead>
-              <TableHead className="w-24">Status</TableHead>
-              <TableHead className="w-24"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {schedule.map(item => {
-              const status = getStatus(item);
-              const isSelected = selectedItems.includes(item.installmentNumber);
+        <div className="relative overflow-auto max-h-[600px]">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+              <TableRow>
+                <TableHead className="w-12 bg-background">
+                  <Checkbox
+                    checked={
+                      selectedItems.length === unpaidCount && unpaidCount > 0
+                    }
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="w-16 bg-background">#</TableHead>
+                <TableHead className="bg-background">Splatnosť</TableHead>
+                <TableHead className="text-right bg-background">
+                  Istina
+                </TableHead>
+                <TableHead className="text-right bg-background">Úrok</TableHead>
+                <TableHead className="text-right bg-background">
+                  Poplatok
+                </TableHead>
+                <TableHead className="text-right bg-background">
+                  Celkom
+                </TableHead>
+                <TableHead className="text-right bg-background">
+                  Zostatok
+                </TableHead>
+                <TableHead className="w-24 bg-background">Status</TableHead>
+                <TableHead className="w-24 bg-background"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {schedule.map(item => {
+                const status = getStatus(item);
+                const isSelected = selectedItems.includes(
+                  item.installmentNumber
+                );
 
-              return (
-                <TableRow
-                  key={item.id}
-                  className={
-                    status === 'overdue'
-                      ? 'bg-destructive/5'
-                      : status === 'due_soon'
-                        ? 'bg-orange-50'
-                        : status === 'paid'
-                          ? 'opacity-60'
-                          : ''
-                  }
-                >
-                  <TableCell>
-                    {!item.isPaid && (
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={checked => {
-                          if (checked) {
-                            setSelectedItems([
-                              ...selectedItems,
-                              item.installmentNumber,
-                            ]);
-                          } else {
-                            setSelectedItems(
-                              selectedItems.filter(
-                                n => n !== item.installmentNumber
-                              )
-                            );
-                          }
-                        }}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {item.installmentNumber}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {formatDate(item.dueDate)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(item.principal)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(item.interest)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(item.monthlyFee)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatMoney(item.totalPayment)}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {formatMoney(item.remainingBalance)}
-                  </TableCell>
-                  <TableCell>
-                    {status === 'paid' ? (
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-100 text-green-800"
-                      >
-                        <Check className="mr-1 h-3 w-3" />
-                        Uhradené
-                      </Badge>
-                    ) : status === 'overdue' ? (
-                      <Badge variant="destructive">Po splatnosti</Badge>
-                    ) : status === 'due_soon' ? (
-                      <Badge
-                        variant="secondary"
-                        className="bg-orange-100 text-orange-800"
-                      >
-                        Čoskoro
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Plánované</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant={item.isPaid ? 'outline' : 'default'}
-                      size="sm"
-                      onClick={() => handleTogglePayment(item)}
-                      disabled={
-                        markMutation.isPending || unmarkMutation.isPending
-                      }
-                    >
-                      {item.isPaid ? (
-                        <>
-                          <X className="mr-1 h-3 w-3" />
-                          Zrušiť
-                        </>
-                      ) : (
-                        <>
-                          <Check className="mr-1 h-3 w-3" />
-                          Zaplatiť
-                        </>
+                return (
+                  <TableRow
+                    key={item.id}
+                    className={
+                      status === 'overdue'
+                        ? 'bg-destructive/5'
+                        : status === 'due_soon'
+                          ? 'bg-orange-50'
+                          : status === 'paid'
+                            ? 'opacity-60'
+                            : ''
+                    }
+                  >
+                    <TableCell>
+                      {!item.isPaid && (
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={checked => {
+                            if (checked) {
+                              setSelectedItems([
+                                ...selectedItems,
+                                item.installmentNumber,
+                              ]);
+                            } else {
+                              setSelectedItems(
+                                selectedItems.filter(
+                                  n => n !== item.installmentNumber
+                                )
+                              );
+                            }
+                          }}
+                        />
                       )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {item.installmentNumber}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {formatDate(item.dueDate)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatMoney(item.principal)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatMoney(item.interest)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatMoney(item.monthlyFee)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatMoney(item.totalPayment)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatMoney(item.remainingBalance)}
+                    </TableCell>
+                    <TableCell>
+                      {status === 'paid' ? (
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-green-800"
+                        >
+                          <Check className="mr-1 h-3 w-3" />
+                          Uhradené
+                        </Badge>
+                      ) : status === 'overdue' ? (
+                        <Badge variant="destructive">Po splatnosti</Badge>
+                      ) : status === 'due_soon' ? (
+                        <Badge
+                          variant="secondary"
+                          className="bg-orange-100 text-orange-800"
+                        >
+                          Čoskoro
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Plánované</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant={item.isPaid ? 'outline' : 'default'}
+                        size="sm"
+                        onClick={() => handleTogglePayment(item)}
+                        disabled={
+                          markMutation.isPending || unmarkMutation.isPending
+                        }
+                      >
+                        {item.isPaid ? (
+                          <>
+                            <X className="mr-1 h-3 w-3" />
+                            Zrušiť
+                          </>
+                        ) : (
+                          <>
+                            <Check className="mr-1 h-3 w-3" />
+                            Zaplatiť
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
     </div>
   );
