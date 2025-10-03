@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "apps/web/build",
+  "buildCommand": "cd /vercel/path0 && npm run build",
+  "outputDirectory": "build",
   "installCommand": "npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund",
   "rewrites": [
     {
