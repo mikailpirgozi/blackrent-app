@@ -18,7 +18,7 @@ import type { ApiResponse, Leasing, LeasingDocument, PaymentScheduleItem } from 
 
 // Inline Zod schemas (validácia)
 const createLeasingSchema = z.object({
-  vehicleId: z.string().uuid(),
+  vehicleId: z.string().min(1), // Accept string (will be stored as varchar in DB)
   leasingCompany: z.string().min(1),
   loanCategory: z.enum(['autoúver', 'operatívny_leasing', 'pôžička']),
   paymentType: z.enum(['anuita', 'lineárne', 'len_úrok']).default('anuita'),
@@ -87,14 +87,21 @@ router.get(
       // Validácia query params
       const filters = leasingFiltersSchema.parse(req.query);
       
+      console.log('🔍 GET LEASINGS REQUEST:', { filters, query: req.query });
+      
       const leasings = await postgresDatabase.getLeasings(filters);
+      
+      console.log('✅ GET LEASINGS RESPONSE:', { 
+        count: leasings.length,
+        sample: leasings[0] 
+      });
       
       res.json({
         success: true,
         data: leasings,
       });
     } catch (error) {
-      console.error('Get leasings error:', error);
+      console.error('❌ Get leasings error:', error);
       res.status(500).json({
         success: false,
         error: 'Chyba pri načítavaní leasingov',
@@ -146,11 +153,15 @@ router.post(
   checkPermission('expenses', 'create'),
   async (req: Request, res: Response<ApiResponse<Leasing>>) => {
     try {
+      console.log('🔧 POST /api/leasings - Received request body:', JSON.stringify(req.body, null, 2));
+      
       // Validácia vstupu
       const input = createLeasingSchema.parse(req.body);
+      console.log('✅ Zod validation passed');
       
       // Vytvor leasing (s automatickým generovaním payment schedule)
       const leasing = await postgresDatabase.createLeasing(input);
+      console.log('✅ Leasing created successfully:', leasing.id);
       
       // Invaliduj cache
       await invalidateCache('expenses');
@@ -161,8 +172,20 @@ router.post(
         message: 'Leasing úspešne vytvorený',
       });
     } catch (error) {
-      console.error('Create leasing error:', error);
+      console.error('❌ Create leasing error:', error);
+      console.error('❌ Request body was:', JSON.stringify(req.body, null, 2));
       
+      // Zod validation error
+      if (error && typeof error === 'object' && 'issues' in error) {
+        const zodError = error as any;
+        console.error('❌ Zod validation errors:', zodError.issues);
+        return res.status(400).json({
+          success: false,
+          error: 'Validation error: ' + zodError.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', '),
+        });
+      }
+      
+      // Generic validation error
       if (error instanceof Error && error.message.includes('validation')) {
         return res.status(400).json({
           success: false,
@@ -170,9 +193,10 @@ router.post(
         });
       }
       
+      // Database error
       res.status(500).json({
         success: false,
-        error: 'Chyba pri vytváraní leasingu',
+        error: error instanceof Error ? error.message : 'Chyba pri vytváraní leasingu',
       });
     }
   }
