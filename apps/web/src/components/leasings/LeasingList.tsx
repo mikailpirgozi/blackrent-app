@@ -3,48 +3,65 @@
  * LEASING LIST - Hlavná stránka so zoznamom leasingov
  * ===================================================================
  * Created: 2025-10-02
- * Description: Moderný zoznam leasingov s filtrovacím a dashboard
+ * Updated: 2025-10-03 - Refactored to useInfiniteLeasings
+ * Description: Moderný zoznam leasingov s infinite scroll a real-time updates
  * ===================================================================
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  useLeasings,
-  useLeasingDashboard,
-} from '@/lib/react-query/hooks/useLeasings';
-import { queryKeys } from '@/lib/react-query/queryKeys';
+import { useLeasingDashboard } from '@/lib/react-query/hooks/useLeasings';
+import { useInfiniteLeasings } from '@/hooks/useInfiniteLeasings';
 import type { LeasingFilters } from '@/types/leasing-types';
 import { LeasingDashboard } from './LeasingDashboard';
 import { LeasingFiltersForm } from './LeasingFiltersForm';
 import { LeasingCard } from './LeasingCard';
 import { LeasingForm } from './LeasingForm';
+import { logger } from '@/utils/smartLogger';
 
 export default function LeasingList() {
-  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<LeasingFilters>({});
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const { data: leasings, isLoading, refetch } = useLeasings(filters);
+  // 🚀 NEW: Use infinite scroll hook
+  const {
+    leasings,
+    loading,
+    error,
+    hasMore,
+    totalCount,
+    loadMore,
+    refresh,
+    updateFilters,
+  } = useInfiniteLeasings(filters);
+
   const { data: dashboard, refetch: refetchDashboard } = useLeasingDashboard();
 
   const handleFormSuccess = async () => {
     setIsFormOpen(false);
-    // 🔥 FORCE REFRESH: Explicitný refetch po create/update
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all }),
-      queryClient.refetchQueries({ queryKey: queryKeys.leasings.all }),
-      refetch(),
-      refetchDashboard(),
-    ]);
-    // Force re-render všetkých cards
-    setRefreshKey(prev => prev + 1);
+    // 🔥 Smart refresh - useInfiniteLeasings will handle via WebSocket events
+    await Promise.all([refresh(), refetchDashboard()]);
   };
+
+  // Handle filter updates
+  const handleFiltersChange = (newFilters: LeasingFilters) => {
+    setFilters(newFilters);
+    updateFilters(newFilters);
+  };
+
+  // Debug logging
+  useEffect(() => {
+    logger.debug('📊 LeasingList state', {
+      leasingsCount: leasings.length,
+      totalCount,
+      hasMore,
+      loading,
+      error,
+    });
+  }, [leasings.length, totalCount, hasMore, loading, error]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -52,7 +69,10 @@ export default function LeasingList() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Leasingy</h1>
-          <p className="text-muted-foreground">Evidencia leasingov vozidiel</p>
+          <p className="text-muted-foreground">
+            Evidencia leasingov vozidiel
+            {totalCount > 0 && ` (${totalCount})`}
+          </p>
         </div>
         <Button onClick={() => setIsFormOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -64,25 +84,56 @@ export default function LeasingList() {
       {dashboard && <LeasingDashboard data={dashboard} />}
 
       {/* Filters */}
-      <LeasingFiltersForm filters={filters} onFiltersChange={setFilters} />
+      <LeasingFiltersForm
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+      />
+
+      {/* Error State */}
+      {error && (
+        <Card className="p-4 border-destructive">
+          <p className="text-destructive">❌ {error}</p>
+          <Button variant="outline" onClick={refresh} className="mt-2">
+            Skúsiť znova
+          </Button>
+        </Card>
+      )}
 
       {/* Leasing List */}
       <div className="space-y-4">
-        {isLoading ? (
-          // Loading skeleton
+        {loading && leasings.length === 0 ? (
+          // Initial loading skeleton
           <>
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </>
-        ) : leasings && leasings.length > 0 ? (
+        ) : leasings.length > 0 ? (
           // Leasing cards
-          leasings.map(leasing => (
-            <LeasingCard
-              key={`${leasing.id}-${refreshKey}-${leasing.updatedAt}`}
-              leasing={leasing}
-            />
-          ))
+          <>
+            {leasings.map(leasing => (
+              <LeasingCard
+                key={`${leasing.id}-${leasing.updatedAt}`}
+                leasing={leasing}
+              />
+            ))}
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center py-4">
+                <Button variant="outline" onClick={loadMore} disabled={loading}>
+                  {loading ? 'Načítavam...' : 'Načítať ďalšie'}
+                </Button>
+              </div>
+            )}
+
+            {/* Loading more indicator */}
+            {loading && leasings.length > 0 && (
+              <div className="flex justify-center py-4">
+                <Skeleton className="h-32 w-full" />
+              </div>
+            )}
+          </>
         ) : (
           // Empty state
           <Card className="p-12 text-center">

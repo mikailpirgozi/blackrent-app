@@ -9743,6 +9743,115 @@ export class PostgresDatabase {
     return result.rows;
   }
 
+  // 🚀 NEW: Paginated leasings s filtrami
+  async getLeasingsPaginated(params: {
+    limit: number;
+    offset: number;
+    searchQuery?: string;
+    vehicleId?: string;
+    leasingCompany?: string;
+    loanCategory?: string;
+    status?: string;
+    userId?: string;
+    userRole?: string;
+  }): Promise<{ leasings: any[]; total: number }> {
+    try {
+      // Základný WHERE clause
+      const whereConditions: string[] = ['1=1'];
+      const queryParams: unknown[] = [];
+      let paramIndex = 1;
+
+      // 🔍 SEARCH filter - hľadanie v leasing company, vehicle ID, categories
+      if (params.searchQuery && params.searchQuery.trim()) {
+        const searchTerm = params.searchQuery.trim().toLowerCase();
+        
+        whereConditions.push(`(
+          LOWER(l.leasing_company) ILIKE $${paramIndex} OR
+          LOWER(l.loan_category) ILIKE $${paramIndex} OR
+          LOWER(l.vehicle_id) ILIKE $${paramIndex}
+        )`);
+        queryParams.push(`%${searchTerm}%`);
+        paramIndex++;
+      }
+
+      // Vehicle ID filter
+      if (params.vehicleId && params.vehicleId.trim()) {
+        whereConditions.push(`l.vehicle_id = $${paramIndex}`);
+        queryParams.push(params.vehicleId);
+        paramIndex++;
+      }
+
+      // Leasing company filter
+      if (params.leasingCompany && params.leasingCompany.trim()) {
+        whereConditions.push(`LOWER(l.leasing_company) ILIKE $${paramIndex}`);
+        queryParams.push(`%${params.leasingCompany.toLowerCase()}%`);
+        paramIndex++;
+      }
+
+      // Loan category filter
+      if (params.loanCategory && params.loanCategory.trim()) {
+        whereConditions.push(`l.loan_category = $${paramIndex}`);
+        queryParams.push(params.loanCategory);
+        paramIndex++;
+      }
+
+      // Status filter
+      if (params.status && params.status !== 'all') {
+        if (params.status === 'active') {
+          whereConditions.push(`l.remaining_installments > 0`);
+        } else if (params.status === 'completed') {
+          whereConditions.push(`l.remaining_installments = 0`);
+        }
+      }
+
+      // Zostav finálny WHERE string
+      const whereClause = whereConditions.join(' AND ');
+
+      // Query na celkový počet (bez LIMIT/OFFSET)
+      const countQuery = `SELECT COUNT(*) as total FROM leasings l WHERE ${whereClause}`;
+      const countResult = await this.pool.query(countQuery, queryParams);
+      const total = parseInt(countResult.rows[0]?.total || '0');
+
+      // Query na leasings s pagination
+      const dataQuery = `
+        SELECT 
+          l.id, l.vehicle_id as "vehicleId", l.leasing_company as "leasingCompany",
+          l.loan_category as "loanCategory", l.payment_type as "paymentType",
+          l.initial_loan_amount as "initialLoanAmount", l.current_balance as "currentBalance",
+          l.interest_rate as "interestRate", l.rpmn, l.monthly_payment as "monthlyPayment",
+          l.monthly_fee as "monthlyFee", l.processing_fee as "processingFee",
+          l.total_monthly_payment as "totalMonthlyPayment",
+          l.total_installments as "totalInstallments", l.remaining_installments as "remainingInstallments",
+          l.paid_installments as "paidInstallments", l.first_payment_date as "firstPaymentDate",
+          l.last_payment_date as "lastPaymentDate", l.last_paid_date as "lastPaidDate",
+          l.early_repayment_penalty as "earlyRepaymentPenalty",
+          l.early_repayment_penalty_type as "earlyRepaymentPenaltyType",
+          l.acquisition_price_without_vat as "acquisitionPriceWithoutVAT",
+          l.acquisition_price_with_vat as "acquisitionPriceWithVAT",
+          l.is_non_deductible as "isNonDeductible",
+          l.contract_document_url as "contractDocumentUrl",
+          l.payment_schedule_url as "paymentScheduleUrl",
+          l.photos_zip_url as "photosZipUrl",
+          l.created_at as "createdAt", l.updated_at as "updatedAt"
+        FROM leasings l
+        WHERE ${whereClause}
+        ORDER BY l.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      queryParams.push(params.limit, params.offset);
+      const dataResult = await this.pool.query(dataQuery, queryParams);
+
+      return {
+        leasings: dataResult.rows,
+        total,
+      };
+    } catch (error) {
+      console.error('Error in getLeasingsPaginated:', error);
+      throw error;
+    }
+  }
+
   async getLeasing(id: string): Promise<any | null> {
     const result = await this.pool.query(
       `SELECT 

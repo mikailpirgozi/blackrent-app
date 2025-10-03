@@ -288,6 +288,68 @@ export function useSystemNotifications() {
 }
 
 /**
+ * Hook pre real-time leasing updates
+ */
+export function useLeasingUpdates(
+  onLeasingChange?: (
+    type: string,
+    leasing?: unknown,
+    leasingId?: string
+  ) => void
+) {
+  const { client, addNotification } = useWebSocket();
+
+  useEffect(() => {
+    if (!client) return;
+
+    const handleLeasingCreated = (data: unknown) => {
+      logger.debug('📢 Leasing created:', data);
+      const leasingData = data as { leasing?: unknown };
+      onLeasingChange?.('created', leasingData.leasing);
+    };
+
+    const handleLeasingUpdated = (data: unknown) => {
+      logger.debug('📢 Leasing updated:', data);
+      const leasingData = data as { leasing?: unknown };
+      onLeasingChange?.('updated', leasingData.leasing);
+    };
+
+    const handleLeasingDeleted = (data: unknown) => {
+      logger.debug('📢 Leasing deleted:', data);
+      const leasingData = data as { leasingId?: string };
+      onLeasingChange?.('deleted', undefined, leasingData.leasingId);
+    };
+
+    const handlePaymentMarked = (data: unknown) => {
+      logger.debug('📢 Leasing payment marked:', data);
+      const paymentData = data as { leasingId?: string };
+      // Trigger smart refresh for specific leasing
+      if (paymentData.leasingId) {
+        window.dispatchEvent(
+          new CustomEvent('leasing-list-refresh', {
+            detail: { leasingId: paymentData.leasingId },
+          })
+        );
+      }
+    };
+
+    // Register event listeners
+    client.on('leasing:created', handleLeasingCreated);
+    client.on('leasing:updated', handleLeasingUpdated);
+    client.on('leasing:deleted', handleLeasingDeleted);
+    client.on('leasing:payment-marked', handlePaymentMarked);
+
+    return () => {
+      // Cleanup
+      client.off('leasing:created', handleLeasingCreated);
+      client.off('leasing:updated', handleLeasingUpdated);
+      client.off('leasing:deleted', handleLeasingDeleted);
+      client.off('leasing:payment-marked', handlePaymentMarked);
+    };
+  }, [client, addNotification, onLeasingChange]);
+}
+
+/**
  * Hook pre testing WebSocket funkcionalitu
  */
 export function useWebSocketTest() {

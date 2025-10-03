@@ -74,6 +74,66 @@ const router = Router();
 // ===================================================================
 
 /**
+ * GET /api/leasings/paginated - Získanie leasingov s pagination a filtrami
+ * MUST BE BEFORE / route to avoid conflicts
+ */
+router.get(
+  '/paginated',
+  authenticateToken,
+  checkPermission('expenses', 'read'),
+  async (req: Request, res: Response<ApiResponse>) => {
+    try {
+      const {
+        page = 1,
+        limit = 50,
+        searchQuery = '',
+        vehicleId = '',
+        leasingCompany = '',
+        loanCategory = '',
+        status = 'all',
+      } = req.query;
+
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Získaj paginated leasings s filtrami
+      const result = await postgresDatabase.getLeasingsPaginated({
+        limit: limitNum,
+        offset,
+        searchQuery: searchQuery as string,
+        vehicleId: vehicleId as string,
+        leasingCompany: leasingCompany as string,
+        loanCategory: loanCategory as string,
+        status: status as string,
+        userId: req.user?.id,
+        userRole: req.user?.role,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          leasings: result.leasings,
+          pagination: {
+            currentPage: pageNum,
+            totalPages: Math.ceil(result.total / limitNum),
+            totalItems: result.total,
+            hasMore: (pageNum * limitNum) < result.total,
+            itemsPerPage: limitNum,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Get paginated leasings error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri získavaní leasingov',
+      });
+    }
+  }
+);
+
+/**
  * GET /api/leasings - Získaj všetky leasingy
  * Query params: vehicleId, leasingCompany, loanCategory, status, searchQuery, page, pageSize
  */

@@ -17,6 +17,7 @@ import type {
   Vehicle,
   VehicleDocument,
 } from '../types';
+import type { Leasing } from '../types/leasing-types';
 import { logger } from '@/utils/smartLogger';
 import { getApiBaseUrl } from '@/utils/apiUrl'; // ✅ Unified API URL logic
 
@@ -899,6 +900,47 @@ class ApiService {
         hasMore: boolean;
       };
     }>(`/rentals/paginated?${queryParams.toString()}`);
+  }
+
+  // Leasings Paginated API
+  async getLeasingsPaginated(params: {
+    page: number;
+    limit: number;
+    searchQuery?: string;
+    vehicleId?: string;
+    leasingCompany?: string;
+    loanCategory?: string;
+    status?: string;
+  }): Promise<{
+    leasings: Leasing[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      hasMore: boolean;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<{
+      leasings: Leasing[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        hasMore: boolean;
+      };
+    }>(`/leasings/paginated?${queryParams.toString()}`);
+  }
+
+  // Get Single Leasing Detail
+  async getLeasing(id: string): Promise<{ leasing: Leasing }> {
+    return this.request<{ leasing: Leasing }>(`/leasings/${id}`);
   }
 
   // Bulk Protocol Status API - chýbajúca metóda

@@ -362,16 +362,28 @@ export function useCreateLeasing() {
         queryKeys.leasings.lists()
       );
 
+      // Create temporary leasing with optimistic data
+      const tempLeasing = {
+        ...newLeasing,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as Leasing;
+
       // Optimistically update - add new leasing to the start of list
       queryClient.setQueryData(
         queryKeys.leasings.lists(),
-        (old: Leasing[] = []) => [
-          { ...newLeasing, id: `temp-${Date.now()}` } as Leasing,
-          ...old,
-        ]
+        (old: Leasing[] = []) => [tempLeasing, ...old]
       );
 
-      return { previousLeasings };
+      // ⚡ DISPATCH optimistic update event for useInfiniteLeasings
+      window.dispatchEvent(
+        new CustomEvent('leasing-optimistic-update', {
+          detail: { leasing: tempLeasing, action: 'create' },
+        })
+      );
+
+      return { previousLeasings, tempLeasing };
     },
     onError: (_err, _newLeasing, context) => {
       // ↩️ ROLLBACK: Restore previous data on error
@@ -380,14 +392,32 @@ export function useCreateLeasing() {
           queryKeys.leasings.lists(),
           context.previousLeasings
         );
+
+        // Dispatch rollback event
+        if (context.tempLeasing) {
+          window.dispatchEvent(
+            new CustomEvent('leasing-optimistic-update', {
+              detail: { leasing: context.tempLeasing, action: 'rollback' },
+            })
+          );
+        }
       }
     },
     onSuccess: data => {
       logger.debug('✅ Leasing created:', data);
 
-      // Trigger WebSocket notification (if needed)
+      // ⚡ DISPATCH success event with real data
       window.dispatchEvent(
-        new CustomEvent('leasing-created', { detail: data })
+        new CustomEvent('leasing-optimistic-update', {
+          detail: { leasing: data, action: 'update' },
+        })
+      );
+
+      // Trigger smart refresh for specific leasing
+      window.dispatchEvent(
+        new CustomEvent('leasing-list-refresh', {
+          detail: { leasingId: data.id },
+        })
       );
     },
     onSettled: () => {
@@ -406,26 +436,94 @@ export function useUpdateLeasing(id: string) {
 
   return useMutation({
     mutationFn: (input: UpdateLeasingInput) => updateLeasing({ ...input, id }),
-    onSuccess: updatedLeasing => {
-      // 🔥 OPTIMISTIC UPDATE: Update leasing within LeasingDetailResponse structure
+    onMutate: async updatedData => {
+      // ⚡ OPTIMISTIC UPDATE: Cancel outgoing queries
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.leasings.detail(id),
+      });
+      await queryClient.cancelQueries({ queryKey: queryKeys.leasings.all });
+
+      // Snapshot previous values
+      const previousDetail = queryClient.getQueryData(
+        queryKeys.leasings.detail(id)
+      );
+      const previousList = queryClient.getQueryData(queryKeys.leasings.all);
+
+      // Get current leasing data from list to merge with updates
+      const currentLeasing = ((previousList as Leasing[]) || []).find(
+        l => l.id === id
+      );
+
+      // Optimistically update detail
       queryClient.setQueryData(
         queryKeys.leasings.detail(id),
         (oldData: LeasingDetailResponse | undefined) => {
-          if (!oldData) return oldData; // Don't create if doesn't exist
+          if (!oldData) return oldData;
           return {
             ...oldData,
-            leasing: updatedLeasing, // Update only the leasing part
+            leasing: { ...oldData.leasing, ...updatedData },
           };
         }
       );
 
-      // Update in list cache
+      // Optimistically update list with merged data
       queryClient.setQueryData(
         queryKeys.leasings.all,
         (oldData: Leasing[] | undefined) => {
-          if (!oldData) return [updatedLeasing];
-          return oldData.map(l => (l.id === id ? updatedLeasing : l));
+          if (!oldData) return oldData;
+          return oldData.map(l => (l.id === id ? { ...l, ...updatedData } : l));
         }
+      );
+
+      // ⚡ DISPATCH optimistic update event with MERGED data
+      const tempLeasing = currentLeasing
+        ? ({ ...currentLeasing, ...updatedData, id } as Leasing)
+        : ({ ...updatedData, id } as Leasing);
+
+      window.dispatchEvent(
+        new CustomEvent('leasing-optimistic-update', {
+          detail: { leasing: tempLeasing, action: 'update' },
+        })
+      );
+
+      return { previousDetail, previousList, tempLeasing };
+    },
+    onError: (_err, _updatedData, context) => {
+      // ↩️ ROLLBACK: Restore previous data on error
+      if (context?.previousDetail) {
+        queryClient.setQueryData(
+          queryKeys.leasings.detail(id),
+          context.previousDetail
+        );
+      }
+      if (context?.previousList) {
+        queryClient.setQueryData(queryKeys.leasings.all, context.previousList);
+      }
+
+      // Dispatch rollback event
+      if (context?.tempLeasing) {
+        window.dispatchEvent(
+          new CustomEvent('leasing-optimistic-update', {
+            detail: { leasing: context.tempLeasing, action: 'rollback' },
+          })
+        );
+      }
+    },
+    onSuccess: updatedLeasing => {
+      logger.debug('✅ Leasing updated:', updatedLeasing);
+
+      // ⚡ DISPATCH success event with real data
+      window.dispatchEvent(
+        new CustomEvent('leasing-optimistic-update', {
+          detail: { leasing: updatedLeasing, action: 'update' },
+        })
+      );
+
+      // Trigger smart refresh for specific leasing
+      window.dispatchEvent(
+        new CustomEvent('leasing-list-refresh', {
+          detail: { leasingId: updatedLeasing.id },
+        })
       );
 
       // Invalidate to refetch fresh data
@@ -455,13 +553,27 @@ export function useDeleteLeasing() {
         queryKeys.leasings.lists()
       );
 
+      // Get the leasing being deleted (for event dispatch)
+      const deletedLeasing = ((previousLeasings as Leasing[]) || []).find(
+        l => l.id === deletedId
+      );
+
       // Optimistically remove from cache IMMEDIATELY
       queryClient.setQueryData(
         queryKeys.leasings.lists(),
         (old: Leasing[] = []) => old.filter(l => l.id !== deletedId)
       );
 
-      return { previousLeasings };
+      // ⚡ DISPATCH optimistic delete event
+      if (deletedLeasing) {
+        window.dispatchEvent(
+          new CustomEvent('leasing-optimistic-update', {
+            detail: { leasing: deletedLeasing, action: 'delete' },
+          })
+        );
+      }
+
+      return { previousLeasings, deletedLeasing };
     },
     onError: (_err, _deletedId, context) => {
       // ↩️ ROLLBACK: Restore previous data on error
@@ -470,14 +582,23 @@ export function useDeleteLeasing() {
           queryKeys.leasings.lists(),
           context.previousLeasings
         );
+
+        // Dispatch rollback event
+        if (context.deletedLeasing) {
+          window.dispatchEvent(
+            new CustomEvent('leasing-optimistic-update', {
+              detail: { leasing: context.deletedLeasing, action: 'rollback' },
+            })
+          );
+        }
       }
     },
     onSuccess: (_data, deletedId) => {
       logger.debug('✅ Leasing deleted:', deletedId);
 
-      // Trigger WebSocket notification
+      // Trigger list refresh (without specific leasingId since it's deleted)
       window.dispatchEvent(
-        new CustomEvent('leasing-deleted', { detail: { id: deletedId } })
+        new CustomEvent('leasing-list-refresh', { detail: {} })
       );
     },
     onSettled: () => {
