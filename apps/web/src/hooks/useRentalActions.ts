@@ -61,7 +61,7 @@ export const useRentalActions = ({
   // Edit handler with scroll preservation
   const handleEdit = useCallback(
     (rental: Rental) => {
-      console.log('🔍 HANDLE EDIT DEBUG:', {
+      logger.debug('🔍 HANDLE EDIT DEBUG:', {
         rentalId: rental.id,
         totalPrice: rental.totalPrice,
         extraKmCharge: rental.extraKmCharge,
@@ -75,7 +75,7 @@ export const useRentalActions = ({
       if (typeof window !== 'undefined') {
         savedScrollPosition.current =
           window.pageYOffset || document.documentElement.scrollTop;
-        console.log(
+        logger.debug(
           '💾 SCROLL: Saved position before edit:',
           savedScrollPosition.current
         );
@@ -120,7 +120,7 @@ export const useRentalActions = ({
   // View rental handler (alias for edit)
   const handleViewRental = useCallback(
     (rental: Rental) => {
-      console.log('👁️ Viewing rental:', rental.id);
+      logger.debug('👁️ Viewing rental:', rental.id);
       handleEdit(rental);
     },
     [handleEdit]
@@ -131,7 +131,7 @@ export const useRentalActions = ({
     // Malé oneskorenie aby sa DOM stihol aktualizovať
     setTimeout(() => {
       if (typeof window !== 'undefined' && savedScrollPosition.current > 0) {
-        console.log(
+        logger.debug(
           '🔄 SCROLL: Restoring position:',
           savedScrollPosition.current
         );
@@ -161,7 +161,7 @@ export const useRentalActions = ({
             // Ak sa nepodarilo, skús znovu o chvíľu
             setTimeout(attemptRestore, 100);
           } else {
-            console.log('✅ SCROLL: Position restored successfully', {
+            logger.debug('✅ SCROLL: Position restored successfully', {
               saved: savedScrollPosition.current,
               current: currentPosition,
               attempts,

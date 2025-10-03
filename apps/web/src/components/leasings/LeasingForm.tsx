@@ -53,6 +53,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/smartLogger';
 
 // Zod schema pre validáciu
 const leasingFormSchema = z.object({
@@ -246,7 +247,7 @@ export function LeasingForm({
       setSelectedVehicle(l.vehicleId);
       setSelectedCompany(l.leasingCompany);
 
-      console.log('✅ Leasing data loaded for editing:', l.id);
+      logger.debug('✅ Leasing data loaded for editing:', l.id);
     }
   }, [leasingId, existingLeasing, open, setValue]);
 
@@ -272,6 +273,11 @@ export function LeasingForm({
         prevInputs.current.monthlyFee !== monthlyFee ||
         prevInputs.current.paymentType !== paymentType;
 
+      // ✅ FIX: Ak sa vstupy nezmenili, nepokračuj (zabráni nekonečnému loopu)
+      if (!inputsChanged) {
+        return;
+      }
+
       // Ulož aktuálne hodnoty pre ďalšie porovnanie
       prevInputs.current = {
         initialLoanAmount,
@@ -284,20 +290,14 @@ export function LeasingForm({
       try {
         // Ak sa zmenili vstupné parametre, RESETUJ vypočítané hodnoty
         // aby solver mohol vypočítať nové hodnoty
-        let effectiveInterestRate = interestRate;
-        let effectiveMonthlyPayment = monthlyPayment;
-
-        if (inputsChanged) {
-          // Reset vypočítaných polí pre nový prepočet
-          effectiveInterestRate = undefined;
-          effectiveMonthlyPayment = undefined;
-        }
+        const effectiveInterestRate = undefined;
+        const effectiveMonthlyPayment = undefined;
 
         const result = solveLeasingData({
           loanAmount: initialLoanAmount,
           processingFee: processingFee || 0,
-          interestRate: effectiveInterestRate || undefined,
-          monthlyPayment: effectiveMonthlyPayment || undefined,
+          interestRate: effectiveInterestRate,
+          monthlyPayment: effectiveMonthlyPayment,
           totalInstallments,
           paymentType: paymentType as PaymentType,
           monthlyFee: monthlyFee || 0,
@@ -312,38 +312,39 @@ export function LeasingForm({
             effectiveLoanAmount: result.effectiveLoanAmount,
           });
 
-          // 🎯 AUTO-FILL & AUTO-UPDATE: Automaticky vyplň a aktualizuj vypočítané hodnoty
+          // 🎯 AUTO-FILL: Automaticky vyplň vypočítané hodnoty (len raz pri zmene vstupov)
 
-          // Úroková sadzba - aktualizuj vždy keď máme vypočítanú hodnotu
+          // Úroková sadzba
           if (result.interestRate && !isNaN(result.interestRate)) {
             const newRate = Number(result.interestRate.toFixed(3));
-            // Aktualizuj len ak sa líši od aktuálnej hodnoty (zabráni nekonečnému loopu)
-            if (Math.abs((interestRate || 0) - newRate) > 0.001) {
-              setValue('interestRate', newRate, { shouldValidate: false });
-            }
+            setValue('interestRate', newRate, { shouldValidate: false });
           }
 
-          // Mesačná splátka - aktualizuj vždy keď máme vypočítanú hodnotu
+          // Mesačná splátka
           if (result.monthlyPayment && !isNaN(result.monthlyPayment)) {
             const newPayment = Number(result.monthlyPayment.toFixed(2));
-            if (Math.abs((monthlyPayment || 0) - newPayment) > 0.01) {
-              setValue('monthlyPayment', newPayment, { shouldValidate: false });
-            }
+            setValue('monthlyPayment', newPayment, { shouldValidate: false });
           }
 
-          // RPMN - aktualizuj vždy
+          // RPMN
           if (result.rpmn && !isNaN(result.rpmn)) {
             const newRpmn = Number(result.rpmn.toFixed(3));
-            if (Math.abs((rpmn || 0) - newRpmn) > 0.001) {
-              setValue('rpmn', newRpmn, { shouldValidate: false });
-            }
+            setValue('rpmn', newRpmn, { shouldValidate: false });
           }
         }
       } catch (error) {
         console.error('Calculation error:', error);
       }
     }
-  }, [watchedValues, setValue]);
+    // ✅ FIX: Sleduj len KONKRÉTNE hodnoty, nie celý watchedValues objekt
+  }, [
+    watchedValues.initialLoanAmount,
+    watchedValues.totalInstallments,
+    watchedValues.processingFee,
+    watchedValues.monthlyFee,
+    watchedValues.paymentType,
+    setValue,
+  ]);
 
   // Auto-fill penalty rate pri zmene spoločnosti
   useEffect(() => {
@@ -485,14 +486,14 @@ export function LeasingForm({
             : undefined,
       };
 
-      console.log('📝 Submitting leasing data:', input);
+      logger.debug('📝 Submitting leasing data:', input);
 
       if (leasingId) {
         await updateMutation.mutateAsync({ ...input, id: leasingId });
         toast.success('Leasing úspešne aktualizovaný');
       } else {
         const result = await createMutation.mutateAsync(input);
-        console.log('✅ Leasing created:', result);
+        logger.debug('✅ Leasing created:', result);
         toast.success('Leasing úspešne vytvorený');
       }
 

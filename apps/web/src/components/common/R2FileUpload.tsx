@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 import { getApiBaseUrl } from '../../utils/apiUrl';
+import { logger } from '@/utils/smartLogger';
 
 // Railway backend URL
 
@@ -111,21 +112,18 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    console.log('🔍 R2 FILE SELECT - Files selected:', files.length);
+    logger.debug('🔍 R2 FILE SELECT - Files selected:', files.length);
 
     setError(null);
     setUploading(true);
 
     try {
       const uploadPromises = Array.from(files).map(async file => {
-        console.log(
-          '🔍 R2 UPLOAD START - File:',
-          file.name,
-          'Type:',
-          file.type,
-          'Size:',
-          file.size
-        );
+        logger.debug('🔍 R2 UPLOAD START', {
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        });
 
         // Validácia typu súboru
         if (!acceptedTypes.includes(file.type)) {
@@ -140,9 +138,9 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
         // Automatická kompresia obrázkov
         let processedFile = file;
         if (file.type.startsWith('image/')) {
-          console.log('🔍 R2 COMPRESS - Compressing image...');
+          logger.debug('🔍 R2 COMPRESS - Compressing image...');
           processedFile = await compressImage(file);
-          console.log('🔍 R2 COMPRESS - Compressed size:', processedFile.size);
+          logger.debug('🔍 R2 COMPRESS - Compressed size:', processedFile.size);
         }
 
         // Upload do R2
@@ -154,7 +152,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           formData.append('mediaType', mediaType);
         }
 
-        console.log(
+        logger.debug(
           '🔍 R2 UPLOAD - Sending to backend:',
           `${getApiBaseUrl()}/files/upload`
         );
@@ -172,10 +170,10 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
           body: formData,
         });
 
-        console.log('🔍 R2 UPLOAD - Response status:', response.status);
+        logger.debug('🔍 R2 UPLOAD - Response status:', response.status);
 
         const data = await response.json();
-        console.log('🔍 R2 UPLOAD - Response data:', data);
+        logger.debug('🔍 R2 UPLOAD - Response data:', data);
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || 'Upload zlyhal');
@@ -185,7 +183,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       });
 
       const results = await Promise.all(uploadPromises);
-      console.log('🔍 R2 UPLOAD - All uploads completed:', results);
+      logger.debug('🔍 R2 UPLOAD - All uploads completed:', results);
 
       if (multiple) {
         setUploadedFiles(prev => [...prev, ...results]);
@@ -197,14 +195,14 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       if (onUploadSuccess) {
         if (multiple) {
           // Pre multiple súbory vráť array
-          console.log(
+          logger.debug(
             '🔍 R2 CALLBACK - Calling onUploadSuccess with multiple files:',
             results
           );
           onUploadSuccess(results);
         } else {
           // Pre single súbor vráť jeden objekt
-          console.log(
+          logger.debug(
             '🔍 R2 CALLBACK - Calling onUploadSuccess with single file:',
             results[0]
           );
@@ -296,9 +294,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       {/* Error Message */}
       {error && (
         <Alert className="mb-4 border-red-200 bg-red-50">
-          <AlertDescription className="text-red-800">
-            {error}
-          </AlertDescription>
+          <AlertDescription className="text-red-800">{error}</AlertDescription>
         </Alert>
       )}
 
@@ -316,9 +312,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
               <div className="flex items-center gap-2">
                 <span>{getFileIcon(file.mimetype)}</span>
                 <div>
-                  <div className="text-sm text-white">
-                    {file.filename}
-                  </div>
+                  <div className="text-sm text-white">{file.filename}</div>
                   <div className="text-xs text-white/70">
                     {formatFileSize(file.size)}
                   </div>

@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
 import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
@@ -9808,8 +9808,15 @@ export class PostgresDatabase {
         ]
       );
       
-      console.log('✅ Leasing created with ID:', result.rows[0].id);
-      return this.getLeasing(result.rows[0].id);
+      const leasingId = result.rows[0].id;
+      console.log('✅ Leasing created with ID:', leasingId);
+      
+      // 🔥 GENERATE PAYMENT SCHEDULE
+      console.log('📅 Generating payment schedule...');
+      await this.generatePaymentSchedule(leasingId, input);
+      console.log('✅ Payment schedule generated');
+      
+      return this.getLeasing(leasingId);
     } catch (error) {
       console.error('❌ Error creating leasing:', error);
       console.error('Input data:', JSON.stringify(input, null, 2));
@@ -9817,27 +9824,138 @@ export class PostgresDatabase {
     }
   }
 
-  async updateLeasing(id: string, input: any): Promise<any | null> {
-    const fields: string[] = [];
-    const values: any[] = [];
-    let paramIndex = 1;
-    
-    Object.entries(input).forEach(([key, value]) => {
-      if (value !== undefined) {
-        const snakeKey = key.replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`);
-        fields.push(`${snakeKey} = $${paramIndex++}`);
-        values.push(value);
-      }
+  // ===================================================================
+  // PAYMENT SCHEDULE GENERATION
+  // ===================================================================
+  
+  private async generatePaymentSchedule(leasingId: string, input: any): Promise<void> {
+    const {
+      initialLoanAmount,
+      interestRate = 0,
+      monthlyPayment,
+      totalInstallments,
+      firstPaymentDate,
+      monthlyFee = 0,
+      paymentType = 'anuita',
+    } = input;
+
+    const annualRate = interestRate / 100;
+    const monthlyRate = annualRate / 12;
+    let remainingBalance = initialLoanAmount;
+    const firstDate = new Date(firstPaymentDate);
+
+    console.log('📊 Payment Schedule Parameters:', {
+      leasingId,
+      initialLoanAmount,
+      interestRate,
+      monthlyPayment,
+      totalInstallments,
+      monthlyFee,
+      paymentType,
     });
-    
-    if (fields.length === 0) return this.getLeasing(id);
-    
-    values.push(id);
-    await this.pool.query(
-      `UPDATE leasings SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramIndex}`,
-      values
-    );
-    return this.getLeasing(id);
+
+    for (let i = 1; i <= totalInstallments; i++) {
+      const dueDate = new Date(firstDate);
+      dueDate.setMonth(dueDate.getMonth() + (i - 1));
+
+      let interest = 0;
+      let principal = 0;
+      let totalPayment = 0;
+
+      if (paymentType === 'anuita') {
+        // Anuita - rovnaké splátky
+        interest = remainingBalance * monthlyRate;
+        principal = (monthlyPayment || 0) - interest;
+        totalPayment = (monthlyPayment || 0) + monthlyFee;
+      } else if (paymentType === 'lineárne') {
+        // Lineárne - rovnaká istina
+        principal = initialLoanAmount / totalInstallments;
+        interest = remainingBalance * monthlyRate;
+        totalPayment = principal + interest + monthlyFee;
+      } else {
+        // len_úrok - len úrok, istina na konci
+        if (i < totalInstallments) {
+          interest = remainingBalance * monthlyRate;
+          principal = 0;
+        } else {
+          interest = remainingBalance * monthlyRate;
+          principal = remainingBalance;
+        }
+        totalPayment = principal + interest + monthlyFee;
+      }
+
+      remainingBalance -= principal;
+      if (remainingBalance < 0.01) remainingBalance = 0; // Avoid floating point errors
+
+      await this.pool.query(
+        `INSERT INTO payment_schedule (
+          leasing_id, installment_number, due_date, principal, interest,
+          monthly_fee, total_payment, remaining_balance, is_paid
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          leasingId,
+          i,
+          dueDate,
+          Math.round(principal * 100) / 100,
+          Math.round(interest * 100) / 100,
+          monthlyFee,
+          Math.round(totalPayment * 100) / 100,
+          Math.round(remainingBalance * 100) / 100,
+          false,
+        ]
+      );
+    }
+
+    console.log(`✅ Generated ${totalInstallments} payment schedule entries`);
+  }
+
+  async updateLeasing(id: string, input: any): Promise<any | null> {
+    try {
+      const fields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+      
+      console.log('🔧 updateLeasing called:', { id, input });
+      
+      Object.entries(input).forEach(([key, value]) => {
+        if (value !== undefined) {
+          // Special handling for known fields with acronyms
+          let snakeKey = key;
+          if (key === 'acquisitionPriceWithoutVAT') {
+            snakeKey = 'acquisition_price_without_vat';
+          } else if (key === 'acquisitionPriceWithVAT') {
+            snakeKey = 'acquisition_price_with_vat';
+          } else {
+            // Standard camelCase to snake_case conversion
+            snakeKey = key.replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`);
+          }
+          fields.push(`${snakeKey} = $${paramIndex++}`);
+          values.push(value);
+        }
+      });
+      
+      console.log('🔧 Generated SQL parts:', { fields, values });
+      
+      if (fields.length === 0) {
+        console.log('⚠️ No fields to update, returning existing leasing');
+        return this.getLeasing(id);
+      }
+      
+      values.push(id);
+      const query = `UPDATE leasings SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramIndex}`;
+      
+      console.log('🔧 Executing query:', { query, values });
+      
+      await this.pool.query(query, values);
+      
+      console.log('✅ Update query executed successfully');
+      
+      return this.getLeasing(id);
+    } catch (error) {
+      console.error('❌ updateLeasing error:', error);
+      console.error('❌ Input was:', { id, input });
+      throw error;
+    }
   }
 
   async deleteLeasing(id: string): Promise<boolean> {

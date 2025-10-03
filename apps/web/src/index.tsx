@@ -1,7 +1,9 @@
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
 import './index.css';
+import { logger } from '@/utils/smartLogger';
 // Sentry removed - using MobileLogger instead
 
 const root = ReactDOM.createRoot(
@@ -9,16 +11,15 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  // 🚀 DOČASNE VYPNUTÝ StrictMode pre auth debugging
-  // <React.StrictMode>
-  <App />
-  // </React.StrictMode>
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );
 
 // Error handling pre manifest.json
 window.addEventListener('error', event => {
   if (event.filename && event.filename.includes('manifest.json')) {
-    console.debug('⚠️ Ignoring manifest.json error - this is expected');
+    logger.debug('⚠️ Ignoring manifest.json error - this is expected');
     event.preventDefault();
   }
 });

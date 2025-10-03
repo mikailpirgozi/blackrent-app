@@ -4,6 +4,7 @@ import React from 'react';
 
 import { apiService } from '../../../services/api';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/utils/smartLogger';
 
 interface VehicleImportExportProps {
   loading: boolean;
@@ -43,7 +44,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
         try {
           // Zobraz počet riadkov na spracovanie
           const totalRows = results.data.length - 1; // -1 pre header
-          console.log(`📊 Spracovávam ${totalRows} vozidiel z CSV...`);
+          logger.debug(`📊 Spracovávam ${totalRows} vozidiel z CSV...`);
 
           // Zobraz progress dialog
           const progressDialog = window.confirm(
@@ -152,7 +153,9 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
             const commissionValue =
               fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']
                 ? parseFloat(
-                    (fieldMap['commissionValue'] || fieldMap['Provizia_hodnota']) ?? '20'
+                    (fieldMap['commissionValue'] ||
+                      fieldMap['Provizia_hodnota']) ??
+                      '20'
                   )
                 : 20;
 
@@ -184,14 +187,16 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
             batchVehicles.push(vehicleData);
           }
 
-          console.log(
+          logger.debug(
             `📦 Pripravených ${batchVehicles.length} vozidiel pre batch import`
           );
 
           // Použij batch import namiesto CSV importu
-          const result = await apiService.batchImportVehicles(batchVehicles as any[]);
+          const result = await apiService.batchImportVehicles(
+            batchVehicles as any[]
+          );
 
-          console.log('📥 CSV Import result:', result);
+          logger.debug('📥 CSV Import result:', result);
 
           // Result už obsahuje priamo dáta, nie je wrapped v success/data
           const {
@@ -251,8 +256,8 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
 
   return (
     <div className="flex gap-2">
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={handleExportCSV}
         className="text-blue-600 border-blue-600 hover:bg-blue-50 hover:border-blue-700"
       >

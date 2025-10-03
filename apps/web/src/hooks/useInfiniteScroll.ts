@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/utils/smartLogger';
 
 interface UseInfiniteScrollOptions {
   hasMore: boolean;
@@ -58,7 +59,7 @@ export function useInfiniteScroll(
           !loadingRef.current &&
           timeSinceLastTrigger > minTimeBetweenTriggers
         ) {
-          console.log(
+          logger.debug(
             `📜 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}%`
           );
           loadingRef.current = true;
@@ -271,7 +272,7 @@ export function useItemBasedInfiniteScroll(
           !loadingRef.current &&
           timeSinceLastTrigger > minTimeBetweenTriggers
         ) {
-          console.log(
+          logger.debug(
             `📜 Item-based scroll triggered: Item ${lastVisibleIndex + 1}/${totalItems} visible (trigger at ${triggerIndex + 1})`
           );
           loadingRef.current = true;

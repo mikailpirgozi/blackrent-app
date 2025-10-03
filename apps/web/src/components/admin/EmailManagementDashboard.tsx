@@ -29,11 +29,28 @@ import { Card, CardContent } from '../ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { Separator } from '../ui/separator';
-import { Table, TableBody, TableCell, TableHeader, TableRow } from '../ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
 import { Typography } from '../ui/typography';
 import { Spinner } from '../ui/spinner';
 import { useEffect, useState } from 'react';
@@ -49,6 +66,7 @@ import {
   type EmailFilters,
 } from '../../lib/react-query/hooks/useEmailManagement';
 import { apiService, getAPI_BASE_URL } from '../../services/api';
+import { logger } from '@/utils/smartLogger';
 
 interface EmailEntry {
   id: string;
@@ -106,10 +124,10 @@ interface EmailDetail {
 const EmailManagementDashboard: React.FC = () => {
   // Responsive design will be handled with Tailwind CSS classes
   // md: breakpoint for mobile, sm: for small mobile, lg: for tablet
-  
+
   // Responsive breakpoints
   const isExtraSmall = false; // sm: breakpoint
-  const isSmallMobile = false; // xs: breakpoint  
+  const isSmallMobile = false; // xs: breakpoint
   const isMobile = false; // md: breakpoint
 
   // Tabs state
@@ -146,18 +164,19 @@ const EmailManagementDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [senderFilter, setSenderFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const [totalPages] = useState(1);
   const pageSize = 20;
-  
+
   // Email filters for React Query
   const emailFilters: EmailFilters = {
-    ...(statusFilter && statusFilter !== 'all-statuses' && { status: statusFilter }),
+    ...(statusFilter &&
+      statusFilter !== 'all-statuses' && { status: statusFilter }),
     ...(senderFilter && { sender: senderFilter }),
     limit: pageSize,
     offset: (currentPage - 1) * pageSize,
   };
-  
+
   // Main emails query
   const {
     data: emails = [],
@@ -241,7 +260,7 @@ const EmailManagementDashboard: React.FC = () => {
   // View email detail
   const viewEmailDetail = async (emailId: string) => {
     try {
-      console.log('🔍 Loading email detail for:', emailId);
+      logger.debug('🔍 Loading email detail for:', emailId);
       const token =
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
@@ -258,7 +277,7 @@ const EmailManagementDashboard: React.FC = () => {
       );
 
       const response = await directResponse.json();
-      console.log('📧 Email detail response:', response);
+      logger.debug('📧 Email detail response:', response);
 
       if (response.success && response.data) {
         setViewDialog({ open: true, email: response.data });
@@ -449,7 +468,7 @@ const EmailManagementDashboard: React.FC = () => {
       );
 
       const response = await directResponse.json();
-      console.log('🧪 IMAP Test result:', response);
+      logger.debug('🧪 IMAP Test result:', response);
 
       if (response.success && response.data && response.data.connected) {
         setSuccess('✅ IMAP pripojenie úspešné!');
@@ -482,7 +501,7 @@ const EmailManagementDashboard: React.FC = () => {
       );
 
       const response = await directResponse.json();
-      console.log('▶️ IMAP Start result:', response);
+      logger.debug('▶️ IMAP Start result:', response);
 
       setSuccess('▶️ IMAP monitoring spustený!');
       refetchImapStatus(); // Refresh status
@@ -512,7 +531,7 @@ const EmailManagementDashboard: React.FC = () => {
       );
 
       const response = await directResponse.json();
-      console.log('⏹️ IMAP Stop result:', response);
+      logger.debug('⏹️ IMAP Stop result:', response);
 
       setSuccess('⏹️ IMAP monitoring zastavený!');
       refetchImapStatus(); // Refresh status
@@ -741,7 +760,7 @@ const EmailManagementDashboard: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    console.log('🚀 EMAIL DASHBOARD useEffect triggered', {
+    logger.debug('🚀 EMAIL DASHBOARD useEffect triggered', {
       currentPage,
       statusFilter,
       senderFilter,
@@ -779,19 +798,29 @@ const EmailManagementDashboard: React.FC = () => {
       return status;
     };
 
-    return <Badge variant={getColor()} className="text-sm">{getLabel()}</Badge>;
+    return (
+      <Badge variant={getColor()} className="text-sm">
+        {getLabel()}
+      </Badge>
+    );
   };
 
   return (
-    <div className={`p-${isExtraSmall ? '1' : isSmallMobile ? '2' : '3'} min-h-screen bg-background`}>
-      <div className={`flex justify-between items-${isMobile ? 'start' : 'center'} mb-3 flex-${isSmallMobile ? 'col' : 'row'} gap-${isSmallMobile ? '2' : '0'}`}>
+    <div
+      className={`p-${isExtraSmall ? '1' : isSmallMobile ? '2' : '3'} min-h-screen bg-background`}
+    >
+      <div
+        className={`flex justify-between items-${isMobile ? 'start' : 'center'} mb-3 flex-${isSmallMobile ? 'col' : 'row'} gap-${isSmallMobile ? '2' : '0'}`}
+      >
         <Typography
           variant={isExtraSmall ? 'h5' : isSmallMobile ? 'h4' : 'h4'}
           className={`${!isSmallMobile ? 'mb-4' : ''} text-${isExtraSmall ? 'xl' : isSmallMobile ? '2xl' : '2xl'} text-${isSmallMobile ? 'center' : 'left'} ${isSmallMobile ? 'w-full' : 'w-auto'}`}
         >
           📧 Email Management Dashboard
         </Typography>
-        <div className={`flex gap-${isExtraSmall ? '0.5' : '1'} items-center flex-${isMobile ? 'wrap' : 'nowrap'} justify-${isSmallMobile ? 'center' : 'end'} ${isSmallMobile ? 'w-full' : 'w-auto'}`}>
+        <div
+          className={`flex gap-${isExtraSmall ? '0.5' : '1'} items-center flex-${isMobile ? 'wrap' : 'nowrap'} justify-${isSmallMobile ? 'center' : 'end'} ${isSmallMobile ? 'w-full' : 'w-auto'}`}
+        >
           {/* IMAP Status Chip */}
           {imapStatus && (
             <Badge
@@ -847,7 +876,9 @@ const EmailManagementDashboard: React.FC = () => {
                         disabled={imapLoading}
                         className={`min-w-auto px-${isExtraSmall ? '0.5' : '1'} text-${isExtraSmall ? 'xs' : 'sm'} bg-green-50 border-green-200 text-green-700 hover:bg-green-100`}
                       >
-                        {!isExtraSmall && <StartIcon className="w-4 h-4 mr-1" />}
+                        {!isExtraSmall && (
+                          <StartIcon className="w-4 h-4 mr-1" />
+                        )}
                         {isExtraSmall ? 'S' : 'Spusiť'}
                       </Button>
                     </TooltipTrigger>
@@ -901,7 +932,7 @@ const EmailManagementDashboard: React.FC = () => {
         <Alert variant="destructive" className="mb-2">
           <AlertDescription>
             {error}
-            <button 
+            <button
               onClick={() => setError(null)}
               className="ml-2 text-sm underline"
             >
@@ -915,7 +946,7 @@ const EmailManagementDashboard: React.FC = () => {
         <Alert className="mb-2">
           <AlertDescription>
             {success}
-            <button 
+            <button
               onClick={() => setSuccess(null)}
               className="ml-2 text-sm underline"
             >
@@ -927,10 +958,16 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Statistics Cards */}
       {stats && (
-        <div className={`grid grid-cols-2 md:grid-cols-4 gap-${isExtraSmall ? '1' : isMobile ? '2' : '3'} mb-3`}>
+        <div
+          className={`grid grid-cols-2 md:grid-cols-4 gap-${isExtraSmall ? '1' : isMobile ? '2' : '3'} mb-3`}
+        >
           <div className="col-span-1">
-            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
-              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
+            <Card
+              className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}
+            >
+              <CardContent
+                className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}
+              >
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
                   className={`text-primary text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
@@ -947,8 +984,12 @@ const EmailManagementDashboard: React.FC = () => {
             </Card>
           </div>
           <div className="col-span-1">
-            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
-              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
+            <Card
+              className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}
+            >
+              <CardContent
+                className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}
+              >
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
                   className={`text-green-600 text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
@@ -966,8 +1007,12 @@ const EmailManagementDashboard: React.FC = () => {
             </Card>
           </div>
           <div className="col-span-1">
-            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
-              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
+            <Card
+              className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}
+            >
+              <CardContent
+                className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}
+              >
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
                   className={`text-red-600 text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
@@ -985,8 +1030,12 @@ const EmailManagementDashboard: React.FC = () => {
             </Card>
           </div>
           <div className="col-span-1">
-            <Card className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}>
-              <CardContent className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}>
+            <Card
+              className={`h-full min-h-${isExtraSmall ? '20' : '25'} transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md`}
+            >
+              <CardContent
+                className={`p-${isExtraSmall ? '1' : isMobile ? '1.5' : '2'} flex flex-col justify-center items-center text-center`}
+              >
                 <Typography
                   variant={isExtraSmall ? 'caption' : isMobile ? 'body2' : 'h6'}
                   className={`text-yellow-600 text-${isExtraSmall ? 'xs' : isMobile ? 'sm' : 'base'} mb-0.5 font-medium`}
@@ -1009,16 +1058,22 @@ const EmailManagementDashboard: React.FC = () => {
       {/* IMAP Configuration Info */}
       {imapStatus && (
         <Card className="mb-6">
-          <CardContent className={isExtraSmall ? "p-4" : "p-6"}>
-                <h3 className={`${isSmallMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4 ${isExtraSmall ? 'text-base' : ''} ${isSmallMobile ? 'text-center' : 'text-left'}`}>
-                  📧 IMAP Konfigurácia
-                </h3>
-            <div className={`grid grid-cols-1 gap-${isSmallMobile ? '4' : '4'}`}>
+          <CardContent className={isExtraSmall ? 'p-4' : 'p-6'}>
+            <h3
+              className={`${isSmallMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4 ${isExtraSmall ? 'text-base' : ''} ${isSmallMobile ? 'text-center' : 'text-left'}`}
+            >
+              📧 IMAP Konfigurácia
+            </h3>
+            <div
+              className={`grid grid-cols-1 gap-${isSmallMobile ? '4' : '4'}`}
+            >
               <div className="col-span-1">
                 <div
                   className={`flex items-center gap-2 ${isSmallMobile ? 'justify-center' : 'justify-start'} ${isExtraSmall ? 'flex-col' : 'flex-row'}`}
                 >
-                  <p className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''}`}>
+                  <p
+                    className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''}`}
+                  >
                     Status:
                   </p>
                   <Badge
@@ -1041,7 +1096,9 @@ const EmailManagementDashboard: React.FC = () => {
               </div>
               <div className="col-span-1">
                 <div className={isSmallMobile ? 'text-center' : 'text-left'}>
-                  <p className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''} break-words`}>
+                  <p
+                    className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''} break-words`}
+                  >
                     Server:{' '}
                     <strong>
                       {imapStatus.config?.host || 'Nekonfigurovaný'}
@@ -1051,7 +1108,9 @@ const EmailManagementDashboard: React.FC = () => {
               </div>
               <div className="col-span-12 md:col-span-4">
                 <div className={isSmallMobile ? 'text-center' : 'text-left'}>
-                  <p className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''} break-words`}>
+                  <p
+                    className={`text-sm text-muted-foreground ${isExtraSmall ? 'text-sm' : ''} break-words`}
+                  >
                     Používateľ:{' '}
                     <strong>
                       {imapStatus.config?.user || 'Nekonfigurovaný'}
@@ -1072,16 +1131,26 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Filters */}
       <Card className="mb-3">
-        <CardContent className={`p-${isExtraSmall ? '2' : isMobile ? '2' : '3'}`}>
-          <h3 className={`mb-4 text-${isExtraSmall ? 'base' : 'lg'} text-${isSmallMobile ? 'center' : 'left'} font-semibold`}>
+        <CardContent
+          className={`p-${isExtraSmall ? '2' : isMobile ? '2' : '3'}`}
+        >
+          <h3
+            className={`mb-4 text-${isExtraSmall ? 'base' : 'lg'} text-${isSmallMobile ? 'center' : 'left'} font-semibold`}
+          >
             🔍 Filtre
           </h3>
-          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-${isExtraSmall ? '1.5' : isMobile ? '2' : '2'}`}>
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-${isExtraSmall ? '1.5' : isMobile ? '2' : '2'}`}
+          >
             <div className="col-span-1">
               <div className="space-y-2">
-                <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>Status</Label>
+                <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>
+                  Status
+                </Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className={`text-${isExtraSmall ? 'sm' : 'base'}`}>
+                  <SelectTrigger
+                    className={`text-${isExtraSmall ? 'sm' : 'base'}`}
+                  >
                     <SelectValue placeholder="Vyberte status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1096,10 +1165,14 @@ const EmailManagementDashboard: React.FC = () => {
             </div>
             <div className="col-span-1">
               <div className="space-y-2">
-                <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>Odosielateľ</Label>
+                <Label className={`text-${isExtraSmall ? 'sm' : 'base'}`}>
+                  Odosielateľ
+                </Label>
                 <Input
                   value={senderFilter}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSenderFilter(e.target.value)}
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setSenderFilter(e.target.value)}
                   placeholder={
                     isExtraSmall ? 'Hľadať...' : 'Hľadať podľa odosielateľa...'
                   }
@@ -1126,9 +1199,18 @@ const EmailManagementDashboard: React.FC = () => {
 
       {/* Tabs Navigation */}
       <div className="border-b border-border mb-3 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300">
-        <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="w-full">
-          <TabsList className={`grid w-full grid-cols-3 min-h-${isExtraSmall ? '10' : '12'}`}>
-            <TabsTrigger value="0" className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}>
+        <Tabs
+          value={activeTab.toString()}
+          onValueChange={value => setActiveTab(parseInt(value))}
+          className="w-full"
+        >
+          <TabsList
+            className={`grid w-full grid-cols-3 min-h-${isExtraSmall ? '10' : '12'}`}
+          >
+            <TabsTrigger
+              value="0"
+              className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}
+            >
               {!isExtraSmall && <EmailIcon className="w-4 h-4 mr-1" />}
               {isExtraSmall
                 ? 'Emaily'
@@ -1136,7 +1218,10 @@ const EmailManagementDashboard: React.FC = () => {
                   ? 'História'
                   : 'História Emailov'}
             </TabsTrigger>
-            <TabsTrigger value="1" className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}>
+            <TabsTrigger
+              value="1"
+              className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}
+            >
               <div className="flex items-center gap-1">
                 {!isExtraSmall && <PendingIcon className="w-4 h-4 mr-1" />}
                 <span>
@@ -1153,7 +1238,10 @@ const EmailManagementDashboard: React.FC = () => {
                 )}
               </div>
             </TabsTrigger>
-            <TabsTrigger value="2" className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}>
+            <TabsTrigger
+              value="2"
+              className={`text-${isExtraSmall ? 'xs' : isSmallMobile ? 'sm' : 'base'}`}
+            >
               <div className="flex items-center gap-1">
                 {!isExtraSmall && <ArchiveIcon className="w-4 h-4 mr-1" />}
                 <span>
@@ -1209,9 +1297,7 @@ const EmailManagementDashboard: React.FC = () => {
                           {/* Sender and Date */}
                           <div className="flex justify-between items-center mb-4">
                             <div className="flex items-center gap-2">
-                              <Avatar
-                                className="w-6 h-6 text-xs bg-primary text-primary-foreground"
-                              >
+                              <Avatar className="w-6 h-6 text-xs bg-primary text-primary-foreground">
                                 {email.sender.charAt(0).toUpperCase()}
                               </Avatar>
                               <p className="text-sm text-muted-foreground">
@@ -1230,10 +1316,7 @@ const EmailManagementDashboard: React.FC = () => {
                           {/* Order Number */}
                           {email.order_number && (
                             <div className="mb-4">
-                              <Badge
-                                variant="outline"
-                                className="text-xs"
-                              >
+                              <Badge variant="outline" className="text-xs">
                                 📋 {email.order_number}
                               </Badge>
                             </div>
@@ -1297,12 +1380,18 @@ const EmailManagementDashboard: React.FC = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableCell className="min-w-[200px]">Predmet</TableCell>
+                          <TableCell className="min-w-[200px]">
+                            Predmet
+                          </TableCell>
                           <TableCell className="min-w-[150px]">
                             Odosielateľ
                           </TableCell>
-                          <TableCell className="min-w-[120px]">Prijaté</TableCell>
-                          <TableCell className="min-w-[100px]">Status</TableCell>
+                          <TableCell className="min-w-[120px]">
+                            Prijaté
+                          </TableCell>
+                          <TableCell className="min-w-[100px]">
+                            Status
+                          </TableCell>
                           <TableCell className="min-w-[120px]">
                             Objednávka
                           </TableCell>
@@ -1311,7 +1400,10 @@ const EmailManagementDashboard: React.FC = () => {
                       </TableHeader>
                       <TableBody>
                         {typedEmails.map(email => (
-                          <TableRow key={email.id} className="hover:bg-muted/50">
+                          <TableRow
+                            key={email.id}
+                            className="hover:bg-muted/50"
+                          >
                             <TableCell>
                               <p className="max-w-[250px] overflow-hidden text-ellipsis line-clamp-2">
                                 {email.subject}
@@ -1334,9 +1426,7 @@ const EmailManagementDashboard: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               {email.order_number ? (
-                                <Badge
-                                  variant="outline"
-                                >
+                                <Badge variant="outline">
                                   {email.order_number}
                                 </Badge>
                               ) : (
@@ -1447,7 +1537,9 @@ const EmailManagementDashboard: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        onClick={() =>
+                          setCurrentPage(Math.max(1, currentPage - 1))
+                        }
                         disabled={currentPage === 1}
                       >
                         Predchádzajúca
@@ -1458,7 +1550,9 @@ const EmailManagementDashboard: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        onClick={() =>
+                          setCurrentPage(Math.min(totalPages, currentPage + 1))
+                        }
                         disabled={currentPage === totalPages}
                       >
                         Ďalšia
@@ -1517,13 +1611,13 @@ const EmailManagementDashboard: React.FC = () => {
                             <div className="flex justify-between items-start mb-4">
                               <div>
                                 <div className="flex items-center gap-2">
-                                    <CarIcon className="text-primary" />
-                                    <span className="text-lg font-semibold">
-                                      {rental.vehicleName || 'Neznáme vozidlo'}
-                                    </span>
-                                    <Badge variant="outline" className="text-xs">
-                                      {rental.vehicleCode}
-                                    </Badge>
+                                  <CarIcon className="text-primary" />
+                                  <span className="text-lg font-semibold">
+                                    {rental.vehicleName || 'Neznáme vozidlo'}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {rental.vehicleCode}
+                                  </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <PersonIcon className="w-4 h-4" />
@@ -1536,18 +1630,18 @@ const EmailManagementDashboard: React.FC = () => {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
-                                    variant="ghost"
-                                    onClick={() =>
-                                      handleApproveRental(rental.id)
-                                    }
-                                    disabled={actionLoading === rental.id}
-                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                  >
-                                    {actionLoading === rental.id ? (
-                                      <Spinner className="w-5 h-5" />
-                                    ) : (
-                                      <ApproveIcon className="h-4 w-4" />
-                                    )}
+                                      variant="ghost"
+                                      onClick={() =>
+                                        handleApproveRental(rental.id)
+                                      }
+                                      disabled={actionLoading === rental.id}
+                                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                    >
+                                      {actionLoading === rental.id ? (
+                                        <Spinner className="w-5 h-5" />
+                                      ) : (
+                                        <ApproveIcon className="h-4 w-4" />
+                                      )}
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1557,19 +1651,19 @@ const EmailManagementDashboard: React.FC = () => {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
-                                    variant="ghost"
-                                    onClick={() =>
-                                      setRejectDialog({
-                                        open: true,
-                                        emailId: rental.id,
-                                        isRental: true,
-                                      })
-                                    }
-                                    disabled={actionLoading === rental.id}
-                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                  >
-                                    <RejectIcon className="h-4 w-4" />
-                                  </Button>
+                                      variant="ghost"
+                                      onClick={() =>
+                                        setRejectDialog({
+                                          open: true,
+                                          emailId: rental.id,
+                                          isRental: true,
+                                        })
+                                      }
+                                      disabled={actionLoading === rental.id}
+                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                    >
+                                      <RejectIcon className="h-4 w-4" />
+                                    </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Zamietnuť</p>
@@ -1634,7 +1728,9 @@ const EmailManagementDashboard: React.FC = () => {
                             </div>
 
                             {/* Expanded Details */}
-                            <div className={`transition-all duration-300 ${expandedRentals.has(rental.id) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                            <div
+                              className={`transition-all duration-300 ${expandedRentals.has(rental.id) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}
+                            >
                               <Separator className="mb-2" />
                               <div className="grid grid-cols-1 gap-4">
                                 <div className="col-span-12 sm:col-span-6">
@@ -1683,11 +1779,17 @@ const EmailManagementDashboard: React.FC = () => {
       <TabsContent value="2">
         <Card>
           <CardContent>
-            <div className={`flex justify-between items-${isMobile ? 'start' : 'center'} mb-6 flex-${isMobile ? 'col' : 'row'} gap-${isMobile ? '2' : '0'}`}>
-              <h3 className={`text-lg font-semibold ${isMobile ? 'mb-4' : 'mb-0'}`}>
+            <div
+              className={`flex justify-between items-${isMobile ? 'start' : 'center'} mb-6 flex-${isMobile ? 'col' : 'row'} gap-${isMobile ? '2' : '0'}`}
+            >
+              <h3
+                className={`text-lg font-semibold ${isMobile ? 'mb-4' : 'mb-0'}`}
+              >
                 📁 Archív emailov ({archivePagination.total})
               </h3>
-              <div className={`flex gap-2 flex-wrap justify-${isMobile ? 'center' : 'end'}`}>
+              <div
+                className={`flex gap-2 flex-wrap justify-${isMobile ? 'center' : 'end'}`}
+              >
                 <Button
                   variant="outline"
                   onClick={() => fetchArchivedEmails(0)}
@@ -1787,10 +1889,7 @@ const EmailManagementDashboard: React.FC = () => {
                           {/* Order Number */}
                           {email.order_number && (
                             <div className="mb-4">
-                              <Badge
-                                variant="outline"
-                                className="text-xs"
-                              >
+                              <Badge variant="outline" className="text-xs">
                                 📋 {email.order_number}
                               </Badge>
                             </div>
@@ -1827,14 +1926,18 @@ const EmailManagementDashboard: React.FC = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableCell className="min-w-[200px]">Predmet</TableCell>
+                          <TableCell className="min-w-[200px]">
+                            Predmet
+                          </TableCell>
                           <TableCell className="min-w-[150px]">
                             Odosielateľ
                           </TableCell>
                           <TableCell className="min-w-[120px]">
                             Archivované
                           </TableCell>
-                          <TableCell className="min-w-[100px]">Status</TableCell>
+                          <TableCell className="min-w-[100px]">
+                            Status
+                          </TableCell>
                           <TableCell className="min-w-[120px]">
                             Objednávka
                           </TableCell>
@@ -1843,7 +1946,10 @@ const EmailManagementDashboard: React.FC = () => {
                       </TableHeader>
                       <TableBody>
                         {archivedEmails.map(email => (
-                          <TableRow key={email.id} className="hover:bg-muted/50">
+                          <TableRow
+                            key={email.id}
+                            className="hover:bg-muted/50"
+                          >
                             <TableCell>
                               <p className="max-w-[250px] overflow-hidden text-ellipsis line-clamp-2">
                                 {email.subject}
@@ -1866,9 +1972,7 @@ const EmailManagementDashboard: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               {email.order_number ? (
-                                <Badge
-                                  variant="outline"
-                                >
+                                <Badge variant="outline">
                                   {email.order_number}
                                 </Badge>
                               ) : (
@@ -1924,7 +2028,10 @@ const EmailManagementDashboard: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const newOffset = Math.max(0, archivePagination.offset - archivePagination.limit);
+                          const newOffset = Math.max(
+                            0,
+                            archivePagination.offset - archivePagination.limit
+                          );
                           fetchArchivedEmails(newOffset);
                         }}
                         disabled={archivePagination.offset === 0}
@@ -1932,16 +2039,27 @@ const EmailManagementDashboard: React.FC = () => {
                         Predchádzajúca
                       </Button>
                       <span className="text-sm">
-                        Strana {Math.floor(archivePagination.offset / archivePagination.limit) + 1} z {Math.ceil(archivePagination.total / archivePagination.limit)}
+                        Strana{' '}
+                        {Math.floor(
+                          archivePagination.offset / archivePagination.limit
+                        ) + 1}{' '}
+                        z{' '}
+                        {Math.ceil(
+                          archivePagination.total / archivePagination.limit
+                        )}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const newOffset = archivePagination.offset + archivePagination.limit;
+                          const newOffset =
+                            archivePagination.offset + archivePagination.limit;
                           fetchArchivedEmails(newOffset);
                         }}
-                        disabled={archivePagination.offset + archivePagination.limit >= archivePagination.total}
+                        disabled={
+                          archivePagination.offset + archivePagination.limit >=
+                          archivePagination.total
+                        }
                       >
                         Ďalšia
                       </Button>
@@ -1957,12 +2075,18 @@ const EmailManagementDashboard: React.FC = () => {
       {/* View Email Dialog */}
       <Dialog
         open={viewDialog.open}
-        onOpenChange={(open) => !open && setViewDialog({ open: false, email: null })}
+        onOpenChange={open =>
+          !open && setViewDialog({ open: false, email: null })
+        }
       >
         <DialogTitle className={isExtraSmall ? 'text-lg p-4' : 'p-6'}>
           <div className="flex items-center gap-2">
-            <EmailIcon className={isExtraSmall ? "w-5 h-5" : "w-6 h-6"} />
-            <span className={isExtraSmall ? "text-lg font-semibold" : "text-xl font-semibold"}>
+            <EmailIcon className={isExtraSmall ? 'w-5 h-5' : 'w-6 h-6'} />
+            <span
+              className={
+                isExtraSmall ? 'text-lg font-semibold' : 'text-xl font-semibold'
+              }
+            >
               {isExtraSmall ? 'Detail' : 'Email Detail'}
             </span>
           </div>
@@ -1970,10 +2094,14 @@ const EmailManagementDashboard: React.FC = () => {
         <DialogContent className={isExtraSmall ? 'p-4' : 'p-6'}>
           {viewDialog.email && (
             <div>
-              <h4 className={`${isExtraSmall ? 'text-base' : 'text-lg'} font-semibold mb-4 break-words`}>
+              <h4
+                className={`${isExtraSmall ? 'text-base' : 'text-lg'} font-semibold mb-4 break-words`}
+              >
                 {viewDialog.email.email.subject}
               </h4>
-              <p className={`text-sm text-muted-foreground mb-4 break-words ${isExtraSmall ? 'text-xs' : ''}`}>
+              <p
+                className={`text-sm text-muted-foreground mb-4 break-words ${isExtraSmall ? 'text-xs' : ''}`}
+              >
                 Od: {viewDialog.email.email.sender} |{' '}
                 {new Date(viewDialog.email.email.received_at).toLocaleString(
                   'sk'
@@ -1987,9 +2115,7 @@ const EmailManagementDashboard: React.FC = () => {
 
               {viewDialog.email.email.email_content && (
                 <div className="mt-2">
-                  <h5 className="text-sm font-semibold mb-2">
-                    Obsah emailu:
-                  </h5>
+                  <h5 className="text-sm font-semibold mb-2">Obsah emailu:</h5>
                   <div className="p-2 max-h-48 overflow-auto border rounded-lg bg-card">
                     <p className="text-sm whitespace-pre-wrap">
                       {viewDialog.email.email.email_content.substring(0, 1000)}
@@ -2024,7 +2150,10 @@ const EmailManagementDashboard: React.FC = () => {
                       História akcií:
                     </h5>
                     {viewDialog.email.actions.map(action => (
-                      <div key={action.id} className="flex justify-between py-1">
+                      <div
+                        key={action.id}
+                        className="flex justify-between py-1"
+                      >
                         <p className="text-sm">
                           {action.action} - {action.username}
                         </p>
@@ -2048,10 +2177,17 @@ const EmailManagementDashboard: React.FC = () => {
       {/* Reject Dialog */}
       <Dialog
         open={rejectDialog.open}
-        onOpenChange={(open) => !open && setRejectDialog({ open: false, emailId: null, isRental: false })}
+        onOpenChange={open =>
+          !open &&
+          setRejectDialog({ open: false, emailId: null, isRental: false })
+        }
       >
         <DialogTitle className={isExtraSmall ? 'text-lg p-4' : 'p-6'}>
-          <span className={isExtraSmall ? 'text-lg font-semibold' : 'text-xl font-semibold'}>
+          <span
+            className={
+              isExtraSmall ? 'text-lg font-semibold' : 'text-xl font-semibold'
+            }
+          >
             {rejectDialog.isRental
               ? isExtraSmall
                 ? 'Zamietnuť'
@@ -2068,13 +2204,17 @@ const EmailManagementDashboard: React.FC = () => {
             </Label>
             <textarea
               value={rejectReason}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setRejectReason(e.target.value)}
+              onChange={(
+                e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+              ) => setRejectReason(e.target.value)}
               rows={isExtraSmall ? 2 : 3}
               className={`w-full px-3 py-2 border border-input bg-background rounded-md resize-none ${isExtraSmall ? 'text-sm' : 'text-base'} focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent`}
             />
           </div>
         </DialogContent>
-        <DialogFooter className={`${isExtraSmall ? 'p-4 gap-2' : 'p-6 gap-4'} flex justify-end`}>
+        <DialogFooter
+          className={`${isExtraSmall ? 'p-4 gap-2' : 'p-6 gap-4'} flex justify-end`}
+        >
           <Button
             onClick={() =>
               setRejectDialog({ open: false, emailId: null, isRental: false })

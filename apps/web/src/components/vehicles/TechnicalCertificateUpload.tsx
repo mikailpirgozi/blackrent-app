@@ -25,6 +25,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { VehicleDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import R2FileUpload from '../common/R2FileUpload';
+import { logger } from '@/utils/smartLogger';
 
 interface TechnicalCertificateUploadProps {
   vehicleId: string;
@@ -59,7 +60,7 @@ export default function TechnicalCertificateUpload({
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
 
-      console.log('📄 Loading technical certificates for vehicle:', vehicleId);
+      logger.debug('📄 Loading technical certificates for vehicle:', vehicleId);
 
       const response = await fetch(
         `${getApiBaseUrl()}/vehicle-documents?vehicleId=${vehicleId}`,
@@ -99,7 +100,7 @@ export default function TechnicalCertificateUpload({
       | { url: string; key: string; filename: string }
       | { url: string; key: string; filename: string }[]
   ) => {
-    console.log('📄 Technical certificates uploaded successfully:', fileData);
+    logger.debug('📄 Technical certificates uploaded successfully:', fileData);
 
     if (Array.isArray(fileData)) {
       setUploadedFiles(prev => [...prev, ...fileData]);
@@ -120,7 +121,7 @@ export default function TechnicalCertificateUpload({
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
 
-      console.log('📄 Saving technical certificates:', {
+      logger.debug('📄 Saving technical certificates:', {
         vehicleId,
         documentName: uploadData.documentName,
         fileCount: uploadedFiles.length,
@@ -159,7 +160,7 @@ export default function TechnicalCertificateUpload({
       const successfulSaves = results.filter(result => result.success);
 
       if (successfulSaves.length === uploadedFiles.length) {
-        console.log('✅ All technical certificates saved successfully');
+        logger.debug('✅ All technical certificates saved successfully');
         setUploadDialogOpen(false);
         setUploadData({ documentName: '', notes: '' });
         setUploadedFiles([]);
@@ -200,7 +201,7 @@ export default function TechnicalCertificateUpload({
       const result = await response.json();
 
       if (result.success) {
-        console.log('✅ Technical certificate deleted successfully');
+        logger.debug('✅ Technical certificate deleted successfully');
         loadTechnicalCertificates();
       } else {
         console.error('Error deleting technical certificate:', result.error);

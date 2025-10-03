@@ -4,6 +4,8 @@
  * Utilities pre optimalizáciu a transformáciu obrázkov
  */
 
+import { logger } from './smartLogger';
+
 /**
  * Generuje rôzne kvalitné verzie URL obrázka
  */
@@ -263,7 +265,7 @@ export const ImagePerformanceMonitor = {
 
   onImageLoad: (url: string, loadTime: number) => {
     ImagePerformanceMonitor.loadedImages++;
-    console.log(`🖼️ Image loaded: ${url} (${loadTime.toFixed(2)}ms)`);
+    logger.debug(`🖼️ Image loaded: ${url} (${loadTime.toFixed(2)}ms)`);
   },
 
   onImageError: (url: string, error: unknown) => {

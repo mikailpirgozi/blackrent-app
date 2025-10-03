@@ -20,6 +20,7 @@ import type {
 } from '@/types/leasing-types';
 import { getApiBaseUrl } from '@/utils/apiUrl';
 import { queryKeys } from '../queryKeys';
+import { logger } from '@/utils/smartLogger';
 
 // ===================================================================
 // API BASE URL
@@ -42,7 +43,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
   if (filters?.searchQuery) params.append('searchQuery', filters.searchQuery);
 
   const url = `${getApiBase()}?${params.toString()}`;
-  console.log('🔍 FETCHING LEASINGS:', url);
+  logger.debug('🔍 FETCHING LEASINGS:', url);
 
   const response = await fetch(url, {
     headers: {
@@ -50,7 +51,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
     },
   });
 
-  console.log('📡 LEASINGS Response:', {
+  logger.debug('📡 LEASINGS Response:', {
     ok: response.ok,
     status: response.status,
     url,
@@ -59,7 +60,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
   if (!response.ok) throw new Error('Failed to fetch leasings');
   const data = await response.json();
 
-  console.log('📊 LEASINGS Data:', {
+  logger.debug('📊 LEASINGS Data:', {
     count: data.data?.length,
     sample: data.data?.[0],
     fullResponse: data,
@@ -115,7 +116,7 @@ async function fetchDashboard(): Promise<LeasingDashboard> {
 
 async function createLeasing(input: CreateLeasingInput): Promise<Leasing> {
   const apiBase = getApiBase();
-  console.log('📤 API Request:', apiBase, input);
+  logger.debug('📤 API Request:', { apiBase, input });
 
   const response = await fetch(apiBase, {
     method: 'POST',
@@ -126,7 +127,7 @@ async function createLeasing(input: CreateLeasingInput): Promise<Leasing> {
     body: JSON.stringify(input),
   });
 
-  console.log('📥 API Response status:', response.status);
+  logger.debug('📥 API Response status:', response.status);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -137,24 +138,45 @@ async function createLeasing(input: CreateLeasingInput): Promise<Leasing> {
   }
 
   const data = await response.json();
-  console.log('✅ API Success:', data);
+  logger.debug('✅ API Success:', data);
   return data.data;
 }
 
-async function updateLeasing(
-  id: string,
-  input: UpdateLeasingInput
-): Promise<Leasing> {
-  const response = await fetch(`${getApiBase()}/${id}`, {
+async function updateLeasing(input: UpdateLeasingInput): Promise<Leasing> {
+  const { id, ...dataWithoutId } = input;
+  const apiUrl = `${getApiBase()}/${id}`;
+  logger.debug('📤 UPDATE LEASING Request:', {
+    apiUrl,
+    id,
+    input: dataWithoutId,
+  });
+
+  const response = await fetch(apiUrl, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify(dataWithoutId),
   });
-  if (!response.ok) throw new Error('Failed to update leasing');
+
+  logger.debug('📥 UPDATE LEASING Response status:', response.status);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('❌ UPDATE LEASING Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorData,
+      url: apiUrl,
+    });
+    throw new Error(
+      errorData.error || `Failed to update leasing (${response.status})`
+    );
+  }
+
   const data = await response.json();
+  logger.debug('✅ UPDATE LEASING Success:', data);
   return data.data;
 }
 
@@ -314,7 +336,7 @@ export function useCreateLeasing() {
       }
     },
     onSuccess: data => {
-      console.log('✅ Leasing created:', data);
+      logger.debug('✅ Leasing created:', data);
 
       // Trigger WebSocket notification (if needed)
       window.dispatchEvent(
@@ -336,8 +358,21 @@ export function useUpdateLeasing(id: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: UpdateLeasingInput) => updateLeasing(id, input),
-    onSuccess: () => {
+    mutationFn: (input: UpdateLeasingInput) => updateLeasing({ ...input, id }),
+    onSuccess: updatedLeasing => {
+      // 🔥 OPTIMISTIC UPDATE: Set updated data immediately
+      queryClient.setQueryData(queryKeys.leasings.detail(id), updatedLeasing);
+
+      // Update in list cache
+      queryClient.setQueryData(
+        queryKeys.leasings.all,
+        (oldData: Leasing[] | undefined) => {
+          if (!oldData) return [updatedLeasing];
+          return oldData.map(l => (l.id === id ? updatedLeasing : l));
+        }
+      );
+
+      // Invalidate to refetch fresh data
       queryClient.invalidateQueries({
         queryKey: queryKeys.leasings.detail(id),
       });

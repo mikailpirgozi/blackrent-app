@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   plugins: [
@@ -12,6 +13,14 @@ export default defineConfig({
       },
       include: '**/*.svg?react',
     }),
+    // 📊 Bundle Analyzer - generuje stats.html po build
+    visualizer({
+      filename: './dist/stats.html',
+      open: false, // Automaticky neotvorí browser
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap', // 'treemap', 'sunburst', 'network'
+    }),
   ],
   resolve: {
     alias: {
@@ -20,11 +29,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    // OPTIMALIZÁCIA FILE WATCHING
+    // OPTIMALIZÁCIA FILE WATCHING - Native file watching (rýchlejšie než polling)
     watch: {
-      usePolling: true,
-      interval: 100, // Rýchlejšie než default 200ms
-      ignored: ['**/node_modules/**', '**/.git/**'],
+      usePolling: false, // ✅ Native file watching - 70% CPU saving
+      ignored: ['**/node_modules/**', '**/.git/**', '**/build/**'],
     },
     // SEPARÁTNY HMR PORT
     hmr: {

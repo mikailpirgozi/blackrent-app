@@ -2,7 +2,11 @@ import { Plus as AddIcon, Edit as EditIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +15,7 @@ import React, { useState } from 'react';
 
 import type { InvestorCardProps } from '../../../types/vehicle-types';
 import { getApiBaseUrl } from '../../../utils/apiUrl';
+import { logger } from '@/utils/smartLogger';
 
 // 🤝 INVESTOR CARD COMPONENT - Rozbaliteľná karta spoluinvestora s podielmi
 const InvestorCard: React.FC<InvestorCardProps> = ({
@@ -32,7 +37,10 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
 
   const handleSaveInvestorData = async () => {
     try {
-      console.log('💾 Saving investor data:', investor.id, editData);
+      logger.debug('💾 Saving investor data:', {
+        investorId: investor.id,
+        editData,
+      });
 
       const response = await fetch(
         `${getApiBaseUrl()}/company-investors/${investor.id}`,
@@ -49,7 +57,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
       const result = await response.json();
 
       if (result.success) {
-        console.log('✅ Investor data saved successfully');
+        logger.debug('✅ Investor data saved successfully');
         setEditMode(false);
         onShareUpdate(); // Refresh data
       } else {
@@ -79,7 +87,8 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                   variant="h6"
                   className="flex items-center gap-2"
                 >
-                  👤 {investor.firstName as string} {investor.lastName as string}
+                  👤 {investor.firstName as string}{' '}
+                  {investor.lastName as string}
                   <Badge variant="outline" className="text-xs">
                     {shares.length} firiem • {totalOwnership.toFixed(1)}% celkom
                   </Badge>
@@ -87,21 +96,32 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
 
                 <div className="mt-2 flex gap-6 flex-wrap">
                   {(investor.email as string) && (
-                    <UnifiedTypography variant="body2" className="text-gray-600">
+                    <UnifiedTypography
+                      variant="body2"
+                      className="text-gray-600"
+                    >
                       📧 {investor.email as string}
                     </UnifiedTypography>
                   )}
                   {(investor.phone as string) && (
-                    <UnifiedTypography variant="body2" className="text-gray-600">
+                    <UnifiedTypography
+                      variant="body2"
+                      className="text-gray-600"
+                    >
                       📞 {investor.phone as string}
                     </UnifiedTypography>
                   )}
                   {shares.length > 0 && (
-                    <UnifiedTypography variant="body2" className="text-gray-600">
+                    <UnifiedTypography
+                      variant="body2"
+                      className="text-gray-600"
+                    >
                       🏢{' '}
                       {shares
                         .map(s => {
-                          const company = companies.find(c => c.id === s.companyId);
+                          const company = companies.find(
+                            c => c.id === s.companyId
+                          );
                           return `${(company?.name as string) || 'Neznáma firma'} (${s.ownershipPercentage as number}%)`;
                         })
                         .join(', ')}
@@ -113,7 +133,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  variant={editMode ? "default" : "ghost"}
+                  variant={editMode ? 'default' : 'ghost'}
                   onClick={e => {
                     e.stopPropagation();
                     setEditMode(!editMode);
@@ -122,9 +142,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 >
                   <EditIcon className="h-4 w-4" />
                 </Button>
-                <div className="text-sm">
-                  {expanded ? '🔽' : '▶️'}
-                </div>
+                <div className="text-sm">{expanded ? '🔽' : '▶️'}</div>
               </div>
             </div>
           </CardHeader>
@@ -143,58 +161,71 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                 <Input
                   id="first-name"
                   value={editData.firstName || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                    setEditData(prev => ({ ...prev, firstName: e.target.value }))
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
+                    setEditData(prev => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
                   }
                   required
                   placeholder="Meno"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="last-name">Priezvisko *</Label>
                 <Input
                   id="last-name"
                   value={editData.lastName || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setEditData(prev => ({ ...prev, lastName: e.target.value }))
                   }
                   required
                   placeholder="Priezvisko"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={editData.email || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setEditData(prev => ({ ...prev, email: e.target.value }))
                   }
                   placeholder="email@example.com"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="phone">Telefón</Label>
                 <Input
                   id="phone"
                   value={editData.phone || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setEditData(prev => ({ ...prev, phone: e.target.value }))
                   }
                   placeholder="+421 XXX XXX XXX"
                 />
               </div>
-              
+
               <div className="col-span-full">
                 <Label htmlFor="notes">Poznámky</Label>
                 <Textarea
                   id="notes"
                   value={editData.notes || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setEditData(prev => ({ ...prev, notes: e.target.value }))
                   }
                   placeholder="Poznámky..."
@@ -211,10 +242,7 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
               >
                 Zrušiť
               </Button>
-              <Button
-                onClick={handleSaveInvestorData}
-                size="sm"
-              >
+              <Button onClick={handleSaveInvestorData} size="sm">
                 💾 Uložiť
               </Button>
             </div>
@@ -243,7 +271,10 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
                       <UnifiedTypography variant="subtitle2">
                         🏢 {(company?.name as string) || 'Neznáma firma'}
                       </UnifiedTypography>
-                      <UnifiedTypography variant="body2" className="text-gray-600 mt-1">
+                      <UnifiedTypography
+                        variant="body2"
+                        className="text-gray-600 mt-1"
+                      >
                         💰 Podiel: {share.ownershipPercentage as number}%
                         {(share.investmentAmount as number) &&
                           ` • Investícia: ${share.investmentAmount as number}€`}
@@ -254,7 +285,11 @@ const InvestorCard: React.FC<InvestorCardProps> = ({
 
                     <div className="flex items-center gap-2">
                       <Badge
-                        variant={(share.isPrimaryContact as boolean) ? 'default' : 'outline'}
+                        variant={
+                          (share.isPrimaryContact as boolean)
+                            ? 'default'
+                            : 'outline'
+                        }
                       >
                         {share.ownershipPercentage as number}%
                       </Badge>

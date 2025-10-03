@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 
 import { getAPI_BASE_URL } from '../../../services/api';
 import type { ImapStatus } from '../types/email-types';
+import { logger } from '@/utils/smartLogger';
 
 export const useImapStatus = () => {
   const [imapStatus, setImapStatus] = useState<ImapStatus | null>(null);
@@ -36,7 +37,7 @@ export const useImapStatus = () => {
     try {
       const directResponse = await directFetch('/email-imap/status');
       const response = await directResponse.json();
-      console.log('📧 IMAP Status:', response);
+      logger.debug('📧 IMAP Status:', response);
 
       if (response.success && response.data) {
         setImapStatus(response.data);
@@ -55,7 +56,7 @@ export const useImapStatus = () => {
 
       const directResponse = await directFetch('/email-imap/test');
       const response = await directResponse.json();
-      console.log('🧪 IMAP Test result:', response);
+      logger.debug('🧪 IMAP Test result:', response);
 
       if (response.success && response.data && response.data.connected) {
         setSuccess('✅ IMAP pripojenie úspešné!');
@@ -82,7 +83,7 @@ export const useImapStatus = () => {
       });
 
       const response = await directResponse.json();
-      console.log('▶️ IMAP Start result:', response);
+      logger.debug('▶️ IMAP Start result:', response);
 
       setSuccess('▶️ IMAP monitoring spustený!');
       await fetchImapStatus(); // Refresh status
@@ -105,7 +106,7 @@ export const useImapStatus = () => {
       });
 
       const response = await directResponse.json();
-      console.log('⏹️ IMAP Stop result:', response);
+      logger.debug('⏹️ IMAP Stop result:', response);
 
       setSuccess('⏹️ IMAP monitoring zastavený!');
       await fetchImapStatus(); // Refresh status

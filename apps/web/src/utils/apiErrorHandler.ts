@@ -2,6 +2,7 @@
 // Provides intelligent error handling with retry mechanisms and user feedback
 
 import { createError, ERROR_MESSAGES } from '../types/errors';
+import { logger } from '@/utils/smartLogger';
 
 // Error interfaces
 interface ApiError {
@@ -308,7 +309,7 @@ export const createApiErrorHandler = (
   showUserError,
   logError: logError ?? (() => {}),
   onRetryAttempt: (attempt, maxRetries) => {
-    console.log(`🔄 API retry attempt ${attempt}/${maxRetries}`);
+    logger.debug(`🔄 API retry attempt ${attempt}/${maxRetries}`);
   },
   onRetryFailed: (error, attempts) => {
     console.error(`❌ API call failed after ${attempts} attempts:`, error);

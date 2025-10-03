@@ -1,6 +1,8 @@
 // 🎯 Critical Resources Management
 // Advanced preloading, prefetching, and resource optimization
 
+import { logger } from './smartLogger';
+
 interface ResourcePriority {
   critical: string[];
   important: string[];
@@ -128,7 +130,7 @@ class CriticalResourceManager {
 
   // Initialize critical resource loading
   async initializeCriticalResources(): Promise<void> {
-    console.log('🚀 Initializing critical resource loading...');
+    logger.debug('🚀 Initializing critical resource loading...');
 
     try {
       // 1. DNS prefetch for external domains
@@ -154,7 +156,7 @@ class CriticalResourceManager {
       // 4. Load critical resources in priority order
       await this.loadResourcesByPriority();
 
-      console.log('✅ Critical resources initialized');
+      logger.debug('✅ Critical resources initialized');
     } catch (error) {
       console.error('❌ Failed to initialize critical resources:', error);
     }

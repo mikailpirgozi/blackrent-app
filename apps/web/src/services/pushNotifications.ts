@@ -2,6 +2,7 @@
 // Complete push notification management for BlackRent
 
 import { getAPI_BASE_URL } from './api';
+import { logger } from '@/utils/smartLogger';
 
 // Web API types for TypeScript
 interface PushSubscriptionData {
@@ -111,10 +112,10 @@ declare const navigator: Navigator;
 declare const Notification: {
   permission: NotificationPermission;
   requestPermission(): Promise<NotificationPermission>;
-  new(_title: string, _options?: NotificationOptions): _Notification;
+  new (_title: string, _options?: NotificationOptions): _Notification;
 };
 declare const URLSearchParams: {
-  new(): _URLSearchParams;
+  new (): _URLSearchParams;
 };
 
 class PushNotificationService {
@@ -148,7 +149,7 @@ class PushNotificationService {
         return false;
       }
 
-      console.log('✅ Push notifications initialized');
+      logger.debug('✅ Push notifications initialized');
       return true;
     } catch (error) {
       console.error('❌ Failed to initialize push notifications:', error);
@@ -181,7 +182,7 @@ class PushNotificationService {
       permission = await Notification.requestPermission();
     }
 
-    console.log('🔔 Notification permission:', permission);
+    logger.debug('🔔 Notification permission:', permission);
     return permission;
   }
 
@@ -217,7 +218,7 @@ class PushNotificationService {
       const success = await this.sendSubscriptionToServer(subscription);
 
       if (success) {
-        console.log('✅ Successfully subscribed to push notifications');
+        logger.debug('✅ Successfully subscribed to push notifications');
         return true;
       } else {
         console.error('❌ Failed to save subscription on server');
@@ -247,7 +248,7 @@ class PushNotificationService {
           // Remove from server
           await this.removeSubscriptionFromServer(subscription);
           // this.subscription = null;
-          console.log('✅ Successfully unsubscribed from push notifications');
+          logger.debug('✅ Successfully unsubscribed from push notifications');
           return true;
         }
       }

@@ -231,6 +231,67 @@ export class WebSocketService {
     });
   }
 
+  // 💰 LEASING EVENTS
+  
+  /**
+   * Leasing vytvorený
+   */
+  broadcastLeasingCreated(leasing: any, createdBy: string) {
+    console.log(`📢 Broadcasting leasing created: ${leasing.id} by ${createdBy}`);
+    
+    this.io.emit('leasing:created', {
+      leasing,
+      createdBy,
+      timestamp: new Date().toISOString(),
+      message: `${createdBy} vytvoril nový leasing pre ${leasing.leasingCompany}`
+    });
+  }
+
+  /**
+   * Leasing aktualizovaný
+   */
+  broadcastLeasingUpdated(leasing: any, updatedBy: string, changes?: string[]) {
+    console.log(`📢 Broadcasting leasing updated: ${leasing.id} by ${updatedBy}`);
+    
+    this.io.emit('leasing:updated', {
+      leasing,
+      updatedBy,
+      changes,
+      timestamp: new Date().toISOString(),
+      message: `${updatedBy} aktualizoval leasing ${leasing.leasingCompany}${changes?.length ? ` (${changes.join(', ')})` : ''}`
+    });
+  }
+
+  /**
+   * Leasing zmazaný
+   */
+  broadcastLeasingDeleted(leasingId: string, vehicleId: string | undefined, deletedBy: string) {
+    console.log(`📢 Broadcasting leasing deleted: ${leasingId} by ${deletedBy}`);
+    
+    this.io.emit('leasing:deleted', {
+      leasingId,
+      vehicleId,
+      deletedBy,
+      timestamp: new Date().toISOString(),
+      message: `${deletedBy} zmazal leasing`
+    });
+  }
+
+  /**
+   * Leasing platba označená
+   */
+  broadcastLeasingPaymentMarked(leasingId: string, installmentNumber: number, markedBy: string) {
+    console.log(`📢 Broadcasting leasing payment marked: ${leasingId} installment ${installmentNumber} by ${markedBy}`);
+    
+    this.io.emit('leasing:payment-marked', {
+      leasingId,
+      installmentNumber,
+      markedBy,
+      timestamp: new Date().toISOString(),
+      message: `${markedBy} označil splátku #${installmentNumber} ako zaplatenú`
+    });
+  }
+
   /**
    * Test broadcast pre všetkých klientov
    */

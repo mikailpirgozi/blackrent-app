@@ -10,6 +10,7 @@ import type {
 import React, { Suspense } from 'react';
 
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import { logger } from '@/utils/smartLogger';
 import {
   ComponentLoader,
   PageLoader,
@@ -287,7 +288,7 @@ export const withPerformanceTracking = <T extends ComponentType<unknown>>(
         const loadTime = endTime - startTime;
 
         if (process.env.NODE_ENV === 'development') {
-          console.debug(
+          logger.debug(
             `📊 Component ${componentName} load time: ${loadTime.toFixed(2)}ms`
           );
 

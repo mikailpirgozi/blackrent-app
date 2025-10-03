@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { useAuth } from '../context/AuthContext';
 import { usePermissionsContext } from '../context/PermissionsContext';
+import { logger } from '@/utils/smartLogger';
 import type {
   CompanyPermissions,
   Permission,
@@ -128,7 +129,7 @@ export function hasLegacyPermission(
 
   // Pre ostatné roly vráti false - používajú sa company permissions
   // Parametre sú zachované pre kompatibilitu
-  console.debug('hasLegacyPermission called:', {
+  logger.debug('hasLegacyPermission called:', {
     userRole,
     resource,
     action,

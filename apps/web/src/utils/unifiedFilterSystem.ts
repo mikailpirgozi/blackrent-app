@@ -8,11 +8,9 @@
  * - useOptimizedFilters.ts (performance optimalizácie)
  */
 
-import { useMemo } from 'react';
-
-import type { Customer, Rental, Vehicle } from '../types';
-
 import { logger } from './smartLogger';
+import { useMemo } from 'react';
+import type { Customer, Rental, Vehicle } from '../types';
 
 // 🎯 UNIFIED FILTER INTERFACE
 export interface UnifiedFilterOptions {
@@ -592,17 +590,39 @@ export const compatibilityFilters = {
       status: filters.filterStatus as string,
       paid: filters.filterPaid as string,
       dateFrom: filters.filterDateFrom as string,
-      ...(filters.filterDateTo !== undefined && { dateTo: filters.filterDateTo as string }),
-      ...(filters.filterPaymentMethod !== undefined && { paymentMethod: filters.filterPaymentMethod as string }),
-      ...(filters.searchQuery !== undefined && { searchQuery: filters.searchQuery as string }),
-      ...(filters.showActive !== undefined && { showActive: filters.showActive as boolean }),
-      ...(filters.showTodayReturns !== undefined && { showTodayReturns: filters.showTodayReturns as boolean }),
-      ...(filters.showTomorrowReturns !== undefined && { showTomorrowReturns: filters.showTomorrowReturns as boolean }),
-      ...(filters.showUnconfirmed !== undefined && { showUnconfirmed: filters.showUnconfirmed as boolean }),
-      ...(filters.showFuture !== undefined && { showFuture: filters.showFuture as boolean }),
-      ...(filters.showOldConfirmed !== undefined && { showOldConfirmed: filters.showOldConfirmed as boolean }),
-      ...(filters.showConfirmed !== undefined && { showConfirmed: filters.showConfirmed as boolean }),
-      ...(filters.showAll !== undefined && { showAll: filters.showAll as boolean }),
+      ...(filters.filterDateTo !== undefined && {
+        dateTo: filters.filterDateTo as string,
+      }),
+      ...(filters.filterPaymentMethod !== undefined && {
+        paymentMethod: filters.filterPaymentMethod as string,
+      }),
+      ...(filters.searchQuery !== undefined && {
+        searchQuery: filters.searchQuery as string,
+      }),
+      ...(filters.showActive !== undefined && {
+        showActive: filters.showActive as boolean,
+      }),
+      ...(filters.showTodayReturns !== undefined && {
+        showTodayReturns: filters.showTodayReturns as boolean,
+      }),
+      ...(filters.showTomorrowReturns !== undefined && {
+        showTomorrowReturns: filters.showTomorrowReturns as boolean,
+      }),
+      ...(filters.showUnconfirmed !== undefined && {
+        showUnconfirmed: filters.showUnconfirmed as boolean,
+      }),
+      ...(filters.showFuture !== undefined && {
+        showFuture: filters.showFuture as boolean,
+      }),
+      ...(filters.showOldConfirmed !== undefined && {
+        showOldConfirmed: filters.showOldConfirmed as boolean,
+      }),
+      ...(filters.showConfirmed !== undefined && {
+        showConfirmed: filters.showConfirmed as boolean,
+      }),
+      ...(filters.showAll !== undefined && {
+        showAll: filters.showAll as boolean,
+      }),
       enableMemoization: true,
     });
   },

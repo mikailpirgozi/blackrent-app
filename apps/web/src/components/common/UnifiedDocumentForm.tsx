@@ -32,6 +32,7 @@ import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import type { PaymentFrequency, VignetteCountry } from '../../types';
 
 import R2FileUpload from './R2FileUpload';
+import { logger } from '@/utils/smartLogger';
 
 export interface UnifiedDocumentData {
   id?: string | undefined;
@@ -1130,10 +1131,10 @@ export default function UnifiedDocumentForm({
           <button
             type="button"
             onClick={() => {
-              console.log('🔴 CANCEL BUTTON CLICKED');
+              logger.debug('🔴 CANCEL BUTTON CLICKED');
               onCancel();
             }}
-            onMouseDown={() => console.log('🟡 CANCEL MOUSE DOWN')}
+            onMouseDown={() => logger.debug('🟡 CANCEL MOUSE DOWN')}
             className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
             style={{ pointerEvents: 'auto', cursor: 'pointer' }}
           >
@@ -1142,8 +1143,8 @@ export default function UnifiedDocumentForm({
           <button
             type="button"
             onClick={(e: React.MouseEvent) => {
-              console.log('🔵 SAVE BUTTON CLICKED - Event:', e);
-              console.log('🔵 formData:', formData);
+              logger.debug('🔵 SAVE BUTTON CLICKED - Event:', e);
+              logger.debug('🔵 formData:', formData);
               e.preventDefault();
               e.stopPropagation();
 
@@ -1155,10 +1156,12 @@ export default function UnifiedDocumentForm({
 
               onSave(formData);
             }}
-            onMouseDown={() => console.log('🟡 SAVE MOUSE DOWN on save button')}
-            onMouseUp={() => console.log('🟡 SAVE MOUSE UP on save button')}
+            onMouseDown={() =>
+              logger.debug('🟡 SAVE MOUSE DOWN on save button')
+            }
+            onMouseUp={() => logger.debug('🟡 SAVE MOUSE UP on save button')}
             onMouseEnter={() =>
-              console.log('🟡 SAVE MOUSE ENTER on save button')
+              logger.debug('🟡 SAVE MOUSE ENTER on save button')
             }
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             style={{ pointerEvents: 'auto', zIndex: 9999, cursor: 'pointer' }}

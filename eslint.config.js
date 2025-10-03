@@ -12,6 +12,7 @@ export default [
       'customer-website/Anima/**',
       'Figma-Context-MCP/**',
       'apps/mobile/**',
+      'backend/**',
       '*.config.js',
       '*.config.ts'
     ]

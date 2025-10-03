@@ -13,6 +13,7 @@ import {
   useProtocolPdfUrl,
 } from '../../lib/react-query/hooks/useProtocolPdf';
 import { getApiBaseUrl } from '../../utils/apiUrl';
+import { logger } from '@/utils/smartLogger';
 
 interface PDFViewerProps {
   open: boolean;
@@ -62,18 +63,18 @@ export default function PDFViewer({
 
       if (protocolResult.data) {
         const protocol = protocolResult.data as Record<string, unknown>;
-        console.log('📋 Protocol data:', protocol);
+        logger.debug('📋 Protocol data:', protocol);
 
         // Ak má protokol pdfUrl, použij ho
         if (protocol.pdfUrl && typeof protocol.pdfUrl === 'string') {
-          console.log(
+          logger.debug(
             '✅ Using existing PDF URL from protocol:',
             protocol.pdfUrl
           );
           setPdfUrl(protocol.pdfUrl);
           return;
         } else {
-          console.log('⚠️ Protocol has no pdfUrl field');
+          logger.debug('⚠️ Protocol has no pdfUrl field');
         }
       }
 
@@ -85,13 +86,13 @@ export default function PDFViewer({
         'url' in urlResult.data
       ) {
         const url = urlResult.data.url as string;
-        console.log('✅ Using PDF URL from API:', url);
+        logger.debug('✅ Using PDF URL from API:', url);
         setPdfUrl(url);
         return;
       }
 
       // Ak nemá PDF URL, vygeneruj nové PDF
-      console.log('⚠️ No PDF URL found, generating new PDF');
+      logger.debug('⚠️ No PDF URL found, generating new PDF');
       const generateUrl = generatePDFUrl();
       setPdfUrl(generateUrl);
     } catch (err) {

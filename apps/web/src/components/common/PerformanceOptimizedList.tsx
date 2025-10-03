@@ -11,11 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
-import {
-  Trash2,
-  Edit,
-  Eye,
-} from 'lucide-react';
+import { Trash2, Edit, Eye } from 'lucide-react';
 
 // Import our performance optimization tools
 import {
@@ -29,6 +25,7 @@ import { createLazyComponentWithLoader } from '../../utils/lazyComponents';
 
 import { OptimizedImage } from './OptimizedImage';
 import { SkeletonLoader } from './SkeletonLoader';
+import { logger } from '@/utils/smartLogger';
 
 // Lazy load heavy components
 const EditDialog = createLazyComponentWithLoader(
@@ -63,21 +60,18 @@ const OptimizedListItem = memo<ListItemProps>(
     const { getStats } = usePerformanceMonitor(`ListItem-${item.id}`);
 
     // Memoize style calculations
-    const statusColor = useShallowMemo(
-      () => {
-        switch (item.status) {
-          case 'active':
-            return 'bg-green-100 text-green-800 hover:bg-green-200';
-          case 'pending':
-            return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-          case 'inactive':
-            return 'bg-red-100 text-red-800 hover:bg-red-200';
-          default:
-            return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-        }
-      },
-      [item.status]
-    );
+    const statusColor = useShallowMemo(() => {
+      switch (item.status) {
+        case 'active':
+          return 'bg-green-100 text-green-800 hover:bg-green-200';
+        case 'pending':
+          return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+        case 'inactive':
+          return 'bg-red-100 text-red-800 hover:bg-red-200';
+        default:
+          return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      }
+    }, [item.status]);
 
     // Throttled event handlers
     const handleEdit = useThrottledCallback(() => {
@@ -122,9 +116,7 @@ const OptimizedListItem = memo<ListItemProps>(
 
             {/* Content */}
             <div className={item.image ? 'mt-4' : ''}>
-              <h3 className="text-lg font-semibold truncate">
-                {item.title}
-              </h3>
+              <h3 className="text-lg font-semibold truncate">{item.title}</h3>
 
               {item.subtitle && (
                 <p className="text-sm text-muted-foreground truncate">
@@ -134,9 +126,7 @@ const OptimizedListItem = memo<ListItemProps>(
 
               {/* Status and category */}
               <div className="mt-2 flex gap-2 items-center">
-                <Badge className={statusColor}>
-                  {item.status}
-                </Badge>
+                <Badge className={statusColor}>{item.status}</Badge>
                 <span className="text-xs text-muted-foreground">
                   {item.category}
                 </span>
@@ -315,7 +305,7 @@ export const PerformanceOptimizedList: React.FC<
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const stats = getStats();
-      console.log('List performance stats:', {
+      logger.debug('List performance stats:', {
         ...stats,
         itemCount: items.length,
         virtualScrolling: enableVirtualScrolling,

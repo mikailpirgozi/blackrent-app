@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
+import { logger } from '@/utils/smartLogger';
 
 interface SignaturePadProps {
   onSave: (signature: {
@@ -140,7 +141,7 @@ export default function SignaturePad({
 
   // Automatické načítanie signature template pre zamestnancov
   useEffect(() => {
-    console.log('🔍 SignaturePad useEffect:', {
+    logger.debug('🔍 SignaturePad useEffect:', {
       signerRole,
       hasSignatureTemplate: !!state.user?.signatureTemplate,
       hasSignature,
@@ -153,7 +154,7 @@ export default function SignaturePad({
       state.user?.signatureTemplate &&
       !hasSignature
     ) {
-      console.log('✅ Automaticky načítavam signature template');
+      logger.debug('✅ Automaticky načítavam signature template');
       loadSignatureTemplate();
     }
   }, [
@@ -219,7 +220,9 @@ export default function SignaturePad({
         <Input
           id="signer-name"
           value={editableSignerName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditableSignerName(e.target.value)}
+          onChange={(
+            e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+          ) => setEditableSignerName(e.target.value)}
           className="w-full"
           placeholder={
             signerRole === 'customer'

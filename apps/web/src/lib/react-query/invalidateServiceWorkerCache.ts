@@ -6,6 +6,8 @@
  * ale aj Service Worker cache pre okamžité zobrazenie zmien.
  */
 
+import { logger } from '@/utils/smartLogger';
+
 /**
  * Invaliduje Service Worker cache pre špecifikované API endpointy
  *
@@ -40,7 +42,7 @@ export function invalidateServiceWorkerCache(urls: string[]): void {
       payload: { urls },
     });
 
-    console.log('🔄 Service Worker cache invalidation requested for:', urls);
+    logger.debug('🔄 Service Worker cache invalidation requested for:', urls);
   } catch (error) {
     console.error('❌ Failed to invalidate Service Worker cache:', error);
   }

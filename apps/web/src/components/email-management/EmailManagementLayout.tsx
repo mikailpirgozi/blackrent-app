@@ -34,6 +34,7 @@ import { usePendingRentals } from './hooks/usePendingRentals';
 
 // Types
 import type { EmailStats } from './types/email-types';
+import { logger } from '@/utils/smartLogger';
 
 const EmailManagementLayout: React.FC = () => {
   // Tabs state
@@ -84,7 +85,7 @@ const EmailManagementLayout: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    console.log('🚀 EMAIL MANAGEMENT LAYOUT useEffect triggered');
+    logger.debug('🚀 EMAIL MANAGEMENT LAYOUT useEffect triggered');
 
     const initializeData = async () => {
       try {
@@ -142,7 +143,13 @@ const EmailManagementLayout: React.FC = () => {
           {/* IMAP Status Badge */}
           {imapStatus && (
             <Badge
-              variant={imapStatus.enabled ? (imapStatus.running ? 'default' : 'secondary') : 'outline'}
+              variant={
+                imapStatus.enabled
+                  ? imapStatus.running
+                    ? 'default'
+                    : 'secondary'
+                  : 'outline'
+              }
               className="text-xs"
             >
               <Mail className="w-3 h-3 mr-1" />

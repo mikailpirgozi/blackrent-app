@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WebSocketClient } from '../services/websocket-client';
 import { getWebSocketClient } from '../services/websocket-client';
 import type { Rental, Vehicle } from '../types';
+import { logger } from '@/utils/smartLogger';
 
 // Notification typy
 export interface NotificationData {
@@ -127,21 +128,21 @@ export function useRentalUpdates(
     if (!client) return;
 
     const handleRentalCreated = (data: unknown) => {
-      console.log('📢 Rental created:', data);
+      logger.debug('📢 Rental created:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       const rentalData = data as { rental?: Rental };
       onRentalChange?.('created', rentalData.rental);
     };
 
     const handleRentalUpdated = (data: unknown) => {
-      console.log('📢 Rental updated:', data);
+      logger.debug('📢 Rental updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       const rentalData = data as { rental?: Rental };
       onRentalChange?.('updated', rentalData.rental);
     };
 
     const handleRentalDeleted = (data: unknown) => {
-      console.log('📢 Rental deleted:', data);
+      logger.debug('📢 Rental deleted:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       const rentalData = data as { rentalId?: string };
       onRentalChange?.('deleted', undefined, rentalData.rentalId);
@@ -173,7 +174,7 @@ export function useVehicleUpdates(
     if (!client) return;
 
     const handleVehicleUpdated = (data: unknown) => {
-      console.log('📢 Vehicle updated:', data);
+      logger.debug('📢 Vehicle updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       const vehicleData = data as { vehicle?: Vehicle };
       if (vehicleData.vehicle) {
@@ -201,7 +202,7 @@ export function useProtocolUpdates(
     if (!client) return;
 
     const handleProtocolCreated = (data: unknown) => {
-      console.log('📢 Protocol created:', data);
+      logger.debug('📢 Protocol created:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       onProtocolChange?.('created', data);
 
@@ -212,7 +213,7 @@ export function useProtocolUpdates(
     };
 
     const handleProtocolUpdated = (data: unknown) => {
-      console.log('📢 Protocol updated:', data);
+      logger.debug('📢 Protocol updated:', data);
       // 🔴 REMOVED: Notification popup that was causing UI issues
       onProtocolChange?.('updated', data);
 
@@ -244,7 +245,7 @@ export function useSystemNotifications() {
     if (!client) return;
 
     const handleSystemNotification = (data: unknown) => {
-      console.log('📢 System notification:', data);
+      logger.debug('📢 System notification:', data);
       const notificationData = data as {
         type?: string;
         message?: string;
@@ -261,7 +262,7 @@ export function useSystemNotifications() {
     };
 
     const handleMigration = (data: unknown) => {
-      console.log('📢 Migration completed:', data);
+      logger.debug('📢 Migration completed:', data);
       const migrationData = data as {
         success?: boolean;
         message?: string;
@@ -304,11 +305,11 @@ export function useWebSocketTest() {
     const handlePong = (data: { timestamp: number }) => {
       const latency = Date.now() - data.timestamp;
       setLastPong(latency);
-      console.log(`🏓 Pong received - latency: ${latency}ms`);
+      logger.debug(`🏓 Pong received - latency: ${latency}ms`);
     };
 
     const handleTest = (data: unknown) => {
-      console.log('🧪 Test message:', data);
+      logger.debug('🧪 Test message:', data);
     };
 
     client.on('pong', handlePong);

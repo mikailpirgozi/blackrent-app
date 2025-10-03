@@ -5,6 +5,7 @@ import type { Customer, Rental, Vehicle } from '../../types';
 import type { Leasing } from '@/types/leasing-types';
 import { useBulkCacheInvalidation } from './hooks/useBulkCache';
 import { queryKeys } from './queryKeys';
+import { logger } from '@/utils/smartLogger';
 
 /**
  * Hook pre automatickú invalidáciu React Query cache na základe WebSocket udalostí
@@ -17,7 +18,11 @@ export function useWebSocketInvalidation() {
   useEffect(() => {
     const client = getWebSocketClient();
 
-    console.log('🔌 Setting up WebSocket invalidation for React Query');
+    logger.debug(
+      'Setting up WebSocket invalidation for React Query',
+      undefined,
+      'websocket'
+    );
 
     // Rental events
     const handleRentalCreated = (data: {
@@ -26,7 +31,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Rental created, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Rental created, invalidating queries',
+        { data },
+        'websocket'
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.all,
       });
@@ -47,7 +56,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Rental updated, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Rental updated, invalidating queries',
+        { data },
+        'websocket'
+      );
       if (data.rental.id) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.rentals.detail(data.rental.id),
@@ -70,7 +83,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Rental deleted, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Rental deleted, invalidating queries',
+        { data },
+        'websocket'
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.all,
       });
@@ -92,7 +109,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Vehicle updated, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Vehicle updated, invalidating queries',
+        { data },
+        'websocket'
+      );
       if (data.vehicle.id) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.vehicles.detail(data.vehicle.id),
@@ -115,7 +136,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Protocol created, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Protocol created, invalidating queries',
+        { data },
+        'websocket'
+      );
       if (data.rentalId) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.protocols.byRental(data.rentalId),
@@ -141,7 +166,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Protocol updated, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Protocol updated, invalidating queries',
+        { data },
+        'websocket'
+      );
       if (data.rentalId) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.protocols.byRental(data.rentalId),
@@ -162,7 +191,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Customer created, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Customer created, invalidating queries',
+        { data },
+        'websocket'
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.customers.all,
       });
@@ -175,7 +208,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Leasing created, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Leasing created, invalidating queries',
+        { data },
+        'websocket'
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.leasings.all,
       });
@@ -202,7 +239,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Leasing updated, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Leasing updated, invalidating queries',
+        { data },
+        'websocket'
+      );
       if (data.leasing.id) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.leasings.detail(data.leasing.id),
@@ -231,7 +272,11 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log('🔄 WebSocket: Leasing deleted, invalidating queries', data);
+      logger.debug(
+        'WebSocket: Leasing deleted, invalidating queries',
+        { data },
+        'websocket'
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.leasings.all,
       });
@@ -258,9 +303,10 @@ export function useWebSocketInvalidation() {
       timestamp: string;
       message: string;
     }) => {
-      console.log(
-        '🔄 WebSocket: Leasing payment marked, invalidating queries',
-        data
+      logger.debug(
+        'WebSocket: Leasing payment marked, invalidating queries',
+        { data },
+        'websocket'
       );
       queryClient.invalidateQueries({
         queryKey: queryKeys.leasings.detail(data.leasingId),
@@ -294,7 +340,11 @@ export function useWebSocketInvalidation() {
     client.on('leasing:payment-marked', handlePaymentMarked);
 
     return () => {
-      console.log('🔌 Cleaning up WebSocket invalidation listeners');
+      logger.debug(
+        'Cleaning up WebSocket invalidation listeners',
+        undefined,
+        'websocket'
+      );
 
       // Cleanup all listeners
       client.off('rental:created', handleRentalCreated);

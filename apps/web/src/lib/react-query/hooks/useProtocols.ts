@@ -2,6 +2,7 @@ import { apiService } from '@/services/api';
 import type { HandoverProtocol, ReturnProtocol } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
+import { logger } from '@/utils/smartLogger';
 
 // GET all protocols (for statistics)
 export function useAllProtocols() {
@@ -78,7 +79,7 @@ export function useCreateHandoverProtocol() {
   return useMutation({
     mutationFn: async (protocol: HandoverProtocol) => {
       const result = await apiService.createHandoverProtocol(protocol);
-      console.log('🔍 useCreateHandoverProtocol result:', result);
+      logger.debug('🔍 useCreateHandoverProtocol result:', result);
 
       // Backend vracia { success, protocol, email, pdfProxyUrl }
       type ProtocolResponse = {
@@ -99,7 +100,7 @@ export function useCreateHandoverProtocol() {
         response.success &&
         'protocol' in response
       ) {
-        console.log('🔍 Full protocol response received:', {
+        logger.debug('🔍 Full protocol response received:', {
           hasEmail: !!('email' in response && response.email),
           hasPdfUrl: !!('pdfProxyUrl' in response && response.pdfProxyUrl),
         });
@@ -113,7 +114,7 @@ export function useCreateHandoverProtocol() {
         (result as { success?: boolean; id?: string }).success === true &&
         !result.id
       ) {
-        console.log('🔍 Backend returned success only, using optimistic data');
+        logger.debug('🔍 Backend returned success only, using optimistic data');
         return { success: true, protocol }; // Vrátime objekt s protokolom
       }
 
@@ -156,7 +157,7 @@ export function useCreateHandoverProtocol() {
       }
     },
     onSuccess: (data, variables) => {
-      console.log('🔍 onSuccess data:', data);
+      logger.debug('🔍 onSuccess data:', data);
 
       // Extrahuj protokol z response
       const protocol =

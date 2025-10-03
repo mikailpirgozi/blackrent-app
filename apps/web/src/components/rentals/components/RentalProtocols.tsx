@@ -1,12 +1,15 @@
 import React from 'react';
-import {
-  FileImage,
-  FileText,
-} from 'lucide-react';
+import { FileImage, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 import type {
   HandoverProtocol,
@@ -19,6 +22,7 @@ import PDFViewer from '../../common/PDFViewer';
 import ProtocolGallery from '../../common/ProtocolGallery';
 import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';
 import RentalForm from '../RentalForm';
+import { logger } from '@/utils/smartLogger';
 
 // 🚀 LAZY LOADING: Protocols loaded only when needed
 const HandoverProtocolForm = React.lazy(
@@ -126,7 +130,9 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
               {editingRental ? 'Upraviť prenájom' : 'Nový prenájom'}
             </DialogTitle>
             <DialogDescription>
-              {editingRental ? 'Upravte údaje prenájmu' : 'Vytvorte nový prenájom vozidla'}
+              {editingRental
+                ? 'Upravte údaje prenájmu'
+                : 'Vytvorte nový prenájom vozidla'}
             </DialogDescription>
           </DialogHeader>
           <RentalForm
@@ -138,15 +144,18 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
       </Dialog>
 
       {/* Handover Protocol Dialog */}
-      <Dialog 
-        open={openHandoverDialog} 
-        onOpenChange={(open) => {
+      <Dialog
+        open={openHandoverDialog}
+        onOpenChange={open => {
           if (!open) {
-            console.log('🚨 MOBILE DEBUG: Dialog onClose triggered!');
-            console.log(
+            logger.debug('🚨 MOBILE DEBUG: Dialog onClose triggered!');
+            logger.debug(
               '🚨 MOBILE DEBUG: Modal closing via backdrop click or ESC'
             );
-            console.log('🚨 MOBILE DEBUG: timestamp:', new Date().toISOString());
+            logger.debug(
+              '🚨 MOBILE DEBUG: timestamp:',
+              new Date().toISOString()
+            );
 
             // logMobile('WARN', 'RentalList', 'Handover modal closing via Dialog onClose', {
             //   timestamp: Date.now(),
@@ -165,43 +174,46 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-2 sm:p-4">
-          {selectedRentalForProtocol && (
-            <React.Suspense
-              fallback={
-                <div className="flex justify-center items-center p-8 gap-4">
-                  <Spinner />
-                  <p className="text-sm text-muted-foreground">Načítavam protokol...</p>
-                </div>
-              }
-            >
-              <HandoverForm
-                open={openHandoverDialog}
-                rental={
-                  selectedRentalForProtocol as Rental & Record<string, unknown>
+            {selectedRentalForProtocol && (
+              <React.Suspense
+                fallback={
+                  <div className="flex justify-center items-center p-8 gap-4">
+                    <Spinner />
+                    <p className="text-sm text-muted-foreground">
+                      Načítavam protokol...
+                    </p>
+                  </div>
                 }
-                onSave={handleSaveHandover}
-                onClose={() => {
-                  console.log(
-                    '🚨 MOBILE DEBUG: HandoverProtocolForm onClose triggered!'
-                  );
-                  console.log(
-                    '🚨 MOBILE DEBUG: Modal closing via form close button'
-                  );
-                  console.log(
-                    '🚨 MOBILE DEBUG: timestamp:',
-                    new Date().toISOString()
-                  );
+              >
+                <HandoverForm
+                  open={openHandoverDialog}
+                  rental={
+                    selectedRentalForProtocol as Rental &
+                      Record<string, unknown>
+                  }
+                  onSave={handleSaveHandover}
+                  onClose={() => {
+                    logger.debug(
+                      '🚨 MOBILE DEBUG: HandoverProtocolForm onClose triggered!'
+                    );
+                    logger.debug(
+                      '🚨 MOBILE DEBUG: Modal closing via form close button'
+                    );
+                    logger.debug(
+                      '🚨 MOBILE DEBUG: timestamp:',
+                      new Date().toISOString()
+                    );
 
-                  // logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
-                  //   timestamp: Date.now(),
-                  //   selectedRentalId: selectedRentalForProtocol?.id,
-                  //   reason: 'form_onClose'
-                  // });
-                  setOpenHandoverDialog(false);
-                }}
-              />
-            </React.Suspense>
-          )}
+                    // logMobile('WARN', 'RentalList', 'Handover modal closing via HandoverProtocolForm onClose', {
+                    //   timestamp: Date.now(),
+                    //   selectedRentalId: selectedRentalForProtocol?.id,
+                    //   reason: 'form_onClose'
+                    // });
+                    setOpenHandoverDialog(false);
+                  }}
+                />
+              </React.Suspense>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -216,75 +228,82 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-2 sm:p-4">
-          {selectedRentalForProtocol && (
-            <>
-              {/* ✅ LOADING STATE: Zobraz loading kým sa načítajú protokoly */}
-              {(() => {
-                // ✅ POUŽIŤ PROTOCOL STATUS MAP: Rýchlejšia kontrola existencie protokolu
-                const backgroundStatus =
-                  protocolStatusMap[selectedRentalForProtocol.id];
-                const fallbackProtocols =
-                  protocols[selectedRentalForProtocol.id];
+            {selectedRentalForProtocol && (
+              <>
+                {/* ✅ LOADING STATE: Zobraz loading kým sa načítajú protokoly */}
+                {(() => {
+                  // ✅ POUŽIŤ PROTOCOL STATUS MAP: Rýchlejšia kontrola existencie protokolu
+                  const backgroundStatus =
+                    protocolStatusMap[selectedRentalForProtocol.id];
+                  const fallbackProtocols =
+                    protocols[selectedRentalForProtocol.id];
 
-                const hasHandover = backgroundStatus
-                  ? backgroundStatus.hasHandoverProtocol
-                  : !!fallbackProtocols?.handover;
+                  const hasHandover = backgroundStatus
+                    ? backgroundStatus.hasHandoverProtocol
+                    : !!fallbackProtocols?.handover;
 
-                return !hasHandover;
-              })() ? (
-                <div className="flex flex-col items-center p-8">
-                  <Spinner className="mb-4" />
-                  <p className="text-base text-muted-foreground mb-2">
-                    Načítavam odovzdávací protokol...
-                  </p>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Pre vytvorenie preberacieho protokolu je potrebný
-                    odovzdávací protokol.
-                  </p>
-                </div>
-              ) : (
-                (() => {
-                  const handoverProtocol =
-                    protocols[selectedRentalForProtocol.id]?.handover;
+                  return !hasHandover;
+                })() ? (
+                  <div className="flex flex-col items-center p-8">
+                    <Spinner className="mb-4" />
+                    <p className="text-base text-muted-foreground mb-2">
+                      Načítavam odovzdávací protokol...
+                    </p>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Pre vytvorenie preberacieho protokolu je potrebný
+                      odovzdávací protokol.
+                    </p>
+                  </div>
+                ) : (
+                  (() => {
+                    const handoverProtocol =
+                      protocols[selectedRentalForProtocol.id]?.handover;
 
-                  if (!handoverProtocol) {
-                    return (
-                      <div className="flex flex-col items-center p-8">
-                        <Alert className="mb-4">
-                          <AlertDescription>
-                            Odovzdávací protokol nebol nájdený
-                          </AlertDescription>
-                        </Alert>
-                        <p className="text-sm text-muted-foreground text-center">
-                          Pre vytvorenie preberacieho protokolu je potrebný
-                          odovzdávací protokol.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <React.Suspense
-                      fallback={
-                        <div className="flex justify-center items-center p-8 gap-4">
-                          <Spinner />
-                          <p className="text-sm text-muted-foreground">Načítavam protokol...</p>
+                    if (!handoverProtocol) {
+                      return (
+                        <div className="flex flex-col items-center p-8">
+                          <Alert className="mb-4">
+                            <AlertDescription>
+                              Odovzdávací protokol nebol nájdený
+                            </AlertDescription>
+                          </Alert>
+                          <p className="text-sm text-muted-foreground text-center">
+                            Pre vytvorenie preberacieho protokolu je potrebný
+                            odovzdávací protokol.
+                          </p>
                         </div>
-                      }
-                    >
-                      <ReturnForm
-                        open={openReturnDialog}
-                        rental={selectedRentalForProtocol as Rental & Record<string, unknown>}
-                        handoverProtocol={handoverProtocol as unknown as HandoverProtocol}
-                        onSave={handleSaveReturn}
-                        onClose={() => setOpenReturnDialog(false)}
-                      />
-                    </React.Suspense>
-                  );
-                })()
-              )}
-            </>
-          )}
+                      );
+                    }
+
+                    return (
+                      <React.Suspense
+                        fallback={
+                          <div className="flex justify-center items-center p-8 gap-4">
+                            <Spinner />
+                            <p className="text-sm text-muted-foreground">
+                              Načítavam protokol...
+                            </p>
+                          </div>
+                        }
+                      >
+                        <ReturnForm
+                          open={openReturnDialog}
+                          rental={
+                            selectedRentalForProtocol as Rental &
+                              Record<string, unknown>
+                          }
+                          handoverProtocol={
+                            handoverProtocol as unknown as HandoverProtocol
+                          }
+                          onSave={handleSaveReturn}
+                          onClose={() => setOpenReturnDialog(false)}
+                        />
+                      </React.Suspense>
+                    );
+                  })()
+                )}
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -310,14 +329,17 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
       />
 
       {/* Protocol Menu Dialog */}
-      <Dialog open={openProtocolMenu} onOpenChange={(open) => !open && handleCloseProtocolMenu()}>
+      <Dialog
+        open={openProtocolMenu}
+        onOpenChange={open => !open && handleCloseProtocolMenu()}
+      >
         <DialogContent className="max-w-md border-0 shadow-2xl p-0 gap-0 overflow-hidden">
           {/* Gradient Header */}
           <div className="relative bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-6 pb-8">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
-            
+
             <DialogHeader className="relative space-y-3">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl">
@@ -354,7 +376,9 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
                 </div>
                 <div className="flex-1 text-left">
                   <div className="font-semibold text-base">Stiahnuť PDF</div>
-                  <div className="text-xs text-white/80">Protokol v PDF formáte</div>
+                  <div className="text-xs text-white/80">
+                    Protokol v PDF formáte
+                  </div>
                 </div>
               </div>
             </Button>

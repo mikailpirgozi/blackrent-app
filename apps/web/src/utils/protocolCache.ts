@@ -7,6 +7,8 @@
  * - Cache invalidácia pri zmene protokolov
  */
 
+import { logger } from './smartLogger';
+
 export interface CachedProtocolStatus {
   rentalId: string;
   hasHandoverProtocol: boolean;
@@ -41,7 +43,7 @@ export const setProtocolCache = (protocols: CachedProtocolStatus[]): void => {
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
     // Optimalized: Only log in development or when cache is large
     if (process.env.NODE_ENV === 'development' || protocols.length > 500) {
-      console.log(`✅ Protocol cache saved: ${protocols.length} records`);
+      logger.debug(`✅ Protocol cache saved: ${protocols.length} records`);
     }
   } catch (error) {
     console.warn('⚠️ Failed to save protocol cache:', error);
@@ -60,7 +62,7 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
 
     // Skontroluj verziu
     if (cacheData.version !== CACHE_VERSION) {
-      console.log('🔄 Cache version mismatch, clearing...');
+      logger.debug('🔄 Cache version mismatch, clearing...');
       clearProtocolCache();
       return null;
     }
@@ -68,7 +70,7 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
     // Skontroluj TTL
     const age = Date.now() - cacheData.timestamp;
     if (age > CACHE_TTL) {
-      console.log('⏰ Protocol cache expired, clearing...');
+      logger.debug('⏰ Protocol cache expired, clearing...');
       clearProtocolCache();
       return null;
     }
@@ -85,7 +87,7 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
     }));
 
     // Optimalized: Consolidated cache hit log
-    console.log(
+    logger.debug(
       `📦 Protocol status: ${protocols.length} records loaded (age: ${Math.round(age / 1000)}s, cached)`
     );
     return protocols;
@@ -102,7 +104,7 @@ export const getProtocolCache = (): CachedProtocolStatus[] | null => {
 export const clearProtocolCache = (): void => {
   try {
     localStorage.removeItem(CACHE_KEY);
-    console.log('🗑️ Protocol cache cleared');
+    logger.debug('🗑️ Protocol cache cleared');
   } catch (error) {
     console.warn('⚠️ Failed to clear protocol cache:', error);
   }

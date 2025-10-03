@@ -7,6 +7,7 @@ import { io } from 'socket.io-client';
 import { Customer, Rental, Vehicle } from '../types';
 import type { Leasing } from '@/types/leasing-types';
 import { getBaseUrl } from '../utils/apiUrl';
+import { logger } from '@/utils/smartLogger';
 
 // Event typy pre TypeScript
 export interface WebSocketEvents {
@@ -150,7 +151,7 @@ export class WebSocketClient {
 
     // OPTIMIZED: Only log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔴 Connecting to WebSocket:', this.baseUrl);
+      logger.debug('🔴 Connecting to WebSocket:', this.baseUrl);
     }
 
     this.socket = io(this.baseUrl, {
@@ -183,7 +184,7 @@ export class WebSocketClient {
     // Skús pripojenie s timeout
     const connectTimeout = window.setTimeout(() => {
       if (this.socket && !this.socket.connected) {
-        console.log(
+        logger.debug(
           '⏰ WebSocket connection timeout, trying polling fallback...'
         );
         this.socket.disconnect();
@@ -194,12 +195,12 @@ export class WebSocketClient {
 
     this.socket.on('connect', () => {
       window.clearTimeout(connectTimeout);
-      console.log('✅ WebSocket connected successfully');
+      logger.debug('✅ WebSocket connected successfully');
     });
 
     this.socket.on('connect_error', error => {
       window.clearTimeout(connectTimeout);
-      console.log(
+      logger.debug(
         '❌ WebSocket connection failed, will retry...',
         error.message
       );
@@ -215,7 +216,7 @@ export class WebSocketClient {
     this.socket.on('connect', () => {
       // OPTIMIZED: Only log in development
       if (process.env.NODE_ENV === 'development') {
-        console.log('✅ WebSocket connected:', this.socket?.id);
+        logger.debug('✅ WebSocket connected:', this.socket?.id);
       }
       this.reconnectAttempts = 0;
 
@@ -228,14 +229,14 @@ export class WebSocketClient {
 
     this.socket.on('disconnect', reason => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('❌ WebSocket disconnected:', reason);
+        logger.debug('❌ WebSocket disconnected:', reason);
       }
     });
 
     this.socket.on('connect_error', error => {
       if (process.env.NODE_ENV === 'development') {
         console.error('🚫 WebSocket connection error:', error);
-        console.log('🔍 WebSocket connection details:', {
+        logger.debug('🔍 WebSocket connection details:', {
           baseUrl: this.baseUrl,
           errorType: (error as any).type || 'unknown',
           errorMessage: error.message,
@@ -249,7 +250,7 @@ export class WebSocketClient {
           console.error(
             '💀 Max reconnection attempts reached. WebSocket disabled.'
           );
-          console.log('🔧 WebSocket troubleshooting tips:', {
+          logger.debug('🔧 WebSocket troubleshooting tips:', {
             '1': 'Check if backend is running on port 3001',
             '2': 'Verify WebSocket server is enabled in backend',
             '3': 'Check firewall/network settings',
@@ -261,7 +262,9 @@ export class WebSocketClient {
 
     this.socket.on('reconnect', attemptNumber => {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔄 WebSocket reconnected after ${attemptNumber} attempts`);
+        logger.debug(
+          `🔄 WebSocket reconnected after ${attemptNumber} attempts`
+        );
       }
       this.reconnectAttempts = 0;
     });
@@ -298,7 +301,7 @@ export class WebSocketClient {
 
     this.socket.emit('register', { userId, userName });
     if (process.env.NODE_ENV === 'development') {
-      console.log(`👤 Registered user: ${userName} (${userId})`);
+      logger.debug(`👤 Registered user: ${userName} (${userId})`);
     }
   }
 
@@ -377,7 +380,7 @@ export class WebSocketClient {
   disconnect() {
     if (this.socket) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔌 Disconnecting WebSocket...');
+        logger.debug('🔌 Disconnecting WebSocket...');
       }
 
       // Vyčisti všetky event listeners

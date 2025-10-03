@@ -1,9 +1,9 @@
 /**
  * 📊 UNIFIED DATA TABLE COMPONENT
- * 
+ *
  * Konzistentný data table pre celú BlackRent aplikáciu
  * Nahradí všetky MUI DataGrid implementácie
- * 
+ *
  * Features:
  * - Sorting, filtering, pagination
  * - Row selection
@@ -23,7 +23,13 @@ import {
 } from './table';
 import { Button } from './button';
 import { Input } from './input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './select';
 import { Checkbox } from './checkbox';
 import { cn } from '@/lib/utils';
 import {
@@ -41,6 +47,7 @@ import { UnifiedIcon } from './UnifiedIcon';
 import { Card } from './card';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { Label } from './label';
+import { logger } from '@/utils/smartLogger';
 
 export interface DataTableColumn {
   field: string;
@@ -67,13 +74,13 @@ export interface UnifiedDataTableProps {
   rows: any[];
   columns: DataTableColumn[];
   getRowId?: (_row: any) => string | number;
-  
+
   // Features
   checkboxSelection?: boolean;
   disableSelectionOnClick?: boolean;
   onSelectionModelChange?: (_selectedIds: (string | number)[]) => void;
   selectionModel?: (string | number)[];
-  
+
   // Pagination
   pagination?: boolean;
   pageSize?: number;
@@ -82,23 +89,25 @@ export interface UnifiedDataTableProps {
   onPageSizeChange?: (_pageSize: number) => void;
   rowCount?: number;
   page?: number;
-  
+
   // Sorting
   sortingMode?: 'client' | 'server';
   sortModel?: Array<{ field: string; sort: 'asc' | 'desc' | null }>;
-  onSortModelChange?: (_model: Array<{ field: string; sort: 'asc' | 'desc' | null }>) => void;
-  
+  onSortModelChange?: (
+    _model: Array<{ field: string; sort: 'asc' | 'desc' | null }>
+  ) => void;
+
   // Filtering
   filterMode?: 'client' | 'server';
   filterModel?: any;
   onFilterModelChange?: (_model: any) => void;
   quickFilterValue?: string;
-  
+
   // Row actions
   onRowClick?: (_params: any) => void;
   onRowDoubleClick?: (_params: any) => void;
   getRowClassName?: (_params: any) => string;
-  
+
   // UI
   loading?: boolean;
   autoHeight?: boolean;
@@ -107,18 +116,18 @@ export interface UnifiedDataTableProps {
   hideFooter?: boolean;
   hideFooterPagination?: boolean;
   hideFooterSelectedRowCount?: boolean;
-  
+
   // Export
   exportOptions?: {
     filename?: string;
     formats?: ('csv' | 'excel' | 'pdf')[];
   };
-  
+
   // MUI compatibility
   sx?: Record<string, unknown>;
   components?: any;
   componentsProps?: any;
-  
+
   // Styling
   className?: string;
   tableClassName?: string;
@@ -127,7 +136,7 @@ export interface UnifiedDataTableProps {
 export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
   rows,
   columns,
-  getRowId = (row) => row.id,
+  getRowId = row => row.id,
   checkboxSelection = false,
   disableSelectionOnClick = false,
   onSelectionModelChange,
@@ -169,25 +178,29 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
   const [selectedRows, setSelectedRows] = useState<Set<string | number>>(
     new Set(selectionModel)
   );
-  const [sortBy, setSortBy] = useState(sortModel[0] || { field: '', sort: null });
-  const [globalFilter, setGlobalFilter] = useState(quickFilterValue);
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(
-    columns.reduce((acc, col) => ({ ...acc, [col.field]: !col.hide }), {})
+  const [sortBy, setSortBy] = useState(
+    sortModel[0] || { field: '', sort: null }
   );
-  
+  const [globalFilter, setGlobalFilter] = useState(quickFilterValue);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
+    {}
+  );
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(columns.reduce((acc, col) => ({ ...acc, [col.field]: !col.hide }), {}));
+
   // Visible columns
   const visibleColumns = useMemo(
     () => columns.filter(col => columnVisibility[col.field] !== false),
     [columns, columnVisibility]
   );
-  
+
   // Filter rows
   const filteredRows = useMemo(() => {
     if (filterMode === 'server') return rows;
-    
+
     let filtered = [...rows];
-    
+
     // Global filter
     if (globalFilter) {
       filtered = filtered.filter(row =>
@@ -196,7 +209,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
         )
       );
     }
-    
+
     // Column filters
     Object.entries(columnFilters).forEach(([field, value]) => {
       if (value) {
@@ -205,60 +218,65 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
         );
       }
     });
-    
+
     return filtered;
   }, [rows, globalFilter, columnFilters, filterMode]);
-  
+
   // Sort rows
   const sortedRows = useMemo(() => {
     if (sortingMode === 'server' || !sortBy.field || !sortBy.sort) {
       return filteredRows;
     }
-    
+
     return [...filteredRows].sort((a, b) => {
       const aValue = a[sortBy.field];
       const bValue = b[sortBy.field];
-      
+
       if (aValue === bValue) return 0;
-      
+
       const comparison = aValue < bValue ? -1 : 1;
       return sortBy.sort === 'asc' ? comparison : -comparison;
     });
   }, [filteredRows, sortBy, sortingMode]);
-  
+
   // Paginate rows
   const paginatedRows = useMemo(() => {
     if (!pagination) return sortedRows;
-    
+
     const start = page * pageSize;
     const end = start + pageSize;
     return sortedRows.slice(start, end);
   }, [sortedRows, page, pageSize, pagination]);
-  
+
   // Total pages
   const totalPages = Math.ceil((rowCount || sortedRows.length) / pageSize);
-  
+
   // Density classes
   const densityClasses = {
     compact: 'py-1 px-2 text-xs',
     standard: 'py-2 px-3 text-sm',
     comfortable: 'py-3 px-4 text-base',
   };
-  
+
   // Handle sort
   const handleSort = (field: string) => {
     const column = columns.find(col => col.field === field);
     if (!column?.sortable) return;
-    
-    const newSort: 'asc' | 'desc' | null = sortBy.field === field
-      ? sortBy.sort === 'asc' ? 'desc' : sortBy.sort === 'desc' ? null : 'asc'
-      : 'asc';
-    
+
+    const newSort: 'asc' | 'desc' | null =
+      sortBy.field === field
+        ? sortBy.sort === 'asc'
+          ? 'desc'
+          : sortBy.sort === 'desc'
+            ? null
+            : 'asc'
+        : 'asc';
+
     const newSortBy = { field, sort: newSort };
     setSortBy(newSortBy);
     onSortModelChange?.([newSortBy]);
   };
-  
+
   // Handle selection
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -270,7 +288,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
       onSelectionModelChange?.([]);
     }
   };
-  
+
   const handleSelectRow = (rowId: string | number, checked: boolean) => {
     const newSelection = new Set(selectedRows);
     if (checked) {
@@ -281,25 +299,25 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
     setSelectedRows(newSelection);
     onSelectionModelChange?.(Array.from(newSelection));
   };
-  
+
   // Handle pagination
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     onPageChange?.(newPage);
   };
-  
+
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setPage(0);
     onPageSizeChange?.(newPageSize);
   };
-  
+
   // Export data
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     // Implementation would go here
-    console.log(`Exporting as ${format}`);
+    logger.debug(`Exporting as ${format}`);
   };
-  
+
   return (
     <Card className={cn('w-full', className)}>
       {/* Toolbar */}
@@ -312,12 +330,12 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
               <Input
                 placeholder="Hľadať..."
                 value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
+                onChange={e => setGlobalFilter(e.target.value)}
                 className="pl-8"
               />
             </div>
           </div>
-          
+
           {/* Actions */}
           <div className="flex items-center gap-2">
             {/* Column visibility */}
@@ -331,10 +349,13 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
               <PopoverContent align="end" className="w-48">
                 <div className="space-y-2">
                   {columns.map(column => (
-                    <div key={column.field} className="flex items-center space-x-2">
+                    <div
+                      key={column.field}
+                      className="flex items-center space-x-2"
+                    >
                       <Checkbox
                         checked={columnVisibility[column.field] !== false}
-                        onCheckedChange={(checked) => {
+                        onCheckedChange={checked => {
                           setColumnVisibility(prev => ({
                             ...prev,
                             [column.field]: checked as boolean,
@@ -349,7 +370,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                 </div>
               </PopoverContent>
             </Popover>
-            
+
             {/* Export */}
             {exportOptions && (
               <Popover>
@@ -398,19 +419,21 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Table */}
-      <div className={cn(
-        'relative overflow-auto',
-        autoHeight ? '' : 'max-h-[600px]',
-        tableClassName
-      )}>
+      <div
+        className={cn(
+          'relative overflow-auto',
+          autoHeight ? '' : 'max-h-[600px]',
+          tableClassName
+        )}
+      >
         {loading && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
             <UnifiedIcon name="repeat" className="h-6 w-6 animate-spin" />
           </div>
         )}
-        
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -419,13 +442,15 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                   <Checkbox
                     checked={
                       paginatedRows.length > 0 &&
-                      paginatedRows.every(row => selectedRows.has(getRowId(row)))
+                      paginatedRows.every(row =>
+                        selectedRows.has(getRowId(row))
+                      )
                     }
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
               )}
-              
+
               {visibleColumns.map(column => (
                 <TableHead
                   key={column.field}
@@ -448,7 +473,8 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                         <ChevronUp
                           className={cn(
                             'h-3 w-3',
-                            sortBy.field === column.field && sortBy.sort === 'asc'
+                            sortBy.field === column.field &&
+                              sortBy.sort === 'asc'
                               ? 'text-foreground'
                               : 'text-muted-foreground/30'
                           )}
@@ -456,7 +482,8 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                         <ChevronDown
                           className={cn(
                             'h-3 w-3 -mt-1',
-                            sortBy.field === column.field && sortBy.sort === 'desc'
+                            sortBy.field === column.field &&
+                              sortBy.sort === 'desc'
                               ? 'text-foreground'
                               : 'text-muted-foreground/30'
                           )}
@@ -467,7 +494,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                 </TableHead>
               ))}
             </TableRow>
-            
+
             {/* Column filters */}
             {visibleColumns.some(col => col.filterable) && (
               <TableRow>
@@ -478,7 +505,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                       <Input
                         placeholder={`Filter ${column.headerName}`}
                         value={columnFilters[column.field] || ''}
-                        onChange={(e) => {
+                        onChange={e => {
                           setColumnFilters(prev => ({
                             ...prev,
                             [column.field]: e.target.value,
@@ -492,13 +519,13 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
               </TableRow>
             )}
           </TableHeader>
-          
+
           <TableBody>
             {paginatedRows.map((row, index) => {
               const rowId = getRowId(row);
               const isSelected = selectedRows.has(rowId);
               const rowClassName = getRowClassName?.({ row, index });
-              
+
               return (
                 <TableRow
                   key={rowId}
@@ -519,25 +546,29 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                     <TableCell className="w-12">
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={checked =>
                           handleSelectRow(rowId, checked as boolean)
                         }
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                       />
                     </TableCell>
                   )}
-                  
+
                   {visibleColumns.map(column => {
                     const value = column.valueGetter
                       ? column.valueGetter({ row, field: column.field })
                       : row[column.field];
-                    
+
                     const displayValue = column.valueFormatter
-                      ? column.valueFormatter({ value, row, field: column.field })
+                      ? column.valueFormatter({
+                          value,
+                          row,
+                          field: column.field,
+                        })
                       : column.renderCell
-                      ? column.renderCell({ value, row, field: column.field })
-                      : value;
-                    
+                        ? column.renderCell({ value, row, field: column.field })
+                        : value;
+
                     return (
                       <TableCell
                         key={column.field}
@@ -554,7 +585,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                 </TableRow>
               );
             })}
-            
+
             {paginatedRows.length === 0 && (
               <TableRow>
                 <TableCell
@@ -568,7 +599,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
           </TableBody>
         </Table>
       </div>
-      
+
       {/* Footer */}
       {!hideFooter && pagination && (
         <div className="flex items-center justify-between p-4 border-t">
@@ -581,12 +612,16 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                 </span>
               )}
               <span>
-                {sortedRows.length} {sortedRows.length === 1 ? 'záznam' : 
-                  sortedRows.length < 5 ? 'záznamy' : 'záznamov'}
+                {sortedRows.length}{' '}
+                {sortedRows.length === 1
+                  ? 'záznam'
+                  : sortedRows.length < 5
+                    ? 'záznamy'
+                    : 'záznamov'}
               </span>
             </div>
           )}
-          
+
           {/* Pagination controls */}
           {!hideFooterPagination && (
             <div className="flex items-center gap-4">
@@ -594,7 +629,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                 <span className="text-sm">Riadkov na stranu:</span>
                 <Select
                   value={String(pageSize)}
-                  onValueChange={(value) => handlePageSizeChange(Number(value))}
+                  onValueChange={value => handlePageSizeChange(Number(value))}
                 >
                   <SelectTrigger className="h-8 w-16">
                     <SelectValue />
@@ -608,7 +643,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
@@ -626,11 +661,11 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                
+
                 <span className="text-sm px-2">
                   Strana {page + 1} z {totalPages || 1}
                 </span>
-                
+
                 <Button
                   variant="outline"
                   size="sm"

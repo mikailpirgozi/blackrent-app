@@ -63,6 +63,7 @@ import VehicleDialogs from './components/VehicleDialogs';
 import VehicleImportExport from './components/VehicleImportExport';
 import VehicleKmHistory from './components/VehicleKmHistory';
 import VehicleTable from './components/VehicleTable';
+import { logger } from '@/utils/smartLogger';
 
 export default function VehicleListNew() {
   // React Query hooks
@@ -89,7 +90,7 @@ export default function VehicleListNew() {
 
   // 🔍 DEBUG: Základné informácie o komponente (len raz)
   React.useEffect(() => {
-    console.log('🚀 VehicleListNew MOUNTED:', {
+    logger.debug('🚀 VehicleListNew MOUNTED:', {
       isMobile,
       screenWidth:
         typeof window !== 'undefined' ? window.innerWidth : 'unknown',
@@ -238,7 +239,7 @@ export default function VehicleListNew() {
         : desktopScrollRef.current;
       if (scrollContainer && savedScrollPosition.current > 0) {
         scrollContainer.scrollTop = savedScrollPosition.current;
-        console.log(
+        logger.debug(
           `🔄 Restored scroll position (${isMobile ? 'mobile' : 'desktop'}):`,
           savedScrollPosition.current
         );
@@ -273,7 +274,7 @@ export default function VehicleListNew() {
 
           if (success) {
             restored = true;
-            console.log(`✅ Scroll preserved at position ${targetPosition}`);
+            logger.debug(`✅ Scroll preserved at position ${targetPosition}`);
           }
         }, 50);
       }
@@ -292,7 +293,7 @@ export default function VehicleListNew() {
   }, [isMobile]);
 
   const handleEdit = (vehicle: Vehicle) => {
-    console.log('🔥 VEHICLE EDIT CLICKED:', vehicle.id);
+    logger.debug('🔥 VEHICLE EDIT CLICKED:', vehicle.id);
 
     // 🎯 SCROLL PRESERVATION: Uložiť aktuálnu pozíciu pred otvorením dialógu
     const scrollContainer = isMobile
@@ -300,7 +301,7 @@ export default function VehicleListNew() {
       : desktopScrollRef.current;
     if (scrollContainer) {
       savedScrollPosition.current = scrollContainer.scrollTop;
-      console.log(
+      logger.debug(
         `💾 Saved scroll position (${isMobile ? 'mobile' : 'desktop'}):`,
         savedScrollPosition.current
       );
@@ -313,7 +314,7 @@ export default function VehicleListNew() {
   // 🏢 Handler pre vytvorenie novej firmy
   const handleCreateCompany = async () => {
     try {
-      console.log('🏢 Creating new company:', newCompanyData);
+      logger.debug('🏢 Creating new company:', newCompanyData);
 
       const response = await fetch(`${getApiBaseUrl()}/companies`, {
         method: 'POST',
@@ -327,7 +328,7 @@ export default function VehicleListNew() {
       const result = await response.json();
 
       if (result.success) {
-        console.log('✅ Company created successfully');
+        logger.debug('✅ Company created successfully');
         setCreateCompanyDialogOpen(false);
         setNewCompanyData({
           name: '',
@@ -354,7 +355,7 @@ export default function VehicleListNew() {
   // 🤝 Handler pre vytvorenie spoluinvestora
   const handleCreateInvestor = async () => {
     try {
-      console.log('🤝 Creating new investor:', newInvestorData);
+      logger.debug('🤝 Creating new investor:', newInvestorData);
 
       const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
         method: 'POST',
@@ -365,12 +366,12 @@ export default function VehicleListNew() {
         body: JSON.stringify(newInvestorData),
       });
 
-      console.log('📡 API Response status:', response.status);
+      logger.debug('📡 API Response status:', response.status);
       const result = await response.json();
-      console.log('📡 API Response body:', result);
+      logger.debug('📡 API Response body:', result);
 
       if (result.success) {
-        console.log('✅ Investor created successfully');
+        logger.debug('✅ Investor created successfully');
         setCreateInvestorDialogOpen(false);
         setNewInvestorData({
           firstName: '',
@@ -447,7 +448,7 @@ export default function VehicleListNew() {
   // 🤝 Handler pre priradenie podielu
   const handleAssignShare = async () => {
     try {
-      console.log('🤝 Assigning share:', newShareData);
+      logger.debug('🤝 Assigning share:', newShareData);
 
       const response = await fetch(
         `${getApiBaseUrl()}/company-investors/shares`,
@@ -467,7 +468,7 @@ export default function VehicleListNew() {
       const result = await response.json();
 
       if (result.success) {
-        console.log('✅ Share assigned successfully');
+        logger.debug('✅ Share assigned successfully');
         setAssignShareDialogOpen(false);
         setSelectedInvestorForShare(null);
         setNewShareData({
@@ -567,7 +568,7 @@ export default function VehicleListNew() {
 
       const updatedVehicle = { ...vehicle, ownerCompanyId: companyId };
       await updateVehicleMutation.mutateAsync(updatedVehicle);
-      console.log('✅ Company saved:', companyId, 'for vehicle:', vehicleId);
+      logger.debug('✅ Company saved:', { companyId, vehicleId });
     } catch (error) {
       console.error('❌ Error saving company:', error);
     }
@@ -755,7 +756,7 @@ export default function VehicleListNew() {
         try {
           await deleteVehicleMutation.mutateAsync(vehicleId);
           deletedCount++;
-          console.log(`✅ Deleted vehicle: ${vehicleId}`);
+          logger.debug(`✅ Deleted vehicle: ${vehicleId}`);
         } catch (error) {
           errorCount++;
           console.error(`❌ Failed to delete vehicle: ${vehicleId}`, error);

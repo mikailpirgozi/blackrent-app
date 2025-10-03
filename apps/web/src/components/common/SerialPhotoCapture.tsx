@@ -13,12 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Button,
-} from '@/components/ui/button';
-import {
-  Label,
-} from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -26,19 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Switch,
-} from '@/components/ui/switch';
-import {
-  Badge,
-} from '@/components/ui/badge';
-import {
-  Progress,
-} from '@/components/ui/progress';
-import {
-  Alert,
-  AlertDescription,
-} from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Typography } from '@/components/ui/typography';
 import { Textarea } from '@/components/ui/textarea';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -161,7 +148,7 @@ export default function SerialPhotoCapture({
         const key = urlParts.slice(3).join('/');
         const apiBaseUrl = getApiBaseUrl();
         const proxyUrl = `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
-        console.log('🔄 Converting R2 URL to proxy:', r2Url, '→', proxyUrl);
+        logger.debug('🔄 Converting R2 URL to proxy:', { r2Url, proxyUrl });
         return proxyUrl;
       }
       return r2Url; // Ak nie je R2 URL, vráť pôvodné
@@ -193,7 +180,7 @@ export default function SerialPhotoCapture({
 
         return compressedFile;
       } catch (error) {
-        logger.debug('⚠️ Compression failed, using original:', error);
+        logger.debug('⚠️ Compression failed, using original:', { error });
         return file; // Fallback na originál
       }
     },
@@ -856,12 +843,10 @@ export default function SerialPhotoCapture({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
+      <Dialog open={open} onOpenChange={open => !open && handleClose()}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {title}
-            </DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
               Zachyťte fotografie pre {title.toLowerCase()}
             </DialogDescription>
@@ -869,7 +854,11 @@ export default function SerialPhotoCapture({
 
           {/* Sticky Save/Cancel Buttons - Always visible */}
           <div className="sticky top-0 z-50 bg-background border-b pb-3 mb-4 -mt-2 flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClose} disabled={processing}>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={processing}
+            >
               Zrušiť
             </Button>
             <Button
@@ -907,8 +896,7 @@ export default function SerialPhotoCapture({
               disabled={processing}
               className="border-orange-500 text-orange-500 hover:bg-orange-50 hover:border-orange-600"
             >
-              <PhotoCamera className="h-5 w-5 mr-2" />
-              ⚡ Rýchle fotky
+              <PhotoCamera className="h-5 w-5 mr-2" />⚡ Rýchle fotky
             </Button>
 
             {/* 🎯 NOVÉ: Výber kvality */}
@@ -916,7 +904,7 @@ export default function SerialPhotoCapture({
               <Label htmlFor="quality-select">Kvalita</Label>
               <Select
                 value={selectedQuality}
-                onValueChange={(value) =>
+                onValueChange={value =>
                   setSelectedQuality(value as typeof selectedQuality)
                 }
               >
@@ -945,10 +933,13 @@ export default function SerialPhotoCapture({
               <div className="flex items-center gap-2">
                 <Switch
                   checked={webPEnabled && webPSupported}
-                  onCheckedChange={(checked) => setWebPEnabled(checked)}
+                  onCheckedChange={checked => setWebPEnabled(checked)}
                   disabled={!webPSupported}
                 />
-                <Label htmlFor="webp-toggle" className="flex items-center gap-2">
+                <Label
+                  htmlFor="webp-toggle"
+                  className="flex items-center gap-2"
+                >
                   <Typography variant="body2">
                     WebP {webPSupported ? '✅' : '❌'}
                   </Typography>
@@ -970,11 +961,13 @@ export default function SerialPhotoCapture({
               </Typography>
               <ul className="m-0 pl-4 space-y-1">
                 <li>
-                  <kbd className="px-2 py-1 bg-muted rounded">Space</kbd> alebo <kbd className="px-2 py-1 bg-muted rounded">⌘R</kbd> = Rýchle fotky cez
-                  prehliadač
+                  <kbd className="px-2 py-1 bg-muted rounded">Space</kbd> alebo{' '}
+                  <kbd className="px-2 py-1 bg-muted rounded">⌘R</kbd> = Rýchle
+                  fotky cez prehliadač
                 </li>
                 <li>
-                  <kbd className="px-2 py-1 bg-muted rounded">⌘K</kbd> = Kvalitné fotky z galérie/fotoaparátu
+                  <kbd className="px-2 py-1 bg-muted rounded">⌘K</kbd> =
+                  Kvalitné fotky z galérie/fotoaparátu
                 </li>
                 <li>
                   <strong>Tip:</strong> Pre škody použiť kvalitné, pre celkové
@@ -1006,7 +999,10 @@ export default function SerialPhotoCapture({
           {/* Progress indicators */}
           {(processing || uploadingToR2) && (
             <div className="mb-2">
-              <Typography variant="body2" className="text-muted-foreground mb-2">
+              <Typography
+                variant="body2"
+                className="text-muted-foreground mb-2"
+              >
                 {uploadingToR2
                   ? 'Uploadujem na R2...'
                   : 'Spracovávam súbory...'}
@@ -1043,7 +1039,8 @@ export default function SerialPhotoCapture({
                   }
                   className="text-xs"
                 >
-                  {capturedMedia.filter(m => m.type === 'image').length}/{maxImages} fotiek
+                  {capturedMedia.filter(m => m.type === 'image').length}/
+                  {maxImages} fotiek
                 </Badge>
                 <Badge
                   variant={
@@ -1054,19 +1051,14 @@ export default function SerialPhotoCapture({
                   }
                   className="text-xs"
                 >
-                  {capturedMedia.filter(m => m.type === 'video').length}/{maxVideos} videí
+                  {capturedMedia.filter(m => m.type === 'video').length}/
+                  {maxVideos} videí
                 </Badge>
-                <Badge
-                  variant="outline"
-                  className="text-xs"
-                >
+                <Badge variant="outline" className="text-xs">
                   {(totalSize / 1024 / 1024).toFixed(1)} MB
                 </Badge>
                 {compressionRatio > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs"
-                  >
+                  <Badge variant="secondary" className="text-xs">
                     {compressionRatio.toFixed(1)}% komprimované
                   </Badge>
                 )}
@@ -1092,7 +1084,7 @@ export default function SerialPhotoCapture({
                         // Fallback na proxy URL ak preview zlyhá
                         const img = e.target as HTMLImageElement;
                         if (img.src === media.preview && media.originalUrl) {
-                          console.log(
+                          logger.debug(
                             '🔄 Falling back to proxy URL for preview'
                           );
                           img.src = getProxyUrl(media.originalUrl);
@@ -1143,7 +1135,7 @@ export default function SerialPhotoCapture({
                   <Label htmlFor={`media-type-${media.id}`}>Typ</Label>
                   <Select
                     value={media.mediaType}
-                    onValueChange={(value) =>
+                    onValueChange={value =>
                       handleMediaTypeChange(
                         media.id,
                         value as
@@ -1177,7 +1169,7 @@ export default function SerialPhotoCapture({
                   <Textarea
                     id={`description-${media.id}`}
                     value={media.description}
-                    onChange={(e) =>
+                    onChange={e =>
                       handleDescriptionChange(media.id, e.target.value)
                     }
                     rows={2}
@@ -1207,16 +1199,11 @@ export default function SerialPhotoCapture({
       </Dialog>
 
       {/* Preview Dialog */}
-      <Dialog
-        open={!!previewMedia}
-        onOpenChange={() => setPreviewMedia(null)}
-      >
+      <Dialog open={!!previewMedia} onOpenChange={() => setPreviewMedia(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Náhľad</DialogTitle>
-            <DialogDescription>
-              Náhľad vybranej fotografie
-            </DialogDescription>
+            <DialogDescription>Náhľad vybranej fotografie</DialogDescription>
           </DialogHeader>
           {previewMedia && (
             <div className="text-center">
@@ -1236,7 +1223,7 @@ export default function SerialPhotoCapture({
                       img.src === previewMedia.preview &&
                       previewMedia.originalUrl
                     ) {
-                      console.log(
+                      logger.debug(
                         '🔄 Falling back to R2 URL for preview modal'
                       );
                       img.src = previewMedia.originalUrl;

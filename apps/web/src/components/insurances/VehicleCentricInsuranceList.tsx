@@ -50,6 +50,7 @@ import BatchDocumentForm from './BatchDocumentForm';
 import { getDocumentTypeConfig } from './documentTypeConfig';
 
 import InsuranceClaimList from './InsuranceClaimList';
+import { logger } from '@/utils/smartLogger';
 
 // Unified document type for table display
 interface UnifiedDocument {
@@ -209,7 +210,7 @@ export default function VehicleCentricInsuranceList() {
 
   // 🔍 DEBUG: Log when vehicleDocuments change
   useEffect(() => {
-    console.log('🔄 VehicleDocuments updated:', {
+    logger.debug('🔄 VehicleDocuments updated:', {
       count: vehicleDocuments?.length,
       dataUpdatedAt: new Date(dataUpdatedAt),
       timestamp: Date.now(),
@@ -384,7 +385,7 @@ export default function VehicleCentricInsuranceList() {
       vehicleDocuments.forEach(doc => {
         // 🔍 DEBUG: Log vignette documents
         if (doc.documentType === 'vignette') {
-          console.log('🔍 VIGNETTE DOCUMENT from API:', {
+          logger.debug('🔍 VIGNETTE DOCUMENT from API:', {
             id: doc.id,
             country: doc.country,
             isRequired: doc.isRequired,
@@ -712,7 +713,7 @@ export default function VehicleCentricInsuranceList() {
         };
       }>
     ) => {
-      console.log('🟢 handleBatchSave CALLED with documents:', documents);
+      logger.debug('🟢 handleBatchSave CALLED with documents:', documents);
 
       try {
         // Process each document
@@ -897,8 +898,8 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
 
   const handleSave = useCallback(
     (data: UnifiedDocumentData) => {
-      console.log('🟢 handleSave CALLED with data:', data);
-      console.log('🟢 editingDocument:', editingDocument);
+      logger.debug('🟢 handleSave CALLED with data:', data);
+      logger.debug('🟢 editingDocument:', editingDocument);
 
       const closeDialog = () => {
         setOpenDialog(false);
@@ -938,13 +939,13 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
             greenCardValidTo: data.greenCardValidTo || new Date(),
             kmState: data.kmState || 0, // 🚗 Stav kilometrov
           };
-          console.log(
+          logger.debug(
             '🔵 BEFORE MUTATION: Calling updateInsuranceMutation.mutate with:',
             insuranceData
           );
           updateInsuranceMutation.mutate(insuranceData, {
             onSuccess: data => {
-              console.log('✅ UPDATE SUCCESS:', data);
+              logger.debug('✅ UPDATE SUCCESS:', data);
               closeDialog();
             },
             onError: error => {
@@ -954,11 +955,11 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
             },
             onSettled: () => {
               // Ensure cache invalidation happens
-              console.log('🔄 onSettled called for updateInsurance');
+              logger.debug('🔄 onSettled called for updateInsurance');
               // Per-entity cache invalidation is handled in useInsurances hook
             },
           });
-          console.log('🔵 AFTER MUTATION: Mutation called');
+          logger.debug('🔵 AFTER MUTATION: Mutation called');
         } else {
           // Type guard pre DocumentType
           const isValidDocumentType = (type: string): type is DocumentType => {
@@ -968,7 +969,7 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
           };
 
           if (isValidDocumentType(data.type)) {
-            console.log('🔍 DEBUG handleSave - data object:', {
+            logger.debug('🔍 DEBUG handleSave - data object:', {
               dataCountry: data.country,
               dataIsRequired: data.isRequired,
               dataType: data.type,
@@ -991,13 +992,13 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
                 isRequired: data.isRequired,
               }), // ⚠️ Povinná dialničná známka
             };
-            console.log(
+            logger.debug(
               '🔵 BEFORE MUTATION: Calling updateVehicleDocumentMutation.mutate with:',
               vehicleDocData
             );
             updateVehicleDocumentMutation.mutate(vehicleDocData, {
               onSuccess: data => {
-                console.log('✅ VEHICLE DOCUMENT UPDATE SUCCESS:', data);
+                logger.debug('✅ VEHICLE DOCUMENT UPDATE SUCCESS:', data);
                 closeDialog();
               },
               onError: error => {
@@ -1008,7 +1009,7 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
                 );
               },
             });
-            console.log('🔵 AFTER MUTATION: Mutation called');
+            logger.debug('🔵 AFTER MUTATION: Mutation called');
           }
         }
       } else {
@@ -1048,7 +1049,7 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
             },
             onSettled: () => {
               // Ensure cache invalidation happens
-              console.log('🔄 onSettled called for createInsurance');
+              logger.debug('🔄 onSettled called for createInsurance');
               // Per-entity cache invalidation is handled in useInsurances hook
             },
           });
@@ -2217,7 +2218,7 @@ function DocumentListItem({
                         variant="default"
                         onClick={() => {
                           // ZIP download logic here
-                          console.log('Download ZIP for files:', filePaths);
+                          logger.debug('Download ZIP for files:', filePaths);
                         }}
                       />
                     </span>

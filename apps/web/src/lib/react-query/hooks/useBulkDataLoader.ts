@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
+import { logger } from '@/utils/smartLogger';
 
 interface BulkData {
   vehicles: Vehicle[];
@@ -35,13 +36,13 @@ export function useBulkDataLoader() {
   return useQuery({
     queryKey: queryKeys.bulk.all,
     queryFn: async () => {
-      console.log('🚀 Loading BULK data as transport...');
+      logger.debug('🚀 Loading BULK data as transport...');
       const startTime = Date.now();
 
       // Načítať BULK dáta
       const bulkData = (await apiService.getBulkData()) as BulkData;
 
-      console.log('📦 BULK data loaded, splitting into per-entity cache...');
+      logger.debug('📦 BULK data loaded, splitting into per-entity cache...');
 
       // Rozdeliť dáta do per-entity cache
       // Vehicles
@@ -138,8 +139,8 @@ export function useBulkDataLoader() {
       );
 
       const endTime = Date.now();
-      console.log(`✅ Per-entity cache populated in ${endTime - startTime}ms`);
-      console.log('📊 Cache stats:', {
+      logger.debug(`✅ Per-entity cache populated in ${endTime - startTime}ms`);
+      logger.debug('📊 Cache stats:', {
         vehicles: bulkData.vehicles?.length || 0,
         rentals: bulkData.rentals?.length || 0,
         customers: bulkData.customers?.length || 0,
@@ -169,7 +170,7 @@ export function useInvalidateEntity() {
 
   return {
     invalidateVehicle: (id: string) => {
-      console.log(`🔄 Invalidating vehicle cache: ${id}`);
+      logger.debug(`🔄 Invalidating vehicle cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.vehicles.detail(id),
       });
@@ -179,7 +180,7 @@ export function useInvalidateEntity() {
     },
 
     invalidateRental: (id: string) => {
-      console.log(`🔄 Invalidating rental cache: ${id}`);
+      logger.debug(`🔄 Invalidating rental cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.detail(id),
       });
@@ -189,7 +190,7 @@ export function useInvalidateEntity() {
     },
 
     invalidateCustomer: (id: string) => {
-      console.log(`🔄 Invalidating customer cache: ${id}`);
+      logger.debug(`🔄 Invalidating customer cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.customers.detail(id),
       });
@@ -199,7 +200,7 @@ export function useInvalidateEntity() {
     },
 
     invalidateInsurance: (id: string) => {
-      console.log(`🔄 Invalidating insurance cache: ${id}`);
+      logger.debug(`🔄 Invalidating insurance cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.insurances.detail(id),
       });
@@ -213,7 +214,7 @@ export function useInvalidateEntity() {
     },
 
     invalidateExpense: (id: string) => {
-      console.log(`🔄 Invalidating expense cache: ${id}`);
+      logger.debug(`🔄 Invalidating expense cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: ['expenses', 'detail', id],
       });
@@ -223,7 +224,7 @@ export function useInvalidateEntity() {
     },
 
     invalidateSettlement: (id: string) => {
-      console.log(`🔄 Invalidating settlement cache: ${id}`);
+      logger.debug(`🔄 Invalidating settlement cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.settlements.detail(id),
       });
@@ -233,7 +234,7 @@ export function useInvalidateEntity() {
     },
 
     invalidateInsuranceClaim: (id: string) => {
-      console.log(`🔄 Invalidating insurance claim cache: ${id}`);
+      logger.debug(`🔄 Invalidating insurance claim cache: ${id}`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.insuranceClaims.detail(id),
       });

@@ -18,9 +18,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { memo, useEffect, useState } from 'react';
+import { logger } from '@/utils/smartLogger';
 
 // 🔄 PHASE 2: UnifiedCache removed - migrating to React Query
 
@@ -100,7 +113,7 @@ const CacheMonitoring: React.FC = () => {
 
   const handleClearCache = () => {
     // 🔄 PHASE 2: Cache clearing removed - React Query handles cache automatically
-    console.log(
+    logger.debug(
       'Cache clearing disabled - React Query manages cache automatically'
     );
     loadStats();
@@ -126,7 +139,9 @@ const CacheMonitoring: React.FC = () => {
     return (
       <div className="p-6">
         <Progress className="mb-4" />
-        <p className="text-sm text-muted-foreground">Načítavam cache štatistiky...</p>
+        <p className="text-sm text-muted-foreground">
+          Načítavam cache štatistiky...
+        </p>
       </div>
     );
   }
@@ -152,7 +167,12 @@ const CacheMonitoring: React.FC = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={loadStats} disabled={loading}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadStats}
+                  disabled={loading}
+                >
                   <RefreshIcon className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -161,7 +181,12 @@ const CacheMonitoring: React.FC = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleClearCache} className="text-destructive">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearCache}
+                  className="text-destructive"
+                >
                   <ClearIcon className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -185,7 +210,9 @@ const CacheMonitoring: React.FC = () => {
               <div className="flex items-center gap-4">
                 <StorageIcon className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Cache Entries</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Cache Entries
+                  </p>
                   <p className="text-3xl font-semibold">{stats.size}</p>
                 </div>
               </div>
@@ -199,13 +226,24 @@ const CacheMonitoring: React.FC = () => {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Hit Rate</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-3xl font-semibold">{stats.hitRate.toFixed(1)}%</p>
+                    <p className="text-3xl font-semibold">
+                      {stats.hitRate.toFixed(1)}%
+                    </p>
                     <Badge
-                      variant={formatHitRate(stats.hitRate) === 'success' ? 'default' : 
-                               formatHitRate(stats.hitRate) === 'warning' ? 'secondary' : 'destructive'}
+                      variant={
+                        formatHitRate(stats.hitRate) === 'success'
+                          ? 'default'
+                          : formatHitRate(stats.hitRate) === 'warning'
+                            ? 'secondary'
+                            : 'destructive'
+                      }
                       className="text-xs"
                     >
-                      {stats.hitRate >= 80 ? 'Excellent' : stats.hitRate >= 60 ? 'Good' : 'Poor'}
+                      {stats.hitRate >= 80
+                        ? 'Excellent'
+                        : stats.hitRate >= 60
+                          ? 'Good'
+                          : 'Poor'}
                     </Badge>
                   </div>
                 </div>
@@ -218,8 +256,12 @@ const CacheMonitoring: React.FC = () => {
               <div className="flex items-center gap-4">
                 <TrendingUpIcon className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Requests</p>
-                  <p className="text-3xl font-semibold">{stats.totalRequests}</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Total Requests
+                  </p>
+                  <p className="text-3xl font-semibold">
+                    {stats.totalRequests}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {stats.hits} hits • {stats.misses} misses
                   </p>
@@ -233,12 +275,21 @@ const CacheMonitoring: React.FC = () => {
               <div className="flex items-center gap-4">
                 <MemoryIcon className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Memory Usage</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Memory Usage
+                  </p>
                   <div className="flex items-center gap-2">
-                    <p className="text-3xl font-semibold">{stats.memoryUsage}</p>
+                    <p className="text-3xl font-semibold">
+                      {stats.memoryUsage}
+                    </p>
                     <Badge
-                      variant={formatMemoryUsage(stats.memoryUsage) === 'success' ? 'default' : 
-                               formatMemoryUsage(stats.memoryUsage) === 'warning' ? 'secondary' : 'destructive'}
+                      variant={
+                        formatMemoryUsage(stats.memoryUsage) === 'success'
+                          ? 'default'
+                          : formatMemoryUsage(stats.memoryUsage) === 'warning'
+                            ? 'secondary'
+                            : 'destructive'
+                      }
                       className="text-xs"
                     />
                   </div>
@@ -259,22 +310,27 @@ const CacheMonitoring: React.FC = () => {
             <div className="mb-4">
               <div className="flex justify-between mb-2">
                 <span className="text-sm">Hit Rate</span>
-                <span className="text-sm font-medium">{stats.hitRate.toFixed(1)}%</span>
+                <span className="text-sm font-medium">
+                  {stats.hitRate.toFixed(1)}%
+                </span>
               </div>
-              <Progress 
-                value={stats.hitRate} 
-                className="h-2"
-              />
+              <Progress value={stats.hitRate} className="h-2" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Cache Hits</p>
-                <p className="text-xl font-semibold text-green-600">{stats.hits}</p>
+                <p className="text-xl font-semibold text-green-600">
+                  {stats.hits}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Cache Misses</p>
-                <p className="text-xl font-semibold text-red-600">{stats.misses}</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Cache Misses
+                </p>
+                <p className="text-xl font-semibold text-red-600">
+                  {stats.misses}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -315,10 +371,16 @@ const CacheMonitoring: React.FC = () => {
                         <TableCell className="text-right">
                           {stats.totalRequests > 0 ? (
                             <span className="text-sm">
-                              {((item.hits / stats.totalRequests) * 100).toFixed(1)}%
+                              {(
+                                (item.hits / stats.totalRequests) *
+                                100
+                              ).toFixed(1)}
+                              %
                             </span>
                           ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
+                            <span className="text-sm text-muted-foreground">
+                              -
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -329,8 +391,8 @@ const CacheMonitoring: React.FC = () => {
             ) : (
               <Alert>
                 <AlertDescription>
-                  Žiadne cache entries nenájdené. Cache je prázdny alebo ešte nebol
-                  použitý.
+                  Žiadne cache entries nenájdené. Cache je prázdny alebo ešte
+                  nebol použitý.
                 </AlertDescription>
               </Alert>
             )}
@@ -344,11 +406,15 @@ const CacheMonitoring: React.FC = () => {
               <h3 className="text-lg font-semibold mb-4">Cache Timeline</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Oldest Entry</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Oldest Entry
+                  </p>
                   <p className="text-sm">{stats.oldestEntry}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Newest Entry</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Newest Entry
+                  </p>
                   <p className="text-sm">{stats.newestEntry}</p>
                 </div>
               </div>

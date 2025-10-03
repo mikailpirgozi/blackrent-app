@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react';
 
 import { apiService } from '../../../services/api';
 import type { Rental } from '../../../types';
+import { logger } from '@/utils/smartLogger';
 
 export const usePendingRentals = () => {
   const [pendingRentals, setPendingRentals] = useState<Rental[]>([]);
@@ -23,7 +24,7 @@ export const usePendingRentals = () => {
       setPendingLoading(true);
       setError(null);
       const rentals = await apiService.getPendingAutomaticRentals();
-      console.log('✅ Loaded pending rentals:', rentals?.length || 0);
+      logger.debug('✅ Loaded pending rentals:', rentals?.length || 0);
       setPendingRentals(rentals || []);
       return rentals || [];
     } catch (error: unknown) {

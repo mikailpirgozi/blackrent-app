@@ -1,6 +1,8 @@
 // 🚀 Vite Performance Optimizations
 // Advanced preloading, code splitting, and performance utilities
 
+import { logger } from './smartLogger';
+
 // import { ComponentType } from 'react';
 
 // Vite-specific module preloading
@@ -162,12 +164,12 @@ export const initializeViteOptimizations = () => {
   const isDev = process.env.NODE_ENV === 'development';
 
   if (isDev) {
-    console.log('🚀 Vite optimizations initialized (development mode)');
+    logger.debug('🚀 Vite optimizations initialized (development mode)');
 
     // In development, preload less aggressively
     setTimeout(preloadCriticalComponents, 2000);
   } else {
-    console.log('🚀 Vite optimizations initialized (production mode)');
+    logger.debug('🚀 Vite optimizations initialized (production mode)');
 
     // In production, preload more aggressively
     setTimeout(preloadCriticalComponents, 500);
@@ -181,7 +183,7 @@ export const monitorVitePerformance = () => {
     const observer = new PerformanceObserver(list => {
       list.getEntries().forEach(entry => {
         if (entry.name.includes('chunk-') || entry.name.includes('assets/')) {
-          console.log(
+          logger.debug(
             `📊 Vite chunk loaded: ${entry.name} (${entry.duration}ms)`
           );
         }

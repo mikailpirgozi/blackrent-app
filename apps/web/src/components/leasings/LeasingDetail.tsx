@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { Edit, Trash2, AlertCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ import {
   useLeasing,
   useDeleteLeasing,
 } from '@/lib/react-query/hooks/useLeasings';
+import { queryKeys } from '@/lib/react-query/queryKeys';
 import { PaymentScheduleTable } from './PaymentScheduleTable';
 import { EarlyRepaymentCard } from './EarlyRepaymentCard';
 import { LeasingDocuments } from './LeasingDocuments';
@@ -38,6 +40,7 @@ export function LeasingDetail({
   open,
   onOpenChange,
 }: LeasingDetailProps) {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useLeasing(leasingId);
   const deleteMutation = useDeleteLeasing();
   const [activeTab, setActiveTab] = useState('overview');
@@ -55,9 +58,15 @@ export function LeasingDetail({
     setEditFormOpen(true);
   };
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = async () => {
     setEditFormOpen(false);
-    // React Query automaticky refetchne dáta
+    // 🔥 FORCE REFETCH: Explicitný refetch pre istotu
+    await queryClient.refetchQueries({
+      queryKey: queryKeys.leasings.detail(leasingId),
+    });
+    await queryClient.refetchQueries({
+      queryKey: queryKeys.leasings.all,
+    });
   };
 
   const formatMoney = (amount: number | string) => {

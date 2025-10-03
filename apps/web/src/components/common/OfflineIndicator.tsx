@@ -11,31 +11,17 @@ import {
   Clock as ScheduleIcon,
   RotateCcw as SyncIcon,
 } from 'lucide-react';
-import {
-  Alert,
-  AlertDescription,
-} from '@/components/ui/alert';
-import {
-  Button,
-} from '@/components/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-} from '@/components/ui/collapsible';
-import {
-  Progress,
-} from '@/components/ui/progress';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import {
-  Typography,
-} from '@/components/ui/typography';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
+import { Typography } from '@/components/ui/typography';
 import { useEffect, useState } from 'react';
 
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { usePWA } from '../../hooks/usePWA';
+import { logger } from '@/utils/smartLogger';
 
 // Global type definitions for browser APIs
 declare global {
@@ -86,7 +72,11 @@ export const OfflineIndicator = ({
 
   // Listen for service worker messages about pending actions
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+    if (
+      typeof window !== 'undefined' &&
+      window.navigator &&
+      window.navigator.serviceWorker
+    ) {
       const handleMessage = (event: any) => {
         const { type, payload } = event.data;
 
@@ -103,8 +93,15 @@ export const OfflineIndicator = ({
 
       window.navigator.serviceWorker.addEventListener('message', handleMessage);
       return () => {
-        if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
-          window.navigator.serviceWorker.removeEventListener('message', handleMessage);
+        if (
+          typeof window !== 'undefined' &&
+          window.navigator &&
+          window.navigator.serviceWorker
+        ) {
+          window.navigator.serviceWorker.removeEventListener(
+            'message',
+            handleMessage
+          );
         }
       };
     }
@@ -123,7 +120,11 @@ export const OfflineIndicator = ({
 
       if (response.ok) {
         // Connection restored, trigger sync if available
-        if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+        if (
+          typeof window !== 'undefined' &&
+          window.navigator &&
+          window.navigator.serviceWorker
+        ) {
           const registration = await window.navigator.serviceWorker.ready;
           // Background sync (if supported)
           if ('sync' in registration) {
@@ -132,7 +133,7 @@ export const OfflineIndicator = ({
         }
       }
     } catch (error) {
-      console.log('Retry failed:', error);
+      logger.debug('Retry failed:', error);
     } finally {
       window.setTimeout(() => setIsRetrying(false), 1000);
     }
@@ -150,17 +151,27 @@ export const OfflineIndicator = ({
   const showReconnected = isOnline && wasOffline && reconnectedAt;
 
   return (
-    <div className={`fixed ${position === 'top' ? 'top-0' : 'bottom-0'} left-0 right-0 z-50 p-2 transition-all duration-300 ${showIndicator ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-      <Card className={`mx-auto max-w-2xl overflow-hidden backdrop-blur-sm ${isOffline ? 'bg-red-600/90 border-red-700' : 'bg-green-600/90 border-green-700'}`}>
+    <div
+      className={`fixed ${position === 'top' ? 'top-0' : 'bottom-0'} left-0 right-0 z-50 p-2 transition-all duration-300 ${showIndicator ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+    >
+      <Card
+        className={`mx-auto max-w-2xl overflow-hidden backdrop-blur-sm ${isOffline ? 'bg-red-600/90 border-red-700' : 'bg-green-600/90 border-green-700'}`}
+      >
         <CardContent className="p-0">
           {/* Main Status Bar */}
-          <div 
+          <div
             className={`flex items-center justify-between p-4 ${showDetails ? 'cursor-pointer' : ''}`}
             onClick={showDetails ? handleToggleExpanded : undefined}
           >
             <div className="flex items-center gap-4">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full bg-white/20 ${isOffline ? 'animate-pulse' : ''}`}>
-                {isOffline ? <OfflineIcon size={20} className="text-white" /> : <OnlineIcon size={20} className="text-white" />}
+              <div
+                className={`flex items-center justify-center w-10 h-10 rounded-full bg-white/20 ${isOffline ? 'animate-pulse' : ''}`}
+              >
+                {isOffline ? (
+                  <OfflineIcon size={20} className="text-white" />
+                ) : (
+                  <OnlineIcon size={20} className="text-white" />
+                )}
               </div>
 
               <div>
@@ -198,9 +209,9 @@ export const OfflineIndicator = ({
                   disabled={isRetrying}
                   className="text-white hover:bg-white/20"
                 >
-                  <RefreshIcon 
-                    size={16} 
-                    className={isRetrying ? 'animate-spin' : ''} 
+                  <RefreshIcon
+                    size={16}
+                    className={isRetrying ? 'animate-spin' : ''}
                   />
                 </Button>
               )}
@@ -212,16 +223,18 @@ export const OfflineIndicator = ({
                   onClick={handleToggleExpanded}
                   className="text-white hover:bg-white/20"
                 >
-                  {expanded ? <CollapseIcon size={16} /> : <ExpandIcon size={16} />}
+                  {expanded ? (
+                    <CollapseIcon size={16} />
+                  ) : (
+                    <ExpandIcon size={16} />
+                  )}
                 </Button>
               )}
             </div>
           </div>
 
           {/* Progress bar for retrying */}
-          {isRetrying && (
-            <Progress className="h-1 bg-white/20" />
-          )}
+          {isRetrying && <Progress className="h-1 bg-white/20" />}
 
           {/* Expanded Details */}
           {showDetails && (
@@ -233,7 +246,9 @@ export const OfflineIndicator = ({
                     <div className="bg-white/10 rounded p-3 flex-1 min-w-[200px]">
                       <div className="flex items-center gap-2 mb-2">
                         <CloudOffIcon size={16} className="text-white" />
-                        <Typography variant="subtitle2" className="text-white">Sieť</Typography>
+                        <Typography variant="subtitle2" className="text-white">
+                          Sieť
+                        </Typography>
                       </div>
                       <Typography variant="body2" className="text-white">
                         Status: {isOffline ? 'Offline' : 'Online'}
@@ -249,7 +264,9 @@ export const OfflineIndicator = ({
                     <div className="bg-white/10 rounded p-3 flex-1 min-w-[200px]">
                       <div className="flex items-center gap-2 mb-2">
                         <ScheduleIcon size={16} className="text-white" />
-                        <Typography variant="subtitle2" className="text-white">Akcie</Typography>
+                        <Typography variant="subtitle2" className="text-white">
+                          Akcie
+                        </Typography>
                       </div>
                       <Typography variant="body2" className="text-white">
                         Čakajúce: {pendingActions}
@@ -280,12 +297,18 @@ export const OfflineIndicator = ({
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          if (typeof window !== 'undefined' && window.navigator && window.navigator.serviceWorker) {
+                          if (
+                            typeof window !== 'undefined' &&
+                            window.navigator &&
+                            window.navigator.serviceWorker
+                          ) {
                             const registration =
                               await window.navigator.serviceWorker.ready;
                             // Background sync (if supported)
                             if ('sync' in registration) {
-                              (registration as any).sync.register('blackrent-sync');
+                              (registration as any).sync.register(
+                                'blackrent-sync'
+                              );
                             }
                           }
                         }}
@@ -297,7 +320,9 @@ export const OfflineIndicator = ({
                     )}
                   </div>
 
-                  <Alert className={`mt-4 ${isOffline ? 'bg-yellow-600/20 border-yellow-500' : 'bg-green-600/20 border-green-500'}`}>
+                  <Alert
+                    className={`mt-4 ${isOffline ? 'bg-yellow-600/20 border-yellow-500' : 'bg-green-600/20 border-green-500'}`}
+                  >
                     <AlertDescription className="text-white">
                       {isOffline
                         ? 'Vaše akcie budú synchronizované po obnovení pripojenia.'

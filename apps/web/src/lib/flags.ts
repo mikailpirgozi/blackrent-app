@@ -5,6 +5,8 @@
 
 /// <reference types="vite/client" />
 
+import { logger } from '@/utils/smartLogger';
+
 /**
  * Získa hodnotu feature flag z environment premenných
  * @param name - názov flagu (bez VITE_FLAG_ prefixu)
@@ -47,6 +49,6 @@ export function getAllFlags(): Record<string, boolean> {
 if (import.meta.env.DEV) {
   const activeFlags = getAllFlags();
   if (Object.keys(activeFlags).length > 0) {
-    console.log('🚩 Active feature flags:', activeFlags);
+    logger.debug('🚩 Active feature flags:', activeFlags);
   }
 }

@@ -39,6 +39,7 @@ import type {
 // import { getApiBaseUrl } from '../../utils/apiUrl'; // REMOVED - React Query handles API calls
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
+import { logger } from '@/utils/smartLogger';
 
 interface ReturnProtocolFormProps {
   open: boolean;
@@ -285,7 +286,7 @@ export default function ReturnProtocolForm({
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     if (isDevelopment) {
-      console.log('Adding signature:', { signerName, signerRole });
+      logger.debug('Adding signature:', { signerName, signerRole });
     }
 
     setCurrentSigner({ name: signerName, role: signerRole });
@@ -409,7 +410,9 @@ export default function ReturnProtocolForm({
           currency: 'EUR',
           allowedKilometers: rental.allowedKilometers || 0,
           extraKilometerRate: rental.extraKilometerRate || 0,
-          ...(rental.returnConditions && { returnConditions: rental.returnConditions }),
+          ...(rental.returnConditions && {
+            returnConditions: rental.returnConditions,
+          }),
         },
         // Creator info
         createdBy: state.user
@@ -435,8 +438,9 @@ export default function ReturnProtocolForm({
             pdfProxyUrl?: string;
           }
         | ReturnProtocol;
-      
-      const emailInfo = 'email' in responseData ? responseData.email : undefined;
+
+      const emailInfo =
+        'email' in responseData ? responseData.email : undefined;
 
       // Update email status based on response
       if (emailInfo) {
@@ -489,16 +493,16 @@ export default function ReturnProtocolForm({
       )}
 
       {emailStatus && emailStatus.status !== 'pending' && (
-        <Alert className={`mb-4 sticky top-0 z-[1000] ${
-          emailStatus.status === 'success' 
-            ? 'border-green-200 bg-green-50 text-green-800' 
-            : emailStatus.status === 'warning'
-              ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
-              : 'border-red-200 bg-red-50 text-red-800'
-        }`}>
-          <AlertDescription>
-            {emailStatus.message}
-          </AlertDescription>
+        <Alert
+          className={`mb-4 sticky top-0 z-[1000] ${
+            emailStatus.status === 'success'
+              ? 'border-green-200 bg-green-50 text-green-800'
+              : emailStatus.status === 'warning'
+                ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
+                : 'border-red-200 bg-red-50 text-red-800'
+          }`}
+        >
+          <AlertDescription>{emailStatus.message}</AlertDescription>
         </Alert>
       )}
 
@@ -553,7 +557,9 @@ export default function ReturnProtocolForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm text-muted-foreground">Značka a model</Label>
+              <Label className="text-sm text-muted-foreground">
+                Značka a model
+              </Label>
               <p className="font-bold text-foreground">
                 {rental.vehicle?.brand} {rental.vehicle?.model}
               </p>
@@ -566,19 +572,26 @@ export default function ReturnProtocolForm({
             </div>
             {(rental.vehicleVin || rental.vehicle?.vin) && (
               <div>
-                <Label className="text-sm text-muted-foreground">VIN číslo</Label>
-                <Badge variant="outline" className="font-bold font-mono text-xs">
+                <Label className="text-sm text-muted-foreground">
+                  VIN číslo
+                </Label>
+                <Badge
+                  variant="outline"
+                  className="font-bold font-mono text-xs"
+                >
                   {rental.vehicleVin || rental.vehicle?.vin || 'Neuvedené'}
                 </Badge>
               </div>
             )}
             <div>
-              <Label className="text-sm text-muted-foreground">Stav vozidla</Label>
-              <Badge 
-                variant="outline" 
+              <Label className="text-sm text-muted-foreground">
+                Stav vozidla
+              </Label>
+              <Badge
+                variant="outline"
                 className={`font-bold ${
-                  rental.vehicle?.status === 'available' 
-                    ? 'border-green-500 text-green-700' 
+                  rental.vehicle?.status === 'available'
+                    ? 'border-green-500 text-green-700'
                     : 'border-yellow-500 text-yellow-700'
                 }`}
               >
@@ -603,7 +616,9 @@ export default function ReturnProtocolForm({
               <Input
                 id="location"
                 value={formData.location}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('location', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => handleInputChange('location', e.target.value)}
                 required
               />
             </div>
@@ -612,7 +627,9 @@ export default function ReturnProtocolForm({
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('notes', e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => handleInputChange('notes', e.target.value)}
                 rows={2}
               />
             </div>
@@ -645,7 +662,9 @@ export default function ReturnProtocolForm({
                 id="odometer"
                 type="number"
                 value={formData.odometer || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
                   handleInputChange(
                     'odometer',
                     e.target.value ? parseInt(e.target.value) : undefined
@@ -659,8 +678,13 @@ export default function ReturnProtocolForm({
                 id="fuelLevel"
                 type="number"
                 value={formData.fuelLevel}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  handleInputChange('fuelLevel', parseInt(e.target.value) || 100)
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
+                  handleInputChange(
+                    'fuelLevel',
+                    parseInt(e.target.value) || 100
+                  )
                 }
                 min={0}
                 max={100}
@@ -671,9 +695,9 @@ export default function ReturnProtocolForm({
               <Input
                 id="exteriorCondition"
                 value={formData.exteriorCondition}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  handleInputChange('exteriorCondition', e.target.value)
-                }
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => handleInputChange('exteriorCondition', e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -681,9 +705,9 @@ export default function ReturnProtocolForm({
               <Input
                 id="interiorCondition"
                 value={formData.interiorCondition}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  handleInputChange('interiorCondition', e.target.value)
-                }
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => handleInputChange('interiorCondition', e.target.value)}
               />
             </div>
           </div>
@@ -707,9 +731,7 @@ export default function ReturnProtocolForm({
               <div className="flex items-center gap-2">
                 <span className="text-sm text-foreground">Výška depozitu:</span>
                 <span className="text-lg font-bold text-foreground">
-                  {rental.deposit
-                    ? `${rental.deposit.toFixed(2)} €`
-                    : '0,00 €'}
+                  {rental.deposit ? `${rental.deposit.toFixed(2)} €` : '0,00 €'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -748,18 +770,20 @@ export default function ReturnProtocolForm({
                   {fees.kilometersUsed}
                 </p>
               </div>
-              <div className={`text-center p-2 rounded ${
-                fees.kilometerOverage > 0
-                  ? 'bg-yellow-100'
-                  : 'bg-green-100'
-              }`}>
+              <div
+                className={`text-center p-2 rounded ${
+                  fees.kilometerOverage > 0 ? 'bg-yellow-100' : 'bg-green-100'
+                }`}
+              >
                 <p className="text-xs text-muted-foreground">Prekročenie km</p>
                 <p className="text-lg font-bold text-foreground">
                   {fees.kilometerOverage}
                 </p>
               </div>
               <div className="text-center p-2 bg-muted rounded">
-                <p className="text-xs text-muted-foreground">Spotrebované palivo</p>
+                <p className="text-xs text-muted-foreground">
+                  Spotrebované palivo
+                </p>
                 <p className="text-lg font-bold text-foreground">
                   {fees.fuelUsed}%
                 </p>
@@ -775,7 +799,9 @@ export default function ReturnProtocolForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex items-center justify-between p-4 bg-muted rounded">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Poplatok za km</span>
+                  <span className="text-sm text-muted-foreground">
+                    Poplatok za km
+                  </span>
                   <Button
                     onClick={handleStartEditKmRate}
                     size="sm"
@@ -795,7 +821,9 @@ export default function ReturnProtocolForm({
                 </span>
               </div>
               <div className="flex items-center justify-between p-4 bg-muted rounded">
-                <span className="text-sm text-muted-foreground">Poplatok za palivo</span>
+                <span className="text-sm text-muted-foreground">
+                  Poplatok za palivo
+                </span>
                 <span className="text-lg font-bold text-foreground">
                   {fees.fuelFee.toFixed(2)} €
                 </span>
@@ -820,7 +848,11 @@ export default function ReturnProtocolForm({
                       id="customKmRate"
                       type="number"
                       value={customKmRate || ''}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleKmRateChange(e.target.value)}
+                      onChange={(
+                        e: React.ChangeEvent<
+                          HTMLInputElement | HTMLTextAreaElement
+                        >
+                      ) => handleKmRateChange(e.target.value)}
                       min={0}
                       step={0.01}
                       className="w-36 text-center"
@@ -855,24 +887,30 @@ export default function ReturnProtocolForm({
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-red-100 rounded-lg border-2 border-red-500">
-                <p className="text-xs text-muted-foreground">Celkové poplatky</p>
+                <p className="text-xs text-muted-foreground">
+                  Celkové poplatky
+                </p>
                 <p className="text-xl font-bold text-foreground">
                   {fees.totalExtraFees.toFixed(2)} €
                 </p>
               </div>
               <div className="text-center p-4 bg-green-100 rounded-lg border-2 border-green-500">
-                <p className="text-xs text-muted-foreground">Vratenie z depozitu</p>
+                <p className="text-xs text-muted-foreground">
+                  Vratenie z depozitu
+                </p>
                 <p className="text-xl font-bold text-foreground">
                   {fees.depositRefund.toFixed(2)} €
                 </p>
               </div>
-              <div className={`text-center p-4 rounded-lg border-2 ${
-                fees.finalRefund > 0
-                  ? 'bg-green-100 border-green-500'
-                  : fees.additionalCharges > 0
-                    ? 'bg-red-100 border-red-500'
-                    : 'bg-gray-100 border-gray-300'
-              }`}>
+              <div
+                className={`text-center p-4 rounded-lg border-2 ${
+                  fees.finalRefund > 0
+                    ? 'bg-green-100 border-green-500'
+                    : fees.additionalCharges > 0
+                      ? 'bg-red-100 border-red-500'
+                      : 'bg-gray-100 border-gray-300'
+                }`}
+              >
                 <p className="text-xs text-muted-foreground">
                   {fees.finalRefund > 0 ? 'Finálny refund' : 'Doplatok'}
                 </p>

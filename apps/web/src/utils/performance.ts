@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { logger } from '@/utils/smartLogger';
 
 /**
  * Hook pre debouncing hodnoty - optimalizuje vyhľadávanie
@@ -95,7 +96,7 @@ export function useMemoizedFilter<T>(
       return [];
     }
     // dependencies parameter je zachovaný pre kompatibilitu
-    console.debug(
+    logger.debug(
       'useMemoizedFilter called with dependencies:',
       dependencies.length
     );

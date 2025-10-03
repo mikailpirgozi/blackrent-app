@@ -1,9 +1,5 @@
 // Lucide icons (replacing MUI icons)
-import {
-  Edit,
-  User as Person,
-  Save,
-} from 'lucide-react';
+import { Edit, User as Person, Save } from 'lucide-react';
 
 // shadcn/ui components
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,12 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
 import SignaturePad from '../common/SignaturePad';
+import { logger } from '@/utils/smartLogger';
 
 interface UserProfileProps {
   open: boolean;
@@ -46,42 +49,42 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
     setMessage(null);
 
     try {
-      console.log('👤 Sending profile data:', {
+      logger.debug('👤 Sending profile data:', {
         firstName: formData.firstName,
         lastName: formData.lastName,
       });
-      console.log('👤 Current user state:', state.user);
+      logger.debug('👤 Current user state:', state.user);
 
       const response = await apiService.updateUserProfile(
         formData.firstName,
         formData.lastName
       );
-      console.log('👤 Profile update response:', response);
+      logger.debug('👤 Profile update response:', response);
 
       // Aktualizuj user state s dátami z backendu
       if (response && response.user) {
-        console.log('✅ Backend returned user data:', response.user);
+        logger.debug('✅ Backend returned user data:', response.user);
         updateUser({
           firstName: response.user.firstName as string,
           lastName: response.user.lastName as string,
         });
-        console.log('✅ User state updated with backend data');
+        logger.debug('✅ User state updated with backend data');
       } else if (response && response.success) {
         // Fallback ak response nemá user objekt ale má success
-        console.log('⚠️ Backend returned success but no user data');
+        logger.debug('⚠️ Backend returned success but no user data');
         updateUser({
           firstName: formData.firstName,
           lastName: formData.lastName,
         });
-        console.log('⚠️ Using frontend data as fallback (success response)');
+        logger.debug('⚠️ Using frontend data as fallback (success response)');
       } else {
         // Fallback na frontend data
-        console.log('⚠️ Backend returned no data');
+        logger.debug('⚠️ Backend returned no data');
         updateUser({
           firstName: formData.firstName,
           lastName: formData.lastName,
         });
-        console.log('⚠️ Using frontend data as fallback (no response data)');
+        logger.debug('⚠️ Using frontend data as fallback (no response data)');
       }
 
       setMessage({ type: 'success', text: '✅ Profil úspešne aktualizovaný!' });
@@ -97,7 +100,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         firstName: formData.firstName,
         lastName: formData.lastName,
       });
-      console.log('⚠️ Using frontend data as fallback (error occurred)');
+      logger.debug('⚠️ Using frontend data as fallback (error occurred)');
 
       setMessage({
         type: 'error',
@@ -116,37 +119,37 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
 
     try {
       const signature = signatureData.signature as string;
-      console.log('🖊️ Sending signature data:', {
+      logger.debug('🖊️ Sending signature data:', {
         signatureLength: signature?.length || 0,
       });
-      console.log('🖊️ Current user state:', state.user);
+      logger.debug('🖊️ Current user state:', state.user);
 
       const response = await apiService.updateSignatureTemplate(signature);
-      console.log('🖊️ Signature update response:', response);
+      logger.debug('🖊️ Signature update response:', response);
 
       // Aktualizuj user state s dátami z backendu
       if (response && response.user) {
-        console.log('✅ Backend returned user data:', response.user);
+        logger.debug('✅ Backend returned user data:', response.user);
         updateUser({
           signatureTemplate: response.user.signatureTemplate as string,
         });
-        console.log('✅ User state updated with backend signature data');
+        logger.debug('✅ User state updated with backend signature data');
       } else if (response && response.success) {
         // Fallback ak response nemá user objekt ale má success
-        console.log('⚠️ Backend returned success but no user data');
+        logger.debug('⚠️ Backend returned success but no user data');
         updateUser({
           signatureTemplate: signature,
         });
-        console.log(
+        logger.debug(
           '⚠️ Using frontend signature data as fallback (success response)'
         );
       } else {
         // Fallback na frontend data
-        console.log('⚠️ Backend returned no data');
+        logger.debug('⚠️ Backend returned no data');
         updateUser({
           signatureTemplate: signature,
         });
-        console.log(
+        logger.debug(
           '⚠️ Using frontend signature data as fallback (no response data)'
         );
       }
@@ -168,7 +171,7 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
       updateUser({
         signatureTemplate: signature,
       });
-      console.log(
+      logger.debug(
         '⚠️ Using frontend signature data as fallback (error occurred)'
       );
 
@@ -197,8 +200,14 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
         </DialogHeader>
 
         {message && (
-          <Alert className={`mb-6 ${message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
-            <AlertDescription className={message.type === 'error' ? 'text-red-800' : 'text-green-800'}>
+          <Alert
+            className={`mb-6 ${message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}
+          >
+            <AlertDescription
+              className={
+                message.type === 'error' ? 'text-red-800' : 'text-green-800'
+              }
+            >
               {message.text}
             </AlertDescription>
           </Alert>
@@ -212,14 +221,15 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-
             <div className="flex gap-4 mb-6">
               <div className="flex-1">
                 <Label htmlFor="firstName">Meno</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('firstName', e.target.value)}
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => handleInputChange('firstName', e.target.value)}
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -231,7 +241,9 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleInputChange('lastName', e.target.value)}
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => handleInputChange('lastName', e.target.value)}
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -259,7 +271,6 @@ export default function UserProfile({ open, onClose }: UserProfileProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-
             <p className="text-sm text-muted-foreground mb-4">
               Váš podpis sa automaticky použije pri vytváraní protokolov ako
               zamestnanec.

@@ -324,7 +324,7 @@ export const useRentalProtocols = ({
       // Vezmi prvých 10 prenájmov (najnovšie/najčastejšie používané)
       const topRentals = rentals.slice(0, 10);
 
-      console.log(
+      logger.debug(
         `🚀 PRELOADING: Starting aggressive preload for ${topRentals.length} top rentals...`
       );
 
@@ -336,7 +336,7 @@ export const useRentalProtocols = ({
         ) {
           // Spusti preloading na pozadí bez čakania
           loadProtocolsForRental(rental.id).catch(error => {
-            console.log(`⚠️ Preload failed for rental ${rental.id}:`, error);
+            logger.debug(`⚠️ Preload failed for rental ${rental.id}:`, error);
           });
         }
       });
@@ -350,7 +350,7 @@ export const useRentalProtocols = ({
       return; // Už sa načítava alebo je načítané
     }
 
-    console.log('🚀 BACKGROUND: Starting protocol status loading...');
+    logger.debug('🚀 BACKGROUND: Starting protocol status loading...');
     setIsLoadingProtocolStatus(true);
 
     try {
@@ -360,7 +360,7 @@ export const useRentalProtocols = ({
 
       // Optimalized: Consolidated protocol status loading log
       const rentalCount = Object.keys(bulkProtocolStatus).length;
-      console.log(
+      logger.debug(
         `✅ Protocol status loaded: ${rentalCount} rentals (${loadTime}ms)`
       );
 
@@ -387,7 +387,7 @@ export const useRentalProtocols = ({
   // Handover Protocol handlers
   const handleCreateHandover = useCallback(
     async (rental: Rental) => {
-      console.log('📝 Creating handover protocol for rental:', rental.id);
+      logger.debug('📝 Creating handover protocol for rental:', rental.id);
 
       try {
         // ✅ OKAMŽITÉ OTVORENIE: Najprv otvor dialog, potom načítaj protokoly na pozadí
@@ -419,7 +419,7 @@ export const useRentalProtocols = ({
   // Return Protocol handlers
   const handleCreateReturn = useCallback(
     async (rental: Rental) => {
-      console.log('📝 Creating return protocol for rental:', rental.id);
+      logger.debug('📝 Creating return protocol for rental:', rental.id);
 
       try {
         // ✅ PRE RETURN PROTOCOL: Najprv otvor dialog, potom načítaj protokoly
@@ -495,12 +495,12 @@ export const useRentalProtocols = ({
   // PDF and Gallery handlers (placeholders)
   const handleDownloadPDF = useCallback(() => {
     // Implementation would depend on the specific PDF handling logic
-    console.log('📄 Downloading PDF...');
+    logger.debug('📄 Downloading PDF...');
   }, []);
 
   const handleViewGallery = useCallback(() => {
     // Implementation would depend on the specific gallery logic
-    console.log('🖼️ Opening gallery...');
+    logger.debug('🖼️ Opening gallery...');
     galleryOpenRef.current = true;
   }, []);
 

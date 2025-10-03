@@ -29,7 +29,6 @@ export const getApiBaseUrl = (): string => {
     return env.API_URL;
   }
 
-
   // PRIORITA 3: Pre Vercel deployment používaj Railway API
   if (
     typeof window !== 'undefined' &&
@@ -37,7 +36,7 @@ export const getApiBaseUrl = (): string => {
   ) {
     const railwayUrl =
       'https://blackrent-app-production-4d6f.up.railway.app/api';
-    logger.debug('🌐 Vercel detekované, používam Railway API:', railwayUrl);
+    logger.debug('🌐 Vercel detekované, používam Railway API:', { railwayUrl });
     return railwayUrl;
   }
 
@@ -47,7 +46,9 @@ export const getApiBaseUrl = (): string => {
     window.location.hostname.includes('railway.app')
   ) {
     const apiUrl = `${window.location.origin}/api`;
-    logger.debug('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
+    logger.debug('🌐 Railway detekované, používam relatívnu API URL:', {
+      apiUrl,
+    });
     return apiUrl;
   }
 
@@ -55,7 +56,7 @@ export const getApiBaseUrl = (): string => {
   if (process.env.NODE_ENV === 'production') {
     const railwayUrl =
       'https://blackrent-app-production-4d6f.up.railway.app/api';
-    logger.debug('🌐 Production mode, používam Railway API:', railwayUrl);
+    logger.debug('🌐 Production mode, používam Railway API:', { railwayUrl });
     return railwayUrl;
   }
 

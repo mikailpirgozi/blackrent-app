@@ -16,6 +16,7 @@ import type {
   ErrorContext as IErrorContext,
 } from '../types/errors';
 import { createError } from '../types/errors';
+import { logger } from '@/utils/smartLogger';
 
 // Error state interface
 interface ErrorState {
@@ -275,9 +276,9 @@ export const logError = (
     `🚨 ${error.severity.toUpperCase()} - ${error.category.toUpperCase()}`
   );
   console.error('Message:', error.message);
-  if (error.details) console.debug('Details:', error.details);
-  if (error.stack) console.debug('Stack:', error.stack);
-  if (logData.context) console.debug('Context:', logData.context);
+  if (error.details) logger.debug('Details:', error.details);
+  if (error.stack) logger.debug('Stack:', error.stack);
+  if (logData.context) logger.debug('Context:', logData.context);
   console.groupEnd();
 
   // In production, you could send this to an error reporting service

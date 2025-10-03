@@ -22,12 +22,29 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { saveAs } from 'file-saver';
 import * as Papa from 'papaparse';
@@ -49,6 +66,7 @@ import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ExpenseForm from './ExpenseForm';
 import RecurringExpenseManager from './RecurringExpenseManager';
 import PremiumExpenseCard from './PremiumExpenseCard';
+import { logger } from '@/utils/smartLogger';
 
 // Helper funkcie pre dynamické kategórie
 const getCategoryIcon = (
@@ -78,7 +96,6 @@ const getCategoryText = (
   return category?.displayName || categoryName;
 };
 
-
 const ExpenseListNew: React.FC = () => {
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: expenses = [] } = useExpenses();
@@ -101,12 +118,12 @@ const ExpenseListNew: React.FC = () => {
   };
   // Custom hook for mobile detection using Tailwind breakpoints
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -169,9 +186,13 @@ const ExpenseListNew: React.FC = () => {
       const matchesCategory =
         categoryFilter === 'all' || expense.category === categoryFilter;
       const matchesCompany =
-        !companyFilter || companyFilter === 'all-companies' || expense.company === companyFilter;
+        !companyFilter ||
+        companyFilter === 'all-companies' ||
+        expense.company === companyFilter;
       const matchesVehicle =
-        !vehicleFilter || vehicleFilter === 'all-vehicles' || expense.vehicleId === vehicleFilter;
+        !vehicleFilter ||
+        vehicleFilter === 'all-vehicles' ||
+        expense.vehicleId === vehicleFilter;
 
       return (
         matchesSearch && matchesCategory && matchesCompany && matchesVehicle
@@ -282,7 +303,7 @@ const ExpenseListNew: React.FC = () => {
         meta: unknown;
       }) => {
         try {
-          console.log('📥 Parsing CSV file for batch expense import...');
+          logger.debug('📥 Parsing CSV file for batch expense import...');
 
           if (!results.data || results.data.length < 2) {
             alert('CSV súbor musí obsahovať aspoň hlavičku a jeden riadok dát');
@@ -294,8 +315,8 @@ const ExpenseListNew: React.FC = () => {
           const dataRows = results.data.slice(1) as unknown[][];
           const batchExpenses = [];
 
-          console.log('📋 CSV Headers:', headers);
-          console.log(`📦 Processing ${dataRows.length} expense rows...`);
+          logger.debug('📋 CSV Headers:', headers);
+          logger.debug(`📦 Processing ${dataRows.length} expense rows...`);
 
           // Inteligentné mapovanie stĺpcov
           const getColumnIndex = (possibleNames: string[]) => {
@@ -347,7 +368,7 @@ const ExpenseListNew: React.FC = () => {
             note: getColumnIndex(['note', 'poznamka', 'Note', 'Poznámka']),
           };
 
-          console.log('🗺️ Column mapping:', columnMap);
+          logger.debug('🗺️ Column mapping:', columnMap);
 
           for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
@@ -455,21 +476,21 @@ const ExpenseListNew: React.FC = () => {
                   : undefined,
             };
 
-            console.log(
+            logger.debug(
               `💰 Expense ${i + 2}: ${expenseData.description} - ${expenseData.amount}€ - Company: "${expenseData.company}"`
             );
 
             batchExpenses.push(expenseData);
           }
 
-          console.log(
+          logger.debug(
             `📦 Pripravených ${batchExpenses.length} nákladov pre batch import`
           );
 
           // Použij batch import namiesto CSV importu
           const result = await apiService.batchImportExpenses(batchExpenses);
 
-          console.log('📥 CSV Import result:', result);
+          logger.debug('📥 CSV Import result:', result);
 
           // Result už obsahuje priamo dáta, nie je wrapped v success/data
           const {
@@ -528,15 +549,10 @@ const ExpenseListNew: React.FC = () => {
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <ReceiptIcon className="h-7 w-7 text-blue-600" />
-              <h4 className="text-3xl font-bold text-blue-600">
-                Náklady
-              </h4>
+              <h4 className="text-3xl font-bold text-blue-600">Náklady</h4>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button
-                onClick={handleAddExpense}
-                className="min-w-[120px]"
-              >
+              <Button onClick={handleAddExpense} className="min-w-[120px]">
                 <AddIcon className="h-4 w-4 mr-2" />
                 Pridať
               </Button>
@@ -571,7 +587,9 @@ const ExpenseListNew: React.FC = () => {
                     <Button
                       variant="outline"
                       className="border-blue-600 text-blue-600 hover:border-blue-700 hover:bg-blue-50"
-                      onClick={() => document.getElementById('csv-import')?.click()}
+                      onClick={() =>
+                        document.getElementById('csv-import')?.click()
+                      }
                     >
                       📥 Import CSV
                     </Button>
@@ -599,7 +617,9 @@ const ExpenseListNew: React.FC = () => {
               <Input
                 placeholder="Hľadať náklady..."
                 value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSearchQuery(e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -612,7 +632,9 @@ const ExpenseListNew: React.FC = () => {
               Filtre
             </Button>
 
-            {(categoryFilter !== 'all' || (companyFilter && companyFilter !== 'all-companies') || (vehicleFilter && vehicleFilter !== 'all-vehicles')) && (
+            {(categoryFilter !== 'all' ||
+              (companyFilter && companyFilter !== 'all-companies') ||
+              (vehicleFilter && vehicleFilter !== 'all-vehicles')) && (
               <Button variant="ghost" onClick={clearFilters}>
                 Vymazať filtre
               </Button>
@@ -655,7 +677,9 @@ const ExpenseListNew: React.FC = () => {
                       <SelectValue placeholder="Všetky firmy" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all-companies">Všetky firmy</SelectItem>
+                      <SelectItem value="all-companies">
+                        Všetky firmy
+                      </SelectItem>
                       {uniqueCompanies.map((company: string) => (
                         <SelectItem key={company} value={company}>
                           {company}
@@ -675,10 +699,13 @@ const ExpenseListNew: React.FC = () => {
                       <SelectValue placeholder="Všetky vozidlá" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all-vehicles">Všetky vozidlá</SelectItem>
+                      <SelectItem value="all-vehicles">
+                        Všetky vozidlá
+                      </SelectItem>
                       {vehicles.map((vehicle: Vehicle) => (
                         <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                          {vehicle.brand} {vehicle.model} -{' '}
+                          {vehicle.licensePlate}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -724,11 +751,11 @@ const ExpenseListNew: React.FC = () => {
 
         {/* Dynamic Category Cards */}
         {expenseCategories.slice(0, 2).map((category, index) => (
-          <Card 
+          <Card
             key={category.name}
             className={`text-white shadow-lg ${
-              index === 0 
-                ? 'bg-gradient-to-br from-blue-400 to-cyan-400' 
+              index === 0
+                ? 'bg-gradient-to-br from-blue-400 to-cyan-400'
                 : 'bg-gradient-to-br from-pink-400 to-yellow-400'
             }`}
           >
@@ -786,12 +813,12 @@ const ExpenseListNew: React.FC = () => {
       {/* Grid View - Premium Cards (Desktop Only) */}
       {!isMobile && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-          {finalFilteredExpenses.map((expense) => (
+          {finalFilteredExpenses.map(expense => (
             <PremiumExpenseCard
               key={expense.id}
               expense={expense}
               onEdit={handleEditExpense}
-              onDelete={(id) => {
+              onDelete={id => {
                 const exp = finalFilteredExpenses.find(e => e.id === id);
                 if (exp) handleDeleteExpense(exp);
               }}
@@ -802,256 +829,277 @@ const ExpenseListNew: React.FC = () => {
 
       {/* List View & Mobile - Original Table */}
       {(isMobile || viewMode === 'list') && (
-      <>
-      {/* Mobile Layout */}
-      {isMobile ? (
-        <div className="flex flex-col gap-2">
-          {finalFilteredExpenses.length === 0 ? (
-            <Card className="shadow-md">
-              <CardContent className="text-center py-8">
-                <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h6 className="text-lg text-gray-500">
-                  Žiadne náklady nenájdené
-                </h6>
-              </CardContent>
-            </Card>
-          ) : (
-            finalFilteredExpenses.map((expense: Expense) => {
-              const vehicle = expense.vehicleId
-                ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
-                : null;
-
-              return (
-                <Card
-                  key={expense.id}
-                  className="shadow-md rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-grow mr-4">
-                        <h6 className="text-lg font-semibold mb-2 break-words">
-                          {expense.description}
-                        </h6>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge 
-                            variant="secondary" 
-                            className="flex items-center gap-1 font-semibold"
-                          >
-                            {getCategoryIcon(expense.category, expenseCategories)}
-                            {getCategoryText(expense.category, expenseCategories)}
-                          </Badge>
-                          <span className="text-lg font-bold text-blue-600">
-                            {expense.amount.toFixed(2)}€
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditExpense(expense)}
-                                className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
-                              >
-                                <EditIcon className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Upraviť</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDeleteExpense(expense)}
-                                className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
-                              >
-                                <DeleteIcon className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Zmazať</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-
-                    <Separator className="my-2" />
-
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="flex items-center gap-1">
-                        <DateIcon className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">
-                          {format(new Date(expense.date), 'dd.MM.yyyy')}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CompanyIcon className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 truncate">
-                          {expense.company}
-                        </span>
-                      </div>
-                      {vehicle && (
-                        <div className="col-span-2 flex items-center gap-1">
-                          <VehicleIcon className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">
-                            {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
-                          </span>
-                        </div>
-                      )}
-                      {expense.note && (
-                        <div className="col-span-2">
-                          <p className="text-sm italic text-gray-600 mt-2 p-2 bg-gray-50 rounded">
-                            {expense.note}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+        <>
+          {/* Mobile Layout */}
+          {isMobile ? (
+            <div className="flex flex-col gap-2">
+              {finalFilteredExpenses.length === 0 ? (
+                <Card className="shadow-md">
+                  <CardContent className="text-center py-8">
+                    <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h6 className="text-lg text-gray-500">
+                      Žiadne náklady nenájdené
+                    </h6>
                   </CardContent>
                 </Card>
-              );
-            })
-          )}
-        </div>
-      ) : (
-        /* Desktop Layout */
-        <Card className="shadow-lg">
-          {/* Table Header */}
-          <div className="sticky top-0 bg-white z-10 border-b-2 border-gray-200">
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 font-semibold text-blue-600 bg-gray-50">
-              <div className="font-bold">Popis</div>
-              <div className="font-bold">Kategória</div>
-              <div className="font-bold">Suma</div>
-              <div className="font-bold">Dátum</div>
-              <div className="font-bold">Firma</div>
-              <div className="font-bold">Vozidlo</div>
-              <div className="font-bold text-center">Akcie</div>
-            </div>
-          </div>
+              ) : (
+                finalFilteredExpenses.map((expense: Expense) => {
+                  const vehicle = expense.vehicleId
+                    ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
+                    : null;
 
-          {/* Table Body */}
-          <div className="max-h-[600px] overflow-auto">
-            {finalFilteredExpenses.length === 0 ? (
-              <div className="text-center py-16">
-                <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h6 className="text-lg text-gray-500">
-                  Žiadne náklady nenájdené
-                </h6>
-              </div>
-            ) : (
-              finalFilteredExpenses.map((expense: Expense, index: number) => {
-                const vehicle = expense.vehicleId
-                  ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
-                  : null;
+                  return (
+                    <Card
+                      key={expense.id}
+                      className="shadow-md rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-grow mr-4">
+                            <h6 className="text-lg font-semibold mb-2 break-words">
+                              {expense.description}
+                            </h6>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge
+                                variant="secondary"
+                                className="flex items-center gap-1 font-semibold"
+                              >
+                                {getCategoryIcon(
+                                  expense.category,
+                                  expenseCategories
+                                )}
+                                {getCategoryText(
+                                  expense.category,
+                                  expenseCategories
+                                )}
+                              </Badge>
+                              <span className="text-lg font-bold text-blue-600">
+                                {expense.amount.toFixed(2)}€
+                              </span>
+                            </div>
+                          </div>
 
-                return (
-                  <div
-                    key={expense.id}
-                    className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 border-b border-gray-200 hover:bg-blue-50 hover:cursor-pointer transition-colors duration-200 ${
-                      index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                    }`}
-                  >
-                    {/* Description Column */}
-                    <div>
-                      <div className="font-semibold mb-1">
-                        {expense.description}
-                      </div>
-                      {expense.note && (
-                        <div className="text-sm text-gray-500 italic">
-                          {expense.note}
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditExpense(expense)}
+                                    className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
+                                  >
+                                    <EditIcon className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Upraviť</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteExpense(expense)}
+                                    className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
+                                  >
+                                    <DeleteIcon className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Zmazať</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Category Column */}
-                    <div className="flex items-center">
-                      <Badge 
-                        variant="secondary" 
-                        className="flex items-center gap-1 font-semibold"
-                      >
-                        {getCategoryIcon(expense.category, expenseCategories)}
-                        {getCategoryText(expense.category, expenseCategories)}
-                      </Badge>
-                    </div>
+                        <Separator className="my-2" />
 
-                    {/* Amount Column */}
-                    <div className="flex items-center font-bold text-blue-600">
-                      {expense.amount.toFixed(2)}€
-                    </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center gap-1">
+                            <DateIcon className="h-4 w-4 text-gray-500" />
+                            <span className="text-gray-600">
+                              {format(new Date(expense.date), 'dd.MM.yyyy')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CompanyIcon className="h-4 w-4 text-gray-500" />
+                            <span className="text-gray-600 truncate">
+                              {expense.company}
+                            </span>
+                          </div>
+                          {vehicle && (
+                            <div className="col-span-2 flex items-center gap-1">
+                              <VehicleIcon className="h-4 w-4 text-gray-500" />
+                              <span className="text-gray-600">
+                                {vehicle.brand} {vehicle.model} -{' '}
+                                {vehicle.licensePlate}
+                              </span>
+                            </div>
+                          )}
+                          {expense.note && (
+                            <div className="col-span-2">
+                              <p className="text-sm italic text-gray-600 mt-2 p-2 bg-gray-50 rounded">
+                                {expense.note}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            /* Desktop Layout */
+            <Card className="shadow-lg">
+              {/* Table Header */}
+              <div className="sticky top-0 bg-white z-10 border-b-2 border-gray-200">
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 font-semibold text-blue-600 bg-gray-50">
+                  <div className="font-bold">Popis</div>
+                  <div className="font-bold">Kategória</div>
+                  <div className="font-bold">Suma</div>
+                  <div className="font-bold">Dátum</div>
+                  <div className="font-bold">Firma</div>
+                  <div className="font-bold">Vozidlo</div>
+                  <div className="font-bold text-center">Akcie</div>
+                </div>
+              </div>
 
-                    {/* Date Column */}
-                    <div className="flex items-center text-sm">
-                      {format(new Date(expense.date), 'dd.MM.yyyy')}
-                    </div>
-
-                    {/* Company Column */}
-                    <div className="flex items-center text-sm truncate">
-                      {expense.company}
-                    </div>
-
-                    {/* Vehicle Column */}
-                    <div className="flex items-center text-sm truncate">
-                      {vehicle
-                        ? `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`
-                        : '-'}
-                    </div>
-
-                    {/* Actions Column */}
-                    <div className="flex gap-1 justify-center">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditExpense(expense)}
-                              className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
-                            >
-                              <EditIcon className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Upraviť</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDeleteExpense(expense)}
-                              className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
-                            >
-                              <DeleteIcon className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Zmazať</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
+              {/* Table Body */}
+              <div className="max-h-[600px] overflow-auto">
+                {finalFilteredExpenses.length === 0 ? (
+                  <div className="text-center py-16">
+                    <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h6 className="text-lg text-gray-500">
+                      Žiadne náklady nenájdené
+                    </h6>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </Card>
-      )}
-      </>
+                ) : (
+                  finalFilteredExpenses.map(
+                    (expense: Expense, index: number) => {
+                      const vehicle = expense.vehicleId
+                        ? vehicles.find(
+                            (v: Vehicle) => v.id === expense.vehicleId
+                          )
+                        : null;
+
+                      return (
+                        <div
+                          key={expense.id}
+                          className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 border-b border-gray-200 hover:bg-blue-50 hover:cursor-pointer transition-colors duration-200 ${
+                            index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                          }`}
+                        >
+                          {/* Description Column */}
+                          <div>
+                            <div className="font-semibold mb-1">
+                              {expense.description}
+                            </div>
+                            {expense.note && (
+                              <div className="text-sm text-gray-500 italic">
+                                {expense.note}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Category Column */}
+                          <div className="flex items-center">
+                            <Badge
+                              variant="secondary"
+                              className="flex items-center gap-1 font-semibold"
+                            >
+                              {getCategoryIcon(
+                                expense.category,
+                                expenseCategories
+                              )}
+                              {getCategoryText(
+                                expense.category,
+                                expenseCategories
+                              )}
+                            </Badge>
+                          </div>
+
+                          {/* Amount Column */}
+                          <div className="flex items-center font-bold text-blue-600">
+                            {expense.amount.toFixed(2)}€
+                          </div>
+
+                          {/* Date Column */}
+                          <div className="flex items-center text-sm">
+                            {format(new Date(expense.date), 'dd.MM.yyyy')}
+                          </div>
+
+                          {/* Company Column */}
+                          <div className="flex items-center text-sm truncate">
+                            {expense.company}
+                          </div>
+
+                          {/* Vehicle Column */}
+                          <div className="flex items-center text-sm truncate">
+                            {vehicle
+                              ? `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`
+                              : '-'}
+                          </div>
+
+                          {/* Actions Column */}
+                          <div className="flex gap-1 justify-center">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditExpense(expense)}
+                                    className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
+                                  >
+                                    <EditIcon className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Upraviť</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteExpense(expense)}
+                                    className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
+                                  >
+                                    <DeleteIcon className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Zmazať</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                      );
+                    }
+                  )
+                )}
+              </div>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className={`${isMobile ? 'h-full max-w-full overflow-y-auto' : 'max-w-4xl'} w-full`}>
+        <DialogContent
+          className={`${isMobile ? 'h-full max-w-full overflow-y-auto' : 'max-w-4xl'} w-full`}
+        >
           <DialogHeader>
             <DialogTitle>
               {editingExpense ? 'Upraviť výdavok' : 'Nový výdavok'}
             </DialogTitle>
             <DialogDescription>
-              {editingExpense ? 'Upravte údaje o výdavku' : 'Pridajte nový výdavok do systému'}
+              {editingExpense
+                ? 'Upravte údaje o výdavku'
+                : 'Pridajte nový výdavok do systému'}
             </DialogDescription>
           </DialogHeader>
           <ExpenseForm

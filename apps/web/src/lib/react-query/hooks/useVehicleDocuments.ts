@@ -1,6 +1,7 @@
 import { apiService } from '@/services/api';
 import type { VehicleDocument } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { logger } from '@/utils/smartLogger';
 
 // Declare browser APIs
 declare const CustomEvent: any;
@@ -10,7 +11,7 @@ export function useVehicleDocuments(vehicleId?: string) {
   return useQuery({
     queryKey: ['vehicleDocuments', vehicleId],
     queryFn: () => {
-      console.log('🔍 FETCHING VehicleDocuments from API...');
+      logger.debug('🔍 FETCHING VehicleDocuments from API...');
       return apiService.getVehicleDocuments(vehicleId);
     },
     enabled: true, // Always enabled, vehicleId is optional
@@ -95,14 +96,14 @@ export function useUpdateVehicleDocument() {
 
   return useMutation({
     mutationFn: (document: VehicleDocument) => {
-      console.log('🚀 UPDATE VEHICLE DOCUMENT: Sending to server:', document);
+      logger.debug('🚀 UPDATE VEHICLE DOCUMENT: Sending to server:', document);
       return apiService.updateVehicleDocument(document);
     },
     // ❌ DISABLED: Optimistic updates removed - they conflict with staleTime=0
     // Optimistic updates cause: Update sets cache → invalidation refetches → but cache is "fresh" → no refetch!
     // Google/Facebook approach: NO optimistic updates, just wait for server response
     onSuccess: (_data, variables) => {
-      console.log('✅ UPDATE VEHICLE DOCUMENT SUCCESS:', _data);
+      logger.debug('✅ UPDATE VEHICLE DOCUMENT SUCCESS:', _data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('vehicle-document-updated', { detail: variables })
@@ -112,7 +113,7 @@ export function useUpdateVehicleDocument() {
       console.error('❌ UPDATE VEHICLE DOCUMENT ERROR:', error);
     },
     onSettled: async () => {
-      console.log('🔄 UPDATE VEHICLE DOCUMENT: Invalidating cache...');
+      logger.debug('🔄 UPDATE VEHICLE DOCUMENT: Invalidating cache...');
       // ✅ FIX: Invalidate AND refetch immediately
       // React Query v5: invalidate alone doesn't refetch if component isn't active
       await queryClient.invalidateQueries({
@@ -122,7 +123,7 @@ export function useUpdateVehicleDocument() {
         },
         refetchType: 'active', // Refetch active queries immediately
       });
-      console.log('✅ All vehicleDocuments queries invalidated + refetched');
+      logger.debug('✅ All vehicleDocuments queries invalidated + refetched');
     },
   });
 }

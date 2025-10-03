@@ -1,6 +1,8 @@
 // 🔄 Smart Form Pre-filling Cache
 // Utility pre caching často používaných hodnôt v protokoloch
 
+import { logger } from './smartLogger';
+
 interface FormDefaults {
   location: string;
   fuelLevel: number;
@@ -33,7 +35,7 @@ export const cacheFormDefaults = (formData: Partial<FormDefaults>): void => {
     };
 
     localStorage.setItem(CACHE_KEY, JSON.stringify(newCache));
-    console.log('🔄 Form defaults cached:', newCache.data);
+    logger.debug('🔄 Form defaults cached:', newCache.data);
   } catch (error) {
     console.warn('Failed to cache form defaults:', error);
   }
@@ -54,12 +56,12 @@ export const getFormDefaults = (): FormDefaults => {
       cachedData.version !== CACHE_VERSION ||
       Date.now() - cachedData.timestamp > CACHE_TTL
     ) {
-      console.log('🔄 Form cache expired or outdated, using defaults');
+      logger.debug('🔄 Form cache expired or outdated, using defaults');
       clearFormCache();
       return getDefaultFormDefaults();
     }
 
-    console.log('🔄 Using cached form defaults:', cachedData.data);
+    logger.debug('🔄 Using cached form defaults:', cachedData.data);
     return cachedData.data;
   } catch (error) {
     console.warn('Failed to load cached form defaults:', error);
@@ -71,7 +73,7 @@ export const getFormDefaults = (): FormDefaults => {
 export const clearFormCache = (): void => {
   try {
     localStorage.removeItem(CACHE_KEY);
-    console.log('🔄 Form cache cleared');
+    logger.debug('🔄 Form cache cleared');
   } catch (error) {
     console.warn('Failed to clear form cache:', error);
   }
@@ -96,7 +98,7 @@ export const getSmartDefaults = (companyName?: string): FormDefaults => {
       if (companyCache) {
         const companyData: CachedFormData = JSON.parse(companyCache);
         if (Date.now() - companyData.timestamp < CACHE_TTL) {
-          console.log(
+          logger.debug(
             `🔄 Using company-specific defaults for ${companyName}:`,
             companyData.data
           );
@@ -130,7 +132,7 @@ export const cacheCompanyDefaults = (
     };
 
     localStorage.setItem(companyKey, JSON.stringify(companyCache));
-    console.log(
+    logger.debug(
       `🔄 Company defaults cached for ${companyName}:`,
       companyCache.data
     );

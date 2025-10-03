@@ -60,6 +60,7 @@ import UnifiedDocumentForm, {
 // interface ExpiryStatusData { ... }
 
 import TechnicalCertificateUpload from './TechnicalCertificateUpload';
+import { logger } from '@/utils/smartLogger';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
@@ -158,7 +159,7 @@ export default function VehicleForm({
               type: 'percentage',
               value: selectedCompany.defaultCommissionRate || 20,
             };
-            // console.log(
+            // logger.debug(
             //   `💰 Auto-set commission to ${selectedCompany.defaultCommissionRate}% for company ${selectedCompany.name}`
             // );
           }

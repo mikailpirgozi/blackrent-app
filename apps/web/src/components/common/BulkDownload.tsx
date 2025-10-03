@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 
 import { SecondaryButton } from '../ui';
+import { logger } from '@/utils/smartLogger';
 
 interface BulkDownloadProps {
   files: Array<{
@@ -28,14 +29,14 @@ export default function BulkDownload({
     }
 
     try {
-      console.log('📦 Starting bulk download of', files.length, 'files');
+      logger.debug('📦 Starting bulk download of', { fileCount: files.length });
 
       const zip = new JSZip();
 
       // Stiahni všetky súbory a pridaj do ZIP
       const downloadPromises = files.map(async (file, index) => {
         try {
-          console.log(
+          logger.debug(
             `📥 Downloading file ${index + 1}/${files.length}:`,
             file.filename
           );
@@ -60,7 +61,7 @@ export default function BulkDownload({
           }
 
           zip.file(filename, blob);
-          console.log(`✅ Added to ZIP: ${filename}`);
+          logger.debug(`✅ Added to ZIP: ${filename}`);
         } catch (error) {
           console.error(`❌ Failed to download ${file.filename}:`, error);
           // Pridaj error súbor do ZIP
@@ -73,7 +74,7 @@ export default function BulkDownload({
 
       await Promise.all(downloadPromises);
 
-      console.log('📦 Generating ZIP file...');
+      logger.debug('📦 Generating ZIP file...');
 
       // Generuj ZIP súbor
       const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -81,7 +82,7 @@ export default function BulkDownload({
       // Stiahni ZIP súbor
       saveAs(zipBlob, zipFilename);
 
-      console.log('✅ Bulk download completed:', zipFilename);
+      logger.debug('✅ Bulk download completed:', zipFilename);
     } catch (error) {
       console.error('❌ Bulk download failed:', error);
       alert('Chyba pri sťahovaní súborov');

@@ -4,6 +4,7 @@
  */
 
 import type { Customer, Rental, Vehicle } from '../types';
+import { logger } from '@/utils/smartLogger';
 
 // Reálne dáta z BMW X5 prenájmu (ID: 1606)
 export const testRentalData: Rental = {
@@ -188,10 +189,10 @@ export function logTestData() {
   const v2Data = generateV2ProtocolData(rental);
 
   console.group('🧪 V2 Protocol Test Data');
-  console.log('📋 Rental:', rental);
-  console.log('🚗 Vehicle:', rental.vehicle);
-  console.log('👤 Customer:', rental.customer);
-  console.log('📝 V2 Protocol Data:', v2Data);
+  logger.debug('📋 Rental:', rental);
+  logger.debug('🚗 Vehicle:', rental.vehicle);
+  logger.debug('👤 Customer:', rental.customer);
+  logger.debug('📝 V2 Protocol Data:', v2Data);
   console.groupEnd();
 
   return { rental, v2Data };

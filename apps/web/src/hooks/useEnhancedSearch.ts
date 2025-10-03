@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { debounce } from '../utils/debounce';
+import { logger } from '@/utils/smartLogger';
 
 export interface SearchSuggestion {
   id: string;
@@ -199,7 +200,7 @@ export const useEnhancedSearch = ({
 
           onSearch?.(searchQuery, searchResults);
 
-          console.log(
+          logger.debug(
             `🔍 Search completed: "${searchQuery}" → ${searchResults.length} results (${duration.toFixed(2)}ms)`
           );
         } catch (error: unknown) {

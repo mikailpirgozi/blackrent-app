@@ -8,6 +8,8 @@
  * - Graceful degradation
  */
 
+import { logger } from './smartLogger';
+
 export interface RetryOptions {
   maxRetries: number;
   baseDelay: number;
@@ -45,7 +47,7 @@ export const withRetry = async <T>(
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`🔄 Retry attempt ${attempt}/${config.maxRetries}`);
+        logger.debug(`🔄 Retry attempt ${attempt}/${config.maxRetries}`);
       }
 
       return await operation();
@@ -60,7 +62,7 @@ export const withRetry = async <T>(
 
       // Skontroluj či je error retryable
       if (!config.retryCondition!(error as Error)) {
-        console.log('⚠️ Error is not retryable, giving up');
+        logger.debug('⚠️ Error is not retryable, giving up');
         break;
       }
 
@@ -70,7 +72,7 @@ export const withRetry = async <T>(
         config.maxDelay
       );
 
-      console.log(`⏳ Waiting ${delay}ms before retry...`);
+      logger.debug(`⏳ Waiting ${delay}ms before retry...`);
       await sleep(delay);
     }
   }
@@ -236,12 +238,12 @@ export const createNetworkMonitor = (
   onStatusChange?: (isOnline: boolean) => void
 ) => {
   const handleOnline = () => {
-    console.log('🌐 Network connection restored');
+    logger.debug('🌐 Network connection restored');
     onStatusChange?.(true);
   };
 
   const handleOffline = () => {
-    console.log('📡 Network connection lost');
+    logger.debug('📡 Network connection lost');
     onStatusChange?.(false);
   };
 

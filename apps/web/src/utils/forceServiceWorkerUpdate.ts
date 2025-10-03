@@ -7,8 +7,10 @@
  * a re-registruje nový Service Worker.
  */
 
+import { logger } from './smartLogger';
+
 export async function forceServiceWorkerUpdate(): Promise<void> {
-  console.log('🔥 Force Service Worker Update: Starting...');
+  logger.debug('🔥 Force Service Worker Update: Starting...');
 
   try {
     // ✅ STEP 1: Unregister ALL Service Workers
@@ -16,20 +18,20 @@ export async function forceServiceWorkerUpdate(): Promise<void> {
       const registrations = await navigator.serviceWorker.getRegistrations();
 
       if (registrations.length > 0) {
-        console.log(
+        logger.debug(
           `🗑️ Found ${registrations.length} Service Worker(s) - unregistering...`
         );
 
         await Promise.all(
           registrations.map(async registration => {
-            console.log('🗑️ Unregistering:', registration.scope);
+            logger.debug('🗑️ Unregistering:', registration.scope);
             await registration.unregister();
           })
         );
 
-        console.log('✅ All Service Workers unregistered');
+        logger.debug('✅ All Service Workers unregistered');
       } else {
-        console.log('✅ No existing Service Workers found');
+        logger.debug('✅ No existing Service Workers found');
       }
     }
 
@@ -38,23 +40,23 @@ export async function forceServiceWorkerUpdate(): Promise<void> {
       const cacheNames = await caches.keys();
 
       if (cacheNames.length > 0) {
-        console.log(`🗑️ Found ${cacheNames.length} cache(s) - deleting...`);
+        logger.debug(`🗑️ Found ${cacheNames.length} cache(s) - deleting...`);
 
         await Promise.all(
           cacheNames.map(async cacheName => {
-            console.log('🗑️ Deleting cache:', cacheName);
+            logger.debug('🗑️ Deleting cache:', cacheName);
             await caches.delete(cacheName);
           })
         );
 
-        console.log('✅ All caches cleared');
+        logger.debug('✅ All caches cleared');
       } else {
-        console.log('✅ No caches found');
+        logger.debug('✅ No caches found');
       }
     }
 
-    console.log('✅ Force Service Worker Update: Complete');
-    console.log('🔄 Please refresh the page to activate new Service Worker');
+    logger.debug('✅ Force Service Worker Update: Complete');
+    logger.debug('🔄 Please refresh the page to activate new Service Worker');
   } catch (error) {
     console.error('❌ Force Service Worker Update failed:', error);
     throw error;
@@ -70,7 +72,7 @@ export async function forceServiceWorkerUpdateAndReload(): Promise<void> {
 
     // Wait a bit for cleanup to complete
     setTimeout(() => {
-      console.log('🔄 Reloading to activate new Service Worker...');
+      logger.debug('🔄 Reloading to activate new Service Worker...');
       // Hard reload to bypass cache
       window.location.reload();
     }, 500);
@@ -127,7 +129,7 @@ export async function checkServiceWorkerVersion(): Promise<{
 
     const needsUpdate = currentVersion !== `blackrent-v${LATEST_VERSION}`;
 
-    console.log('🔍 Service Worker Version Check:', {
+    logger.debug('🔍 Service Worker Version Check:', {
       current: currentVersion,
       latest: `blackrent-v${LATEST_VERSION}`,
       needsUpdate,

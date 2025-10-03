@@ -1,36 +1,59 @@
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
-import { 
-  Car, 
-  Building2, 
-  Calendar, 
-  Trash2, 
-  Edit, 
-  History, 
-  RefreshCw, 
-  Save, 
-  ArrowRightLeft, 
-  X, 
-  Loader2 
+import {
+  Car,
+  Building2,
+  Calendar,
+  Trash2,
+  Edit,
+  History,
+  RefreshCw,
+  Save,
+  ArrowRightLeft,
+  X,
+  Loader2,
 } from 'lucide-react';
 
 import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion';
 import { Textarea } from '../ui/textarea';
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useCompanies } from '../../lib/react-query/hooks/useCompanies';
 import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
 import { apiService, getAPI_BASE_URL } from '../../services/api';
+import { logger } from '@/utils/smartLogger';
 
 interface OwnershipHistory {
   id: string;
@@ -104,7 +127,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
   // Fallback metóda pre prípad zlyhania bulk requestu
   const loadVehicleHistoriesIndividually = useCallback(async () => {
-    console.log(
+    logger.debug(
       `🚀 FALLBACK: Loading histories for ${vehicles.length} vehicles individually...`
     );
 
@@ -161,7 +184,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
   // ⚡⚡ ULTRA OPTIMALIZOVANÉ: Jediné bulk API volanie namiesto 111 requestov
   const loadAllVehicleHistories = useCallback(async () => {
     setHistoryLoading(true);
-    console.log(
+    logger.debug(
       `🚀 BULK: Loading ownership history for all vehicles in single request...`
     );
     const startTime = Date.now();
@@ -170,7 +193,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
       // ⚡⚡ SINGLE BULK REQUEST: Namiesto 111 requestov -> 1 request
       const bulkData = await apiService.getBulkVehicleOwnershipHistory();
 
-      console.log(
+      logger.debug(
         `📊 BULK Response: ${bulkData.totalVehicles} vehicles processed in ${bulkData.loadTimeMs}ms (backend) + ${Date.now() - startTime}ms (frontend)`
       );
 
@@ -216,7 +239,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
       );
 
       const totalTime = Date.now() - startTime;
-      console.log(
+      logger.debug(
         `✅ BULK: Processed ${vehiclesWithHistoryData.length} vehicles with transfers in ${totalTime}ms total`
       );
 
@@ -224,7 +247,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
     } catch (error) {
       console.error('Failed to load bulk vehicle histories:', error);
       // Fallback na starý spôsob ak bulk zlyhá
-      console.log('🔄 Falling back to individual requests...');
+      logger.debug('🔄 Falling back to individual requests...');
       await loadVehicleHistoriesIndividually();
     } finally {
       setHistoryLoading(false);
@@ -401,14 +424,23 @@ const VehicleOwnershipTransfer: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-2">
           <ArrowRightLeft className="h-6 w-6" />
-          <h2 className="text-2xl font-semibold">Transfer vlastníctva vozidiel</h2>
+          <h2 className="text-2xl font-semibold">
+            Transfer vlastníctva vozidiel
+          </h2>
         </div>
 
         {message && (
-          <Alert variant={message.type === 'error' ? 'destructive' : 'default'} className="mb-4">
+          <Alert
+            variant={message.type === 'error' ? 'destructive' : 'default'}
+            className="mb-4"
+          >
             <AlertDescription className="flex items-center justify-between">
               {message.text}
-              <Button variant="ghost" size="sm" onClick={() => setMessage(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMessage(null)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </AlertDescription>
@@ -446,7 +478,8 @@ const VehicleOwnershipTransfer: React.FC = () => {
                               <Car className="h-4 w-4" />
                               <div>
                                 <div className="font-medium">
-                                  {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                                  {vehicle.brand} {vehicle.model} -{' '}
+                                  {vehicle.licensePlate}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   Majiteľ: {ownerCompany?.name || 'Neznámy'}
@@ -522,7 +555,11 @@ const VehicleOwnershipTransfer: React.FC = () => {
                         id="transfer-date"
                         type="date"
                         value={transferDate}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setTransferDate(e.target.value)}
+                        onChange={(
+                          e: React.ChangeEvent<
+                            HTMLInputElement | HTMLTextAreaElement
+                          >
+                        ) => setTransferDate(e.target.value)}
                         className="pl-10"
                       />
                     </div>
@@ -535,7 +572,11 @@ const VehicleOwnershipTransfer: React.FC = () => {
                     id="transfer-notes"
                     placeholder="Ďalšie informácie o transfere..."
                     value={transferNotes}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setTransferNotes(e.target.value)}
+                    onChange={(
+                      e: React.ChangeEvent<
+                        HTMLInputElement | HTMLTextAreaElement
+                      >
+                    ) => setTransferNotes(e.target.value)}
                     rows={3}
                   />
                 </div>
@@ -579,7 +620,9 @@ const VehicleOwnershipTransfer: React.FC = () => {
                         onClick={loadAllVehicleHistories}
                         disabled={historyLoading}
                       >
-                        <RefreshCw className={`h-4 w-4 ${historyLoading ? 'animate-spin' : ''}`} />
+                        <RefreshCw
+                          className={`h-4 w-4 ${historyLoading ? 'animate-spin' : ''}`}
+                        />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Obnoviť históriu</TooltipContent>
@@ -611,7 +654,8 @@ const VehicleOwnershipTransfer: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <Car className="h-4 w-4" />
                                 <span className="font-medium">
-                                  {vehicle.brand} {vehicle.model} - {vehicle.licensePlate}
+                                  {vehicle.brand} {vehicle.model} -{' '}
+                                  {vehicle.licensePlate}
                                 </span>
                                 <Badge variant="secondary">
                                   {vehicle.history.length} transferov
@@ -634,10 +678,16 @@ const VehicleOwnershipTransfer: React.FC = () => {
                                             <span className="font-medium">
                                               {transfer.ownerCompanyName}
                                             </span>
-                                            <Badge 
-                                              variant={index === 0 ? 'default' : 'secondary'}
+                                            <Badge
+                                              variant={
+                                                index === 0
+                                                  ? 'default'
+                                                  : 'secondary'
+                                              }
                                             >
-                                              {index === 0 ? 'Aktuálny' : 'Historický'}
+                                              {index === 0
+                                                ? 'Aktuálny'
+                                                : 'Historický'}
                                             </Badge>
                                           </div>
 
@@ -655,7 +705,9 @@ const VehicleOwnershipTransfer: React.FC = () => {
                                           <p className="text-sm text-muted-foreground">
                                             <strong>Dôvod:</strong>{' '}
                                             {transferReasons.find(
-                                              r => r.value === transfer.transferReason
+                                              r =>
+                                                r.value ===
+                                                transfer.transferReason
                                             )?.label || transfer.transferReason}
                                           </p>
 
@@ -673,24 +725,32 @@ const VehicleOwnershipTransfer: React.FC = () => {
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => handleEditTransfer(transfer)}
+                                                onClick={() =>
+                                                  handleEditTransfer(transfer)
+                                                }
                                               >
                                                 <Edit className="h-4 w-4" />
                                               </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent>Upraviť transfer</TooltipContent>
+                                            <TooltipContent>
+                                              Upraviť transfer
+                                            </TooltipContent>
                                           </Tooltip>
                                           <Tooltip>
                                             <TooltipTrigger asChild>
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => handleDeleteTransfer(transfer)}
+                                                onClick={() =>
+                                                  handleDeleteTransfer(transfer)
+                                                }
                                               >
                                                 <Trash2 className="h-4 w-4" />
                                               </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent>Vymazať transfer</TooltipContent>
+                                            <TooltipContent>
+                                              Vymazať transfer
+                                            </TooltipContent>
                                           </Tooltip>
                                         </div>
                                       </div>
@@ -722,10 +782,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-company">Firma</Label>
-                <Select
-                  value={editCompanyId}
-                  onValueChange={setEditCompanyId}
-                >
+                <Select value={editCompanyId} onValueChange={setEditCompanyId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Vyberte firmu" />
                   </SelectTrigger>
@@ -744,10 +801,7 @@ const VehicleOwnershipTransfer: React.FC = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="edit-reason">Dôvod transferu</Label>
-                <Select
-                  value={editReason}
-                  onValueChange={setEditReason}
-                >
+                <Select value={editReason} onValueChange={setEditReason}>
                   <SelectTrigger>
                     <SelectValue placeholder="Vyberte dôvod" />
                   </SelectTrigger>
@@ -767,7 +821,9 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   id="edit-date"
                   type="date"
                   value={editDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditDate(e.target.value)}
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditDate(e.target.value)}
                 />
               </div>
 
@@ -777,7 +833,9 @@ const VehicleOwnershipTransfer: React.FC = () => {
                   id="edit-notes"
                   rows={3}
                   value={editNotes}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditNotes(e.target.value)}
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => setEditNotes(e.target.value)}
                 />
               </div>
             </div>
@@ -820,20 +878,23 @@ const VehicleOwnershipTransfer: React.FC = () => {
             </DialogHeader>
             {transferToDelete && (
               <div className="space-y-4">
-                <p>
-                  Naozaj chcete vymazať tento transfer vlastníctva?
-                </p>
+                <p>Naozaj chcete vymazať tento transfer vlastníctva?</p>
 
                 <Alert variant="destructive">
                   <AlertDescription className="space-y-1">
                     <p>
-                      <strong>Firma:</strong> {transferToDelete.ownerCompanyName}
+                      <strong>Firma:</strong>{' '}
+                      {transferToDelete.ownerCompanyName}
                     </p>
                     <p>
                       <strong>Dátum:</strong>{' '}
-                      {format(new Date(transferToDelete.validFrom), 'dd.MM.yyyy', {
-                        locale: sk,
-                      })}
+                      {format(
+                        new Date(transferToDelete.validFrom),
+                        'dd.MM.yyyy',
+                        {
+                          locale: sk,
+                        }
+                      )}
                     </p>
                     <p>
                       <strong>Dôvod:</strong>{' '}
@@ -843,7 +904,8 @@ const VehicleOwnershipTransfer: React.FC = () => {
                     </p>
                     {transferToDelete.transferNotes && (
                       <p>
-                        <strong>Poznámky:</strong> {transferToDelete.transferNotes}
+                        <strong>Poznámky:</strong>{' '}
+                        {transferToDelete.transferNotes}
                       </p>
                     )}
                   </AlertDescription>

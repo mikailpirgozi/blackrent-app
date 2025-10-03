@@ -8,10 +8,15 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Component } from 'react';
+import { logger } from '@/utils/smartLogger';
 // 🔄 MOBILE CLEANUP: mobileLogger removed
 // import { getMobileLogger } from '../../utils/mobileLogger';
 
@@ -142,11 +147,11 @@ class ErrorBoundary extends Component<Props, State> {
         sessionStorage.getItem('autoReloadedAfterChunkError') === '1';
 
       console.group('🚨 ChunkLoadError detected');
-      console.log('Is Mobile:', isMobile);
-      console.log('Has Auto Reloaded:', hasAutoReloaded);
-      console.log('Current URL:', window.location.href);
-      console.log('User Agent:', navigator.userAgent);
-      console.log(
+      logger.debug('Is Mobile:', isMobile);
+      logger.debug('Has Auto Reloaded:', hasAutoReloaded);
+      logger.debug('Current URL:', window.location.href);
+      logger.debug('User Agent:', navigator.userAgent);
+      logger.debug(
         'Connection:',
         (navigator as Navigator & { connection?: unknown }).connection
       );
@@ -159,10 +164,10 @@ class ErrorBoundary extends Component<Props, State> {
         // 🚫 TEMPORARILY DISABLED: Automatic reload on ChunkLoadError
         // This might be causing the mobile refresh issues
 
-        console.log(
+        logger.debug(
           '🚨 ChunkLoadError detected but auto-reload is DISABLED for debugging'
         );
-        console.log('📱 Mobile users should manually refresh if needed');
+        logger.debug('📱 Mobile users should manually refresh if needed');
 
         // PÔVODNÝ KÓD (ZAKÁZANÝ):
         // if (process.env.NODE_ENV === 'development') {
@@ -212,9 +217,7 @@ class ErrorBoundary extends Component<Props, State> {
                   <BugReportIcon className="h-4 w-4" />
                   Stránka sa nenačítala správne
                 </AlertTitle>
-                <AlertDescription>
-                  {this.getErrorMessage()}
-                </AlertDescription>
+                <AlertDescription>{this.getErrorMessage()}</AlertDescription>
               </Alert>
 
               <div className="flex flex-wrap gap-2 mb-4 justify-center">
@@ -249,14 +252,21 @@ class ErrorBoundary extends Component<Props, State> {
 
               {/* Technical details for developers */}
               <div>
-                <Collapsible open={showDetails} onOpenChange={(open) => this.setState({ showDetails: open })}>
+                <Collapsible
+                  open={showDetails}
+                  onOpenChange={open => this.setState({ showDetails: open })}
+                >
                   <CollapsibleTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
                       className="mb-2 flex items-center gap-2"
                     >
-                      {showDetails ? <ExpandLessIcon className="h-4 w-4" /> : <ExpandMoreIcon className="h-4 w-4" />}
+                      {showDetails ? (
+                        <ExpandLessIcon className="h-4 w-4" />
+                      ) : (
+                        <ExpandMoreIcon className="h-4 w-4" />
+                      )}
                       Technické detaily
                     </Button>
                   </CollapsibleTrigger>
@@ -265,7 +275,10 @@ class ErrorBoundary extends Component<Props, State> {
                     <Card className="p-4 bg-muted/50">
                       {process.env.NODE_ENV === 'development' && error && (
                         <div className="space-y-2">
-                          <Badge variant="secondary" className="text-xs font-bold">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-bold"
+                          >
                             Chybová správa:
                           </Badge>
                           <pre className="text-sm font-mono mb-4 p-2 bg-muted rounded">
@@ -319,15 +332,22 @@ class ErrorBoundary extends Component<Props, State> {
                 Skúsiť znovu
               </Button>
             )}
-            
-            <Collapsible open={showDetails} onOpenChange={(open) => this.setState({ showDetails: open })}>
+
+            <Collapsible
+              open={showDetails}
+              onOpenChange={open => this.setState({ showDetails: open })}
+            >
               <CollapsibleTrigger asChild>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="flex items-center gap-1"
                 >
-                  {showDetails ? <ExpandLessIcon className="h-3 w-3" /> : <ExpandMoreIcon className="h-3 w-3" />}
+                  {showDetails ? (
+                    <ExpandLessIcon className="h-3 w-3" />
+                  ) : (
+                    <ExpandMoreIcon className="h-3 w-3" />
+                  )}
                   Detaily
                 </Button>
               </CollapsibleTrigger>

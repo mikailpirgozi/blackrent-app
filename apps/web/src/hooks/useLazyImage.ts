@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '@/utils/smartLogger';
 
 interface UseLazyImageOptions {
   threshold?: number;
@@ -61,7 +62,7 @@ export const useLazyImage = (
       // Promise-based image loading
       await new Promise<void>((resolve, reject) => {
         img.onload = () => {
-          console.log(`🖼️ Image loaded: ${imageSrc}`);
+          logger.debug(`🖼️ Image loaded: ${imageSrc}`);
           resolve();
         };
 
@@ -155,7 +156,7 @@ export const useLazyImage = (
     observerRef.current = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          console.log('🎯 Image in view, starting lazy load:', imageSrc);
+          logger.debug('🎯 Image in view, starting lazy load:', { imageSrc });
           setIsInView(true);
 
           // Start loading image
@@ -226,7 +227,9 @@ export const preloadImages = (imageUrls: string[]): Promise<string[]> => {
       )
       .map(result => result.value);
 
-    console.log(`🎭 Preloaded ${successful.length}/${imageUrls.length} images`);
+    logger.debug(
+      `🎭 Preloaded ${successful.length}/${imageUrls.length} images`
+    );
     return successful;
   });
 };

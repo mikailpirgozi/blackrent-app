@@ -17,67 +17,10 @@ import type {
   Vehicle,
   VehicleDocument,
 } from '../types';
+import { logger } from '@/utils/smartLogger';
+import { getApiBaseUrl } from '@/utils/apiUrl'; // ✅ Unified API URL logic
 
-// Global type declarations for browser APIs
-// Using any type for window object to avoid ESLint unused interface warning
-
-// Railway backend URL
-const RAILWAY_API_URL =
-  'https://blackrent-app-production-4d6f.up.railway.app/api';
-
-const getApiBaseUrl = () => {
-  // PRIORITA 1: Pre development ignoruj .env a používaj Vite proxy
-  if (
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1')
-  ) {
-    if (!(window as any).__API_BASE_URL_LOGGED__) {
-      console.log('🌐 Localhost detekované, používam Vite proxy: /api');
-      (window as any).__API_BASE_URL_LOGGED__ = true;
-    }
-    return '/api';
-  }
-
-  // PRIORITA 2: Ak je nastavená custom API URL v environment
-  if (import.meta.env.VITE_API_URL) {
-    if (!(window as any).__API_BASE_URL_LOGGED__) {
-      console.log('🌐 Používam API URL z .env:', import.meta.env.VITE_API_URL);
-      (window as any).__API_BASE_URL_LOGGED__ = true;
-    }
-    return import.meta.env.VITE_API_URL;
-  }
-
-  // PRIORITA 3: Pre Railway deployment (celá aplikácia na Railway)
-  if ((window as any).location.hostname.includes('railway.app')) {
-    const apiUrl = `${window.location.origin}/api`;
-    if (!(window as any).__API_BASE_URL_LOGGED__) {
-      console.log('🌐 Railway detekované, používam relatívnu API URL:', apiUrl);
-      (window as any).__API_BASE_URL_LOGGED__ = true;
-    }
-    return apiUrl;
-  }
-
-  // PRIORITA 4: Pre GitHub Pages používaj Railway API
-  if ((window as any).location.hostname === 'mikailpirgozi.github.io') {
-    if (!(window as any).__API_BASE_URL_LOGGED__) {
-      console.log(
-        '🌐 GitHub Pages detekované, používam Railway API:',
-        RAILWAY_API_URL
-      );
-      (window as any).__API_BASE_URL_LOGGED__ = true;
-    }
-    return RAILWAY_API_URL;
-  }
-
-  // Fallback na Railway API
-  if (!(window as any).__API_URL_LOGGED__) {
-    console.log('🌐 Používam Railway API ako fallback:', RAILWAY_API_URL);
-    (window as any).__API_URL_LOGGED__ = true;
-  }
-  return RAILWAY_API_URL;
-};
-
+// ✅ Use centralized API URL logic
 export const API_BASE_URL = getApiBaseUrl();
 export const getAPI_BASE_URL = getApiBaseUrl;
 
@@ -91,11 +34,14 @@ class ApiService {
     return token;
   }
 
-  private async request<T>(endpoint: string, options: any = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = this.getAuthToken();
 
-    const config: any = {
+    const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -112,14 +58,18 @@ class ApiService {
       ...options,
     };
 
-    // 🔍 DEBUG: Log každý API request
+    // 🔍 DEBUG: Log každý API request (len vehicle-documents)
     if (endpoint.includes('vehicle-documents')) {
-      console.log('🌐 API REQUEST:', {
-        method: options.method || 'GET',
-        endpoint,
-        url,
-        timestamp: new Date().toISOString(),
-      });
+      logger.debug(
+        'API REQUEST',
+        {
+          method: options.method || 'GET',
+          endpoint,
+          url,
+          timestamp: new Date().toISOString(),
+        },
+        'api'
+      );
     }
 
     try {
@@ -127,11 +77,9 @@ class ApiService {
 
       // Ak je odpoveď 401 (Unauthorized) alebo 403 (Forbidden), presmeruj na prihlásenie
       if (response.status === 401 || response.status === 403) {
-        console.warn(
-          '🚨 Auth error:',
-          response.status,
-          'Clearing storage and redirecting to login'
-        );
+        logger.warn('Auth error - clearing storage and redirecting', {
+          status: response.status,
+        });
         localStorage.removeItem('blackrent_token');
         localStorage.removeItem('blackrent_user');
         localStorage.removeItem('blackrent_remember_me');
@@ -149,7 +97,7 @@ class ApiService {
       const responseText = await response.text();
 
       if (!responseText.trim()) {
-        console.warn('⚠️ Empty response from API:', endpoint);
+        logger.warn('Empty response from API', { endpoint });
         throw new Error('Prázdna odpoveď zo servera');
       }
 
@@ -157,7 +105,7 @@ class ApiService {
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('❌ JSON parsing error:', {
+        logger.error('JSON parsing error', {
           endpoint,
           responseText: responseText.substring(0, 200),
           error: parseError,
@@ -165,14 +113,18 @@ class ApiService {
         throw new Error('Neplatná odpoveď zo servera');
       }
 
-      // Debug log pre protokoly
-      if (endpoint.includes('/protocols/')) {
-        console.log('🔍 API Response for protocol:', {
-          endpoint,
-          fullData: data,
-          extractedData: data.data,
-          status: response.status,
-        });
+      // Debug log pre protokoly (len v development)
+      if (endpoint.includes('/protocols/') && import.meta.env.DEV) {
+        logger.debug(
+          'API Response for protocol',
+          {
+            endpoint,
+            fullData: data,
+            extractedData: data.data,
+            status: response.status,
+          },
+          'api'
+        );
       }
 
       if (!response.ok) {
@@ -197,7 +149,7 @@ class ApiService {
         // Backend vracia štruktúru: { success, protocol: { pdfProxyUrl }, email }
         if (protocolData.success && protocolData.protocol) {
           const protocol = protocolData.protocol as { pdfProxyUrl?: string };
-          console.log('🔍 Protocol created with full response:', {
+          logger.debug('🔍 Protocol created with full response:', {
             hasProtocol: !!protocolData.protocol,
             hasEmail: !!protocolData.email,
             hasPdfUrl: !!protocol.pdfProxyUrl,
@@ -207,14 +159,14 @@ class ApiService {
         }
         // Fallback pre prípad prázdneho objektu
         if (!data.data && Object.keys(data).length === 0) {
-          console.log(
+          logger.debug(
             '🔍 Protocol created successfully but backend returned empty response'
           );
           return { success: true } as T;
         }
         // Ak má data.id, je to priamo protokol objekt (starý formát)
         if (!data.data && protocolData.id) {
-          console.log(
+          logger.debug(
             '🔍 Protocol response without data wrapper, returning directly'
           );
           return data as T;
@@ -425,7 +377,7 @@ class ApiService {
     });
   }
 
-  async exportExpensesCSV(): Promise<any> {
+  async exportExpensesCSV(): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}/expenses/export/csv`, {
       method: 'GET',
       headers: {
@@ -552,7 +504,7 @@ class ApiService {
       hasMore: boolean;
     };
   }> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         queryParams.append(key, value.toString());
@@ -702,7 +654,7 @@ class ApiService {
     const url = `${API_BASE_URL}/protocols/rental/${rentalId}`;
     const token = this.getAuthToken();
 
-    const config: any = {
+    const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -732,7 +684,7 @@ class ApiService {
       }
 
       const data = await response.json();
-      console.log('🔍 Raw API response for protocols:', data);
+      logger.debug('🔍 Raw API response for protocols:', data);
 
       // Backend vracia priamo dáta, nie ApiResponse formát
       return data as {
@@ -748,7 +700,7 @@ class ApiService {
   async createHandoverProtocol(
     protocolData: Partial<HandoverProtocol>
   ): Promise<HandoverProtocol> {
-    console.log(
+    logger.debug(
       '🔄 API createHandoverProtocol - input:',
       JSON.stringify(protocolData, null, 2)
     );
@@ -780,7 +732,7 @@ class ApiService {
       emailSent: protocolData.emailSent || false, // ✅ Pridané: email status
     };
 
-    console.log(
+    logger.debug(
       '🔄 API createHandoverProtocol - complete data:',
       JSON.stringify(completeProtocolData, null, 2)
     );
@@ -794,7 +746,7 @@ class ApiService {
   async createReturnProtocol(
     protocolData: Partial<ReturnProtocol>
   ): Promise<ReturnProtocol> {
-    console.log(
+    logger.debug(
       '🔄 API createReturnProtocol - input:',
       JSON.stringify(protocolData, null, 2)
     );
@@ -806,7 +758,7 @@ class ApiService {
       emailSent: protocolData.emailSent || false, // ✅ Pridané: email status
     };
 
-    console.log(
+    logger.debug(
       '🔄 API createReturnProtocol - complete data:',
       JSON.stringify(completeProtocolData, null, 2)
     );
@@ -859,7 +811,7 @@ class ApiService {
     const sample = result.find(
       d => d.id === 'ce0d2d86-2f70-419d-a459-b81a71805d21'
     );
-    console.log('📡 API RESPONSE /vehicle-documents:', {
+    logger.debug('📡 API RESPONSE /vehicle-documents:', {
       count: result.length,
       timestamp: new Date().toISOString(),
       sampleDoc: sample
@@ -883,7 +835,7 @@ class ApiService {
   }
 
   async updateVehicleDocument(document: VehicleDocument): Promise<void> {
-    console.log(
+    logger.debug(
       '📤 API: Sending UPDATE request for vehicle document:',
       document.id
     );
@@ -894,7 +846,7 @@ class ApiService {
         body: JSON.stringify(document),
       }
     );
-    console.log('✅ API: UPDATE request completed');
+    logger.debug('✅ API: UPDATE request completed');
     return result;
   }
 
@@ -931,7 +883,7 @@ class ApiService {
       hasMore: boolean;
     };
   }> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         queryParams.append(key, value.toString());
@@ -1096,7 +1048,7 @@ class ApiService {
   }
 
   // Export methods
-  async exportVehiclesCSV(): Promise<any> {
+  async exportVehiclesCSV(): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}/vehicles/export/csv`, {
       method: 'GET',
       headers: {
@@ -1111,7 +1063,7 @@ class ApiService {
     return response.blob();
   }
 
-  async exportCustomersCSV(): Promise<any> {
+  async exportCustomersCSV(): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}/customers/export/csv`, {
       method: 'GET',
       headers: {
@@ -1156,7 +1108,7 @@ class ApiService {
     page: number;
     limit: number;
   }> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -1179,7 +1131,7 @@ class ApiService {
     page: number;
     limit: number;
   }> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -1202,7 +1154,7 @@ class ApiService {
     page: number;
     limit: number;
   }> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -1267,7 +1219,7 @@ class ApiService {
   setErrorHandler(_handler: (_error: Error) => void): void {
     // Store error handler for future use
     // This is a placeholder implementation
-    console.log('Error handler set');
+    logger.debug('Error handler set');
   }
 
   // ===== EMAIL MANAGEMENT API METHODS =====
@@ -1280,7 +1232,7 @@ class ApiService {
     limit?: number;
     offset?: number;
   }): Promise<Record<string, unknown>[]> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     if (filters?.status) queryParams.append('status', filters.status);
     if (filters?.sender) queryParams.append('sender', filters.sender);
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
@@ -1365,7 +1317,7 @@ class ApiService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<Record<string, unknown>> {
-    const params = new (globalThis as any).URLSearchParams();
+    const params = new URLSearchParams();
     if (filters?.limit) params.append('limit', filters.limit.toString());
     if (filters?.offset) params.append('offset', filters.offset.toString());
     if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
@@ -1384,7 +1336,7 @@ class ApiService {
     status?: string;
     search?: string;
   }): Promise<User[]> {
-    const queryParams = new (globalThis as any).URLSearchParams();
+    const queryParams = new URLSearchParams();
     if (filters?.role) queryParams.append('role', filters.role);
     if (filters?.companyId) queryParams.append('companyId', filters.companyId);
     if (filters?.status) queryParams.append('status', filters.status);
@@ -1466,14 +1418,14 @@ class ApiService {
   // ===== FILE UPLOAD API METHODS =====
 
   async uploadFile(uploadData: {
-    file: any;
+    file: File;
     protocolId?: string;
     protocolType?: string; // ✅ PRIDANÉ: Backend vyžaduje protocolType
     category?: string;
     mediaType?: string;
     metadata?: Record<string, unknown>;
   }): Promise<Record<string, unknown>> {
-    const formData = new (globalThis as any).FormData();
+    const formData = new FormData();
     formData.append('file', uploadData.file);
     if (uploadData.protocolId)
       formData.append('protocolId', uploadData.protocolId);
@@ -1502,7 +1454,7 @@ class ApiService {
   }
 
   async presignedUpload(uploadData: {
-    file: any;
+    file: File;
     protocolId: string;
     category: string;
     mediaType: string;
@@ -1564,14 +1516,14 @@ class ApiService {
 
   async bulkUploadFiles(
     files: Array<{
-      file: any;
+      file: File;
       protocolId?: string;
       category?: string;
       mediaType?: string;
       metadata?: Record<string, unknown>;
     }>
   ): Promise<Record<string, unknown>[]> {
-    const formData = new (globalThis as any).FormData();
+    const formData = new FormData();
     files.forEach((fileData, index) => {
       formData.append(`files[${index}]`, fileData.file);
       if (fileData.protocolId)
@@ -1613,8 +1565,8 @@ class ApiService {
     return this.request<Record<string, unknown>>(`/files/${fileId}/metadata`);
   }
 
-  async validateFile(file: any): Promise<Record<string, unknown>> {
-    const formData = new (globalThis as any).FormData();
+  async validateFile(file: File): Promise<Record<string, unknown>> {
+    const formData = new FormData();
     formData.append('file', file);
 
     const response = await fetch(`${API_BASE_URL}/files/validate`, {

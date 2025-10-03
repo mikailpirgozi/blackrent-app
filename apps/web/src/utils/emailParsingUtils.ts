@@ -1,14 +1,7 @@
 // 📧 EMAIL PARSING UTILITY - Zdieľaná parsing logika pre frontend aj backend
 // Extrahované z src/components/rentals/EmailParser.tsx
 
-// Simple logger for debugging
-const logger = {
-  debug: (message: string, ...args: unknown[]) => {
-    if (import.meta.env.DEV) {
-      console.log(`[EMAIL-PARSER] ${message}`, ...args);
-    }
-  },
-};
+import { logger } from './smartLogger';
 
 export interface ParsedEmailData {
   orderNumber?: string;
@@ -143,12 +136,10 @@ export function parseEmailText(text: string): ParsedEmailData {
       const spzIndex = parts.findIndex(part =>
         /^[A-Z0-9]{6,7}$/.test(part.trim())
       );
-      logger.debug(
-        '🔍 SPZ index:',
+      logger.debug('🔍 SPZ index:', {
         spzIndex,
-        'SPZ:',
-        spzIndex >= 0 ? parts[spzIndex]! : 'not found'
-      );
+        spz: spzIndex >= 0 ? parts[spzIndex]! : 'not found',
+      });
 
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ
@@ -182,12 +173,10 @@ export function parseEmailText(text: string): ParsedEmailData {
       const spzIndex = parts.findIndex(part =>
         /^[A-Z0-9]{6,7}$/.test(part.trim())
       );
-      logger.debug(
-        '🔍 SPZ index:',
+      logger.debug('🔍 SPZ index:', {
         spzIndex,
-        'SPZ:',
-        spzIndex >= 0 ? parts[spzIndex]! : 'not found'
-      );
+        spz: spzIndex >= 0 ? parts[spzIndex]! : 'not found',
+      });
 
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ

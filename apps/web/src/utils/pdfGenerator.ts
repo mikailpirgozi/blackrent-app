@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { logger } from '@/utils/smartLogger';
 
 export interface ProtocolData {
   id: string;
@@ -86,7 +87,7 @@ class PDFGenerator {
     } = options;
 
     // imageQuality je použité v calculateImageDimensions
-    console.debug('PDF generation with quality:', imageQuality);
+    logger.debug('PDF generation with quality:', imageQuality);
 
     try {
       // Header
@@ -454,7 +455,7 @@ class PDFGenerator {
     imageQuality: number = 0.8
   ) {
     // imageQuality parameter je zachovaný pre budúce použitie
-    console.debug('Adding document images with quality:', imageQuality);
+    logger.debug('Adding document images with quality:', imageQuality);
     this.addSectionTitle('DOKUMENTY');
 
     if (images.length === 0) {
@@ -657,7 +658,7 @@ class PDFGenerator {
     imageQuality: number = 0.8
   ) {
     // imageQuality parameter je zachovaný pre budúce použitie
-    console.debug('Adding signatures with quality:', imageQuality);
+    logger.debug('Adding signatures with quality:', imageQuality);
     this.addSectionTitle('PODPISY');
 
     if (signatures.length === 0) {
@@ -878,7 +879,7 @@ class PDFGenerator {
 
       if (isBase64Url) {
         // Base64 URL - vráť priamo
-        console.log('✅ Using base64 image data directly');
+        logger.debug('✅ Using base64 image data directly');
         resolve(url);
         return;
       }
@@ -896,7 +897,7 @@ class PDFGenerator {
           // Použi proxy endpoint
           const proxyUrl = `${import.meta.env.VITE_API_URL || 'https://blackrent-app-production-4d6f.up.railway.app/api'}/files/proxy/${encodeURIComponent(key)}`;
 
-          console.log('🔄 Loading R2 image via proxy:', proxyUrl);
+          logger.debug('🔄 Loading R2 image via proxy:', proxyUrl);
 
           fetch(proxyUrl)
             .then(response => {
@@ -1006,7 +1007,7 @@ class PDFGenerator {
     quality: number = 0.8
   ) {
     // quality parameter je zachovaný pre budúce použitie
-    console.debug('Calculating image dimensions with quality:', quality);
+    logger.debug('Calculating image dimensions with quality:', quality);
     return new Promise<{ width: number; height: number }>(resolve => {
       const img = new Image();
       img.onload = () => {

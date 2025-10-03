@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiService } from '../services/api';
 import type { Insurance } from '../types';
+import { logger } from '@/utils/smartLogger';
 
 export interface InsuranceFilters {
   search?: string;
@@ -30,7 +31,7 @@ const ITEMS_PER_PAGE = 20;
 export function useInfiniteInsurances(
   initialFilters: InsuranceFilters = {}
 ): UseInfiniteInsurancesReturn {
-  console.log(
+  logger.debug(
     '🚀 useInfiniteInsurances: Hook initialized with filters:',
     initialFilters
   );
@@ -53,7 +54,7 @@ export function useInfiniteInsurances(
       setError(null);
 
       try {
-        console.log(`📄 Loading insurances page ${page}...`);
+        logger.debug(`📄 Loading insurances page ${page}...`);
 
         // Build query parameters
         const params = {
@@ -67,19 +68,17 @@ export function useInfiniteInsurances(
           ...(filters.vehicleId && { vehicleId: filters.vehicleId }),
         };
 
-        console.log(
-          '🔗 Making API call to:',
-          `/insurances/paginated with params:`,
-          params
-        );
+        logger.debug('🔗 Making API call to: /insurances/paginated', {
+          params,
+        });
         const response = await apiService.getInsurancesPaginated(params);
-        console.log('📡 API Response:', response);
+        logger.debug('📡 API Response:', response);
 
         // API service už rozbalí response a vracia priamo {insurances: [...], pagination: {...}}
         if (response && response.insurances && response.pagination) {
           const { insurances: newInsurances, pagination } = response;
 
-          console.log(
+          logger.debug(
             `✅ Loaded ${newInsurances.length} insurances (page ${page})`
           );
 
@@ -130,7 +129,7 @@ export function useInfiniteInsurances(
 
   // 🎯 Initial load and filter changes
   useEffect(() => {
-    console.log(
+    logger.debug(
       '🎯 useInfiniteInsurances: Filters changed, refreshing...',
       filters
     );

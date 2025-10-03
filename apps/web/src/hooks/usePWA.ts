@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useError } from '../context/ErrorContext';
+import { logger } from '@/utils/smartLogger';
 
 // PWA specific types - using any for browser APIs that may not be available in all environments
 type PWAServiceWorkerRegistration = any;
@@ -72,14 +73,14 @@ export const usePWA = (): PWAState & PWAActions => {
           scope: '/',
         })) as PWAServiceWorkerRegistration;
 
-        console.log(
+        logger.debug(
           '✅ Service Worker registered successfully:',
           registration.scope
         );
 
         // ✅ ENABLED: Service Worker update detection with smart handling
-        console.log('🔄 PWA: Service Worker update detection ENABLED');
-        console.log(
+        logger.debug('🔄 PWA: Service Worker update detection ENABLED');
+        logger.debug(
           '📱 Smart update handling prevents unwanted mobile refreshes'
         );
 
@@ -93,7 +94,7 @@ export const usePWA = (): PWAState & PWAActions => {
               (window.navigator as PWANavigator).serviceWorker.controller
             ) {
               setState(prev => ({ ...prev, isUpdateAvailable: true }));
-              console.log('🔄 PWA: Update available - user will be notified');
+              logger.debug('🔄 PWA: Update available - user will be notified');
 
               // Smart update notification instead of automatic refresh
               if (typeof window !== 'undefined') {
@@ -104,11 +105,11 @@ export const usePWA = (): PWAState & PWAActions => {
                   window.location.pathname.includes('/rentals');
 
                 if (isCriticalPage) {
-                  console.log(
+                  logger.debug(
                     '📱 Critical page detected - update notification only'
                   );
                 } else {
-                  console.log('🔄 Safe to show update prompt');
+                  logger.debug('🔄 Safe to show update prompt');
                 }
               }
             }
@@ -158,7 +159,7 @@ export const usePWA = (): PWAState & PWAActions => {
       checkInstallationStatus();
 
       // ✅ CHECK: Auto-update Service Worker if version changed
-      console.log('🔍 Checking Service Worker version...');
+      logger.debug('🔍 Checking Service Worker version...');
 
       // Dynamic import to avoid circular dependencies
       const { checkServiceWorkerVersion, forceServiceWorkerUpdate } =
@@ -166,20 +167,20 @@ export const usePWA = (): PWAState & PWAActions => {
       const versionCheck = await checkServiceWorkerVersion();
 
       if (versionCheck.needsUpdate) {
-        console.log('🔄 Service Worker update needed - forcing update...');
+        logger.debug('🔄 Service Worker update needed - forcing update...');
         await forceServiceWorkerUpdate();
-        console.log(
+        logger.debug(
           '✅ Service Worker updated - will activate on next page load'
         );
       } else {
-        console.log('✅ Service Worker is up to date');
+        logger.debug('✅ Service Worker is up to date');
       }
 
       // 🔧 ALLOW Service Worker on mobile but with disabled auto-updates
       const isMobileDevice = window.matchMedia('(max-width: 900px)').matches;
 
       if (isMobileDevice) {
-        console.log(
+        logger.debug(
           '📱 PWA: Service Worker enabled on mobile but auto-updates DISABLED'
         );
       }
@@ -194,7 +195,7 @@ export const usePWA = (): PWAState & PWAActions => {
         if (registration) {
           globalSWRegistration = registration; // Store globally
           setState(prev => ({ ...prev, swRegistration: registration }));
-          console.log('✅ PWA: Service Worker successfully initialized');
+          logger.debug('✅ PWA: Service Worker successfully initialized');
         } else {
           console.warn('⚠️ PWA: Service Worker registration returned null');
         }
@@ -243,7 +244,7 @@ export const usePWA = (): PWAState & PWAActions => {
       installPrompt: promptEvent,
     }));
 
-    // console.log('📱 PWA: Install prompt available'); // VERBOSE: Disabled to reduce PWA spam
+    // logger.debug('📱 PWA: Install prompt available'); // VERBOSE: Disabled to reduce PWA spam
   };
 
   const handleAppInstalled = () => {
@@ -255,19 +256,19 @@ export const usePWA = (): PWAState & PWAActions => {
     }));
 
     // App installed silently - no user notification needed
-    console.log('✅ PWA: App installed successfully');
+    logger.debug('✅ PWA: App installed successfully');
   };
 
   const handleOnline = () => {
     setState(prev => ({ ...prev, isOffline: false }));
-    console.log('🌐 PWA: App is online');
+    logger.debug('🌐 PWA: App is online');
 
     // Network restored silently - no user notification needed
   };
 
   const handleOffline = () => {
     setState(prev => ({ ...prev, isOffline: true }));
-    console.log('📵 PWA: App is offline');
+    logger.debug('📵 PWA: App is offline');
 
     // App offline silently - no user notification needed
   };
@@ -291,15 +292,15 @@ export const usePWA = (): PWAState & PWAActions => {
     switch (type) {
       case 'SYNC_COMPLETE':
         // Sync completed silently - no user notification needed
-        console.log('✅ PWA: Offline actions synchronized');
+        logger.debug('✅ PWA: Offline actions synchronized');
         break;
 
       case 'CACHE_UPDATED':
-        console.log('📦 PWA: Cache updated');
+        logger.debug('📦 PWA: Cache updated');
         break;
 
       default:
-        console.log('📨 PWA: Service Worker message:', type, message);
+        logger.debug('📨 PWA: Service Worker message:', { type, message });
     }
   };
 
@@ -333,7 +334,7 @@ export const usePWA = (): PWAState & PWAActions => {
       await state.installPrompt.prompt();
       const choiceResult = await state.installPrompt.userChoice;
 
-      // console.log('📱 PWA: Install prompt result:', choiceResult.outcome); // VERBOSE: Disabled
+      // logger.debug('📱 PWA: Install prompt result:', choiceResult.outcome); // VERBOSE: Disabled
 
       if (choiceResult.outcome === 'accepted') {
         setState(prev => ({
@@ -390,24 +391,24 @@ export const usePWA = (): PWAState & PWAActions => {
           lastReloadAt && now - lastReloadAt < tenMinutes;
 
         console.group('🔄 Service Worker Update Decision');
-        console.log('Is Availability Page:', isAvailabilityPage);
-        console.log('Is Vehicle Page:', isVehiclePage);
-        console.log('Is Mobile Viewport:', isMobileViewport);
-        console.log('Recently Reloaded:', recentlyReloaded);
-        console.log('Refreshing Flag:', refreshing.current);
+        logger.debug('Is Availability Page:', isAvailabilityPage);
+        logger.debug('Is Vehicle Page:', isVehiclePage);
+        logger.debug('Is Mobile Viewport:', isMobileViewport);
+        logger.debug('Recently Reloaded:', recentlyReloaded);
+        logger.debug('Refreshing Flag:', refreshing.current);
         console.groupEnd();
 
         // ✅ ENABLED: Smart Service Worker update handling
-        console.log(
+        logger.debug(
           '🔄 Service Worker updated - Smart update handling enabled'
         );
-        console.log('📱 Update will be applied with user consent');
+        logger.debug('📱 Update will be applied with user consent');
 
         // Set update available flag
         setState(prev => ({ ...prev, isUpdateAvailable: true }));
 
         // Logujeme dôvod prečo nerobíme reload
-        console.log(
+        logger.debug(
           '🔄 SW update available but auto-reload is disabled to prevent mobile refresh issues'
         );
       }
@@ -439,7 +440,7 @@ export const usePWA = (): PWAState & PWAActions => {
 
       // Service Worker unregistered silently - no user notification needed
 
-      console.log('🗑️ PWA: Service Worker unregistered');
+      logger.debug('🗑️ PWA: Service Worker unregistered');
     } catch (error) {
       console.error('Service Worker unregister failed:', error);
       showError({
@@ -473,7 +474,7 @@ export const usePWA = (): PWAState & PWAActions => {
 
       // Cache cleared silently - no user notification needed
 
-      console.log('🗑️ PWA: Cache cleared');
+      logger.debug('🗑️ PWA: Cache cleared');
     } catch (error) {
       console.error('Cache clear failed:', error);
       showError({
@@ -494,7 +495,7 @@ export const usePWA = (): PWAState & PWAActions => {
 
     try {
       await state.swRegistration.update();
-      console.log('🔄 PWA: Checked for updates');
+      logger.debug('🔄 PWA: Checked for updates');
     } catch (error) {
       console.error('Update check failed:', error);
     }

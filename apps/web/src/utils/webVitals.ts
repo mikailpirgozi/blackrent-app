@@ -1,6 +1,7 @@
 // ⚡ Enhanced Web Vitals Monitoring
 // Comprehensive performance tracking with real-time metrics
 
+import { logger } from '@/utils/smartLogger';
 import {
   getCLS,
   getFCP,
@@ -75,9 +76,9 @@ class WebVitalsMonitor {
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.group(`📊 Web Vital: ${metric.name}`);
-      console.log(`Value: ${metric.value.toFixed(2)}ms`);
-      console.log(`Rating: ${vitalsMetric.rating}`);
-      console.log(`Navigation: ${vitalsMetric.navigationType}`);
+      logger.debug(`Value: ${metric.value.toFixed(2)}ms`);
+      logger.debug(`Rating: ${vitalsMetric.rating}`);
+      logger.debug(`Navigation: ${vitalsMetric.navigationType}`);
       console.groupEnd();
     }
   }
@@ -197,7 +198,10 @@ class WebVitalsMonitor {
     const summary: { [key: string]: VitalsMetric } = {};
 
     this.metrics.forEach(metric => {
-      if (!summary[metric.name] || metric.value < (summary[metric.name]?.value ?? 0)) {
+      if (
+        !summary[metric.name] ||
+        metric.value < (summary[metric.name]?.value ?? 0)
+      ) {
         summary[metric.name] = metric;
       }
     });
@@ -255,9 +259,9 @@ class WebVitalsMonitor {
     } else if (process.env.NODE_ENV === 'development') {
       // Log summary in development
       console.group('📈 Performance Summary');
-      console.log('Score:', this.getPerformanceScore() + '/100');
-      console.log('Metrics:', this.getMetricsSummary());
-      console.log('Connection:', performanceData.connection);
+      logger.debug('Score:', this.getPerformanceScore() + '/100');
+      logger.debug('Metrics:', this.getMetricsSummary());
+      logger.debug('Connection:', performanceData.connection);
       console.groupEnd();
     }
   }
@@ -295,17 +299,17 @@ export const debugPerformance = () => {
   const domReady =
     perfTiming.domContentLoadedEventEnd - perfTiming.navigationStart;
 
-  console.log(`Page Load Time: ${pageLoad}ms`);
-  console.log(`DOM Ready Time: ${domReady}ms`);
+  logger.debug(`Page Load Time: ${pageLoad}ms`);
+  logger.debug(`DOM Ready Time: ${domReady}ms`);
 
   // Memory usage (if available)
   if ('memory' in performance) {
     const memory = (performance as unknown as Record<string, unknown>)
       .memory as Record<string, unknown>;
-    console.log(
+    logger.debug(
       `Memory Used: ${((memory.usedJSHeapSize as number) / 1048576).toFixed(2)} MB`
     );
-    console.log(
+    logger.debug(
       `Memory Limit: ${((memory.jsHeapSizeLimit as number) / 1048576).toFixed(2)} MB`
     );
   }
@@ -314,7 +318,7 @@ export const debugPerformance = () => {
   if ('connection' in navigator) {
     const connection = (navigator as unknown as Record<string, unknown>)
       .connection as Record<string, unknown>;
-    console.log(
+    logger.debug(
       `Connection: ${connection.effectiveType} (${connection.downlink} Mbps)`
     );
   }

@@ -43,6 +43,7 @@ import { truncateText } from '../utils/email-formatters';
 import { EmailDetailDialog } from './dialogs/EmailDetailDialog';
 import { RejectDialog } from './dialogs/RejectDialog';
 import { StatusChip } from './StatusChip';
+import { logger } from '@/utils/smartLogger';
 
 interface EmailHistoryTabProps {
   statusFilter: string;
@@ -108,7 +109,7 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
 
   // Load emails when filters or page change
   useEffect(() => {
-    console.log('🚀 EMAIL HISTORY TAB useEffect triggered', {
+    logger.debug('🚀 EMAIL HISTORY TAB useEffect triggered', {
       currentPage,
       statusFilter,
       senderFilter,

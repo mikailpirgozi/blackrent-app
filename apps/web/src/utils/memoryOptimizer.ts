@@ -1,6 +1,8 @@
 // 🧠 Memory Optimization & Leak Prevention
 // Advanced memory management and performance monitoring tools
 
+import { logger } from './smartLogger';
+
 interface MemoryStats {
   usedJSHeapSize: number;
   totalJSHeapSize: number;
@@ -87,14 +89,17 @@ class MemoryOptimizer {
     const recentStats = this.memoryHistory.slice(-5);
     const growthTrend = recentStats.every((stats, index) => {
       if (index === 0) return true;
-      return stats.usedJSHeapSize > (recentStats[index - 1]?.usedJSHeapSize ?? 0);
+      return (
+        stats.usedJSHeapSize > (recentStats[index - 1]?.usedJSHeapSize ?? 0)
+      );
     });
 
     const averageGrowth =
       recentStats.reduce((acc, stats, index) => {
         if (index === 0) return 0;
         return (
-          acc + (stats.usedJSHeapSize - (recentStats[index - 1]?.usedJSHeapSize ?? 0))
+          acc +
+          (stats.usedJSHeapSize - (recentStats[index - 1]?.usedJSHeapSize ?? 0))
         );
       }, 0) /
       (recentStats.length - 1);
@@ -113,7 +118,7 @@ class MemoryOptimizer {
         'gc' in window &&
         typeof (window as unknown as Record<string, unknown>).gc === 'function'
       ) {
-        console.log('🗑️ Running garbage collection...');
+        logger.debug('🗑️ Running garbage collection...');
         ((window as unknown as Record<string, unknown>).gc as () => void)();
       }
     }
@@ -133,7 +138,7 @@ class MemoryOptimizer {
 
   // Emergency cleanup when memory is high
   private performEmergencyCleanup(): void {
-    console.log('🧹 Performing emergency memory cleanup...');
+    logger.debug('🧹 Performing emergency memory cleanup...');
 
     // Run all registered cleanup callbacks
     this.cleanupCallbacks.forEach(callback => {
@@ -177,10 +182,10 @@ class MemoryOptimizer {
     const limit = (stats.jsHeapSizeLimit / 1024 / 1024).toFixed(2);
 
     console.group('🧠 Memory Stats');
-    console.log(`Used: ${used}MB / Total: ${total}MB / Limit: ${limit}MB`);
-    console.log(`Usage: ${stats.usagePercentage.toFixed(1)}%`);
-    console.log(`Active Listeners: ${this.getTotalListenerCount()}`);
-    console.log(`WeakRefs: ${this.weakRefs.size}`);
+    logger.debug(`Used: ${used}MB / Total: ${total}MB / Limit: ${limit}MB`);
+    logger.debug(`Usage: ${stats.usagePercentage.toFixed(1)}%`);
+    logger.debug(`Active Listeners: ${this.getTotalListenerCount()}`);
+    logger.debug(`WeakRefs: ${this.weakRefs.size}`);
     console.groupEnd();
   }
 
@@ -242,7 +247,7 @@ class MemoryOptimizer {
     });
 
     if (removedCount > 0) {
-      console.log(`🧹 Cleaned up ${removedCount} unused event listeners`);
+      logger.debug(`🧹 Cleaned up ${removedCount} unused event listeners`);
     }
   }
 
@@ -433,7 +438,7 @@ export const initializeMemoryOptimization = () => {
     }
   });
 
-  console.log('🧠 Memory optimization initialized');
+  logger.debug('🧠 Memory optimization initialized');
 };
 
 export default {

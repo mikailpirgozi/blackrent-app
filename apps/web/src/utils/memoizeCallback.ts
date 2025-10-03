@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useRef } from 'react';
+import { logger } from '@/utils/smartLogger';
 
 /**
  * 📝 Memoize callback s dependency tracking
@@ -17,7 +18,7 @@ export const memoizeCallback = <T extends (...args: unknown[]) => unknown>(
   // Táto funkcia je len wrapper - v skutočnosti vráti originálny callback
   // useCallback sa musí volať priamo v React komponente
   // dependencies parameter je zachovaný pre kompatibilitu
-  console.debug(
+  logger.debug(
     'memoizeCallback called with dependencies:',
     dependencies.length
   );
@@ -48,7 +49,7 @@ export const createMemoizedHandlers = <T>(
 ) => {
   // POZNÁMKA: Táto funkcia je deprecated - useCallback sa musí volať priamo v React komponente
   // dependencies parameter je zachovaný pre kompatibilitu
-  console.debug(
+  logger.debug(
     'createMemoizedHandlers called with dependencies:',
     dependencies.length
   );

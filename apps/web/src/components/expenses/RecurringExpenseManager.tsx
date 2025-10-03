@@ -58,6 +58,7 @@ import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { ExpenseCategory, RecurringExpense, Vehicle } from '../../types';
+import { logger } from '@/utils/smartLogger';
 
 interface RecurringExpenseManagerProps {
   open: boolean;
@@ -359,7 +360,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           updatedAt: new Date(),
         };
         // 🚀 OPTIMISTIC UPDATE: Aktualizuj stav okamžite
-        console.log('Updating recurring expense in state:', updatedRecurring);
+        logger.debug('Updating recurring expense in state:', updatedRecurring);
         setRecurringExpenses(prev =>
           prev.map(r => (r.id === editingRecurring.id ? updatedRecurring : r))
         );
@@ -399,14 +400,14 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           isActive: formData.isActive,
         });
 
-        console.log('Created recurring expense:', newRecurring);
+        logger.debug('Created recurring expense:', newRecurring);
 
         // Pridaj nový náklad priamo do stavu PRED zatvorením dialogu
         if (newRecurring && newRecurring.id) {
           setRecurringExpenses(prev => {
-            console.log('Previous state:', prev);
+            logger.debug('Previous state:', prev);
             const updated = [...prev, newRecurring];
-            console.log('New state:', updated);
+            logger.debug('New state:', updated);
             return updated;
           });
 

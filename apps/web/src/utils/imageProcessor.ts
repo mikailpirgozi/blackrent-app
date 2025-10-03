@@ -1,3 +1,5 @@
+import { logger } from './smartLogger';
+
 export interface ProcessedImage {
   original: string;
   thumbnail: string;
@@ -44,7 +46,7 @@ export class ImageProcessor {
           size: file.size,
         });
 
-        console.log(`✅ Spracovaný obrázok: ${file.name}`);
+        logger.debug(`✅ Spracovaný obrázok: ${file.name}`);
       } catch (error) {
         console.error(`❌ Chyba pri spracovaní obrázka ${file.name}:`, error);
       }

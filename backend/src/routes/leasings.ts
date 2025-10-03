@@ -14,6 +14,7 @@ import { authenticateToken } from '../middleware/auth';
 import { cacheResponse, invalidateCache } from '../middleware/cache-middleware';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
+import { getWebSocketService } from '../services/websocket-service';
 import type { ApiResponse, Leasing, LeasingDocument, PaymentScheduleItem } from '../types';
 
 // Inline Zod schemas (validácia)
@@ -111,6 +112,35 @@ router.get(
 );
 
 /**
+ * GET /api/leasings/dashboard - Dashboard overview
+ * MUST BE BEFORE /:id route to avoid matching "dashboard" as UUID
+ */
+router.get(
+  '/dashboard',
+  authenticateToken,
+  checkPermission('expenses', 'read'),
+  cacheResponse('expenses', {
+    ttl: 2 * 60 * 1000, // 2 minúty
+  }),
+  async (req: Request, res: Response<ApiResponse<unknown>>) => {
+    try {
+      const dashboard = await postgresDatabase.getLeasingDashboard();
+      
+      res.json({
+        success: true,
+        data: dashboard,
+      });
+    } catch (error) {
+      console.error('Get leasing dashboard error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri načítavaní dashboard',
+      });
+    }
+  }
+);
+
+/**
  * GET /api/leasings/:id - Získaj detail leasingu
  */
 router.get(
@@ -166,6 +196,13 @@ router.post(
       // Invaliduj cache
       await invalidateCache('expenses');
       
+      // 🔴 WebSocket: Broadcast leasing created
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const userName = (req as any).user?.name || 'System';
+        wsService.broadcastLeasingCreated(leasing, userName);
+      }
+      
       res.status(201).json({
         success: true,
         data: leasing,
@@ -213,21 +250,38 @@ router.put(
     try {
       const { id } = req.params;
       
+      console.log('🔧 PUT /api/leasings/:id - Received request:', {
+        id,
+        body: JSON.stringify(req.body, null, 2),
+      });
+      
       // Validácia vstupu
       const input = updateLeasingSchema.parse(req.body);
+      console.log('✅ Zod validation passed for update');
       
       // Aktualizuj leasing
       const leasing = await postgresDatabase.updateLeasing(id, input);
       
       if (!leasing) {
+        console.error('❌ Leasing not found:', id);
         return res.status(404).json({
           success: false,
           error: 'Leasing nenájdený',
         });
       }
       
+      console.log('✅ Leasing updated successfully:', leasing.id);
+      
       // Invaliduj cache
       await invalidateCache('expenses');
+      
+      // 🔴 WebSocket: Broadcast leasing updated
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const userName = (req as any).user?.name || 'System';
+        const changes = Object.keys(input);
+        wsService.broadcastLeasingUpdated(leasing, userName, changes);
+      }
       
       res.json({
         success: true,
@@ -235,10 +289,23 @@ router.put(
         message: 'Leasing úspešne aktualizovaný',
       });
     } catch (error) {
-      console.error('Update leasing error:', error);
+      console.error('❌ Update leasing error:', error);
+      console.error('❌ Request body was:', JSON.stringify(req.body, null, 2));
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
+      
+      // Zod validation error
+      if (error && typeof error === 'object' && 'issues' in error) {
+        const zodError = error as any;
+        console.error('❌ Zod validation errors:', zodError.issues);
+        return res.status(400).json({
+          success: false,
+          error: 'Validation error: ' + zodError.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', '),
+        });
+      }
+      
       res.status(500).json({
         success: false,
-        error: 'Chyba pri aktualizácii leasingu',
+        error: error instanceof Error ? error.message : 'Chyba pri aktualizácii leasingu',
       });
     }
   }
@@ -255,6 +322,9 @@ router.delete(
     try {
       const { id } = req.params;
       
+      // Najprv získaj leasing pre vehicleId pred zmazaním
+      const leasing = await postgresDatabase.getLeasing(id);
+      
       const success = await postgresDatabase.deleteLeasing(id);
       
       if (!success) {
@@ -266,6 +336,13 @@ router.delete(
       
       // Invaliduj cache
       await invalidateCache('expenses');
+      
+      // 🔴 WebSocket: Broadcast leasing deleted
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const userName = (req as any).user?.name || 'System';
+        wsService.broadcastLeasingDeleted(id, leasing?.vehicleId, userName);
+      }
       
       res.json({
         success: true,
@@ -343,6 +420,13 @@ router.post(
       
       // Invaliduj cache
       await invalidateCache('expenses');
+      
+      // 🔴 WebSocket: Broadcast payment marked
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const userName = (req as any).user?.name || 'System';
+        wsService.broadcastLeasingPaymentMarked(id, input.installmentNumber, userName);
+      }
       
       res.json({
         success: true,
@@ -558,38 +642,6 @@ router.get(
       res.status(500).json({
         success: false,
         error: 'Chyba pri sťahovaní fotiek',
-      });
-    }
-  }
-);
-
-// ===================================================================
-// DASHBOARD & ANALYTICS
-// ===================================================================
-
-/**
- * GET /api/leasings/dashboard - Dashboard overview
- */
-router.get(
-  '/dashboard',
-  authenticateToken,
-  checkPermission('expenses', 'read'),
-  cacheResponse('expenses', {
-    ttl: 2 * 60 * 1000, // 2 minúty
-  }),
-  async (req: Request, res: Response<ApiResponse<unknown>>) => {
-    try {
-      const dashboard = await postgresDatabase.getLeasingDashboard();
-      
-      res.json({
-        success: true,
-        data: dashboard,
-      });
-    } catch (error) {
-      console.error('Get leasing dashboard error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Chyba pri načítavaní dashboard',
       });
     }
   }

@@ -2,6 +2,7 @@ import { apiService } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { queryKeys } from '../queryKeys';
+import { logger } from '@/utils/smartLogger';
 
 // Types
 export interface CalendarVehicle {
@@ -45,7 +46,7 @@ export function useAvailabilityCalendar(month: Date) {
   return useQuery({
     queryKey: queryKeys.availability.calendar(startDate, endDate),
     queryFn: async () => {
-      console.log('📅 Loading calendar data for:', startDate, 'to', endDate);
+      logger.debug('📅 Loading calendar data for:', { startDate, endDate });
 
       const calendarData = await apiService.get<CalendarData>(
         `/availability/calendar?startDate=${startDate}&endDate=${endDate}`
@@ -55,7 +56,7 @@ export function useAvailabilityCalendar(month: Date) {
         throw new Error('Failed to load calendar data');
       }
 
-      console.log('✅ Calendar data loaded:', calendarData);
+      logger.debug('✅ Calendar data loaded:', calendarData);
       return calendarData;
     },
     staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (bolo 1 min)

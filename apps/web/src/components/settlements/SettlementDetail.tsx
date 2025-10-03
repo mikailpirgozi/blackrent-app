@@ -21,6 +21,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getAPI_BASE_URL } from '../../services/api';
 import type { Settlement } from '../../types';
+import { logger } from '@/utils/smartLogger';
 
 interface SettlementDetailProps {
   settlement: Settlement;
@@ -186,7 +187,7 @@ export default function SettlementDetail({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      console.log('✅ PDF úspešne stiahnuté');
+      logger.debug('✅ PDF úspešne stiahnuté');
     } catch (error) {
       console.error('❌ Chyba pri sťahovaní PDF:', error);
       alert(
@@ -198,15 +199,12 @@ export default function SettlementDetail({
   };
 
   return (
-    <div >
+    <div>
       {/* Modern Header */}
-      <UnifiedCard
-        variant="elevated"
-        className="mb-6 shadow-lg"
-      >
-        <div >
-          <div >
-            <div >
+      <UnifiedCard variant="elevated" className="mb-6 shadow-lg">
+        <div>
+          <div>
+            <div>
               <UnifiedIcon name="assessment" size={32} className="text-white" />
               <div>
                 <UnifiedTypography
@@ -215,12 +213,9 @@ export default function SettlementDetail({
                 >
                   Detail vyúčtovania
                 </UnifiedTypography>
-                <div >
-                  <UnifiedIcon name="building" size={20}  />
-                  <UnifiedTypography
-                    variant="h6"
-                    className="text-white"
-                  >
+                <div>
+                  <UnifiedIcon name="building" size={20} />
+                  <UnifiedTypography variant="h6" className="text-white">
                     {settlement.company || 'N/A'}
                   </UnifiedTypography>
                 </div>
@@ -237,8 +232,8 @@ export default function SettlementDetail({
             </UnifiedButton>
           </div>
 
-          <div >
-            <UnifiedIcon name="calendar" size={18}  />
+          <div>
+            <UnifiedIcon name="calendar" size={18} />
             <UnifiedTypography variant="body1" className="text-white">
               Obdobie:{' '}
               {format(
@@ -262,10 +257,8 @@ export default function SettlementDetail({
       </UnifiedCard>
 
       {/* Financial Summary Cards */}
-      <div >
-        <StatisticsCard
-          className="bg-gradient-to-br from-blue-400 to-cyan-400 text-white shadow-lg h-full"
-        >
+      <div>
+        <StatisticsCard className="bg-gradient-to-br from-blue-400 to-cyan-400 text-white shadow-lg h-full">
           <div className="flex items-center justify-between">
             <div>
               <UnifiedTypography
@@ -274,10 +267,7 @@ export default function SettlementDetail({
               >
                 CELKOVÉ PRÍJMY
               </UnifiedTypography>
-              <UnifiedTypography
-                variant="h4"
-                className="font-bold text-white"
-              >
+              <UnifiedTypography variant="h4" className="font-bold text-white">
                 {settlement.totalIncome.toFixed(2)}€
               </UnifiedTypography>
             </div>
@@ -285,9 +275,7 @@ export default function SettlementDetail({
           </div>
         </StatisticsCard>
 
-        <StatisticsCard
-          className="bg-gradient-to-br from-pink-400 to-red-500 text-white shadow-lg h-full"
-        >
+        <StatisticsCard className="bg-gradient-to-br from-pink-400 to-red-500 text-white shadow-lg h-full">
           <div className="flex items-center justify-between">
             <div>
               <UnifiedTypography
@@ -296,10 +284,7 @@ export default function SettlementDetail({
               >
                 CELKOVÉ NÁKLADY
               </UnifiedTypography>
-              <UnifiedTypography
-                variant="h4"
-                className="font-bold text-white"
-              >
+              <UnifiedTypography variant="h4" className="font-bold text-white">
                 {settlement.totalExpenses.toFixed(2)}€
               </UnifiedTypography>
             </div>
@@ -307,9 +292,7 @@ export default function SettlementDetail({
           </div>
         </StatisticsCard>
 
-        <StatisticsCard
-          className="bg-gradient-to-br from-yellow-300 to-orange-400 text-white shadow-lg h-full"
-        >
+        <StatisticsCard className="bg-gradient-to-br from-yellow-300 to-orange-400 text-white shadow-lg h-full">
           <div className="flex items-center justify-between">
             <div>
               <UnifiedTypography
@@ -318,10 +301,7 @@ export default function SettlementDetail({
               >
                 CELKOVÉ PROVÍZIE
               </UnifiedTypography>
-              <UnifiedTypography
-                variant="h4"
-                className="font-bold text-white"
-              >
+              <UnifiedTypography variant="h4" className="font-bold text-white">
                 {settlement.totalCommission.toFixed(2)}€
               </UnifiedTypography>
             </div>
@@ -331,10 +311,10 @@ export default function SettlementDetail({
 
         <StatisticsCard
           className={cn(
-            "text-white shadow-lg h-full",
+            'text-white shadow-lg h-full',
             settlement.profit >= 0
-              ? "bg-gradient-to-br from-teal-300 to-pink-300"
-              : "bg-gradient-to-br from-red-300 to-pink-300"
+              ? 'bg-gradient-to-br from-teal-300 to-pink-300'
+              : 'bg-gradient-to-br from-red-300 to-pink-300'
           )}
         >
           <div className="flex items-center justify-between">
@@ -345,30 +325,28 @@ export default function SettlementDetail({
               >
                 {settlement.profit >= 0 ? 'CELKOVÝ ZISK' : 'CELKOVÁ STRATA'}
               </UnifiedTypography>
-              <UnifiedTypography
-                variant="h4"
-                className="font-bold text-white"
-              >
+              <UnifiedTypography variant="h4" className="font-bold text-white">
                 {settlement.profit.toFixed(2)}€
               </UnifiedTypography>
             </div>
             {settlement.profit >= 0 ? (
-              <UnifiedIcon name="trendingUp" size={40}  />
+              <UnifiedIcon name="trendingUp" size={40} />
             ) : (
-              <UnifiedIcon name="trendingDown" size={40} className="opacity-80" />
+              <UnifiedIcon
+                name="trendingDown"
+                size={40}
+                className="opacity-80"
+              />
             )}
           </div>
         </StatisticsCard>
       </div>
 
       {/* Payment Methods Overview */}
-      <UnifiedCard
-        variant="default"
-        className="mb-6 shadow-md"
-      >
-        <div >
-          <div >
-            <UnifiedIcon name="payment" size={24}  />
+      <UnifiedCard variant="default" className="mb-6 shadow-md">
+        <div>
+          <div>
+            <UnifiedIcon name="payment" size={24} />
             <UnifiedTypography
               variant="h6"
               className="font-semibold text-blue-600"
@@ -380,11 +358,11 @@ export default function SettlementDetail({
           <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow >
-                  <TableHead >Spôsob platby</TableHead>
-                  <TableHead >Počet prenájmov</TableHead>
-                  <TableHead >Celková cena (€)</TableHead>
-                  <TableHead >Provízie (€)</TableHead>
+                <TableRow>
+                  <TableHead>Spôsob platby</TableHead>
+                  <TableHead>Počet prenájmov</TableHead>
+                  <TableHead>Celková cena (€)</TableHead>
+                  <TableHead>Provízie (€)</TableHead>
                   <TableHead className="text-right font-semibold text-blue-600">
                     Po odpočítaní provízií (€)
                   </TableHead>
@@ -392,15 +370,14 @@ export default function SettlementDetail({
               </TableHeader>
               <TableBody>
                 {Object.entries(paymentMethodStats).map(([method, stats]) => (
-                  <TableRow
-                    key={method}
-                    className="hover:bg-blue-50/50"
-                  >
+                  <TableRow key={method} className="hover:bg-blue-50/50">
                     <TableCell>
-                      <div >
+                      <div>
                         <div
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: getPaymentMethodColor(method) }}
+                          style={{
+                            backgroundColor: getPaymentMethodColor(method),
+                          }}
                         />
                         <UnifiedTypography
                           variant="body2"
@@ -410,7 +387,7 @@ export default function SettlementDetail({
                         </UnifiedTypography>
                       </div>
                     </TableCell>
-                    <TableCell >
+                    <TableCell>
                       <Badge
                         variant="outline"
                         className="bg-blue-100 text-blue-800"
@@ -429,8 +406,8 @@ export default function SettlementDetail({
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow >
-                  <TableCell >SPOLU</TableCell>
+                <TableRow>
+                  <TableCell>SPOLU</TableCell>
                   <TableCell className="text-center font-bold">
                     {settlement.rentals?.length || 0}
                   </TableCell>
@@ -453,15 +430,12 @@ export default function SettlementDetail({
       </UnifiedCard>
 
       {/* Detailed Lists */}
-      <div >
-        <div >
-          <UnifiedCard
-            variant="default"
-            className="shadow-md h-fit"
-          >
-            <div >
-              <div >
-                <UnifiedIcon name="car" size={24}  />
+      <div>
+        <div>
+          <UnifiedCard variant="default" className="shadow-md h-fit">
+            <div>
+              <div>
+                <UnifiedIcon name="car" size={24} />
                 <UnifiedTypography
                   variant="h6"
                   className="font-semibold text-green-600"
@@ -474,12 +448,14 @@ export default function SettlementDetail({
                 <Table>
                   <TableHeader className="sticky top-0 bg-green-50 z-10">
                     <TableRow>
-                      <TableHead >Vozidlo</TableHead>
-                      <TableHead >Zákazník</TableHead>
-                      <TableHead >Dátum prenájmu</TableHead>
-                      <TableHead >Platba</TableHead>
-                      <TableHead >Cena (€)</TableHead>
-                      <TableHead className="text-right font-semibold">Provízia (€)</TableHead>
+                      <TableHead>Vozidlo</TableHead>
+                      <TableHead>Zákazník</TableHead>
+                      <TableHead>Dátum prenájmu</TableHead>
+                      <TableHead>Platba</TableHead>
+                      <TableHead>Cena (€)</TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Provízia (€)
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -487,8 +463,8 @@ export default function SettlementDetail({
                       <TableRow
                         key={rental.id}
                         className={cn(
-                          index % 2 === 0 ? "bg-transparent" : "bg-gray-50/50",
-                          "hover:bg-green-50/50"
+                          index % 2 === 0 ? 'bg-transparent' : 'bg-gray-50/50',
+                          'hover:bg-green-50/50'
                         )}
                       >
                         <TableCell>
@@ -506,7 +482,7 @@ export default function SettlementDetail({
                           </UnifiedTypography>
                         </TableCell>
                         <TableCell>
-                          <div >
+                          <div>
                             <UnifiedIcon
                               name="person"
                               size={16}
@@ -548,7 +524,7 @@ export default function SettlementDetail({
                         <TableCell>
                           <UnifiedChip
                             label={getPaymentMethodLabel(rental.paymentMethod)}
-                            className="h-8 px-3 text-sm font-semibold text-white" 
+                            className="h-8 px-3 text-sm font-semibold text-white"
                             style={{
                               backgroundColor: getPaymentMethodColor(
                                 rental.paymentMethod
@@ -571,14 +547,11 @@ export default function SettlementDetail({
           </UnifiedCard>
         </div>
 
-        <div >
-          <UnifiedCard
-            variant="default"
-            className="shadow-md h-fit"
-          >
-            <div >
-              <div >
-                <UnifiedIcon name="euro" size={24}  />
+        <div>
+          <UnifiedCard variant="default" className="shadow-md h-fit">
+            <div>
+              <div>
+                <UnifiedIcon name="euro" size={24} />
                 <UnifiedTypography
                   variant="h6"
                   className="font-semibold text-red-600"
@@ -592,9 +565,11 @@ export default function SettlementDetail({
                 <Table>
                   <TableHeader className="sticky top-0 bg-red-50 z-10">
                     <TableRow>
-                      <TableHead >Popis</TableHead>
-                      <TableHead >Kategória</TableHead>
-                      <TableHead className="text-right font-semibold">Suma (€)</TableHead>
+                      <TableHead>Popis</TableHead>
+                      <TableHead>Kategória</TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Suma (€)
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -602,8 +577,8 @@ export default function SettlementDetail({
                       <TableRow
                         key={expense.id}
                         className={cn(
-                          index % 2 === 0 ? "bg-transparent" : "bg-gray-50/50",
-                          "hover:bg-red-50/50"
+                          index % 2 === 0 ? 'bg-transparent' : 'bg-gray-50/50',
+                          'hover:bg-red-50/50'
                         )}
                       >
                         <TableCell>
@@ -636,12 +611,9 @@ export default function SettlementDetail({
       </div>
 
       {/* Action Buttons */}
-      <UnifiedCard
-        variant="default"
-        className="shadow-md"
-      >
-        <div >
-          <div >
+      <UnifiedCard variant="default" className="shadow-md">
+        <div>
+          <div>
             <UnifiedButton
               variant="default"
               className="bg-gradient-to-br from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white"

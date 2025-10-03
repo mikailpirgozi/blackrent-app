@@ -1,8 +1,5 @@
 // Lucide icons (replacing MUI icons)
-import {
-  Upload as DownloadIcon,
-  Download as ExportIcon,
-} from 'lucide-react';
+import { Upload as DownloadIcon, Download as ExportIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { saveAs } from 'file-saver';
@@ -182,7 +179,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
               const customerEmail = String(row.customerEmail || '');
 
               // 🔍 DETAILNÉ HĽADANIE ZÁKAZNÍKA S DIAKRITIKU
-              console.log(
+              logger.debug(
                 `🔍 CUSTOMER SEARCH [${results.data.indexOf(row)}]:`,
                 {
                   csvCustomerName: customerName,
@@ -209,7 +206,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                     .trim();
 
                 const normalizedCustomerName = normalizeString(customerName);
-                console.log(
+                logger.debug(
                   `🔍 FUZZY SEARCH for: "${customerName}" -> normalized: "${normalizedCustomerName}"`
                 );
 
@@ -217,7 +214,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                   const normalizedDbName = normalizeString(c.name);
                   const match = normalizedDbName === normalizedCustomerName;
                   if (match) {
-                    console.log(
+                    logger.debug(
                       `✅ FUZZY MATCH: "${customerName}" -> "${c.name}" (ID: ${c.id})`
                     );
                   }
@@ -225,10 +222,10 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 });
 
                 if (!existingCustomer) {
-                  console.log(`❌ NO CUSTOMER FOUND for: "${customerName}"`);
+                  logger.debug(`❌ NO CUSTOMER FOUND for: "${customerName}"`);
                 }
               } else if (existingCustomer) {
-                console.log(
+                logger.debug(
                   `✅ EXACT MATCH: "${customerName}" -> ID: ${existingCustomer.id}`
                 );
               }
@@ -257,7 +254,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                   });
 
                   if (existingCustomer) {
-                    console.log(
+                    logger.debug(
                       `✅ FUZZY MATCH in created customers: "${customerName}" -> "${existingCustomer.name}"`
                     );
                   }
@@ -483,11 +480,11 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                 );
 
                 if (finalCustomer) {
-                  console.log(
+                  logger.debug(
                     `✅ FINAL FUZZY MATCH: "${customerName}" -> "${finalCustomer.name}" (ID: ${finalCustomer.id})`
                   );
                 } else {
-                  console.log(
+                  logger.debug(
                     `❌ FINAL: NO CUSTOMER FOUND for: "${customerName}"`
                   );
                 }
@@ -592,7 +589,7 @@ export const RentalExport: React.FC<RentalExportProps> = ({
               const rawTotalPrice = row.totalPrice;
               const parsedTotalPrice = Number(row.totalPrice) || 0;
 
-              console.log('🔍 CSV PRICE DEBUG:', {
+              logger.debug('🔍 CSV PRICE DEBUG:', {
                 rowIndex: results.data.indexOf(row),
                 customerName,
                 rawTotalPrice,
@@ -662,12 +659,18 @@ export const RentalExport: React.FC<RentalExportProps> = ({
                   try {
                     const createdRental = await apiService.createRental({
                       ...rental,
-                      vehicle: rental.vehicle ?? {} as Vehicle,
-                      customer: rental.customer ?? {} as Customer,
+                      vehicle: rental.vehicle ?? ({} as Vehicle),
+                      customer: rental.customer ?? ({} as Customer),
                       vehicleId: rental.vehicleId || '',
                       customerId: rental.customerId || '',
-                      discount: rental.discount ?? { type: 'percentage' as const, value: 0 },
-                      customCommission: rental.customCommission ?? { type: 'percentage' as const, value: 0 },
+                      discount: rental.discount ?? {
+                        type: 'percentage' as const,
+                        value: 0,
+                      },
+                      customCommission: rental.customCommission ?? {
+                        type: 'percentage' as const,
+                        value: 0,
+                      },
                     });
                     imported.push(createdRental);
                   } catch (error) {

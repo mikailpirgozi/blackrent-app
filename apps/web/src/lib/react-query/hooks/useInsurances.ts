@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { useInvalidateEntity } from './useBulkDataLoader';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
+import { logger } from '@/utils/smartLogger';
 
 export interface InsuranceFilters extends Record<string, unknown> {
   search?: string;
@@ -94,11 +95,11 @@ export function useCreateInsurance() {
 
   return useMutation({
     mutationFn: (insurance: Insurance) => {
-      console.log('🚀 CREATE INSURANCE: Sending to server:', insurance);
+      logger.debug('🚀 CREATE INSURANCE: Sending to server:', insurance);
       return apiService.createInsurance(insurance);
     },
     onMutate: async newInsurance => {
-      console.log('🔄 CREATE INSURANCE: onMutate called with:', newInsurance);
+      logger.debug('🔄 CREATE INSURANCE: onMutate called with:', newInsurance);
       // Cancel queries
       await queryClient.cancelQueries({
         queryKey: queryKeys.insurances.all,
@@ -165,7 +166,7 @@ export function useCreateInsurance() {
       }
     },
     onSuccess: (_data, variables) => {
-      console.log('✅ CREATE INSURANCE: Success!', _data);
+      logger.debug('✅ CREATE INSURANCE: Success!', _data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-created', { detail: variables })
@@ -193,11 +194,11 @@ export function useUpdateInsurance() {
 
   return useMutation({
     mutationFn: (insurance: Insurance) => {
-      console.log('🚀 UPDATE INSURANCE: Sending to server:', insurance);
+      logger.debug('🚀 UPDATE INSURANCE: Sending to server:', insurance);
       return apiService.updateInsurance(insurance.id, insurance);
     },
     onMutate: async updatedInsurance => {
-      console.log(
+      logger.debug(
         '🔄 UPDATE INSURANCE: onMutate called with:',
         updatedInsurance
       );
@@ -262,7 +263,7 @@ export function useUpdateInsurance() {
       }
     },
     onSuccess: (_data, variables) => {
-      console.log('✅ UPDATE INSURANCE: Success!', _data);
+      logger.debug('✅ UPDATE INSURANCE: Success!', _data);
       // Trigger WebSocket notification
       window.dispatchEvent(
         new CustomEvent('insurance-updated', { detail: variables })

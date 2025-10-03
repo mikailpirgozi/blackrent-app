@@ -6,6 +6,7 @@
 import { useCallback, useState } from 'react';
 
 import { getAPI_BASE_URL } from '../../../services/api';
+import { logger } from '@/utils/smartLogger';
 import type {
   ArchivePagination,
   EmailDetail,
@@ -57,16 +58,16 @@ export const useEmailApi = () => {
         setLoading(true);
 
         // DEBUG: Check authentication (zachováva pôvodné debug logy)
-        console.log('🔍 EMAIL DASHBOARD DEBUG:');
-        console.log(
+        logger.debug('🔍 EMAIL DASHBOARD DEBUG:');
+        logger.debug(
           '- Token:',
           localStorage.getItem('blackrent_token') ? 'EXISTS' : 'MISSING'
         );
-        console.log(
+        logger.debug(
           '- Session token:',
           sessionStorage.getItem('blackrent_token') ? 'EXISTS' : 'MISSING'
         );
-        console.log('- API Base URL:', getAPI_BASE_URL());
+        logger.debug('- API Base URL:', getAPI_BASE_URL());
 
         const params = new URLSearchParams({
           limit: PAGE_SIZE.toString(),
@@ -76,17 +77,17 @@ export const useEmailApi = () => {
         if (statusFilter) params.append('status', statusFilter);
         if (senderFilter) params.append('sender', senderFilter);
 
-        console.log('🌐 About to call API:', `/email-management?${params}`);
+        logger.debug('🌐 About to call API:', `/email-management?${params}`);
 
         const directResponse = await directFetch(`/email-management?${params}`);
 
-        console.log(
+        logger.debug(
           '🚀 Direct fetch response:',
           directResponse.status,
           directResponse.statusText
         );
         const response = await directResponse.json();
-        console.log('📦 Direct fetch data:', response);
+        logger.debug('📦 Direct fetch data:', response);
 
         if (response.success) {
           const totalEmails = response.data.pagination.total;
@@ -118,19 +119,19 @@ export const useEmailApi = () => {
   // Fetch statistics
   const fetchStats = useCallback(async (): Promise<EmailStats | null> => {
     try {
-      console.log('📊 Fetching stats with direct fetch...');
+      logger.debug('📊 Fetching stats with direct fetch...');
 
       const directResponse = await directFetch(
         '/email-management/stats/dashboard'
       );
 
-      console.log(
+      logger.debug(
         '📊 Stats fetch response:',
         directResponse.status,
         directResponse.statusText
       );
       const response = await directResponse.json();
-      console.log('📊 Stats data:', response);
+      logger.debug('📊 Stats data:', response);
 
       if (response.success) {
         return response.data;
@@ -146,13 +147,13 @@ export const useEmailApi = () => {
   const viewEmailDetail = useCallback(
     async (emailId: string): Promise<EmailDetail | null> => {
       try {
-        console.log('🔍 Loading email detail for:', emailId);
+        logger.debug('🔍 Loading email detail for:', emailId);
 
         const directResponse = await directFetch(
           `/email-management/${emailId}`
         );
         const response = await directResponse.json();
-        console.log('📧 Email detail response:', response);
+        logger.debug('📧 Email detail response:', response);
 
         if (response.success && response.data) {
           return response.data;
@@ -363,13 +364,17 @@ export const useEmailApi = () => {
         );
 
         if (!directResponse.ok) {
-          const errorText = await directResponse.text().catch(() => 'Unknown error');
+          const errorText = await directResponse
+            .text()
+            .catch(() => 'Unknown error');
           console.error('❌ Archive API error:', {
             status: directResponse.status,
             statusText: directResponse.statusText,
-            errorText: errorText.substring(0, 200)
+            errorText: errorText.substring(0, 200),
           });
-          throw new Error(`HTTP error! status: ${directResponse.status} - ${errorText.substring(0, 100)}`);
+          throw new Error(
+            `HTTP error! status: ${directResponse.status} - ${errorText.substring(0, 100)}`
+          );
         }
 
         const responseText = await directResponse.text();
@@ -383,7 +388,7 @@ export const useEmailApi = () => {
         } catch (parseError) {
           console.error('❌ Archive JSON parsing error:', {
             responseText: responseText.substring(0, 200),
-            error: parseError
+            error: parseError,
           });
           throw new Error('Neplatná odpoveď zo servera');
         }

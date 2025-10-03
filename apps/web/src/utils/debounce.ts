@@ -4,6 +4,8 @@
  * Performance optimization for search and API calls
  */
 
+import { logger } from './smartLogger';
+
 export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
@@ -36,8 +38,8 @@ export function measurePerformance<T>(
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-   
-  console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
+
+  logger.debug(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
   return result;
 }
 

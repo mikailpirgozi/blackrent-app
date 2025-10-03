@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { Customer, Rental, Vehicle } from '../../types';
+import { logger } from '@/utils/smartLogger';
 
 interface EmailParserProps {
   onParseSuccess: (
@@ -153,23 +154,21 @@ export default function EmailParser({
       );
       if (vehicleMatchAlt) {
         const vehicleLine = vehicleMatchAlt[1]?.trim();
-        console.log('🔍 Parsing vehicle line:', vehicleLine);
+        logger.debug('🔍 Parsing vehicle line:', vehicleLine);
 
         // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
         const parts =
           vehicleLine?.split(/\s+/).filter(part => part.trim()) || [];
-        console.log('🔍 Vehicle parts:', parts);
+        logger.debug('🔍 Vehicle parts:', parts);
 
         // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
         const spzIndex = parts.findIndex(part =>
           /^[A-Z0-9]{6,7}$/.test(part.trim())
         );
-        console.log(
-          '🔍 SPZ index:',
+        logger.debug('🔍 SPZ index:', {
           spzIndex,
-          'SPZ:',
-          spzIndex >= 0 ? parts[spzIndex] : 'not found'
-        );
+          spz: spzIndex >= 0 ? parts[spzIndex] : 'not found',
+        });
 
         if (spzIndex > 0) {
           // Názov auta je všetko pred ŠPZ
@@ -186,33 +185,31 @@ export default function EmailParser({
             data.vehiclePrice = parseFloat(priceStr);
           }
 
-          console.log('✅ Parsed vehicle:', {
+          logger.debug('✅ Parsed vehicle:', {
             name: data.vehicleName,
             code: data.vehicleCode,
             price: data.vehiclePrice,
           });
         } else {
-          console.log('❌ Could not find SPZ in vehicle line');
+          logger.debug('❌ Could not find SPZ in vehicle line');
         }
       }
     } else {
       const vehicleLine = vehicleMatch[1]?.trim();
-      console.log('🔍 Parsing vehicle line:', vehicleLine);
+      logger.debug('🔍 Parsing vehicle line:', vehicleLine);
 
       // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
       const parts = vehicleLine?.split(/\s+/).filter(part => part.trim()) || [];
-      console.log('🔍 Vehicle parts:', parts);
+      logger.debug('🔍 Vehicle parts:', parts);
 
       // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
       const spzIndex = parts.findIndex(part =>
         /^[A-Z0-9]{6,7}$/.test(part.trim())
       );
-      console.log(
-        '🔍 SPZ index:',
+      logger.debug('🔍 SPZ index:', {
         spzIndex,
-        'SPZ:',
-        spzIndex >= 0 ? parts[spzIndex] : 'not found'
-      );
+        spz: spzIndex >= 0 ? parts[spzIndex] : 'not found',
+      });
 
       if (spzIndex > 0) {
         // Názov auta je všetko pred ŠPZ
@@ -227,19 +224,19 @@ export default function EmailParser({
           data.vehiclePrice = parseFloat(priceStr);
         }
 
-        console.log('✅ Parsed vehicle:', {
+        logger.debug('✅ Parsed vehicle:', {
           name: data.vehicleName,
           code: data.vehicleCode,
           price: data.vehiclePrice,
         });
       } else {
-        console.log('❌ Could not find SPZ in vehicle line');
+        logger.debug('❌ Could not find SPZ in vehicle line');
       }
     }
 
     // Parsovanie kilometrov - VŠETKY sa považujú za denné km
-    console.log('🔍 DEBUG: Searching for kilometers in text...');
-    console.log(
+    logger.debug('🔍 DEBUG: Searching for kilometers in text...');
+    logger.debug(
       '🔍 Text sample around km:',
       text.substring(
         text.indexOf('Počet povolených km') - 20,
@@ -249,15 +246,17 @@ export default function EmailParser({
 
     // NAJVYŠŠIA PRIORITA: Špecifické patterny pre "Počet povolených km"
     const specificKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i);
-    console.log('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
+    logger.debug('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
 
     if (specificKmMatch) {
       data.dailyKilometers = parseInt(specificKmMatch[1] || '0');
-      console.log(
+      logger.debug(
         `🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`
       );
     } else {
-      console.log('🔍 DEBUG: specificKmMatch failed, trying other patterns...');
+      logger.debug(
+        '🔍 DEBUG: specificKmMatch failed, trying other patterns...'
+      );
       // Prioritne hľadáme explicitne denné km patterny
       const explicitDailyKmMatch =
         text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
@@ -265,18 +264,18 @@ export default function EmailParser({
         text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
         text.match(/denne[:\s]*(\d+)\s*km/i) ||
         text.match(/(\d+)\s*km\s*daily/i);
-      console.log(
+      logger.debug(
         '🔍 DEBUG: explicitDailyKmMatch result:',
         explicitDailyKmMatch
       );
 
       if (explicitDailyKmMatch) {
         data.dailyKilometers = parseInt(explicitDailyKmMatch[1] || '0');
-        console.log(
+        logger.debug(
           `🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`
         );
       } else {
-        console.log(
+        logger.debug(
           '🔍 DEBUG: explicitDailyKmMatch failed, trying general patterns...'
         );
         // Ak nie sú explicitne denné, hľadáme ostatné všeobecné km patterny a považujeme ich za denné
@@ -285,15 +284,15 @@ export default function EmailParser({
           text.match(/Kilometrov[:\s]+(\d+)/i) ||
           text.match(/Limit\s+km[:\s]+(\d+)/i) ||
           text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km (najnižšia priorita)
-        console.log('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
+        logger.debug('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
 
         if (generalKmMatch) {
           data.dailyKilometers = parseInt(generalKmMatch[1] || '0');
-          console.log(
+          logger.debug(
             `🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`
           );
         } else {
-          console.log('🔍 DEBUG: No kilometer patterns matched!');
+          logger.debug('🔍 DEBUG: No kilometer patterns matched!');
         }
       }
     }
@@ -423,7 +422,7 @@ export default function EmailParser({
     // Nájdenie vozidla - primárne podľa ŠPZ, potom podľa názvu
     let selectedVehicle: Vehicle | undefined;
 
-    console.log('🚗 Vehicle search START:', {
+    logger.debug('🚗 Vehicle search START:', {
       hasVehicleCode: !!parsedData.vehicleCode,
       vehicleCode: parsedData.vehicleCode,
       vehiclesAvailable: vehicles.length,
@@ -461,7 +460,7 @@ export default function EmailParser({
             : [],
         }));
 
-      console.log('🔍 Vehicle search details:', {
+      logger.debug('🔍 Vehicle search details:', {
         searchingFor: parsedData.vehicleCode,
         normalized: normalizedCode,
         found: !!selectedVehicle,
@@ -480,7 +479,7 @@ export default function EmailParser({
 
     // Ak sa nenájde podľa ŠPZ, skúsim podľa názvu
     if (!selectedVehicle && parsedData.vehicleName) {
-      console.log('🔍 Searching by name fallback:', {
+      logger.debug('🔍 Searching by name fallback:', {
         vehicleName: parsedData.vehicleName,
         searchTerm: parsedData.vehicleName.toLowerCase(),
       });
@@ -494,7 +493,7 @@ export default function EmailParser({
             .includes(parsedData.vehicleName!.toLowerCase())
       );
 
-      console.log('🔍 Name search result:', {
+      logger.debug('🔍 Name search result:', {
         found: !!selectedVehicle,
         foundVehicle: selectedVehicle
           ? {
@@ -566,7 +565,7 @@ export default function EmailParser({
       vehicleName: parsedData.vehicleName || '',
     };
 
-    console.log('📤 Sending rental data to form:', {
+    logger.debug('📤 Sending rental data to form:', {
       vehicleId: rentalData.vehicleId,
       hasVehicleId: !!rentalData.vehicleId,
       selectedVehicle: selectedVehicle

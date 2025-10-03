@@ -80,7 +80,7 @@ export function useInfiniteRentals(
       try {
         // FIXED: Reduced logging to prevent console spam - len pre prvú stránku
         if (process.env.NODE_ENV === 'development' && page === 1) {
-          console.log(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, {
+          logger.debug(`🔄 INFINITE RENTALS: Loading rentals - Page ${page}`, {
             filters: filtersRef.current,
           });
         }
@@ -301,20 +301,14 @@ export function useInfiniteRentals(
     };
 
     // Listen for both refresh and optimistic update events
-    window.addEventListener(
-      'rental-list-refresh',
-      handleRefresh as any
-    );
+    window.addEventListener('rental-list-refresh', handleRefresh as any);
     window.addEventListener(
       'rental-optimistic-update',
       handleOptimisticUpdate as any
     );
 
     return () => {
-      window.removeEventListener(
-        'rental-list-refresh',
-        handleRefresh as any
-      );
+      window.removeEventListener('rental-list-refresh', handleRefresh as any);
       window.removeEventListener(
         'rental-optimistic-update',
         handleOptimisticUpdate as any

@@ -48,7 +48,7 @@ export function useInfiniteCustomers(
   const loadCustomers = useCallback(
     async (page: number, isNewSearch: boolean = false) => {
       if (loadingRef.current) {
-        console.log('⏸️ Load already in progress, skipping...');
+        logger.debug('⏸️ Load already in progress, skipping...');
         return;
       }
 
@@ -116,12 +116,12 @@ export function useInfiniteCustomers(
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !initialLoad) {
-      console.log(
+      logger.debug(
         `📚 Load more triggered - Page ${currentPage + 1}, hasMore: ${hasMore}, loading: ${loading}`
       );
       loadCustomers(currentPage + 1, false);
     } else {
-      console.log(
+      logger.debug(
         `⏸️ Load more skipped - loading: ${loading}, hasMore: ${hasMore}, initialLoad: ${initialLoad}`
       );
     }

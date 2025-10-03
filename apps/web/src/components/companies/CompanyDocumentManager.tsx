@@ -45,6 +45,7 @@ import type { CompanyDocument } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import BulkDownload from '../common/BulkDownload';
 import R2FileUpload from '../common/R2FileUpload';
+import { logger } from '@/utils/smartLogger';
 
 interface CompanyDocumentManagerProps {
   companyId: string | number;
@@ -85,8 +86,8 @@ export default function CompanyDocumentManager({
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
 
-      console.log('📄 Loading documents for company:', companyId);
-      console.log('📄 Using token:', token ? 'EXISTS' : 'MISSING');
+      logger.debug('📄 Loading documents for company:', companyId);
+      logger.debug('📄 Using token:', token ? 'EXISTS' : 'MISSING');
 
       const response = await fetch(
         `${getApiBaseUrl()}/company-documents/${companyId}`,
@@ -98,16 +99,16 @@ export default function CompanyDocumentManager({
         }
       );
 
-      console.log('📄 Response status:', response.status);
+      logger.debug('📄 Response status:', response.status);
 
       const result = await response.json();
-      console.log('📄 Response data:', result);
-      console.log('📄 Documents array length:', result.data?.length);
-      console.log('📄 First document:', result.data?.[0]);
+      logger.debug('📄 Response data:', result);
+      logger.debug('📄 Documents array length:', result.data?.length);
+      logger.debug('📄 First document:', result.data?.[0]);
 
       if (result.success) {
         setDocuments(result.data || []);
-        console.log('📄 Documents set to state:', result.data?.length || 0);
+        logger.debug('📄 Documents set to state:', result.data?.length || 0);
       } else {
         console.error('Error loading documents:', result.error);
       }
@@ -128,7 +129,7 @@ export default function CompanyDocumentManager({
       | { url: string; key: string; filename: string }
       | { url: string; key: string; filename: string }[]
   ) => {
-    console.log('📄 Files uploaded successfully:', fileData);
+    logger.debug('📄 Files uploaded successfully:', fileData);
 
     if (Array.isArray(fileData)) {
       setUploadedFiles(prev => [...prev, ...fileData]);
@@ -140,7 +141,7 @@ export default function CompanyDocumentManager({
   // Uloženie dokumentov
   const handleSaveDocuments = async () => {
     if (uploadedFiles.length === 0 || !uploadData.documentName.trim()) {
-      console.log('Nahrajte súbory a zadajte názov dokumentu');
+      logger.debug('Nahrajte súbory a zadajte názov dokumentu');
       return;
     }
 
@@ -149,7 +150,7 @@ export default function CompanyDocumentManager({
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
 
-      console.log('📄 Saving documents metadata:', {
+      logger.debug('📄 Saving documents metadata:', {
         companyId,
         documentType: uploadData.documentType,
         documentName: uploadData.documentName,
@@ -198,7 +199,7 @@ export default function CompanyDocumentManager({
       const successfulSaves = results.filter(result => result.success);
 
       if (successfulSaves.length === uploadedFiles.length) {
-        console.log('✅ All documents saved successfully');
+        logger.debug('✅ All documents saved successfully');
         setUploadDialogOpen(false);
         setUploadData({
           documentType: 'contract',
@@ -211,13 +212,13 @@ export default function CompanyDocumentManager({
         loadDocuments();
       } else {
         console.error('Some documents failed to save');
-        console.log(
+        logger.debug(
           `Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`
         );
       }
     } catch (error) {
       console.error('Error saving document:', error);
-      console.log('Chyba pri ukladaní dokumentov');
+      logger.debug('Chyba pri ukladaní dokumentov');
     }
   };
 
@@ -230,7 +231,7 @@ export default function CompanyDocumentManager({
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
 
-      console.log('📄 Deleting document:', documentId);
+      logger.debug('📄 Deleting document:', documentId);
 
       const response = await fetch(
         `${getApiBaseUrl()}/company-documents/${documentId}`,
@@ -243,20 +244,20 @@ export default function CompanyDocumentManager({
         }
       );
 
-      console.log('📄 Delete response status:', response.status);
+      logger.debug('📄 Delete response status:', response.status);
 
       const result = await response.json();
 
       if (result.success) {
-        console.log('✅ Document deleted successfully');
+        logger.debug('✅ Document deleted successfully');
         loadDocuments();
       } else {
         console.error('Error deleting document:', result.error);
-        console.log(`Chyba pri mazaní: ${result.error}`);
+        logger.debug(`Chyba pri mazaní: ${result.error}`);
       }
     } catch (error) {
       console.error('Error deleting document:', error);
-      console.log('Chyba pri mazaní dokumentu');
+      logger.debug('Chyba pri mazaní dokumentu');
     }
   };
 
@@ -326,164 +327,179 @@ export default function CompanyDocumentManager({
               <AccordionTrigger className="text-left">
                 <div className="flex items-center gap-2">
                   <ContractIcon className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium">Zmluvy o spolupráci ({contracts.length})</span>
+                  <span className="font-medium">
+                    Zmluvy o spolupráci ({contracts.length})
+                  </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-              {contracts.length > 0 ? (
-                <div>
-                  <BulkDownload
-                    files={contracts.map(doc => ({
-                      url: doc.filePath,
-                      filename: doc.documentName,
-                    }))}
-                    zipFilename={`zmluvy_${companyName}_${new Date().toISOString().split('T')[0]}.zip`}
-                    label="Stiahnuť všetky zmluvy"
-                  />
-                  <div className="space-y-2">
-                    {contracts.map(contract => (
-                      <Card key={contract.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm">{contract.documentName}</h4>
-                              <div className="mt-1 space-y-1">
-                                <p className="text-xs text-muted-foreground">
-                                  {contract.description}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Nahraný:{' '}
-                                  {new Date(
-                                    contract.createdAt
-                                  ).toLocaleDateString('sk-SK')}
-                                </p>
+                {contracts.length > 0 ? (
+                  <div>
+                    <BulkDownload
+                      files={contracts.map(doc => ({
+                        url: doc.filePath,
+                        filename: doc.documentName,
+                      }))}
+                      zipFilename={`zmluvy_${companyName}_${new Date().toISOString().split('T')[0]}.zip`}
+                      label="Stiahnuť všetky zmluvy"
+                    />
+                    <div className="space-y-2">
+                      {contracts.map(contract => (
+                        <Card key={contract.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-sm">
+                                  {contract.documentName}
+                                </h4>
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    {contract.description}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Nahraný:{' '}
+                                    {new Date(
+                                      contract.createdAt
+                                    ).toLocaleDateString('sk-SK')}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 ml-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    window.open(contract.filePath, '_blank')
+                                  }
+                                  title="Zobraziť dokument"
+                                >
+                                  <ViewIcon className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleDeleteDocument(contract.id)
+                                  }
+                                  title="Zmazať dokument"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <DeleteIcon className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 ml-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  window.open(contract.filePath, '_blank')
-                                }
-                                title="Zobraziť dokument"
-                              >
-                                <ViewIcon className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteDocument(contract.id)}
-                                title="Zmazať dokument"
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <DeleteIcon className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-center py-4 text-muted-foreground text-sm">
-                  Žiadne zmluvy o spolupráci
-                </p>
-              )}
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground text-sm">
+                    Žiadne zmluvy o spolupráci
+                  </p>
+                )}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
 
           {/* FAKTÚRY ROZDELENÉ PO MESIACOCH */}
-          <Accordion type="single" defaultValue="invoices" collapsible className="mt-2">
+          <Accordion
+            type="single"
+            defaultValue="invoices"
+            collapsible
+            className="mt-2"
+          >
             <AccordionItem value="invoices">
               <AccordionTrigger className="text-left">
                 <div className="flex items-center gap-2">
                   <InvoiceIcon className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Faktúry ({invoices.length})</span>
+                  <span className="font-medium">
+                    Faktúry ({invoices.length})
+                  </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-              {Object.keys(invoicesByYear).length > 0 ? (
-                <div>
-                  {Object.entries(invoicesByYear)
-                    .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie roky najprv
-                    .map(([year, months]) => (
-                      <div key={year} className="mb-4">
-                        <h3 className="text-sm font-medium text-primary mb-2">
-                          📅 Rok {year}
-                        </h3>
+                {Object.keys(invoicesByYear).length > 0 ? (
+                  <div>
+                    {Object.entries(invoicesByYear)
+                      .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie roky najprv
+                      .map(([year, months]) => (
+                        <div key={year} className="mb-4">
+                          <h3 className="text-sm font-medium text-primary mb-2">
+                            📅 Rok {year}
+                          </h3>
 
-                        {Object.entries(months)
-                          .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie mesiace najprv
-                          .map(([month, monthInvoices]) => (
-                            <div key={month} className="ml-4 mb-2">
-                              <h4 className="text-sm font-semibold mb-2">
-                                {getMonthName(parseInt(month))} (
-                                {monthInvoices.length})
-                              </h4>
+                          {Object.entries(months)
+                            .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Najnovšie mesiace najprv
+                            .map(([month, monthInvoices]) => (
+                              <div key={month} className="ml-4 mb-2">
+                                <h4 className="text-sm font-semibold mb-2">
+                                  {getMonthName(parseInt(month))} (
+                                  {monthInvoices.length})
+                                </h4>
 
-                              <div className="ml-4 space-y-2">
-                                {monthInvoices.map(invoice => (
-                                  <Card key={invoice.id}>
-                                    <CardContent className="p-3">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                          <h5 className="font-medium text-sm">{invoice.documentName}</h5>
-                                          <div className="mt-1 space-y-1">
-                                            <p className="text-xs text-muted-foreground">
-                                              {invoice.description}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                              Nahraný:{' '}
-                                              {new Date(
-                                                invoice.createdAt
-                                              ).toLocaleDateString('sk-SK')}
-                                            </p>
+                                <div className="ml-4 space-y-2">
+                                  {monthInvoices.map(invoice => (
+                                    <Card key={invoice.id}>
+                                      <CardContent className="p-3">
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex-1">
+                                            <h5 className="font-medium text-sm">
+                                              {invoice.documentName}
+                                            </h5>
+                                            <div className="mt-1 space-y-1">
+                                              <p className="text-xs text-muted-foreground">
+                                                {invoice.description}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground">
+                                                Nahraný:{' '}
+                                                {new Date(
+                                                  invoice.createdAt
+                                                ).toLocaleDateString('sk-SK')}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1 ml-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                window.open(
+                                                  invoice.filePath,
+                                                  '_blank'
+                                                )
+                                              }
+                                              title="Zobraziť faktúru"
+                                            >
+                                              <ViewIcon className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                handleDeleteDocument(invoice.id)
+                                              }
+                                              title="Zmazať faktúru"
+                                              className="text-destructive hover:text-destructive"
+                                            >
+                                              <DeleteIcon className="h-4 w-4" />
+                                            </Button>
                                           </div>
                                         </div>
-                                        <div className="flex items-center gap-1 ml-2">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              window.open(
-                                                invoice.filePath,
-                                                '_blank'
-                                              )
-                                            }
-                                            title="Zobraziť faktúru"
-                                          >
-                                            <ViewIcon className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              handleDeleteDocument(invoice.id)
-                                            }
-                                            title="Zmazať faktúru"
-                                            className="text-destructive hover:text-destructive"
-                                          >
-                                            <DeleteIcon className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-center py-4 text-muted-foreground text-sm">
-                  Žiadne faktúry
-                </p>
-              )}
+                            ))}
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground text-sm">
+                    Žiadne faktúry
+                  </p>
+                )}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -536,7 +552,9 @@ export default function CompanyDocumentManager({
               <Input
                 id="documentName"
                 value={uploadData.documentName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
                   setUploadData(prev => ({
                     ...prev,
                     documentName: e.target.value,
@@ -558,7 +576,7 @@ export default function CompanyDocumentManager({
                   <Label htmlFor="documentYear">Rok</Label>
                   <Select
                     value={uploadData.documentYear?.toString() || ''}
-                    onValueChange={(value) =>
+                    onValueChange={value =>
                       setUploadData(prev => ({
                         ...prev,
                         documentYear: parseInt(value),
@@ -584,7 +602,7 @@ export default function CompanyDocumentManager({
                   <Label htmlFor="documentMonth">Mesiac</Label>
                   <Select
                     value={uploadData.documentMonth?.toString() || ''}
-                    onValueChange={(value) =>
+                    onValueChange={value =>
                       setUploadData(prev => ({
                         ...prev,
                         documentMonth: parseInt(value),
@@ -613,7 +631,9 @@ export default function CompanyDocumentManager({
               <Textarea
                 id="description"
                 value={uploadData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
                   setUploadData(prev => ({
                     ...prev,
                     description: e.target.value,
@@ -650,8 +670,8 @@ export default function CompanyDocumentManager({
                       pripravených na uloženie
                       <div className="mt-2 flex flex-wrap gap-1">
                         {uploadedFiles.map((file, index) => (
-                          <Badge 
-                            key={index} 
+                          <Badge
+                            key={index}
                             variant="secondary"
                             className="cursor-pointer"
                             onClick={() =>
@@ -670,7 +690,7 @@ export default function CompanyDocumentManager({
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="gap-2">
             <Button
               variant="outline"

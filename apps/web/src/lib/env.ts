@@ -1,9 +1,12 @@
 /**
- * Centralizovaný prístup k environment premenným pre Vite
+ * ✅ Centralizovaný prístup k environment premenným s Zod validáciou
  * Nahradza process.env.REACT_APP_* za import.meta.env.VITE_*
  */
 
 /// <reference types="vite/client" />
+
+import { z } from 'zod';
+import { logger } from '@/utils/smartLogger';
 
 // Extend Window interface for environment logging
 declare global {
@@ -12,30 +15,53 @@ declare global {
   }
 }
 
-export const env = {
+// ✅ Zod schema pre environment variables
+const envSchema = z.object({
   // API konfigurácia
-  API_URL: import.meta.env.VITE_API_URL as string,
-  USE_WORKER_PROXY: import.meta.env.VITE_USE_WORKER_PROXY === 'true',
-  WORKER_URL: import.meta.env.VITE_WORKER_URL as string,
+  API_URL: z.string().url().optional().or(z.literal('')), // Optional v development (používa Vite proxy)
+  USE_WORKER_PROXY: z.boolean().default(false),
+  WORKER_URL: z.string().url().optional().or(z.literal('')),
 
   // Debugging
-  DEBUG: import.meta.env.VITE_DEBUG === 'true',
+  DEBUG: z.boolean().default(false),
 
   // Vite systémové premenné
-  MODE: import.meta.env.MODE as string,
-  DEV: import.meta.env.DEV as boolean,
-  PROD: import.meta.env.PROD as boolean,
-} as const;
+  MODE: z.enum(['development', 'production', 'test']),
+  DEV: z.boolean(),
+  PROD: z.boolean(),
+});
+
+// Parse a validuj environment variables
+const rawEnv = {
+  API_URL: import.meta.env.VITE_API_URL || '',
+  USE_WORKER_PROXY: import.meta.env.VITE_USE_WORKER_PROXY === 'true',
+  WORKER_URL: import.meta.env.VITE_WORKER_URL || '',
+  DEBUG: import.meta.env.VITE_DEBUG === 'true',
+  MODE: import.meta.env.MODE,
+  DEV: import.meta.env.DEV,
+  PROD: import.meta.env.PROD,
+};
+
+// ✅ Validate a export
+let env: z.infer<typeof envSchema>;
+
+try {
+  env = envSchema.parse(rawEnv);
+} catch (error) {
+  logger.error('❌ Environment validation failed!', error);
+  throw new Error('Invalid environment configuration');
+}
+
+export { env };
 
 // Type safety helper
 export type EnvKeys = keyof typeof env;
 
 // Debug log pre development - len raz pri načítaní
-if (env.DEV && !window.__ENV_LOGGED__) {
-  console.log('🔧 Environment variables loaded:', {
-    API_URL: env.API_URL,
+if (env.DEV && typeof window !== 'undefined' && !window.__ENV_LOGGED__) {
+  logger.debug('Environment variables loaded', {
+    API_URL: env.API_URL || 'Using Vite proxy',
     USE_WORKER_PROXY: env.USE_WORKER_PROXY,
-    WORKER_URL: env.WORKER_URL,
     DEBUG: env.DEBUG,
     MODE: env.MODE,
   });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { ProtocolImage, ProtocolVideo } from '../types';
+import { logger } from '@/utils/smartLogger';
 
 interface UseProtocolMediaProps {
   protocolId: string;
@@ -40,7 +41,10 @@ export const useProtocolMedia = ({
     setError(null);
 
     try {
-      console.log('📥 Loading media for protocol:', protocolId, protocolType);
+      logger.debug('📥 Loading media for protocol:', {
+        protocolId,
+        protocolType,
+      });
 
       const apiBaseUrl =
         import.meta.env.VITE_API_URL ||
@@ -62,7 +66,7 @@ export const useProtocolMedia = ({
       const data = await response.json();
 
       if (data.success) {
-        console.log('✅ Media loaded successfully:', {
+        logger.debug('✅ Media loaded successfully:', {
           images: data.images?.length || 0,
           videos: data.videos?.length || 0,
         });

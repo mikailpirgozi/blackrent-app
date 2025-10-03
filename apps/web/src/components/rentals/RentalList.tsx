@@ -604,7 +604,7 @@ export default function RentalList() {
 
       // Kontrola či máme nejaké dáta
       if (statusCount > 0) {
-        console.log('🔍 Setting protocol status from React Query:', {
+        logger.debug('🔍 Setting protocol status from React Query:', {
           totalCount: statusCount,
           isArray,
           sample: isArray
@@ -682,7 +682,7 @@ export default function RentalList() {
         // Označ že dáta boli nastavené
         protocolStatusSetRef.current = true;
 
-        console.log(
+        logger.debug(
           `✅ React Query: Protocol status set for ${statusCount} rentals`
         );
       }
@@ -1040,7 +1040,7 @@ export default function RentalList() {
           const file = e.target.files?.[0];
           if (file) {
             // TODO: Implement import logic
-            console.log('Import file:', file);
+            logger.debug('Import file:', file);
           }
         }}
       />
@@ -1079,7 +1079,10 @@ export default function RentalList() {
         handleDelete={handleDelete}
         handleCloneRental={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
         handleOpenProtocolMenu={(rental, type) => {
-          logger.debug('📋 Opening protocol menu', rental.id, type);
+          logger.debug('📋 Opening protocol menu', {
+            rentalId: rental.id,
+            type,
+          });
 
           // Kontrola existencie protokolu cez protocolStatusMap (rýchlejšie a spoľahlivejšie)
           const protocolStatus = protocolsHook.protocolStatusMap[rental.id];

@@ -8,6 +8,7 @@ import { useCallback, useMemo } from 'react';
 
 import type { Rental } from '../types';
 import { debounce } from '../utils/debounce';
+import { logger } from '@/utils/smartLogger';
 import type {
   FilterCriteria,
   ProtocolLookup,
@@ -104,7 +105,7 @@ export const useOptimizedFilters = ({
     );
     const end = performance.now();
 
-    console.log(
+    logger.debug(
       `🏃‍♂️ Filter performance: ${end - start}ms for ${rentals.length} rentals → ${result.length} results`
     );
 

@@ -43,6 +43,7 @@ import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../context/AuthContext';
+import { logger } from '@/utils/smartLogger';
 import {
   useCreateUser,
   useDeleteUser,
@@ -162,11 +163,11 @@ const BasicUserManagement: React.FC = () => {
         const data = await response.json();
         const investorsList = data.data || [];
         setInvestors(investorsList);
-        console.log('📊 Loaded investors:', investorsList.length);
+        logger.debug('📊 Loaded investors:', investorsList.length);
 
         // Nehlás chybu ak je zoznam prázdny - to je normálne
         if (investorsList.length === 0) {
-          console.log(
+          logger.debug(
             'ℹ️ No investors found - this is normal if none are configured'
           );
         }
@@ -196,18 +197,16 @@ const BasicUserManagement: React.FC = () => {
       const now = new Date().toISOString();
       const storageKey = `user_last_login_${state.user.username}`;
       localStorage.setItem(storageKey, now);
-      console.log(
-        '📝 Tracked login for user:',
-        state.user.username,
-        'at:',
-        now
-      );
+      logger.debug('📝 Tracked login for user:', {
+        username: state.user.username,
+        timestamp: now,
+      });
     }
   }, [state.user?.username]);
 
   const handleCreateUser = async () => {
-    console.log('🚀 Starting user creation process...');
-    console.log('📝 User form data:', userForm);
+    logger.debug('🚀 Starting user creation process...');
+    logger.debug('📝 User form data:', userForm);
 
     // Validate required fields
     if (!userForm.username || !userForm.email || !userForm.password) {
@@ -241,7 +240,7 @@ const BasicUserManagement: React.FC = () => {
       setUserDialogOpen(false);
       resetUserForm();
       setError(null);
-      console.log('🎉 User creation process completed successfully!');
+      logger.debug('🎉 User creation process completed successfully!');
     } catch (_error) {
       console.error('❌ User creation error:', error);
       setError('Chyba pri vytváraní používateľa');

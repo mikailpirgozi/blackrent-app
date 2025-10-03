@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { logger } from '@/utils/smartLogger';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,7 +46,7 @@ queryClient.setMutationDefaults(['default'], {
     throw new Error('Mutation function not implemented');
   },
   onError: error => {
-    console.error('🚨 Mutation error:', error);
+    logger.error('Mutation error', error);
     // Tu môžete pridať toast notification
   },
 });

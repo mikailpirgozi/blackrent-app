@@ -12,6 +12,7 @@ import React, { useMemo } from 'react';
 
 import { useError } from '../../context/ErrorContext';
 import type { AppError } from '../../types/errors';
+import { logger } from '@/utils/smartLogger';
 
 // Toast severity mapping - currently not used
 // const getSeverityColor = (severity: ErrorSeverity) => {
@@ -58,7 +59,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 
   const handleRetry = async () => {
     // TODO: Implement retry logic based on error context
-    console.log('Retrying action for error:', error.id);
+    logger.debug('Retrying action for error:', error.id);
     onDismiss(error.id);
   };
 
@@ -81,10 +82,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
                 <UnifiedTypography variant="subtitle2" className="flex-grow">
                   {error.message}
                 </UnifiedTypography>
-                <Badge
-                  variant="outline"
-                  className="text-xs h-5"
-                >
+                <Badge variant="outline" className="text-xs h-5">
                   {error.category}
                 </Badge>
               </div>
@@ -171,10 +169,12 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 const NetworkStatusIndicator: React.FC<{ isOnline: boolean }> = ({
   isOnline,
 }) => (
-  <div className={cn(
-    "fixed top-4 right-4 z-[2000] flex items-center gap-2 p-2 bg-orange-500 text-white rounded shadow-lg",
-    isOnline ? "hidden" : "flex"
-  )}>
+  <div
+    className={cn(
+      'fixed top-4 right-4 z-[2000] flex items-center gap-2 p-2 bg-orange-500 text-white rounded shadow-lg',
+      isOnline ? 'hidden' : 'flex'
+    )}
+  >
     <UnifiedIcon name="wifi_off" size={16} />
     <UnifiedTypography variant="body2">Offline</UnifiedTypography>
   </div>

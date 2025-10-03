@@ -19,12 +19,28 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import React, { useEffect, useState } from 'react';
 
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
@@ -36,6 +52,7 @@ import type { Rental } from '../../types';
 // import { Vehicle, Customer } from '../../types'; // TODO: Implement type usage
 
 import EditRentalDialog from './EditRentalDialog';
+import { logger } from '@/utils/smartLogger';
 
 interface PendingRentalsManagerProps {
   onRentalApproved?: (rentalId: string) => void;
@@ -213,8 +230,16 @@ const RentalCard: React.FC<RentalCardProps> = ({
           <Collapsible open={expanded} onOpenChange={setExpanded}>
             <CollapsibleTrigger asChild>
               <div className="flex justify-center">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  {expanded ? <ExpandLessIcon className="w-4 h-4" /> : <ExpandMoreIcon className="w-4 h-4" />}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  {expanded ? (
+                    <ExpandLessIcon className="w-4 h-4" />
+                  ) : (
+                    <ExpandMoreIcon className="w-4 h-4" />
+                  )}
                   <span className="text-xs">
                     {expanded ? 'Skryť detaily' : 'Zobraziť detaily'}
                   </span>
@@ -278,14 +303,19 @@ const RentalCard: React.FC<RentalCardProps> = ({
                 id="reject-reason"
                 rows={3}
                 value={rejectReason}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setRejectReason(e.target.value)}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => setRejectReason(e.target.value)}
                 placeholder="Napr.: Neplatné dátumy, chýbajúce informácie, duplicitná objednávka..."
                 className="mt-1"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowRejectDialog(false)}
+            >
               Zrušiť
             </Button>
             <Button
@@ -321,7 +351,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
       setLoading(true);
       setError(null);
       const rentals = await apiService.getPendingAutomaticRentals();
-      console.log('✅ Loaded pending rentals:', rentals?.length || 0);
+      logger.debug('✅ Loaded pending rentals:', rentals?.length || 0);
       setPendingRentals(rentals);
     } catch (error: unknown) {
       console.error('❌ Error fetching pending rentals:', error);
@@ -393,9 +423,7 @@ const PendingRentalsManager: React.FC<PendingRentalsManagerProps> = ({
     <div>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          Čakajúce automatické prenájmy
-        </h1>
+        <h1 className="text-3xl font-bold">Čakajúce automatické prenájmy</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
             <PendingIcon className="w-6 h-6" />
