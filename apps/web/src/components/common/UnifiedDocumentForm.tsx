@@ -29,7 +29,7 @@ import { useEffect, useState } from 'react';
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useInsurers } from '../../lib/react-query/hooks/useInsurers';
 import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
-import type { PaymentFrequency } from '../../types';
+import type { PaymentFrequency, VignetteCountry } from '../../types';
 
 import R2FileUpload from './R2FileUpload';
 
@@ -69,6 +69,10 @@ export interface UnifiedDocumentData {
 
   // 🚗 STAV KM: Pre Kasko poistky, STK a EK
   kmState?: number | undefined;
+
+  // 🌍 DIALNIČNÉ ZNÁMKY: Krajina a povinnosť
+  country?: VignetteCountry | undefined;
+  isRequired?: boolean | undefined;
 }
 
 interface UnifiedDocumentFormProps {
@@ -159,6 +163,8 @@ export default function UnifiedDocumentForm({
       greenCardValidFrom: document?.greenCardValidFrom || undefined, // 🟢 Biela karta
       greenCardValidTo: document?.greenCardValidTo || undefined, // 🟢 Biela karta
       kmState: document?.kmState || undefined, // 🚗 Stav Km
+      country: document?.country || undefined, // 🌍 Krajina pre dialničné známky
+      isRequired: document?.isRequired || false, // ⚠️ Povinná dialničná známka
     };
 
     // 🔄 Pre nové poistky automaticky vypočítaj validTo
@@ -281,6 +287,8 @@ export default function UnifiedDocumentForm({
         filePath: document.filePath || '',
         greenCardValidFrom: document.greenCardValidFrom, // 🟢 Biela karta
         greenCardValidTo: document.greenCardValidTo, // 🟢 Biela karta
+        country: document.country, // 🌍 Krajina dialničnej známky
+        isRequired: document.isRequired, // ⚠️ Povinná dialničná známka
       });
     }
   }, [document]);
@@ -472,6 +480,77 @@ export default function UnifiedDocumentForm({
                       </Select>
                     </div>
                   </div>
+
+                  {/* 🌍 VIGNETTE: Country selection */}
+                  {formData.type === 'vignette' && (
+                    <>
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label htmlFor="vignette-country">
+                            Krajina dialničnej známky *
+                          </Label>
+                          <Select
+                            value={formData.country || ''}
+                            onValueChange={value =>
+                              setFormData(prev => ({
+                                ...prev,
+                                country: value as VignetteCountry,
+                              }))
+                            }
+                          >
+                            <SelectTrigger
+                              className={cn(
+                                'w-full',
+                                errors.country && 'border-red-500'
+                              )}
+                            >
+                              <SelectValue placeholder="Vyberte krajinu..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SK">🇸🇰 Slovensko</SelectItem>
+                              <SelectItem value="CZ">🇨🇿 Česko</SelectItem>
+                              <SelectItem value="AT">🇦🇹 Rakúsko</SelectItem>
+                              <SelectItem value="HU">🇭🇺 Maďarsko</SelectItem>
+                              <SelectItem value="SI">🇸🇮 Slovinsko</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {errors.country && (
+                            <p className="text-sm text-red-500">
+                              {errors.country}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="vignette-required"
+                            className="flex items-center gap-2"
+                          >
+                            <input
+                              type="checkbox"
+                              id="vignette-required"
+                              checked={formData.isRequired || false}
+                              onChange={e =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  isRequired: e.target.checked,
+                                }))
+                              }
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <span>Povinná dialničná známka</span>
+                          </Label>
+                          <p className="text-xs text-gray-500">
+                            {formData.isRequired
+                              ? '⚠️ Táto dialničná známka je označená ako povinná'
+                              : '✓ Táto dialničná známka je dobrovoľná'}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Insurance specific fields */}
                   {isInsurance && (
@@ -1067,6 +1146,13 @@ export default function UnifiedDocumentForm({
               console.log('🔵 formData:', formData);
               e.preventDefault();
               e.stopPropagation();
+
+              // 🌍 Validácia krajiny pre dialničné známky
+              if (formData.type === 'vignette' && !formData.country) {
+                alert('Krajina je povinná pre dialničné známky');
+                return;
+              }
+
               onSave(formData);
             }}
             onMouseDown={() => console.log('🟡 SAVE MOUSE DOWN on save button')}
@@ -1152,8 +1238,8 @@ export default function UnifiedDocumentForm({
                         } else {
                           // Handle error silently or show user-friendly message
                         }
-                      } catch (_error) {
-                        // Handle error silently or show user-friendly message
+                      } catch (error) {
+                        console.error('Error adding insurer:', error);
                       }
                     }
                   }}

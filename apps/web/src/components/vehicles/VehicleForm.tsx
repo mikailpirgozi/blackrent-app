@@ -8,18 +8,36 @@ import {
 import { UnifiedButton as Button } from '@/components/ui/UnifiedButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { UnifiedBadge as Badge } from '@/components/ui/UnifiedBadge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SearchableSelect, SearchableSelectOption } from '@/components/ui/SearchableSelect';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  SearchableSelect,
+  SearchableSelectOption,
+} from '@/components/ui/SearchableSelect';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
-import { useCompanies, useCreateCompany } from '@/lib/react-query/hooks/useCompanies';
+import {
+  useCompanies,
+  useCreateCompany,
+} from '@/lib/react-query/hooks/useCompanies';
 import {
   useCreateVehicleDocument,
   useDeleteVehicleDocument,
@@ -64,8 +82,14 @@ export default function VehicleForm({
 
   // ✅ FIX: Use proper mutation hook for companies
   const createCompanyMutation = useCreateCompany();
-  
-  const createCompany = async (companyData: { id: string; name: string; commissionRate: number; isActive: boolean; createdAt: Date }) => {
+
+  const createCompany = async (companyData: {
+    id: string;
+    name: string;
+    commissionRate: number;
+    isActive: boolean;
+    createdAt: Date;
+  }) => {
     return createCompanyMutation.mutateAsync(companyData);
   };
 
@@ -151,12 +175,12 @@ export default function VehicleForm({
     value: string | number
   ) => {
     const newPricing = [...(formData.pricing || [])];
-    newPricing[index] = { 
+    newPricing[index] = {
       id: newPricing[index]?.id || uuidv4(),
       minDays: newPricing[index]?.minDays || 1,
       maxDays: newPricing[index]?.maxDays || 30,
       pricePerDay: newPricing[index]?.pricePerDay || 0,
-      [field]: value 
+      [field]: value,
     };
     setFormData(prev => ({ ...prev, pricing: newPricing }));
   };
@@ -222,12 +246,12 @@ export default function VehicleForm({
 
   const handleDeleteDocument = async (id: string) => {
     // if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
-      try {
-        await deleteVehicleDocument(id);
-        setVehicleDocuments(prev => prev.filter(doc => doc.id !== id));
-      } catch (error) {
-        console.error('Chyba pri mazaní dokumentu:', error);
-      }
+    try {
+      await deleteVehicleDocument(id);
+      setVehicleDocuments(prev => prev.filter(doc => doc.id !== id));
+    } catch (error) {
+      console.error('Chyba pri mazaní dokumentu:', error);
+    }
     // }
   };
 
@@ -245,6 +269,8 @@ export default function VehicleForm({
           price: data.price,
           notes: data.notes,
           ...(data.kmState && { kmState: data.kmState }), // Pre STK/EK s km stavom
+          ...(data.country && { country: data.country }), // 🌍 Krajina pre dialničné známky
+          ...(data.isRequired !== undefined && { isRequired: data.isRequired }), // ⚠️ Povinná dialničná známka
         } as VehicleDocument;
         await updateVehicleDocument(vehicleDocData);
       } else {
@@ -259,6 +285,8 @@ export default function VehicleForm({
           price: data.price,
           notes: data.notes,
           ...(data.kmState && { kmState: data.kmState }), // Pre STK/EK s km stavom
+          ...(data.country && { country: data.country }), // 🌍 Krajina pre dialničné známky
+          ...(data.isRequired !== undefined && { isRequired: data.isRequired }), // ⚠️ Povinná dialničná známka
         } as VehicleDocument;
         await createVehicleDocument(vehicleDocData);
       }
@@ -333,7 +361,9 @@ export default function VehicleForm({
           <Input
             id="brand"
             value={formData.brand}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('brand', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleInputChange('brand', e.target.value)
+            }
             required
           />
         </div>
@@ -342,7 +372,9 @@ export default function VehicleForm({
           <Input
             id="model"
             value={formData.model}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('model', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleInputChange('model', e.target.value)
+            }
             required
           />
         </div>
@@ -351,7 +383,9 @@ export default function VehicleForm({
           <Input
             id="licensePlate"
             value={formData.licensePlate}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('licensePlate', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleInputChange('licensePlate', e.target.value)
+            }
             required
           />
         </div>
@@ -360,7 +394,9 @@ export default function VehicleForm({
           <Input
             id="vin"
             value={formData.vin || ''}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('vin', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleInputChange('vin', e.target.value)
+            }
             placeholder="Zadajte VIN číslo vozidla"
           />
           <p className="text-sm text-muted-foreground mt-1">
@@ -373,7 +409,7 @@ export default function VehicleForm({
             label="Firma/Autopožičovňa"
             required
             value={formData.ownerCompanyId || ''}
-            onValueChange={(value) => {
+            onValueChange={value => {
               const selectedCompany = activeCompanies.find(c => c.id === value);
               if (selectedCompany) {
                 handleInputChange('company', selectedCompany.name);
@@ -399,7 +435,9 @@ export default function VehicleForm({
               <Input
                 autoFocus
                 value={newCompanyName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewCompanyName(e.target.value)
+                }
                 onKeyPress={e => {
                   if (e.key === 'Enter') {
                     handleAddCompany();
@@ -408,10 +446,15 @@ export default function VehicleForm({
                 placeholder="Názov novej firmy"
                 className="flex-1"
               />
-              <Button size="sm" onClick={handleAddCompany}>
+              <Button type="button" size="sm" onClick={handleAddCompany}>
                 <AddIcon className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setAddingCompany(false)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setAddingCompany(false)}
+              >
                 Zrušiť
               </Button>
             </div>
@@ -433,11 +476,15 @@ export default function VehicleForm({
             <SelectContent>
               <SelectItem value="nizka-trieda">🚗 Nízka trieda</SelectItem>
               <SelectItem value="stredna-trieda">🚙 Stredná trieda</SelectItem>
-              <SelectItem value="vyssia-stredna">🚘 Vyššia stredná trieda</SelectItem>
+              <SelectItem value="vyssia-stredna">
+                🚘 Vyššia stredná trieda
+              </SelectItem>
               <SelectItem value="luxusne">💎 Luxusné vozidlá</SelectItem>
               <SelectItem value="sportove">🏎️ Športové vozidlá</SelectItem>
               <SelectItem value="suv">🚜 SUV</SelectItem>
-              <SelectItem value="viacmiestne">👨‍👩‍👧‍👦 Viacmiestne vozidlá</SelectItem>
+              <SelectItem value="viacmiestne">
+                👨‍👩‍👧‍👦 Viacmiestne vozidlá
+              </SelectItem>
               <SelectItem value="dodavky">📦 Dodávky</SelectItem>
             </SelectContent>
           </Select>
@@ -446,7 +493,9 @@ export default function VehicleForm({
           <Label htmlFor="status">Stav</Label>
           <Select
             value={formData.status ?? 'available'}
-            onValueChange={(value: string) => handleInputChange('status', value)}
+            onValueChange={(value: string) =>
+              handleInputChange('status', value)
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Vyberte status..." />
@@ -455,7 +504,9 @@ export default function VehicleForm({
               <SelectItem value="available">Dostupné</SelectItem>
               <SelectItem value="rented">Prenajaté</SelectItem>
               <SelectItem value="maintenance">Údržba</SelectItem>
-              <SelectItem value="temporarily_removed">Dočasne vyradené</SelectItem>
+              <SelectItem value="temporarily_removed">
+                Dočasne vyradené
+              </SelectItem>
               <SelectItem value="removed">Vyradené</SelectItem>
               <SelectItem value="transferred">Prepisané</SelectItem>
               <SelectItem value="private">🏠 Súkromné</SelectItem>
@@ -479,11 +530,9 @@ export default function VehicleForm({
                     variant={isUsingDefault ? 'default' : 'secondary'}
                     className="ml-2"
                   >
-                    {
-                      isUsingDefault
-                        ? `Default (${selectedCompany.defaultCommissionRate}%)`
-                        : 'Vlastná hodnota'
-                    }
+                    {isUsingDefault
+                      ? `Default (${selectedCompany.defaultCommissionRate}%)`
+                      : 'Vlastná hodnota'}
                   </Badge>
                 );
               })()}
@@ -509,11 +558,9 @@ export default function VehicleForm({
           </RadioGroup>
           <div className="mt-4">
             <Label htmlFor="commission-value">
-              {
-                formData.commission?.type === 'percentage'
-                  ? 'Percentá (%)'
-                  : 'Suma (€)'
-              }
+              {formData.commission?.type === 'percentage'
+                ? 'Percentá (%)'
+                : 'Suma (€)'}
             </Label>
             <Input
               id="commission-value"
@@ -533,7 +580,8 @@ export default function VehicleForm({
                 );
                 return selectedCompany ? (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Default provízia firmy: {selectedCompany.defaultCommissionRate || 20}%
+                    Default provízia firmy:{' '}
+                    {selectedCompany.defaultCommissionRate || 20}%
                   </p>
                 ) : null;
               })()}
@@ -547,10 +595,7 @@ export default function VehicleForm({
                 <h3 className="text-lg font-semibold">Cenotvorba</h3>
               </div>
               {formData.pricing?.map((tier, index) => (
-                <div
-                  key={tier.id}
-                  className="flex gap-4 mb-4 items-center"
-                >
+                <div key={tier.id} className="flex gap-4 mb-4 items-center">
                   <Label className="w-24 text-sm">
                     {(() => {
                       switch (index) {
@@ -625,9 +670,12 @@ export default function VehicleForm({
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
                     <DocumentIcon className="h-5 w-5" />
-                    <h3 className="text-lg font-semibold">Evidencia platnosti</h3>
+                    <h3 className="text-lg font-semibold">
+                      Evidencia platnosti
+                    </h3>
                   </div>
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={handleAddDocument}
                   >
@@ -688,6 +736,7 @@ export default function VehicleForm({
 
                             <div className="flex gap-2 mt-4">
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleEditDocument(doc)}
@@ -696,6 +745,7 @@ export default function VehicleForm({
                                 <EditIcon className="h-4 w-4" />
                               </Button>
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleDeleteDocument(doc.id)}
@@ -725,7 +775,7 @@ export default function VehicleForm({
         )}
 
         <div className="col-span-full flex gap-4 justify-end">
-          <Button variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Zrušiť
           </Button>
           <Button type="submit">
@@ -737,7 +787,7 @@ export default function VehicleForm({
       {/* UnifiedDocumentForm pre STK/EK/Dialničné dokumenty */}
       <Dialog
         open={showUnifiedDocumentForm}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open) {
             setShowUnifiedDocumentForm(false);
             setUnifiedDocumentData(null);
@@ -753,12 +803,16 @@ export default function VehicleForm({
               Pridajte alebo upravte dokument pre vozidlo
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (unifiedDocumentData) {
-              handleUnifiedDocumentSave(unifiedDocumentData as UnifiedDocumentData);
-            }
-          }}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              if (unifiedDocumentData) {
+                handleUnifiedDocumentSave(
+                  unifiedDocumentData as UnifiedDocumentData
+                );
+              }
+            }}
+          >
             <UnifiedDocumentForm
               document={unifiedDocumentData}
               onSave={document =>

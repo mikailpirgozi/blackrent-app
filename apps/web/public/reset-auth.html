@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Auth - BlackRent</title>
+</head>
+<body>
+    <h1>🔧 BlackRent - Reset Authentication</h1>
+    <button onclick="resetAuth()" style="padding: 20px; font-size: 18px; cursor: pointer;">
+        🔄 Reset & Reload
+    </button>
+    
+    <script>
+        function resetAuth() {
+            console.log('🗑️ Clearing localStorage...');
+            localStorage.clear();
+            
+            console.log('🗑️ Clearing sessionStorage...');
+            sessionStorage.clear();
+            
+            console.log('✅ Auth data cleared!');
+            console.log('🔄 Reloading...');
+            
+            // Redirect to login
+            window.location.href = '/login';
+        }
+        
+        // Auto-run on page load
+        setTimeout(() => {
+            console.log('Auto-resetting in 2 seconds...');
+            console.log('Cancel by clicking elsewhere');
+        }, 100);
+    </script>
+</body>
+</html>
+

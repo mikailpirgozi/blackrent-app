@@ -63,10 +63,14 @@ interface VehicleDialogsProps {
     phone: string;
     notes: string;
     isActive: boolean;
+    companyId: string;
+    investmentAmount: number;
+    investmentDate: string;
   };
   onCloseCreateInvestor: () => void;
   onCreateInvestor: () => Promise<void>;
-  onInvestorDataChange: (_field: string, _value: string) => void;
+  onInvestorDataChange: (_field: string, _value: string | number) => void;
+  companies?: Array<{ id: string; name: string }>;
 
   // Assign Share Dialog
   assignShareDialogOpen: boolean;
@@ -355,6 +359,27 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="col-span-full">
+              <Label htmlFor="investor-company">Firma *</Label>
+              <Select
+                value={newInvestorData.companyId}
+                onValueChange={value =>
+                  onInvestorDataChange('companyId', value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte firmu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies?.map(company => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label htmlFor="first-name">Krstné meno *</Label>
               <Input
@@ -405,6 +430,40 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
                 placeholder="+421 XXX XXX XXX"
               />
             </div>
+
+            <div>
+              <Label htmlFor="investment-amount">Suma investície (€) *</Label>
+              <Input
+                id="investment-amount"
+                type="number"
+                value={newInvestorData.investmentAmount}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) =>
+                  onInvestorDataChange(
+                    'investmentAmount',
+                    parseFloat(e.target.value) || 0
+                  )
+                }
+                min="0"
+                step="0.01"
+                required
+                placeholder="0.00"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="investment-date">Dátum investície *</Label>
+              <Input
+                id="investment-date"
+                type="date"
+                value={newInvestorData.investmentDate}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => onInvestorDataChange('investmentDate', e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <DialogFooter className="mt-6">
@@ -415,7 +474,9 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
               onClick={onCreateInvestor}
               disabled={
                 !newInvestorData.firstName.trim() ||
-                !newInvestorData.lastName.trim()
+                !newInvestorData.lastName.trim() ||
+                !newInvestorData.companyId ||
+                newInvestorData.investmentAmount <= 0
               }
               className="gap-2"
             >

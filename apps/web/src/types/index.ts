@@ -229,6 +229,8 @@ export type PaymentFrequency = 'monthly' | 'quarterly' | 'biannual' | 'yearly';
 
 export type DocumentType = 'stk' | 'ek' | 'vignette' | 'technical_certificate';
 
+export type VignetteCountry = 'SK' | 'CZ' | 'AT' | 'HU' | 'SI';
+
 export interface VehicleDocument {
   id: string;
   vehicleId: string;
@@ -240,6 +242,8 @@ export interface VehicleDocument {
   notes?: string;
   filePath?: string;
   kmState?: number; // 🚗 Stav kilometrov pre STK/EK dokumenty
+  country?: VignetteCountry; // 🌍 Krajina pre dialničné známky (SK, CZ, AT, HU, SI)
+  isRequired?: boolean; // ⚠️ Povinná/dobrovoľná dialničná známka
   createdAt?: Date;
   updatedAt?: Date;
 }

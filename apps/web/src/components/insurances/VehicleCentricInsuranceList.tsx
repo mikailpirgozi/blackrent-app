@@ -75,6 +75,8 @@ interface UnifiedDocument {
   createdAt: Date | string;
   originalData: Insurance | VehicleDocument;
   kmState?: number | undefined; // 🚗 Stav kilometrov
+  country?: string | undefined; // 🌍 Krajina pre dialničné známky
+  isRequired?: boolean | undefined; // ⚠️ Povinná dialničná známka
 }
 
 // Vehicle with documents grouped
@@ -392,6 +394,8 @@ export default function VehicleCentricInsuranceList() {
           createdAt: doc.validTo,
           originalData: doc,
           kmState: doc.kmState || undefined, // STK/EK môžu mať stav km
+          country: doc.country || undefined, // 🌍 Krajina pre dialničné známky
+          isRequired: doc.isRequired || undefined, // ⚠️ Povinná dialničná známka
         });
       });
     }
@@ -1984,23 +1988,35 @@ function DocumentListItem({
                 )}
               >
                 {typeInfo.label}
+                {document.type === 'vignette' && document.country && (
+                  <span className="ml-2">
+                    {document.country === 'SK' && '🇸🇰'}
+                    {document.country === 'CZ' && '🇨🇿'}
+                    {document.country === 'AT' && '🇦🇹'}
+                    {document.country === 'HU' && '🇭🇺'}
+                    {document.country === 'SI' && '🇸🇮'}
+                  </span>
+                )}
               </UnifiedTypography>
               {(document.policyNumber ||
                 document.documentNumber ||
-                document.kmState) && (
+                document.kmState ||
+                (document.type === 'vignette' && document.isRequired)) && (
                 <UnifiedTypography
                   component="span"
                   variant="body2"
                   color="textSecondary"
                   className={cn('font-mono', isMobile ? 'text-xs' : 'text-sm')}
                 >
-                  {document.type === 'stk' || document.type === 'ek'
-                    ? document.kmState
-                      ? `${document.kmState.toLocaleString()} km`
-                      : document.documentNumber
-                    : document.type === 'insurance_kasko' && document.kmState
-                      ? `${document.kmState.toLocaleString()} km`
-                      : document.policyNumber || document.documentNumber}
+                  {document.type === 'vignette' && document.isRequired
+                    ? '⚠️ Povinná'
+                    : document.type === 'stk' || document.type === 'ek'
+                      ? document.kmState
+                        ? `${document.kmState.toLocaleString()} km`
+                        : document.documentNumber
+                      : document.type === 'insurance_kasko' && document.kmState
+                        ? `${document.kmState.toLocaleString()} km`
+                        : document.policyNumber || document.documentNumber}
                 </UnifiedTypography>
               )}
             </div>

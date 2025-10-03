@@ -226,6 +226,9 @@ export default function VehicleListNew() {
     phone: '',
     notes: '',
     isActive: true,
+    companyId: '',
+    investmentAmount: 0,
+    investmentDate: new Date().toISOString().split('T')[0],
   });
 
   // Handlers
@@ -355,20 +358,23 @@ export default function VehicleListNew() {
     try {
       console.log('🤝 Creating new investor:', newInvestorData);
 
-      // Priprav dáta pre backend - odstráň prázdne hodnoty
+      // Priprav dáta pre backend podľa databázovej schémy
       const investorPayload = {
-        firstName: newInvestorData.firstName.trim(),
-        lastName: newInvestorData.lastName.trim(),
+        company_id: parseInt(newInvestorData.companyId), // POVINNÉ
+        investor_name: `${newInvestorData.firstName.trim()} ${newInvestorData.lastName.trim()}`, // POVINNÉ
         ...(newInvestorData.email?.trim() && {
-          email: newInvestorData.email.trim(),
+          investor_email: newInvestorData.email.trim(),
         }),
         ...(newInvestorData.phone?.trim() && {
-          phone: newInvestorData.phone.trim(),
+          investor_phone: newInvestorData.phone.trim(),
         }),
+        investment_amount: newInvestorData.investmentAmount || 0, // POVINNÉ
+        investment_date: newInvestorData.investmentDate, // POVINNÉ
+        investment_currency: 'EUR',
+        status: 'active',
         ...(newInvestorData.notes?.trim() && {
           notes: newInvestorData.notes.trim(),
         }),
-        isActive: true,
       };
 
       console.log('📤 Sending investor payload:', investorPayload);
@@ -396,6 +402,9 @@ export default function VehicleListNew() {
           phone: '',
           notes: '',
           isActive: true,
+          companyId: '',
+          investmentAmount: 0,
+          investmentDate: new Date().toISOString().split('T')[0],
         });
         // Refresh data
         window.location.reload();
@@ -1133,6 +1142,7 @@ export default function VehicleListNew() {
         onInvestorDataChange={(field, value) =>
           setNewInvestorData(prev => ({ ...prev, [field]: value }))
         }
+        companies={companies}
         // Assign Share Dialog
         assignShareDialogOpen={assignShareDialogOpen}
         selectedInvestorForShare={

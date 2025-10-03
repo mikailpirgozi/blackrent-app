@@ -221,6 +221,7 @@ export default function TechnicalCertificateUpload({
             Technický preukaz
           </Typography>
           <Button
+            type="button"
             variant="outline"
             onClick={() => setUploadDialogOpen(true)}
             size="sm"
@@ -232,25 +233,37 @@ export default function TechnicalCertificateUpload({
         </div>
 
         {loading ? (
-          <Typography variant="body2" className="text-center py-2 text-muted-foreground">
+          <Typography
+            variant="body2"
+            className="text-center py-2 text-muted-foreground"
+          >
             Načítavam technické preukazy...
           </Typography>
         ) : documents.length > 0 ? (
           <div className="space-y-2">
             {documents.map(doc => (
-              <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex-1">
                   <Typography variant="body1" className="font-medium">
                     {doc.documentNumber || 'Technický preukaz'}
                   </Typography>
                   <div className="mt-1">
                     {doc.notes && (
-                      <Typography variant="caption" className="text-muted-foreground">
+                      <Typography
+                        variant="caption"
+                        className="text-muted-foreground"
+                      >
                         {doc.notes}
                       </Typography>
                     )}
                     <br />
-                    <Typography variant="caption" className="text-muted-foreground">
+                    <Typography
+                      variant="caption"
+                      className="text-muted-foreground"
+                    >
                       Nahraný:{' '}
                       {doc.createdAt
                         ? new Date(doc.createdAt).toLocaleDateString('sk-SK')
@@ -281,7 +294,10 @@ export default function TechnicalCertificateUpload({
             ))}
           </div>
         ) : (
-          <Typography variant="body2" className="text-center py-2 text-muted-foreground">
+          <Typography
+            variant="body2"
+            className="text-center py-2 text-muted-foreground"
+          >
             Žiadny technický preukaz nahraný
           </Typography>
         )}
@@ -300,7 +316,9 @@ export default function TechnicalCertificateUpload({
                 <Input
                   id="documentName"
                   value={uploadData.documentName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUploadData(prev => ({
                       ...prev,
                       documentName: e.target.value,
@@ -316,7 +334,9 @@ export default function TechnicalCertificateUpload({
                 <Input
                   id="notes"
                   value={uploadData.notes}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                  onChange={(
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) =>
                     setUploadData(prev => ({ ...prev, notes: e.target.value }))
                   }
                   placeholder="Dodatočné informácie..."
