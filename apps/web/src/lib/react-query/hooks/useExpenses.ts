@@ -9,9 +9,11 @@ export function useExpenses() {
   return useQuery({
     queryKey: queryKeys.expenses.all,
     queryFn: () => apiService.getExpenses(),
-    staleTime: 0, // ✅ FIX: Vždy fresh data po invalidácii (bolo 2 min)
-    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
-    refetchOnMount: 'always', // ✅ Vždy refetch pri mount
+    // ✅ FÁZA 2 FIX: Optimálny balance medzi freshness a performance
+    staleTime: 30000, // 30s - dáta sú fresh 30 sekúnd (rozumný balance)
+    gcTime: 300000, // 5 min - garbage collection po 5 minútach nepoužívania
+    refetchOnMount: true, // Refetch len ak sú dáta stale (nie vždy!)
+    refetchOnWindowFocus: false, // Nerefetchuj pri každom focus okna
   });
 }
 

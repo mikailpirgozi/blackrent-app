@@ -489,6 +489,55 @@ class ApiService {
     });
   }
 
+  async generateAllRecurringExpenses(targetDate?: Date): Promise<{
+    generated: number;
+    skipped: number;
+    errors: string[];
+  }> {
+    const response = await this.request<
+      ApiResponse<{
+        generated: number;
+        skipped: number;
+        errors: string[];
+      }>
+    >('/recurring-expenses/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        targetDate: targetDate?.toISOString(),
+      }),
+    });
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(
+      response.error || 'Chyba pri generovaní recurring expenses'
+    );
+  }
+
+  async triggerRecurringExpenseGeneration(
+    id: string,
+    targetDate?: Date
+  ): Promise<string> {
+    const response = await this.request<
+      ApiResponse<{
+        generatedExpenseId: string;
+      }>
+    >(`/recurring-expenses/${id}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        targetDate: targetDate?.toISOString(),
+      }),
+    });
+
+    if (response.success && response.data) {
+      return response.data.generatedExpenseId;
+    }
+
+    throw new Error(response.error || 'Chyba pri generovaní nákladu');
+  }
+
   // Poistky
   async getInsurances(): Promise<Insurance[]> {
     return this.request<Insurance[]>('/insurances');

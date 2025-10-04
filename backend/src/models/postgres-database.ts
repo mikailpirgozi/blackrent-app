@@ -5220,7 +5220,10 @@ export class PostgresDatabase {
   async getExpenses(): Promise<Expense[]> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT * FROM expenses ORDER BY date DESC');
+      // ✅ FÁZA 4.2: Filter soft deleted expenses
+      const result = await client.query(
+        'SELECT * FROM expenses WHERE deleted_at IS NULL ORDER BY date DESC'
+      );
       return result.rows.map(row => ({
         id: row.id?.toString() || '',
         description: row.description,
@@ -5231,6 +5234,33 @@ export class PostgresDatabase {
         category: row.category,
         note: row.note || undefined
       }));
+    } finally {
+      client.release();
+    }
+  }
+
+  // ✅ FIX: Pridaná metóda pre N+1 query fix
+  async getExpenseById(id: string): Promise<Expense | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT * FROM expenses WHERE id = $1 LIMIT 1',
+        [id]
+      );
+      
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      return {
+        id: row.id?.toString() || '',
+        description: row.description,
+        amount: parseFloat(row.amount) || 0,
+        date: new Date(row.date),
+        vehicleId: row.vehicle_id?.toString(),
+        company: row.company,
+        category: row.category,
+        note: row.note || undefined
+      };
     } finally {
       client.release();
     }

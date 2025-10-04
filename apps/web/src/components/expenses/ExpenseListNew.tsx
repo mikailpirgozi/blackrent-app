@@ -18,6 +18,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
+import { ExpenseListItem } from './components/ExpenseListItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,10 +58,18 @@ import {
   useExpenses,
   useUpdateExpense,
 } from '@/lib/react-query/hooks/useExpenses';
+// ✅ FÁZA 2.2: Používame shared hook pre categories
+import { useExpenseCategories } from '@/lib/react-query/hooks/useExpenseCategories';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { Expense, ExpenseCategory, Vehicle } from '../../types';
 import { textContains } from '../../utils/textNormalization';
+// ✅ FÁZA 2.4: Decimal.js pre presné kalkulácie
+import { addAmounts, formatCurrency } from '@/utils/money';
+// ✅ FÁZA 1.1: Timezone-safe date handling
+import { parseDate } from '@/utils/dateUtils';
+// ✅ FÁZA 1.4: Toast notifications namiesto window.alert()
+import { useExpenseToast } from '@/hooks/useExpenseToast';
 
 import ExpenseCategoryManager from './ExpenseCategoryManager';
 import ExpenseForm from './ExpenseForm';
@@ -100,9 +109,13 @@ const ExpenseListNew: React.FC = () => {
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: expenses = [] } = useExpenses();
   const { data: vehiclesData = [] } = useVehicles();
+  // ✅ FÁZA 2.2: Shared categories hook
+  const { data: expenseCategories = [] } = useExpenseCategories();
   const createExpenseMutation = useCreateExpense();
   const updateExpenseMutation = useUpdateExpense();
   const deleteExpenseMutation = useDeleteExpense();
+  // ✅ FÁZA 1.4: Toast notifications
+  const toast = useExpenseToast();
 
   // Helper functions for compatibility
   const getFilteredExpenses = () => expenses; // Simple implementation for now
@@ -146,10 +159,8 @@ const ExpenseListNew: React.FC = () => {
   const [categoriesManagerOpen, setCategoriesManagerOpen] = useState(false);
   const [recurringManagerOpen, setRecurringManagerOpen] = useState(false);
 
-  // Dynamické kategórie
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(
-    []
-  );
+  // ✅ FÁZA 2.2: Kategórie už načítavame cez useExpenseCategories() hook
+  // Vymazaná duplicitná useState + loadCategories()
 
   // Get unique values for filters
   const uniqueCompanies = useMemo(
@@ -160,19 +171,8 @@ const ExpenseListNew: React.FC = () => {
     [filteredExpenses]
   );
 
-  // Načítanie kategórií z API
-  const loadCategories = async () => {
-    try {
-      const categories = await apiService.getExpenseCategories();
-      setExpenseCategories(categories);
-    } catch (error) {
-      console.error('Error loading expense categories:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  // ✅ FÁZA 2.2: Vymazané - loadCategories() už nie je potrebný
+  // Kategórie sa načítavajú automaticky cez useExpenseCategories() hook
 
   // Filtered expenses
   const finalFilteredExpenses = useMemo(() => {
@@ -206,13 +206,9 @@ const ExpenseListNew: React.FC = () => {
     vehicleFilter,
   ]);
 
-  // Calculate totals
+  // ✅ FÁZA 2.4: Calculate totals s Decimal.js (presné kalkulácie)
   const totalAmount = useMemo(
-    () =>
-      finalFilteredExpenses.reduce(
-        (sum: number, expense: Expense) => sum + expense.amount,
-        0
-      ),
+    () => addAmounts(...finalFilteredExpenses.map(e => e.amount)),
     [finalFilteredExpenses]
   );
 
@@ -224,10 +220,13 @@ const ExpenseListNew: React.FC = () => {
       totals[category.name] = 0;
     });
 
-    // Spočítaj sumy pre každú kategóriu
+    // ✅ FÁZA 2.4: Spočítaj sumy pre každú kategóriu s Decimal.js
     finalFilteredExpenses.forEach((expense: Expense) => {
       if (totals[expense.category] !== undefined) {
-        totals[expense.category]! += expense.amount;
+        totals[expense.category] = addAmounts(
+          totals[expense.category]!,
+          expense.amount
+        ).toNumber();
       }
     });
 
@@ -253,7 +252,7 @@ const ExpenseListNew: React.FC = () => {
       try {
         await deleteExpense(expense.id);
       } catch (error) {
-        console.error('Error deleting expense:', error);
+        logger.error('Failed to delete expense', error);
       } finally {
         setLoading(false);
       }
@@ -271,7 +270,7 @@ const ExpenseListNew: React.FC = () => {
       setFormOpen(false);
       setEditingExpense(null);
     } catch (error) {
-      console.error('Error saving expense:', error);
+      logger.error('Failed to save expense', error);
     } finally {
       setLoading(false);
     }
@@ -285,10 +284,10 @@ const ExpenseListNew: React.FC = () => {
       const filename = `naklady-${new Date().toISOString().split('T')[0]}.csv`;
       saveAs(blob, filename);
 
-      alert('CSV export úspešný');
+      toast.success('CSV export úspešný');
     } catch (error) {
-      console.error('CSV export error:', error);
-      alert('Chyba pri CSV exporte');
+      logger.error('CSV export failed', error);
+      toast.error('Chyba pri CSV exporte');
     }
   };
 
@@ -297,6 +296,7 @@ const ExpenseListNew: React.FC = () => {
     if (!file) return;
 
     Papa.parse(file, {
+      worker: true, // ✅ FIX: Parsuje v Web Worker pre lepší výkon
       complete: async (results: {
         data: unknown[][];
         errors: unknown[];
@@ -306,7 +306,9 @@ const ExpenseListNew: React.FC = () => {
           logger.debug('📥 Parsing CSV file for batch expense import...');
 
           if (!results.data || results.data.length < 2) {
-            alert('CSV súbor musí obsahovať aspoň hlavičku a jeden riadok dát');
+            toast.error(
+              'CSV súbor musí obsahovať aspoň hlavičku a jeden riadok dát'
+            );
             return;
           }
 
@@ -400,7 +402,9 @@ const ExpenseListNew: React.FC = () => {
 
             // Kontrola povinných polí
             if (!description || description.toString().trim() === '') {
-              console.warn(`Riadok ${i + 2}: Preskakujem - chýba popis`);
+              logger.warn(
+                `CSV import - Riadok ${i + 2}: Preskakujem - chýba popis`
+              );
               continue;
             }
 
@@ -409,14 +413,14 @@ const ExpenseListNew: React.FC = () => {
             if (amount && amount.toString().trim() !== '') {
               parsedAmount = parseFloat(amount.toString().replace(',', '.'));
               if (isNaN(parsedAmount)) {
-                console.warn(
-                  `Riadok ${i + 2}: Neplatná suma "${amount}", nastavujem na 0`
+                logger.warn(
+                  `CSV import - Riadok ${i + 2}: Neplatná suma "${amount}", nastavujem na 0`
                 );
                 parsedAmount = 0;
               }
             }
 
-            // Parsuj dátum
+            // ✅ FÁZA 1.1: Timezone-safe date parsing
             let parsedDate = new Date();
             if (date && date.toString().trim()) {
               const dateStr = date.toString().trim();
@@ -426,9 +430,9 @@ const ExpenseListNew: React.FC = () => {
                 const [month, year] = dateStr.split('/');
                 parsedDate = new Date(parseInt(year!), parseInt(month!) - 1, 1);
               } else {
-                // Štandardné parsovanie dátumu
-                const tempDate = new Date(dateStr);
-                if (!isNaN(tempDate.getTime())) {
+                // ✅ Použiť parseDate pre timezone-safe parsing
+                const tempDate = parseDate(dateStr);
+                if (tempDate && !isNaN(tempDate.getTime())) {
                   parsedDate = tempDate;
                 }
               }
@@ -503,27 +507,25 @@ const ExpenseListNew: React.FC = () => {
           } = result;
 
           if (created > 0 || updated > 0) {
-            alert(
-              `🚀 BATCH IMPORT ÚSPEŠNÝ!\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Spracovaných: ${processed}/${total}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nStránka sa obnoví za 3 sekundy...`
+            toast.success(
+              `✅ Import úspešný! Vytvorených: ${created}, Aktualizovaných: ${updated}, Spracovaných: ${processed}/${total}. ${errorsCount > 0 ? `Chýb: ${errorsCount}` : ''}`
             );
-            setTimeout(() => window.location.reload(), 3000);
+            // ✅ React Query automaticky refetchuje - žiadny reload!
           } else if (errorsCount > 0) {
-            alert(
-              `⚠️ Import dokončený, ale žiadne náklady neboli pridané.\n\n📊 Výsledky:\n• Vytvorených: ${created}\n• Aktualizovaných: ${updated}\n• Chýb: ${errorsCount}\n• Úspešnosť: ${successRate}\n\nSkontrolujte formát CSV súboru.`
+            toast.warning(
+              `Import dokončený, ale žiadne náklady neboli pridané. Vytvorených: ${created}, Aktualizovaných: ${updated}, Chýb: ${errorsCount}, Úspešnosť: ${successRate}. Skontrolujte formát CSV súboru.`
             );
           } else {
-            alert(
-              `⚠️ Import dokončený, ale žiadne náklady neboli pridané.\nSkontrolujte formát CSV súboru.`
+            toast.warning(
+              'Import dokončený, ale žiadne náklady neboli pridané. Skontrolujte formát CSV súboru.'
             );
           }
         } catch (error) {
-          console.error('❌ CSV import error:', error);
-          // ✅ ZLEPŠENÉ ERROR HANDLING - menej dramatické
-          alert(
-            `⚠️ Import dokončený s upozornením: ${error instanceof Error ? error.message : 'Sieťová chyba'}\n\nSkontrolujte výsledok po obnovení stránky.`
+          logger.error('CSV import failed', error);
+          toast.error(
+            `❌ Import zlyhal: ${error instanceof Error ? error.message : 'Sieťová chyba'}`
           );
-          // Aj tak skús refresh - možno sa import dokončil
-          setTimeout(() => window.location.reload(), 2000);
+          // ✅ React Query automaticky refetchuje - žiadny reload!
         }
       },
       header: false,
@@ -741,7 +743,7 @@ const ExpenseListNew: React.FC = () => {
               <div>
                 <h6 className="text-lg font-semibold mb-1">Suma</h6>
                 <h4 className="text-3xl font-bold">
-                  {totalAmount.toFixed(2)}€
+                  {formatCurrency(totalAmount)}
                 </h4>
               </div>
               <EuroIcon className="h-10 w-10 opacity-80" />
@@ -919,7 +921,10 @@ const ExpenseListNew: React.FC = () => {
                           <div className="flex items-center gap-1">
                             <DateIcon className="h-4 w-4 text-gray-500" />
                             <span className="text-gray-600">
-                              {format(new Date(expense.date), 'dd.MM.yyyy')}
+                              {format(
+                                parseDate(expense.date) || new Date(),
+                                'dd.MM.yyyy'
+                              )}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
@@ -952,137 +957,39 @@ const ExpenseListNew: React.FC = () => {
               )}
             </div>
           ) : (
-            /* Desktop Layout */
-            <Card className="shadow-lg">
-              {/* Table Header */}
-              <div className="sticky top-0 bg-white z-10 border-b-2 border-gray-200">
-                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 font-semibold text-blue-600 bg-gray-50">
-                  <div className="font-bold">Popis</div>
-                  <div className="font-bold">Kategória</div>
-                  <div className="font-bold">Suma</div>
-                  <div className="font-bold">Dátum</div>
-                  <div className="font-bold">Firma</div>
-                  <div className="font-bold">Vozidlo</div>
-                  <div className="font-bold text-center">Akcie</div>
-                </div>
-              </div>
-
-              {/* Table Body */}
-              <div className="max-h-[600px] overflow-auto">
-                {finalFilteredExpenses.length === 0 ? (
-                  <div className="text-center py-16">
-                    <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h6 className="text-lg text-gray-500">
+            /* Desktop List View - Modern Design */
+            <div className="space-y-3 animate-fade-in">
+              {finalFilteredExpenses.length === 0 ? (
+                <Card className="shadow-md">
+                  <CardContent className="text-center py-16">
+                    <ReceiptIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h6 className="text-xl font-semibold text-gray-600 mb-2">
                       Žiadne náklady nenájdené
                     </h6>
-                  </div>
-                ) : (
-                  finalFilteredExpenses.map(
-                    (expense: Expense, index: number) => {
-                      const vehicle = expense.vehicleId
-                        ? vehicles.find(
-                            (v: Vehicle) => v.id === expense.vehicleId
-                          )
-                        : null;
+                    <p className="text-sm text-gray-500">
+                      Pridajte prvý náklad kliknutím na tlačidlo vyššie
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                finalFilteredExpenses.map((expense: Expense) => {
+                  const vehicle = expense.vehicleId
+                    ? vehicles.find((v: Vehicle) => v.id === expense.vehicleId)
+                    : undefined;
 
-                      return (
-                        <div
-                          key={expense.id}
-                          className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_120px] gap-4 p-4 border-b border-gray-200 hover:bg-blue-50 hover:cursor-pointer transition-colors duration-200 ${
-                            index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                          }`}
-                        >
-                          {/* Description Column */}
-                          <div>
-                            <div className="font-semibold mb-1">
-                              {expense.description}
-                            </div>
-                            {expense.note && (
-                              <div className="text-sm text-gray-500 italic">
-                                {expense.note}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Category Column */}
-                          <div className="flex items-center">
-                            <Badge
-                              variant="secondary"
-                              className="flex items-center gap-1 font-semibold"
-                            >
-                              {getCategoryIcon(
-                                expense.category,
-                                expenseCategories
-                              )}
-                              {getCategoryText(
-                                expense.category,
-                                expenseCategories
-                              )}
-                            </Badge>
-                          </div>
-
-                          {/* Amount Column */}
-                          <div className="flex items-center font-bold text-blue-600">
-                            {expense.amount.toFixed(2)}€
-                          </div>
-
-                          {/* Date Column */}
-                          <div className="flex items-center text-sm">
-                            {format(new Date(expense.date), 'dd.MM.yyyy')}
-                          </div>
-
-                          {/* Company Column */}
-                          <div className="flex items-center text-sm truncate">
-                            {expense.company}
-                          </div>
-
-                          {/* Vehicle Column */}
-                          <div className="flex items-center text-sm truncate">
-                            {vehicle
-                              ? `${vehicle.brand} ${vehicle.model} - ${vehicle.licensePlate}`
-                              : '-'}
-                          </div>
-
-                          {/* Actions Column */}
-                          <div className="flex gap-1 justify-center">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEditExpense(expense)}
-                                    className="h-8 w-8 p-0 bg-gray-50 hover:bg-gray-100"
-                                  >
-                                    <EditIcon className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Upraviť</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDeleteExpense(expense)}
-                                    className="h-8 w-8 p-0 bg-red-50 text-red-600 hover:bg-red-100"
-                                  >
-                                    <DeleteIcon className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Zmazať</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </div>
-                      );
-                    }
-                  )
-                )}
-              </div>
-            </Card>
+                  return (
+                    <ExpenseListItem
+                      key={expense.id}
+                      expense={expense}
+                      vehicle={vehicle}
+                      categories={expenseCategories}
+                      onEdit={handleEditExpense}
+                      onDelete={handleDeleteExpense}
+                    />
+                  );
+                })
+              )}
+            </div>
           )}
         </>
       )}
@@ -1115,7 +1022,10 @@ const ExpenseListNew: React.FC = () => {
       <ExpenseCategoryManager
         open={categoriesManagerOpen}
         onClose={() => setCategoriesManagerOpen(false)}
-        onCategoriesChanged={loadCategories}
+        onCategoriesChanged={() => {
+          // ✅ FÁZA 2.2: Kategórie sa auto-refetchujú cez useExpenseCategories
+          // Po zmene kategórie React Query automaticky invaliduje cache
+        }}
       />
 
       {/* Recurring Expenses Manager Dialog */}
@@ -1123,8 +1033,7 @@ const ExpenseListNew: React.FC = () => {
         open={recurringManagerOpen}
         onClose={() => setRecurringManagerOpen(false)}
         onExpensesChanged={() => {
-          // Refresh expenses list when recurring expenses are generated
-          window.location.reload();
+          // ✅ React Query automaticky refetchuje - žiadny reload!
         }}
       />
     </div>

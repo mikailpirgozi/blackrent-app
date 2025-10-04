@@ -59,6 +59,8 @@ import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
 import type { ExpenseCategory, RecurringExpense, Vehicle } from '../../types';
 import { logger } from '@/utils/smartLogger';
+// ✅ FIX: Import timezone-safe date utilities
+import { parseDate, formatDateToString } from '@/utils/dateUtils';
 
 interface RecurringExpenseManagerProps {
   open: boolean;
@@ -187,29 +189,25 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   };
 
   const handleEditRecurring = (recurring: RecurringExpense) => {
-    // Bezpečná konverzia dátumov
+    // ✅ FIX: Timezone-safe dátum konverzia
     const startDateStr = (() => {
       try {
-        const date =
-          typeof recurring.startDate === 'string'
-            ? new Date(recurring.startDate)
-            : recurring.startDate;
-        return isNaN(date.getTime())
-          ? new Date().toISOString().split('T')[0]
-          : date.toISOString().split('T')[0];
+        const date = parseDate(recurring.startDate);
+        if (!date || isNaN(date.getTime())) {
+          return formatDateToString(new Date()).split(' ')[0]!;
+        }
+        return formatDateToString(date).split(' ')[0]!;
       } catch (_error) {
-        return new Date().toISOString().split('T')[0];
+        return formatDateToString(new Date()).split(' ')[0]!;
       }
     })();
 
     const endDateStr = (() => {
       if (!recurring.endDate) return '';
       try {
-        const date =
-          typeof recurring.endDate === 'string'
-            ? new Date(recurring.endDate)
-            : recurring.endDate;
-        return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+        const date = parseDate(recurring.endDate);
+        if (!date || isNaN(date.getTime())) return '';
+        return formatDateToString(date).split(' ')[0]!;
       } catch (_error) {
         return '';
       }
@@ -302,20 +300,37 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
   };
 
   const handleGenerateAll = async () => {
-    if (window.confirm('Vygenerovať všetky splatné pravidelné náklady?')) {
+    if (
+      window.confirm(
+        'Vygenerovať všetky splatné pravidelné náklady?\n\nToto vytvorí nové náklady pre všetky aktívne pravidelné náklady ktorých nextGenerationDate už nastal.'
+      )
+    ) {
       setLoading(true);
       setError(null);
       try {
-        // TODO: Implement generateRecurringExpenses in API service
-        console.warn('generateRecurringExpenses not implemented yet');
-        const result = { generated: 0, skipped: 0 };
-        setSuccess(
-          `Generovanie dokončené: ${result.generated} vytvorených, ${result.skipped} preskočených`
-        );
+        const result = await apiService.generateAllRecurringExpenses();
+
+        if (result.generated > 0) {
+          setSuccess(
+            `✅ Generovanie úspešné!\n\n` +
+              `Vytvorených: ${result.generated}\n` +
+              `Preskočených: ${result.skipped}\n` +
+              (result.errors.length > 0 ? `Chýb: ${result.errors.length}` : '')
+          );
+        } else {
+          setSuccess(
+            `ℹ️ Žiadne náklady neboli vygenerované.\n\n` +
+              `Všetky pravidelné náklady sú už aktuálne alebo nie sú ešte splatné.`
+          );
+        }
+
         await loadData();
         onExpensesChanged?.();
       } catch (error: unknown) {
-        setError('Chyba pri generovaní: ' + (error as Error).message);
+        const errorMsg =
+          error instanceof Error ? error.message : 'Neznáma chyba';
+        setError(`❌ Chyba pri generovaní: ${errorMsg}`);
+        logger.error('Generate all recurring expenses failed', error);
       } finally {
         setLoading(false);
       }
@@ -342,7 +357,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
     setError(null);
     try {
       if (editingRecurring) {
-        // Aktualizácia
+        // ✅ AKTUALIZÁCIA - čakaj na server response
         const updatedRecurring: RecurringExpense = {
           ...editingRecurring,
           name: formData.name.trim(),
@@ -359,32 +374,22 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           isActive: formData.isActive,
           updatedAt: new Date(),
         };
-        // 🚀 OPTIMISTIC UPDATE: Aktualizuj stav okamžite
+
+        // ✅ Čakaj na server response
+        await apiService.updateRecurringExpense(updatedRecurring);
+
+        // ✅ Aktualizuj state až po úspešnom uložení
         logger.debug('Updating recurring expense in state:', updatedRecurring);
         setRecurringExpenses(prev =>
           prev.map(r => (r.id === editingRecurring.id ? updatedRecurring : r))
         );
 
-        // Zatvor dialog a resetuj form
+        setSuccess('✅ Pravidelný náklad úspešne aktualizovaný');
         setFormOpen(false);
         resetForm();
-        setEditingRecurring(null);
-
-        setSuccess('Pravidelný náklad úspešne aktualizovaný');
-
-        // Zavolaj callback ak existuje
         onExpensesChanged?.();
-
-        // 🔄 API call na pozadí (bez čakania)
-        apiService.updateRecurringExpense(updatedRecurring).catch(error => {
-          console.error('Error updating recurring expense:', error);
-          // V prípade chyby môžeme zobraziť notifikáciu
-          setError(
-            'Chyba pri ukladaní na serveri - zmeny sú dočasne len lokálne'
-          );
-        });
       } else {
-        // Vytvorenie
+        // ✅ VYTVORENIE
         const newRecurring = await apiService.createRecurringExpense({
           name: formData.name.trim(),
           description: formData.description.trim(),
@@ -400,42 +405,28 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           isActive: formData.isActive,
         });
 
-        logger.debug('Created recurring expense:', newRecurring);
-
-        // Pridaj nový náklad priamo do stavu PRED zatvorením dialogu
         if (newRecurring && newRecurring.id) {
-          setRecurringExpenses(prev => {
-            logger.debug('Previous state:', prev);
-            const updated = [...prev, newRecurring];
-            logger.debug('New state:', updated);
-            return updated;
-          });
+          logger.debug('Created recurring expense:', newRecurring);
 
-          setSuccess('Pravidelný náklad úspešne vytvorený');
+          // ✅ Pridaj nový náklad do stavu
+          setRecurringExpenses(prev => [...prev, newRecurring]);
 
-          // Zatvor dialog až po úspešnom pridaní
-          window.setTimeout(() => {
-            setFormOpen(false);
-            resetForm();
-          }, 100);
-
-          // Zavolaj callback ak existuje
+          setSuccess('✅ Pravidelný náklad úspešne vytvorený');
+          setFormOpen(false);
+          resetForm();
           onExpensesChanged?.();
         } else {
           throw new Error('Nepodarilo sa vytvoriť pravidelný náklad');
         }
       }
     } catch (error: unknown) {
-      console.error('Error saving recurring expense:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Neznáma chyba';
-      setError(`Chyba pri ukladaní: ${errorMessage}`);
-      // Pri chybe nenačítavaj dáta a nerefreshuj
+      setError(`❌ Chyba pri ukladaní: ${errorMessage}`);
+      logger.error('Save recurring expense failed', error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setLoading(false);
   };
 
   const handleFormCancel = () => {

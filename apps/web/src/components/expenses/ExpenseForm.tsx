@@ -1,18 +1,31 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
-import { useCompanies, useCreateCompany } from '@/lib/react-query/hooks/useCompanies';
+import {
+  useCompanies,
+  useCreateCompany,
+} from '@/lib/react-query/hooks/useCompanies';
 import { useExpenses } from '@/lib/react-query/hooks/useExpenses';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Expense, ExpenseCategory } from '../../types';
+// ✅ FIX: Import timezone-safe date utilities
+import { parseDate } from '@/utils/dateUtils';
+// ✅ FIX: Import toast hook
+import { useExpenseToast } from '@/hooks/useExpenseToast';
 
 interface ExpenseFormProps {
   expense?: Expense | null;
@@ -32,10 +45,13 @@ export default function ExpenseForm({
   const { data: vehicles = [] } = useVehicles();
   const { data: expenses = [] } = useExpenses();
 
+  // ✅ FIX: Toast notifications
+  const toastNotify = useExpenseToast();
+
   // Helper functions for compatibility
   // ✅ FIX: Use proper mutation hook for companies
   const createCompanyMutation = useCreateCompany();
-  
+
   const createCompany = async (company: {
     id: string;
     name: string;
@@ -58,6 +74,28 @@ export default function ExpenseForm({
     category: 'other',
     note: '',
   });
+
+  // ✅ FÁZA 2.3: Optimalizovaný companies select - useMemo namiesto triple .map()
+  const uniqueCompanies = useMemo(() => {
+    const companySet = new Set<string>();
+
+    // Prioritizuj companies (najmenej záznamov)
+    companies.forEach(c => {
+      if (c.name) companySet.add(c.name);
+    });
+
+    // Pridaj len unikátne z vehicles (stredná veľkosť)
+    vehicles.forEach(v => {
+      if (v.company && !companySet.has(v.company)) {
+        companySet.add(v.company);
+      }
+    });
+
+    // ✅ VYNECHANÉ: expenses.map() - zbytočné (568+ iterácií)
+    // Companies a vehicles už majú všetky potrebné firmy
+
+    return Array.from(companySet).sort();
+  }, [companies, vehicles]); // ✅ Expenses už nie sú v dependencies!
 
   // Filtrovanie vozidiel podľa vybranej firmy
   const getVehiclesForCompany = (companyName: string) => {
@@ -117,7 +155,9 @@ export default function ExpenseForm({
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('description', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange('description', e.target.value)
+                }
                 required
                 placeholder="Zadajte popis nákladu"
               />
@@ -142,8 +182,10 @@ export default function ExpenseForm({
             <DatePicker
               label="Dátum *"
               placeholder="Vyberte dátum nákladu"
-              value={formData.date ? new Date(formData.date) : null}
-              onChange={(date) => handleInputChange('date', date || undefined)}
+              value={parseDate(
+                formData.date as string | Date | null | undefined
+              )}
+              onChange={date => handleInputChange('date', date || undefined)}
               required
             />
 
@@ -151,19 +193,20 @@ export default function ExpenseForm({
               label="Kategória"
               required
               value={formData.category || ''}
-              onValueChange={(value) => handleInputChange('category', value)}
-              options={categories.length > 0
-                ? categories.map(category => ({
-                    value: category.name,
-                    label: category.displayName,
-                    searchText: category.name,
-                  }))
-                : [
-                    { value: 'service', label: 'Servis' },
-                    { value: 'insurance', label: 'Poistenie' },
-                    { value: 'fuel', label: 'Palivo' },
-                    { value: 'other', label: 'Iné' },
-                  ]
+              onValueChange={value => handleInputChange('category', value)}
+              options={
+                categories.length > 0
+                  ? categories.map(category => ({
+                      value: category.name,
+                      label: category.displayName,
+                      searchText: category.name,
+                    }))
+                  : [
+                      { value: 'service', label: 'Servis' },
+                      { value: 'insurance', label: 'Poistenie' },
+                      { value: 'fuel', label: 'Palivo' },
+                      { value: 'other', label: 'Iné' },
+                    ]
               }
               placeholder="Vyberte kategóriu"
               searchPlaceholder="Hľadať kategóriu..."
@@ -175,20 +218,11 @@ export default function ExpenseForm({
                 label="Firma"
                 required
                 value={formData.company || ''}
-                onValueChange={(value) => handleInputChange('company', value)}
-                options={Array.from(
-                  new Set([
-                    ...companies.map(c => c.name),
-                    ...vehicles.map(v => v.company),
-                    ...expenses.map(e => e.company),
-                  ])
-                )
-                  .filter(Boolean)
-                  .sort((a, b) => a!.localeCompare(b!))
-                  .map(company => ({
-                    value: company!,
-                    label: company!,
-                  }))}
+                onValueChange={value => handleInputChange('company', value)}
+                options={uniqueCompanies.map(company => ({
+                  value: company,
+                  label: company,
+                }))}
                 placeholder="Vyberte firmu"
                 searchPlaceholder="Hľadať firmu..."
                 emptyMessage="Žiadna firma nenájdená."
@@ -202,7 +236,9 @@ export default function ExpenseForm({
                     autoFocus
                     placeholder="Nová firma"
                     value={newCompanyName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCompanyName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setNewCompanyName(e.target.value)
+                    }
                     className="flex-1"
                   />
                   <Button
@@ -226,7 +262,7 @@ export default function ExpenseForm({
                         setAddingCompany(false);
                       } catch (error) {
                         console.error('Chyba pri vytváraní firmy:', error);
-                        window.alert('Chyba pri vytváraní firmy');
+                        toastNotify.error('Chyba pri vytváraní firmy');
                       }
                     }}
                   >
@@ -256,17 +292,23 @@ export default function ExpenseForm({
                 disabled={!formData.company}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'} />
+                  <SelectValue
+                    placeholder={
+                      formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no-vehicle">
                     {formData.company ? 'Bez vozidla' : 'Najprv vyberte firmu'}
                   </SelectItem>
-                  {getVehiclesForCompany(formData.company || '').map(vehicle => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
-                    </SelectItem>
-                  ))}
+                  {getVehiclesForCompany(formData.company || '').map(
+                    vehicle => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -277,7 +319,7 @@ export default function ExpenseForm({
                 id="note"
                 className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.note || ''}
-                onChange={(e) => handleInputChange('note', e.target.value)}
+                onChange={e => handleInputChange('note', e.target.value)}
                 placeholder="Zadajte dodatočné informácie k nákladu..."
                 rows={3}
               />

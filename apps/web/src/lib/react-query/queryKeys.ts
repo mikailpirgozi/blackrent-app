@@ -59,6 +59,7 @@ export const queryKeys = {
     byCategory: (category: string) =>
       ['expenses', 'byCategory', category] as const,
     recurring: () => ['expenses', 'recurring'] as const,
+    categories: ['expenses', 'categories'] as const, // ✅ FÁZA 2.2: Pridané
   },
 
   // Statistics

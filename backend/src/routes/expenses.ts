@@ -1,10 +1,12 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
 import { invalidateCache } from '../middleware/cache-middleware';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Expense } from '../types';
+import { CreateExpenseSchema, UpdateExpenseSchema } from '../validation/expense-schemas';
 
 // Interface pre PostgreSQL query výsledky
 interface QueryResult {
@@ -14,13 +16,22 @@ interface QueryResult {
 
 const router = Router();
 
+// ✅ FÁZA 1.1: Helper funkcia pre timezone-safe date formatting
+const formatExpenseDate = (expense: Expense): Expense => ({
+  ...expense,
+  date: expense.date instanceof Date 
+    ? new Date(expense.date.toISOString().split('T')[0]) as unknown as Date
+    : expense.date
+});
+
 // 🔍 CONTEXT FUNCTIONS
+// ✅ FIX: Optimalizované - používa getExpenseById namiesto getExpenses (N+1 fix)
 const getExpenseContext = async (req: Request) => {
   const expenseId = req.params.id;
   if (!expenseId) return {};
   
-  const expenses = await postgresDatabase.getExpenses();
-  const expense = expenses.find(e => e.id === expenseId);
+  // ✅ FIX: Priamy dotaz namiesto načítavania všetkých expenses
+  const expense = await postgresDatabase.getExpenseById(expenseId);
   if (!expense || !expense.vehicleId) return {};
   
   // Získaj vehicle pre company context
@@ -74,9 +85,10 @@ router.get('/',
         });
       }
       
+      // ✅ FÁZA 1.1: Format dates before sending
       res.json({
         success: true,
-        data: expenses
+        data: expenses.map(formatExpenseDate)
       });
     } catch (error) {
       console.error('Get expenses error:', error);
@@ -133,10 +145,11 @@ async (req: Request, res: Response<ApiResponse>) => {
       note: note && note.toString().trim() !== '' ? note.toString().trim() : undefined
     });
 
+    // ✅ FÁZA 1.1: Format date before sending
     res.status(201).json({
       success: true,
       message: 'Náklad úspešne vytvorený',
-      data: createdExpense
+      data: formatExpenseDate(createdExpense)
     });
 
   } catch (error: unknown) {
@@ -188,10 +201,11 @@ router.put('/:id',
 
     await postgresDatabase.updateExpense(updatedExpense);
 
+    // ✅ FÁZA 1.1: Format date before sending
     res.json({
       success: true,
       message: 'Náklad úspešne aktualizovaný',
-      data: updatedExpense
+      data: formatExpenseDate(updatedExpense)
     });
 
   } catch (error) {
@@ -464,7 +478,76 @@ router.post('/import/csv',
   }
 );
 
-// 🚀 BATCH IMPORT - Rýchly import nákladov (bulk operácia)
+// 🚀 BATCH IMPORT STREAM - Real-time progress cez Server-Sent Events
+router.post('/batch-import-stream',
+  authenticateToken,
+  checkPermission('expenses', 'create'),
+  async (req: Request, res: Response) => {
+    try {
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Nginx buffering disable
+
+      const { expenses } = req.body;
+      
+      if (!Array.isArray(expenses) || expenses.length === 0) {
+        res.write(`data: ${JSON.stringify({ error: 'Invalid data' })}\n\n`);
+        res.end();
+        return;
+      }
+
+      console.log(`📊 Streaming batch import: ${expenses.length} expenses`);
+      
+      let processed = 0;
+      const errors: unknown[] = [];
+
+      // Process expenses with progress updates
+      for (const expenseData of expenses) {
+        try {
+          await postgresDatabase.createExpense(expenseData);
+          processed++;
+          
+          // Stream progress update
+          res.write(`data: ${JSON.stringify({
+            type: 'progress',
+            processed,
+            total: expenses.length,
+            percent: Math.round((processed / expenses.length) * 100),
+          })}\n\n`);
+          
+        } catch (error) {
+          errors.push({
+            expense: expenseData.description,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      // Send final summary
+      res.write(`data: ${JSON.stringify({
+        type: 'complete',
+        processed,
+        total: expenses.length,
+        errors: errors.length,
+        errorDetails: errors.slice(0, 5), // First 5 errors
+      })}\n\n`);
+      
+      res.end();
+      
+    } catch (error) {
+      console.error('Batch import stream error:', error);
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error',
+        error: 'Stream failed' 
+      })}\n\n`);
+      res.end();
+    }
+  }
+);
+
+// 🚀 BATCH IMPORT - Rýchly import nákladov (bulk operácia) - Fallback bez progress
 router.post('/batch-import',
   authenticateToken,
   checkPermission('expenses', 'create'),
