@@ -86,7 +86,7 @@ router.get('/',
       let insurances = await postgresDatabase.getInsurances();
       
       // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
-      if (req.user?.role === 'company_owner' && req.user.companyId) {
+      if (req.user?.role === 'company_admin' && req.user.companyId) {
         const vehicles = await postgresDatabase.getVehicles();
         const companyVehicleIds = vehicles
           .filter(v => v.ownerCompanyId === req.user?.companyId)
@@ -126,7 +126,7 @@ router.get('/paginated',
       let allInsurances = await postgresDatabase.getInsurances();
       
       // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
-      if (req.user?.role === 'company_owner' && req.user.companyId) {
+      if (req.user?.role === 'company_admin' && req.user.companyId) {
         const vehicles = await postgresDatabase.getVehicles();
         const companyVehicleIds = vehicles
           .filter(v => v.ownerCompanyId === req.user?.companyId)

@@ -28,6 +28,8 @@ interface AuthContextType {
   hasPermission: (_resource: string, _action: string) => boolean;
   canAccessCompanyData: (_companyId: string) => boolean;
   isAdmin: () => boolean;
+  isSuperAdmin: () => boolean;
+  isCompanyAdmin: () => boolean;
   isEmployee: () => boolean;
   isCompanyUser: () => boolean;
   userCompanyAccess: UserCompanyAccess[]; // Add this to expose user company access
@@ -429,8 +431,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const hasPermission = (resource: string, action: string): boolean => {
-    // Admin má všetky práva
-    if (state.user?.role === 'admin') {
+    // Admin roles (legacy admin, super_admin, company_admin) majú všetky práva
+    if (state.user?.role === 'admin' || state.user?.role === 'super_admin' || state.user?.role === 'company_admin') {
       return true;
     }
 
@@ -448,9 +450,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const canAccessCompanyData = (companyId: string): boolean => {
-    // Admin má prístup ku všetkým firmám
-    if (state.user?.role === 'admin') {
+    // Admin roles (legacy admin, super_admin) majú prístup ku všetkým firmám
+    if (state.user?.role === 'admin' || state.user?.role === 'super_admin') {
       return true;
+    }
+
+    // Company Admin a Company Owner majú prístup len k vlastnej firme
+    if (state.user?.role === 'company_admin' || state.user?.role === 'investor') {
+      return state.user.companyId === companyId;
     }
 
     // Pre ostatných používateľov skontroluj či majú prístup k danej firme
@@ -458,7 +465,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const isAdmin = (): boolean => {
-    return state.user?.role === 'admin';
+    return state.user?.role === 'admin' || state.user?.role === 'super_admin' || state.user?.role === 'company_admin';
+  };
+
+  const isSuperAdmin = (): boolean => {
+    return state.user?.role === 'admin' || state.user?.role === 'super_admin';
+  };
+
+  const isCompanyAdmin = (): boolean => {
+    return state.user?.role === 'company_admin';
   };
 
   const isEmployee = (): boolean => {
@@ -466,7 +481,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const isCompanyUser = (): boolean => {
-    return state.user?.role === 'company_owner';
+    return state.user?.role === 'investor';
   };
 
   const updateUser = (userData: Partial<User>) => {
@@ -493,6 +508,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         hasPermission,
         canAccessCompanyData,
         isAdmin,
+        isSuperAdmin,
+        isCompanyAdmin,
         isEmployee,
         isCompanyUser,
         userCompanyAccess,

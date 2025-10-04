@@ -93,7 +93,7 @@ const ROLE_PERMISSIONS: RolePermissions = {
       conditions: { maxAmount: 5000 },
     },
   ],
-  company_owner: [
+  investor: [
     {
       resource: 'vehicles',
       actions: ['read'],
@@ -165,11 +165,11 @@ const ROLE_INFO = {
     color: 'secondary',
     description: 'Obchodné operácie s limitmi',
   },
-  company_owner: {
-    name: 'Majiteľ firmy',
+  investor: {
+    name: 'Investor',
     icon: CompanyIcon,
     color: 'primary',
-    description: 'Len vlastné vozidlá a súvisiace dáta',
+    description: 'Read-only prístup k vlastným vozidlám a firmám',
   },
 };
 

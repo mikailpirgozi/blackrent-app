@@ -149,7 +149,7 @@ export function CompanyOnly({
   const { currentUser, canRead } = usePermissions();
 
   // Company owner môže vidieť len svoje company resources
-  if (currentUser?.role === 'company_owner') {
+  if (currentUser?.role === 'investor') {
     const canAccess = canRead(resource, { ...(companyId && { companyId }) });
     return canAccess ? <>{children}</> : fallback ? <>{fallback}</> : <></>;
   }

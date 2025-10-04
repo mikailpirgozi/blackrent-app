@@ -107,18 +107,28 @@ export function useCreateVehicle() {
       }
     },
     onSuccess: data => {
-      // Trigger WebSocket notification
+      // ✅ OPTIMIZED: Update cache directly without invalidation
+      queryClient.setQueryData(
+        queryKeys.vehicles.lists(),
+        (old: Vehicle[] = []) => {
+          // Replace optimistic vehicle with real data
+          return old.map(v => 
+            v.id.toString().startsWith('temp-') ? data : v
+          );
+        }
+      );
+
+      // Trigger WebSocket notification (background)
       window.dispatchEvent(
         new CustomEvent('vehicle-created', { detail: data })
       );
     },
     onSettled: () => {
-      // Refresh po dokončení
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.vehicles.all,
-      });
-      // ✅ Invaliduj Service Worker cache
-      swCacheInvalidators.vehicles();
+      // ✅ OPTIMIZED: Background invalidation only (no blocking refetch)
+      setTimeout(() => {
+        swCacheInvalidators.vehicles();
+      }, 100);
+      // Don't invalidate React Query cache - we updated it directly in onSuccess
     },
   });
 }
@@ -164,21 +174,28 @@ export function useUpdateVehicle() {
       }
     },
     onSuccess: data => {
-      // Trigger WebSocket notification
+      // ✅ OPTIMIZED: Update cache directly with real data
+      queryClient.setQueryData(
+        queryKeys.vehicles.detail(data.id),
+        data
+      );
+      queryClient.setQueryData(
+        queryKeys.vehicles.lists(),
+        (old: Vehicle[] = []) =>
+          old.map(v => (v.id === data.id ? data : v))
+      );
+
+      // Trigger WebSocket notification (background)
       window.dispatchEvent(
         new CustomEvent('vehicle-updated', { detail: data })
       );
     },
-    onSettled: (_data, _error, variables) => {
-      // Refresh
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.vehicles.detail(variables.id),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.vehicles.lists(),
-      });
-      // ✅ Invaliduj Service Worker cache
-      swCacheInvalidators.vehicles();
+    onSettled: () => {
+      // ✅ OPTIMIZED: Background cache invalidation only
+      setTimeout(() => {
+        swCacheInvalidators.vehicles();
+      }, 100);
+      // Don't invalidate React Query cache - we updated it directly
     },
   });
 }

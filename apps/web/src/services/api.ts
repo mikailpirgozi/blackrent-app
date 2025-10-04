@@ -1142,7 +1142,7 @@ class ApiService {
     userId: string
   ): Promise<Record<string, unknown>[]> {
     return this.request<Record<string, unknown>[]>(
-      `/users/${userId}/company-access`
+      `/permissions/user/${userId}/access`
     );
   }
 
@@ -1779,6 +1779,56 @@ class ApiService {
     return this.request<Record<string, unknown>[]>(
       `/protocols/${protocolId}/pdfs`
     );
+  }
+
+  // ===================================================================
+  // PERMISSION MANAGEMENT API
+  // ===================================================================
+
+  /**
+   * Set user permission for specific company
+   */
+  async setUserCompanyPermission(
+    userId: string,
+    companyId: string,
+    permissions: Record<string, unknown>
+  ): Promise<void> {
+    return this.request<void>(`/permissions/user/${userId}/company/${companyId}`, {
+      method: 'POST',
+      body: JSON.stringify({ permissions }),
+    });
+  }
+
+  /**
+   * Remove user permission for specific company
+   */
+  async removeUserCompanyPermission(
+    userId: string,
+    companyId: string
+  ): Promise<void> {
+    return this.request<void>(`/permissions/user/${userId}/company/${companyId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get users with access to specific company
+   */
+  async getUsersWithCompanyAccess(companyId: string): Promise<User[]> {
+    return this.request<User[]>(`/permissions/company/${companyId}/users`);
+  }
+
+  /**
+   * Bulk set user permissions for multiple companies
+   */
+  async bulkSetUserPermissions(
+    userId: string,
+    assignments: Array<{ companyId: string; permissions: Record<string, unknown> }>
+  ): Promise<void> {
+    return this.request<void>('/permissions/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ assignments }),
+    });
   }
 }
 

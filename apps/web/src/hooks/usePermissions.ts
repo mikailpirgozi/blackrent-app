@@ -13,8 +13,8 @@ import type {
 
 // 🔐 FRONTEND ROLE PERMISSIONS MATRIX (fallback pre admin)
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  // 👑 ADMIN - Úplné práva na všetko
-  admin: [
+  // 👑 SUPER_ADMIN - Úplné práva na všetko, všetky firmy
+  super_admin: [
     {
       resource: '*',
       actions: ['read', 'create', 'update', 'delete'],
@@ -22,12 +22,21 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     },
   ],
 
+  // 🏢 COMPANY_ADMIN - Úplné práva len vo vlastnej firme
+  company_admin: [
+    {
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: { companyOnly: true },
+    },
+  ],
+
   // Ostatné roly sa teraz riadia company-based permissions
+  investor: [],
   employee: [],
   temp_worker: [],
   mechanic: [],
   sales_rep: [],
-  company_owner: [],
 };
 
 // 🛡️ COMPANY-BASED PERMISSION CHECK FUNCTION
@@ -41,8 +50,13 @@ export function hasCompanyPermission(
     userId?: string;
   }
 ): PermissionResult {
-  // Admin má vždy práva
-  if (userRole === 'admin') {
+  // Admin roles (legacy admin, super_admin) majú vždy práva
+  if (userRole === 'admin' || userRole === 'super_admin') {
+    return { hasAccess: true, requiresApproval: false };
+  }
+
+  // Company Admin má plné práva vo svojej firme
+  if (userRole === 'company_admin') {
     return { hasAccess: true, requiresApproval: false };
   }
 
@@ -122,14 +136,14 @@ export function hasLegacyPermission(
     amount?: number;
   }
 ): PermissionResult {
-  // Admin má vždy práva
-  if (userRole === 'admin') {
+  // Admin and super_admin majú vždy práva
+  if (userRole === 'admin' || userRole === 'super_admin') {
     return { hasAccess: true, requiresApproval: false };
   }
 
   // Pre ostatné roly vráti false - používajú sa company permissions
   // Parametre sú zachované pre kompatibilitu
-  logger.debug('hasLegacyPermission called:', {
+  logger.debug('hasLegacyPermission called for non-admin role:', {
     userRole,
     resource,
     action,
@@ -184,8 +198,8 @@ export function usePermissions() {
     return {
       // 🔍 COMPANY-BASED PERMISSION FUNCTIONS
       canRead: (resource: string, context?: { companyId?: string }) => {
-        // Pre company_owner - automaticky povolí resources definované v backend ROLE_PERMISSIONS
-        if (user.role === 'company_owner') {
+        // Pre investor - automaticky povolí resources definované v backend ROLE_PERMISSIONS
+        if (user.role === 'investor') {
           const backendPermissions = [
             'vehicles',
             'rentals',
@@ -211,8 +225,8 @@ export function usePermissions() {
       },
 
       canCreate: (resource: string, context?: { companyId?: string }) => {
-        // Pre company_owner - obmedzené create permissions
-        if (user.role === 'company_owner') {
+        // Pre investor - obmedzené create permissions
+        if (user.role === 'investor') {
           const writePermissions = ['rentals', 'expenses', 'settlements']; // len niektoré resources môže vytvárať
           if (writePermissions.includes(resource)) {
             return true;
@@ -229,8 +243,8 @@ export function usePermissions() {
       },
 
       canUpdate: (resource: string, context?: { companyId?: string }) => {
-        // Pre company_owner - obmedzené update permissions
-        if (user.role === 'company_owner') {
+        // Pre investor - obmedzené update permissions
+        if (user.role === 'investor') {
           const updatePermissions = ['companies', 'settlements']; // len svoju firmu a vyúčtovania môže upraviť
           if (updatePermissions.includes(resource)) {
             return true;
@@ -247,8 +261,8 @@ export function usePermissions() {
       },
 
       canDelete: (resource: string, context?: { companyId?: string }) => {
-        // Pre company_owner - obmedzené delete permissions
-        if (user.role === 'company_owner') {
+        // Pre investor - obmedzené delete permissions
+        if (user.role === 'investor') {
           const deletePermissions = ['settlements']; // len vyúčtovania môže mazať
           if (deletePermissions.includes(resource)) {
             return true;
@@ -270,8 +284,8 @@ export function usePermissions() {
         action: Permission['actions'][0],
         context?: Record<string, unknown>
       ): PermissionResult => {
-        // Pre admin používame legacy funkciu
-        if (user.role === 'admin') {
+        // Pre admin roles (legacy admin, super_admin) používame legacy funkciu (úplné práva)
+        if (user.role === 'admin' || user.role === 'super_admin') {
           return hasLegacyPermission(user.role, resource, action, {
             userId: user.id,
             ...(user.companyId && { companyId: user.companyId }),
@@ -279,50 +293,12 @@ export function usePermissions() {
           });
         }
 
-        // Pre company_owner používame vlastnú logiku
-        if (user.role === 'company_owner') {
-          const backendPermissions = [
-            'vehicles',
-            'rentals',
-            'expenses',
-            'insurances',
-            'companies',
-            'finances',
-            'protocols',
-            'settlements',
-            'customers',
-          ];
-
-          if (action === 'read' && backendPermissions.includes(resource)) {
-            return { hasAccess: true, requiresApproval: false };
-          }
-
-          if (
-            action === 'create' &&
-            ['rentals', 'expenses', 'settlements'].includes(resource)
-          ) {
-            return { hasAccess: true, requiresApproval: false };
-          }
-
-          if (
-            action === 'update' &&
-            ['companies', 'settlements'].includes(resource)
-          ) {
-            return { hasAccess: true, requiresApproval: false };
-          }
-
-          if (action === 'delete' && ['settlements'].includes(resource)) {
-            return { hasAccess: true, requiresApproval: false };
-          }
-
-          return {
-            hasAccess: false,
-            requiresApproval: false,
-            reason: 'Company owner nemá oprávnenie na túto akciu',
-          };
+        // Pre company_admin plné práva vo vlastnej firme
+        if (user.role === 'company_admin') {
+          return { hasAccess: true, requiresApproval: false };
         }
 
-        // Pre ostatných používame company-based permissions
+        // Pre všetkých ostatných (vrátane investor) používame company-based permissions
         const actionMap = {
           read: 'read',
           create: 'write',
@@ -358,8 +334,8 @@ export function usePermissions() {
         action: 'read' | 'write' | 'delete',
         context?: { companyId?: string }
       ): PermissionResult => {
-        // Pre company_owner používame vlastnú logiku
-        if (user.role === 'company_owner') {
+        // Pre investor používame vlastnú logiku
+        if (user.role === 'investor') {
           const backendPermissions = [
             'vehicles',
             'rentals',
@@ -430,7 +406,7 @@ export function usePermissions() {
       isTempWorker: user.role === 'temp_worker',
       isMechanic: user.role === 'mechanic',
       isSalesRep: user.role === 'sales_rep',
-      isCompanyOwner: user.role === 'company_owner',
+      isCompanyOwner: user.role === 'investor',
 
       // 📊 LOADING & ERROR STATES
       permissionsLoading,
@@ -457,7 +433,7 @@ export function getUserRoleDisplayName(role: UserRole): string {
     temp_worker: '🔧 Brigádnik',
     mechanic: '🔨 Mechanik',
     sales_rep: '💼 Obchodný zástupca',
-    company_owner: '🏢 Majiteľ vozidiel',
+    investor: '🏢 Majiteľ vozidiel',
   };
 
   return roleNames[role] || role;

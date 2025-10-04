@@ -112,6 +112,10 @@ const BasicUserManagement: React.FC = () => {
   // Investors for dropdown
   const [investors, setInvestors] = useState<Record<string, unknown>[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
+  
+  // Companies for dropdown
+  const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   // Loading states - handled by React Query mutations
 
@@ -186,10 +190,38 @@ const BasicUserManagement: React.FC = () => {
     }
   }, [getAuthToken]);
 
+  const loadCompanies = useCallback(async () => {
+    try {
+      setLoadingCompanies(true);
+      const response = await fetch(`${getApiBaseUrl()}/companies`, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const companiesList = data.data || data || [];
+        setCompanies(companiesList);
+        logger.debug('🏢 Loaded companies:', companiesList.length);
+      } else {
+        console.warn('Failed to load companies:', response.status);
+        setCompanies([]);
+      }
+    } catch (error) {
+      console.warn('Error loading companies:', error);
+      setCompanies([]);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  }, [getAuthToken]);
+
   useEffect(() => {
     refetchUsers();
     loadInvestors();
-  }, [refetchUsers, loadInvestors]);
+    loadCompanies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
 
   // Track prihlásenie aktuálneho používateľa
   useEffect(() => {
@@ -944,62 +976,122 @@ const BasicUserManagement: React.FC = () => {
                     <SelectValue placeholder="Vyberte rolu" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">Používateľ</SelectItem>
-                    <SelectItem value="employee">Zamestnanec</SelectItem>
-                    <SelectItem value="manager">Manažér</SelectItem>
-                    <SelectItem value="admin">Administrátor</SelectItem>
+                    <SelectItem value="investor">💼 Investor (Read-only)</SelectItem>
+                    <SelectItem value="employee">👤 Zamestnanec</SelectItem>
+                    <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
+                    <SelectItem value="sales_rep">💰 Obchodník</SelectItem>
+                    <SelectItem value="temp_worker">⏱️ Brigádnik</SelectItem>
+                    <SelectItem value="company_admin">🏢 Admin Firmy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="investor">
-                Priradenie k investorovi (voliteľné)
-              </Label>
-              <Select
-                value={userForm.linkedInvestorId}
-                onValueChange={value =>
-                  setUserForm(prev => ({
-                    ...prev,
-                    linkedInvestorId: value,
-                  }))
-                }
-                disabled={loadingInvestors}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Vyberte investora" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    Žiadne priradenie - bežný používateľ
-                  </SelectItem>
-                  {investors.map(investor => (
-                    <SelectItem
-                      key={investor.id as string}
-                      value={investor.id as string}
-                    >
-                      {investor.firstName as string}{' '}
-                      {investor.lastName as string} - Podiely:{' '}
-                      {(investor.companies as Record<string, unknown>[])
-                        ?.map(
-                          (c: Record<string, unknown>) =>
-                            `${c.companyName as string} (${c.ownershipPercentage as number}%)`
-                        )
-                        .join(', ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {loadingInvestors && (
-                <div className="flex items-center mt-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                  <Typography className="text-sm text-muted-foreground">
-                    Načítavam investorov...
-                  </Typography>
+              <div>
+                <Label htmlFor="company">
+                  Platforma/Firma *
+                </Label>
+                <Select
+                  value={userForm.companyId}
+                  onValueChange={value =>
+                    setUserForm(prev => ({
+                      ...prev,
+                      companyId: value,
+                    }))
+                  }
+                  disabled={loadingCompanies}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte platformu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map(company => (
+                      <SelectItem
+                        key={company.id as string}
+                        value={company.id as string}
+                      >
+                        🏢 {company.name as string}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Typography className="text-xs text-muted-foreground mt-1">
+                  {userForm.role === 'investor' && 'Pre investora vyberte hlavnú platformu'}
+                  {userForm.role === 'company_admin' && 'Admin bude mať plné práva v tejto firme'}
+                  {userForm.role === 'employee' && 'Zamestnanec bude patriť k tejto firme'}
+                </Typography>
+                {loadingCompanies && (
+                  <div className="flex items-center mt-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                    <Typography className="text-sm text-muted-foreground">
+                      Načítavam platformy...
+                    </Typography>
+                  </div>
+                )}
+              </div>
+
+              {userForm.role === 'investor' && (
+                <div>
+                  <Label htmlFor="investor">
+                    Priradenie k investorovi (voliteľné)
+                  </Label>
+                  <Select
+                    value={userForm.linkedInvestorId}
+                    onValueChange={value =>
+                      setUserForm(prev => ({
+                        ...prev,
+                        linkedInvestorId: value,
+                      }))
+                    }
+                    disabled={loadingInvestors}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte investora" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        Žiadne priradenie - bežný používateľ
+                      </SelectItem>
+                      {investors.length > 0 ? (
+                        investors.map(investor => (
+                          <SelectItem
+                            key={investor.id as string}
+                            value={investor.id as string}
+                          >
+                            💼 {investor.firstName as string}{' '}
+                            {investor.lastName as string}
+                            {(investor.companies as Record<string, unknown>[])?.length > 0 && 
+                              ` - Podiely: ${(investor.companies as Record<string, unknown>[])
+                                ?.map(
+                                  (c: Record<string, unknown>) =>
+                                    `${c.companyName as string} (${c.ownershipPercentage as number}%)`
+                                )
+                                .join(', ')}`
+                            }
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          Žiadni investori v databáze
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {loadingInvestors && (
+                    <div className="flex items-center mt-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                      <Typography className="text-sm text-muted-foreground">
+                        Načítavam investorov...
+                      </Typography>
+                    </div>
+                  )}
+                  {!loadingInvestors && investors.length === 0 && (
+                    <Typography className="text-xs text-amber-600 mt-1">
+                      ⚠️ Žiadni investori nenájdení. Vytvorte investorov v sekcii "Databáza vozidiel" → Firmy → Investori.
+                    </Typography>
+                  )}
                 </div>
               )}
-            </div>
           </div>
           <DialogFooter
             className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}
@@ -1129,13 +1221,46 @@ const BasicUserManagement: React.FC = () => {
                     <SelectValue placeholder="Vyberte rolu" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">Používateľ</SelectItem>
-                    <SelectItem value="employee">Zamestnanec</SelectItem>
-                    <SelectItem value="manager">Manažér</SelectItem>
-                    <SelectItem value="admin">Administrátor</SelectItem>
+                    <SelectItem value="investor">💼 Investor (Read-only)</SelectItem>
+                    <SelectItem value="employee">👤 Zamestnanec</SelectItem>
+                    <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
+                    <SelectItem value="sales_rep">💰 Obchodník</SelectItem>
+                    <SelectItem value="temp_worker">⏱️ Brigádnik</SelectItem>
+                    <SelectItem value="company_admin">🏢 Admin Firmy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Company Selector in Edit */}
+            <div>
+              <Label htmlFor="edit-company">
+                Platforma/Firma *
+              </Label>
+              <Select
+                value={userForm.companyId}
+                onValueChange={value =>
+                  setUserForm(prev => ({
+                    ...prev,
+                    companyId: value,
+                  }))
+                }
+                disabled={loadingCompanies}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vyberte platformu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map(company => (
+                    <SelectItem
+                      key={company.id as string}
+                      value={company.id as string}
+                    >
+                      🏢 {company.name as string}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter

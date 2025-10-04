@@ -109,28 +109,33 @@ export class LeasingRepository {
   // ===================================================================
 
   /**
-   * Získaj všetky leasingy s filtrami
+   * Získaj všetky leasingy s filtrami (s JOIN na vehicles pre kompletné info)
    */
   async getLeasings(filters: LeasingFilters = {}): Promise<Leasing[]> {
     let query = `
       SELECT 
-        id, vehicle_id as "vehicleId", leasing_company as "leasingCompany",
-        loan_category as "loanCategory", payment_type as "paymentType",
-        initial_loan_amount as "initialLoanAmount", current_balance as "currentBalance",
-        interest_rate as "interestRate", rpmn, monthly_payment as "monthlyPayment",
-        monthly_fee as "monthlyFee", total_monthly_payment as "totalMonthlyPayment",
-        total_installments as "totalInstallments", remaining_installments as "remainingInstallments",
-        paid_installments as "paidInstallments", first_payment_date as "firstPaymentDate",
-        last_paid_date as "lastPaidDate", early_repayment_penalty as "earlyRepaymentPenalty",
-        early_repayment_penalty_type as "earlyRepaymentPenaltyType",
-        acquisition_price_without_vat as "acquisitionPriceWithoutVAT",
-        acquisition_price_with_vat as "acquisitionPriceWithVAT",
-        is_non_deductible as "isNonDeductible",
-        contract_document_url as "contractDocumentUrl",
-        payment_schedule_url as "paymentScheduleUrl",
-        photos_zip_url as "photosZipUrl",
-        created_at as "createdAt", updated_at as "updatedAt"
-      FROM leasings
+        l.id, l.vehicle_id as "vehicleId", l.leasing_company as "leasingCompany",
+        l.loan_category as "loanCategory", l.payment_type as "paymentType",
+        l.initial_loan_amount as "initialLoanAmount", l.current_balance as "currentBalance",
+        l.interest_rate as "interestRate", l.rpmn, l.monthly_payment as "monthlyPayment",
+        l.monthly_fee as "monthlyFee", l.total_monthly_payment as "totalMonthlyPayment",
+        l.total_installments as "totalInstallments", l.remaining_installments as "remainingInstallments",
+        l.paid_installments as "paidInstallments", l.first_payment_date as "firstPaymentDate",
+        l.last_paid_date as "lastPaidDate", l.early_repayment_penalty as "earlyRepaymentPenalty",
+        l.early_repayment_penalty_type as "earlyRepaymentPenaltyType",
+        l.acquisition_price_without_vat as "acquisitionPriceWithoutVAT",
+        l.acquisition_price_with_vat as "acquisitionPriceWithVAT",
+        l.is_non_deductible as "isNonDeductible",
+        l.contract_document_url as "contractDocumentUrl",
+        l.payment_schedule_url as "paymentScheduleUrl",
+        l.photos_zip_url as "photosZipUrl",
+        l.created_at as "createdAt", l.updated_at as "updatedAt",
+        -- Vehicle data (JOIN)
+        v.id as "vehicle_id", v.brand as "vehicle_brand", v.model as "vehicle_model",
+        v.license_plate as "vehicle_licensePlate", v.company as "vehicle_company",
+        v.year as "vehicle_year"
+      FROM leasings l
+      LEFT JOIN vehicles v ON l.vehicle_id::integer = v.id
       WHERE 1=1
     `;
     
@@ -138,32 +143,32 @@ export class LeasingRepository {
     let paramIndex = 1;
     
     if (filters.vehicleId) {
-      query += ` AND vehicle_id = $${paramIndex++}`;
+      query += ` AND l.vehicle_id = $${paramIndex++}`;
       params.push(filters.vehicleId);
     }
     
     if (filters.leasingCompany) {
-      query += ` AND leasing_company ILIKE $${paramIndex++}`;
+      query += ` AND l.leasing_company ILIKE $${paramIndex++}`;
       params.push(`%${filters.leasingCompany}%`);
     }
     
     if (filters.loanCategory) {
-      query += ` AND loan_category = $${paramIndex++}`;
+      query += ` AND l.loan_category = $${paramIndex++}`;
       params.push(filters.loanCategory);
     }
     
     if (filters.status === 'active') {
-      query += ` AND remaining_installments > 0`;
+      query += ` AND l.remaining_installments > 0`;
     } else if (filters.status === 'completed') {
-      query += ` AND remaining_installments = 0`;
+      query += ` AND l.remaining_installments = 0`;
     }
     
     if (filters.searchQuery) {
-      query += ` AND (leasing_company ILIKE $${paramIndex++} OR loan_category ILIKE $${paramIndex++})`;
-      params.push(`%${filters.searchQuery}%`, `%${filters.searchQuery}%`);
+      query += ` AND (l.leasing_company ILIKE $${paramIndex++} OR l.loan_category ILIKE $${paramIndex++} OR v.brand ILIKE $${paramIndex++} OR v.model ILIKE $${paramIndex++} OR v.license_plate ILIKE $${paramIndex++})`;
+      params.push(`%${filters.searchQuery}%`, `%${filters.searchQuery}%`, `%${filters.searchQuery}%`, `%${filters.searchQuery}%`, `%${filters.searchQuery}%`);
     }
     
-    query += ` ORDER BY created_at DESC`;
+    query += ` ORDER BY l.created_at DESC`;
     
     // Pagination
     const pageSize = filters.pageSize || 20;
@@ -174,7 +179,39 @@ export class LeasingRepository {
     params.push(pageSize, offset);
     
     const result = await this.pool.query(query, params);
-    return result.rows;
+    
+    // Map rows to include vehicle object
+    return result.rows.map((row: {
+      vehicle_id?: string;
+      vehicle_brand?: string;
+      vehicle_model?: string;
+      vehicle_licensePlate?: string;
+      vehicle_company?: string;
+      vehicle_year?: number;
+      [key: string]: unknown;
+    }) => {
+      const { 
+        vehicle_id, 
+        vehicle_brand, 
+        vehicle_model, 
+        vehicle_licensePlate, 
+        vehicle_company,
+        vehicle_year,
+        ...leasingData 
+      } = row;
+      
+      return {
+        ...leasingData,
+        vehicle: vehicle_id ? {
+          id: vehicle_id,
+          brand: vehicle_brand || '',
+          model: vehicle_model || '',
+          licensePlate: vehicle_licensePlate || '',
+          company: vehicle_company,
+          year: vehicle_year,
+        } : undefined,
+      } as unknown as Leasing;
+    });
   }
 
   /**

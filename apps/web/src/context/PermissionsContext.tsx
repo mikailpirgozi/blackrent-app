@@ -50,7 +50,8 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
 
   const fetchUserPermissions = useCallback(async () => {
-    if (!user || user.role === 'admin') {
+    // Skip loading permissions for super_admin and company_admin - they have full access
+    if (!user || user.role === 'super_admin' || user.role === 'company_admin' || user.role === 'admin') {
       setUserCompanyAccess([]);
       return;
     }

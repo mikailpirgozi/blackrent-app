@@ -114,12 +114,20 @@ export const requirePermission = (resource: string, action: string) => {
         throw createUnauthorizedError('Autentifikácia je potrebná');
       }
 
-      // Zjednodušené oprávnenia - admin má všetky práva
-      if (req.user.role === 'admin') {
+      // Admin roles (legacy admin, super_admin) majú všetky práva
+      if (req.user.role === 'admin' || req.user.role === 'super_admin') {
         return next();
       }
 
-      // Pre ostatných používateľov - základné oprávnenia
+      // Company Admin má všetky práva vo svojej firme
+      // Pre granulárnejšie kontroly použite checkPermission middleware
+      if (req.user.role === 'company_admin') {
+        return next();
+      }
+
+      // Pre ostatných používateľov - kontrola cez permission system
+      // Táto zjednodušená verzia je len fallback
+      // Odporúčame použiť checkPermission middleware pre presné kontroly
       const basicPermissions = {
         vehicles: ['read', 'create', 'update', 'delete'],
         rentals: ['read', 'create', 'update', 'delete'],
@@ -147,11 +155,30 @@ export const requirePermission = (resource: string, action: string) => {
 export const filterDataByRole = (data: any[], req: AuthRequest): any[] => {
   if (!req.user) return [];
 
-  // Admin vidí všetky dáta
-  if (req.user.role === 'admin') {
+  // Admin roles (legacy admin, super_admin) vidia všetky dáta
+  if (req.user.role === 'admin' || req.user.role === 'super_admin') {
     return data;
   }
 
-  // Ostatní používatelia vidia všetky dáta (zjednodušené)
+  // Company Admin vidí len dáta vlastnej firmy
+  if (req.user.role === 'company_admin' && req.user.companyId) {
+    return data.filter((item: any) => {
+      // Filter by ownerCompanyId or companyId field
+      return item.ownerCompanyId === req.user!.companyId || 
+             item.companyId === req.user!.companyId;
+    });
+  }
+
+  // Company Owner vidí len svoje vozidlá
+  if (req.user.role === 'investor' && req.user.companyId) {
+    return data.filter((item: any) => {
+      return item.ownerCompanyId === req.user!.companyId || 
+             item.companyId === req.user!.companyId;
+    });
+  }
+
+  // Ostatní používatelia - filter podľa company access
+  // (toto vyžaduje dodatočný lookup do user_company_access tabuľky)
+  // Pre teraz vrátime všetky dáta - TODO: implementovať company access check
   return data;
 };

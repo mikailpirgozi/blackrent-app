@@ -24,7 +24,7 @@ router.get('/',
     });
     
     // 🏢 COMPANY OWNER - filter len svoju vlastnú firmu
-    if (req.user?.role === 'company_owner' && req.user.companyId) {
+    if (req.user?.role === 'company_admin' && req.user.companyId) {
       const originalCount = companies.length;
       companies = companies.filter(c => c.id === req.user?.companyId);
       console.log('🏢 Company Owner Filter:', {

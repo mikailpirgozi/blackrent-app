@@ -812,7 +812,7 @@ router.post('/check-permission', authenticateToken, async (req: AuthRequest, res
 // 🚀 GMAIL APPROACH: GET /api/advanced-users/paginated - Rýchle vyhľadávanie používateľov
 router.get('/paginated', 
   authenticateToken,
-  requireRole(['admin', 'company_owner']),
+  requireRole(['admin', 'company_admin']),
   async (req: AuthRequest, res) => {
     try {
       const { 

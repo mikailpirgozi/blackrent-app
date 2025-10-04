@@ -18,7 +18,7 @@ import { useInfiniteLeasings } from '@/hooks/useInfiniteLeasings';
 import type { LeasingFilters } from '@/types/leasing-types';
 import { LeasingDashboard } from './LeasingDashboard';
 import { LeasingFiltersForm } from './LeasingFiltersForm';
-import { LeasingCard } from './LeasingCard';
+import { LeasingCardCompact } from './LeasingCardCompact';
 import { LeasingForm } from './LeasingForm';
 import { logger } from '@/utils/smartLogger';
 
@@ -112,7 +112,7 @@ export default function LeasingList() {
           // Leasing cards
           <>
             {leasings.map(leasing => (
-              <LeasingCard
+              <LeasingCardCompact
                 key={`${leasing.id}-${leasing.updatedAt}`}
                 leasing={leasing}
               />

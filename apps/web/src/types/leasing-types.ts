@@ -82,6 +82,16 @@ export interface Leasing {
   id: string;
   vehicleId: string;
 
+  // Joined data (pre UI)
+  vehicle?: {
+    id: string;
+    brand: string;
+    model: string;
+    licensePlate: string;
+    company?: string; // Názov firmy priradenej k vozidlu
+    year?: number;
+  };
+
   // Základné info
   leasingCompany: string;
   loanCategory: LoanCategory;

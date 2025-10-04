@@ -16,6 +16,7 @@ import {
   Mail as MailIcon,
   Receipt as ReceiptLongOutlined,
   Shield as SecurityOutlined,
+  Shield,
   CreditCard as CreditCardIcon,
 } from 'lucide-react';
 
@@ -178,10 +179,20 @@ export default function Layout({ children }: LayoutProps) {
     },
   ];
 
-  // Filtruj menu items podľa permissions ako v pôvodnej verzii
-  const menuItems = allMenuItems.filter(
-    item => hasPermission(item.resource, 'read').hasAccess
-  );
+  // Filtruj menu items podľa permissions
+  const menuItems = allMenuItems.filter(item => {
+    // Check basic permission
+    if (!hasPermission(item.resource, 'read').hasAccess) {
+      return false;
+    }
+
+    // Check adminOnly flag
+    if ((item as any).adminOnly) {
+      return user?.role === 'admin' || user?.role === 'super_admin';
+    }
+
+    return true;
+  });
 
   const drawer = (
     <div className="h-full bg-white border-r border-gray-200">
@@ -249,9 +260,16 @@ export default function Layout({ children }: LayoutProps) {
               <p className="text-sm font-bold text-gray-900 truncate">
                 {user?.username || 'Používateľ'}
               </p>
-              <p className="text-xs font-medium text-gray-600 truncate">
-                {user?.role ? getUserRoleDisplayName(user.role) : 'Používateľ'}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium text-gray-600 truncate">
+                  {user?.role ? getUserRoleDisplayName(user.role) : 'Používateľ'}
+                </p>
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                  <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0 h-4">
+                    👑
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -276,12 +294,26 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <Badge
-                variant={user?.role === 'admin' ? 'default' : 'secondary'}
-                className="text-xs"
-              >
-                {user?.role === 'admin' ? 'Admin' : 'User'}
-              </Badge>
+              {/* Super Admin / Admin Badge */}
+              {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                <Badge className="bg-gradient-to-r from-red-600 to-red-500 text-white text-xs font-bold shadow-sm">
+                  👑 {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                </Badge>
+              )}
+              
+              {/* Company Admin Badge */}
+              {user?.role === 'company_admin' && (
+                <Badge className="bg-blue-600 text-white text-xs font-semibold">
+                  🏢 Company Admin
+                </Badge>
+              )}
+              
+              {/* Other Roles */}
+              {user?.role && !['admin', 'super_admin', 'company_admin'].includes(user.role) && (
+                <Badge variant="secondary" className="text-xs">
+                  {getUserRoleDisplayName(user.role)}
+                </Badge>
+              )}
 
               {/* Notifications */}
               <RealTimeNotifications />

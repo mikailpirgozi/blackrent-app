@@ -72,6 +72,7 @@ async function fetchLeasings(filters?: LeasingFilters): Promise<Leasing[]> {
           balance: data.data[0].currentBalance,
           monthlyPayment: data.data[0].totalMonthlyPayment,
           updated: data.data[0].updatedAt,
+          vehicle: data.data[0].vehicle,
         }
       : null,
   });
@@ -420,8 +421,19 @@ export function useCreateLeasing() {
         }
       }
     },
-    onSuccess: data => {
+    onSuccess: (data, _variables, context) => {
       logger.debug('✅ Leasing created:', data);
+
+      // ✅ OPTIMIZED: Update cache directly with real data instead of invalidating
+      queryClient.setQueryData(
+        queryKeys.leasings.lists(),
+        (old: Leasing[] = []) => {
+          // Replace temp leasing with real data
+          return old.map(l =>
+            l.id === context?.tempLeasing?.id ? data : l
+          );
+        }
+      );
 
       // ⚡ DISPATCH success event with real data
       window.dispatchEvent(
@@ -438,12 +450,14 @@ export function useCreateLeasing() {
       );
     },
     onSettled: () => {
-      // 🔄 INVALIDATE: Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.leasings.dashboard(),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
+      // ✅ OPTIMIZED: Background invalidation only (no blocking refetch)
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.leasings.dashboard(),
+        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
+      }, 100);
+      // Don't invalidate leasings.all - we updated it directly
     },
   });
 }
@@ -529,6 +543,21 @@ export function useUpdateLeasing(id: string) {
     onSuccess: updatedLeasing => {
       logger.debug('✅ Leasing updated:', updatedLeasing);
 
+      // ✅ OPTIMIZED: Update cache directly with real data
+      queryClient.setQueryData(
+        queryKeys.leasings.detail(id),
+        (old: LeasingDetailResponse | undefined) => {
+          if (!old) return old;
+          return { ...old, leasing: updatedLeasing };
+        }
+      );
+      queryClient.setQueryData(
+        queryKeys.leasings.all,
+        (old: Leasing[] = []) => {
+          return old.map(l => (l.id === id ? updatedLeasing : l));
+        }
+      );
+
       // ⚡ DISPATCH success event with real data
       window.dispatchEvent(
         new CustomEvent('leasing-optimistic-update', {
@@ -543,15 +572,14 @@ export function useUpdateLeasing(id: string) {
         })
       );
 
-      // Invalidate to refetch fresh data
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.leasings.detail(id),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.leasings.all });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.leasings.dashboard(),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
+      // ✅ OPTIMIZED: Background invalidation only
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.leasings.dashboard(),
+        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all });
+      }, 100);
+      // Don't invalidate detail and list - we updated them directly
     },
   });
 }

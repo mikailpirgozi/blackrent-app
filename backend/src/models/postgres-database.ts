@@ -2358,13 +2358,13 @@ export class PostgresDatabase {
       const usersWithoutCompany = await client.query(`
         SELECT id, username, role 
         FROM users 
-        WHERE company_id IS NULL AND role = 'company_owner'
+        WHERE company_id IS NULL AND role = 'company_admin'
       `);
       
       if (usersWithoutCompany.rows.length > 0) {
-        logger.migration(`⚠️ PROBLÉM: ${usersWithoutCompany.rows.length} company_owner users nemá company_id`);
+        logger.migration(`⚠️ PROBLÉM: ${usersWithoutCompany.rows.length} company_admin users nemá company_id`);
       } else {
-        logger.migration('✅ Všetci company_owner users majú company_id');
+        logger.migration('✅ Všetci company_admin users majú company_id');
       }
       
       // 4. Kontrola ID konzistentnosti (integer IDs, nie UUID)
@@ -3618,8 +3618,8 @@ export class PostgresDatabase {
         paramIndex++;
       }
 
-      // Permission filtering for company_owner role
-      if (params.userRole === 'company_owner' && params.userId) {
+      // Permission filtering for company_admin role
+      if (params.userRole === 'company_admin' && params.userId) {
         // Company owners can only see their own company
         const users = await this.getUsers();
         const user = users.find(u => u.id === params.userId);
@@ -9002,7 +9002,7 @@ export class PostgresDatabase {
       ownershipPercentage: number;
     }>;
   }>> {
-    const client = await this.pool.connect();
+    const client = await this.dbPool.connect();
     try {
       const result = await client.query(`
         SELECT 

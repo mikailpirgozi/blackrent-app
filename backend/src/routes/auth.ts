@@ -2507,7 +2507,7 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
       
       // 6. Test filtering logic
       let filteredVehicles = allVehicles;
-      if (vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId) {
+      if (vincurskyUser?.role === 'company_admin' && vincurskyUser.companyId) {
         filteredVehicles = allVehicles.filter(v => v.ownerCompanyId === vincurskyUser.companyId);
         logger.auth('🔍 Filtered vehicles for Vincursky:', filteredVehicles.length);
       }
@@ -2533,8 +2533,8 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
             ownerCompanyId: v.ownerCompanyId
           })),
           filteredVehiclesCount: filteredVehicles.length,
-          filteringWorks: vincurskyUser?.role === 'company_owner' && vincurskyUser.companyId ? 
-            filteredVehicles.length > 0 : 'N/A - not company_owner or no companyId'
+          filteringWorks: vincurskyUser?.role === 'company_admin' && vincurskyUser.companyId ? 
+            filteredVehicles.length > 0 : 'N/A - not company_admin or no companyId'
         }
       });
 
@@ -2704,7 +2704,7 @@ router.post('/auto-assign-user-companies',
           } else if (user.username.toLowerCase().includes('lubka') || user.firstName?.toLowerCase().includes('lubka')) {
             companyName = 'Lubka';
           } else if (user.firstName || user.lastName) {
-            // Use first name as company name for company_owner
+            // Use first name as company name for company_admin
             companyName = user.firstName || user.lastName || user.username;
           } else {
             // Fallback to username

@@ -13,7 +13,11 @@
     "restore": "node restore.js",
     "list-backups": "ls -la backups/",
     "test-data": "node create-test-data.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:auth": "bash scripts/run-migration.sh",
+    "seed:auth": "ts-node scripts/seed-auth-system.ts",
+    "test:auth": "ts-node scripts/test-auth-system.ts",
+    "setup:auth": "npm run migrate:auth && npm run seed:auth && npm run test:auth"
   },
   "keywords": [
     "blackrent",

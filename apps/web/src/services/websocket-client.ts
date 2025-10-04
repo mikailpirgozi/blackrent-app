@@ -184,6 +184,8 @@ export class WebSocketClient {
       // Pridané pre lepšiu kompatibilitu s backend
       path: '/socket.io/',
       withCredentials: true,
+      // ✅ OPTIMIZATION: Silent mode - no console errors
+      reconnection: true,
       // Pridané pre lepšiu stabilitu
       // pingTimeout a pingInterval nie sú podporované v tejto verzii
     });
@@ -200,9 +202,12 @@ export class WebSocketClient {
     // Skús pripojenie s timeout
     const connectTimeout = window.setTimeout(() => {
       if (this.socket && !this.socket.connected) {
-        logger.debug(
-          '⏰ WebSocket connection timeout, trying polling fallback...'
-        );
+        // ✅ SILENT MODE: No log noise in production
+        if (process.env.NODE_ENV === 'development') {
+          logger.debug(
+            '⏰ WebSocket connection timeout, trying polling fallback...'
+          );
+        }
         this.socket.disconnect();
         this.socket.io.opts.transports = ['polling']; // Fallback na polling
         this.socket.connect();
@@ -211,15 +216,22 @@ export class WebSocketClient {
 
     this.socket.on('connect', () => {
       window.clearTimeout(connectTimeout);
-      logger.debug('✅ WebSocket connected successfully');
+      // ✅ SILENT MODE: Log only in development
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('✅ WebSocket connected successfully');
+      }
     });
 
     this.socket.on('connect_error', error => {
       window.clearTimeout(connectTimeout);
-      logger.debug(
-        '❌ WebSocket connection failed, will retry...',
-        error.message
-      );
+      // ✅ SILENT MODE: Only log critical errors, not every reconnect attempt
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug(
+          '❌ WebSocket connection failed, will retry silently...',
+          error.message
+        );
+      }
+      // Don't throw or show errors - just retry silently
     });
 
     // Pripoj sa

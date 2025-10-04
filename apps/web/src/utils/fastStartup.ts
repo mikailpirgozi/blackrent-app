@@ -121,6 +121,13 @@ export const warmVehicleDocumentsCache = async (): Promise<void> => {
   }
 
   try {
+    // ✅ Check if user is authenticated before warming cache
+    const authData = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!authData) {
+      logger.debug('⏭️ Skipping vehicle documents cache warming - user not authenticated');
+      return;
+    }
+
     // Cache warming v pozadí - neklepaj loading state
     logger.debug('🔥 Warming vehicle documents cache...');
 
@@ -131,7 +138,12 @@ export const warmVehicleDocumentsCache = async (): Promise<void> => {
     vehicleDocumentsCacheWarmed = true;
     logger.debug('✅ Vehicle documents cache warmed');
   } catch (error) {
-    logger.error('❌ Failed to warm vehicle documents cache', error);
+    // Don't log error if it's just an auth issue
+    if (error instanceof Error && error.message.includes('token')) {
+      logger.debug('⏭️ Cache warming skipped - authentication required');
+    } else {
+      logger.error('❌ Failed to warm vehicle documents cache', error);
+    }
   }
 };
 

@@ -468,8 +468,16 @@ export interface Insurer {
   createdAt?: Date;
 }
 
-// Auth types
-export type UserRole = 'admin' | 'user' | 'employee' | 'temp_worker' | 'mechanic' | 'sales_rep' | 'company_owner';
+// Auth types - synchronized with frontend
+export type UserRole = 
+  | 'admin'           // Legacy admin role for backward compatibility
+  | 'super_admin'     // Super administrator - sees all companies, all data
+  | 'company_admin'   // Company administrator - full access to their company
+  | 'investor'        // Investor - read-only access to own vehicles/companies
+  | 'employee'        // Employee with customizable permissions
+  | 'temp_worker'     // Temporary worker with limited permissions
+  | 'mechanic'        // Mechanic with maintenance permissions
+  | 'sales_rep';      // Sales representative with sales permissions
 
 export interface User {
   id: string;

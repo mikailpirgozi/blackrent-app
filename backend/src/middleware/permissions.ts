@@ -15,7 +15,7 @@ declare global {
 
 // 🔐 ROLE PERMISSIONS MATRIX
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  // 👑 ADMIN - Úplné práva na všetko
+  // 👑 ADMIN - Legacy admin role (same as super_admin)
   admin: [
     {
       resource: '*',
@@ -24,54 +24,26 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     }
   ],
 
-  // 👤 USER - Základný používateľ s READ-ONLY právami (používa company-based permissions)
-  user: [
+  // 👑 SUPER_ADMIN - Úplné práva na všetko, všetky firmy
+  super_admin: [
     {
-      resource: 'vehicles',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'rentals',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'customers',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'expenses',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'settlements',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'insurances',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'maintenance',
-      actions: ['read'],
-      conditions: {}
-    },
-    {
-      resource: 'protocols',
-      actions: ['read', 'create', 'update'],
-      conditions: {}
-    },
-    {
-      resource: 'statistics',
-      actions: ['read'],
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
       conditions: {}
     }
   ],
+
+  // 🏢 COMPANY_ADMIN - Úplné práva len vo vlastnej firme
+  company_admin: [
+    {
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: {
+        companyOnly: true
+      }
+    }
+  ],
+
 
   // 👥 EMPLOYEE - Základné operácie s vozidlami, prenájmami, zákazníkmi
   employee: [
@@ -180,7 +152,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   // 🏢 COMPANY OWNER - Len vlastné vozidlá a súvisiace dáta
-  company_owner: [
+  investor: [
     {
       resource: 'vehicles',
       actions: ['read'],
@@ -252,9 +224,26 @@ export function hasPermission(
   const rolePermissions = ROLE_PERMISSIONS[userRole];
   logger.auth('📋 Role permissions:', rolePermissions);
   
-  // Admin má vždy práva
-  if (userRole === 'admin') {
+  // Admin roles (legacy admin, super_admin) majú vždy práva
+  if (userRole === 'admin' || userRole === 'super_admin') {
     logger.auth('👑 Admin access granted');
+    return { hasAccess: true, requiresApproval: false };
+  }
+
+  // Company Admin má práva len vo svojej firme
+  if (userRole === 'company_admin') {
+    // Kontrola či pristupuje k vlastnej firme
+    if (context?.companyId && context?.resourceCompanyId) {
+      if (context.companyId !== context.resourceCompanyId) {
+        logger.auth('❌ Company Admin trying to access different company');
+        return { 
+          hasAccess: false, 
+          requiresApproval: false, 
+          reason: 'Company Admin môže pristupovať len k dátam vlastnej firmy' 
+        };
+      }
+    }
+    logger.auth('✅ Company Admin access granted for own company');
     return { hasAccess: true, requiresApproval: false };
   }
 
@@ -372,9 +361,26 @@ export function checkPermission(
         }
       );
 
-      // Admin má práva na všetko - preskoč kontrolu
-      if (req.user.role === 'admin') {
+      // Admin roles (legacy admin, super_admin) majú práva na všetko
+      if (req.user.role === 'admin' || req.user.role === 'super_admin') {
         logger.auth('✅ Admin access granted');
+        req.permissionCheck = { hasAccess: true, requiresApproval: false };
+        return next();
+      }
+
+      // Company Admin má práva len vo svojej firme
+      if (req.user.role === 'company_admin') {
+        // Ak má context, skontroluj či ide o vlastnú firmu
+        if (context && (context as any).resourceCompanyId) {
+          if (req.user.companyId !== (context as any).resourceCompanyId) {
+            logger.auth('❌ Company Admin denied: different company');
+            return res.status(403).json({
+              success: false,
+              error: 'Company Admin môže pristupovať len k dátam vlastnej firmy'
+            });
+          }
+        }
+        logger.auth('✅ Company Admin access granted');
         req.permissionCheck = { hasAccess: true, requiresApproval: false };
         return next();
       }

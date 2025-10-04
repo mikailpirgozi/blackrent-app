@@ -48,7 +48,7 @@ const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 import InsuranceList from './components/insurances/InsuranceList';
 const Statistics = lazy(() => import('./components/Statistics'));
 const UserManagement = lazy(
-  () => import('./components/users/IntegratedUserManagement')
+  () => import('./pages/UserManagementPage')
 );
 
 const SettlementList = lazy(
@@ -58,6 +58,7 @@ const SmartAvailabilityPage = lazy(
   () => import('./pages/SmartAvailabilityPage')
 );
 const LeasingList = lazy(() => import('./components/leasings/LeasingList'));
+const PermissionManagementPage = lazy(() => import('./pages/PermissionManagementPage'));
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
@@ -316,6 +317,21 @@ const AppContent: React.FC = () => {
                                 <ErrorBoundary>
                                   <Suspense fallback={<PageLoader />}>
                                     <SmartAvailabilityPage />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
+
+                        <Route
+                          path="/admin/permissions"
+                          element={
+                            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <PermissionManagementPage />
                                   </Suspense>
                                 </ErrorBoundary>
                               </Layout>

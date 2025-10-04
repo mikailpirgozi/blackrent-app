@@ -154,7 +154,8 @@ router.get(
       
       console.log('✅ GET LEASINGS RESPONSE:', { 
         count: leasings.length,
-        sample: leasings[0] 
+        sample: leasings[0],
+        vehicleData: leasings[0]?.vehicle
       });
       
       res.json({
