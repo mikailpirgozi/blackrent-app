@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcryptjs';
 import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
-import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, Platform, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -266,6 +266,32 @@ export class PostgresDatabase {
   private async initTables() {
     const client = await this.pool.connect();
     try {
+      // 🌐 PLATFORM MULTI-TENANCY - Vytvorenie platforms tabuľky (MUST BE FIRST)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS platforms (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) NOT NULL UNIQUE,
+          display_name VARCHAR(255),
+          subdomain VARCHAR(50) UNIQUE,
+          logo_url TEXT,
+          settings JSONB DEFAULT '{}',
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Vytvorenie default platforiem
+      await client.query(`
+        INSERT INTO platforms (name, display_name, subdomain, is_active) 
+        VALUES 
+          ('Blackrent', 'Blackrent - Premium Car Rental', 'blackrent', true),
+          ('Impresario', 'Impresario - Luxury Fleet Management', 'impresario', true)
+        ON CONFLICT (name) DO NOTHING
+      `);
+
+      logger.db('✅ Platforms table initialized with default platforms');
+
       // FÁZA 1: ROLE-BASED PERMISSIONS - Vytvorenie companies tabuľky
       await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
@@ -285,6 +311,20 @@ export class PostgresDatabase {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // 🌐 ADD platform_id to companies
+      try {
+        await client.query(`
+          ALTER TABLE companies 
+          ADD COLUMN IF NOT EXISTS platform_id UUID REFERENCES platforms(id) ON DELETE CASCADE
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_companies_platform ON companies(platform_id)
+        `);
+        logger.db('✅ Companies platform_id column added');
+      } catch (error) {
+        logger.db('ℹ️ Companies platform_id already exists:', error);
+      }
 
       // Tabuľka používateľov s hashovanými heslami
       await client.query(`
@@ -314,6 +354,42 @@ export class PostgresDatabase {
         `);
       } catch (error) {
         logger.db('ℹ️ Users table columns already exist or error occurred:', error);
+      }
+
+      // 🌐 ADD platform_id to users
+      try {
+        await client.query(`
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS platform_id UUID REFERENCES platforms(id) ON DELETE CASCADE
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_users_platform ON users(platform_id)
+        `);
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_users_platform_role ON users(platform_id, role)
+        `);
+        logger.db('✅ Users platform_id column added');
+      } catch (error) {
+        logger.db('ℹ️ Users platform_id already exists:', error);
+      }
+
+      // 🌐 MIGRATE existing admin users to Blackrent platform
+      try {
+        const blackrentResult = await client.query(`
+          SELECT id FROM platforms WHERE name = 'Blackrent' LIMIT 1
+        `);
+        if (blackrentResult.rows.length > 0) {
+          const blackrentId = blackrentResult.rows[0].id;
+          await client.query(`
+            UPDATE users 
+            SET platform_id = $1 
+            WHERE role IN ('admin', 'super_admin') 
+            AND platform_id IS NULL
+          `, [blackrentId]);
+          logger.db('✅ Migrated existing admin users to Blackrent platform');
+        }
+      } catch (error) {
+        logger.db('ℹ️ Admin user migration error:', error);
       }
 
       // Tabuľka vozidiel
@@ -2588,7 +2664,7 @@ export class PostgresDatabase {
     try {
       // Najprv skús v hlavnej users tabuľke
       const result = await this.pool.query(
-        'SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE username = $1',
+        'SELECT id, username, email, password_hash as password, role, platform_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE username = $1',
         [username]
       );
 
@@ -2602,6 +2678,7 @@ export class PostgresDatabase {
           firstName: row.first_name,
           lastName: row.last_name,
           role: row.role,
+          platformId: row.platform_id,
           companyId: row.company_id,
           employeeNumber: row.employee_number,
           hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
@@ -2625,7 +2702,7 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     try {
       const result = await this.pool.query(
-        'SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE id = $1',
+        'SELECT id, username, email, password_hash as password, role, platform_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE id = $1',
         [id]
       );
 
@@ -2639,6 +2716,7 @@ export class PostgresDatabase {
           firstName: row.first_name,
           lastName: row.last_name,
           role: row.role,
+          platformId: row.platform_id,
           companyId: row.company_id,
           employeeNumber: row.employee_number,
           hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
@@ -2662,6 +2740,7 @@ export class PostgresDatabase {
     email: string; 
     password: string; 
     role: string;
+    platformId?: string | null;
     firstName?: string | null;
     lastName?: string | null;
     companyId?: string | null;
@@ -2678,10 +2757,10 @@ export class PostgresDatabase {
       const hashedPassword = await bcrypt.hash(userData.password, 12);
       const result = await client.query(
         `INSERT INTO users (
-          username, email, password_hash, role, first_name, last_name, 
+          username, email, password_hash, role, platform_id, first_name, last_name, 
           company_id, employee_number, hire_date, is_active, signature_template, linked_investor_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
-        RETURNING id, username, email, password_hash, role, first_name, last_name,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+        RETURNING id, username, email, password_hash, role, platform_id, first_name, last_name,
                   company_id, employee_number, hire_date, is_active, last_login,
                   signature_template, linked_investor_id, created_at, updated_at`,
         [
@@ -2689,6 +2768,7 @@ export class PostgresDatabase {
           userData.email, 
           hashedPassword, 
           userData.role,
+          userData.platformId || null,
           userData.firstName,
           userData.lastName,
           userData.companyId || null, // UUID string, no conversion needed
@@ -2709,6 +2789,7 @@ export class PostgresDatabase {
         email: row.email,
         password: row.password_hash,
         role: row.role,
+        platformId: row.platform_id,
         firstName: row.first_name,
         lastName: row.last_name,
         companyId: row.company_id, // UUID string, no conversion needed
@@ -3665,6 +3746,7 @@ export class PostgresDatabase {
       const companies = dataResult.rows.map(row => ({
         id: row.id,
         name: row.name,
+        platformId: row.platform_id,
         email: row.email,
         phone: row.phone,
         address: row.address,
@@ -3787,6 +3869,7 @@ export class PostgresDatabase {
         firstName: row.first_name,
         lastName: row.last_name,
         role: row.role,
+        platformId: row.platform_id,
         companyId: row.company_id,
         companyName: row.company_name,
         isActive: row.is_active !== false,
@@ -6080,6 +6163,7 @@ export class PostgresDatabase {
       return result.rows.map(row => ({
         id: row.id?.toString() || '',
         name: row.name,
+        platformId: row.platform_id,
         businessId: row.ic, // IC -> businessId mapping
         taxId: row.dic, // DIC -> taxId mapping
         address: row.address || '',
@@ -6138,6 +6222,7 @@ export class PostgresDatabase {
       return {
         id: row.id.toString(),
         name: row.name,
+        platformId: row.platform_id,
         businessId: row.ic || '',
         taxId: row.dic || '',
         address: row.address || '',
@@ -6218,6 +6303,7 @@ export class PostgresDatabase {
       return {
         id: row.id.toString(),
         name: row.name,
+        platformId: row.platform_id,
         businessId: row.ic || '',
         taxId: row.dic || '',
         address: row.address || '',
@@ -8938,7 +9024,7 @@ export class PostgresDatabase {
       const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
-        JOIN companies c ON up.company_id = c.id
+        JOIN companies c ON up.company_id::text = c.id::text
         WHERE up.user_id = $1::uuid
         ORDER BY c.name
         `, [userId]);
@@ -9002,7 +9088,7 @@ export class PostgresDatabase {
       ownershipPercentage: number;
     }>;
   }>> {
-    const client = await this.dbPool.connect();
+    const client = await this.pool.connect();
     try {
       const result = await client.query(`
         SELECT 
@@ -10284,6 +10370,312 @@ export class PostgresDatabase {
       activeLeasingsCount: parseInt(active.rows[0]?.count || '0'),
       completedLeasingsCount: parseInt(completed.rows[0]?.count || '0'),
     };
+  }
+
+  // ============================================================================
+  // 🌐 PLATFORM MANAGEMENT METHODS
+  // ============================================================================
+
+  /**
+   * Get all platforms
+   */
+  async getPlatforms(): Promise<Platform[]> {
+    try {
+      const result = await this.pool.query(`
+        SELECT 
+          id, 
+          name, 
+          display_name as "displayName",
+          subdomain,
+          logo_url as "logoUrl",
+          settings,
+          is_active as "isActive",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM platforms
+        ORDER BY name ASC
+      `);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        displayName: row.displayName,
+        subdomain: row.subdomain,
+        logoUrl: row.logoUrl,
+        settings: row.settings || {},
+        isActive: row.isActive,
+        createdAt: new Date(row.createdAt),
+        updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+      }));
+    } catch (error) {
+      logger.error('❌ getPlatforms error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get platform by ID
+   */
+  async getPlatform(id: string): Promise<Platform | null> {
+    try {
+      const result = await this.pool.query(`
+        SELECT 
+          id, 
+          name, 
+          display_name as "displayName",
+          subdomain,
+          logo_url as "logoUrl",
+          settings,
+          is_active as "isActive",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM platforms
+        WHERE id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        name: row.name,
+        displayName: row.displayName,
+        subdomain: row.subdomain,
+        logoUrl: row.logoUrl,
+        settings: row.settings || {},
+        isActive: row.isActive,
+        createdAt: new Date(row.createdAt),
+        updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+      };
+    } catch (error) {
+      logger.error('❌ getPlatform error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create new platform
+   */
+  async createPlatform(data: {
+    name: string;
+    displayName?: string;
+    subdomain?: string;
+    logoUrl?: string;
+    settings?: Record<string, unknown>;
+  }): Promise<Platform> {
+    try {
+      const result = await this.pool.query(`
+        INSERT INTO platforms (name, display_name, subdomain, logo_url, settings)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING 
+          id, 
+          name, 
+          display_name as "displayName",
+          subdomain,
+          logo_url as "logoUrl",
+          settings,
+          is_active as "isActive",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+      `, [
+        data.name,
+        data.displayName || null,
+        data.subdomain || null,
+        data.logoUrl || null,
+        JSON.stringify(data.settings || {}),
+      ]);
+      
+      const row = result.rows[0];
+      logger.info(`✅ Platform created: ${row.name} (${row.id})`);
+      
+      return {
+        id: row.id,
+        name: row.name,
+        displayName: row.displayName,
+        subdomain: row.subdomain,
+        logoUrl: row.logoUrl,
+        settings: row.settings || {},
+        isActive: row.isActive,
+        createdAt: new Date(row.createdAt),
+        updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+      };
+    } catch (error) {
+      logger.error('❌ createPlatform error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update platform
+   */
+  async updatePlatform(id: string, data: Partial<{
+    name: string;
+    displayName: string;
+    subdomain: string;
+    logoUrl: string;
+    settings: Record<string, unknown>;
+    isActive: boolean;
+  }>): Promise<Platform | null> {
+    try {
+      const fields: string[] = [];
+      const values: unknown[] = [];
+      let paramIndex = 1;
+
+      if (data.name !== undefined) {
+        fields.push(`name = $${paramIndex++}`);
+        values.push(data.name);
+      }
+      if (data.displayName !== undefined) {
+        fields.push(`display_name = $${paramIndex++}`);
+        values.push(data.displayName);
+      }
+      if (data.subdomain !== undefined) {
+        fields.push(`subdomain = $${paramIndex++}`);
+        values.push(data.subdomain);
+      }
+      if (data.logoUrl !== undefined) {
+        fields.push(`logo_url = $${paramIndex++}`);
+        values.push(data.logoUrl);
+      }
+      if (data.settings !== undefined) {
+        fields.push(`settings = $${paramIndex++}`);
+        values.push(JSON.stringify(data.settings));
+      }
+      if (data.isActive !== undefined) {
+        fields.push(`is_active = $${paramIndex++}`);
+        values.push(data.isActive);
+      }
+
+      if (fields.length === 0) {
+        return this.getPlatform(id);
+      }
+
+      fields.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const query = `
+        UPDATE platforms 
+        SET ${fields.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING 
+          id, 
+          name, 
+          display_name as "displayName",
+          subdomain,
+          logo_url as "logoUrl",
+          settings,
+          is_active as "isActive",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+      `;
+
+      const result = await this.pool.query(query, values);
+      
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      logger.info(`✅ Platform updated: ${row.name} (${row.id})`);
+      
+      return {
+        id: row.id,
+        name: row.name,
+        displayName: row.displayName,
+        subdomain: row.subdomain,
+        logoUrl: row.logoUrl,
+        settings: row.settings || {},
+        isActive: row.isActive,
+        createdAt: new Date(row.createdAt),
+        updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+      };
+    } catch (error) {
+      logger.error('❌ updatePlatform error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete platform (will cascade delete all related data)
+   */
+  async deletePlatform(id: string): Promise<boolean> {
+    try {
+      const result = await this.pool.query('DELETE FROM platforms WHERE id = $1', [id]);
+      const deleted = result.rowCount! > 0;
+      
+      if (deleted) {
+        logger.info(`✅ Platform deleted: ${id}`);
+      }
+      
+      return deleted;
+    } catch (error) {
+      logger.error('❌ deletePlatform error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Assign company to platform
+   */
+  async assignCompanyToPlatform(companyId: string, platformId: string): Promise<boolean> {
+    try {
+      const result = await this.pool.query(`
+        UPDATE companies 
+        SET platform_id = $1, updated_at = NOW()
+        WHERE id = $2
+      `, [platformId, companyId]);
+      
+      const updated = result.rowCount! > 0;
+      
+      if (updated) {
+        logger.info(`✅ Company ${companyId} assigned to platform ${platformId}`);
+      }
+      
+      return updated;
+    } catch (error) {
+      logger.error('❌ assignCompanyToPlatform error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get platform statistics
+   */
+  async getPlatformStats(platformId: string): Promise<{
+    totalCompanies: number;
+    totalUsers: number;
+    totalVehicles: number;
+    totalRentals: number;
+  }> {
+    try {
+      const companies = await this.pool.query(
+        'SELECT COUNT(*) as count FROM companies WHERE platform_id = $1',
+        [platformId]
+      );
+      
+      const users = await this.pool.query(
+        'SELECT COUNT(*) as count FROM users WHERE platform_id = $1',
+        [platformId]
+      );
+      
+      const vehicles = await this.pool.query(
+        'SELECT COUNT(*) as count FROM vehicles WHERE platform_id = $1',
+        [platformId]
+      );
+      
+      const rentals = await this.pool.query(
+        'SELECT COUNT(*) as count FROM rentals WHERE platform_id = $1',
+        [platformId]
+      );
+      
+      return {
+        totalCompanies: parseInt(companies.rows[0]?.count || '0'),
+        totalUsers: parseInt(users.rows[0]?.count || '0'),
+        totalVehicles: parseInt(vehicles.rows[0]?.count || '0'),
+        totalRentals: parseInt(rentals.rows[0]?.count || '0'),
+      };
+    } catch (error) {
+      logger.error('❌ getPlatformStats error:', error);
+      throw error;
+    }
   }
 
 }

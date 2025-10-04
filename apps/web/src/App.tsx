@@ -47,9 +47,7 @@ const CustomerList = lazy(
 const ExpenseList = lazy(() => import('./components/expenses/ExpenseListNew'));
 import InsuranceList from './components/insurances/InsuranceList';
 const Statistics = lazy(() => import('./components/Statistics'));
-const UserManagement = lazy(
-  () => import('./pages/UserManagementPage')
-);
+const UserManagement = lazy(() => import('./pages/UserManagementPage'));
 
 const SettlementList = lazy(
   () => import('./components/settlements/SettlementListNew')
@@ -58,7 +56,12 @@ const SmartAvailabilityPage = lazy(
   () => import('./pages/SmartAvailabilityPage')
 );
 const LeasingList = lazy(() => import('./components/leasings/LeasingList'));
-const PermissionManagementPage = lazy(() => import('./pages/PermissionManagementPage'));
+const PermissionManagementPage = lazy(
+  () => import('./pages/PermissionManagementPage')
+);
+const PlatformManagementPage = lazy(
+  () => import('./pages/PlatformManagementPage')
+);
 
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
@@ -293,6 +296,24 @@ const AppContent: React.FC = () => {
                           }
                         />
 
+                        {/* 🌐 PLATFORM MANAGEMENT - Super Admin Only */}
+                        <Route
+                          path="/platforms"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={['super_admin', 'admin']}
+                            >
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <PlatformManagementPage />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
+
                         {/* NEW SMART AVAILABILITY - Optimized replacement */}
                         <Route
                           path="/availability"
@@ -327,7 +348,9 @@ const AppContent: React.FC = () => {
                         <Route
                           path="/admin/permissions"
                           element={
-                            <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                            <ProtectedRoute
+                              allowedRoles={['admin', 'super_admin']}
+                            >
                               <Layout>
                                 <ErrorBoundary>
                                   <Suspense fallback={<PageLoader />}>

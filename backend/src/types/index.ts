@@ -468,16 +468,31 @@ export interface Insurer {
   createdAt?: Date;
 }
 
+// 🌐 PLATFORM MULTI-TENANCY
+export interface Platform {
+  id: string;
+  name: string;                    // "Blackrent", "Impresario"
+  displayName?: string;            // "Blackrent - Premium Car Rental"
+  subdomain?: string;              // "blackrent", "impresario"
+  logoUrl?: string;
+  settings?: Record<string, unknown>; // JSONB custom settings
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 // Auth types - synchronized with frontend
 export type UserRole = 
-  | 'admin'           // Legacy admin role for backward compatibility
-  | 'super_admin'     // Super administrator - sees all companies, all data
-  | 'company_admin'   // Company administrator - full access to their company
-  | 'investor'        // Investor - read-only access to own vehicles/companies
-  | 'employee'        // Employee with customizable permissions
-  | 'temp_worker'     // Temporary worker with limited permissions
-  | 'mechanic'        // Mechanic with maintenance permissions
-  | 'sales_rep';      // Sales representative with sales permissions
+  | 'super_admin'         // 🌟 Super administrator - sees ALL platforms, all data
+  | 'platform_admin'      // 👑 Platform administrator - sees only their platform + all companies in it
+  | 'platform_employee'   // 👥 Platform employee - limited permissions within platform
+  | 'investor'            // 💰 Investor - read-only access to companies where they have shares
+  | 'admin'               // ⚠️ DEPRECATED - Legacy admin role (migrated to platform_admin)
+  | 'company_admin'       // ⚠️ DEPRECATED - Legacy company admin (migrated to investor)
+  | 'employee'            // ⚠️ DEPRECATED - Legacy employee (migrated to platform_employee)
+  | 'temp_worker'         // ⚠️ DEPRECATED - Temporary worker with limited permissions
+  | 'mechanic'            // ⚠️ DEPRECATED - Mechanic with maintenance permissions
+  | 'sales_rep';          // ⚠️ DEPRECATED - Sales representative with sales permissions
 
 export interface User {
   id: string;
@@ -487,7 +502,8 @@ export interface User {
   lastName?: string; // Priezvisko zamestnanca
   password: string;
   role: UserRole;
-  companyId?: string; // Prepojenie na firmu
+  platformId?: string; // 🌐 Pripojenie na platformu
+  companyId?: string; // Prepojenie na firmu (deprecated pre nový systém)
   employeeNumber?: string; // Zamestnanecké číslo
   hireDate?: Date; // Dátum nástupu
   isActive: boolean; // Aktívny používateľ
@@ -505,6 +521,7 @@ export type UserWithoutPassword = Omit<User, 'password'>;
 export interface Company {
   id: string;
   name: string;
+  platformId?: string; // 🌐 Pripojenie na platformu
   businessId?: string; // IČO (IC)
   taxId?: string; // DIČ (DIC)
   address?: string;

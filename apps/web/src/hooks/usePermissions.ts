@@ -22,6 +22,27 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     },
   ],
 
+  // 👑 PLATFORM_ADMIN - Úplné práva vo vlastnej platforme
+  platform_admin: [
+    {
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: { companyOnly: true },
+    },
+  ],
+
+  // 👥 PLATFORM_EMPLOYEE - Obmedzené práva
+  platform_employee: [],
+
+  // ⚠️ DEPRECATED ROLES (for backwards compatibility)
+  admin: [
+    {
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: {},
+    },
+  ],
+
   // 🏢 COMPANY_ADMIN - Úplné práva len vo vlastnej firme
   company_admin: [
     {
@@ -428,12 +449,16 @@ export function canUserAccess(
 
 export function getUserRoleDisplayName(role: UserRole): string {
   const roleNames: Record<UserRole, string> = {
-    admin: '👑 Administrátor',
-    employee: '👥 Zamestnanec',
-    temp_worker: '🔧 Brigádnik',
-    mechanic: '🔨 Mechanik',
-    sales_rep: '💼 Obchodný zástupca',
-    investor: '🏢 Majiteľ vozidiel',
+    super_admin: '🌟 Super Admin',
+    platform_admin: '👑 Platform Admin',
+    platform_employee: '👥 Platform Employee',
+    investor: '💰 Investor',
+    admin: '👑 Administrátor (Legacy)',
+    company_admin: '🏢 Company Admin (Legacy)',
+    employee: '👥 Zamestnanec (Legacy)',
+    temp_worker: '🔧 Brigádnik (Legacy)',
+    mechanic: '🔨 Mechanik (Legacy)',
+    sales_rep: '💼 Obchodný zástupca (Legacy)',
   };
 
   return roleNames[role] || role;

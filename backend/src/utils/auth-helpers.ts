@@ -162,6 +162,8 @@ export function getRoleDisplayName(role: UserRole): string {
   const roleNames: Record<UserRole, string> = {
     admin: 'Administrátor',
     super_admin: 'Super Administrátor',
+    platform_admin: 'Administrátor Platformy',
+    platform_employee: 'Zamestnanec Platformy',
     company_admin: 'Administrátor Firmy',
     investor: 'Investor',
     employee: 'Zamestnanec',

@@ -144,6 +144,7 @@ import insurerRoutes from './routes/insurers';
 import leasingRoutes from './routes/leasings';
 import migrationRoutes from './routes/migration';
 import permissionRoutes from './routes/permissions';
+import platformRoutes from './routes/platforms'; // 🌐 PLATFORM MULTI-TENANCY
 import protocolRoutes from './routes/protocols';
 import protocolsV2Routes from './routes/protocols-v2';
 import pushRoutes from './routes/push';
@@ -158,6 +159,7 @@ import vehicleRoutes from './routes/vehicles';
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/platforms', platformRoutes); // 🌐 PLATFORM MULTI-TENANCY
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/rentals', rentalRoutes);

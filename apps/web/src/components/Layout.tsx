@@ -166,6 +166,13 @@ export default function Layout({ children }: LayoutProps) {
       resource: 'users' as const,
     },
     {
+      text: '🌐 Platformy',
+      icon: <AdminPanelSettingsOutlined />,
+      path: '/platforms',
+      resource: 'users' as const,
+      superAdminOnly: true,
+    },
+    {
       text: 'Štatistiky',
       icon: <DashboardOutlined />,
       path: '/statistics',
@@ -184,6 +191,11 @@ export default function Layout({ children }: LayoutProps) {
     // Check basic permission
     if (!hasPermission(item.resource, 'read').hasAccess) {
       return false;
+    }
+
+    // Check superAdminOnly flag (allow both super_admin and admin)
+    if ((item as any).superAdminOnly) {
+      return user?.role === 'super_admin' || user?.role === 'admin';
     }
 
     // Check adminOnly flag
@@ -262,7 +274,9 @@ export default function Layout({ children }: LayoutProps) {
               </p>
               <div className="flex items-center gap-2">
                 <p className="text-xs font-medium text-gray-600 truncate">
-                  {user?.role ? getUserRoleDisplayName(user.role) : 'Používateľ'}
+                  {user?.role
+                    ? getUserRoleDisplayName(user.role)
+                    : 'Používateľ'}
                 </p>
                 {(user?.role === 'admin' || user?.role === 'super_admin') && (
                   <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0 h-4">
@@ -300,20 +314,23 @@ export default function Layout({ children }: LayoutProps) {
                   👑 {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </Badge>
               )}
-              
+
               {/* Company Admin Badge */}
               {user?.role === 'company_admin' && (
                 <Badge className="bg-blue-600 text-white text-xs font-semibold">
                   🏢 Company Admin
                 </Badge>
               )}
-              
+
               {/* Other Roles */}
-              {user?.role && !['admin', 'super_admin', 'company_admin'].includes(user.role) && (
-                <Badge variant="secondary" className="text-xs">
-                  {getUserRoleDisplayName(user.role)}
-                </Badge>
-              )}
+              {user?.role &&
+                !['admin', 'super_admin', 'company_admin'].includes(
+                  user.role
+                ) && (
+                  <Badge variant="secondary" className="text-xs">
+                    {getUserRoleDisplayName(user.role)}
+                  </Badge>
+                )}
 
               {/* Notifications */}
               <RealTimeNotifications />

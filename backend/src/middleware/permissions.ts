@@ -33,6 +33,39 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     }
   ],
 
+  // 👑 PLATFORM_ADMIN - Úplné práva na platforme
+  platform_admin: [
+    {
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: {}
+    }
+  ],
+
+  // 👥 PLATFORM_EMPLOYEE - Obmedzené práva na platforme
+  platform_employee: [
+    {
+      resource: 'vehicles',
+      actions: ['read', 'create', 'update'],
+      conditions: {}
+    },
+    {
+      resource: 'rentals',
+      actions: ['read', 'create', 'update'],
+      conditions: {}
+    },
+    {
+      resource: 'customers',
+      actions: ['read', 'create', 'update'],
+      conditions: {}
+    },
+    {
+      resource: 'companies',
+      actions: ['read'],
+      conditions: {}
+    }
+  ],
+
   // 🏢 COMPANY_ADMIN - Úplné práva len vo vlastnej firme
   company_admin: [
     {
