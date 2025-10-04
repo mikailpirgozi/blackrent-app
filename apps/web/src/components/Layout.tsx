@@ -18,6 +18,7 @@ import {
   Shield as SecurityOutlined,
   Shield,
   CreditCard as CreditCardIcon,
+  Building2 as Building2Icon,
 } from 'lucide-react';
 
 // shadcn/ui components
@@ -166,11 +167,11 @@ export default function Layout({ children }: LayoutProps) {
       resource: 'users' as const,
     },
     {
-      text: '🌐 Platformy',
-      icon: <AdminPanelSettingsOutlined />,
+      text: 'Platformy',
+      icon: <Building2Icon />,
       path: '/platforms',
-      resource: 'users' as const,
-      superAdminOnly: true,
+      resource: 'platforms' as const,
+      superAdminOnly: true, // Admin a Super Admin majú prístup
     },
     {
       text: 'Štatistiky',
@@ -188,19 +189,27 @@ export default function Layout({ children }: LayoutProps) {
 
   // Filtruj menu items podľa permissions
   const menuItems = allMenuItems.filter(item => {
-    // Check basic permission
-    if (!hasPermission(item.resource, 'read').hasAccess) {
-      return false;
-    }
+    // 🛡️ ADMIN OVERRIDE: Admin roles majú prístup ku všetkému
+    const isAdminUser = user?.role === 'admin' || user?.role === 'super_admin';
 
-    // Check superAdminOnly flag (allow both super_admin and admin)
+    // Check superAdminOnly flag NAJPRV (admin a super_admin majú prístup)
     if ((item as any).superAdminOnly) {
-      return user?.role === 'super_admin' || user?.role === 'admin';
+      return isAdminUser;
     }
 
     // Check adminOnly flag
     if ((item as any).adminOnly) {
-      return user?.role === 'admin' || user?.role === 'super_admin';
+      return isAdminUser;
+    }
+
+    // Admin roles majú automatický prístup ku všetkému
+    if (isAdminUser) {
+      return true;
+    }
+
+    // Pre ostatných kontroluj permissions
+    if (!hasPermission(item.resource, 'read').hasAccess) {
+      return false;
     }
 
     return true;

@@ -494,6 +494,8 @@ export interface Permission {
     | 'pricing'
     | 'expenses'
     | 'insurances'
+    | 'platforms' // 🌐 Platform management (super_admin/admin only)
+    | 'statistics'
     | '*';
   actions: ('read' | 'create' | 'update' | 'delete')[];
   conditions?: {

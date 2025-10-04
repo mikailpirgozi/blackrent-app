@@ -10648,23 +10648,37 @@ export class PostgresDatabase {
     totalRentals: number;
   }> {
     try {
+      // 🏢 Počet firiem na platforme
       const companies = await this.pool.query(
-        'SELECT COUNT(*) as count FROM companies WHERE platform_id = $1',
+        'SELECT COUNT(*) as count FROM companies WHERE platform_id = $1::uuid',
         [platformId]
       );
       
+      // 👥 Počet používateľov - JOINnutých cez company_id
       const users = await this.pool.query(
-        'SELECT COUNT(*) as count FROM users WHERE platform_id = $1',
+        `SELECT COUNT(DISTINCT u.id) as count 
+         FROM users u 
+         INNER JOIN companies c ON u.company_id = c.id 
+         WHERE c.platform_id = $1::uuid`,
         [platformId]
       );
       
+      // 🚗 Počet vozidiel - JOINnutých cez owner_company_id
       const vehicles = await this.pool.query(
-        'SELECT COUNT(*) as count FROM vehicles WHERE platform_id = $1',
+        `SELECT COUNT(DISTINCT v.id) as count 
+         FROM vehicles v 
+         INNER JOIN companies c ON v.owner_company_id = c.id 
+         WHERE c.platform_id = $1::uuid`,
         [platformId]
       );
       
+      // 📋 Počet prenájmov - JOINnutých cez vehicle -> company
       const rentals = await this.pool.query(
-        'SELECT COUNT(*) as count FROM rentals WHERE platform_id = $1',
+        `SELECT COUNT(DISTINCT r.id) as count 
+         FROM rentals r 
+         INNER JOIN vehicles v ON r.vehicle_id = v.id 
+         INNER JOIN companies c ON v.owner_company_id = c.id 
+         WHERE c.platform_id = $1::uuid`,
         [platformId]
       );
       
