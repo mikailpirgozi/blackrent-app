@@ -200,7 +200,10 @@ export default function VehicleCentricInsuranceList() {
   const { data: vehicles = [] } = useVehicles();
   const { data: insurers = [] } = useInsurers();
   const { data: customers = [] } = useCustomers();
-  const { data: vehicleDocuments = [], dataUpdatedAt } = useVehicleDocuments();
+  const { data: vehicleDocuments = [], dataUpdatedAt } = useVehicleDocuments(
+    undefined,
+    true
+  );
 
   // 🔍 DEBUG: Log when vehicleDocuments change
   useEffect(() => {
