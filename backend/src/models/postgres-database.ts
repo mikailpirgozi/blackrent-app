@@ -10654,30 +10654,30 @@ export class PostgresDatabase {
         [platformId]
       );
       
-      // 👥 Počet používateľov - JOINnutých cez company_id
+      // 👥 Počet používateľov - JOINnutých cez company_id (c.id::text::uuid casting pre INTEGER -> UUID JOIN)
       const users = await this.pool.query(
         `SELECT COUNT(DISTINCT u.id) as count 
          FROM users u 
-         INNER JOIN companies c ON u.company_id = c.id 
+         INNER JOIN companies c ON u.company_id = c.id::text::uuid 
          WHERE c.platform_id = $1::uuid`,
         [platformId]
       );
       
-      // 🚗 Počet vozidiel - JOINnutých cez owner_company_id
+      // 🚗 Počet vozidiel - JOINnutých cez owner_company_id (c.id::text::uuid casting pre INTEGER -> UUID JOIN)
       const vehicles = await this.pool.query(
         `SELECT COUNT(DISTINCT v.id) as count 
          FROM vehicles v 
-         INNER JOIN companies c ON v.owner_company_id = c.id 
+         INNER JOIN companies c ON v.owner_company_id = c.id::text::uuid 
          WHERE c.platform_id = $1::uuid`,
         [platformId]
       );
       
-      // 📋 Počet prenájmov - JOINnutých cez vehicle -> company
+      // 📋 Počet prenájmov - JOINnutých cez vehicle -> company (c.id::text::uuid casting pre INTEGER -> UUID JOIN)
       const rentals = await this.pool.query(
         `SELECT COUNT(DISTINCT r.id) as count 
          FROM rentals r 
          INNER JOIN vehicles v ON r.vehicle_id = v.id 
-         INNER JOIN companies c ON v.owner_company_id = c.id 
+         INNER JOIN companies c ON v.owner_company_id = c.id::text::uuid 
          WHERE c.platform_id = $1::uuid`,
         [platformId]
       );
