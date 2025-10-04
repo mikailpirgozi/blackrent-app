@@ -686,8 +686,8 @@ router.get('/me', authenticateToken, (req: AuthRequest, res: Response<ApiRespons
   });
 });
 
-// GET /api/auth/users - Získanie všetkých používateľov (len admin)
-router.get('/users', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse<Omit<User, 'password'>[]>>) => {
+// GET /api/auth/users - Získanie všetkých používateľov (len admin a super_admin)
+router.get('/users', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse<Omit<User, 'password'>[]>>) => {
   try {
     const users = await postgresDatabase.getUsers();
     const usersWithoutPasswords: Omit<User, 'password'>[] = users.map(user => ({
@@ -721,8 +721,8 @@ router.get('/users', authenticateToken, requireRole(['admin']), async (req: Requ
   }
 });
 
-// POST /api/auth/users - Vytvorenie nového používateľa (len admin)
-router.post('/users', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+// POST /api/auth/users - Vytvorenie nového používateľa (len admin a super_admin)
+router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { 
       username, 
@@ -807,7 +807,7 @@ router.post('/users', authenticateToken, requireRole(['admin']), async (req: Req
 });
 
 // GET /api/auth/investors-with-shares - Získanie investorov s podielmi (pre dropdown)
-router.get('/investors-with-shares', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.get('/investors-with-shares', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const investors = await postgresDatabase.getInvestorsWithShares();
     
@@ -826,8 +826,8 @@ router.get('/investors-with-shares', authenticateToken, requireRole(['admin']), 
   }
 });
 
-// PUT /api/auth/users/:id - Aktualizácia používateľa (len admin)
-router.put('/users/:id', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+// PUT /api/auth/users/:id - Aktualizácia používateľa (len admin a super_admin)
+router.put('/users/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
     const { username, email, password, role } = req.body;
@@ -876,8 +876,8 @@ router.put('/users/:id', authenticateToken, requireRole(['admin']), async (req: 
   }
 });
 
-// DELETE /api/auth/users/:id - Vymazanie používateľa (len admin)
-router.delete('/users/:id', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+// DELETE /api/auth/users/:id - Vymazanie používateľa (len admin a super_admin)
+router.delete('/users/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 
@@ -2364,7 +2364,7 @@ router.post('/debug-permission', authenticateToken, async (req: Request, res: Re
 // 🔧 ADMIN UTILITY - Automatické priradenie vozidiel k firmám
 router.post('/auto-assign-vehicles', 
   authenticateToken, 
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       logger.auth('🚗 Spúšťam automatické priradenie vozidiel k firmám...');
@@ -2465,7 +2465,7 @@ router.post('/auto-assign-vehicles',
 );
 
 // 🔍 DEBUG - Vincursky account analysis
-router.get('/debug-vincursky', authenticateToken, requireRole(['admin']), 
+router.get('/debug-vincursky', authenticateToken, requireRole(['admin', 'super_admin']), 
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       logger.auth('🔍 DEBUG: Analyzing Vincursky account...');
@@ -2549,7 +2549,7 @@ router.get('/debug-vincursky', authenticateToken, requireRole(['admin']),
 );
 
 // 🔧 MIGRATION - Fix ownerCompanyId for all existing vehicles
-router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin']), 
+router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin', 'super_admin']), 
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       logger.auth('🔧 MIGRATION: Fixing ownerCompanyId for all vehicles...');
@@ -2665,7 +2665,7 @@ router.post('/migrate-vehicle-companies', authenticateToken, requireRole(['admin
 // 🤖 AUTO-ASSIGN - Automatically assign companyId to users based on their name
 router.post('/auto-assign-user-companies', 
   authenticateToken, 
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       logger.auth('🤖 AUTO-ASSIGN: Starting user-company assignment...');

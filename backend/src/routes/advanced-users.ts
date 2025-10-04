@@ -83,7 +83,7 @@ router.get('/organization', authenticateToken, async (req: AuthRequest, res) => 
 });
 
 // Create new organization (super admin only)
-router.post('/organizations', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.post('/organizations', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const organizationData = req.body;
     const createdBy = req.user?.id;
@@ -105,7 +105,7 @@ router.post('/organizations', authenticateToken, requireRole(['admin']), async (
 });
 
 // Update organization
-router.put('/organization', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.put('/organization', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     if (!user?.companyId) {
@@ -140,7 +140,7 @@ router.put('/organization', authenticateToken, requireRole(['admin']), async (re
 });
 
 // Get organization statistics
-router.get('/organization/stats', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.get('/organization/stats', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     if (!user?.companyId) {
@@ -198,7 +198,7 @@ router.get('/departments', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Create department
-router.post('/departments', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.post('/departments', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     if (!user?.companyId) {
@@ -230,7 +230,7 @@ router.post('/departments', authenticateToken, requireRole(['admin']), async (re
 });
 
 // Update department
-router.put('/departments/:id', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.put('/departments/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const departmentData = req.body;
@@ -290,7 +290,7 @@ router.get('/roles', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Create role
-router.post('/roles', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.post('/roles', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
     if (!user?.companyId) {
@@ -322,7 +322,7 @@ router.post('/roles', authenticateToken, requireRole(['admin']), async (req: Aut
 });
 
 // Update role
-router.put('/roles/:id', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.put('/roles/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const roleData = req.body;
@@ -351,7 +351,7 @@ router.put('/roles/:id', authenticateToken, requireRole(['admin']), async (req: 
 });
 
 // Delete role
-router.delete('/roles/:id', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.delete('/roles/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -453,7 +453,7 @@ router.get('/users/:id', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Create user
-router.post('/users', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser?.companyId) {
@@ -582,7 +582,7 @@ router.post('/users/:id/change-password', authenticateToken, async (req: AuthReq
 });
 
 // Deactivate user
-router.post('/users/:id/deactivate', authenticateToken, requireRole(['admin']), async (req: AuthRequest, res) => {
+router.post('/users/:id/deactivate', authenticateToken, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const currentUser = req.user;

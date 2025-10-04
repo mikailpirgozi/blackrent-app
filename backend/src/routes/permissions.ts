@@ -8,7 +8,7 @@ import { UserCompanyAccess } from '../types';
 const router = express.Router();
 
 // GET /api/permissions/user/:userId - Získanie práv používateľa
-router.get('/user/:userId', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.get('/user/:userId', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { userId } = req.params;
     const permissions = await postgresDatabase.getUserPermissions(userId);
@@ -60,7 +60,7 @@ router.get('/user/:userId/access', authenticateToken, async (req: Request, res: 
 });
 
 // POST /api/permissions/user/:userId/company/:companyId - Nastavenie práv používateľa na firmu
-router.post('/user/:userId/company/:companyId', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.post('/user/:userId/company/:companyId', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { userId, companyId } = req.params;
     const permissions: CompanyPermissions = req.body.permissions;
@@ -88,7 +88,7 @@ router.post('/user/:userId/company/:companyId', authenticateToken, requireRole([
 });
 
 // DELETE /api/permissions/user/:userId/company/:companyId - Odstránenie práv používateľa na firmu
-router.delete('/user/:userId/company/:companyId', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/user/:userId/company/:companyId', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { userId, companyId } = req.params;
     
@@ -108,7 +108,7 @@ router.delete('/user/:userId/company/:companyId', authenticateToken, requireRole
 });
 
 // GET /api/permissions/company/:companyId/users - Získanie používateľov s prístupom k firme
-router.get('/company/:companyId/users', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.get('/company/:companyId/users', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { companyId } = req.params;
     const users = await postgresDatabase.getUsersWithCompanyAccess(companyId);
@@ -128,7 +128,7 @@ router.get('/company/:companyId/users', authenticateToken, requireRole(['admin']
 });
 
 // POST /api/permissions/bulk - Hromadné nastavenie práv
-router.post('/bulk', authenticateToken, requireRole(['admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.post('/bulk', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { assignments } = req.body;
     

@@ -81,7 +81,7 @@ router.post('/get-token', async (req: Request, res: Response) => {
 // 🔧 FIX DATABASE SCHEMA - ADMIN ONLY
 router.post('/fix-schema', 
   authenticateToken,
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   async (req: Request, res: Response) => {
     try {
       console.log('🔧 ADMIN: Starting schema fix...');
@@ -157,7 +157,7 @@ router.post('/fix-schema',
 // 🛡️ RENTAL INTEGRITY MONITORING endpoint
 router.get('/rental-integrity', 
   authenticateToken,
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   async (req: Request, res: Response) => {
     try {
       console.log('🛡️ ADMIN: Checking rental integrity...');

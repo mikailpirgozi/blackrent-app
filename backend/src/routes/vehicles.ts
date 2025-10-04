@@ -100,7 +100,7 @@ router.get('/test-csv',
 // ⚡ GET /api/vehicles/bulk-ownership-history - História vlastníctva všetkých vozidiel NARAZ
 router.get('/bulk-ownership-history',
   authenticateToken,
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       console.log('🚀 BULK: Loading ownership history for all vehicles...');
@@ -420,7 +420,7 @@ router.delete('/:id',
 // 🔧 ADMIN TOOL - Priradenie vozidiel k firme
 router.post('/assign-to-company', 
   authenticateToken, 
-  requireRole(['admin']),
+  requireRole(['admin', 'super_admin']),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
       const { vehicleIds, companyId } = req.body;

@@ -116,7 +116,7 @@ router.delete('/subscription', authenticateToken, async (req, res) => {
 });
 
 // Send push notification (admin only)
-router.post('/send', authenticateToken, requireRole(['admin']), async (req, res) => {
+router.post('/send', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const {
       title,
@@ -284,7 +284,7 @@ router.post('/send-to-user/:userId', authenticateToken, requireRole(['admin', 'm
 });
 
 // Get notification analytics
-router.get('/analytics', authenticateToken, requireRole(['admin']), async (req, res) => {
+router.get('/analytics', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { startDate, endDate, userId } = req.query;
 
