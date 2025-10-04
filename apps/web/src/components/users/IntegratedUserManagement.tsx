@@ -24,7 +24,7 @@ export default function IntegratedUserManagement() {
   };
 
   return (
-    <RoleGuard allowedRoles={['admin']} showAccessDeniedMessage>
+    <RoleGuard allowedRoles={['admin', 'super_admin']} showAccessDeniedMessage>
       <div className={`p-4 min-h-screen ${isMobile ? 'bg-muted' : 'bg-transparent'}`}>
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-3'} mb-6`}>
