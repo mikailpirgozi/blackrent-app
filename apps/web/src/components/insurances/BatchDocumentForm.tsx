@@ -62,6 +62,9 @@ interface DocumentFormData {
   greenCardValidFrom?: Date;
   greenCardValidTo?: Date;
   kmState?: number;
+  // 💰 SPOLUÚČASŤ
+  deductibleAmount?: number; // Spoluúčasť v EUR
+  deductiblePercentage?: number; // Spoluúčasť v %
 
   // Service book specific
   serviceDate?: Date;
@@ -922,6 +925,65 @@ function DocumentSectionForm({
                       placeholder="Napríklad: 125000"
                       className="border-2"
                     />
+                  </div>
+                </>
+              )}
+
+              {/* 💰 SPOLUÚČASŤ - Pre Kasko a PZP+Kasko */}
+              {isInsurance && !isPZP && !isLeasing && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="text-2xl">💰</div>
+                      <h4 className="font-semibold text-slate-900">
+                        Spoluúčasť
+                        <span className="text-sm text-slate-500 font-normal ml-2">
+                          (voliteľné)
+                        </span>
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Spoluúčasť (€)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={section.data.deductibleAmount ?? ''}
+                          onChange={e =>
+                            onUpdateData(
+                              'deductibleAmount',
+                              e.target.value
+                                ? parseFloat(e.target.value)
+                                : undefined
+                            )
+                          }
+                          placeholder="0.00"
+                          className="border-2"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Spoluúčasť (%)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={section.data.deductiblePercentage ?? ''}
+                          onChange={e =>
+                            onUpdateData(
+                              'deductiblePercentage',
+                              e.target.value
+                                ? parseFloat(e.target.value)
+                                : undefined
+                            )
+                          }
+                          placeholder="0.00"
+                          className="border-2"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </>
               )}

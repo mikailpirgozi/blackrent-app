@@ -181,7 +181,7 @@ router.post('/',
   try {
     console.log('🔧 INSURANCE POST: Request body:', req.body);
     
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
       console.log('🔧 INSURANCE POST: Validation failed:', {
@@ -211,7 +211,9 @@ router.post('/',
       filePath,
       filePaths,
       greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
-      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
+      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      deductibleAmount,
+      deductiblePercentage
     });
 
     const createdInsurance = await postgresDatabase.createInsurance({
@@ -226,7 +228,9 @@ router.post('/',
       filePath,
       filePaths,
       greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
-      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
+      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      deductibleAmount,
+      deductiblePercentage
     });
 
     console.log('🔧 INSURANCE POST: Successfully created insurance:', createdInsurance);
@@ -253,7 +257,7 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage } = req.body;
 
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
       return res.status(400).json({
@@ -275,7 +279,9 @@ router.put('/:id',
       filePath,
       filePaths,
       greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
-      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined
+      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      deductibleAmount,
+      deductiblePercentage
     });
 
     res.json({

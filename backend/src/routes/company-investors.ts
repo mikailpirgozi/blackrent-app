@@ -40,8 +40,9 @@ router.post('/',
   checkPermission('companies', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      const { firstName, lastName, email, phone, personalId, address, notes } = req.body;
+      const { firstName, lastName, email, phone, personalId, address, notes, isActive } = req.body;
 
+      // Validácia povinných polí
       if (!firstName || !lastName) {
         return res.status(400).json({
           success: false,
@@ -49,14 +50,23 @@ router.post('/',
         });
       }
 
+      // Validácia formátu emailu (ak je poskytnutý)
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Neplatný formát emailu'
+        });
+      }
+
       const createdInvestor = await postgresDatabase.createCompanyInvestor({
-        firstName,
-        lastName,
-        email,
-        phone,
-        personalId,
-        address,
-        notes
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email?.trim(),
+        phone: phone?.trim(),
+        personalId: personalId?.trim(),
+        address: address?.trim(),
+        notes: notes?.trim(),
+        isActive: isActive ?? true
       });
 
       res.status(201).json({
@@ -66,10 +76,11 @@ router.post('/',
       });
 
     } catch (error) {
-      console.error('Create company investor error:', error);
+      console.error('❌ Create company investor error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
       res.status(500).json({
         success: false,
-        error: 'Chyba pri vytváraní spoluinvestora'
+        error: `Chyba pri vytváraní spoluinvestora: ${errorMessage}`
       });
     }
   }

@@ -78,6 +78,8 @@ export default function InsuranceForm({
     price: 0,
     company: '',
     paymentFrequency: 'yearly',
+    deductibleAmount: undefined,
+    deductiblePercentage: undefined,
   });
 
   useEffect(() => {
@@ -105,6 +107,13 @@ export default function InsuranceForm({
       price: formData.price || 0,
       company: formData.company || '',
       paymentFrequency: formData.paymentFrequency || 'yearly',
+      // 💰 SPOLUÚČASŤ: Zahrnúť nové polia (voliteľné)
+      ...(formData.deductibleAmount !== undefined && {
+        deductibleAmount: formData.deductibleAmount,
+      }),
+      ...(formData.deductiblePercentage !== undefined && {
+        deductiblePercentage: formData.deductiblePercentage,
+      }),
     };
     onSave(completeInsurance);
   };
@@ -339,6 +348,59 @@ export default function InsuranceForm({
               <SelectItem value="yearly">Ročne</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* 💰 SPOLUÚČASŤ: Výška v EUR */}
+        <div className="space-y-2">
+          <Label htmlFor="deductibleAmount">
+            Spoluúčasť (€)
+            <span className="text-muted-foreground text-xs ml-2">
+              voliteľné
+            </span>
+          </Label>
+          <Input
+            id="deductibleAmount"
+            type="number"
+            value={formData.deductibleAmount ?? ''}
+            onChange={(
+              e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+            ) =>
+              handleInputChange(
+                'deductibleAmount',
+                e.target.value ? parseFloat(e.target.value) : ''
+              )
+            }
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+          />
+        </div>
+
+        {/* 💰 SPOLUÚČASŤ: Výška v % */}
+        <div className="space-y-2">
+          <Label htmlFor="deductiblePercentage">
+            Spoluúčasť (%)
+            <span className="text-muted-foreground text-xs ml-2">
+              voliteľné
+            </span>
+          </Label>
+          <Input
+            id="deductiblePercentage"
+            type="number"
+            value={formData.deductiblePercentage ?? ''}
+            onChange={(
+              e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+            ) =>
+              handleInputChange(
+                'deductiblePercentage',
+                e.target.value ? parseFloat(e.target.value) : ''
+              )
+            }
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            max="100"
+          />
         </div>
       </div>
 

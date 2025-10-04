@@ -28,7 +28,8 @@ import { AuthProvider } from './context/AuthContext';
 import { ErrorProvider } from './context/ErrorContext';
 import { PermissionsProvider } from './context/PermissionsContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { initializeCriticalResources } from './utils/criticalResources';
+// import { initializeCriticalResources } from './utils/criticalResources'; // REMOVED: Replaced with fast startup
+import { optimizedStartup } from './utils/fastStartup';
 import { logger } from './utils/smartLogger';
 
 const PremiumDashboard = lazy(
@@ -74,20 +75,19 @@ const WebSocketIntegrationWrapper: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  // Initialize performance optimizations
+  // ⚡ FAST STARTUP: Optimized initialization
   React.useEffect(() => {
-    // Initialize critical resources only
-    logger.info('Initializing critical resources...', undefined, 'performance');
+    logger.info(
+      '🚀 Starting optimized app initialization...',
+      undefined,
+      'performance'
+    );
 
     try {
-      initializeCriticalResources();
-      logger.info(
-        'Critical resources initialized successfully',
-        undefined,
-        'performance'
-      );
+      // Run optimized parallel startup (< 1s)
+      optimizedStartup();
     } catch (error) {
-      logger.error('Critical resources initialization failed', error);
+      logger.error('❌ Optimized startup failed', error);
     }
   }, []);
 

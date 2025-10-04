@@ -170,7 +170,7 @@ export type VehicleStatus =
   | 'maintenance'
   | 'temporarily_removed'
   | 'removed'
-  | 'transferred'
+  | 'stolen'
   | 'private';
 
 export interface Customer {
@@ -419,6 +419,9 @@ export interface Insurance {
   greenCardValidTo?: Date;
   // 🚗 KASKO: Stav kilometrov pri poistení (pre Kasko poistenie)
   kmState?: number;
+  // 💰 SPOLUÚČASŤ: Výška spoluúčasti (voliteľné polia)
+  deductibleAmount?: number; // Spoluúčasť v EUR
+  deductiblePercentage?: number; // Spoluúčasť v %
 }
 
 export interface Settlement {

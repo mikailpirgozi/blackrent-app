@@ -643,6 +643,51 @@ export class PostgresDatabase {
       await client.query(`CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id)`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_user_permissions_company_id ON user_permissions(company_id)`);
 
+      // 🤝 TABUĽKA SPOLUINVESTOROV (Company Investors)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS company_investors (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          first_name VARCHAR(100) NOT NULL,
+          last_name VARCHAR(100) NOT NULL,
+          email VARCHAR(100),
+          phone VARCHAR(50),
+          personal_id VARCHAR(50),
+          address TEXT,
+          is_active BOOLEAN DEFAULT true,
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Indexy pre company_investors
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_company_investors_name ON company_investors(last_name, first_name)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_company_investors_email ON company_investors(email)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_company_investors_active ON company_investors(is_active)`);
+
+      // 💼 TABUĽKA PODIELOV INVESTOROV (Company Investor Shares)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS company_investor_shares (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id INTEGER NOT NULL,
+          investor_id UUID NOT NULL REFERENCES company_investors(id) ON DELETE CASCADE,
+          ownership_percentage DECIMAL(5,2) NOT NULL CHECK (ownership_percentage >= 0 AND ownership_percentage <= 100),
+          investment_amount DECIMAL(12,2),
+          investment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          is_primary_contact BOOLEAN DEFAULT false,
+          profit_share_percentage DECIMAL(5,2) CHECK (profit_share_percentage >= 0 AND profit_share_percentage <= 100),
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(company_id, investor_id)
+        )
+      `);
+
+      // Indexy pre company_investor_shares
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_investor_shares_company ON company_investor_shares(company_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_investor_shares_investor ON company_investor_shares(investor_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_investor_shares_primary ON company_investor_shares(is_primary_contact)`);
+
       // Vytvorenie admin používateľa ak neexistuje
       await this.createDefaultAdmin(client);
       
@@ -4393,7 +4438,7 @@ export class PostgresDatabase {
         company: toString(row.vehicle_company || row.company_name) || 'N/A',
         pricing: this.safeJsonParse(row.pricing, []) as { id: string; minDays: number; maxDays: number; pricePerDay: number }[],
         commission: this.safeJsonParse(row.v_commission, { type: 'percentage', value: 0 }) as { type: 'percentage' | 'fixed'; value: number },
-        status: (toString(row.v_status) || 'available') as 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'transferred' | 'private',
+        status: (toString(row.v_status) || 'available') as 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'stolen' | 'private',
         ownerCompanyId: row.company_id ? toString(row.company_id) : undefined
       } : undefined
     };
@@ -5798,7 +5843,9 @@ export class PostgresDatabase {
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
         greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
         greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
-        kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
+        kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
+        deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
+        deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
       }));
     } finally {
       client.release();
@@ -5822,6 +5869,8 @@ export class PostgresDatabase {
     greenCardValidFrom?: Date;
     greenCardValidTo?: Date;
     kmState?: number; // 🚗 Stav kilometrov pre Kasko poistenie
+    deductibleAmount?: number; // 💰 Spoluúčasť v EUR
+    deductiblePercentage?: number; // 💰 Spoluúčasť v %
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
@@ -5864,13 +5913,15 @@ export class PostgresDatabase {
         insuranceData.paymentFrequency || 'yearly', 
         insuranceData.filePath || null, // Zachováme pre backward compatibility
         filePaths, // Nové pole pre viacero súborov
-        insuranceData.kmState || null // 🚗 Stav kilometrov pre Kasko
+        insuranceData.kmState || null, // 🚗 Stav kilometrov pre Kasko
+        insuranceData.deductibleAmount || null, // 💰 Spoluúčasť v EUR
+        insuranceData.deductiblePercentage || null // 💰 Spoluúčasť v %
       ];
       
       console.log('🔧 INSURANCE: Insert parameters:', insertParams);
       
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, created_at',
+        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, created_at',
         insertParams
       );
 
@@ -5890,7 +5941,9 @@ export class PostgresDatabase {
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
         greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
         greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
-        kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
+        kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
+        deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
+        deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
       };
     } catch (error) {
       console.error('🔧 INSURANCE: Error in createInsurance:', error);
@@ -5915,6 +5968,8 @@ export class PostgresDatabase {
     greenCardValidFrom?: Date;
     greenCardValidTo?: Date;
     kmState?: number; // 🚗 Stav kilometrov pre Kasko poistenie
+    deductibleAmount?: number; // 💰 Spoluúčasť v EUR
+    deductiblePercentage?: number; // 💰 Spoluúčasť v %
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
@@ -5938,10 +5993,10 @@ export class PostgresDatabase {
       
       const result = await client.query(`
         UPDATE insurances 
-        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12
-        WHERE id = $13 
-        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state
-      `, [insuranceData.vehicleId || null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.kmState || null, id]);
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14
+        WHERE id = $15 
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage
+      `, [insuranceData.vehicleId || null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.kmState || null, insuranceData.deductibleAmount || null, insuranceData.deductiblePercentage || null, id]);
 
       if (result.rows.length === 0) {
         throw new Error('Poistka nebola nájdená');
@@ -5969,7 +6024,9 @@ export class PostgresDatabase {
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
         greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
         greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
-        kmState: row.km_state ? parseInt(row.km_state) : undefined // 🚗 Stav kilometrov pre Kasko
+        kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
+        deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
+        deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
       };
     } finally {
       client.release();
@@ -6199,13 +6256,14 @@ export class PostgresDatabase {
     personalId?: string;
     address?: string;
     notes?: string;
+    isActive?: boolean;
   }): Promise<CompanyInvestor> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
         `INSERT INTO company_investors (
-          first_name, last_name, email, phone, personal_id, address, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7) 
+          first_name, last_name, email, phone, personal_id, address, notes, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *`,
         [
           investorData.firstName,
@@ -6214,7 +6272,8 @@ export class PostgresDatabase {
           investorData.phone || null,
           investorData.personalId || null,
           investorData.address || null,
-          investorData.notes || null
+          investorData.notes || null,
+          investorData.isActive ?? true
         ]
       );
 
@@ -6313,6 +6372,9 @@ export class PostgresDatabase {
   async getCompanyInvestorShares(companyId: string): Promise<CompanyInvestorShare[]> {
     const client = await this.pool.connect();
     try {
+      // Konvertuj companyId na integer pre správne porovnanie v DB
+      const companyIdInt = parseInt(companyId, 10);
+      
       const result = await client.query(
         `SELECT 
           s.*,
@@ -6320,10 +6382,10 @@ export class PostgresDatabase {
           c.name as company_name
         FROM company_investor_shares s
         JOIN company_investors i ON s.investor_id = i.id
-        JOIN companies c ON s.company_id = c.id
+        LEFT JOIN companies c ON s.company_id = c.id
         WHERE s.company_id = $1
         ORDER BY s.ownership_percentage DESC, i.last_name`,
-        [companyId]
+        [companyIdInt]
       );
 
       return result.rows.map(row => ({

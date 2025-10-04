@@ -1,12 +1,27 @@
-import { Trash2 as DeleteIcon } from 'lucide-react';
+import { Trash2 as DeleteIcon, AlertCircle as ErrorIcon } from 'lucide-react';
 import { UnifiedButton as Button } from '@/components/ui/UnifiedButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnifiedTypography } from '@/components/ui/UnifiedTypography';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
+import {
+  useInvestors,
+  useAllShares,
+  useCreateInvestor,
+  useCreateShare,
+} from '@/lib/react-query/hooks/useInvestors';
 import {
   useCreateVehicle,
   useDeleteVehicle,
@@ -69,6 +84,17 @@ export default function VehicleListNew() {
   // React Query hooks
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
 
+  // ⚡ OPTIMIZED: Use React Query for investors (cached, parallel)
+  const { data: investors = [], isLoading: loadingInvestors } = useInvestors();
+  const companyIds = useMemo(
+    () => companies.map(c => String(c.id)),
+    [companies]
+  );
+  const { data: investorShares = [] } = useAllShares(companyIds);
+
+  const createInvestorMutation = useCreateInvestor();
+  const createShareMutation = useCreateShare();
+
   // 🎯 SCROLL PRESERVATION: Refs pre scroll kontajnery
   const mobileScrollRef = React.useRef<HTMLDivElement>(null);
   const desktopScrollRef = React.useRef<HTMLDivElement>(null);
@@ -127,7 +153,7 @@ export default function VehicleListNew() {
   const [showAvailable, setShowAvailable] = useState(true);
   const [showRented, setShowRented] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
-  const [showTransferred, setShowTransferred] = useState(true); // 🔄 Prepisané vozidlá
+  const [showStolen, setShowStolen] = useState(false); // 🚨 Ukradnuté vozidlá defaultne skryté
   const [showPrivate, setShowPrivate] = useState(false); // 🏠 Súkromné vozidlá defaultne skryté
   const [showRemoved, setShowRemoved] = useState(false); // 🗑️ Vyradené vozidlá defaultne skryté
   const [showTempRemoved, setShowTempRemoved] = useState(false); // ⏸️ Dočasne vyradené vozidlá defaultne skryté
@@ -193,6 +219,11 @@ export default function VehicleListNew() {
   const [selectedVehicleKmHistory, setSelectedVehicleKmHistory] =
     useState<Vehicle | null>(null);
 
+  // ❌ Error dialog pre duplicitné vozidlá
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorTitle, setErrorTitle] = useState('');
+
   // 🆕 State pre vytvorenie novej firmy
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [newCompanyData, setNewCompanyData] = useState({
@@ -206,12 +237,12 @@ export default function VehicleListNew() {
     isActive: true,
   });
 
-  // 🤝 State pre spoluinvestorov
+  // 🤝 State pre spoluinvestorov (UI state only - data comes from React Query)
   const [createInvestorDialogOpen, setCreateInvestorDialogOpen] =
     useState(false);
-  const [investors, setInvestors] = useState<InvestorData[]>([]);
-  const [investorShares, setInvestorShares] = useState<InvestorShare[]>([]);
-  const [loadingInvestors, setLoadingInvestors] = useState(false);
+  // ❌ REMOVED: const [investors, setInvestors] - now from useInvestors()
+  // ❌ REMOVED: const [investorShares, setInvestorShares] - now from useAllShares()
+  // ❌ REMOVED: const [loadingInvestors, setLoadingInvestors] - now from useInvestors().isLoading
   const [assignShareDialogOpen, setAssignShareDialogOpen] = useState(false);
   const [selectedInvestorForShare, setSelectedInvestorForShare] =
     useState<InvestorData | null>(null);
@@ -352,139 +383,88 @@ export default function VehicleListNew() {
     }
   };
 
-  // 🤝 Handler pre vytvorenie spoluinvestora
+  // 🤝 Handler pre vytvorenie spoluinvestora - ⚡ OPTIMIZED with React Query
   const handleCreateInvestor = async () => {
     try {
+      // ✅ VALIDÁCIA POVINNÝCH POLÍ
+      if (!newInvestorData.firstName?.trim()) {
+        window.alert('❌ Meno je povinné pole');
+        return;
+      }
+
+      if (!newInvestorData.lastName?.trim()) {
+        window.alert('❌ Priezvisko je povinné pole');
+        return;
+      }
+
+      // ✅ VALIDÁCIA EMAILU (ak je zadaný)
+      if (
+        newInvestorData.email &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newInvestorData.email)
+      ) {
+        window.alert('❌ Neplatný formát emailu');
+        return;
+      }
+
       logger.debug('🤝 Creating new investor:', newInvestorData);
 
-      const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-        },
-        body: JSON.stringify(newInvestorData),
+      // ⚡ Use React Query mutation (auto-invalidates cache, no manual refetch!)
+      await createInvestorMutation.mutateAsync(newInvestorData);
+
+      logger.debug('✅ Investor created successfully via React Query');
+      setCreateInvestorDialogOpen(false);
+      setNewInvestorData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        notes: '',
+        isActive: true,
       });
-
-      logger.debug('📡 API Response status:', response.status);
-      const result = await response.json();
-      logger.debug('📡 API Response body:', result);
-
-      if (result.success) {
-        logger.debug('✅ Investor created successfully');
-        setCreateInvestorDialogOpen(false);
-        setNewInvestorData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          notes: '',
-          isActive: true,
-        });
-        // Refresh data
-        window.location.reload();
-      } else {
-        console.error('❌ Failed to create investor:', result);
-        window.alert(
-          `Chyba pri vytváraní spoluinvestora: ${result.error || result.message || 'Neznáma chyba'}`
-        );
-      }
+      window.alert('✅ Spoluinvestor bol úspešne vytvorený');
     } catch (error) {
       console.error('❌ Error creating investor:', error);
       window.alert(
-        `Chyba pri vytváraní spoluinvestora: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+        `❌ Chyba pri vytváraní spoluinvestora:\n${error instanceof Error ? error.message : 'Neznáma chyba'}`
       );
     }
   };
 
-  // 🤝 Načítanie spoluinvestorov
-  const loadInvestors = useCallback(async () => {
-    try {
-      setLoadingInvestors(true);
+  // ❌ REMOVED: loadInvestors function - now handled by React Query hooks
+  // Data automatically loads when needed via useInvestors() and useAllShares()
+  // No manual fetch, no loading state, no useEffect needed!
 
-      const response = await fetch(`${getApiBaseUrl()}/company-investors`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setInvestors(result.data);
-
-        // Načítaj shares pre všetkých investorov
-        const allShares = [];
-        for (const company of companies) {
-          const sharesResponse = await fetch(
-            `${getApiBaseUrl()}/company-investors/${company.id}/shares`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-              },
-            }
-          );
-          const sharesResult = await sharesResponse.json();
-          if (sharesResult.success) {
-            allShares.push(...sharesResult.data);
-          }
-        }
-        setInvestorShares(allShares);
-      }
-    } catch (error) {
-      console.error('❌ Error loading investors:', error);
-    } finally {
-      setLoadingInvestors(false);
-    }
-  }, [companies]);
-
-  // Načítaj investorov pri zmene tabu
-  useEffect(() => {
-    if (currentTab === 2) {
-      loadInvestors();
-    }
-  }, [currentTab, loadInvestors]);
-
-  // 🤝 Handler pre priradenie podielu
+  // 🤝 Handler pre priradenie podielu - ⚡ OPTIMIZED with React Query
   const handleAssignShare = async () => {
     try {
+      if (!selectedInvestorForShare?.id) {
+        window.alert('❌ Nie je vybraný investor');
+        return;
+      }
+
       logger.debug('🤝 Assigning share:', newShareData);
 
-      const response = await fetch(
-        `${getApiBaseUrl()}/company-investors/shares`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
-          },
-          body: JSON.stringify({
-            ...newShareData,
-            investorId: selectedInvestorForShare?.id,
-          }),
-        }
-      );
+      // ⚡ Use React Query mutation (auto-invalidates cache, no manual refetch!)
+      await createShareMutation.mutateAsync({
+        ...newShareData,
+        investorId: selectedInvestorForShare.id,
+      });
 
-      const result = await response.json();
-
-      if (result.success) {
-        logger.debug('✅ Share assigned successfully');
-        setAssignShareDialogOpen(false);
-        setSelectedInvestorForShare(null);
-        setNewShareData({
-          companyId: '',
-          ownershipPercentage: 0,
-          investmentAmount: 0,
-          isPrimaryContact: false,
-        });
-        loadInvestors(); // Refresh data
-      } else {
-        console.error('❌ Failed to assign share:', result.error);
-        window.alert(`Chyba pri priradzovaní podielu: ${result.error}`);
-      }
+      logger.debug('✅ Share assigned successfully via React Query');
+      setAssignShareDialogOpen(false);
+      setSelectedInvestorForShare(null);
+      setNewShareData({
+        companyId: '',
+        ownershipPercentage: 0,
+        investmentAmount: 0,
+        isPrimaryContact: false,
+      });
+      window.alert('✅ Podiel úspešne priradený');
     } catch (error) {
       console.error('❌ Error assigning share:', error);
-      window.alert('Chyba pri priradzovaní podielu');
+      window.alert(
+        `❌ Chyba pri priradzovaní podielu:\n${error instanceof Error ? error.message : 'Neznáma chyba'}`
+      );
     }
   };
 
@@ -548,8 +528,47 @@ export default function VehicleListNew() {
         await createVehicleMutation.mutateAsync(vehicleData);
       }
       handleCloseDialog();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error saving vehicle:', error);
+
+      // 🔍 Rozpoznanie typu chyby - podporuj rôzne formáty error objektov
+      const err = error as {
+        message?: string;
+        response?: {
+          data?: {
+            error?: string;
+            code?: string;
+          };
+          status?: number;
+        };
+      };
+
+      const errorMsg =
+        err?.response?.data?.error || err?.message || 'Neznáma chyba';
+      const errorCode = err?.response?.data?.code;
+      const statusCode = err?.response?.status;
+
+      // ❌ Kontrola duplicitného vozidla
+      if (
+        errorCode === 'DUPLICATE_LICENSE_PLATE' ||
+        statusCode === 409 ||
+        errorMsg.toLowerCase().includes('duplicate') ||
+        errorMsg.toLowerCase().includes('already exists') ||
+        errorMsg.toLowerCase().includes('už existuje') ||
+        errorMsg.includes('23505') // PostgreSQL unique constraint error code
+      ) {
+        setErrorTitle('Vozidlo už existuje');
+        setErrorMessage(
+          `Vozidlo s ŠPZ "${vehicleData.licensePlate}" sa už v databáze nachádza. ` +
+            'Prosím skontrolujte existujúce vozidlá alebo použite inú ŠPZ.'
+        );
+        setErrorDialogOpen(true);
+      } else {
+        // Iné chyby
+        setErrorTitle('Chyba pri ukladaní vozidla');
+        setErrorMessage(errorMsg);
+        setErrorDialogOpen(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -595,7 +614,7 @@ export default function VehicleListNew() {
     if (showAvailable) statusFilters.push('available');
     if (showRented) statusFilters.push('rented');
     if (showMaintenance) statusFilters.push('maintenance');
-    if (showTransferred) statusFilters.push('transferred');
+    if (showStolen) statusFilters.push('stolen');
     if (showPrivate) statusFilters.push('private');
     if (showRemoved) statusFilters.push('removed');
     if (showTempRemoved) statusFilters.push('temporarily_removed');
@@ -611,7 +630,7 @@ export default function VehicleListNew() {
     showAvailable,
     showRented,
     showMaintenance,
-    showTransferred,
+    showStolen,
     showPrivate,
     showRemoved,
     showTempRemoved,
@@ -657,7 +676,7 @@ export default function VehicleListNew() {
     showAvailable,
     showRented,
     showMaintenance,
-    showTransferred,
+    showStolen,
     showPrivate,
     showRemoved,
     showTempRemoved,
@@ -879,8 +898,8 @@ export default function VehicleListNew() {
         setShowRented={setShowRented}
         showMaintenance={showMaintenance}
         setShowMaintenance={setShowMaintenance}
-        showTransferred={showTransferred}
-        setShowTransferred={setShowTransferred}
+        showStolen={showStolen}
+        setShowStolen={setShowStolen}
         showPrivate={showPrivate}
         setShowPrivate={setShowPrivate}
         showRemoved={showRemoved}
@@ -914,8 +933,8 @@ export default function VehicleListNew() {
               setShowRented={setShowRented}
               showMaintenance={showMaintenance}
               setShowMaintenance={setShowMaintenance}
-              showTransferred={showTransferred}
-              setShowTransferred={setShowTransferred}
+              showStolen={showStolen}
+              setShowStolen={setShowStolen}
               showPrivate={showPrivate}
               setShowPrivate={setShowPrivate}
               showRemoved={showRemoved}
@@ -1061,7 +1080,7 @@ export default function VehicleListNew() {
                     />
                   </div>
                 ) : investors.length > 0 ? (
-                  investors.map(investor => {
+                  investors.map((investor: InvestorData) => {
                     // Nájdi podiely tohto investora
                     const investorShares_filtered = investorShares.filter(
                       share => share.investorId === investor.id
@@ -1082,12 +1101,15 @@ export default function VehicleListNew() {
                         companies={
                           companies as unknown as Record<string, unknown>[]
                         }
-                        onShareUpdate={loadInvestors}
-                        onAssignShare={investor => {
+                        onAssignShare={(investor: Record<string, unknown>) => {
                           setSelectedInvestorForShare(
                             investor as unknown as InvestorData
                           );
                           setAssignShareDialogOpen(true);
+                        }}
+                        onShareUpdate={async () => {
+                          // Re-fetch shares after update
+                          // Handled by React Query invalidation
                         }}
                       />
                     );
@@ -1158,6 +1180,33 @@ export default function VehicleListNew() {
         }}
         vehicle={selectedVehicleKmHistory}
       />
+
+      {/* ❌ Error Dialog pre duplicitné vozidlá */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <ErrorIcon className="h-6 w-6 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-xl font-semibold">
+                {errorTitle}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base pt-2">
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setErrorDialogOpen(false)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              OK, rozumiem
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

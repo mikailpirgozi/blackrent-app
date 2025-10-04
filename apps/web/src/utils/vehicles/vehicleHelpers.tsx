@@ -24,8 +24,8 @@ export const getStatusColor = (
       return 'info';
     case 'removed':
       return 'default';
-    case 'transferred':
-      return 'secondary';
+    case 'stolen':
+      return 'error';
     case 'private':
       return 'primary';
     default:
@@ -46,8 +46,8 @@ export const getStatusBgColor = (status: VehicleStatus) => {
       return '#2196f3';
     case 'removed':
       return '#666';
-    case 'transferred':
-      return '#9c27b0';
+    case 'stolen':
+      return '#d32f2f';
     case 'private':
       return '#673ab7';
     default:
@@ -68,8 +68,8 @@ export const getStatusText = (status: VehicleStatus) => {
       return 'Dočasne vyradené';
     case 'removed':
       return 'Vyradené';
-    case 'transferred':
-      return 'Prepisané';
+    case 'stolen':
+      return 'Ukradnuté';
     case 'private':
       return 'Súkromné';
     default:
@@ -90,8 +90,8 @@ export const getStatusIcon = (status: VehicleStatus) => {
       return <UnifiedIcon name="info" fontSize="small" />;
     case 'removed':
       return <UnifiedIcon name="error" fontSize="small" />;
-    case 'transferred':
-      return <UnifiedIcon name="building" fontSize="small" />;
+    case 'stolen':
+      return <UnifiedIcon name="warning" fontSize="small" />;
     case 'private':
       return <UnifiedIcon name="home" fontSize="small" />;
     default:

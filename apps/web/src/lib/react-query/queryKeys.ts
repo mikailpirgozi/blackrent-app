@@ -82,6 +82,16 @@ export const queryKeys = {
     list: () => [...queryKeys.companies.all, 'list'] as const,
   },
 
+  // Investors & Shares
+  investors: {
+    all: ['investors'] as const,
+    lists: () => [...queryKeys.investors.all, 'list'] as const,
+    list: () => [...queryKeys.investors.lists()] as const,
+    shares: (companyId: string) => ['investors', 'shares', companyId] as const,
+    allShares: (companyIds: string[]) =>
+      ['investors', 'allShares', companyIds] as const,
+  },
+
   insurers: {
     all: ['insurers'] as const,
     lists: () => [...queryKeys.insurers.all, 'list'] as const,

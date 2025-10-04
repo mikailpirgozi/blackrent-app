@@ -692,6 +692,9 @@ export default function VehicleCentricInsuranceList() {
           greenCardValidFrom?: Date;
           greenCardValidTo?: Date;
           kmState?: number;
+          // 💰 SPOLUÚČASŤ
+          deductibleAmount?: number;
+          deductiblePercentage?: number;
           // Service book fields
           serviceDate?: Date;
           serviceDescription?: string;
@@ -772,6 +775,9 @@ export default function VehicleCentricInsuranceList() {
               greenCardValidFrom: data.greenCardValidFrom,
               greenCardValidTo: data.greenCardValidTo,
               kmState: data.kmState || 0,
+              // 💰 SPOLUÚČASŤ
+              deductibleAmount: data.deductibleAmount,
+              deductiblePercentage: data.deductiblePercentage,
             };
 
             try {

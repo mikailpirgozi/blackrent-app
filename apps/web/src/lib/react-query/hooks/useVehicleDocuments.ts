@@ -8,7 +8,11 @@ import { queryKeys } from '../queryKeys';
 declare const CustomEvent: any;
 
 // GET vehicle documents
-export function useVehicleDocuments(vehicleId?: string) {
+// ⚡ OPTIMIZED: Only fetch when explicitly needed (not on every page load)
+export function useVehicleDocuments(
+  vehicleId?: string,
+  enabled: boolean = false
+) {
   return useQuery({
     queryKey: vehicleId
       ? queryKeys.vehicleDocuments.byVehicle(vehicleId)
@@ -17,7 +21,7 @@ export function useVehicleDocuments(vehicleId?: string) {
       logger.debug('🔍 FETCHING VehicleDocuments from API...');
       return apiService.getVehicleDocuments(vehicleId);
     },
-    enabled: true, // Always enabled, vehicleId is optional
+    enabled: enabled, // ⚡ CHANGED: Only fetch when explicitly enabled
     staleTime: 0, // Vždy fresh data po invalidácii
     gcTime: 0, // ✅ CRITICAL FIX: Okamžite vymaž staré data z cache (no GC cache!)
     refetchOnMount: 'always', // ✅ Vždy refetch pri mount

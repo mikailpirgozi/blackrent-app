@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useError } from '../context/ErrorContext';
 import { logger } from '@/utils/smartLogger';
+import { shouldCheckSWUpdate, markSWCheckCompleted } from '@/utils/fastStartup';
 
 // PWA specific types - using any for browser APIs that may not be available in all environments
 type PWAServiceWorkerRegistration = any;
@@ -158,22 +159,29 @@ export const usePWA = (): PWAState & PWAActions => {
       // Check if app is already installed
       checkInstallationStatus();
 
-      // ✅ CHECK: Auto-update Service Worker if version changed
-      logger.debug('🔍 Checking Service Worker version...');
+      // ⚡ OPTIMIZED: Check SW update only once per 24h (not every page load!)
+      if (shouldCheckSWUpdate()) {
+        logger.debug('⏰ SW Update Check: 24h elapsed, checking version...');
 
-      // Dynamic import to avoid circular dependencies
-      const { checkServiceWorkerVersion, forceServiceWorkerUpdate } =
-        await import('../utils/forceServiceWorkerUpdate');
-      const versionCheck = await checkServiceWorkerVersion();
+        // Dynamic import to avoid circular dependencies
+        const { checkServiceWorkerVersion, forceServiceWorkerUpdate } =
+          await import('../utils/forceServiceWorkerUpdate');
+        const versionCheck = await checkServiceWorkerVersion();
 
-      if (versionCheck.needsUpdate) {
-        logger.debug('🔄 Service Worker update needed - forcing update...');
-        await forceServiceWorkerUpdate();
-        logger.debug(
-          '✅ Service Worker updated - will activate on next page load'
-        );
+        if (versionCheck.needsUpdate) {
+          logger.debug('🔄 Service Worker update needed - forcing update...');
+          await forceServiceWorkerUpdate();
+          logger.debug(
+            '✅ Service Worker updated - will activate on next page load'
+          );
+        } else {
+          logger.debug('✅ Service Worker is up to date');
+        }
+
+        // Mark as checked
+        markSWCheckCompleted();
       } else {
-        logger.debug('✅ Service Worker is up to date');
+        logger.debug('⏭️ SW Update Check: Skipped (checked within last 24h)');
       }
 
       // 🔧 ALLOW Service Worker on mobile but with disabled auto-updates

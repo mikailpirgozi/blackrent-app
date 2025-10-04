@@ -221,6 +221,52 @@ router.get('/:id',
   }
 );
 
+// GET /api/vehicles/check-duplicate/:licensePlate - Kontrola duplicitnej ŠPZ
+router.get('/check-duplicate/:licensePlate',
+  authenticateToken,
+  checkPermission('vehicles', 'read'),
+  async (req: Request, res: Response<ApiResponse<{ exists: boolean; vehicle?: Vehicle }>>) => {
+    try {
+      const { licensePlate } = req.params;
+      
+      if (!licensePlate) {
+        return res.status(400).json({
+          success: false,
+          error: 'ŠPZ je povinná'
+        });
+      }
+
+      // Získaj všetky vozidlá a kontroluj duplicitu
+      const vehicles = await postgresDatabase.getVehicles();
+      const existingVehicle = vehicles.find(
+        v => v.licensePlate?.toLowerCase() === licensePlate.toLowerCase()
+      );
+
+      if (existingVehicle) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            exists: true,
+            vehicle: existingVehicle
+          }
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { exists: false }
+      });
+
+    } catch (error) {
+      console.error('Check duplicate vehicle error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba pri kontrole duplicity vozidla'
+      });
+    }
+  }
+);
+
 // POST /api/vehicles - Vytvorenie nového vozidla s cache invalidation
 router.post('/', 
   authenticateToken,
@@ -235,6 +281,22 @@ router.post('/',
         success: false,
         error: 'Všetky povinné polia musia byť vyplnené'
       });
+    }
+
+    // ✅ Kontrola duplicitnej ŠPZ pred vytvorením
+    if (licensePlate) {
+      const vehicles = await postgresDatabase.getVehicles();
+      const existingVehicle = vehicles.find(
+        v => v.licensePlate?.toLowerCase() === licensePlate.toLowerCase()
+      );
+
+      if (existingVehicle) {
+        return res.status(409).json({
+          success: false,
+          error: `Vozidlo s ŠPZ "${licensePlate}" už existuje v databáze`,
+          code: 'DUPLICATE_LICENSE_PLATE'
+        });
+      }
     }
 
     const createdVehicle = await postgresDatabase.createVehicle({

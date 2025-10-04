@@ -279,6 +279,14 @@ class ApiService {
     return this.request<Vehicle>(`/vehicles/${id}`);
   }
 
+  async checkDuplicateVehicle(
+    licensePlate: string
+  ): Promise<{ exists: boolean; vehicle?: Vehicle }> {
+    return this.request<{ exists: boolean; vehicle?: Vehicle }>(
+      `/vehicles/check-duplicate/${encodeURIComponent(licensePlate)}`
+    );
+  }
+
   async createVehicle(vehicle: Vehicle): Promise<void> {
     return this.request<void>('/vehicles', {
       method: 'POST',

@@ -29,9 +29,12 @@ export function useVehicles(filters?: VehicleFilters) {
         includeRemoved: filters?.includeRemoved,
         includePrivate: filters?.includePrivate,
       }),
-    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
-    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
-    refetchOnMount: 'always', // ✅ Vždy refetch pri mount
+    // ⚡ OPTIMIZED: Smart caching pre okamžitý UX
+    staleTime: 10 * 60 * 1000, // 10 minút - consider data fresh
+    gcTime: 15 * 60 * 1000, // 15 minút - keep in memory
+    refetchOnMount: false, // ✅ Don't refetch if data is fresh
+    refetchOnWindowFocus: true, // ✅ Refetch when user returns to tab
+    // Real-time updates handled by WebSocket invalidation
     select: (data: Vehicle[]) => {
       // Tu môžeme aplikovať filtrovanie
       if (!filters) return data;

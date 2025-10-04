@@ -6,6 +6,7 @@ export * from './useExpenses';
 export * from './useInsuranceClaims';
 export * from './useInsurances';
 export * from './useInsurers';
+export * from './useInvestors';
 export * from './useProtocols';
 export * from './useRentals';
 export * from './useSettlements';

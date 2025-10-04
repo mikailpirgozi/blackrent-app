@@ -45,8 +45,8 @@ interface VehicleFiltersProps {
   setShowRented: (show: boolean) => void;
   showMaintenance: boolean;
   setShowMaintenance: (show: boolean) => void;
-  showTransferred: boolean;
-  setShowTransferred: (show: boolean) => void;
+  showStolen: boolean;
+  setShowStolen: (show: boolean) => void;
   showPrivate: boolean;
   setShowPrivate: (show: boolean) => void;
   showRemoved: boolean;
@@ -81,8 +81,8 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   setShowRented,
   showMaintenance,
   setShowMaintenance,
-  showTransferred,
-  setShowTransferred,
+  showStolen,
+  setShowStolen,
   showPrivate,
   setShowPrivate,
   showRemoved,
@@ -253,11 +253,11 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="show-transferred"
-                    checked={showTransferred}
-                    onCheckedChange={setShowTransferred}
+                    id="show-stolen"
+                    checked={showStolen}
+                    onCheckedChange={setShowStolen}
                   />
-                  <Label htmlFor="show-transferred">🔄 Prepisané</Label>
+                  <Label htmlFor="show-stolen">🚨 Ukradnuté</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox

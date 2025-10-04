@@ -8,8 +8,8 @@ interface QuickFiltersProps {
   setShowRented: (show: boolean) => void;
   showMaintenance: boolean;
   setShowMaintenance: (show: boolean) => void;
-  showTransferred: boolean;
-  setShowTransferred: (show: boolean) => void;
+  showStolen: boolean;
+  setShowStolen: (show: boolean) => void;
   showPrivate: boolean;
   setShowPrivate: (show: boolean) => void;
   showRemoved: boolean;
@@ -25,8 +25,8 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
   setShowRented,
   showMaintenance,
   setShowMaintenance,
-  showTransferred,
-  setShowTransferred,
+  showStolen,
+  setShowStolen,
   showPrivate,
   setShowPrivate,
   showRemoved,
@@ -38,7 +38,7 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
     showAvailable &&
     showRented &&
     showMaintenance &&
-    showTransferred &&
+    showStolen &&
     showPrivate &&
     showRemoved &&
     showTempRemoved;
@@ -48,7 +48,7 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
     setShowAvailable(newValue);
     setShowRented(newValue);
     setShowMaintenance(newValue);
-    setShowTransferred(newValue);
+    setShowStolen(newValue);
     setShowPrivate(newValue);
     setShowRemoved(newValue);
     setShowTempRemoved(newValue);
@@ -93,12 +93,12 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({
       </Button>
 
       <Button
-        variant={showTransferred ? 'default' : 'outline'}
+        variant={showStolen ? 'default' : 'outline'}
         size="sm"
-        onClick={() => setShowTransferred(!showTransferred)}
-        className={`text-xs ${showTransferred ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+        onClick={() => setShowStolen(!showStolen)}
+        className={`text-xs ${showStolen ? 'bg-red-700 hover:bg-red-800' : ''}`}
       >
-        🔄 Prepisané
+        🚨 Ukradnuté
       </Button>
 
       <Button
