@@ -3581,7 +3581,7 @@ export class PostgresDatabase {
       }
 
       // Permission filtering for non-admin users
-      if (params.userRole !== 'admin' && params.userId) {
+      if (params.userRole !== 'admin' && params.userRole !== 'super_admin' && params.userId) {
         // Get user's allowed companies
         const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
@@ -3699,7 +3699,7 @@ export class PostgresDatabase {
         paramIndex++;
       }
 
-      // Permission filtering for company_admin role
+      // Permission filtering for company_admin role (NOT for super_admin!)
       if (params.userRole === 'company_admin' && params.userId) {
         // Company owners can only see their own company
         const users = await this.getUsers();
@@ -3713,6 +3713,8 @@ export class PostgresDatabase {
           whereClauses.push('FALSE');
         }
       }
+      
+      // 🌟 SUPER_ADMIN and ADMIN - see everything (no filtering)
 
       const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
@@ -3816,7 +3818,7 @@ export class PostgresDatabase {
       }
 
       // Permission filtering for non-admin users
-      if (params.userRole !== 'admin' && params.userId) {
+      if (params.userRole !== 'admin' && params.userRole !== 'super_admin' && params.userId) {
         // Non-admin users can only see users from their accessible companies
         const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
@@ -4422,7 +4424,7 @@ export class PostgresDatabase {
 
       // Apply permission filtering for non-admin users
       let filteredRentals = rentals;
-      if (params.userRole !== 'admin' && params.userId) {
+      if (params.userRole !== 'admin' && params.userRole !== 'super_admin' && params.userId) {
         const userCompanyAccess = await this.getUserCompanyAccess(params.userId);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
