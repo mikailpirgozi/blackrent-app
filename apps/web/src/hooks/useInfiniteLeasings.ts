@@ -291,17 +291,17 @@ export function useInfiniteLeasings(
     };
 
     // Listen for both refresh and optimistic update events
-    window.addEventListener('leasing-list-refresh', handleRefresh as any);
+    window.addEventListener('leasing-list-refresh', handleRefresh as EventListener);
     window.addEventListener(
       'leasing-optimistic-update',
-      handleOptimisticUpdate as any
+      handleOptimisticUpdate as EventListener
     );
 
     return () => {
-      window.removeEventListener('leasing-list-refresh', handleRefresh as any);
+      window.removeEventListener('leasing-list-refresh', handleRefresh as EventListener);
       window.removeEventListener(
         'leasing-optimistic-update',
-        handleOptimisticUpdate as any
+        handleOptimisticUpdate as EventListener
       );
     };
   }, [refresh, updateLeasingInList, handleSmartLeasingUpdate]);

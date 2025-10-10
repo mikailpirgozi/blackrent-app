@@ -1849,7 +1849,7 @@ class ApiService {
    * Bulk set user permissions for multiple companies
    */
   async bulkSetUserPermissions(
-    userId: string,
+    _userId: string,
     assignments: Array<{
       companyId: string;
       permissions: Record<string, unknown>;

@@ -63,17 +63,17 @@ export interface DataTableColumn {
   resizable?: boolean;
   editable?: boolean;
   hide?: boolean;
-  renderCell?: (_params: any) => React.ReactNode;
-  valueGetter?: (_params: any) => any;
-  valueFormatter?: (_params: any) => string;
+  renderCell?: (_params: Record<string, unknown>) => React.ReactNode;
+  valueGetter?: (_params: Record<string, unknown>) => unknown;
+  valueFormatter?: (_params: Record<string, unknown>) => string;
   headerAlign?: 'left' | 'center' | 'right';
 }
 
 export interface UnifiedDataTableProps {
   // Data
-  rows: any[];
+  rows: Record<string, unknown>[];
   columns: DataTableColumn[];
-  getRowId?: (_row: any) => string | number;
+  getRowId?: (_row: Record<string, unknown>) => string | number;
 
   // Features
   checkboxSelection?: boolean;
@@ -99,14 +99,14 @@ export interface UnifiedDataTableProps {
 
   // Filtering
   filterMode?: 'client' | 'server';
-  filterModel?: any;
-  onFilterModelChange?: (_model: any) => void;
+  filterModel?: Record<string, unknown>;
+  onFilterModelChange?: (_model: Record<string, unknown>) => void;
   quickFilterValue?: string;
 
   // Row actions
-  onRowClick?: (_params: any) => void;
-  onRowDoubleClick?: (_params: any) => void;
-  getRowClassName?: (_params: any) => string;
+  onRowClick?: (_params: Record<string, unknown>) => void;
+  onRowDoubleClick?: (_params: Record<string, unknown>) => void;
+  getRowClassName?: (_params: Record<string, unknown>) => string;
 
   // UI
   loading?: boolean;
@@ -125,8 +125,8 @@ export interface UnifiedDataTableProps {
 
   // MUI compatibility
   sx?: Record<string, unknown>;
-  components?: any;
-  componentsProps?: any;
+  components?: Record<string, React.ComponentType<unknown>>;
+  componentsProps?: Record<string, Record<string, unknown>>;
 
   // Styling
   className?: string;

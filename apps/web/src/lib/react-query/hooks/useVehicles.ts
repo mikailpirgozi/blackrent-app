@@ -9,6 +9,7 @@ declare const CustomEvent: new <T>(
 ) => Event;
 import { queryKeys } from '../queryKeys';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
+import { CACHE_TIMES } from '../queryClient';
 
 // Filter interface pre vehicles
 export interface VehicleFilters {
@@ -29,11 +30,10 @@ export function useVehicles(filters?: VehicleFilters) {
         includeRemoved: filters?.includeRemoved,
         includePrivate: filters?.includePrivate,
       }),
-    // ⚡ OPTIMIZED: Smart caching pre okamžitý UX
-    staleTime: 10 * 60 * 1000, // 10 minút - consider data fresh
-    gcTime: 15 * 60 * 1000, // 15 minút - keep in memory
-    refetchOnMount: false, // ✅ Don't refetch if data is fresh
-    refetchOnWindowFocus: true, // ✅ Refetch when user returns to tab
+    // ⚡ PERFORMANCE: Use STATIC cache tier (changes less frequently)
+    staleTime: CACHE_TIMES.STATIC.staleTime, // 10 min
+    gcTime: CACHE_TIMES.STATIC.gcTime, // 15 min
+    refetchOnMount: false, // Don't refetch if data is fresh
     // Real-time updates handled by WebSocket invalidation
     select: (data: Vehicle[]) => {
       // Tu môžeme aplikovať filtrovanie

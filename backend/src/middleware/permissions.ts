@@ -259,6 +259,7 @@ export function hasPermission(
   
   // Admin roles (legacy admin, super_admin) majú vždy práva
   if (userRole === 'admin' || userRole === 'super_admin') {
+    console.log('🔥 ADMIN ACCESS GRANTED:', { userRole, resource, action });
     logger.auth('👑 Admin access granted');
     return { hasAccess: true, requiresApproval: false };
   }
@@ -396,6 +397,7 @@ export function checkPermission(
 
       // Admin roles (legacy admin, super_admin) majú práva na všetko
       if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+        console.log('🔥 MIDDLEWARE: Admin access granted', { username: req.user.username, role: req.user.role });
         logger.auth('✅ Admin access granted');
         req.permissionCheck = { hasAccess: true, requiresApproval: false };
         return next();

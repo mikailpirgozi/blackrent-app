@@ -9,7 +9,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 // Global type definitions for DOM elements
 interface WindowWithHandler {
-  __unifiedRentalScrollHandler?: (_event: any) => void;
+  __unifiedRentalScrollHandler?: (_event: Event) => void;
 }
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
@@ -17,8 +17,7 @@ import { useInfiniteRentals } from '../../hooks/useInfiniteRentals';
 // import { usePermissions } from '../../hooks/usePermissions'; // Unused
 
 // 🚀 EXTRACTED: Import all our refactored components and hooks
-import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
-import { useCustomers } from '@/lib/react-query/hooks/useCustomers';
+// Note: useCompanies and useCustomers data loaded via bulk endpoint
 import { useBulkProtocolStatus } from '@/lib/react-query/hooks/useProtocols';
 import {
   useCreateRental,
@@ -32,7 +31,7 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import { ProtocolImage, ProtocolVideo, Rental } from '../../types';
+import { ProtocolImage, ProtocolVideo, Rental, ReturnProtocol } from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
 
@@ -419,7 +418,7 @@ export default function RentalList() {
         } else {
           throw new Error(result.error || 'Neočakávaná odpoveď z API');
         }
-      } catch (_error) {
+      } catch (error) {
         logger.error('❌ Clone failed', { error, rentalId: rental.id });
 
         // Fallback na lokálnu logiku ak API zlyhá
@@ -452,9 +451,9 @@ export default function RentalList() {
   // This was moved above to fix the dependency issue
 
   // Create separate refs for mobile and desktop scroll containers
-  const mobileScrollRef = useRef<any>(null);
-  const desktopScrollRef = useRef<any>(null);
-  const scrollHandlerRef = useRef<((_event: any) => void) | null>(null);
+  const mobileScrollRef = useRef<HTMLDivElement | null>(null);
+  const desktopScrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollHandlerRef = useRef<((_event: Event) => void) | null>(null);
 
   // 🎯 INFINITE SCROLL: Auto-loading at 75% scroll
   const SCROLL_THRESHOLD = 0.75;
@@ -484,7 +483,7 @@ export default function RentalList() {
 
   // 🎯 UNIFIED SCROLL HANDLER: Auto-trigger loading at 75%
   const createScrollHandler = useCallback(() => {
-    return (_event: any) => {
+    return (_event: Event) => {
       // Skip if already loading or no more data
       if (loading || !hasMore) {
         return;
@@ -778,7 +777,7 @@ export default function RentalList() {
 
           // Open PDF in new tab
           window.open(pdfUrl, '_blank');
-        } catch (_error) {
+        } catch (error) {
           console.error('❌ Error downloading PDF:', error);
         }
       }
@@ -832,7 +831,7 @@ export default function RentalList() {
           try {
             const parsed = JSON.parse(imageData);
             return Array.isArray(parsed) ? (parsed as ProtocolImage[]) : [];
-          } catch (_error) {
+          } catch {
             console.warn('⚠️ Failed to parse image data as JSON:', imageData);
             return [];
           }
@@ -852,7 +851,7 @@ export default function RentalList() {
           try {
             const parsed = JSON.parse(videoData);
             return Array.isArray(parsed) ? (parsed as ProtocolVideo[]) : [];
-          } catch (_error) {
+          } catch {
             console.warn('⚠️ Failed to parse video data as JSON:', videoData);
             return [];
           }
@@ -897,7 +896,7 @@ export default function RentalList() {
       protocolsHook.galleryOpenRef.current = true;
 
       logger.debug('✅ Gallery opened successfully with protocol data');
-    } catch (_error) {
+    } catch (error) {
       console.error('❌ Error opening gallery:', error);
       window.alert('Chyba pri otváraní galérie!');
     }
@@ -1222,12 +1221,12 @@ export default function RentalList() {
             protocolsHook.setSelectedRentalForProtocol(null);
 
             logger.debug('✅ Handover protocol UI updated successfully');
-          } catch (_error) {
+          } catch (error) {
             console.error('❌ Error updating handover protocol UI:', error);
             window.alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
           }
         }}
-        handleSaveReturn={async (protocolData: any) => {
+        handleSaveReturn={async (protocolData: Record<string, unknown> | ReturnProtocol) => {
           try {
             logger.debug(
               '💾 Return protocol already saved, updating UI:',
@@ -1236,8 +1235,8 @@ export default function RentalList() {
 
             // React Query vracia priamo protocol objekt
             const rentalId =
-              protocolData?.rentalId ||
-              (protocolData?.rental as { id?: string })?.id;
+              (protocolData as Record<string, unknown>)?.rentalId ||
+              ((protocolData as Record<string, unknown>)?.rental as { id?: string })?.id;
 
             if (rentalId) {
               // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
@@ -1252,7 +1251,7 @@ export default function RentalList() {
             protocolsHook.setSelectedRentalForProtocol(null);
 
             logger.debug('✅ Return protocol UI updated successfully');
-          } catch (_error) {
+          } catch (error) {
             console.error('❌ Error updating return protocol UI:', error);
             window.alert(
               'Protokol bol uložený, ale UI sa nepodarilo aktualizovať. Obnovte stránku.'

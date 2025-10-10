@@ -122,7 +122,7 @@ export const isCacheFresh = (): boolean => {
     const age = Date.now() - cacheData.timestamp;
 
     return age <= CACHE_TTL && cacheData.version === CACHE_VERSION;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -150,7 +150,7 @@ export const getCacheInfo = (): {
       records: cacheData.data.length,
       fresh,
     };
-  } catch (error) {
+  } catch {
     return { exists: false };
   }
 };

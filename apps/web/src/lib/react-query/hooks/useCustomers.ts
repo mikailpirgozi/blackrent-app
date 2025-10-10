@@ -3,15 +3,17 @@ import type { Customer } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
+import { CACHE_TIMES } from '../queryClient';
 
 // GET customers
 export function useCustomers() {
   return useQuery({
     queryKey: queryKeys.customers.lists(),
     queryFn: () => apiService.getCustomers(),
-    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
-    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
-    refetchOnMount: 'always', // ✅ FIX: Vždy refetch pri mounte
+    // ⚡ PERFORMANCE: Use STANDARD cache tier (WebSocket handles real-time updates)
+    staleTime: CACHE_TIMES.STANDARD.staleTime, // 2 min
+    gcTime: CACHE_TIMES.STANDARD.gcTime, // 5 min
+    refetchOnMount: false, // Don't refetch if data is fresh
   });
 }
 

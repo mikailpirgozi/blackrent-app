@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-/* eslint-disable @typescript-eslint/no-unused-vars, no-var */
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
@@ -15,16 +14,16 @@ interface _ImportMeta {
 // Globálne typy pre DOM API
 declare global {
   // Basic DOM types
-  var _alert: (_message?: any) => void;
-  var _setTimeout: (_callback: (..._args: any[]) => void, _ms: number, ..._args: any[]) => number;
+  var _alert: (_message?: string) => void;
+  var _setTimeout: (_callback: (..._args: unknown[]) => void, _ms: number, ..._args: unknown[]) => number;
   var _clearTimeout: (_id: number) => void;
-  var _setInterval: (_callback: (..._args: any[]) => void, _ms: number, ..._args: any[]) => number;
+  var _setInterval: (_callback: (..._args: unknown[]) => void, _ms: number, ..._args: unknown[]) => number;
   var _clearInterval: (_id: number) => void;
-  var _window: any;
-  var _navigator: any;
-  var _caches: any;
-  var _performance: any;
-  var _console: any;
+  var _window: Window & typeof globalThis;
+  var _navigator: Navigator;
+  var _caches: CacheStorage;
+  var _performance: Performance;
+  var _console: Console;
   
   // Event types
   interface Event {
@@ -60,28 +59,25 @@ declare global {
   type EventListenerOrEventListenerObject = EventListener | EventListenerObject;
   
   // Custom Event
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface _CustomEvent<T = any> extends Event {
+  interface _CustomEvent<T = unknown> extends Event {
     readonly detail: T;
   }
   
   // Message Event
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface _MessageEvent<T = any> extends Event {
+  interface _MessageEvent<T = unknown> extends Event {
     readonly data: T;
     readonly origin: string;
     readonly lastEventId: string;
-    readonly source: any | null;
+    readonly source: MessagePort | null;
     readonly ports: ReadonlyArray<MessagePort>;
   }
   
   // Service Worker types
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _ServiceWorkerRegistration {
     readonly scope: string;
-    readonly installing: any | null;
-    readonly waiting: any | null;
-    readonly active: any | null;
+    readonly installing: ServiceWorker | null;
+    readonly waiting: ServiceWorker | null;
+    readonly active: ServiceWorker | null;
     addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
     update(): Promise<void>;
@@ -89,7 +85,6 @@ declare global {
   }
   
   // Push notification types
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type _NotificationPermission = 'default' | 'granted' | 'denied';
   
   interface Notification extends EventTarget {
@@ -98,7 +93,7 @@ declare global {
     readonly icon: string;
     readonly badge: string;
     readonly tag: string;
-    readonly data: any;
+    readonly data: unknown;
     readonly requireInteraction: boolean;
     readonly silent: boolean;
     readonly timestamp: number;
@@ -113,14 +108,24 @@ declare global {
   }
   
   interface NotificationConstructor {
-    new(_title: string, _options?: any): Notification;
+    new(_title: string, _options?: NotificationOptions): Notification;
   }
   
-  // eslint-disable-next-line no-var, @typescript-eslint/no-unused-vars
   var Notification: NotificationConstructor;
   
+  interface NotificationOptions {
+    body?: string;
+    icon?: string;
+    badge?: string;
+    tag?: string;
+    data?: unknown;
+    requireInteraction?: boolean;
+    silent?: boolean;
+    timestamp?: number;
+    actions?: NotificationAction[];
+  }
+  
   // Push subscription types
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _PushSubscription {
     readonly endpoint: string;
     readonly expirationTime: number | null;
@@ -146,15 +151,14 @@ declare global {
   type PushEncryptionKeyName = 'p256dh' | 'auth';
   
   // Cache API types
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface Cache {
-    add(_request: any): Promise<void>;
-    addAll(_requests: any[]): Promise<void>;
-    delete(_request: any, _options?: CacheQueryOptions): Promise<boolean>;
-    keys(_request?: any, _options?: CacheQueryOptions): Promise<ReadonlyArray<any>>;
-    match(_request: any, _options?: CacheQueryOptions): Promise<any | undefined>;
-    matchAll(_request?: any, _options?: CacheQueryOptions): Promise<ReadonlyArray<any>>;
-    put(_request: any, _response: any): Promise<void>;
+    add(_request: Request | string): Promise<void>;
+    addAll(_requests: Array<Request | string>): Promise<void>;
+    delete(_request: Request | string, _options?: CacheQueryOptions): Promise<boolean>;
+    keys(_request?: Request | string, _options?: CacheQueryOptions): Promise<ReadonlyArray<Request>>;
+    match(_request: Request | string, _options?: CacheQueryOptions): Promise<Response | undefined>;
+    matchAll(_request?: Request | string, _options?: CacheQueryOptions): Promise<ReadonlyArray<Response>>;
+    put(_request: Request | string, _response: Response): Promise<void>;
   }
   
   interface CacheQueryOptions {
@@ -163,12 +167,11 @@ declare global {
     ignoreVary?: boolean;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _CacheStorage {
     delete(_cacheName: string): Promise<boolean>;
     has(_cacheName: string): Promise<boolean>;
     keys(): Promise<ReadonlyArray<string>>;
-    match(_request: any, _options?: MultiCacheQueryOptions): Promise<any | undefined>;
+    match(_request: Request | string, _options?: MultiCacheQueryOptions): Promise<Response | undefined>;
     open(_cacheName: string): Promise<Cache>;
   }
   
@@ -177,7 +180,6 @@ declare global {
   }
   
   // Message Channel types
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface MessageChannel {
     readonly port1: MessagePort;
     readonly port2: MessagePort;
@@ -187,11 +189,10 @@ declare global {
     new(): MessageChannel;
   }
   
-  // eslint-disable-next-line no-var
   var MessageChannel: MessageChannelConstructor;
   
   interface MessagePort extends EventTarget {
-    postMessage(_message: any, _transfer?: any[]): void;
+    postMessage(_message: unknown, _transfer?: Transferable[]): void;
     start(): void;
     close(): void;
     addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
@@ -199,7 +200,6 @@ declare global {
   }
   
   // URL Search Params
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface URLSearchParams {
     append(_name: string, _value: string): void;
     delete(_name: string): void;
@@ -209,14 +209,13 @@ declare global {
     set(_name: string, _value: string): void;
     sort(): void;
     toString(): string;
-    forEach(_callbackfn: (_value: string, _key: string, _parent: URLSearchParams) => void, _thisArg?: any): void;
+    forEach(_callbackfn: (_value: string, _key: string, _parent: URLSearchParams) => void, _thisArg?: unknown): void;
   }
   
   interface URLSearchParamsConstructor {
     new(_init?: string | string[][] | Record<string, string> | URLSearchParams): URLSearchParams;
   }
   
-  // eslint-disable-next-line no-var
   var URLSearchParams: URLSearchParamsConstructor;
   
   // Image constructor
@@ -224,11 +223,9 @@ declare global {
     new(_width?: number, _height?: number): HTMLImageElement;
   }
   
-  // eslint-disable-next-line no-var
   var _Image: ImageConstructor;
   
   // Blob constructor
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface Blob {
     size: number;
     type: string;
@@ -236,17 +233,20 @@ declare global {
   }
   
   interface BlobConstructor {
-    new(_blobParts?: BlobPart[], _options?: any): Blob;
+    new(_blobParts?: BlobPart[], _options?: BlobPropertyBag): Blob;
   }
   
-  // eslint-disable-next-line no-var
   var Blob: BlobConstructor;
+  
+  interface BlobPropertyBag {
+    type?: string;
+    endings?: 'transparent' | 'native';
+  }
   
   type BlobPart = BufferSource | Blob | string;
   type BufferSource = ArrayBufferView | ArrayBuffer;
   
   // FormData constructor
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface FormData {
     append(_name: string, _value: string | Blob, _fileName?: string): void;
     delete(_name: string): void;
@@ -260,13 +260,11 @@ declare global {
     new(_form?: HTMLFormElement): FormData;
   }
   
-  // eslint-disable-next-line no-var
   var FormData: FormDataConstructor;
   
   type FormDataEntryValue = File | string;
   
   // HTML Element types
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _HTMLInputElement {
     value: string;
     checked: boolean;
@@ -296,13 +294,11 @@ declare global {
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _HTMLDivElement {
     addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _HTMLButtonElement {
     disabled: boolean;
     type: string;
@@ -312,20 +308,17 @@ declare global {
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface HTMLFormElement {
     elements: HTMLFormControlsCollection;
     addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface _HTMLSpanElement {
     addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface HTMLImageElement {
     src: string;
     width: number;
@@ -335,19 +328,16 @@ declare global {
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface HTMLFormControlsCollection {
     [index: number]: Element;
     length: number;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface Element {
     addEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
     removeEventListener(_type: string, _listener: EventListenerOrEventListenerObject): void;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface File {
     name: string;
     size: number;
@@ -355,7 +345,6 @@ declare global {
     lastModified: number;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ValidityState {
     valueMissing: boolean;
     typeMismatch: boolean;
@@ -370,6 +359,5 @@ declare global {
     valid: boolean;
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type SelectionMode = 'select' | 'start' | 'end' | 'preserve';
 }

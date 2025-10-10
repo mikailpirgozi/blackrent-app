@@ -21,6 +21,13 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    
+    // ⚡ PERFORMANCE & QUALITY: Additional strict flags
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -52,6 +59,12 @@
     "src/components/insurances/VehicleCentricInsuranceList.tsx",
     "src/components/rentals/RentalList.tsx",
     "src/components/settlements/SettlementDetail.tsx",
-    "src/components/vehicles/VehicleImage.tsx"
+    "src/components/vehicles/VehicleImage.tsx",
+    "src/components/Statistics.tsx",
+    "src/components/leasings/LeasingForm.tsx",
+    "src/components/users/CreateUserWithPermissions.tsx",
+    "src/utils/leasing/PaymentScheduleGenerator.ts",
+    "src/components/ui/UnifiedDataTable.tsx",
+    "src/components/vehicles/components/VehicleDialogs.tsx"
   ]
 }

@@ -1,3 +1,4 @@
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
@@ -9,10 +10,10 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  // Dočasne vypnutý StrictMode pre auth debugging
-  // <React.StrictMode>
-  <App />
-  // </React.StrictMode>
+  // ⚡ PERFORMANCE: StrictMode re-enabled for production quality
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );
 
 // Error handling pre manifest.json
@@ -23,9 +24,23 @@ window.addEventListener('error', event => {
   }
 });
 
-// Initialize performance monitoring
-if (import.meta.env.MODE === 'development') {
-  import('./utils/webVitals').then(({ reportWebVitals }) => {
-    reportWebVitals(); // Silent monitoring
+// ⚡ PERFORMANCE: Initialize Web Vitals monitoring (development + production)
+import('./utils/webVitals').then(({ reportWebVitals }) => {
+  reportWebVitals(data => {
+    // Production: Send to analytics endpoint (if configured)
+    if (import.meta.env.PROD && import.meta.env.VITE_ANALYTICS_ENDPOINT) {
+      fetch(import.meta.env.VITE_ANALYTICS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).catch(() => {
+        // Silently fail in production
+      });
+    }
+    
+    // Development: Log to console
+    if (import.meta.env.DEV) {
+      logger.debug('📊 Web Vitals:', data);
+    }
   });
-}
+});

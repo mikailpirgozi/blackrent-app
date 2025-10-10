@@ -28,6 +28,7 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCreateHandoverProtocol } from '@/lib/react-query/hooks/useProtocols';
+import { generateProtocolPDFQuick } from '@/utils/protocolPhotoWorkflow';
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useAuth } from '../../context/AuthContext';
 import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
@@ -47,6 +48,7 @@ import {
   getSmartDefaults,
 } from '../../utils/protocolFormCache';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
+import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 
 interface HandoverProtocolFormProps {
@@ -1313,16 +1315,15 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           </Button>
         </div>
 
-        {/* Photo capture modal */}
+        {/* Photo capture modal - MODERN SYSTEM */}
         {activePhotoCapture && (
-          <SerialPhotoCapture
+          <ModernPhotoCapture
             open={true}
             onClose={() => setActivePhotoCapture(null)}
             onSave={(images, videos) =>
               handlePhotoCaptureSuccess(activePhotoCapture, images, videos)
             }
             title={`Fotky - ${activePhotoCapture}`}
-            allowedTypes={['vehicle', 'document', 'damage', 'odometer', 'fuel']}
             entityId={rental.id}
             protocolType="handover"
             mediaType={
@@ -1333,21 +1334,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 | 'odometer'
                 | 'fuel'
             }
-            category={(() => {
-              // Mapovanie mediaType na R2 kategórie
-              const mediaTypeToCategory = {
-                vehicle: 'vehicle_photos',
-                document: 'documents',
-                damage: 'damages',
-                odometer: 'vehicle_photos',
-                fuel: 'vehicle_photos',
-              } as const;
-              return (
-                mediaTypeToCategory[
-                  activePhotoCapture as keyof typeof mediaTypeToCategory
-                ] || 'other'
-              );
-            })()}
+            maxImages={50}
           />
         )}
 

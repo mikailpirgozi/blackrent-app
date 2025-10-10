@@ -1,0 +1,29 @@
+---
+extends: default
+
+rules:
+  # GitHub Actions používa špeciálne templating výrazy ktoré nie sú štandardný YAML
+  # Zakážeme kontrolu truthy values aby sme umožnili ${{ }} výrazy
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off', 'yes', 'no']
+    check-keys: false
+  
+  # Povoliť dlhé riadky (GitHub Actions často má dlhé príkazy)
+  line-length:
+    max: 200
+    level: warning
+  
+  # Povoliť prázdne hodnoty (používané v GitHub Actions)
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false
+
+# Ignorovať node_modules a build adresáre
+ignore: |
+  node_modules/
+  dist/
+  build/
+  .next/
+  coverage/
+
+

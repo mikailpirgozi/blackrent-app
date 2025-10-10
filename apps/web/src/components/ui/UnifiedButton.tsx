@@ -104,42 +104,86 @@ export interface UnifiedButtonProps
   endIcon?: React.ReactNode;
   asChild?: boolean;
   component?: string | React.ElementType; // Pre kompatibilitu s MUI component prop
-  sx?: any; // Pre spätnu kompatibilitu s MUI sx prop
+  sx?: Record<string, unknown>; // Pre spätnu kompatibilitu s MUI sx prop
 }
 
 // Helper funkcia na konverziu MUI sx prop na inline styles (základná podpora)
-const convertSxToStyle = (sx: any): React.CSSProperties | undefined => {
+const convertSxToStyle = (sx: Record<string, unknown> | undefined): React.CSSProperties | undefined => {
   if (!sx) return undefined;
   
   const style: React.CSSProperties = {};
   
+  // Helper to safely multiply numeric values
+  const toPixels = (val: unknown): number | undefined => {
+    if (typeof val === 'number' && !isNaN(val)) return val * 8;
+    if (typeof val === 'string') {
+      const num = parseFloat(val);
+      if (!isNaN(num)) return num * 8;
+    }
+    return undefined;
+  };
+  
   // Základná konverzia niektorých častých sx properties
-  if (sx.mb !== undefined) style.marginBottom = sx.mb * 8; // MUI spacing je násobok 8px
-  if (sx.mt !== undefined) style.marginTop = sx.mt * 8;
-  if (sx.ml !== undefined) style.marginLeft = sx.ml * 8;
-  if (sx.mr !== undefined) style.marginRight = sx.mr * 8;
-  if (sx.m !== undefined) style.margin = sx.m * 8;
+  const mb = toPixels(sx.mb);
+  if (mb !== undefined) style.marginBottom = mb;
   
-  if (sx.pb !== undefined) style.paddingBottom = sx.pb * 8;
-  if (sx.pt !== undefined) style.paddingTop = sx.pt * 8;
-  if (sx.pl !== undefined) style.paddingLeft = sx.pl * 8;
-  if (sx.pr !== undefined) style.paddingRight = sx.pr * 8;
-  if (sx.px !== undefined) {
-    style.paddingLeft = sx.px * 8;
-    style.paddingRight = sx.px * 8;
-  }
-  if (sx.py !== undefined) {
-    style.paddingTop = sx.py * 8;
-    style.paddingBottom = sx.py * 8;
-  }
-  if (sx.p !== undefined) style.padding = sx.p * 8;
+  const mt = toPixels(sx.mt);
+  if (mt !== undefined) style.marginTop = mt;
   
-  if (sx.fontSize) style.fontSize = sx.fontSize;
-  if (sx.color) style.color = sx.color;
-  if (sx.backgroundColor) style.backgroundColor = sx.backgroundColor;
-  if (sx.borderColor) style.borderColor = sx.borderColor;
-  if (sx.borderStyle) style.borderStyle = sx.borderStyle;
-  if (sx.borderWidth) style.borderWidth = sx.borderWidth;
+  const ml = toPixels(sx.ml);
+  if (ml !== undefined) style.marginLeft = ml;
+  
+  const mr = toPixels(sx.mr);
+  if (mr !== undefined) style.marginRight = mr;
+  
+  const m = toPixels(sx.m);
+  if (m !== undefined) style.margin = m;
+  
+  const pb = toPixels(sx.pb);
+  if (pb !== undefined) style.paddingBottom = pb;
+  
+  const pt = toPixels(sx.pt);
+  if (pt !== undefined) style.paddingTop = pt;
+  
+  const pl = toPixels(sx.pl);
+  if (pl !== undefined) style.paddingLeft = pl;
+  
+  const pr = toPixels(sx.pr);
+  if (pr !== undefined) style.paddingRight = pr;
+  
+  const px = toPixels(sx.px);
+  if (px !== undefined) {
+    style.paddingLeft = px;
+    style.paddingRight = px;
+  }
+  
+  const py = toPixels(sx.py);
+  if (py !== undefined) {
+    style.paddingTop = py;
+    style.paddingBottom = py;
+  }
+  
+  const p = toPixels(sx.p);
+  if (p !== undefined) style.padding = p;
+  
+  if (sx.fontSize && (typeof sx.fontSize === 'string' || typeof sx.fontSize === 'number')) {
+    style.fontSize = sx.fontSize as string | number;
+  }
+  if (sx.color && typeof sx.color === 'string') {
+    style.color = sx.color;
+  }
+  if (sx.backgroundColor && typeof sx.backgroundColor === 'string') {
+    style.backgroundColor = sx.backgroundColor;
+  }
+  if (sx.borderColor && typeof sx.borderColor === 'string') {
+    style.borderColor = sx.borderColor;
+  }
+  if (sx.borderStyle && typeof sx.borderStyle === 'string') {
+    style.borderStyle = sx.borderStyle as React.CSSProperties['borderStyle'];
+  }
+  if (sx.borderWidth && (typeof sx.borderWidth === 'string' || typeof sx.borderWidth === 'number')) {
+    style.borderWidth = sx.borderWidth as string | number;
+  }
   
   return Object.keys(style).length > 0 ? style : undefined;
 };
@@ -185,7 +229,7 @@ export const UnifiedButton = React.forwardRef<
   };
   
   // Pre component="label" alebo iné HTML elementy, musíme props trochu upraviť
-  const buttonProps: any = {
+  const buttonProps: Record<string, unknown> = {
     ref,
     className: cn(
       unifiedButtonVariants({ variant, size, color }),

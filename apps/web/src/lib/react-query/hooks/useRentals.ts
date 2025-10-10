@@ -2,8 +2,6 @@ import { apiService } from '@/services/api';
 import type { Rental } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-// Declare browser APIs
-declare const CustomEvent: any;
 import { queryKeys } from '../queryKeys';
 
 // Filter interface pre rentals

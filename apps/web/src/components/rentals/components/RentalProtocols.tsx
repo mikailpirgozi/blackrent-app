@@ -19,7 +19,7 @@ import type {
   Rental,
 } from '../../../types';
 import PDFViewer from '../../common/PDFViewer';
-import ProtocolGallery from '../../common/ProtocolGallery';
+import { ProtocolGallery } from '../../common/ProtocolGallery';
 import ReturnProtocolForm from '../../protocols/ReturnProtocolForm';
 import RentalForm from '../RentalForm';
 import { logger } from '@/utils/smartLogger';

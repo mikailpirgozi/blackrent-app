@@ -2,6 +2,7 @@ import { useExpenses } from '@/lib/react-query/hooks/useExpenses';
 import { useAllProtocols } from '@/lib/react-query/hooks/useProtocols';
 import { useRentals } from '@/lib/react-query/hooks/useRentals';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
+import { Rental } from '@/types';
 import {
   Building2 as AccountBalanceIcon,
   BarChart3 as AssessmentIcon,
@@ -162,7 +163,7 @@ const Statistics: React.FC = () => {
 
   // Debounced statistics calculation
   const debounceTimeoutRef = useRef<number>();
-  const [debouncedStats, setDebouncedStats] = useState<any>(null);
+  const [debouncedStats, setDebouncedStats] = useState<ReturnType<typeof computeStatistics> | null>(null);
 
   const calculateStats = useCallback(() => {
     if (debounceTimeoutRef.current) {
@@ -874,7 +875,7 @@ const Statistics: React.FC = () => {
   }, [rentals, expenses, protocols, vehicles, selectedYear, selectedMonth, timeRange, filterYear, filterMonth]);
 
   // Use debounced stats or fallback to empty object
-  const stats = debouncedStats || {};
+  const stats = debouncedStats as NonNullable<typeof debouncedStats>;
   
   // Loading state
   if (!debouncedStats) {
@@ -1502,40 +1503,47 @@ const Statistics: React.FC = () => {
                       </ShadcnTableHeader>
                       <ShadcnTableBody>
                         {Object.entries(stats?.companyStats || {})
-                          .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
+                          .sort(([, a], [, b]) => {
+                            const aData = a as { count: number; revenue: number; commission: number };
+                            const bData = b as { count: number; revenue: number; commission: number };
+                            return bData.revenue - aData.revenue;
+                          })
                           .slice(0, 5)
-                          .map(([company, data]) => (
-                            <ShadcnTableRow
-                              key={company}
-                              className="hover:bg-gray-50 transition-colors duration-200"
-                            >
-                              <ShadcnTableCell>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                                    <PersonIcon className="h-4 w-4 text-white" />
+                          .map(([company, data]) => {
+                            const typedData = data as { count: number; revenue: number; commission: number };
+                            return (
+                              <ShadcnTableRow
+                                key={company}
+                                className="hover:bg-gray-50 transition-colors duration-200"
+                              >
+                                <ShadcnTableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                      <PersonIcon className="h-4 w-4 text-white" />
+                                    </div>
+                                    <span className="text-sm font-medium">
+                                      {company}
+                                    </span>
                                   </div>
-                                  <span className="text-sm font-medium">
-                                    {company}
+                                </ShadcnTableCell>
+                                <ShadcnTableCell className="text-right">
+                                  <Badge className="bg-blue-500 text-white font-semibold">
+                                    {typedData.count}
+                                  </Badge>
+                                </ShadcnTableCell>
+                                <ShadcnTableCell className="text-right">
+                                  <span className="text-sm font-bold text-teal-600">
+                                    {typedData.revenue.toLocaleString()} €
                                   </span>
-                                </div>
-                              </ShadcnTableCell>
-                              <ShadcnTableCell className="text-right">
-                                <Badge className="bg-blue-500 text-white font-semibold">
-                                  {(data as any).count}
-                                </Badge>
-                              </ShadcnTableCell>
-                              <ShadcnTableCell className="text-right">
-                                <span className="text-sm font-bold text-teal-600">
-                                  {(data as any).revenue.toLocaleString()} €
-                                </span>
-                              </ShadcnTableCell>
-                              <ShadcnTableCell className="text-right">
-                                <span className="text-sm font-bold text-orange-500">
-                                  {(data as any).commission.toLocaleString()} €
-                                </span>
-                              </ShadcnTableCell>
-                            </ShadcnTableRow>
-                          ))}
+                                </ShadcnTableCell>
+                                <ShadcnTableCell className="text-right">
+                                  <span className="text-sm font-bold text-orange-500">
+                                    {typedData.commission.toLocaleString()} €
+                                  </span>
+                                </ShadcnTableCell>
+                              </ShadcnTableRow>
+                            );
+                          })}
                       </ShadcnTableBody>
                     </ShadcnTable>
                   </div>
@@ -1584,10 +1592,13 @@ const Statistics: React.FC = () => {
                     <PieChart>
                       <Pie
                         data={Object.entries(stats?.paymentMethodStats || {}).map(
-                          ([method, data]) => ({
-                            name: method,
-                            value: (data as any).count,
-                          })
+                          ([method, data]) => {
+                            const typedData = data as { count: number; revenue: number };
+                            return {
+                              name: method,
+                              value: typedData.count,
+                            };
+                          }
                         )}
                         cx="50%"
                         cy="50%"
@@ -1657,46 +1668,53 @@ const Statistics: React.FC = () => {
         <TabsContent value="2" className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.entries(stats?.companyStats || {})
-              .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
-              .map(([company, data]) => (
-                <div key={company}>
-                  <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
-                    <ShadcnCardContent>
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                          <PersonIcon className="h-4 w-4 text-white" />
+              .sort(([, a], [, b]) => {
+                const aData = a as { count: number; revenue: number; commission: number };
+                const bData = b as { count: number; revenue: number; commission: number };
+                return bData.revenue - aData.revenue;
+              })
+              .map(([company, data]) => {
+                const typedData = data as { count: number; revenue: number; commission: number };
+                return (
+                  <div key={company}>
+                    <ShadcnCard className="shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
+                      <ShadcnCardContent>
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                            <PersonIcon className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <h6 className="text-lg font-bold">
+                              {company}
+                            </h6>
+                            <span className="text-sm text-gray-600">
+                              {typedData.count} prenájmov
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h6 className="text-lg font-bold">
-                            {company}
-                          </h6>
-                          <span className="text-sm text-gray-600">
-                            {(data as any).count} prenájmov
+
+                        <div className="flex justify-between mb-2 p-3 rounded bg-gray-50">
+                          <span className="text-sm font-semibold">
+                            Príjmy:
+                          </span>
+                          <span className="text-sm font-bold text-teal-600">
+                            {typedData.revenue.toLocaleString()} €
                           </span>
                         </div>
-                      </div>
 
-                      <div className="flex justify-between mb-2 p-3 rounded bg-gray-50">
-                        <span className="text-sm font-semibold">
-                          Príjmy:
-                        </span>
-                        <span className="text-sm font-bold text-teal-600">
-                          {(data as any).revenue.toLocaleString()} €
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between p-3 rounded bg-orange-50">
-                        <span className="text-sm font-semibold">
-                          Provízia:
-                        </span>
-                        <span className="text-sm font-bold text-orange-600">
-                          {(data as any).commission.toLocaleString()} €
-                        </span>
-                      </div>
-                    </ShadcnCardContent>
-                  </ShadcnCard>
-                </div>
-              ))}
+                        <div className="flex justify-between p-3 rounded bg-orange-50">
+                          <span className="text-sm font-semibold">
+                            Provízia:
+                          </span>
+                          <span className="text-sm font-bold text-orange-600">
+                            {typedData.commission.toLocaleString()} €
+                          </span>
+                        </div>
+                      </ShadcnCardContent>
+                    </ShadcnCard>
+                  </div>
+                );
+              })}
           </div>
         </TabsContent>
 
@@ -1729,10 +1747,15 @@ const Statistics: React.FC = () => {
                       </ShadcnTableHeader>
                       <ShadcnTableBody>
                         {Object.entries(stats?.paymentMethodStats || {})
-                          .sort(([, a], [, b]) => (b as any).revenue - (a as any).revenue)
+                          .sort(([, a], [, b]) => {
+                            const aData = a as { count: number; revenue: number };
+                            const bData = b as { count: number; revenue: number };
+                            return bData.revenue - aData.revenue;
+                          })
                           .map(([method, data]) => {
+                            const typedData = data as { count: number; revenue: number };
                             const percentage =
-                              ((data as any).revenue / (stats?.totalRevenue || 1)) * 100;
+                              (typedData.revenue / (stats?.totalRevenue || 1)) * 100;
                             return (
                               <ShadcnTableRow
                                 key={method}
@@ -1747,12 +1770,12 @@ const Statistics: React.FC = () => {
                                 </ShadcnTableCell>
                                 <ShadcnTableCell className="text-right">
                                   <span className="text-sm font-bold">
-                                    {(data as any).count}
+                                    {typedData.count}
                                   </span>
                                 </ShadcnTableCell>
                                 <ShadcnTableCell className="text-right">
                                   <span className="text-sm font-bold text-teal-600">
-                                    {(data as any).revenue.toLocaleString()} €
+                                    {typedData.revenue.toLocaleString()} €
                                   </span>
                                 </ShadcnTableCell>
                                 <ShadcnTableCell className="text-right">
@@ -1785,7 +1808,7 @@ const Statistics: React.FC = () => {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-4">
-                      {stats?.unpaidRentals?.slice(0, 5).map((rental: any) => (
+                      {(stats?.unpaidRentals as Rental[] | undefined)?.slice(0, 5).map((rental) => (
                         <div
                           key={rental.id}
                           className="p-4 border border-gray-200 rounded-lg bg-orange-50 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
@@ -1797,7 +1820,7 @@ const Statistics: React.FC = () => {
                             {rental.vehicle?.brand} {rental.vehicle?.model}
                           </p>
                           <p className="text-sm font-bold text-red-600">
-                            {rental.totalPrice?.toLocaleString()} €
+                            {typeof rental.totalPrice === 'number' ? rental.totalPrice.toLocaleString() : '0'} €
                           </p>
                         </div>
                       ))}
@@ -2572,7 +2595,10 @@ const Statistics: React.FC = () => {
                         <ShadcnTableBody>
                             {stats.employeeStats.allEmployees
                               .sort(
-                                (a: any, b: any) =>
+                                (
+                                  a: { totalProtocols: number },
+                                  b: { totalProtocols: number }
+                                ) =>
                                   (b.totalProtocols || 0) -
                                   (a.totalProtocols || 0)
                               )

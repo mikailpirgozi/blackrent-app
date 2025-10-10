@@ -159,7 +159,7 @@ export const getFormCacheInfo = () => {
       isExpired: age > CACHE_TTL,
       isOutdated: cachedData.version !== CACHE_VERSION,
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 };

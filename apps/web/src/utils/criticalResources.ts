@@ -195,7 +195,7 @@ class CriticalResourceManager {
         ...existingImportant,
         ...Array.from(new Set(cssResources)),
       ];
-    } catch (_) {
+    } catch {
       // Ticho zlyhaj – v najhoršom prípade len nepreloadneme nič
       this.resourcePriorities.normal = [];
       // CSS nepreloadujeme, nechaj iba fonty

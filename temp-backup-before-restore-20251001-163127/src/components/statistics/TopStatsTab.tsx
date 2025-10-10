@@ -1,0 +1,877 @@
+import { UnifiedIcon } from '@/components/ui/UnifiedIcon';
+import {
+  DirectionsCar as CarIcon,
+  Euro as EuroIcon,
+  AttachMoney as MoneyIcon,
+  Person as PersonIcon,
+  Speed as SpeedIcon,
+  Star as StarIcon,
+  AccessTime as TimeIcon,
+  EmojiEvents as TrophyIcon,
+} from '@mui/icons-material';
+import {
+  Avatar,
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  Grid,
+  LinearProgress,
+  Typography,
+} from '@mui/material';
+import React from 'react';
+
+import TopListCard from './TopListCard';
+import TopStatCard from './TopStatCard';
+
+interface TopStatsTabProps {
+  stats: Record<string, unknown>;
+  formatPeriod: () => string;
+  showVehiclesByUtilization: number;
+  showVehiclesByRevenue: number;
+  showVehiclesByRentals: number;
+  showCustomersByRentals: number;
+  showCustomersByRevenue: number;
+  showCustomersByDays: number;
+  setShowVehiclesByUtilization: React.Dispatch<React.SetStateAction<number>>;
+  setShowVehiclesByRevenue: React.Dispatch<React.SetStateAction<number>>;
+  setShowVehiclesByRentals: React.Dispatch<React.SetStateAction<number>>;
+  setShowCustomersByRentals: React.Dispatch<React.SetStateAction<number>>;
+  setShowCustomersByRevenue: React.Dispatch<React.SetStateAction<number>>;
+  setShowCustomersByDays: React.Dispatch<React.SetStateAction<number>>;
+}
+
+const TopStatsTab: React.FC<TopStatsTabProps> = ({
+  stats,
+  formatPeriod,
+  showVehiclesByUtilization,
+  showVehiclesByRevenue,
+  showVehiclesByRentals,
+  showCustomersByRentals,
+  showCustomersByRevenue,
+  showCustomersByDays,
+  setShowVehiclesByUtilization,
+  setShowVehiclesByRevenue,
+  setShowVehiclesByRentals,
+  setShowCustomersByRentals,
+  setShowCustomersByRevenue,
+  setShowCustomersByDays,
+}) => {
+  return (
+    <Grid container spacing={3}>
+      {/* Úvodný prehľad */}
+      <Grid item xs={12}>
+        <Card
+          sx={{
+            mb: 3,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <TrophyIcon sx={{ fontSize: 40 }} />
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  TOP Štatistiky
+                </Typography>
+                <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                  Najlepšie výkony za obdobie: {formatPeriod()}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* 🏆 NAJLEPŠIE VÝKONY - Prehľadové karty */}
+      <Grid item xs={12}>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            mb: 3,
+            color: '#667eea',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
+          <StarIcon />
+          🏆 Najlepšie výkony
+        </Typography>
+      </Grid>
+
+      {/* Top výkony v 3 kartách */}
+      <Grid item xs={12} md={4}>
+        <TopStatCard
+          title="Najvyťaženejšie auto"
+          icon={<UnifiedIcon name="speed" />}
+          data={stats.topVehicleByUtilization as Record<string, unknown>}
+          primaryValue={
+            stats.topVehicleByUtilization
+              ? `${((stats.topVehicleByUtilization as Record<string, unknown>).utilizationPercentage as number).toFixed(1)}%`
+              : 'N/A'
+          }
+          secondaryValue={
+            stats.topVehicleByUtilization
+              ? `${(stats.topVehicleByUtilization as Record<string, unknown>).totalDaysRented as number} dní prenájmu`
+              : ''
+          }
+          gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          percentage={
+            (stats.topVehicleByUtilization as Record<string, unknown>)
+              ?.utilizationPercentage as number
+          }
+        />
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <TopStatCard
+          title="Najvýnosnejšie auto"
+          icon={<EuroIcon />}
+          data={stats.topVehicleByRevenue as Record<string, unknown>}
+          primaryValue={
+            stats.topVehicleByRevenue
+              ? `${(stats.topVehicleByRevenue as Record<string, unknown>).totalRevenue as number} €`
+              : 'N/A'
+          }
+          secondaryValue={
+            stats.topVehicleByRevenue
+              ? `${(stats.topVehicleByRevenue as Record<string, unknown>).rentalCount as number} prenájmov`
+              : ''
+          }
+          gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+        />
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <TopStatCard
+          title="Najaktívnejší zákazník"
+          icon={<UnifiedIcon name="user" />}
+          data={stats.topCustomerByRentals as Record<string, unknown>}
+          primaryValue={
+            stats.topCustomerByRentals
+              ? `${(stats.topCustomerByRentals as Record<string, unknown>).rentalCount as number}x`
+              : 'N/A'
+          }
+          secondaryValue={
+            stats.topCustomerByRentals
+              ? `${(stats.topCustomerByRentals as Record<string, unknown>).totalRevenue as number} € celkom`
+              : ''
+          }
+          gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
+        />
+      </Grid>
+
+      {/* Divider */}
+      <Grid item xs={12}>
+        <Divider sx={{ my: 2 }} />
+      </Grid>
+
+      {/* 🚗 TOP AUTÁ - Detailné rebríčky */}
+      <Grid item xs={12}>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            mb: 3,
+            color: '#667eea',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
+          <CarIcon />
+          🚗 TOP Autá - Detailné rebríčky
+        </Typography>
+      </Grid>
+
+      {/* Najvyťaženejšie autá */}
+      <Grid item xs={12} lg={4}>
+        <TopListCard
+          title="Najvyťaženejšie autá"
+          icon={<UnifiedIcon name="speed" />}
+          gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          data={stats.vehiclesByUtilization as Record<string, unknown>[]}
+          showCount={showVehiclesByUtilization}
+          onLoadMore={() => setShowVehiclesByUtilization(prev => prev + 10)}
+          renderItem={(vehicle, index) => (
+            <Box
+              key={
+                (
+                  (vehicle as Record<string, unknown>).vehicle as Record<
+                    string,
+                    unknown
+                  >
+                ).id as string
+              }
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  index < 3 ? 'rgba(102, 126, 234, 0.04)' : '#f8f9fa',
+                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background:
+                    index < 3
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : '#bdbdbd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {index + 1}
+              </Box>
+
+              <Avatar sx={{ width: 40, height: 40, bgcolor: '#667eea' }}>
+                <CarIcon fontSize="small" />
+              </Avatar>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).brand as string
+                  }{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).model as string
+                  }
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).licensePlate as string
+                  }{' '}
+                  •{' '}
+                  {
+                    (vehicle as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{
+                    color:
+                      ((vehicle as Record<string, unknown>)
+                        .utilizationPercentage as number) > 70
+                        ? '#4caf50'
+                        : ((vehicle as Record<string, unknown>)
+                              .utilizationPercentage as number) > 40
+                          ? '#ff9800'
+                          : '#f44336',
+                  }}
+                >
+                  {(
+                    (vehicle as Record<string, unknown>)
+                      .utilizationPercentage as number
+                  ).toFixed(1)}
+                  %
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(
+                    (vehicle as Record<string, unknown>)
+                      .utilizationPercentage as number,
+                    100
+                  )}
+                  sx={{
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: '#e0e0e0',
+                    '& .MuiLinearProgress-bar': {
+                      background:
+                        ((vehicle as Record<string, unknown>)
+                          .utilizationPercentage as number) > 70
+                          ? '#4caf50'
+                          : ((vehicle as Record<string, unknown>)
+                                .utilizationPercentage as number) > 40
+                            ? '#ff9800'
+                            : '#f44336',
+                      borderRadius: 3,
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
+          emptyMessage="Žiadne autá v tomto období"
+        />
+      </Grid>
+
+      {/* Najvýnosnejšie autá */}
+      <Grid item xs={12} lg={4}>
+        <TopListCard
+          title="Najvýnosnejšie autá"
+          icon={<EuroIcon />}
+          gradient="linear-gradient(135deg, #11998e 0%, #38ef7d 100%)"
+          data={stats.vehiclesByRevenue as Record<string, unknown>[]}
+          showCount={showVehiclesByRevenue}
+          onLoadMore={() => setShowVehiclesByRevenue(prev => prev + 10)}
+          renderItem={(vehicle, index) => (
+            <Box
+              key={
+                (
+                  (vehicle as Record<string, unknown>).vehicle as Record<
+                    string,
+                    unknown
+                  >
+                ).id as string
+              }
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  index < 3 ? 'rgba(17, 153, 142, 0.04)' : '#f8f9fa',
+                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background:
+                    index < 3
+                      ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
+                      : '#bdbdbd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {index + 1}
+              </Box>
+
+              <Avatar sx={{ width: 40, height: 40, bgcolor: '#11998e' }}>
+                <CarIcon fontSize="small" />
+              </Avatar>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).brand as string
+                  }{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).model as string
+                  }
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).licensePlate as string
+                  }{' '}
+                  • {(vehicle as Record<string, unknown>).rentalCount as number}{' '}
+                  prenájmov
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{ color: '#11998e' }}
+                >
+                  {(
+                    (vehicle as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  €
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(
+                    (vehicle as Record<string, unknown>)
+                      .avgRevenuePerRental as number
+                  ).toFixed(0)}{' '}
+                  €/prenájom
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          emptyMessage="Žiadne autá v tomto období"
+        />
+      </Grid>
+
+      {/* Najčastejšie prenajímané */}
+      <Grid item xs={12} lg={4}>
+        <TopListCard
+          title="Najčastejšie prenajímané"
+          icon={<CarIcon />}
+          gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+          data={stats.vehiclesByRentals as Record<string, unknown>[]}
+          showCount={showVehiclesByRentals}
+          onLoadMore={() => setShowVehiclesByRentals(prev => prev + 10)}
+          renderItem={(vehicle, index) => (
+            <Box
+              key={
+                (
+                  (vehicle as Record<string, unknown>).vehicle as Record<
+                    string,
+                    unknown
+                  >
+                ).id as string
+              }
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  index < 3 ? 'rgba(240, 147, 251, 0.04)' : '#f8f9fa',
+                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background:
+                    index < 3
+                      ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                      : '#bdbdbd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {index + 1}
+              </Box>
+
+              <Avatar sx={{ width: 40, height: 40, bgcolor: '#f093fb' }}>
+                <CarIcon fontSize="small" />
+              </Avatar>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).brand as string
+                  }{' '}
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).model as string
+                  }
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {
+                    (
+                      (vehicle as Record<string, unknown>).vehicle as Record<
+                        string,
+                        unknown
+                      >
+                    ).licensePlate as string
+                  }{' '}
+                  •{' '}
+                  {
+                    (vehicle as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní celkom
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{ color: '#f093fb' }}
+                >
+                  {(vehicle as Record<string, unknown>).rentalCount as number}x
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(
+                    (vehicle as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  € celkom
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          emptyMessage="Žiadne autá v tomto období"
+        />
+      </Grid>
+
+      {/* Divider */}
+      <Grid item xs={12}>
+        <Divider sx={{ my: 2 }} />
+      </Grid>
+
+      {/* 👥 TOP ZÁKAZNÍCI - Detailné rebríčky */}
+      <Grid item xs={12}>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            mb: 3,
+            color: '#667eea',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
+          <UnifiedIcon name="user" />
+          👥 TOP Zákazníci - Detailné rebríčky
+        </Typography>
+      </Grid>
+
+      {/* Najaktívnejší zákazníci */}
+      <Grid item xs={12} lg={4}>
+        <TopListCard
+          title="Najaktívnejší zákazníci"
+          icon={<StarIcon />}
+          gradient="linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)"
+          data={stats.customersByRentals as Record<string, unknown>[]}
+          showCount={showCustomersByRentals}
+          onLoadMore={() => setShowCustomersByRentals(prev => prev + 10)}
+          renderItem={(customer, index) => (
+            <Box
+              key={(customer as Record<string, unknown>).customerName as string}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  index < 3 ? 'rgba(255, 154, 158, 0.04)' : '#f8f9fa',
+                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background:
+                    index < 3
+                      ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
+                      : '#bdbdbd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {index + 1}
+              </Box>
+
+              <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff9a9e' }}>
+                <UnifiedIcon name="user" fontSize="small" />
+              </Avatar>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {(customer as Record<string, unknown>).customerName as string}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {
+                    (customer as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní celkom • Priemer:{' '}
+                  {(
+                    (customer as Record<string, unknown>)
+                      .avgRentalDuration as number
+                  ).toFixed(1)}{' '}
+                  dní
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{ color: '#ff9a9e' }}
+                >
+                  {(customer as Record<string, unknown>).rentalCount as number}x
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(
+                    (customer as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  € celkom
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          emptyMessage="Žiadni zákazníci v tomto období"
+        />
+      </Grid>
+
+      {/* Najziskovejší zákazníci */}
+      <Grid item xs={12} lg={4}>
+        <TopListCard
+          title="Najziskovejší zákazníci"
+          icon={<MoneyIcon />}
+          gradient="linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
+          data={stats.customersByRevenue as Record<string, unknown>[]}
+          showCount={showCustomersByRevenue}
+          onLoadMore={() => setShowCustomersByRevenue(prev => prev + 10)}
+          renderItem={(customer, index) => (
+            <Box
+              key={(customer as Record<string, unknown>).customerName as string}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  index < 3 ? 'rgba(255, 107, 107, 0.04)' : '#f8f9fa',
+                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background:
+                    index < 3
+                      ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)'
+                      : '#bdbdbd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {index + 1}
+              </Box>
+
+              <Avatar sx={{ width: 40, height: 40, bgcolor: '#ff6b6b' }}>
+                <UnifiedIcon name="user" fontSize="small" />
+              </Avatar>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {(customer as Record<string, unknown>).customerName as string}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(customer as Record<string, unknown>).rentalCount as number}{' '}
+                  prenájmov •{' '}
+                  {
+                    (customer as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{ color: '#ff6b6b' }}
+                >
+                  {(
+                    (customer as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  €
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(
+                    ((customer as Record<string, unknown>)
+                      .totalRevenue as number) /
+                    ((customer as Record<string, unknown>)
+                      .rentalCount as number)
+                  ).toFixed(0)}{' '}
+                  €/prenájom
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          emptyMessage="Žiadni zákazníci v tomto období"
+        />
+      </Grid>
+
+      {/* Najdlhodobejší zákazníci */}
+      <Grid item xs={12} lg={4}>
+        <TopListCard
+          title="Najdlhodobejší zákazníci"
+          icon={<TimeIcon />}
+          gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+          data={stats.customersByDays as Record<string, unknown>[]}
+          showCount={showCustomersByDays}
+          onLoadMore={() => setShowCustomersByDays(prev => prev + 10)}
+          renderItem={(customer, index) => (
+            <Box
+              key={(customer as Record<string, unknown>).customerName as string}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  index < 3 ? 'rgba(79, 172, 254, 0.04)' : '#f8f9fa',
+                border: index === 0 ? '2px solid #ffd700' : '1px solid #e0e0e0',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background:
+                    index < 3
+                      ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                      : '#bdbdbd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {index + 1}
+              </Box>
+
+              <Avatar sx={{ width: 40, height: 40, bgcolor: '#4facfe' }}>
+                <UnifiedIcon name="user" fontSize="small" />
+              </Avatar>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {(customer as Record<string, unknown>).customerName as string}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(customer as Record<string, unknown>).rentalCount as number}{' '}
+                  prenájmov •{' '}
+                  {(
+                    (customer as Record<string, unknown>).totalRevenue as number
+                  ).toLocaleString()}{' '}
+                  €
+                </Typography>
+              </Box>
+
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{ color: '#4facfe' }}
+                >
+                  {
+                    (customer as Record<string, unknown>)
+                      .totalDaysRented as number
+                  }{' '}
+                  dní
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Priemer:{' '}
+                  {(
+                    (customer as Record<string, unknown>)
+                      .avgRentalDuration as number
+                  ).toFixed(1)}{' '}
+                  dní/prenájom
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          emptyMessage="Žiadni zákazníci v tomto období"
+        />
+      </Grid>
+    </Grid>
+  );
+};
+
+export default TopStatsTab;

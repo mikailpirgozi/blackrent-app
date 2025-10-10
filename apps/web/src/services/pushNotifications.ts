@@ -63,7 +63,7 @@ interface NotificationOptions {
 }
 
 interface _Notification {
-  onclick: ((_event: any) => void) | null;
+  onclick: ((_event: Event) => void) | null;
   close(): void;
 }
 
@@ -431,7 +431,7 @@ class PushNotificationService {
       });
 
       // Handle click event
-      notification.onclick = (event: any) => {
+      notification.onclick = (event: Event) => {
         event.preventDefault();
 
         const data = payload.data || {};

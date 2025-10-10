@@ -99,7 +99,7 @@ export const runParallelStartupTasks = async (): Promise<void> => {
     (async () => {
       if (shouldCheckSWUpdate()) {
         // Import PWA hook len ak je potrebný
-        const { usePWA } = await import('../hooks/usePWA');
+        await import('../hooks/usePWA');
         // Update check sa spustí automaticky v hooku
       }
     })(),

@@ -4,8 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/smartLogger';
 import { queryKeys } from '../queryKeys';
 
-// Declare browser APIs
-declare const CustomEvent: any;
+// CustomEvent is available globally in modern browsers
 
 // GET vehicle documents
 // ⚡ OPTIMIZED: Only fetch when explicitly needed (not on every page load)

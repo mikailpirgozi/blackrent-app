@@ -332,7 +332,7 @@ export const RentalStats: React.FC<RentalStatsProps> = ({
               {compactMetrics.map((metric, index) => (
                 <Badge
                   key={index}
-                  variant={metric.color as any}
+                  variant={metric.color as 'default' | 'destructive' | 'outline' | 'secondary'}
                   className={cn(
                     'cursor-pointer hover:scale-105 transition-transform text-[0.7rem] px-1.5 py-0 h-5',
                     metric.value > 0 ? 'opacity-100' : 'opacity-60'

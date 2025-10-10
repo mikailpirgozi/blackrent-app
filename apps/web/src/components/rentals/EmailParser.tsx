@@ -375,7 +375,7 @@ export default function EmailParser({
 
       setError('');
       setShowAlert(false);
-    } catch (_err) {
+    } catch {
       setError('Chyba pri parsovaní textu');
       setShowAlert(true);
     }
@@ -581,7 +581,6 @@ export default function EmailParser({
 
     // Upozornenie ak sa nenašlo vozidlo (ani podľa ŠPZ ani podľa názvu)
     if (parsedData.vehicleCode && !selectedVehicle) {
-      // eslint-disable-next-line no-alert
       window.alert(
         `Upozornenie: Vozidlo so ŠPZ "${parsedData.vehicleCode}" sa nenašlo v databáze. Prosím vyberte vozidlo manuálne.`
       );
@@ -603,7 +602,7 @@ export default function EmailParser({
         setError('Clipboard API nie je podporované v tomto prehliadači');
         setShowAlert(true);
       }
-    } catch (_err) {
+    } catch {
       setError('Nepodarilo sa vložiť text zo schránky');
       setShowAlert(true);
     }

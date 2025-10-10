@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BlackRent Permissions Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+        button { margin: 5px; padding: 10px 15px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔐 BlackRent Permissions System Test</h1>
+    
+    <div class="section">
+        <h2>1. Login Test</h2>
+        <button onclick="testLogin()">Login as vincursky</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. User Company Access Test</h2>
+        <button onclick="testUserCompanyAccess()">Get User Company Access</button>
+        <div id="companyAccessResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Vehicles Filtering Test</h2>
+        <button onclick="testVehicles()">Get Vehicles (Should be filtered)</button>
+        <div id="vehiclesResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Rentals Filtering Test</h2>
+        <button onclick="testRentals()">Get Rentals (Should be filtered)</button>
+        <div id="rentalsResult"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5001/api';
+        let authToken = null;
+        let userId = null;
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'vincursky',
+                        password: 'vincursky123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    userId = data.user.id;
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Login successful!</div>
+                        <pre>User: ${data.user.username} (${data.user.role})
+ID: ${data.user.id}
+Token: ${data.token.substring(0, 30)}...</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Login failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Login error: ${error.message}</div>`;
+            }
+        }
+
+        async function testUserCompanyAccess() {
+            const resultDiv = document.getElementById('companyAccessResult');
+            
+            if (!authToken || !userId) {
+                resultDiv.innerHTML = '<div class="error">❌ Please login first</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/permissions/user/${userId}/access`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Company access loaded</div>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testVehicles() {
+            const resultDiv = document.getElementById('vehiclesResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Please login first</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/vehicles`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const vehicles = data.data;
+                    const summary = vehicles.map(v => ({
+                        licensePlate: v.licensePlate,
+                        company: v.company,
+                        ownerCompanyId: v.ownerCompanyId
+                    }));
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Vehicles loaded: ${vehicles.length} vehicles</div>
+                        <pre>${JSON.stringify(summary, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testRentals() {
+            const resultDiv = document.getElementById('rentalsResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Please login first</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/rentals`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const rentals = data.data;
+                    const summary = rentals.slice(0, 5).map(r => ({
+                        customerName: r.customerName,
+                        vehicleId: r.vehicleId,
+                        startDate: r.startDate,
+                        totalPrice: r.totalPrice
+                    }));
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Rentals loaded: ${rentals.length} rentals</div>
+                        <pre>First 5 rentals:
+${JSON.stringify(summary, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html> 

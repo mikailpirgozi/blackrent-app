@@ -52,15 +52,6 @@ interface InvestorData {
   notes: string;
 }
 
-interface InvestorShare {
-  id: string;
-  investorId: string;
-  companyId: string;
-  ownershipPercentage: number;
-  investmentAmount: number;
-  isPrimaryContact: boolean;
-}
-
 // interface ShareData {
 //   companyId: string;
 //   ownershipPercentage: number;

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Permission System Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .login-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-results {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .permission-category {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .permission-category h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 5px;
+        }
+        .permission-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .permission-item:last-child {
+            border-bottom: none;
+        }
+        .access-granted {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .access-denied {
+            background: #ffebee;
+            color: #c62828;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .approval-required {
+            background: #fff3e0;
+            color: #ef6c00;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .user-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .user-info h3 {
+            margin: 0 0 10px 0;
+            color: #1565c0;
+        }
+        input, button, select {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ Permission System Test</h1>
+        <p>Testovanie role-based permissions pre BlackRent aplikáciu</p>
+    </div>
+
+    <div class="login-section">
+        <h2>🔐 Prihlásenie</h2>
+        <div>
+            <input type="text" id="username" placeholder="Username" value="admin">
+            <input type="password" id="password" placeholder="Password" value="admin123">
+            <button onclick="login()">Prihlásiť</button>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <h3>🧪 Test účty pre rôzne role:</h3>
+            <p><strong>Admin:</strong> username: admin, password: admin123</p>
+            <p><strong>Employee:</strong> username: employee, password: password (ak existuje)</p>
+            <p><em>Poznámka: Ak test účty neexistujú, vytvor ich cez /api/auth/users endpoint</em></p>
+        </div>
+        
+        <div id="loginMessage"></div>
+    </div>
+
+    <div class="test-results" id="testResults">
+        <div class="user-info" id="userInfo"></div>
+        
+        <h2>🧪 Permission Test Results</h2>
+        <button onclick="runPermissionTests()" style="margin-bottom: 20px;">🔄 Spustiť testy</button>
+        
+        <div id="permissionResults"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://blackrent-backend-production.up.railway.app/api';
+        // const API_BASE = 'http://localhost:3001/api'; // pre lokálny development
+        
+        let authToken = null;
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('loginMessage');
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    messageDiv.innerHTML = `<div class="success">✅ Úspešne prihlásený ako ${data.user.role}</div>`;
+                    
+                    // Zobraz user info
+                    document.getElementById('userInfo').innerHTML = `
+                        <h3>👤 Aktuálny používateľ</h3>
+                        <p><strong>Username:</strong> ${data.user.username}</p>
+                        <p><strong>Role:</strong> ${data.user.role}</p>
+                        <p><strong>Company ID:</strong> ${data.user.companyId || 'N/A'}</p>
+                        <p><strong>ID:</strong> ${data.user.id}</p>
+                    `;
+                    
+                    document.getElementById('testResults').style.display = 'block';
+                    runPermissionTests();
+                } else {
+                    messageDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="error">❌ Chyba pri prihlásení: ${error.message}</div>`;
+            }
+        }
+
+        async function runPermissionTests() {
+            if (!authToken) {
+                alert('Najprv sa prihláste!');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('permissionResults');
+            resultsDiv.innerHTML = '<p>⏳ Spúšťam permission testy...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/test-permissions`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayPermissionResults(data.data);
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Chyba pri testovaní: ${error.message}</div>`;
+            }
+        }
+
+        function displayPermissionResults(testData) {
+            const resultsDiv = document.getElementById('permissionResults');
+            
+            const categories = {
+                '🚗 Vehicles': ['vehicles_read', 'vehicles_create', 'vehicles_update', 'vehicles_delete'],
+                '🏠 Rentals': ['rentals_read', 'rentals_create', 'rentals_update', 'rentals_delete'],
+                '🏢 Companies': ['companies_read', 'companies_create', 'companies_delete'],
+                '👥 Users': ['users_read', 'users_create', 'users_update', 'users_delete'],
+                '🔧 Maintenance': ['maintenance_read', 'maintenance_create', 'maintenance_update', 'maintenance_delete'],
+                '💰 Pricing & Limits': ['pricing_under_limit', 'pricing_over_limit'],
+                '🏢 Company Access': ['company_vehicle_access', 'other_company_vehicle_access'],
+                '🔨 Mechanic Access': ['own_vehicle_access', 'other_mechanic_vehicle_access']
+            };
+
+            let html = '<div class="permission-grid">';
+
+            Object.entries(categories).forEach(([categoryName, permissions]) => {
+                html += `<div class="permission-category">
+                    <h3>${categoryName}</h3>`;
+                
+                permissions.forEach(permission => {
+                    const result = testData.permissionTests[permission];
+                    if (result) {
+                        const statusClass = result.hasAccess 
+                            ? (result.requiresApproval ? 'approval-required' : 'access-granted')
+                            : 'access-denied';
+                        
+                        const statusText = result.hasAccess 
+                            ? (result.requiresApproval ? 'APPROVAL' : 'ALLOWED')
+                            : 'DENIED';
+                        
+                        const reasonText = result.reason ? ` (${result.reason})` : '';
+                        
+                        html += `<div class="permission-item">
+                            <span>${permission.replace(/_/g, ' ')}</span>
+                            <span class="${statusClass}">${statusText}${reasonText}</span>
+                        </div>`;
+                    }
+                });
+                
+                html += '</div>';
+            });
+
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function getPermissionStatus(result) {
+            if (!result.hasAccess) {
+                return { class: 'access-denied', text: 'DENIED' };
+            } else if (result.requiresApproval) {
+                return { class: 'approval-required', text: 'APPROVAL' };
+            } else {
+                return { class: 'access-granted', text: 'ALLOWED' };
+            }
+        }
+
+        // Auto-focus na username field
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html> 

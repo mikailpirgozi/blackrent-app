@@ -56,12 +56,12 @@ export interface UnifiedDialogProps {
   disabled?: boolean;
 
   // MUI compatibility
-  TransitionComponent?: React.ComponentType<any>;
-  TransitionProps?: any;
-  BackdropComponent?: React.ComponentType<any>;
-  BackdropProps?: any;
-  PaperComponent?: React.ComponentType<any>;
-  PaperProps?: any;
+  TransitionComponent?: React.ComponentType<unknown>;
+  TransitionProps?: Record<string, unknown>;
+  BackdropComponent?: React.ComponentType<unknown>;
+  BackdropProps?: Record<string, unknown>;
+  PaperComponent?: React.ComponentType<unknown>;
+  PaperProps?: Record<string, unknown>;
   disableBackdropClick?: boolean;
   disableEscapeKeyDown?: boolean;
   hideBackdrop?: boolean;

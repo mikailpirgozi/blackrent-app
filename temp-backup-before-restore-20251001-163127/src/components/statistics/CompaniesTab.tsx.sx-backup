@@ -1,0 +1,94 @@
+import { Person as PersonIcon } from '@mui/icons-material';
+import { Avatar, Card,
+/* Tailwind classes used for styling */
+  CardContent,
+  Grid,
+  Typography, } from '@mui/material';
+import React from 'react';
+
+interface CompanyData {
+  count: number;
+  revenue: number;
+  commission: number;
+}
+
+interface StatsData {
+  companyStats: Record<string, CompanyData>;
+}
+
+interface CompaniesTabProps {
+  stats: StatsData;
+}
+
+const CompaniesTab: React.FC<CompaniesTabProps> = ({ stats }) => {
+  return (
+    <Grid container spacing={3}>
+      {Object.entries(stats.companyStats)
+        .sort(([, a], [, b]) => b.revenue - a.revenue)
+        .map(([company, data]) => (
+          <Grid item xs={12} md={6} lg={4} key={company}>
+            <Card
+              sx={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  transform: 'translateY(-4px)',
+                },
+              }}
+            >
+              <CardContent>
+                <div
+                  className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-4 /* TODO: Convert mb: 2 */"
+                >
+                  <Avatar className="/* TODO: Convert bgcolor: #667eea */">
+                    <PersonIcon />
+                  </Avatar>
+                  <div>
+                    <Typography variant="h6" fontWeight="bold">
+                      {company}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {data.count} prenájmov
+                    </Typography>
+                  </div>
+                </div>
+
+                <div
+                  className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert mb: 1 */ p-3 rounded /* TODO: Convert backgroundColor: #f8f9fa */"
+                >
+                  <Typography variant="body2" className="/* TODO: Convert fontWeight: 600 */">
+                    Príjmy:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    className="/* TODO: Convert color: #11998e */"
+                  >
+                    {data.revenue.toLocaleString()} €
+                  </Typography>
+                </div>
+
+                <div
+                  className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ p-3 rounded /* TODO: Convert backgroundColor: #fff3e0 */"
+                >
+                  <Typography variant="body2" className="/* TODO: Convert fontWeight: 600 */">
+                    Provízia:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="warning.main"
+                    fontWeight="bold"
+                  >
+                    {data.commission.toLocaleString()} €
+                  </Typography>
+                </div>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+    </Grid>
+  );
+};
+
+export default CompaniesTab;

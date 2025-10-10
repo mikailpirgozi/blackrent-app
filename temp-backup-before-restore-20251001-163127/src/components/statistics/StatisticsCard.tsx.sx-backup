@@ -1,0 +1,193 @@
+/**
+ * 📊 STATISTICS CARD
+ *
+ * Reusable card component pre štatistiky s responsive design
+ */
+
+import {
+/* Tailwind classes used for styling */
+  Remove as StableIcon,
+  TrendingDown as TrendingDownIcon,
+  TrendingUp as TrendingUpIcon,
+} from '@mui/icons-material';
+import { Avatar, Card,
+  CardContent,
+  Chip,
+  Typography,
+  useTheme, } from '@mui/material';
+import React, { memo } from 'react';
+
+interface StatisticsCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: React.ReactNode;
+  trend?: {
+    value: number;
+    period: string;
+    isPositive?: boolean;
+  };
+  color?: string;
+  compact?: boolean;
+  onClick?: () => void;
+}
+
+const StatisticsCard: React.FC<StatisticsCardProps> = ({
+  title,
+  value,
+  subtitle,
+  icon,
+  trend,
+  color = 'primary',
+  compact = false,
+  onClick,
+}) => {
+  const theme = useTheme();
+  // const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Nepoužívané
+
+  // Get color based on theme
+  const getColor = (colorName: string) => {
+    const colors: Record<string, string> = {
+      primary: theme.palette.primary.main,
+      success: theme.palette.success.main,
+      warning: theme.palette.warning.main,
+      error: theme.palette.error.main,
+      info: theme.palette.info.main,
+    };
+    return colors[colorName] || colorName;
+  };
+
+  const cardColor = getColor(color);
+
+  // Get trend icon and color
+  const getTrendDisplay = () => {
+    if (!trend) return null;
+
+    const isPositive =
+      trend.isPositive !== undefined ? trend.isPositive : trend.value > 0;
+    const absValue = Math.abs(trend.value);
+
+    let trendIcon;
+    let trendColor;
+
+    if (absValue === 0) {
+      trendIcon = <StableIcon fontSize="small" />;
+      trendColor = theme.palette.text.secondary;
+    } else if (isPositive) {
+      trendIcon = <TrendingUpIcon fontSize="small" />;
+      trendColor = theme.palette.success.main;
+    } else {
+      trendIcon = <TrendingDownIcon fontSize="small" />;
+      trendColor = theme.palette.error.main;
+    }
+
+    return (
+      <Chip
+        size="small"
+        icon={trendIcon}
+        label={`${absValue > 0 ? (isPositive ? '+' : '-') : ''}${absValue.toFixed(1)}%`}
+        sx={{
+          backgroundColor: `${trendColor}20`,
+          color: trendColor,
+          fontSize: '0.7rem',
+          height: 20,
+          '& .MuiChip-icon': {
+            color: trendColor,
+            fontSize: 12,
+          },
+        }}
+      />
+    );
+  };
+
+  return (
+    <Card
+      sx={{
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s ease-in-out',
+        borderRadius: compact ? 2 : 3,
+        height: '100%',
+        background: compact
+          ? `linear-gradient(135deg, ${cardColor}08 0%, ${cardColor}15 100%)`
+          : theme.palette.background.paper,
+        border: `1px solid ${cardColor}20`,
+        '&:hover': onClick
+          ? {
+              transform: 'translateY(-2px)',
+              boxShadow: theme.shadows[6],
+              borderColor: `${cardColor}40`,
+            }
+          : {},
+      }}
+      onClick={onClick}
+    >
+      <CardContent
+        sx={{
+          p: compact ? 2 : 3,
+          '&:last-child': { pb: compact ? 2 : 3 },
+        }}
+      >
+        <div
+          className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: flex-start */ /* TODO: Convert gap: compact ? 1.5 : 2 */"
+        >
+          {/* Icon */}
+          <Avatar
+            sx={{
+              backgroundColor: `${cardColor}15`,
+              color: cardColor,
+              width: compact ? 40 : 48,
+              height: compact ? 40 : 48,
+            }}
+          >
+            {icon}
+          </Avatar>
+
+          {/* Content */}
+          <div className="/* TODO: Convert flex: 1 */ /* TODO: Convert minWidth: 0 */">
+            {/* Title */}
+            <Typography
+              variant={compact ? 'body2' : 'subtitle2'}
+              className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: 500 */ /* TODO: Convert mb: 0.5 */ /* TODO: Convert lineHeight: 1.2 */"
+            >
+              {title}
+            </Typography>
+
+            {/* Value */}
+            <Typography
+              variant={compact ? 'h6' : 'h5'}
+              className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: text.primary */ /* TODO: Convert lineHeight: 1.1 */ /* TODO: Convert mb: subtitle || trend ? 0.5 : 0 */"
+            >
+              {typeof value === 'number' && value % 1 === 0
+                ? value.toLocaleString('sk-SK')
+                : value}
+            </Typography>
+
+            {/* Subtitle */}
+            {subtitle && (
+              <Typography
+                variant="caption"
+                className="/* TODO: Convert color: text.secondary */ /* TODO: Convert display: block */ /* TODO: Convert mb: trend ? 0.5 : 0 */"
+              >
+                {subtitle}
+              </Typography>
+            )}
+
+            {/* Trend */}
+            {trend && (
+              <div
+                className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert mt: 0.5 */"
+              >
+                {getTrendDisplay()}
+                <Typography variant="caption" className="/* TODO: Convert color: text.disabled */">
+                  vs {trend.period}
+                </Typography>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default memo(StatisticsCard);

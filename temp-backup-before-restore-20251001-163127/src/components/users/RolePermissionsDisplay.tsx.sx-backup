@@ -1,0 +1,352 @@
+import {
+/* Tailwind classes used for styling */
+  // Close as CloseIcon, // Nepoužívané
+  AdminPanelSettings as AdminIcon,
+  Check as CheckIcon,
+  Business as CompanyIcon,
+  Work as EmployeeIcon,
+  ExpandMore as ExpandMoreIcon,
+  Engineering as MechanicIcon,
+  BusinessCenter as SalesIcon,
+  Build as TempWorkerIcon,
+  Person as UserIcon,
+} from '@mui/icons-material';
+import { // Divider, // Nepoužívané
+  Accordion,
+  AccordionDetails,
+  AccordionSummary, // Card, // Nepoužívané
+  // CardContent, // Nepoužívané
+  Chip,
+  // Grid, // Nepoužívané
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Typography, } from '@mui/material';
+
+// Definícia typov pre oprávnenia
+interface Permission {
+  resource: string;
+  actions: string[];
+  conditions?: {
+    ownOnly?: boolean;
+    companyOnly?: boolean;
+    maxAmount?: number;
+    approvalRequired?: boolean;
+  };
+}
+
+interface RolePermissions {
+  [key: string]: Permission[];
+}
+
+// Definícia práv rolí (kópia z backend/src/middleware/permissions.ts)
+const ROLE_PERMISSIONS: RolePermissions = {
+  admin: [
+    {
+      resource: '*',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: {},
+    },
+  ],
+  user: [
+    { resource: 'vehicles', actions: ['read'] },
+    { resource: 'rentals', actions: ['read'] },
+    { resource: 'customers', actions: ['read'] },
+    { resource: 'expenses', actions: ['read'] },
+    { resource: 'settlements', actions: ['read'] },
+    { resource: 'insurances', actions: ['read'] },
+    { resource: 'maintenance', actions: ['read'] },
+    { resource: 'protocols', actions: ['read', 'create', 'update'] },
+    { resource: 'statistics', actions: ['read'] },
+  ],
+  employee: [
+    { resource: 'vehicles', actions: ['read', 'create', 'update'] },
+    { resource: 'rentals', actions: ['read', 'create', 'update'] },
+    { resource: 'customers', actions: ['read', 'create', 'update'] },
+    { resource: 'maintenance', actions: ['read', 'create'] },
+    { resource: 'protocols', actions: ['read', 'create', 'update'] },
+  ],
+  temp_worker: [
+    { resource: 'vehicles', actions: ['read'] },
+    { resource: 'rentals', actions: ['read', 'create'] },
+    { resource: 'customers', actions: ['read', 'create'] },
+    { resource: 'protocols', actions: ['read', 'create'] },
+  ],
+  mechanic: [
+    {
+      resource: 'vehicles',
+      actions: ['read', 'update'],
+      conditions: { ownOnly: true },
+    },
+    {
+      resource: 'maintenance',
+      actions: ['read', 'create', 'update', 'delete'],
+      conditions: { ownOnly: true },
+    },
+    {
+      resource: 'protocols',
+      actions: ['read', 'create', 'update'],
+      conditions: { ownOnly: true },
+    },
+  ],
+  sales_rep: [
+    { resource: 'vehicles', actions: ['read'] },
+    { resource: 'rentals', actions: ['read', 'create', 'update'] },
+    { resource: 'customers', actions: ['read', 'create', 'update'] },
+    {
+      resource: 'pricing',
+      actions: ['read', 'update'],
+      conditions: { maxAmount: 5000 },
+    },
+  ],
+  company_owner: [
+    {
+      resource: 'vehicles',
+      actions: ['read'],
+      conditions: { companyOnly: true },
+    },
+    {
+      resource: 'rentals',
+      actions: ['read'],
+      conditions: { companyOnly: true },
+    },
+    {
+      resource: 'expenses',
+      actions: ['read'],
+      conditions: { companyOnly: true },
+    },
+    {
+      resource: 'insurances',
+      actions: ['read'],
+      conditions: { companyOnly: true },
+    },
+    { resource: 'companies', actions: ['read'], conditions: { ownOnly: true } },
+    {
+      resource: 'finances',
+      actions: ['read'],
+      conditions: { companyOnly: true },
+    },
+    {
+      resource: 'protocols',
+      actions: ['read'],
+      conditions: { companyOnly: true },
+    },
+  ],
+};
+
+const ROLE_INFO = {
+  admin: {
+    name: 'Administrátor',
+    icon: AdminIcon,
+    color: 'error',
+    description: 'Úplné práva na všetko',
+  },
+  user: {
+    name: 'Používateľ',
+    icon: UserIcon,
+    color: 'inherit',
+    description: 'Základný používateľ s READ-ONLY právami',
+  },
+  employee: {
+    name: 'Zamestnanec',
+    icon: EmployeeIcon,
+    color: 'info',
+    description: 'Základné operácie s vozidlami, prenájmami, zákazníkmi',
+  },
+  temp_worker: {
+    name: 'Brigádnik',
+    icon: TempWorkerIcon,
+    color: 'warning',
+    description: 'Obmedzené práva, hlavne čítanie',
+  },
+  mechanic: {
+    name: 'Mechanik',
+    icon: MechanicIcon,
+    color: 'success',
+    description: 'Špecializované práva na údržbu',
+  },
+  sales_rep: {
+    name: 'Obchodník',
+    icon: SalesIcon,
+    color: 'secondary',
+    description: 'Obchodné operácie s limitmi',
+  },
+  company_owner: {
+    name: 'Majiteľ firmy',
+    icon: CompanyIcon,
+    color: 'primary',
+    description: 'Len vlastné vozidlá a súvisiace dáta',
+  },
+};
+
+const RESOURCE_LABELS = {
+  '*': 'Všetko',
+  vehicles: 'Vozidlá',
+  rentals: 'Prenájmy',
+  customers: 'Zákazníci',
+  expenses: 'Náklady',
+  settlements: 'Vyúčtovanie',
+  insurances: 'Poistky/STK',
+  maintenance: 'Údržba',
+  protocols: 'Protokoly',
+  statistics: 'Štatistiky',
+  pricing: 'Cenníky',
+  companies: 'Firmy',
+  finances: 'Financie',
+};
+
+// const ACTION_LABELS = {
+//   read: 'Čítanie',
+//   create: 'Vytváranie',
+//   update: 'Úprava',
+//   delete: 'Mazanie',
+// }; // Nepoužívané
+
+interface RolePermissionsDisplayProps {
+  selectedRole?: string;
+  showAllRoles?: boolean;
+}
+
+export default function RolePermissionsDisplay({
+  selectedRole,
+  showAllRoles = true,
+}: RolePermissionsDisplayProps) {
+  const rolesToShow = selectedRole
+    ? [selectedRole]
+    : Object.keys(ROLE_PERMISSIONS);
+
+  const renderPermissionItem = (permission: Permission) => {
+    const resourceLabel =
+      RESOURCE_LABELS[permission.resource as keyof typeof RESOURCE_LABELS] ||
+      permission.resource;
+    const actions = permission.actions.join(', ');
+    const conditions = permission.conditions;
+
+    let conditionText = '';
+    if (conditions?.ownOnly) conditionText += ' (len vlastné)';
+    if (conditions?.companyOnly) conditionText += ' (len vlastná firma)';
+    if (conditions?.maxAmount)
+      conditionText += ` (max ${conditions.maxAmount}€)`;
+    if (conditions?.approvalRequired) conditionText += ' (vyžaduje schválenie)';
+
+    return (
+      <ListItem key={permission.resource} className="/* TODO: Convert py: 0.5 */">
+        <ListItemIcon className="/* TODO: Convert minWidth: 32 */">
+          <CheckIcon color="success" fontSize="small" />
+        </ListItemIcon>
+        <ListItemText
+          primary={
+            <div className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2">
+              <Typography variant="body2" fontWeight={500}>
+                {resourceLabel}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                ({actions}){conditionText}
+              </Typography>
+            </div>
+          }
+        />
+      </ListItem>
+    );
+  };
+
+  const renderRoleCard = (roleKey: string) => {
+    const roleInfo = ROLE_INFO[roleKey as keyof typeof ROLE_INFO];
+    const permissions =
+      ROLE_PERMISSIONS[roleKey as keyof typeof ROLE_PERMISSIONS];
+    const IconComponent = roleInfo.icon;
+
+    if (!roleInfo || !permissions) return null;
+
+    return (
+      <Accordion key={roleKey} defaultExpanded={!showAllRoles}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <div
+            className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-4 /* TODO: Convert width: 100% */"
+          >
+            <IconComponent
+              color={
+                roleInfo.color as
+                  | 'primary'
+                  | 'secondary'
+                  | 'error'
+                  | 'info'
+                  | 'success'
+                  | 'warning'
+                  | 'inherit'
+              }
+            />
+            <div className="/* TODO: Convert flex: 1 */">
+              <Typography variant="h6" component="div">
+                {roleInfo.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {roleInfo.description}
+              </Typography>
+            </div>
+            <Chip
+              label={roleKey.toUpperCase()}
+              color={
+                roleInfo.color === 'inherit'
+                  ? 'default'
+                  : (roleInfo.color as
+                      | 'primary'
+                      | 'secondary'
+                      | 'error'
+                      | 'info'
+                      | 'success'
+                      | 'warning'
+                      | 'default')
+              }
+              size="small"
+              variant="outlined"
+            />
+          </div>
+        </AccordionSummary>
+        <AccordionDetails>
+          <div>
+            <Typography variant="subtitle2" gutterBottom className="/* TODO: Convert mb: 2 */">
+              Oprávnenia:
+            </Typography>
+
+            {roleKey === 'admin' ? (
+              <div
+                className="p-4 /* TODO: Convert bgcolor: error.50 */ rounded /* TODO: Convert border: 1px solid */ /* TODO: Convert borderColor: error.200 */"
+              >
+                <Typography variant="body2" color="error.main" fontWeight={600}>
+                  🔥 ÚPLNÉ PRÁVA NA VŠETKO
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Administrátor má neobmedzený prístup k celému systému
+                </Typography>
+              </div>
+            ) : (
+              <List dense className="/* TODO: Convert bgcolor: grey.50 */ rounded">
+                {permissions.map(permission =>
+                  renderPermissionItem(permission)
+                )}
+              </List>
+            )}
+          </div>
+        </AccordionDetails>
+      </Accordion>
+    );
+  };
+
+  return (
+    <div>
+      <Typography variant="h5" gutterBottom className="/* TODO: Convert mb: 3 */">
+        📋 Práva používateľských rolí
+      </Typography>
+
+      <div className="/* TODO: Convert mb: 2 */">
+        <Typography variant="body2" color="text.secondary">
+          Prehľad oprávnení pre jednotlivé role v BlackRent systéme
+        </Typography>
+      </div>
+
+      <div>{rolesToShow.map(roleKey => renderRoleCard(roleKey))}</div>
+    </div>
+  );
+}

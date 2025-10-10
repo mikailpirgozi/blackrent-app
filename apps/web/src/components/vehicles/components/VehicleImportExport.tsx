@@ -193,7 +193,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
 
           // Použij batch import namiesto CSV importu
           const result = await apiService.batchImportVehicles(
-            batchVehicles as any[]
+            batchVehicles as Record<string, unknown>[]
           );
 
           logger.debug('📥 CSV Import result:', result);

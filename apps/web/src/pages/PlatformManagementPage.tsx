@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
  * Only accessible by super_admin
  */
 export default function PlatformManagementPage() {
-  const { isSuperAdmin, state } = useAuth();
+  const { state } = useAuth();
 
   // 🛡️ HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS
   const [activeTab, setActiveTab] = useState('platforms');

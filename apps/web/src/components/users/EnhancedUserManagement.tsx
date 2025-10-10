@@ -3,7 +3,7 @@
  * Complete user management with integrated permission controls
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Shield, 
   Building2,

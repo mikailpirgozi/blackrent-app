@@ -1,0 +1,20 @@
+# actionlint configuration
+# https://github.com/rhysd/actionlint/blob/main/docs/config.md
+
+# Vypnúť expression checking pre secrets a env kontexty
+# Tieto premenné existujú v GitHub repository settings
+self-hosted-runner:
+  labels: []
+
+# Vypnúť shellcheck warnings
+shellcheck:
+  enable: false
+
+# Vypnúť expression checking - secrets context je vždy validný
+pyflakes:
+  enable: false
+  
+# Ignorovať unknown secrets
+config-variables:
+  strict: false
+

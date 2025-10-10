@@ -1,0 +1,442 @@
+import {
+/* Tailwind classes used for styling */
+  Clear as ClearIcon,
+  FilterList as FilterListIcon,
+  Refresh as RefreshIcon,
+  Search as SearchIcon,
+  Today as TodayIcon,
+} from '@mui/icons-material';
+import { Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Chip,
+  Collapse,
+  Divider,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  ListItemText,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme, } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material/Select';
+import React, { useState } from 'react';
+
+import AddUnavailabilityModal from '../components/availability/AddUnavailabilityModal';
+import AvailabilityCalendar from '../components/availability/AvailabilityCalendar';
+// import { useApp } from '../context/AppContext'; // Migrated to React Query
+import { useVehicles } from '../lib/react-query/hooks/useVehicles';
+import type { Vehicle, VehicleCategory } from '../types';
+// 🔄 PHASE 4: Migrated to React Query
+
+const AvailabilityPageNew: React.FC = () => {
+  const { data: vehicles = [] } = useVehicles();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+
+  // States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [availableFromDate, setAvailableFromDate] = useState('');
+  const [availableToDate, setAvailableToDate] = useState('');
+  // 🚗 MULTI-SELECT CATEGORY FILTER: Array of selected categories
+  const [selectedCategories, setSelectedCategories] = useState<
+    VehicleCategory[]
+  >([]);
+
+  // 🚫 UNAVAILABILITY MODAL STATE
+  const [unavailabilityModalOpen, setUnavailabilityModalOpen] = useState(false);
+
+  // Use React Query vehicles
+  const allVehicles = vehicles;
+
+  // Get unique companies for filter
+  const uniqueCompanies = [
+    ...new Set(allVehicles.map((v: Vehicle) => v.company)),
+  ].sort();
+
+  // 🚗 VEHICLE CATEGORIES with emoji icons
+  const vehicleCategories: {
+    value: VehicleCategory;
+    label: string;
+    emoji: string;
+  }[] = [
+    { value: 'nizka-trieda', label: 'Nízka trieda', emoji: '🚗' },
+    { value: 'stredna-trieda', label: 'Stredná trieda', emoji: '🚙' },
+    { value: 'vyssia-stredna', label: 'Vyššia stredná trieda', emoji: '🚘' },
+    { value: 'luxusne', label: 'Luxusné vozidlá', emoji: '💎' },
+    { value: 'sportove', label: 'Športové vozidlá', emoji: '🏎️' },
+    { value: 'suv', label: 'SUV', emoji: '🚜' },
+    { value: 'viacmiestne', label: 'Viacmiestne vozidlá', emoji: '👨‍👩‍👧‍👦' },
+    { value: 'dodavky', label: 'Dodávky', emoji: '📦' },
+  ];
+
+  // Handle category selection
+  const handleCategoryChange = (
+    event: SelectChangeEvent<VehicleCategory[]>
+  ) => {
+    const value = event.target.value;
+    setSelectedCategories(
+      Array.isArray(value)
+        ? (value as VehicleCategory[])
+        : [value as VehicleCategory]
+    );
+  };
+
+  // Clear all category filters
+  const clearCategoryFilters = () => {
+    setSelectedCategories([]);
+  };
+
+  const handleRefresh = () => {
+    // Trigger calendar refresh
+    window.location.reload();
+  };
+
+  const handleUnavailabilitySuccess = () => {
+    // 🔄 PHASE 2: Cache invalidation removed - React Query handles cache automatically
+
+    // Force calendar refresh by triggering a re-render
+    // Use a small delay to ensure cache invalidation is processed
+    setTimeout(() => {
+      window.location.reload();
+    }, 200);
+  };
+
+  const handleTodayClick = () => {
+    // Scroll to today in calendar
+    const todayElement = document.querySelector('[data-today="true"]');
+    if (todayElement) {
+      todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  return (
+    <div sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+      {/* Header */}
+      <div
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+        }}
+      >
+        <div>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              color: '#1976d2',
+              fontSize: { xs: '1.5rem', sm: '2rem' },
+              mb: 0.5,
+            }}
+          >
+            📅 Dostupnosť vozidiel
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Kalendárny prehľad dostupnosti všetkých vozidiel v systéme
+          </Typography>
+        </div>
+        <div className="/* TODO: Convert display: flex */ gap-2 /* TODO: Convert flexWrap: wrap */">
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<ClearIcon />}
+            onClick={() => setUnavailabilityModalOpen(true)}
+            size="small"
+          >
+            Pridať nedostupnosť
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<TodayIcon />}
+            onClick={handleTodayClick}
+            size="small"
+          >
+            Dnes
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefresh}
+            size="small"
+          >
+            Obnoviť
+          </Button>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <Card className="/* TODO: Convert mb: 3 */ /* TODO: Convert boxShadow: 0 2px 8px rgba(0 */">
+        <CardContent>
+          {/* Search Bar */}
+          <div className="/* TODO: Convert display: flex */ gap-4 /* TODO: Convert mb: 2 */ /* TODO: Convert alignItems: center */">
+            <TextField
+              fullWidth
+              placeholder="Hľadať vozidlá..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon className="/* TODO: Convert color: #666 */ /* TODO: Convert mr: 1 */" />,
+              }}
+              className="/* TODO: Convert flex: 1 */"
+            />
+            <IconButton
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              sx={{
+                bgcolor: filtersOpen ? '#1976d2' : '#f5f5f5',
+                color: filtersOpen ? 'white' : '#666',
+                '&:hover': {
+                  bgcolor: filtersOpen ? '#1565c0' : '#e0e0e0',
+                },
+              }}
+            >
+              <FilterListIcon />
+            </IconButton>
+          </div>
+
+          {/* Filters */}
+          <Collapse in={filtersOpen}>
+            <Divider className="/* TODO: Convert mb: 2 */" />
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Firma</InputLabel>
+                  <Select
+                    value={selectedCompany}
+                    label="Firma"
+                    onChange={e => setSelectedCompany(e.target.value)}
+                  >
+                    <MenuItem value="">Všetky firmy</MenuItem>
+                    {uniqueCompanies.map((company: string | undefined) => (
+                      <MenuItem key={company} value={company}>
+                        {company}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Kategória vozidla</InputLabel>
+                  <Select
+                    value={selectedCategories}
+                    label="Kategória vozidla"
+                    onChange={handleCategoryChange}
+                    multiple
+                    renderValue={selected => (
+                      <div className="/* TODO: Convert display: flex */ /* TODO: Convert flexWrap: wrap */ gap-1">
+                        {selected.map(value => {
+                          const category = vehicleCategories.find(
+                            cat => cat.value === value
+                          );
+                          return (
+                            <Chip
+                              key={value}
+                              label={`${category?.emoji} ${category?.label}`}
+                              size="small"
+                              className="/* TODO: Convert bgcolor: #e0e0e0 */ /* TODO: Convert color: #333 */"
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  >
+                    {vehicleCategories.map(category => (
+                      <MenuItem key={category.value} value={category.value}>
+                        <Checkbox
+                          checked={
+                            selectedCategories.indexOf(category.value) > -1
+                          }
+                        />
+                        <ListItemText primary={category.label} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      size="small"
+                      onClick={clearCategoryFilters}
+                      startIcon={<ClearIcon />}
+                      className="/* TODO: Convert mt: 1 */"
+                    >
+                      Vymazať všetky
+                    </Button>
+                  )}
+                </FormControl>
+              </Grid>
+
+              {/* Date Range Filtre */}
+              <Grid item xs={12}>
+                <Divider className="/* TODO: Convert my: 1 */" />
+                <Typography
+                  variant="subtitle2"
+                  className="/* TODO: Convert mb: 2 */ /* TODO: Convert fontWeight: 600 */ /* TODO: Convert color: #1976d2 */"
+                >
+                  📅 Filtrovanie podľa dátumu dostupnosti
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Dostupné od dátumu"
+                  type="date"
+                  size="small"
+                  value={availableFromDate}
+                  onChange={e => setAvailableFromDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Dostupné do dátumu"
+                  type="date"
+                  size="small"
+                  value={availableToDate}
+                  onChange={e => setAvailableToDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              {availableFromDate && availableToDate && (
+                <Grid item xs={12}>
+                  <div
+                    className="p-3 /* TODO: Convert backgroundColor: #e3f2fd */ rounded /* TODO: Convert border: 1px solid #2196f3 */ /* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: flex-start */"
+                  >
+                    <div className="/* TODO: Convert flex: 1 */">
+                      <Typography
+                        variant="body2"
+                        className="/* TODO: Convert color: #1976d2 */ /* TODO: Convert fontWeight: 500 */"
+                      >
+                        ℹ️ Zobrazujú sa len vozidlá dostupné v období{' '}
+                        {availableFromDate} - {availableToDate}
+                        <br />
+                        <span style={{ fontSize: '0.85em' }}>
+                          Zahŕňa: dostupné vozidlá + flexibilné prenájmy (ktoré
+                          možno prepísať)
+                        </span>
+                      </Typography>
+                    </div>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setAvailableFromDate('');
+                        setAvailableToDate('');
+                      }}
+                      className="/* TODO: Convert ml: 2 */ /* TODO: Convert minWidth: auto */"
+                    >
+                      ✕ Zrušiť
+                    </Button>
+                  </div>
+                </Grid>
+              )}
+            </Grid>
+          </Collapse>
+        </CardContent>
+      </Card>
+
+      {/* Statistics Cards */}
+      <Grid container spacing={2} className="/* TODO: Convert mb: 3 */">
+        <Grid item xs={6} sm={3}>
+          <Card
+            className="/* TODO: Convert background: linear-gradient(135deg */ /* TODO: Convert color: white */ /* TODO: Convert boxShadow: 0 4px 12px rgba(76 */"
+          >
+            <CardContent className="/* TODO: Convert textAlign: center */ /* TODO: Convert py: 2 */">
+              <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 0.5 */">
+                {
+                  allVehicles.filter((v: Vehicle) => v.status === 'available')
+                    .length
+                }
+              </Typography>
+              <Typography variant="body2" className="/* TODO: Convert opacity: 0.9 */">
+                Dostupné vozidlá
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <Card
+            className="/* TODO: Convert background: linear-gradient(135deg */ /* TODO: Convert color: white */ /* TODO: Convert boxShadow: 0 4px 12px rgba(255 */"
+          >
+            <CardContent className="/* TODO: Convert textAlign: center */ /* TODO: Convert py: 2 */">
+              <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 0.5 */">
+                {
+                  allVehicles.filter((v: Vehicle) => v.status === 'rented')
+                    .length
+                }
+              </Typography>
+              <Typography variant="body2" className="/* TODO: Convert opacity: 0.9 */">
+                Klasicky prenajaté
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <Card
+            className="/* TODO: Convert background: linear-gradient(135deg */ /* TODO: Convert color: white */ /* TODO: Convert boxShadow: 0 4px 12px rgba(244 */"
+          >
+            <CardContent className="/* TODO: Convert textAlign: center */ /* TODO: Convert py: 2 */">
+              <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 0.5 */">
+                {
+                  allVehicles.filter((v: Vehicle) => v.status === 'maintenance')
+                    .length
+                }
+              </Typography>
+              <Typography variant="body2" className="/* TODO: Convert opacity: 0.9 */">
+                Údržba
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <Card
+            className="/* TODO: Convert background: linear-gradient(135deg */ /* TODO: Convert color: white */ /* TODO: Convert boxShadow: 0 4px 12px rgba(33 */"
+          >
+            <CardContent className="/* TODO: Convert textAlign: center */ /* TODO: Convert py: 2 */">
+              <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 0.5 */">
+                {allVehicles.length}
+              </Typography>
+              <Typography variant="body2" className="/* TODO: Convert opacity: 0.9 */">
+                Celkom
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Calendar */}
+      <Card
+        className="/* TODO: Convert overflow: hidden */ /* TODO: Convert boxShadow: 0 6px 20px rgba(0 */ /* TODO: Convert borderRadius: 3 */"
+      >
+        <CardContent className="/* TODO: Convert p: 0 */">
+          <AvailabilityCalendar
+            searchQuery={searchQuery}
+            isMobile={isMobile}
+            selectedCompany={selectedCompany}
+            categoryFilter={selectedCategories}
+            availableFromDate={availableFromDate}
+            availableToDate={availableToDate}
+          />
+        </CardContent>
+      </Card>
+
+      {/* 🚫 ADD UNAVAILABILITY MODAL */}
+      <AddUnavailabilityModal
+        open={unavailabilityModalOpen}
+        onClose={() => setUnavailabilityModalOpen(false)}
+        onSuccess={handleUnavailabilitySuccess}
+      />
+    </div>
+  );
+};
+
+export default AvailabilityPageNew;

@@ -38,6 +38,7 @@ import type {
 } from '../../types';
 // import { getApiBaseUrl } from '../../utils/apiUrl'; // REMOVED - React Query handles API calls
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
+import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
 import SignaturePad from '../common/SignaturePad';
 import { logger } from '@/utils/smartLogger';
 
@@ -1073,32 +1074,19 @@ export default function ReturnProtocolForm({
         </Button>
       </div>
 
-      {/* Photo capture modal */}
+      {/* Photo capture modal - MODERN SYSTEM */}
       {activePhotoCapture && (
-        <SerialPhotoCapture
+        <ModernPhotoCapture
           open={true}
           onClose={() => setActivePhotoCapture(null)}
           onSave={(images, videos) =>
             handlePhotoCaptureSuccess(activePhotoCapture, images, videos)
           }
           title={`Fotky - ${activePhotoCapture}`}
-          allowedTypes={['vehicle', 'document', 'damage']}
           entityId={rental.id}
           protocolType="return"
           mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
-          category={(() => {
-            // Mapovanie mediaType na R2 kategórie
-            const mediaTypeToCategory = {
-              vehicle: 'vehicle_photos',
-              document: 'documents',
-              damage: 'damages',
-            } as const;
-            return (
-              mediaTypeToCategory[
-                activePhotoCapture as keyof typeof mediaTypeToCategory
-              ] || 'other'
-            );
-          })()}
+          maxImages={50}
         />
       )}
 

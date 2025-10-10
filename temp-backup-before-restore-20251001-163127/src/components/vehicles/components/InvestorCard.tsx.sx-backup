@@ -1,0 +1,321 @@
+import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Button,
+/* Tailwind classes used for styling */
+  Card,
+  Chip,
+  Collapse,
+  Grid,
+  IconButton,
+  TextField,
+  Typography, } from '@mui/material';
+import React, { useState } from 'react';
+
+import type { InvestorCardProps } from '../../../types/vehicle-types';
+import { getApiBaseUrl } from '../../../utils/apiUrl';
+
+// 🤝 INVESTOR CARD COMPONENT - Rozbaliteľná karta spoluinvestora s podielmi
+const InvestorCard: React.FC<InvestorCardProps> = ({
+  investor,
+  shares,
+  companies,
+  onShareUpdate,
+  onAssignShare,
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: investor.firstName || '',
+    lastName: investor.lastName || '',
+    email: investor.email || '',
+    phone: investor.phone || '',
+    notes: investor.notes || '',
+  });
+
+  const handleSaveInvestorData = async () => {
+    try {
+      console.log('💾 Saving investor data:', investor.id, editData);
+
+      const response = await fetch(
+        `${getApiBaseUrl()}/company-investors/${investor.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('blackrent_token')}`,
+          },
+          body: JSON.stringify(editData),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log('✅ Investor data saved successfully');
+        setEditMode(false);
+        onShareUpdate(); // Refresh data
+      } else {
+        console.error('❌ Failed to save investor data:', result.error);
+        alert(`Chyba pri ukladaní: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error saving investor data:', error);
+      alert('Chyba pri ukladaní údajov investora');
+    }
+  };
+
+  const totalOwnership = shares.reduce(
+    (sum, share) => sum + (share.ownershipPercentage as number),
+    0
+  );
+
+  return (
+    <Card className="/* TODO: Convert mb: 2 */ /* TODO: Convert border: 1px solid */ /* TODO: Convert borderColor: divider */">
+      {/* Header - Investor info */}
+      <div
+        sx={{
+          p: 2,
+          bgcolor: 'grey.50',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'grey.100' },
+        }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div
+          className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+        >
+          <div className="/* TODO: Convert flex: 1 */">
+            <Typography
+              variant="h6"
+              className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+            >
+              👤 {investor.firstName as string} {investor.lastName as string}
+              <Chip
+                label={`${shares.length} firiem • ${totalOwnership.toFixed(1)}% celkom`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            </Typography>
+
+            <div className="/* TODO: Convert mt: 1 */ /* TODO: Convert display: flex */ gap-6 /* TODO: Convert flexWrap: wrap */">
+              {(investor.email as string) && (
+                <Typography variant="body2" color="text.secondary">
+                  📧 {investor.email as string}
+                </Typography>
+              )}
+              {(investor.phone as string) && (
+                <Typography variant="body2" color="text.secondary">
+                  📞 {investor.phone as string}
+                </Typography>
+              )}
+              {shares.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  🏢{' '}
+                  {shares
+                    .map(s => {
+                      const company = companies.find(c => c.id === s.companyId);
+                      return `${(company?.name as string) || 'Neznáma firma'} (${s.ownershipPercentage as number}%)`;
+                    })
+                    .join(', ')}
+                </Typography>
+              )}
+            </div>
+          </div>
+
+          <div className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2">
+            <IconButton
+              size="small"
+              onClick={e => {
+                e.stopPropagation();
+                setEditMode(!editMode);
+              }}
+              className="/* TODO: Convert bgcolor: editMode ? primary.main : transparent */ /* TODO: Convert color: editMode ? white : primary.main */"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small">{expanded ? '🔽' : '▶️'}</IconButton>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Mode */}
+      <Collapse in={editMode}>
+        <div
+          className="p-6 /* TODO: Convert bgcolor: background.paper */ /* TODO: Convert borderTop: 1px solid */ /* TODO: Convert borderColor: divider */"
+        >
+          <Typography variant="h6" className="/* TODO: Convert mb: 2 */">
+            ✏️ Úprava spoluinvestora
+          </Typography>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Meno"
+                value={editData.firstName}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, firstName: e.target.value }))
+                }
+                size="small"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Priezvisko"
+                value={editData.lastName}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, lastName: e.target.value }))
+                }
+                size="small"
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={editData.email}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, email: e.target.value }))
+                }
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Telefón"
+                value={editData.phone}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, phone: e.target.value }))
+                }
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Poznámky"
+                value={editData.notes}
+                onChange={e =>
+                  setEditData(prev => ({ ...prev, notes: e.target.value }))
+                }
+                size="small"
+                multiline
+                rows={2}
+              />
+            </Grid>
+          </Grid>
+
+          <div
+            className="/* TODO: Convert mt: 2 */ /* TODO: Convert display: flex */ gap-2 /* TODO: Convert justifyContent: flex-end */"
+          >
+            <Button
+              variant="outlined"
+              onClick={() => setEditMode(false)}
+              size="small"
+            >
+              Zrušiť
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveInvestorData}
+              size="small"
+            >
+              💾 Uložiť
+            </Button>
+          </div>
+        </div>
+      </Collapse>
+
+      {/* Podiely vo firmách - Rozbaliteľné */}
+      <Collapse in={expanded}>
+        <div className="p-4 /* TODO: Convert borderTop: 1px solid */ /* TODO: Convert borderColor: divider */">
+          <Typography
+            variant="subtitle1"
+            className="/* TODO: Convert mb: 2 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+          >
+            💼 Podiely vo firmách ({shares.length})
+          </Typography>
+
+          {shares.length > 0 ? (
+            shares.map(share => {
+              const company = companies.find(c => c.id === share.companyId);
+              return (
+                <div
+                  key={share.id as string}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 2,
+                    mb: 1,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    bgcolor: 'background.paper',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <div className="/* TODO: Convert flex: 1 */">
+                    <Typography variant="subtitle2">
+                      🏢 {(company?.name as string) || 'Neznáma firma'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      💰 Podiel: {share.ownershipPercentage as number}%
+                      {(share.investmentAmount as number) &&
+                        ` • Investícia: ${share.investmentAmount as number}€`}
+                      {(share.isPrimaryContact as boolean) &&
+                        ' • Primárny kontakt'}
+                    </Typography>
+                  </div>
+
+                  <div className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2">
+                    <Chip
+                      label={`${share.ownershipPercentage as number}%`}
+                      color="primary"
+                      size="small"
+                      variant={
+                        (share.isPrimaryContact as boolean)
+                          ? 'filled'
+                          : 'outlined'
+                      }
+                    />
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              className="/* TODO: Convert textAlign: center */ /* TODO: Convert py: 2 */"
+            >
+              Žiadne podiely vo firmách. Investor nie je priradený k žiadnej
+              firme.
+            </Typography>
+          )}
+
+          {/* Tlačidlo pre pridanie nového podielu */}
+          <div className="/* TODO: Convert mt: 2 */ /* TODO: Convert textAlign: center */">
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => onAssignShare(investor)}
+            >
+              🏢 Priradiť k firme
+            </Button>
+          </div>
+        </div>
+      </Collapse>
+    </Card>
+  );
+};
+
+export default InvestorCard;

@@ -117,3 +117,4 @@ Po nastavení GitHub Secrets bude backup fungovať:
 - ✅ Proper error handling
 - ✅ Denné automatické spustenie o 2:00 UTC
 
+

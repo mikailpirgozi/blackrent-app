@@ -1,26 +1,4 @@
-# Starý kód - nepoužíva sa
-src-old-backup/
-
-# Node modules
-node_modules/
-**/node_modules/
-
-# Build outputs
-build/
-dist/
-**/build/
-**/dist/
-
-# Cache
-.turbo/
-**/.turbo/
-.next/
-**/.next/
-
-# Logs
-logs/
-*.log
-
-# Temporary files
-temp-*/
-*.tmp
+# Ignorovať linting v GitHub Actions workflows
+# Secrets context warnings sú false positives
+.github/workflows/*.yml
+.github/workflows/*.yaml

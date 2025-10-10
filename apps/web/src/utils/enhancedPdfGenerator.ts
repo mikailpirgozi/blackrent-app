@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
-
-import type { ProcessedImage } from './imageProcessor';
+import { SessionStorageManager } from './sessionStorageManager';
+import { logger } from './logger';
+import type { HandoverProtocol, ReturnProtocol, ProtocolImage } from '../types';
 
 export interface ProtocolData {
   id: string;
@@ -8,9 +9,9 @@ export interface ProtocolData {
   rental: Record<string, unknown>;
   location: string;
   vehicleCondition: Record<string, unknown>;
-  vehicleImages: ProcessedImage[];
-  documentImages: ProcessedImage[];
-  damageImages: ProcessedImage[];
+  vehicleImages: unknown[];
+  documentImages: unknown[];
+  damageImages: unknown[];
   damages: unknown[];
   signatures: unknown[];
   notes: string;
@@ -180,7 +181,7 @@ export class EnhancedPDFGenerator {
    * Vloženie obrázkov priamo do PDF
    */
   private async embedImages(
-    images: ProcessedImage[],
+    images: unknown[],
     title: string,
     maxWidth: number,
     maxHeight: number
@@ -213,12 +214,14 @@ export class EnhancedPDFGenerator {
       }
 
       try {
+        const imgObj = image as { thumbnail?: string; filename?: string };
+        
         // Načítanie thumbnailu (800px) priamo do PDF
-        if (!image.thumbnail) {
+        if (!imgObj.thumbnail) {
           console.warn('⚠️ Image thumbnail is missing, skipping image');
           continue;
         }
-        const imageData = await this.loadImageData(image.thumbnail);
+        const imageData = await this.loadImageData(imgObj.thumbnail);
 
         // Výpočet rozmerov
         const { width, height } = await this.calculateImageDimensions(
@@ -262,7 +265,8 @@ export class EnhancedPDFGenerator {
           imagesInRow = 0;
         }
       } catch (error) {
-        console.error('❌ Error processing image:', image.filename || 'unknown', error);
+        const imgObj = image as { filename?: string };
+        console.error('❌ Error processing image:', imgObj.filename || 'unknown', error);
         // Pridaj placeholder pre chybný obrázok
         const placeholder = this.createImagePlaceholder(
           maxWidth,
@@ -631,6 +635,280 @@ export class EnhancedPDFGenerator {
       };
       img.src = imgData;
     });
+  }
+
+  /**
+   * ✨ NOVÁ METÓDA: Generovanie PDF s použitím SessionStorage
+   * 
+   * Namiesto sťahovania fotiek z R2, používa komprimované JPEG verzie
+   * uložené v SessionStorage počas uploadu.
+   */
+  async generateProtocolPDF(
+    protocol: HandoverProtocol | ReturnProtocol
+  ): Promise<Blob> {
+    this.doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    // 1. Header
+    this.addProtocolHeader(protocol);
+
+    // 2. Basic info
+    this.addProtocolBasicInfo(protocol);
+
+    // 3. Vehicle images - POUŽIŤ PDF verzie z SessionStorage
+    if (protocol.vehicleImages && protocol.vehicleImages.length > 0) {
+      await this.addImagesFromSession(
+        'Fotografie vozidla',
+        protocol.vehicleImages
+      );
+    }
+
+    // 4. Document images
+    if (protocol.documentImages && protocol.documentImages.length > 0) {
+      await this.addImagesFromSession(
+        'Fotografie dokladov',
+        protocol.documentImages
+      );
+    }
+
+    // 5. Damage images
+    if (protocol.damageImages && protocol.damageImages.length > 0) {
+      await this.addImagesFromSession(
+        'Fotografie poškodení',
+        protocol.damageImages
+      );
+    }
+
+    // 6. Signatures
+    await this.addProtocolSignatures(protocol.signatures);
+
+    // 7. Footer
+    this.addProtocolFooter(protocol);
+
+    return this.doc.output('blob');
+  }
+
+  /**
+   * Pridanie fotiek z SessionStorage
+   */
+  private async addImagesFromSession(
+    title: string,
+    images: ProtocolImage[]
+  ): Promise<void> {
+    this.doc.addPage();
+    this.doc.setFontSize(16);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(0, 0, 0);
+    this.doc.text(title, 20, 20);
+
+    let y = 30;
+    let x = 20;
+    const imgWidth = 80;
+    const imgHeight = 60;
+    const margin = 10;
+
+    for (const image of images) {
+      // Načítaj PDF verziu z SessionStorage
+      const base64 = SessionStorageManager.getPDFImage(image.id);
+
+      if (!base64) {
+        logger.warn('PDF image not found in SessionStorage', {
+          imageId: image.id,
+        });
+        continue;
+      }
+
+      // Check page break
+      if (y + imgHeight > 270) {
+        this.doc.addPage();
+        y = 20;
+        x = 20;
+      }
+
+      // Add image
+      try {
+        this.doc.addImage(base64, 'JPEG', x, y, imgWidth, imgHeight);
+
+        // Add description if exists
+        if (image.description) {
+          this.doc.setFontSize(8);
+          this.doc.setFont('helvetica', 'normal');
+          this.doc.text(
+            image.description.substring(0, 50),
+            x,
+            y + imgHeight + 5,
+            { maxWidth: imgWidth }
+          );
+        }
+
+        // Move to next position
+        x += imgWidth + margin;
+        if (x + imgWidth > 200) {
+          x = 20;
+          y += imgHeight + margin + 10;
+        }
+      } catch (error) {
+        logger.error('Failed to add image to PDF', { imageId: image.id, error });
+      }
+    }
+  }
+
+  /**
+   * Header pre nový systém
+   */
+  private addProtocolHeader(protocol: HandoverProtocol | ReturnProtocol): void {
+    this.doc.setFillColor(41, 128, 185);
+    this.doc.rect(0, 0, 210, 30, 'F');
+
+    this.doc.setTextColor(255, 255, 255);
+    this.doc.setFontSize(24);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text(
+      protocol.type === 'handover' ? 'ODOVZDÁVACÍ PROTOKOL' : 'PREBERACÍ PROTOKOL',
+      105,
+      15,
+      { align: 'center' }
+    );
+
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text(
+      `Číslo: ${protocol.id.substring(0, 8).toUpperCase()}`,
+      105,
+      23,
+      { align: 'center' }
+    );
+
+    this.doc.setTextColor(0, 0, 0);
+  }
+
+  /**
+   * Basic info pre nový systém
+   */
+  private addProtocolBasicInfo(protocol: HandoverProtocol | ReturnProtocol): void {
+    let y = 40;
+
+    this.doc.setFontSize(14);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('Informácie o vozidle', 20, y);
+    y += 10;
+
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+
+    const vehicle = protocol.rentalData?.vehicle;
+    if (vehicle) {
+      this.doc.text(`Vozidlo: ${vehicle.brand} ${vehicle.model}`, 20, y);
+      y += 6;
+      this.doc.text(`ŠPZ: ${vehicle.licensePlate}`, 20, y);
+      y += 6;
+      if (protocol.rentalData?.vehicleVin) {
+        this.doc.text(`VIN: ${protocol.rentalData.vehicleVin}`, 20, y);
+        y += 6;
+      }
+    }
+
+    y += 4;
+    this.doc.text(`Miesto: ${protocol.location}`, 20, y);
+    y += 6;
+    this.doc.text(
+      `Dátum: ${new Date(protocol.createdAt).toLocaleString('sk-SK')}`,
+      20,
+      y
+    );
+    y += 10;
+
+    // Vehicle condition
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('Stav vozidla', 20, y);
+    y += 8;
+
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text(`Tachometer: ${protocol.vehicleCondition.odometer} km`, 20, y);
+    y += 6;
+    this.doc.text(`Palivo: ${protocol.vehicleCondition.fuelLevel}%`, 20, y);
+  }
+
+  /**
+   * Signatures pre nový systém
+   */
+  private async addProtocolSignatures(signatures: unknown[]): Promise<void> {
+    if (!signatures || signatures.length === 0) return;
+
+    this.doc.addPage();
+    this.doc.setFontSize(16);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('Podpisy', 20, 20);
+
+    let y = 40;
+
+    for (const sig of signatures) {
+      const signature = sig as {
+        signature: string;
+        signerName: string;
+        signerRole: string;
+        timestamp: Date;
+        location: string;
+      };
+
+      try {
+        // Add signature image
+        this.doc.addImage(signature.signature, 'PNG', 20, y, 60, 30);
+
+        // Add signature info
+        this.doc.setFontSize(10);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.text(`${signature.signerName}`, 90, y + 10);
+        this.doc.text(
+          `${signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'}`,
+          90,
+          y + 16
+        );
+        this.doc.text(
+          new Date(signature.timestamp).toLocaleString('sk-SK'),
+          90,
+          y + 22
+        );
+
+        y += 45;
+
+        if (y > 250) {
+          this.doc.addPage();
+          y = 20;
+        }
+      } catch (error) {
+        logger.error('Failed to add signature to PDF', { error });
+      }
+    }
+  }
+
+  /**
+   * Footer pre nový systém
+   */
+  private addProtocolFooter(_protocol: HandoverProtocol | ReturnProtocol): void {
+    const pageCount = this.doc.getNumberOfPages();
+
+    for (let i = 1; i <= pageCount; i++) {
+      this.doc.setPage(i);
+      this.doc.setFontSize(8);
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(128, 128, 128);
+
+      // Page number
+      this.doc.text(`Strana ${i} z ${pageCount}`, 105, 285, { align: 'center' });
+
+      // Generated info
+      this.doc.text(
+        `Vygenerované: ${new Date().toLocaleString('sk-SK')}`,
+        20,
+        290
+      );
+    }
   }
 }
 

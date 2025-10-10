@@ -92,60 +92,130 @@ const typographyVariants = cva(
 );
 
 // Helper funkcia na konverziu MUI sx prop na inline styles
-const convertSxToStyle = (sx: any) => {
+const convertSxToStyle = (sx: Record<string, unknown> | undefined) => {
   if (!sx || typeof sx !== 'object') return undefined;
   
   const style: React.CSSProperties = {};
   
-  // Spacing (mb, mt, ml, mr, m, pb, pt, pl, pr, px, py, p)
-  if (sx.mb !== undefined) style.marginBottom = sx.mb * 8;
-  if (sx.mt !== undefined) style.marginTop = sx.mt * 8;
-  if (sx.ml !== undefined) style.marginLeft = sx.ml * 8;
-  if (sx.mr !== undefined) style.marginRight = sx.mr * 8;
-  if (sx.m !== undefined) style.margin = sx.m * 8;
+  // Helper to safely multiply numeric values
+  const toPixels = (val: unknown): number | undefined => {
+    if (typeof val === 'number' && !isNaN(val)) return val * 8;
+    if (typeof val === 'string') {
+      const num = parseFloat(val);
+      if (!isNaN(num)) return num * 8;
+    }
+    return undefined;
+  };
   
-  if (sx.pb !== undefined) style.paddingBottom = sx.pb * 8;
-  if (sx.pt !== undefined) style.paddingTop = sx.pt * 8;
-  if (sx.pl !== undefined) style.paddingLeft = sx.pl * 8;
-  if (sx.pr !== undefined) style.paddingRight = sx.pr * 8;
-  if (sx.px !== undefined) {
-    style.paddingLeft = sx.px * 8;
-    style.paddingRight = sx.px * 8;
+  // Spacing (mb, mt, ml, mr, m, pb, pt, pl, pr, px, py, p)
+  const mb = toPixels(sx.mb);
+  if (mb !== undefined) style.marginBottom = mb;
+  
+  const mt = toPixels(sx.mt);
+  if (mt !== undefined) style.marginTop = mt;
+  
+  const ml = toPixels(sx.ml);
+  if (ml !== undefined) style.marginLeft = ml;
+  
+  const mr = toPixels(sx.mr);
+  if (mr !== undefined) style.marginRight = mr;
+  
+  const m = toPixels(sx.m);
+  if (m !== undefined) style.margin = m;
+  
+  const pb = toPixels(sx.pb);
+  if (pb !== undefined) style.paddingBottom = pb;
+  
+  const pt = toPixels(sx.pt);
+  if (pt !== undefined) style.paddingTop = pt;
+  
+  const pl = toPixels(sx.pl);
+  if (pl !== undefined) style.paddingLeft = pl;
+  
+  const pr = toPixels(sx.pr);
+  if (pr !== undefined) style.paddingRight = pr;
+  
+  const px = toPixels(sx.px);
+  if (px !== undefined) {
+    style.paddingLeft = px;
+    style.paddingRight = px;
   }
-  if (sx.py !== undefined) {
-    style.paddingTop = sx.py * 8;
-    style.paddingBottom = sx.py * 8;
+  
+  const py = toPixels(sx.py);
+  if (py !== undefined) {
+    style.paddingTop = py;
+    style.paddingBottom = py;
   }
-  if (sx.p !== undefined) style.padding = sx.p * 8;
+  
+  const p = toPixels(sx.p);
+  if (p !== undefined) style.padding = p;
   
   // Typography
-  if (sx.fontSize) style.fontSize = sx.fontSize;
-  if (sx.fontWeight) style.fontWeight = sx.fontWeight;
-  if (sx.fontFamily) style.fontFamily = sx.fontFamily;
-  if (sx.lineHeight) style.lineHeight = sx.lineHeight;
-  if (sx.letterSpacing) style.letterSpacing = sx.letterSpacing;
-  if (sx.textAlign) style.textAlign = sx.textAlign;
-  if (sx.textTransform) style.textTransform = sx.textTransform;
+  if (sx.fontSize && typeof sx.fontSize === 'string' || typeof sx.fontSize === 'number') {
+    style.fontSize = sx.fontSize as string | number;
+  }
+  if (sx.fontWeight && (typeof sx.fontWeight === 'string' || typeof sx.fontWeight === 'number')) {
+    style.fontWeight = sx.fontWeight as string | number;
+  }
+  if (sx.fontFamily && typeof sx.fontFamily === 'string') {
+    style.fontFamily = sx.fontFamily;
+  }
+  if (sx.lineHeight && (typeof sx.lineHeight === 'string' || typeof sx.lineHeight === 'number')) {
+    style.lineHeight = sx.lineHeight as string | number;
+  }
+  if (sx.letterSpacing && (typeof sx.letterSpacing === 'string' || typeof sx.letterSpacing === 'number')) {
+    style.letterSpacing = sx.letterSpacing as string | number;
+  }
+  if (sx.textAlign && typeof sx.textAlign === 'string') {
+    style.textAlign = sx.textAlign as React.CSSProperties['textAlign'];
+  }
+  if (sx.textTransform && typeof sx.textTransform === 'string') {
+    style.textTransform = sx.textTransform as React.CSSProperties['textTransform'];
+  }
   
   // Colors
-  if (sx.color) style.color = sx.color;
-  if (sx.backgroundColor || sx.bgcolor) style.backgroundColor = sx.backgroundColor || sx.bgcolor;
+  if (sx.color && typeof sx.color === 'string') {
+    style.color = sx.color;
+  }
+  if ((sx.backgroundColor || sx.bgcolor) && (typeof sx.backgroundColor === 'string' || typeof sx.bgcolor === 'string')) {
+    style.backgroundColor = (sx.backgroundColor || sx.bgcolor) as string;
+  }
   
   // Display
-  if (sx.display) style.display = sx.display;
-  if (sx.opacity) style.opacity = sx.opacity;
+  if (sx.display && typeof sx.display === 'string') {
+    style.display = sx.display as React.CSSProperties['display'];
+  }
+  if (sx.opacity && typeof sx.opacity === 'number') {
+    style.opacity = sx.opacity;
+  }
   
   // Flexbox
-  if (sx.flexGrow) style.flexGrow = sx.flexGrow;
-  if (sx.flexShrink) style.flexShrink = sx.flexShrink;
+  if (sx.flexGrow && typeof sx.flexGrow === 'number') {
+    style.flexGrow = sx.flexGrow;
+  }
+  if (sx.flexShrink && typeof sx.flexShrink === 'number') {
+    style.flexShrink = sx.flexShrink;
+  }
   
   // Width & Height
-  if (sx.width) style.width = sx.width;
-  if (sx.height) style.height = sx.height;
-  if (sx.minWidth) style.minWidth = sx.minWidth;
-  if (sx.maxWidth) style.maxWidth = sx.maxWidth;
-  if (sx.minHeight) style.minHeight = sx.minHeight;
-  if (sx.maxHeight) style.maxHeight = sx.maxHeight;
+  if (sx.width && (typeof sx.width === 'string' || typeof sx.width === 'number')) {
+    style.width = sx.width as string | number;
+  }
+  if (sx.height && (typeof sx.height === 'string' || typeof sx.height === 'number')) {
+    style.height = sx.height as string | number;
+  }
+  if (sx.minWidth && (typeof sx.minWidth === 'string' || typeof sx.minWidth === 'number')) {
+    style.minWidth = sx.minWidth as string | number;
+  }
+  if (sx.maxWidth && (typeof sx.maxWidth === 'string' || typeof sx.maxWidth === 'number')) {
+    style.maxWidth = sx.maxWidth as string | number;
+  }
+  if (sx.minHeight && (typeof sx.minHeight === 'string' || typeof sx.minHeight === 'number')) {
+    style.minHeight = sx.minHeight as string | number;
+  }
+  if (sx.maxHeight && (typeof sx.maxHeight === 'string' || typeof sx.maxHeight === 'number')) {
+    style.maxHeight = sx.maxHeight as string | number;
+  }
   
   return Object.keys(style).length > 0 ? style : undefined;
 };
@@ -155,7 +225,7 @@ export interface TypographyProps
   extends Omit<React.HTMLAttributes<HTMLElement>, 'color'>,
     VariantProps<typeof typographyVariants> {
   component?: React.ElementType;
-  sx?: any;
+  sx?: Record<string, unknown>;
   fontWeight?: string | number;
   fontSize?: string | number;
   lineHeight?: string | number;
@@ -204,11 +274,11 @@ export const Typography = React.forwardRef<
   
   return (
     <Component
-      ref={ref as any}
+      ref={ref}
       className={cn(
         typographyVariants({
           variant,
-          color: color as any,
+          color: color as TypographyProps['color'],
           align,
           gutterBottom,
           paragraph,

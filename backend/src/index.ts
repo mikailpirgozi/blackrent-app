@@ -132,6 +132,7 @@ import companyDocumentsRoutes from './routes/company-documents';
 import featureFlagsRoutes from './routes/feature-flags';
 import companyInvestorRoutes from './routes/company-investors';
 import customerRoutes from './routes/customers';
+import debugRoutes from './routes/debug'; // 🔍 DEBUG: User permissions diagnostics
 import emailImapRoutes from './routes/email-imap';
 import emailManagementRoutes from './routes/email-management';
 import emailWebhookRoutes from './routes/email-webhook';
@@ -159,6 +160,7 @@ import vehicleRoutes from './routes/vehicles';
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/debug', debugRoutes); // 🔍 DEBUG: User permissions diagnostics
 app.use('/api/platforms', platformRoutes); // 🌐 PLATFORM MULTI-TENANCY
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/customers', customerRoutes);

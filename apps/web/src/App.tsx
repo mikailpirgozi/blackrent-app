@@ -63,6 +63,9 @@ const PlatformManagementPage = lazy(
   () => import('./pages/PlatformManagementPage')
 );
 
+// 🧪 TEST PAGE: Perfect Protocols V1
+const TestProtocolPhotos = lazy(() => import('./pages/TestProtocolPhotos'));
+
 // OPTIMALIZOVANÝ Loading component pre lazy loaded routes
 const PageLoader = () => (
   <EnhancedLoading
@@ -307,6 +310,22 @@ const AppContent: React.FC = () => {
                                 <ErrorBoundary>
                                   <Suspense fallback={<PageLoader />}>
                                     <PlatformManagementPage />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
+                        
+                        {/* 🧪 TEST ROUTE: Perfect Protocols V1 */}
+                        <Route
+                          path="/test-protocols"
+                          element={
+                            <ProtectedRoute>
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <TestProtocolPhotos />
                                   </Suspense>
                                 </ErrorBoundary>
                               </Layout>

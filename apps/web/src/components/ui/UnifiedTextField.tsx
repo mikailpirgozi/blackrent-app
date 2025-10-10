@@ -140,9 +140,9 @@ export const UnifiedTextField = forwardRef<
           )}
 
           <InputComponent
-            ref={ref as any}
+            ref={ref as React.Ref<HTMLTextAreaElement> & React.Ref<HTMLInputElement>}
             value={value}
-            onChange={onChange as any}
+            onChange={onChange}
             {...(multiline ? {} : { type })}
             disabled={disabled}
             readOnly={readOnly}

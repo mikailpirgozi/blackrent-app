@@ -136,7 +136,7 @@ class WebVitalsMonitor {
         });
 
         observer.observe({ entryTypes: ['longtask'] });
-      } catch (error) {
+      } catch {
         console.warn('Long task observation not supported');
       }
     }

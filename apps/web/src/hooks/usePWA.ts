@@ -7,10 +7,12 @@ import { useError } from '../context/ErrorContext';
 import { logger } from '@/utils/smartLogger';
 import { shouldCheckSWUpdate, markSWCheckCompleted } from '@/utils/fastStartup';
 
-// PWA specific types - using any for browser APIs that may not be available in all environments
-type PWAServiceWorkerRegistration = any;
-type PWAMessageEvent = any;
-type PWANavigator = any;
+// PWA specific types - browser APIs with proper typing
+type PWAServiceWorkerRegistration = ServiceWorkerRegistration;
+type PWAMessageEvent = MessageEvent;
+type PWANavigator = Navigator & {
+  standalone?: boolean;
+};
 
 export interface BeforeInstallPromptEvent {
   prompt: () => Promise<void>;
@@ -219,30 +221,30 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const setupEventListeners = useCallback(() => {
     // Install prompt event
-    (window as any).addEventListener(
+    window.addEventListener(
       'beforeinstallprompt',
-      handleBeforeInstallPrompt
+      handleBeforeInstallPrompt as EventListener
     );
 
     // App installed event
-    (window as any).addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     // Online/offline events
-    (window as any).addEventListener('online', handleOnline);
-    (window as any).addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
   }, []);
 
   const removeEventListeners = useCallback(() => {
-    (window as any).removeEventListener(
+    window.removeEventListener(
       'beforeinstallprompt',
-      handleBeforeInstallPrompt
+      handleBeforeInstallPrompt as EventListener
     );
-    (window as any).removeEventListener('appinstalled', handleAppInstalled);
-    (window as any).removeEventListener('online', handleOnline);
-    (window as any).removeEventListener('offline', handleOffline);
+    window.removeEventListener('appinstalled', handleAppInstalled);
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
   }, []);
 
-  const handleBeforeInstallPrompt = (event: any) => {
+  const handleBeforeInstallPrompt = (event: Event) => {
     event.preventDefault();
     const promptEvent = event as BeforeInstallPromptEvent;
 
@@ -284,11 +286,9 @@ export const usePWA = (): PWAState & PWAActions => {
   const checkInstallationStatus = () => {
     // Check if running as installed PWA
     const isInstalled =
-      (window as any).matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: standalone)').matches ||
       (
-        window.navigator as PWANavigator as PWANavigator & {
-          standalone?: boolean;
-        }
+        window.navigator as PWANavigator
       ).standalone === true;
 
     setState(prev => ({ ...prev, isInstalled }));
@@ -387,8 +387,8 @@ export const usePWA = (): PWAState & PWAActions => {
           window.location.pathname.includes('/vehicles');
         const isMobileViewport =
           typeof window !== 'undefined' &&
-          (window as any).matchMedia &&
-          (window as any).matchMedia('(max-width: 900px)').matches;
+          window.matchMedia &&
+          window.matchMedia('(max-width: 900px)').matches;
 
         // Debounce reloady: minimálny odstup 10 minút
         const now = Date.now();
@@ -464,17 +464,17 @@ export const usePWA = (): PWAState & PWAActions => {
   const clearCache = async (): Promise<void> => {
     try {
       if (typeof window !== 'undefined' && 'caches' in window) {
-        const cacheNames = await (window as any).caches.keys();
+        const cacheNames = await caches.keys();
         await Promise.all(
           cacheNames.map((cacheName: string) =>
-            (window as any).caches.delete(cacheName)
+            caches.delete(cacheName)
           )
         );
       }
 
       // Also tell service worker to clear cache
       if (state.swRegistration?.active) {
-        const channel = new (window as any).MessageChannel();
+        const channel = new MessageChannel();
         state.swRegistration.active.postMessage({ type: 'CLEAR_CACHE' }, [
           channel.port2,
         ]);
@@ -516,9 +516,9 @@ export const usePWA = (): PWAState & PWAActions => {
         return;
       }
 
-      const channel = new (window as any).MessageChannel();
-      channel.port1.onmessage = (event: any) => {
-        resolve(event.data.version || 'Unknown');
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event: MessageEvent) => {
+        resolve((event.data as { version?: string }).version || 'Unknown');
       };
 
       state.swRegistration.active.postMessage({ type: 'GET_VERSION' }, [

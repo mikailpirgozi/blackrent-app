@@ -306,7 +306,7 @@ export const OfflineIndicator = ({
                               await window.navigator.serviceWorker.ready;
                             // Background sync (if supported)
                             if ('sync' in registration) {
-                              (registration as any).sync.register(
+                              (registration as ServiceWorkerRegistration & { sync: { register: (tag: string) => Promise<void> } }).sync.register(
                                 'blackrent-sync'
                               );
                             }

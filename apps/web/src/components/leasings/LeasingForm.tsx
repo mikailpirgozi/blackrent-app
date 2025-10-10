@@ -164,26 +164,25 @@ export function LeasingForm({
   ].sort((a, b) => a.localeCompare(b));
 
   const form = useForm<LeasingFormData>({
-    // @ts-expect-error - Zod resolver type mismatch s react-hook-form generics
-    resolver: zodResolver(leasingFormSchema),
+    resolver: zodResolver(leasingFormSchema) as any,
     defaultValues: {
       vehicleId: '',
       leasingCompany: '',
       paymentType: 'anuita',
       loanCategory: 'autoúver',
-      initialLoanAmount: undefined as any,
+      initialLoanAmount: undefined,
       totalInstallments: 48,
       firstPaymentDate: '',
       lastPaymentDate: '',
       monthlyFee: 0,
       processingFee: 0,
-      interestRate: undefined as any,
-      monthlyPayment: undefined as any,
-      rpmn: undefined as any,
+      interestRate: undefined,
+      monthlyPayment: undefined,
+      rpmn: undefined,
       earlyRepaymentPenalty: 0,
       earlyRepaymentPenaltyType: 'percent_principal',
-      acquisitionPriceWithoutVAT: undefined as any,
-      acquisitionPriceWithVAT: undefined as any,
+      acquisitionPriceWithoutVAT: undefined,
+      acquisitionPriceWithVAT: undefined,
       isNonDeductible: false,
     },
   });
@@ -205,14 +204,17 @@ export function LeasingForm({
       const l = existingLeasing.leasing;
 
       // Parse numeric strings to numbers
-      const parseNum = (val: any) =>
+      const parseNum = (val: string | number | undefined): number | undefined =>
         typeof val === 'string' ? parseFloat(val) : val;
 
       setValue('vehicleId', l.vehicleId);
       setValue('leasingCompany', l.leasingCompany);
-      setValue('loanCategory', l.loanCategory as any);
-      setValue('paymentType', l.paymentType as any);
-      setValue('initialLoanAmount', parseNum(l.initialLoanAmount));
+      setValue('loanCategory', l.loanCategory as LoanCategory);
+      setValue('paymentType', l.paymentType as PaymentType);
+      const loanAmount = parseNum(l.initialLoanAmount);
+      if (loanAmount !== undefined) {
+        setValue('initialLoanAmount', loanAmount);
+      }
       setValue('totalInstallments', l.totalInstallments);
       setValue(
         'firstPaymentDate',
@@ -234,7 +236,7 @@ export function LeasingForm({
       setValue('earlyRepaymentPenalty', parseNum(l.earlyRepaymentPenalty) || 0);
       setValue(
         'earlyRepaymentPenaltyType',
-        (l.earlyRepaymentPenaltyType as any) || 'percent_principal'
+        (l.earlyRepaymentPenaltyType as 'percent_principal' | 'fixed_amount') || 'percent_principal'
       );
       setValue(
         'acquisitionPriceWithoutVAT',
@@ -263,7 +265,6 @@ export function LeasingForm({
       paymentType,
       monthlyFee,
       processingFee,
-      rpmn,
     } = watchedValues;
 
     if (initialLoanAmount && totalInstallments && paymentType) {

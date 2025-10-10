@@ -3,7 +3,7 @@
  * Complete UI for managing user permissions and company access
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Shield, Building2, Users, Trash2, Edit, Check, X, Save } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';

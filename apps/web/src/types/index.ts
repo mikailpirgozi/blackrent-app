@@ -587,16 +587,32 @@ export interface ApiResponse<T = unknown> {
 // Protokoly
 export interface ProtocolImage {
   id: string;
-  url: string; // Primárne URL (pre PDF - komprimované)
+  url: string; // Deprecated - use originalUrl instead
+  originalUrl: string; // WebP high quality pre galériu (R2 URL)
+  compressedUrl?: string; // DEPRECATED - už nepoužívame
+  pdfData?: string; // OPTIONAL - iba pre Variant 2 fallback (base64)
   type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
   timestamp: Date;
   compressed?: boolean;
   originalSize?: number;
   compressedSize?: number;
-  // 🌟 NOVÉ: URL pre rôzne kvality
-  originalUrl?: string; // Vysoká kvalita pre galériu
-  compressedUrl?: string; // Nízka kvalita pre PDF
+  metadata?: {
+    gps?: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+    };
+    deviceInfo?: {
+      userAgent: string;
+      platform: string;
+    };
+    exif?: {
+      make?: string;
+      model?: string;
+      dateTime?: string;
+    };
+  };
 }
 
 export interface ProtocolVideo {

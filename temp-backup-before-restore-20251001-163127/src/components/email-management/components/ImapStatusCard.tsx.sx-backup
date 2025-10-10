@@ -1,0 +1,120 @@
+/**
+ * IMAP Status Card Component
+ * Extrahované z pôvodného EmailManagementDashboard.tsx
+ */
+
+import { Card,
+/* Tailwind classes used for styling */
+  CardContent,
+  Typography,
+  Grid, Chip,
+  Alert,
+  useTheme,
+  useMediaQuery, } from '@mui/material';
+import React from 'react';
+
+import type { ImapStatus } from '../types/email-types';
+
+interface ImapStatusCardProps {
+  imapStatus: ImapStatus | null;
+}
+
+export const ImapStatusCard: React.FC<ImapStatusCardProps> = ({
+  imapStatus,
+}) => {
+  const theme = useTheme();
+  const isExtraSmall = useMediaQuery(theme.breakpoints.down(400));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  if (!imapStatus) return null;
+
+  return (
+    <Card className="/* TODO: Convert mb: 3 */">
+      <CardContent className="/* TODO: Convert p: isExtraSmall ? 2 : 3 */">
+        <Typography
+          variant={isSmallMobile ? 'subtitle1' : 'h6'}
+          gutterBottom
+          className="/* TODO: Convert fontSize: isExtraSmall ? 1rem : undefined */ /* TODO: Convert textAlign: isSmallMobile ? center : left */"
+        >
+          📧 IMAP Konfigurácia
+        </Typography>
+        <Grid container spacing={isSmallMobile ? 2 : 2}>
+          <Grid item xs={12} sm={6} md={4}>
+            <div
+              display="flex"
+              alignItems="center"
+              gap={1}
+              justifyContent={isSmallMobile ? 'center' : 'flex-start'}
+              flexDirection={isExtraSmall ? 'column' : 'row'}
+            >
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                className="/* TODO: Convert fontSize: isExtraSmall ? 0.875rem : undefined */"
+              >
+                Status:
+              </Typography>
+              <Chip
+                label={
+                  imapStatus.enabled
+                    ? imapStatus.running
+                      ? 'Beží'
+                      : 'Zastavený'
+                    : 'Vypnutý'
+                }
+                color={
+                  imapStatus.enabled
+                    ? imapStatus.running
+                      ? 'success'
+                      : 'warning'
+                    : 'default'
+                }
+                size={isExtraSmall ? 'small' : 'small'}
+                className="/* TODO: Convert fontSize: isExtraSmall ? 0.75rem : undefined */"
+              />
+            </div>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <div textAlign={isSmallMobile ? 'center' : 'left'}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                className="/* TODO: Convert fontSize: isExtraSmall ? 0.875rem : undefined */ /* TODO: Convert wordBreak: break-word */"
+              >
+                Server:{' '}
+                <strong>{imapStatus.config?.host || 'Nekonfigurovaný'}</strong>
+              </Typography>
+            </div>
+          </Grid>
+          <Grid item xs={12} sm={12} md={4}>
+            <div textAlign={isSmallMobile ? 'center' : 'left'}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                className="/* TODO: Convert fontSize: isExtraSmall ? 0.875rem : undefined */ /* TODO: Convert wordBreak: break-word */"
+              >
+                Používateľ:{' '}
+                <strong>{imapStatus.config?.user || 'Nekonfigurovaný'}</strong>
+              </Typography>
+            </div>
+          </Grid>
+        </Grid>
+        {!imapStatus.enabled && (
+          <Alert
+            severity="info"
+            sx={{
+              mt: 2,
+              fontSize: isExtraSmall ? '0.875rem' : undefined,
+              '& .MuiAlert-message': {
+                fontSize: isExtraSmall ? '0.875rem' : undefined,
+              },
+            }}
+          >
+            IMAP monitoring je vypnutý. Skontrolujte konfiguráciu v backend/.env
+            súbore.
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+};

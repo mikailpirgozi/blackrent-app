@@ -172,7 +172,7 @@ export function useCreateHandoverProtocol() {
 
       // Trigger WebSocket
       window.dispatchEvent(
-        new (window as any).CustomEvent('protocol-created', {
+        new CustomEvent('protocol-created', {
           detail: { type: 'handover', data: protocol },
         })
       );
@@ -248,7 +248,7 @@ export function useCreateReturnProtocol() {
 
       // Trigger WebSocket
       window.dispatchEvent(
-        new (window as any).CustomEvent('protocol-created', {
+        new CustomEvent('protocol-created', {
           detail: { type: 'return', data: _data },
         })
       );

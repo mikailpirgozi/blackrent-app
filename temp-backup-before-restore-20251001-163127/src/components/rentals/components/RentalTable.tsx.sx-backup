@@ -1,0 +1,753 @@
+import {
+/* Tailwind classes used for styling */
+  Business as BusinessIcon,
+  DirectionsCar as CarIcon,
+  Check as CheckIcon,
+  ContentCopy as ContentCopyIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Schedule as ScheduleIcon,
+} from '@mui/icons-material';
+import { Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  Typography, } from '@mui/material';
+import React from 'react';
+import { formatDateTime } from '../../../utils/formatters';
+import PriceDisplay from './PriceDisplay';
+
+import type { Rental, Vehicle } from '../../../types';
+import { MobileRentalRow } from '../MobileRentalRow';
+
+interface RentalTableProps {
+  paginatedRentals: Rental[];
+  isMobile: boolean;
+  handleEdit: (rental: Rental) => void;
+  handleDelete: (id: string) => void;
+  handleCloneRental: (rental: Rental) => void; // 🔄 NOVÉ: Clone funkcionalita
+  handleOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
+  handleViewRental: (rental: Rental) => void;
+  onScroll?: (event: { scrollOffset: number }) => void;
+  // Helper functions now imported directly in child components
+  // Desktop view props
+  getVehicleByRental: (rental: Rental) => Vehicle | undefined;
+  protocolStatusMap: Record<
+    string,
+    { hasHandoverProtocol: boolean; hasReturnProtocol: boolean }
+  >;
+  protocols: Record<string, { handover?: unknown; return?: unknown }>;
+  filteredRentals: Rental[];
+  desktopScrollRef: React.RefObject<HTMLDivElement>;
+  mobileScrollRef: React.RefObject<HTMLDivElement>;
+  isLoadingProtocolStatus: boolean;
+  protocolStatusLoaded: boolean;
+  handleCheckProtocols: (rental: Rental) => void;
+  loadingProtocols: string[];
+  VirtualizedRentalRow: React.ComponentType<unknown>;
+}
+
+export const RentalTable: React.FC<RentalTableProps> = ({
+  paginatedRentals,
+  isMobile,
+  handleEdit,
+  handleDelete,
+  handleCloneRental, // 🔄 NOVÉ: Clone funkcionalita
+  handleOpenProtocolMenu,
+  // handleViewRental,
+  // onScroll,
+  // Desktop view props
+  getVehicleByRental,
+  protocolStatusMap,
+  protocols,
+  filteredRentals,
+  desktopScrollRef,
+  mobileScrollRef,
+  isLoadingProtocolStatus,
+  protocolStatusLoaded,
+  handleCheckProtocols,
+  loadingProtocols,
+  // VirtualizedRentalRow,
+}) => {
+  // const theme = useTheme();
+
+  // 🗑️ DELETE CONFIRMATION DIALOG STATE
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(
+    null
+  );
+
+  // 🗑️ DELETE HANDLERS
+  const handleDeleteClick = (rental: Rental) => {
+    setRentalToDelete(rental);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (rentalToDelete) {
+      handleDelete(rentalToDelete.id);
+      setDeleteDialogOpen(false);
+      setRentalToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setRentalToDelete(null);
+  };
+
+  return (
+    <>
+      {isMobile ? (
+        /* MOBILNÝ KARTOVÝ DIZAJN PRE PRENÁJMY */
+        <div
+          ref={mobileScrollRef}
+          sx={{
+            mx: 1, // Rovnaký margin ako ostatné komponenty
+            py: 2,
+            minHeight: '60vh',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '6px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+              borderRadius: '3px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '3px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#555',
+            },
+          }}
+        >
+          {filteredRentals.map((rental, index) => {
+            // ⚡ BACKGROUND PROTOCOL STATUS - rovnaká logika ako desktop verzia
+            const backgroundStatus = protocolStatusMap[rental.id];
+            const fallbackProtocols = protocols[rental.id];
+
+            const hasHandover = backgroundStatus
+              ? backgroundStatus.hasHandoverProtocol
+              : !!fallbackProtocols?.handover;
+            const hasReturn = backgroundStatus
+              ? backgroundStatus.hasReturnProtocol
+              : !!fallbackProtocols?.return;
+
+            return (
+              <MobileRentalRow
+                key={rental.id}
+                rental={rental as Rental}
+                vehicle={getVehicleByRental(rental) as Vehicle | undefined}
+                index={index}
+                totalRentals={filteredRentals.length}
+                hasHandover={hasHandover}
+                hasReturn={hasReturn}
+                isLoadingProtocolStatus={loadingProtocols.includes(rental.id)}
+                protocolStatusLoaded={
+                  protocolStatusMap[rental.id] !== undefined
+                }
+                onEdit={handleEdit}
+                onOpenProtocolMenu={handleOpenProtocolMenu}
+                onCheckProtocols={handleCheckProtocols}
+                onClone={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
+                onDelete={id => {
+                  const rental = filteredRentals.find(r => r.id === id);
+                  if (rental) handleDeleteClick(rental);
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        /* DESKTOP BOOKING.COM STYLE PRENÁJMY */
+        <Card
+          className="/* TODO: Convert overflow: hidden */ /* TODO: Convert boxShadow: 0 6px 20px rgba(0 */ /* TODO: Convert borderRadius: 3 */"
+        >
+          <CardContent className="/* TODO: Convert p: 0 */">
+            {/* Desktop sticky header */}
+            <div
+              className="/* TODO: Convert display: flex */ /* TODO: Convert borderBottom: 3px solid #e0e0e0 */ /* TODO: Convert backgroundColor:
+                  linear-gradient(135deg */ /* TODO: Convert background: #f8f9fa */ /* TODO: Convert position: sticky */ /* TODO: Convert top: 0 */ /* TODO: Convert zIndex: 1000 */"
+            >
+              <div
+                className="/* TODO: Convert width: 280 */ /* TODO: Convert maxWidth: 280 */ p-4 /* TODO: Convert borderRight: 2px solid #e0e0e0 */ /* TODO: Convert backgroundColor: #ffffff */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ /* TODO: Convert boxShadow: 2px 0 4px rgba(0 */ /* TODO: Convert overflow: hidden */"
+              >
+                <Typography
+                  variant="h6"
+                  className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #1976d2 */ /* TODO: Convert fontSize: 1rem */"
+                >
+                  🚗 Vozidlo & Status
+                </Typography>
+              </div>
+              <div
+                className="/* TODO: Convert width: 200 */ /* TODO: Convert maxWidth: 200 */ p-4 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert textAlign: center */ /* TODO: Convert backgroundColor: #f8f9fa */ /* TODO: Convert overflow: hidden */"
+              >
+                <Typography
+                  variant="subtitle1"
+                  className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.9rem */"
+                >
+                  👤 Zákazník
+                </Typography>
+              </div>
+              <div
+                className="/* TODO: Convert width: 180 */ /* TODO: Convert maxWidth: 180 */ p-4 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert textAlign: center */ /* TODO: Convert backgroundColor: #f8f9fa */ /* TODO: Convert overflow: hidden */"
+              >
+                <Typography
+                  variant="subtitle1"
+                  className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.9rem */"
+                >
+                  📅 Obdobie
+                </Typography>
+              </div>
+              <div
+                className="/* TODO: Convert width: 220 */ /* TODO: Convert maxWidth: 220 */ p-4 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert textAlign: center */ /* TODO: Convert backgroundColor: #f8f9fa */ /* TODO: Convert overflow: hidden */"
+              >
+                <Typography
+                  variant="subtitle1"
+                  className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.9rem */"
+                >
+                  💰 Cena
+                </Typography>
+              </div>
+              <div
+                className="/* TODO: Convert width: 220 */ /* TODO: Convert maxWidth: 220 */ p-4 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert textAlign: center */ /* TODO: Convert backgroundColor: #f8f9fa */ /* TODO: Convert overflow: hidden */"
+              >
+                <Typography
+                  variant="subtitle1"
+                  className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.9rem */"
+                >
+                  📋 Protokoly
+                </Typography>
+              </div>
+              <div
+                className="/* TODO: Convert width: 80 */ /* TODO: Convert maxWidth: 80 */ p-4 /* TODO: Convert textAlign: center */ /* TODO: Convert backgroundColor: #f8f9fa */"
+              >
+                <Typography
+                  variant="subtitle1"
+                  className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.9rem */"
+                >
+                  ⚡ Akcie
+                </Typography>
+              </div>
+            </div>
+
+            {/* 🎯 UNIFIED: Desktop scrollable container */}
+            <div
+              ref={desktopScrollRef}
+              sx={{
+                minHeight: '60vh', // Flexibilná výška namiesto fixnej
+                maxHeight: '75vh', // Maximum aby sa neroztiahlo príliš
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                position: 'relative',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: '#f1f1f1',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#888',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: '#555',
+                },
+              }}
+            >
+              {(paginatedRentals || []).map((rental, index) => {
+                const vehicle = getVehicleByRental(rental);
+
+                // 🔄 NOVÉ: Detekcia flexibilného prenájmu
+                const isFlexible = rental.isFlexible || false;
+
+                // ⚡ BACKGROUND PROTOCOL STATUS - použije background loaded data alebo fallback na starý systém
+                const backgroundStatus = protocolStatusMap[rental.id];
+                const fallbackProtocols = protocols[rental.id];
+
+                const hasHandover = backgroundStatus
+                  ? backgroundStatus.hasHandoverProtocol
+                  : !!fallbackProtocols?.handover;
+                const hasReturn = backgroundStatus
+                  ? backgroundStatus.hasReturnProtocol
+                  : !!fallbackProtocols?.return;
+
+                return (
+                  <div
+                    key={rental.id}
+                    data-rental-item={`rental-${index}`} // 🎯 For item-based infinite scroll
+                    sx={{
+                      display: 'flex',
+                      borderBottom:
+                        index < filteredRentals.length - 1
+                          ? '1px solid #e0e0e0'
+                          : 'none',
+                      '&:hover': {
+                        backgroundColor: isFlexible
+                          ? '#fff3e0'
+                          : 'rgba(0,0,0,0.04)',
+                        transform: 'scale(1.002)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      },
+                      minHeight: 65,
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      // 🎨 Čisté pozadie + flexibilné prenájmy
+                      backgroundColor: isFlexible ? '#fff8f0' : 'transparent',
+                      borderLeft: isFlexible ? '4px solid #ff9800' : 'none',
+                      position: 'relative',
+                    }}
+                    onClick={() => {
+                      // console.log('🔥 CARD CLICKED FOR EDIT:', rental.id);
+                      handleEdit(rental);
+                    }}
+                  >
+                    {/* Vozidlo & Status - sticky left - FIXED WIDTH */}
+                    <div
+                      className="/* TODO: Convert width: 280 */ /* TODO: Convert // FIXED WIDTH instead of minWidth
+                        maxWidth: 280 */ p-3 /* TODO: Convert borderRight: 2px solid #e0e0e0 */ /* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ /* TODO: Convert justifyContent: center */ /* TODO: Convert backgroundColor: #ffffff */ /* TODO: Convert position: sticky */ /* TODO: Convert left: 0 */ /* TODO: Convert zIndex: 10 */ /* TODO: Convert boxShadow: 2px 0 4px rgba(0 */ /* TODO: Convert overflow: hidden */"
+                    >
+                      {/* 🚗 NÁZOV VOZIDLA HORE - VÝRAZNEJŠÍ */}
+                      <Typography
+                        variant="h6"
+                        className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert fontSize: 1.1rem */ /* TODO: Convert color: #1976d2 */ /* TODO: Convert mb: 0.25 */ /* TODO: Convert overflow: hidden */ /* TODO: Convert textOverflow: ellipsis */ /* TODO: Convert whiteSpace: nowrap */ /* TODO: Convert lineHeight: 1.2 */"
+                      >
+                        {vehicle?.brand} {vehicle?.model}
+                      </Typography>
+                      {/* 🏷️ ŠPZ POD TÝM - MENŠIE */}
+                      <Typography
+                        variant="body2"
+                        className="/* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.8rem */ /* TODO: Convert mb: 0.25 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-1 /* TODO: Convert overflow: hidden */ /* TODO: Convert textOverflow: ellipsis */ /* TODO: Convert whiteSpace: nowrap */"
+                      >
+                        <CarIcon fontSize="small" className="/* TODO: Convert fontSize: 0.9rem */" />
+                        {vehicle?.licensePlate || 'N/A'}
+                      </Typography>
+                      {/* 🏢 FIRMA - VŽDY VIDITEĽNÁ */}
+                      {vehicle?.company && (
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: #ff9800 */ /* TODO: Convert fontSize: 0.8rem */ /* TODO: Convert fontWeight: 600 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-1 /* TODO: Convert mb: 0.25 */ /* TODO: Convert overflow: hidden */ /* TODO: Convert textOverflow: ellipsis */ /* TODO: Convert whiteSpace: nowrap */"
+                        >
+                          <BusinessIcon fontSize="small" />
+                          {vehicle.company}
+                        </Typography>
+                      )}
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ gap-1 /* TODO: Convert alignItems: flex-start */"
+                      >
+                        <Chip
+                          size="small"
+                          label={
+                            rental.status === 'active'
+                              ? 'AKTÍVNY'
+                              : rental.status === 'finished'
+                                ? 'UKONČENÝ'
+                                : rental.status === 'pending'
+                                  ? 'ČAKAJÚCI'
+                                  : 'NOVÝ'
+                          }
+                          className="/* TODO: Convert height: 22 */ /* TODO: Convert fontSize: 0.65rem */ /* TODO: Convert bgcolor:
+                              rental.status === active
+                                ? #4caf50
+                                : rental.status === finished
+                                  ? #2196f3
+                                  : rental.status === pending
+                                    ? #ff9800
+                                    : #757575 */ /* TODO: Convert color: white */ /* TODO: Convert fontWeight: 500 */ /* TODO: Convert opacity: 0.9 */"
+                        />
+                        {/* 🔄 FLEXIBILNÝ PRENÁJOM INDIKÁTOR */}
+                        {isFlexible && (
+                          <Chip
+                            size="small"
+                            label="FLEXIBILNÝ"
+                            className="/* TODO: Convert height: 20 */ /* TODO: Convert fontSize: 0.6rem */ /* TODO: Convert bgcolor: #ff9800 */ /* TODO: Convert color: white */ /* TODO: Convert fontWeight: 500 */ /* TODO: Convert opacity: 0.9 */"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 👤 ZÁKAZNÍK - INŠPIROVANÉ MOBILNÝM DIZAJNOM */}
+                    <div
+                      className="/* TODO: Convert width: 200 */ /* TODO: Convert maxWidth: 200 */ p-3 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ /* TODO: Convert justifyContent: center */ /* TODO: Convert textAlign: left */ /* TODO: Convert overflow: hidden */"
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert fontSize: 0.9rem */ /* TODO: Convert color: #333 */ /* TODO: Convert mb: 0.25 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ /* TODO: Convert gap: 0.75 */ /* TODO: Convert overflow: hidden */ /* TODO: Convert textOverflow: ellipsis */ /* TODO: Convert whiteSpace: nowrap */"
+                      >
+                        <div
+                          className="/* TODO: Convert width: 6 */ /* TODO: Convert height: 6 */ /* TODO: Convert borderRadius: 50% */ /* TODO: Convert bgcolor: #4caf50 */ /* TODO: Convert flexShrink: 0 */"
+                        />
+                        {rental.customerName}
+                      </Typography>
+
+                      {/* 📞 TELEFÓN A EMAIL - KOMPAKTNE */}
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ /* TODO: Convert gap: 0.25 */"
+                      >
+                        {(rental.customerPhone || rental.customer?.phone) && (
+                          <Typography
+                            variant="body2"
+                            className="/* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.75rem */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-1 /* TODO: Convert overflow: hidden */ /* TODO: Convert textOverflow: ellipsis */ /* TODO: Convert whiteSpace: nowrap */"
+                          >
+                            <PhoneIcon
+                              fontSize="small"
+                              className="/* TODO: Convert fontSize: 0.9rem */"
+                            />
+                            {rental.customerPhone || rental.customer?.phone}
+                          </Typography>
+                        )}
+
+                        {(rental.customerEmail || rental.customer?.email) && (
+                          <Typography
+                            variant="body2"
+                            className="/* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.75rem */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-1 /* TODO: Convert overflow: hidden */ /* TODO: Convert textOverflow: ellipsis */ /* TODO: Convert whiteSpace: nowrap */"
+                          >
+                            <EmailIcon
+                              fontSize="small"
+                              className="/* TODO: Convert fontSize: 0.9rem */"
+                            />
+                            {rental.customerEmail ||
+                              rental.customer?.email ||
+                              'N/A'}
+                          </Typography>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Obdobie - FIXED WIDTH */}
+                    <div
+                      className="/* TODO: Convert width: 180 */ /* TODO: Convert maxWidth: 180 */ p-3 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ /* TODO: Convert justifyContent: center */ /* TODO: Convert textAlign: center */ /* TODO: Convert overflow: hidden */"
+                    >
+                      <Typography
+                        variant="body2"
+                        className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert fontSize: 0.8rem */ /* TODO: Convert color: #333 */ /* TODO: Convert mb: 0.25 */"
+                      >
+                        📅 {formatDateTime(rental.startDate)}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        className="/* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.7rem */ /* TODO: Convert mb: 0.25 */"
+                      >
+                        ↓
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert fontSize: 0.8rem */ /* TODO: Convert color: #333 */"
+                      >
+                        📅 {formatDateTime(rental.endDate)}
+                      </Typography>
+                    </div>
+
+                    {/* Cena - FIXED WIDTH */}
+                    <div
+                      className="/* TODO: Convert width: 220 */ /* TODO: Convert maxWidth: 220 */ p-3 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ /* TODO: Convert justifyContent: center */ /* TODO: Convert textAlign: center */ /* TODO: Convert overflow: hidden */"
+                    >
+                      <PriceDisplay
+                        rental={rental}
+                        variant="compact"
+                        showExtraKm={true}
+                      />
+                      <Chip
+                        size="small"
+                        label={rental.paid ? 'Uhradené' : 'Neuhradené'}
+                        className="/* TODO: Convert height: 18 */ /* TODO: Convert fontSize: 0.65rem */ /* TODO: Convert bgcolor: rental.paid ? #4caf50 : #f44336 */ /* TODO: Convert color: white */ /* TODO: Convert fontWeight: 500 */ /* TODO: Convert mt: 0.5 */"
+                      />
+                    </div>
+
+                    {/* 📋 PROTOKOLY - INŠPIROVANÉ MOBILNÝM DIZAJNOM */}
+                    <div
+                      className="/* TODO: Convert width: 220 */ /* TODO: Convert maxWidth: 220 */ p-3 /* TODO: Convert borderRight: 1px solid #e0e0e0 */ /* TODO: Convert display: flex */ /* TODO: Convert justifyContent: center */ /* TODO: Convert alignItems: center */ /* TODO: Convert flexDirection: column */ gap-2 /* TODO: Convert overflow: hidden */"
+                    >
+                      {/* 🔧 PROTOKOL TLAČIDLÁ - ŠTÝL AKO V MOBILE */}
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert gap: 0.75 */ /* TODO: Convert width: 100% */"
+                      >
+                        <Button
+                          variant={hasHandover ? 'contained' : 'outlined'}
+                          size="small"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleOpenProtocolMenu(rental, 'handover');
+                          }}
+                          startIcon={
+                            hasHandover ? <CheckIcon /> : <ScheduleIcon />
+                          }
+                          sx={{
+                            flex: 1,
+                            height: 32,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            minWidth: 0,
+                            px: 0.75,
+                            bgcolor: hasHandover ? '#4caf50' : 'transparent',
+                            borderColor: hasHandover ? '#4caf50' : '#ff9800',
+                            color: hasHandover ? 'white' : '#ff9800',
+                            '&:hover': {
+                              bgcolor: hasHandover
+                                ? '#388e3c'
+                                : 'rgba(255,152,0,0.1)',
+                              transform: 'scale(1.02)',
+                              boxShadow: hasHandover
+                                ? '0 4px 12px rgba(76,175,80,0.3)'
+                                : '0 4px 12px rgba(255,152,0,0.2)',
+                            },
+                            transition: 'all 0.2s ease',
+                            '& .MuiButton-startIcon': {
+                              marginRight: '4px',
+                              marginLeft: 0,
+                            },
+                          }}
+                        >
+                          {hasHandover ? 'Odovz.' : 'Odovzdať'}
+                        </Button>
+
+                        <Button
+                          variant={hasReturn ? 'contained' : 'outlined'}
+                          size="small"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleOpenProtocolMenu(rental, 'return');
+                          }}
+                          startIcon={
+                            hasReturn ? <CheckIcon /> : <ScheduleIcon />
+                          }
+                          sx={{
+                            flex: 1,
+                            height: 32,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            minWidth: 0,
+                            px: 0.75,
+                            bgcolor: hasReturn ? '#4caf50' : 'transparent',
+                            borderColor: hasReturn ? '#4caf50' : '#ff9800',
+                            color: hasReturn ? 'white' : '#ff9800',
+                            '&:hover': {
+                              bgcolor: hasReturn
+                                ? '#388e3c'
+                                : 'rgba(255,152,0,0.1)',
+                              transform: 'scale(1.02)',
+                              boxShadow: hasReturn
+                                ? '0 4px 12px rgba(76,175,80,0.3)'
+                                : '0 4px 12px rgba(255,152,0,0.2)',
+                            },
+                            transition: 'all 0.2s ease',
+                            '& .MuiButton-startIcon': {
+                              marginRight: '4px',
+                              marginLeft: 0,
+                            },
+                          }}
+                        >
+                          {hasReturn ? 'Prevz.' : 'Prevziať'}
+                        </Button>
+                      </div>
+
+                      {/* STATUS TEXT */}
+                      <Typography
+                        variant="caption"
+                        className="/* TODO: Convert color: #666 */ /* TODO: Convert fontSize: 0.7rem */ /* TODO: Convert textAlign: center */ /* TODO: Convert lineHeight: 1.2 */"
+                      >
+                        {hasHandover && hasReturn
+                          ? '✅ Kompletné'
+                          : hasHandover
+                            ? '🚗→ Odovzdané'
+                            : hasReturn
+                              ? '←🚗 Vrátené'
+                              : '⏳ Čaká'}
+                      </Typography>
+
+                      {/* PROTOCOL CHECK BUTTON */}
+                      {isLoadingProtocolStatus ? (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          disabled
+                          className="/* TODO: Convert borderColor: #ff9800 */ /* TODO: Convert color: #ff9800 */ /* TODO: Convert fontSize: 0.65rem */ /* TODO: Convert height: 26 */ /* TODO: Convert minWidth: 0 */ /* TODO: Convert px: 1 */"
+                        >
+                          Načítavam...
+                        </Button>
+                      ) : !protocolStatusLoaded ? (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleCheckProtocols(rental);
+                          }}
+                          sx={{
+                            borderColor: '#2196f3',
+                            color: '#2196f3',
+                            fontSize: '0.65rem',
+                            height: 26,
+                            minWidth: 0,
+                            px: 1,
+                            '&:hover': {
+                              bgcolor: 'rgba(33,150,243,0.1)',
+                            },
+                          }}
+                        >
+                          Skontrolovať
+                        </Button>
+                      ) : null}
+                    </div>
+
+                    {/* Akcie */}
+                    <div
+                      className="/* TODO: Convert width: 120 */ /* TODO: Convert maxWidth: 120 */ p-2 /* TODO: Convert display: flex */ /* TODO: Convert justifyContent: center */ /* TODO: Convert alignItems: center */ gap-1 /* TODO: Convert flexDirection: row */ /* TODO: Convert flexWrap: wrap */"
+                    >
+                      <IconButton
+                        size="small"
+                        title="Upraviť prenájom"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleEdit(rental);
+                        }}
+                        sx={{
+                          bgcolor: '#2196f3',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: '#1976d2',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
+                          },
+                          '&:active': {
+                            transform: 'scale(0.95)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+
+                      {/* 🔄 CLONE TLAČIDLO */}
+                      <IconButton
+                        size="small"
+                        title="Kopírovať prenájom na ďalšie obdobie"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleCloneRental(rental);
+                        }}
+                        sx={{
+                          bgcolor: '#4caf50',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: '#388e3c',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(76,175,80,0.4)',
+                          },
+                          '&:active': {
+                            transform: 'scale(0.95)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+
+                      <IconButton
+                        size="small"
+                        title="Zmazať prenájom"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDeleteClick(rental);
+                        }}
+                        sx={{
+                          bgcolor: '#f44336',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: '#d32f2f',
+                            transform: 'scale(1.1)',
+                            boxShadow: '0 4px 12px rgba(244,67,54,0.4)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 🗑️ DELETE CONFIRMATION DIALOG */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          ⚠️ Potvrdenie zmazania
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Naozaj chcete zmazať prenájom pre zákazníka{' '}
+            <strong>{rentalToDelete?.customerName}</strong>?
+            <br />
+            <br />
+            Vozidlo:{' '}
+            <strong>
+              {rentalToDelete
+                ? getVehicleByRental(rentalToDelete)?.licensePlate
+                : 'N/A'}
+            </strong>
+            <br />
+            Obdobie:{' '}
+            <strong>
+              {rentalToDelete && formatDateTime(rentalToDelete.startDate)} -{' '}
+              {rentalToDelete && formatDateTime(rentalToDelete.endDate)}
+            </strong>
+            <br />
+            <br />
+            <span style={{ color: '#f44336', fontWeight: 600 }}>
+              Táto akcia sa nedá vrátiť späť!
+            </span>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            sx={{
+              borderColor: '#666',
+              color: '#666',
+              '&:hover': {
+                borderColor: '#333',
+                bgcolor: 'rgba(0,0,0,0.04)',
+              },
+            }}
+          >
+            Zrušiť
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            sx={{
+              bgcolor: '#f44336',
+              '&:hover': {
+                bgcolor: '#d32f2f',
+              },
+            }}
+            autoFocus
+          >
+            Zmazať prenájom
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};

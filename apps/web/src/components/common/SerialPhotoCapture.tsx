@@ -775,18 +775,17 @@ export default function SerialPhotoCapture({
           url: url?.substring(0, 80) + '...',
         });
 
-        const protocolImage = {
+        const protocolImage: ProtocolImage = {
           id: media.id,
           url: url, // Originálne URL pre galériu (WebP, vysoká kvalita)
+          originalUrl: media.originalUrl || url, // Vysoká kvalita pre galériu (required)
+          compressedUrl: media.compressedUrl, // DEPRECATED - Nízka kvalita pre PDF
           type: media.mediaType,
-          description: media.description,
+          description: media.description || '',
           timestamp: media.timestamp,
           compressed: media.compressed,
           originalSize: media.originalSize,
           compressedSize: media.compressedSize,
-          // 🌟 NOVÉ: URL pre rôzne kvality
-          originalUrl: media.originalUrl, // Vysoká kvalita pre galériu
-          compressedUrl: media.compressedUrl, // Nízka kvalita pre PDF
         };
 
         // 🔍 DEBUG: Skontroluj finálny objekt

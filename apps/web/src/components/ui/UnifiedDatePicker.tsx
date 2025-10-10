@@ -13,7 +13,7 @@
 
 import React, { forwardRef, useState } from 'react';
 import { format } from 'date-fns';
-import { sk } from 'date-fns/locale';
+import { sk, type Locale } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
@@ -31,7 +31,7 @@ export interface UnifiedDatePickerProps {
   // Configuration
   mode?: 'date' | 'datetime' | 'time';
   format?: string;
-  locale?: any;
+  locale?: Locale;
   placeholder?: string;
   
   // Range selection
@@ -64,7 +64,7 @@ export interface UnifiedDatePickerProps {
   fullWidth?: boolean;
   
   // MUI compatibility
-  renderInput?: (params: any) => React.ReactNode;
+  renderInput?: (params: Record<string, unknown>) => React.ReactNode;
   views?: Array<'year' | 'month' | 'day'>;
   openTo?: 'year' | 'month' | 'day';
   inputFormat?: string;
@@ -352,19 +352,19 @@ export const UnifiedDatePicker = forwardRef<
             ) : (
               <>
                 {range ? (
-                  <Calendar
-                    mode="range"
-                    selected={{ from: rangeStart, to: rangeEnd }}
-                    onSelect={handleRangeSelect as any}
-                    disabled={isDateDisabled}
-                    initialFocus
-                    locale={locale}
-                  />
-                ) : (
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect as any}
+                <Calendar
+                  mode="range"
+                  selected={{ from: rangeStart, to: rangeEnd }}
+                  onSelect={handleRangeSelect as (range: { from: Date; to?: Date } | undefined) => void}
+                  disabled={isDateDisabled}
+                  initialFocus
+                  locale={locale}
+                />
+              ) : (
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect as (date: Date | undefined) => void}
                     disabled={isDateDisabled}
                     initialFocus
                     locale={locale}

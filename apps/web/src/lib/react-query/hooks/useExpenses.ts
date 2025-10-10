@@ -3,17 +3,17 @@ import type { Expense } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
+import { CACHE_TIMES } from '../queryClient';
 
 // GET expenses
 export function useExpenses() {
   return useQuery({
     queryKey: queryKeys.expenses.all,
     queryFn: () => apiService.getExpenses(),
-    // ✅ FÁZA 2 FIX: Optimálny balance medzi freshness a performance
-    staleTime: 30000, // 30s - dáta sú fresh 30 sekúnd (rozumný balance)
-    gcTime: 300000, // 5 min - garbage collection po 5 minútach nepoužívania
-    refetchOnMount: true, // Refetch len ak sú dáta stale (nie vždy!)
-    refetchOnWindowFocus: false, // Nerefetchuj pri každom focus okna
+    // ⚡ PERFORMANCE: Use DYNAMIC cache tier (frequently changing data)
+    staleTime: CACHE_TIMES.DYNAMIC.staleTime, // 30s
+    gcTime: CACHE_TIMES.DYNAMIC.gcTime, // 2 min
+    refetchOnMount: false, // Don't refetch if data is fresh
   });
 }
 

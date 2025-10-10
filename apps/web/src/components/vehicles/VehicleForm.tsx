@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Plus as AddIcon,
   Trash2 as DeleteIcon,
@@ -27,7 +26,6 @@ import {
 } from '@/components/ui/select';
 import {
   SearchableSelect,
-  SearchableSelectOption,
 } from '@/components/ui/SearchableSelect';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import React, { useEffect, useState } from 'react';
@@ -60,12 +58,10 @@ import UnifiedDocumentForm, {
 // interface ExpiryStatusData { ... }
 
 import TechnicalCertificateUpload from './TechnicalCertificateUpload';
-import { logger } from '@/utils/smartLogger';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-  onSave: (..._args: any[]) => void;
+  onSave: (..._args: unknown[]) => void;
   onCancel: () => void;
 }
 

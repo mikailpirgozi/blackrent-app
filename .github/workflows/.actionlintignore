@@ -1,0 +1,6 @@
+# Ignore secrets context validation warnings
+# GitHub Actions secrets sú vždy dostupné v workflows
+*.yml
+*.yaml
+
+

@@ -34,7 +34,7 @@ export const useUnifiedFormContext = () => useContext(FormContext);
 // Form field wrapper
 export interface UnifiedFormFieldProps {
   name: string;
-  children: (field: any) => React.ReactNode;
+  children: (field: Record<string, unknown>) => React.ReactNode;
   disabled?: boolean;
   readOnly?: boolean;
   className?: string;
@@ -154,8 +154,8 @@ export const UnifiedFormMessage: React.FC<UnifiedFormMessageProps> = ({
 // Main form component
 export interface UnifiedFormProps {
   // Form configuration
-  defaultValues?: any;
-  validationSchema?: z.ZodSchema<any>;
+  defaultValues?: Record<string, unknown>;
+  validationSchema?: z.ZodSchema;
   mode?: 'onChange' | 'onBlur' | 'onSubmit' | 'onTouched' | 'all';
   reValidateMode?: 'onChange' | 'onBlur' | 'onSubmit';
   
@@ -167,9 +167,9 @@ export interface UnifiedFormProps {
   fullWidth?: boolean;
   
   // Event handlers
-  onSubmit?: (data: any) => void | Promise<void>;
-  onError?: (errors: any) => void;
-  onChange?: (data: any) => void;
+  onSubmit?: (data: Record<string, unknown>) => void | Promise<void>;
+  onError?: (errors: Record<string, unknown>) => void;
+  onChange?: (data: Record<string, unknown>) => void;
   
   // MUI compatibility
   sx?: Record<string, unknown>;
@@ -203,7 +203,7 @@ export const UnifiedForm = forwardRef<HTMLFormElement, UnifiedFormProps>(
       defaultValues,
       mode,
       reValidateMode,
-      ...(validationSchema && { resolver: zodResolver(validationSchema as any) }),
+      ...(validationSchema && { resolver: zodResolver(validationSchema) }),
     };
     
     const methods = useForm(formConfig);
@@ -213,17 +213,17 @@ export const UnifiedForm = forwardRef<HTMLFormElement, UnifiedFormProps>(
     const watchedValues = watch();
     
     // Handle form submission
-    const handleFormSubmit = useCallback(async (data: any) => {
+    const handleFormSubmit = useCallback(async (data: Record<string, unknown>) => {
       try {
         await onSubmit?.(data);
       } catch (error) {
         console.error('Form submission error:', error);
-        onError?.(error);
+        onError?.(error as Record<string, unknown>);
       }
     }, [onSubmit, onError]);
     
     // Handle form errors
-    const handleFormError = useCallback((errors: any) => {
+    const handleFormError = useCallback((errors: Record<string, unknown>) => {
       console.error('Form validation errors:', errors);
       onError?.(errors);
     }, [onError]);

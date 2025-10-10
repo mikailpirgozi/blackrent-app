@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,

@@ -5,11 +5,11 @@ export interface SpinnerProps extends React.HTMLAttributes<SVGElement> {
   size?: number
 }
 
-const Spinner = React.forwardRef<SVGElement, SpinnerProps>(
+const Spinner = React.forwardRef<SVGSVGElement, SpinnerProps>(
   ({ className, size = 16, ...props }, ref) => {
     return (
       <svg
-        ref={ref as any}
+        ref={ref}
         className={cn("animate-spin text-current", className)}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"

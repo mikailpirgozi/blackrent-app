@@ -78,7 +78,7 @@ export function diagnoseAuthIssue() {
 
 // Make it globally available
 if (typeof window !== 'undefined') {
-  (window as any).diagnoseAuth = diagnoseAuthIssue;
+  (window as Window & { diagnoseAuth: typeof diagnoseAuthIssue }).diagnoseAuth = diagnoseAuthIssue;
   console.log('💡 Auth diagnostics ready! Run: window.diagnoseAuth()');
 }
 

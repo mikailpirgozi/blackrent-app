@@ -1,0 +1,396 @@
+import {
+/* Tailwind classes used for styling */
+  Assessment as AssessmentIcon,
+  Euro as EuroIcon,
+  Person as PersonIcon,
+  EmojiEvents as TrophyIcon,
+} from '@mui/icons-material';
+import { Card,
+  CardContent,
+  Chip,
+  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography, } from '@mui/material';
+import React from 'react';
+
+interface EmployeeStats {
+  activeEmployees: number;
+  totalProtocols: number;
+  totalHandovers: number;
+  totalReturns: number;
+  topEmployeesByProtocols: Array<{
+    employeeName: string;
+    totalProtocols: number;
+    handoverCount: number;
+    returnCount: number;
+    uniqueRentals?: number;
+  }>;
+  topEmployeesByRevenue: Array<{
+    employeeName: string;
+    totalRevenue: number;
+  }>;
+  allEmployees: Array<{
+    employeeName: string;
+    totalProtocols: number;
+    handoverCount: number;
+    returnCount: number;
+    uniqueRentals?: number;
+  }>;
+}
+
+interface EmployeesTabProps {
+  stats: {
+    employeeStats?: EmployeeStats;
+  };
+  formatPeriod: () => string;
+}
+
+const EmployeesTab: React.FC<EmployeesTabProps> = ({ stats, formatPeriod }) => {
+  return (
+    <Grid container spacing={3}>
+      {/* Header */}
+      <Grid item xs={12}>
+        <Typography
+          variant="h5"
+          className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 3 */ /* TODO: Convert color: #667eea */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+        >
+          <PersonIcon />
+          Výkon zamestnancov za obdobie: {formatPeriod()}
+        </Typography>
+      </Grid>
+
+      {/* Employee Statistics Cards */}
+      {stats.employeeStats && stats.employeeStats.activeEmployees > 0 ? (
+        <>
+          {/* Summary Stats */}
+          <Grid item xs={12}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card
+                  className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */ /* TODO: Convert background:
+                      linear-gradient(135deg */ /* TODO: Convert color: white */"
+                >
+                  <CardContent className="/* TODO: Convert textAlign: center */">
+                    <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 1 */">
+                      {stats.employeeStats.totalProtocols}
+                    </Typography>
+                    <Typography variant="body2">Celkovo protokolov</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card
+                  className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */ /* TODO: Convert background:
+                      linear-gradient(135deg */ /* TODO: Convert color: white */"
+                >
+                  <CardContent className="/* TODO: Convert textAlign: center */">
+                    <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 1 */">
+                      {stats.employeeStats.totalHandovers}
+                    </Typography>
+                    <Typography variant="body2">Odovzdaní</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card
+                  className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */ /* TODO: Convert background:
+                      linear-gradient(135deg */ /* TODO: Convert color: white */"
+                >
+                  <CardContent className="/* TODO: Convert textAlign: center */">
+                    <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 1 */">
+                      {stats.employeeStats.totalReturns}
+                    </Typography>
+                    <Typography variant="body2">Prebraní</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card
+                  className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */ /* TODO: Convert background:
+                      linear-gradient(135deg */ /* TODO: Convert color: white */"
+                >
+                  <CardContent className="/* TODO: Convert textAlign: center */">
+                    <Typography variant="h4" className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert mb: 1 */">
+                      {stats.employeeStats.activeEmployees}
+                    </Typography>
+                    <Typography variant="body2">
+                      Aktívnych zamestnancov
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Grid>
+
+          {/* Top Employees by Protocols */}
+          <Grid item xs={12} lg={6}>
+            <Card
+              className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */ /* TODO: Convert height: 100% */"
+            >
+              <CardContent>
+                <Typography
+                  variant="h6"
+                  className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert mb: 2 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+                >
+                  <TrophyIcon />
+                  Top zamestnanci (protokoly)
+                </Typography>
+                <div className="/* TODO: Convert maxHeight: 400 */ /* TODO: Convert overflowY: auto */">
+                  {stats.employeeStats.topEmployeesByProtocols
+                    .slice(0, 10)
+                    .map((employee, index: number) => (
+                      <div
+                        key={index}
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */ p-4 /* TODO: Convert mb: 1 */ /* TODO: Convert bgcolor:
+                            index < 3
+                              ? rgba(102 */ /* TODO: Convert 0.1)
+                              : background.paper */ rounded-md /* TODO: Convert border:
+                            index < 3
+                              ? 1px solid rgba(102 */ /* TODO: Convert 0.2)
+                              : 1px solid rgba(0 */"
+                      >
+                        <div
+                          className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-4"
+                        >
+                          <div
+                            className="/* TODO: Convert width: 32 */ /* TODO: Convert height: 32 */ /* TODO: Convert borderRadius: 50% */ /* TODO: Convert bgcolor:
+                                index === 0
+                                  ? #FFD700
+                                  : index === 1
+                                    ? #C0C0C0
+                                    : index === 2
+                                      ? #CD7F32
+                                      : #667eea */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ /* TODO: Convert justifyContent: center */ /* TODO: Convert color: white */ /* TODO: Convert fontWeight: 700 */"
+                          >
+                            {index + 1}
+                          </div>
+                          <div>
+                            <Typography
+                              variant="body1"
+                              className="/* TODO: Convert fontWeight: 600 */"
+                            >
+                              {employee.employeeName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {employee.handoverCount} odovzdaní •{' '}
+                              {employee.returnCount} prebraní
+                            </Typography>
+                          </div>
+                        </div>
+                        <Typography
+                          variant="h6"
+                          className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #667eea */"
+                        >
+                          {employee.totalProtocols}
+                        </Typography>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Top Employees by Revenue */}
+          <Grid item xs={12} lg={6}>
+            <Card
+              className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */ /* TODO: Convert height: 100% */"
+            >
+              <CardContent>
+                <Typography
+                  variant="h6"
+                  className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert mb: 2 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+                >
+                  <EuroIcon />
+                  Top zamestnanci (tržby)
+                </Typography>
+                <div className="/* TODO: Convert maxHeight: 400 */ /* TODO: Convert overflowY: auto */">
+                  {stats.employeeStats.topEmployeesByRevenue
+                    .slice(0, 10)
+                    .map((employee, index: number) => (
+                      <div
+                        key={index}
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */ p-4 /* TODO: Convert mb: 1 */ /* TODO: Convert bgcolor:
+                            index < 3
+                              ? rgba(76 */ /* TODO: Convert 0.1)
+                              : background.paper */ rounded-md /* TODO: Convert border:
+                            index < 3
+                              ? 1px solid rgba(76 */ /* TODO: Convert 0.2)
+                              : 1px solid rgba(0 */"
+                      >
+                        <div
+                          className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-4"
+                        >
+                          <div
+                            className="/* TODO: Convert width: 32 */ /* TODO: Convert height: 32 */ /* TODO: Convert borderRadius: 50% */ /* TODO: Convert bgcolor:
+                                index === 0
+                                  ? #FFD700
+                                  : index === 1
+                                    ? #C0C0C0
+                                    : index === 2
+                                      ? #CD7F32
+                                      : #4CAF50 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ /* TODO: Convert justifyContent: center */ /* TODO: Convert color: white */ /* TODO: Convert fontWeight: 700 */"
+                          >
+                            {index + 1}
+                          </div>
+                          <div>
+                            <Typography
+                              variant="body1"
+                              className="/* TODO: Convert fontWeight: 600 */"
+                            >
+                              {employee.employeeName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Tržby: €{employee.totalRevenue.toLocaleString()}
+                            </Typography>
+                          </div>
+                        </div>
+                        <Typography
+                          variant="h6"
+                          className="/* TODO: Convert fontWeight: 700 */ /* TODO: Convert color: #4CAF50 */"
+                        >
+                          €{employee.totalRevenue?.toLocaleString() || 0}
+                        </Typography>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Detailed Employee Table */}
+          <Grid item xs={12}>
+            <Card className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */">
+              <CardContent>
+                <Typography
+                  variant="h6"
+                  className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert mb: 2 */ /* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+                >
+                  <AssessmentIcon />
+                  Detailné štatistiky zamestnancov
+                </Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell className="/* TODO: Convert fontWeight: 600 */">
+                          Zamestnanec
+                        </TableCell>
+                        <TableCell align="center" className="/* TODO: Convert fontWeight: 600 */">
+                          Protokoly
+                        </TableCell>
+                        <TableCell align="center" className="/* TODO: Convert fontWeight: 600 */">
+                          Odovzdania
+                        </TableCell>
+                        <TableCell align="center" className="/* TODO: Convert fontWeight: 600 */">
+                          Prebrania
+                        </TableCell>
+                        <TableCell align="right" className="/* TODO: Convert fontWeight: 600 */">
+                          Tržby
+                        </TableCell>
+                        <TableCell align="center" className="/* TODO: Convert fontWeight: 600 */">
+                          Prenájmy
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {stats.employeeStats.allEmployees
+                        .sort((a, b) => b.totalProtocols - a.totalProtocols)
+                        .map((employee, index: number) => (
+                          <TableRow
+                            key={index}
+                            sx={{
+                              '&:nth-of-type(odd)': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                              },
+                            }}
+                          >
+                            <TableCell>
+                              <div
+                                className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+                              >
+                                <PersonIcon color="primary" />
+                                <Typography
+                                  variant="body2"
+                                  className="/* TODO: Convert fontWeight: 600 */"
+                                >
+                                  {employee.employeeName}
+                                </Typography>
+                              </div>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={employee.totalProtocols}
+                                color="primary"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={employee.handoverCount}
+                                color="secondary"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={employee.returnCount}
+                                color="info"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert fontWeight: 600 */ /* TODO: Convert color: #4CAF50 */"
+                              >
+                                N/A
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">
+                                {employee.uniqueRentals || 0}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+        </>
+      ) : (
+        <Grid item xs={12}>
+          <Card className="/* TODO: Convert boxShadow: 0 2px 8px rgba(0 */">
+            <CardContent className="/* TODO: Convert textAlign: center */ /* TODO: Convert py: 4 */">
+              <PersonIcon
+                className="/* TODO: Convert fontSize: 64 */ /* TODO: Convert color: text.secondary */ /* TODO: Convert mb: 2 */"
+              />
+              <Typography variant="h6" color="text.secondary" className="/* TODO: Convert mb: 1 */">
+                Žiadne protokoly za vybrané obdobie
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                V tomto období neboli vytvorené žiadne protokoly odovzdávania
+                alebo preberania vozidiel.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      )}
+    </Grid>
+  );
+};
+
+export default EmployeesTab;

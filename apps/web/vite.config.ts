@@ -66,21 +66,41 @@ export default defineConfig({
     outDir: 'build',
     sourcemap: process.env.NODE_ENV === 'development',
     minify: 'esbuild',
+    // ⚡ PERFORMANCE: Drop console statements in production
+    ...(process.env.NODE_ENV === 'production' && {
+      esbuild: {
+        drop: ['console', 'debugger'],
+      },
+    }),
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          query: ['@tanstack/react-query', '@tanstack/react-query-devtools'],
-          pdf: ['jspdf'],
-          utils: ['date-fns', 'uuid'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          query: ['@tanstack/react-query'],
+          // ⚡ PERFORMANCE: Exclude devtools from production
+          ...(process.env.NODE_ENV === 'development' && {
+            devtools: ['@tanstack/react-query-devtools'],
+          }),
+          pdf: ['jspdf', 'pdf-lib'],
+          utils: ['date-fns', 'uuid', 'zod'],
           charts: ['recharts'],
           socket: ['socket.io-client'],
+          ui: ['lucide-react', 'cmdk'],
+          radix: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tooltip',
+          ],
         },
       },
     },
     chunkSizeWarningLimit: 1000,
+    // ⚡ PERFORMANCE: Tree-shaking optimization
+    target: 'esnext',
+    cssCodeSplit: true,
   },
-  // DEV FLAGS
+  // DEV FLAGS & PRODUCTION OPTIMIZATIONS
   define: {
     global: 'globalThis',
     __DEV_DISABLE_SW_CACHE__: JSON.stringify(

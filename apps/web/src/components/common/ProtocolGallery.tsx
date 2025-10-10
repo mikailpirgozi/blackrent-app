@@ -1,100 +1,73 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+/**
+ * Protocol Gallery - Full-screen Lightbox s zoom/pan/swipe
+ * 
+ * Features:
+ * - Full-screen modal
+ * - Zoom (pinch to zoom, buttons)
+ * - Pan (drag)
+ * - Keyboard navigation (←/→/Esc)
+ * - Thumbnail strip
+ * - Download option
+ */
+
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   X,
   Download,
+  ZoomIn,
+  ZoomOut,
   ChevronLeft,
   ChevronRight,
-  ImageIcon,
-  Play,
-  ZoomIn,
-  Car,
-  FileText,
-  AlertTriangle,
-  Gauge,
-  Fuel,
 } from 'lucide-react';
-
-import type { ProtocolImage, ProtocolVideo } from '../../types';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import type { ProtocolImage } from '../../types';
 import { getApiBaseUrl } from '../../utils/apiUrl';
-import logger from '../../utils/logger';
+import { logger } from '../../utils/logger';
 
 interface ProtocolGalleryProps {
+  images: ProtocolImage[];
   open: boolean;
   onClose: () => void;
-  images: ProtocolImage[];
-  videos: ProtocolVideo[];
-  title?: string;
+  initialIndex?: number;
 }
 
-// Konfigurácia kategórií s ikonami a farbami
-const getCategoryConfig = (category: string) => {
-  const configs: Record<string, { icon: typeof Car; label: string; color: string }> = {
-    vehicle: { icon: Car, label: 'Vozidlo', color: 'bg-blue-500' },
-    document: { icon: FileText, label: 'Doklady', color: 'bg-green-500' },
-    damage: { icon: AlertTriangle, label: 'Poškodenie', color: 'bg-red-500' },
-    odometer: { icon: Gauge, label: 'Tachometer', color: 'bg-purple-500' },
-    fuel: { icon: Fuel, label: 'Palivo', color: 'bg-orange-500' },
-  };
-  return configs[category] || { icon: ImageIcon, label: category, color: 'bg-gray-500' };
+// Helper to convert R2 URL to proxy URL
+const getProxyUrl = (url: string | undefined): string => {
+  if (!url) return '';
+
+  try {
+    // Ak je to R2 URL, konvertuj na proxy
+    if (url.includes('r2.dev') || url.includes('cloudflare.com')) {
+      const urlParts = url.split('/');
+      const key = urlParts.slice(3).join('/');
+      const apiBaseUrl = getApiBaseUrl();
+      return `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
+    }
+    return url;
+  } catch (error) {
+    logger.error('Error converting to proxy URL', { error, url });
+    return url;
+  }
 };
 
-export default function ProtocolGallery({
+export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
+  images,
   open,
   onClose,
-  images,
-  videos,
-  title = 'Galéria protokolu',
-}: ProtocolGalleryProps) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  initialIndex = 0,
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [isLoading, setIsLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
-  // Debug len pri mount/unmount v development mode
+  const currentImage = images[currentIndex];
+
+  // Keyboard navigation
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && open) {
-      logger.debug('🔍 ProtocolGallery opened:', {
-        imagesCount: images?.length || 0,
-        videosCount: videos?.length || 0,
-      });
-    }
-  }, [open]); // Spustí sa len pri zmene open stavu
+    if (!open) return;
 
-  const allMedia = [...(images || []), ...(videos || [])];
-  const totalCount = allMedia.length;
-  const currentMedia = allMedia[selectedIndex];
-
-  // Reset zoom when changing media
-  useEffect(() => {
-    setZoom(1);
-  }, [selectedIndex]);
-
-  const handlePrevious = useCallback(() => {
-    setSelectedIndex(prev => (prev === 0 ? totalCount - 1 : prev - 1));
-  }, [totalCount]);
-
-  const handleNext = useCallback(() => {
-    setSelectedIndex(prev => (prev === totalCount - 1 ? 0 : prev + 1));
-  }, [totalCount]);
-
-  const handleKeyDown = useCallback(
-    (event: globalThis.KeyboardEvent) => {
-      if (!open) return;
-
-      // Ignore Meta/Cmd and Shift keys alone (system shortcuts)
-      if (event.key === 'Meta' || event.key === 'Shift' || event.key === 'Control' || event.key === 'Alt') {
-        return;
-      }
-
-      switch (event.key) {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
         case 'ArrowLeft':
           handlePrevious();
           break;
@@ -104,395 +77,209 @@ export default function ProtocolGallery({
         case 'Escape':
           onClose();
           break;
-        case '+':
-        case '=':
-          setZoom(prev => Math.min(prev + 0.25, 3));
-          break;
-        case '-':
-          setZoom(prev => Math.max(prev - 0.25, 0.5));
-          break;
       }
-    },
-    [open, onClose, handlePrevious, handleNext, setZoom]
-  );
+    };
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, currentIndex, images.length, onClose]);
 
-  // Helper function to convert R2 URL to proxy URL
-  const getProxyUrl = (r2Url: string | undefined): string => {
-    try {
-      if (!r2Url) return '';
+  const handlePrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    setIsLoading(true);
+    setImageError(false);
+  }, [images.length]);
 
-      // Ak je to R2 URL, konvertuj na proxy
-      if (r2Url.includes('r2.dev') || r2Url.includes('cloudflare.com')) {
-        const urlParts = r2Url.split('/');
-        const key = urlParts.slice(3).join('/');
-        const apiBaseUrl = getApiBaseUrl();
-        return `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
-      }
-      return r2Url;
-    } catch {
-      return r2Url || '';
-    }
-  };
+  const handleNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    setIsLoading(true);
+    setImageError(false);
+  }, [images.length]);
 
   const handleDownload = async () => {
-    if (!currentMedia || !currentMedia.url) {
-      console.warn('⚠️ handleDownload: currentMedia or URL is missing');
-      window.alert('Nepodarilo sa stiahnuť súbor - chýba URL');
-      return;
-    }
+    if (!currentImage?.originalUrl) return;
 
     try {
-      // Použi proxy URL pre download - originalUrl len pre obrázky
-      const downloadUrl = getProxyUrl(
-        'originalUrl' in currentMedia && currentMedia.originalUrl
-          ? currentMedia.originalUrl
-          : currentMedia.url
-      );
-      if (!downloadUrl) {
-        window.alert('Nepodarilo sa stiahnuť súbor - neplatné URL');
-        return;
-      }
-
-      const response = await fetch(downloadUrl);
+      const response = await fetch(getProxyUrl(currentImage.originalUrl));
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `protocol-media-${selectedIndex + 1}.${currentMedia.url.includes('video') ? 'mp4' : 'jpg'}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `image_${currentIndex + 1}.webp`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Chyba pri sťahovaní:', error);
-      window.alert('Nepodarilo sa stiahnuť súbor');
-    }
-  };
 
-  const handleImageClick = (index: number) => {
-    setSelectedIndex(index);
-    setIsFullscreen(true);
+      logger.info('Image downloaded', { index: currentIndex });
+    } catch (error) {
+      logger.error('Download failed', { error });
+      alert('Nepodarilo sa stiahnuť obrázok. Skúste to znova.');
+    }
   };
 
   if (!open) return null;
 
   return (
-    <>
-      {/* Grid Gallery Modal */}
-      <Dialog
-        open={open && !isFullscreen}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            onClose();
-          }
-        }}
-      >
-        <DialogContent className="bg-black/90 text-white min-h-[80vh] max-w-6xl w-full p-0">
-          <DialogHeader className="flex flex-row items-center justify-between border-b border-white/20 p-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-500/20 p-3 rounded-lg">
-                <ImageIcon className="h-6 w-6 text-blue-400" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-semibold text-white mb-1">
-                  {title}
-                </DialogTitle>
-                <p className="text-sm text-white/60">
-                  {totalCount} {totalCount === 1 ? 'položka' : totalCount < 5 ? 'položky' : 'položiek'}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-white hover:bg-white/10"
-            >
-              <X className="h-6 w-6" />
-            </Button>
-          </DialogHeader>
-          <DialogDescription className="sr-only">
-            Galéria protokolu s {totalCount} médiami. Kliknite na obrázok alebo video pre zobrazenie vo fullscreen móde.
-          </DialogDescription>
-
-          <div className="p-6">
-            {totalCount === 0 ? (
-              <div className="flex justify-center items-center h-48">
-                <p className="text-white/70 text-lg">
-                  Žiadne médiá na zobrazenie
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {/* Images */}
-                {images.map((image, index) => {
-                  return (
-                    <div
-                      key={image.id || index}
-                      className="relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent transition-all duration-200 hover:border-blue-500 hover:scale-105"
-                      onClick={() => handleImageClick(index)}
-                    >
-                      {image.url ? (
-                        <img
-                          src={image.originalUrl || image.url}
-                          alt={image.description || `Obrázok ${index + 1}`}
-                          className="w-full h-48 object-cover block"
-                          onError={e => {
-                            // Skús proxy URL ako fallback
-                            const img = e.target as globalThis.HTMLImageElement;
-                            if (!img.src.includes('/api/files/proxy/')) {
-                              img.src = getProxyUrl(
-                                image.originalUrl || image.url
-                              );
-                            } else {
-                              // Ak ani proxy URL nefunguje, skry obrázok
-                              img.style.display = 'none';
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-48 bg-white/10 flex items-center justify-center border-2 border-dashed border-white/30">
-                          <p className="text-white/50 text-sm">
-                            Chýba URL
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Overlay s informáciami */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3">
-                        <p className="text-white text-sm font-medium mb-1">
-                          {image.description || `Obrázok ${index + 1}`}
-                        </p>
-                        <Badge
-                          variant="secondary"
-                          className={`${getCategoryConfig(image.type).color} text-white text-xs px-2 py-1 flex items-center gap-1 w-fit`}
-                        >
-                          {(() => {
-                            const CategoryIcon = getCategoryConfig(image.type).icon;
-                            return <CategoryIcon className="h-3 w-3" />;
-                          })()}
-                          {getCategoryConfig(image.type).label}
-                        </Badge>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Videos */}
-                {videos.map((video, index) => (
-                  <div
-                    key={video.id || `video-${index}`}
-                    className="relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent transition-all duration-200 hover:border-blue-500 hover:scale-105"
-                    onClick={() => handleImageClick(images.length + index)}
-                  >
-                    {video.url ? (
-                      <video
-                        src={video.url}
-                        className="w-full h-48 object-cover block"
-                        onError={e => {
-                          (e.target as globalThis.HTMLVideoElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-white/10 flex items-center justify-center border-2 border-dashed border-white/30">
-                        <p className="text-white/50 text-sm">
-                          Chýba URL
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Play ikona */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/70 rounded-full w-12 h-12 flex items-center justify-center">
-                      <Play className="text-white h-6 w-6" />
-                    </div>
-
-                    {/* Overlay s informáciami */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3">
-                      <p className="text-white text-sm font-medium mb-1">
-                        {video.description || `Video ${index + 1}`}
-                      </p>
-                      <Badge
-                        variant="secondary"
-                        className={`${getCategoryConfig(video.type).color} text-white text-xs px-2 py-1 flex items-center gap-1 w-fit`}
-                      >
-                        {(() => {
-                          const CategoryIcon = getCategoryConfig(video.type).icon;
-                          return <CategoryIcon className="h-3 w-3" />;
-                        })()}
-                        {getCategoryConfig(video.type).label}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Fullscreen Lightbox Modal */}
-      <Dialog
-        open={isFullscreen}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setIsFullscreen(false);
-          }
-        }}
-      >
-        <DialogContent className="bg-black/95 text-white p-0 max-w-none w-screen h-screen">
-          <DialogTitle className="sr-only">
-            Fullscreen zobrazenie média {selectedIndex + 1} z {totalCount}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Fullscreen zobrazenie média {selectedIndex + 1} z {totalCount}. Použite šípky pre navigáciu, Escape pre zatvorenie.
-          </DialogDescription>
-          {/* Header */}
-          <div className="flex justify-between items-center p-4 border-b border-white/20">
-            <h2 className="text-lg font-semibold">
-              {currentMedia?.description || `Médium ${selectedIndex + 1}`}
-            </h2>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setZoom(prev => Math.max(prev - 0.25, 0.5))}
-                className="text-white hover:bg-white/10"
-                disabled={zoom <= 0.5}
-              >
-                <ZoomIn className="h-5 w-5 scale-x-[-1]" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setZoom(prev => Math.min(prev + 0.25, 3))}
-                className="text-white hover:bg-white/10"
-                disabled={zoom >= 3}
-              >
-                <ZoomIn className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDownload}
-                className="text-white hover:bg-white/10"
-              >
-                <Download className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsFullscreen(false)}
-                className="text-white hover:bg-white/10"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Media Display */}
-          <div className="flex justify-center items-center h-[calc(100vh-120px)] p-4 relative">
-            {/* Navigation Buttons */}
-            {totalCount > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handlePrevious}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleNext}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </Button>
-              </>
-            )}
-
-            {/* Media Content */}
-            <div className="flex justify-center items-center w-full h-full">
-              {currentMedia && (
-                <>
-                  {selectedIndex < images.length ? (
-                    // Image
-                    currentMedia.url ? (
-                      <img
-                        src={
-                          'originalUrl' in currentMedia &&
-                          currentMedia.originalUrl
-                            ? currentMedia.originalUrl
-                            : currentMedia.url
-                        }
-                        alt={currentMedia.description || 'Obrázok'}
-                        className="transition-transform duration-200"
-                        style={{
-                          maxWidth: `${100 * zoom}%`,
-                          maxHeight: `${100 * zoom}%`,
-                          objectFit: 'contain',
-                        }}
-                        onError={e => {
-                          // Skús načítať priamo z R2 ako fallback
-                          const img = e.target as globalThis.HTMLImageElement;
-                          if (!img.src.includes('r2.dev')) {
-                            img.src =
-                              'originalUrl' in currentMedia &&
-                              currentMedia.originalUrl
-                                ? currentMedia.originalUrl
-                                : currentMedia.url;
-                          } else {
-                            // Ak ani R2 URL nefunguje, skry obrázok
-                            img.style.display = 'none';
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="text-center text-white/50">
-                        <h3 className="text-lg">Chýba URL obrázka</h3>
-                      </div>
-                    )
-                  ) : // Video
-                  currentMedia.url ? (
-                    <video
-                      src={currentMedia.url}
-                      controls
-                      className="transition-transform duration-200"
-                      style={{
-                        maxWidth: `${100 * zoom}%`,
-                        maxHeight: `${100 * zoom}%`,
-                      }}
-                      onError={e => {
-                        (e.target as globalThis.HTMLVideoElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="text-center text-white/50">
-                      <h3 className="text-lg">Chýba URL videa</h3>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Footer with counter */}
-          {totalCount > 1 && (
-            <div className="p-4 text-center border-t border-white/20">
-              <p className="text-white/70 text-sm">
-                {selectedIndex + 1} z {totalCount}
-              </p>
-            </div>
+    <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm">
+        <div className="text-white">
+          <span className="text-lg font-semibold">
+            {currentIndex + 1} / {images.length}
+          </span>
+          {currentImage?.description && (
+            <p className="text-sm text-gray-300 mt-1">{currentImage.description}</p>
           )}
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleDownload}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            title="Download"
+          >
+            <Download className="w-6 h-6 text-white" />
+          </button>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            title="Close (Esc)"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Image Area */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+        <TransformWrapper initialScale={1} minScale={0.5} maxScale={4} centerOnInit>
+          {({ zoomIn, zoomOut, resetTransform }) => (
+            <>
+              {/* Zoom Controls */}
+              <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+                <button
+                  onClick={() => zoomIn()}
+                  className="p-3 rounded-lg bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-colors"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => zoomOut()}
+                  className="p-3 rounded-lg bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-colors"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => resetTransform()}
+                  className="p-3 rounded-lg bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-colors text-xs text-white"
+                  title="Reset"
+                >
+                  1:1
+                </button>
+              </div>
+
+              {/* Image */}
+              <TransformComponent
+                wrapperClass="w-full h-full"
+                contentClass="w-full h-full flex items-center justify-center"
+              >
+                {isLoading && !imageError && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                  </div>
+                )}
+
+                {imageError ? (
+                  <div className="text-white text-center">
+                    <p className="text-lg mb-2">Nepodarilo sa načítať obrázok</p>
+                    <button
+                      onClick={() => {
+                        setImageError(false);
+                        setIsLoading(true);
+                      }}
+                      className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                    >
+                      Skúsiť znova
+                    </button>
+                  </div>
+                ) : (
+                  <img
+                    src={getProxyUrl(currentImage?.originalUrl)}
+                    alt={currentImage?.description || `Image ${currentIndex + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                    onLoad={() => setIsLoading(false)}
+                    onError={() => {
+                      setIsLoading(false);
+                      setImageError(true);
+                      logger.error('Image load error', { index: currentIndex });
+                    }}
+                  />
+                )}
+              </TransformComponent>
+            </>
+          )}
+        </TransformWrapper>
+
+        {/* Navigation Arrows */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={handlePrevious}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-colors"
+              title="Previous (←)"
+            >
+              <ChevronLeft className="w-8 h-8 text-white" />
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm transition-colors"
+              title="Next (→)"
+            >
+              <ChevronRight className="w-8 h-8 text-white" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Thumbnail Strip */}
+      <div className="bg-black/50 backdrop-blur-sm p-4 overflow-x-auto">
+        <div className="flex gap-2 justify-center">
+          {images.map((image, index) => (
+            <button
+              key={`${image.id || index}-thumb`}
+              onClick={() => {
+                setCurrentIndex(index);
+                setIsLoading(true);
+                setImageError(false);
+              }}
+              className={`
+                relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden
+                transition-all duration-200
+                ${
+                  index === currentIndex
+                    ? 'ring-2 ring-white scale-110'
+                    : 'opacity-50 hover:opacity-100'
+                }
+              `}
+            >
+              <img
+                src={getProxyUrl(image.originalUrl)}
+                alt=""
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
+                {index + 1}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
-}
+};

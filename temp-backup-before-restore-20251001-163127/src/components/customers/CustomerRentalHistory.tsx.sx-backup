@@ -1,0 +1,869 @@
+import React, { useMemo, useState } from 'react';
+import {
+/* Tailwind classes used for styling */
+  CalendarToday as CalendarIcon,
+  DirectionsCar as CarIcon,
+  CheckCircle as CheckCircleIcon,
+  Close as CloseIcon,
+  Visibility as VisibilityIcon,
+} from '@mui/icons-material';
+import { Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  useMediaQuery,
+  useTheme, } from '@mui/material';
+import { format, isAfter, isBefore } from 'date-fns';
+import { sk } from 'date-fns/locale';
+
+import type { Customer, Rental, Vehicle } from '../../types';
+import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
+
+interface CustomerRentalHistoryProps {
+  open: boolean;
+  onClose: () => void;
+  customer: Customer;
+  rentals: Rental[];
+  vehicles: Vehicle[];
+}
+
+const getRentalStatus = (rental: Rental) => {
+  const now = new Date();
+  const startDate = new Date(rental.startDate);
+  const endDate = new Date(rental.endDate);
+
+  if (rental.status === 'finished')
+    return { status: 'finished', label: 'Ukončený', color: 'default' as const };
+
+  if (isBefore(now, startDate)) {
+    return { status: 'pending', label: 'Čaká', color: 'warning' as const };
+  } else if (isAfter(now, endDate)) {
+    return { status: 'overdue', label: 'Po termíne', color: 'error' as const };
+  } else {
+    return { status: 'active', label: 'Aktívny', color: 'success' as const };
+  }
+};
+
+const getPaymentMethodText = (method: string) => {
+  const methods: Record<string, string> = {
+    cash: 'Hotovosť',
+    bank_transfer: 'Bankový prevod',
+    vrp: 'VRP',
+    direct_to_owner: 'Priamo majiteľovi',
+  };
+  return methods[method] || method;
+};
+
+export default function CustomerRentalHistory({
+  open,
+  onClose,
+  customer,
+  rentals,
+  vehicles,
+}: CustomerRentalHistoryProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+
+  // Filtrujeme prenájmy pre tohto zákazníka
+  const customerRentals = useMemo(() => {
+    return rentals
+      .filter(
+        rental =>
+          rental.customerId === customer.id ||
+          rental.customerName === customer.name
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+      );
+  }, [rentals, customer]);
+
+  const handleViewRentalDetail = (rental: Rental) => {
+    setSelectedRental(rental);
+  };
+
+  const handleCloseRentalDetail = () => {
+    setSelectedRental(null);
+  };
+
+  const getVehicleInfo = (rental: Rental) => {
+    if (rental.vehicle) {
+      return `${rental.vehicle.brand} ${rental.vehicle.model} (${rental.vehicle.licensePlate})`;
+    }
+    if (rental.vehicleId) {
+      const vehicle = vehicles.find(v => v.id === rental.vehicleId);
+      if (vehicle) {
+        return `${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`;
+      }
+    }
+    return rental.vehicleName || 'Neznáme vozidlo';
+  };
+
+  // ✅ MIGRÁCIA: Používame centrálnu utility funkciu calculateRentalDays
+  // Stará implementácia pridávala +1 čo bolo nekonzistentné
+
+  return (
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="lg"
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'background.paper',
+            minHeight: isMobile ? '100vh' : 'auto',
+            maxHeight: isMobile ? '100vh' : '90vh',
+            borderRadius: isMobile ? 0 : 2,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            pb: 1,
+            backgroundColor: 'primary.main',
+            color: 'white',
+            '& .MuiTypography-root': {
+              color: 'white',
+            },
+          }}
+        >
+          <div>
+            <Typography
+              variant={isSmallScreen ? 'h6' : isMobile ? 'h5' : 'h4'}
+              component="h2"
+              className="/* TODO: Convert color: white */ /* TODO: Convert fontWeight: bold */"
+            >
+              História prenájmov - {customer.name}
+            </Typography>
+            <Typography
+              variant="body2"
+              className="/* TODO: Convert color: rgba(255 */"
+            >
+              {customerRentals.length} prenájmov celkovo
+            </Typography>
+          </div>
+          <IconButton onClick={onClose} className="/* TODO: Convert color: white */">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent className="/* TODO: Convert p: 0 */ /* TODO: Convert backgroundColor: background.default */">
+          {customerRentals.length === 0 ? (
+            <div
+              className="p-6 /* TODO: Convert textAlign: center */ /* TODO: Convert backgroundColor: background.paper */"
+            >
+              <Typography variant="h6" className="/* TODO: Convert color: text.primary */ /* TODO: Convert mb: 2 */">
+                Žiadne prenájmy
+              </Typography>
+              <Typography variant="body2" className="/* TODO: Convert color: text.secondary */">
+                Tento zákazník zatiaľ nemá žiadne prenájmy.
+              </Typography>
+            </div>
+          ) : (
+            <div>
+              {/* Mobilné zobrazenie - karty */}
+              {isMobile ? (
+                <div className="/* TODO: Convert p: isSmallScreen ? 1 : 2 */">
+                  {customerRentals.map(rental => {
+                    const status = getRentalStatus(rental);
+                    // Safe date conversion
+                    const startDate =
+                      rental.startDate instanceof Date
+                        ? rental.startDate
+                        : new Date(rental.startDate);
+                    const endDate =
+                      rental.endDate instanceof Date
+                        ? rental.endDate
+                        : new Date(rental.endDate);
+                    const days = calculateRentalDays(startDate, endDate);
+
+                    return (
+                      <Card
+                        key={rental.id}
+                        sx={{
+                          mb: 2,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          backgroundColor: 'background.paper',
+                          '&:hover': {
+                            boxShadow: 3,
+                            transform: 'translateY(-1px)',
+                            transition: 'all 0.2s ease-in-out',
+                          },
+                        }}
+                      >
+                        <CardContent className="p-4">
+                          {/* Hlavička karty */}
+                          <div
+                            className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: flex-start */ /* TODO: Convert mb: 1.5 */"
+                          >
+                            <div className="/* TODO: Convert flex: 1 */">
+                              <Typography
+                                variant="h6"
+                                fontWeight="bold"
+                                className="/* TODO: Convert color: text.primary */ /* TODO: Convert mb: 0.5 */"
+                              >
+                                {getVehicleInfo(rental)}
+                              </Typography>
+                              <Chip
+                                label={status.label}
+                                color={status.color}
+                                size="small"
+                                className="/* TODO: Convert mb: 1 */"
+                              />
+                            </div>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewRentalDetail(rental)}
+                              sx={{
+                                color: 'white',
+                                bgcolor: 'primary.main',
+                                '&:hover': { bgcolor: 'primary.dark' },
+                              }}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </div>
+
+                          {/* Dátumy */}
+                          <div className="/* TODO: Convert mb: 1.5 */">
+                            <div
+                              className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2 /* TODO: Convert mb: 0.5 */"
+                            >
+                              <CalendarIcon
+                                className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontSize: 16 */"
+                              />
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.primary */"
+                              >
+                                {format(
+                                  new Date(rental.startDate),
+                                  'dd.MM.yyyy',
+                                  { locale: sk }
+                                )}{' '}
+                                -{' '}
+                                {format(
+                                  new Date(rental.endDate),
+                                  'dd.MM.yyyy',
+                                  { locale: sk }
+                                )}
+                              </Typography>
+                            </div>
+                            <Typography
+                              variant="body2"
+                              className="/* TODO: Convert color: text.secondary */"
+                            >
+                              {days} dní •{' '}
+                              {format(
+                                new Date(rental.createdAt),
+                                'dd.MM.yyyy',
+                                { locale: sk }
+                              )}
+                            </Typography>
+                          </div>
+
+                          {/* Cena a platba */}
+                          <div
+                            className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                          >
+                            <div>
+                              <Typography
+                                variant="h6"
+                                className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */"
+                              >
+                                {rental.totalPrice.toFixed(2)} €
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.secondary */"
+                              >
+                                {getPaymentMethodText(rental.paymentMethod)}
+                              </Typography>
+                            </div>
+                            <div className="/* TODO: Convert textAlign: right */">
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.secondary */"
+                              >
+                                Provízia: {rental.commission.toFixed(2)} €
+                              </Typography>
+                              {rental.paid ? (
+                                <Chip
+                                  label="Zaplatené"
+                                  color="success"
+                                  size="small"
+                                  icon={<CheckCircleIcon />}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Nezaplatené"
+                                  color="warning"
+                                  size="small"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Desktop zobrazenie - tabuľka */
+                <TableContainer
+                  component={Paper}
+                  className="/* TODO: Convert maxHeight: isTablet ? 500 : 600 */ /* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert borderRadius: isTablet ? 1 : 2 */"
+                >
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow className="/* TODO: Convert backgroundColor: primary.main */">
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Vozidlo
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Dátumy
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Dní
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Cena
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Provízia
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Platba
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Stav
+                        </TableCell>
+                        <TableCell
+                          className="/* TODO: Convert fontWeight: bold */ /* TODO: Convert color: white */ /* TODO: Convert borderBottom: 2px solid */ /* TODO: Convert borderColor: primary.dark */"
+                        >
+                          Akcie
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {customerRentals.map(rental => {
+                        const status = getRentalStatus(rental);
+                        // Safe date conversion
+                        const startDate =
+                          rental.startDate instanceof Date
+                            ? rental.startDate
+                            : new Date(rental.startDate);
+                        const endDate =
+                          rental.endDate instanceof Date
+                            ? rental.endDate
+                            : new Date(rental.endDate);
+                        const days = calculateRentalDays(startDate, endDate);
+
+                        return (
+                          <TableRow
+                            key={rental.id}
+                            sx={{
+                              backgroundColor: 'background.paper',
+                              '&:hover': {
+                                backgroundColor: 'action.hover',
+                                cursor: 'pointer',
+                              },
+                              '&:nth-of-type(even)': {
+                                backgroundColor: 'action.hover',
+                              },
+                            }}
+                          >
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <div
+                                className="/* TODO: Convert display: flex */ /* TODO: Convert alignItems: center */ gap-2"
+                              >
+                                <CarIcon
+                                  className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontSize: 20 */"
+                                />
+                                <Typography
+                                  variant="body2"
+                                  className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: medium */"
+                                >
+                                  {getVehicleInfo(rental)}
+                                </Typography>
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.primary */"
+                              >
+                                {format(
+                                  new Date(rental.startDate),
+                                  'dd.MM.yyyy',
+                                  { locale: sk }
+                                )}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.secondary */"
+                              >
+                                {format(
+                                  new Date(rental.endDate),
+                                  'dd.MM.yyyy',
+                                  { locale: sk }
+                                )}
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.primary */"
+                              >
+                                {days}
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */"
+                              >
+                                {rental.totalPrice.toFixed(2)} €
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <Typography
+                                variant="body2"
+                                className="/* TODO: Convert color: text.secondary */"
+                              >
+                                {rental.commission.toFixed(2)} €
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <div>
+                                <Typography
+                                  variant="body2"
+                                  className="/* TODO: Convert color: text.primary */"
+                                >
+                                  {getPaymentMethodText(rental.paymentMethod)}
+                                </Typography>
+                                {rental.paid ? (
+                                  <Chip
+                                    label="Zaplatené"
+                                    color="success"
+                                    size="small"
+                                    icon={<CheckCircleIcon />}
+                                  />
+                                ) : (
+                                  <Chip
+                                    label="Nezaplatené"
+                                    color="warning"
+                                    size="small"
+                                  />
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <Chip
+                                label={status.label}
+                                color={status.color}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell
+                              className="/* TODO: Convert borderBottom: 1px solid */ /* TODO: Convert borderColor: divider */"
+                            >
+                              <IconButton
+                                size="small"
+                                onClick={() => handleViewRentalDetail(rental)}
+                                className="/* TODO: Convert color: primary.main */"
+                              >
+                                <VisibilityIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </div>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          className="p-4 /* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert borderTop: 1px solid */ /* TODO: Convert borderColor: divider */"
+        >
+          <Button onClick={onClose} variant="outlined" className="/* TODO: Convert minWidth: 100 */">
+            Zavrieť
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Detail prenájmu */}
+      {selectedRental && (
+        <Dialog
+          open={!!selectedRental}
+          onClose={handleCloseRentalDetail}
+          maxWidth="md"
+          fullWidth
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              backgroundColor: 'background.paper',
+              minHeight: isMobile ? '100vh' : 'auto',
+              maxHeight: isMobile ? '100vh' : '90vh',
+              borderRadius: isMobile ? 0 : 2,
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              pb: 1,
+              backgroundColor: 'primary.main',
+              color: 'white',
+              '& .MuiTypography-root': {
+                color: 'white',
+              },
+            }}
+          >
+            <Typography
+              variant={isSmallScreen ? 'h6' : isMobile ? 'h5' : 'h4'}
+              className="/* TODO: Convert color: white */ /* TODO: Convert fontWeight: bold */"
+            >
+              Detail prenájmu
+            </Typography>
+            <IconButton
+              onClick={handleCloseRentalDetail}
+              className="/* TODO: Convert color: white */"
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="/* TODO: Convert backgroundColor: background.default */">
+            <div
+              className="/* TODO: Convert mb: 3 */ p-4 /* TODO: Convert backgroundColor: background.paper */ rounded"
+            >
+              <Typography
+                variant="h6"
+                className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */ /* TODO: Convert mb: 1 */"
+              >
+                {getVehicleInfo(selectedRental)}
+              </Typography>
+              <Chip
+                label={getRentalStatus(selectedRental).label}
+                color={getRentalStatus(selectedRental).color}
+                className="/* TODO: Convert mb: 2 */"
+              />
+            </div>
+
+            <Grid container spacing={isSmallScreen ? 1 : 2}>
+              <Grid item xs={12} md={6}>
+                <Card
+                  className="/* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert height: 100% */"
+                >
+                  <CardContent>
+                    <Typography
+                      variant="subtitle1"
+                      className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */ /* TODO: Convert mb: 2 */"
+                    >
+                      Základné informácie
+                    </Typography>
+                    <div
+                      className="/* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ gap-3"
+                    >
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Začiatok:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */"
+                        >
+                          {format(
+                            new Date(selectedRental.startDate),
+                            'dd.MM.yyyy HH:mm',
+                            { locale: sk }
+                          )}
+                        </Typography>
+                      </div>
+                      <Divider />
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Koniec:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */"
+                        >
+                          {format(
+                            new Date(selectedRental.endDate),
+                            'dd.MM.yyyy HH:mm',
+                            { locale: sk }
+                          )}
+                        </Typography>
+                      </div>
+                      <Divider />
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Dní:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */"
+                        >
+                          {(() => {
+                            // Safe date conversion
+                            const startDate =
+                              selectedRental.startDate instanceof Date
+                                ? selectedRental.startDate
+                                : new Date(selectedRental.startDate);
+                            const endDate =
+                              selectedRental.endDate instanceof Date
+                                ? selectedRental.endDate
+                                : new Date(selectedRental.endDate);
+                            return calculateRentalDays(startDate, endDate);
+                          })()}
+                        </Typography>
+                      </div>
+                      <Divider />
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Vytvorený:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */"
+                        >
+                          {format(
+                            new Date(selectedRental.createdAt),
+                            'dd.MM.yyyy HH:mm',
+                            { locale: sk }
+                          )}
+                        </Typography>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card
+                  className="/* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert height: 100% */"
+                >
+                  <CardContent>
+                    <Typography
+                      variant="subtitle1"
+                      className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */ /* TODO: Convert mb: 2 */"
+                    >
+                      Finančné informácie
+                    </Typography>
+                    <div
+                      className="/* TODO: Convert display: flex */ /* TODO: Convert flexDirection: column */ gap-3"
+                    >
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Celková cena:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */ /* TODO: Convert fontSize: 1.1rem */"
+                        >
+                          {selectedRental.totalPrice.toFixed(2)} €
+                        </Typography>
+                      </div>
+                      <Divider />
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Provízia:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */"
+                        >
+                          {selectedRental.commission.toFixed(2)} €
+                        </Typography>
+                      </div>
+                      <Divider />
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Spôsob platby:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */"
+                        >
+                          {getPaymentMethodText(selectedRental.paymentMethod)}
+                        </Typography>
+                      </div>
+                      <Divider />
+                      <div
+                        className="/* TODO: Convert display: flex */ /* TODO: Convert justifyContent: space-between */ /* TODO: Convert alignItems: center */"
+                      >
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.secondary */ /* TODO: Convert fontWeight: medium */"
+                        >
+                          Stav platby:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="/* TODO: Convert color: text.primary */"
+                        >
+                          {selectedRental.paid ? 'Zaplatené' : 'Nezaplatené'}
+                        </Typography>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
+            {selectedRental.notes && (
+              <Grid item xs={12}>
+                <Card className="/* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert mt: 2 */">
+                  <CardContent>
+                    <Typography
+                      variant="subtitle1"
+                      className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */ /* TODO: Convert mb: 2 */"
+                    >
+                      Poznámky
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="/* TODO: Convert color: text.secondary */ /* TODO: Convert lineHeight: 1.6 */"
+                    >
+                      {selectedRental.notes}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {selectedRental.discount && (
+              <Grid item xs={12}>
+                <Card className="/* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert mt: 2 */">
+                  <CardContent>
+                    <Typography
+                      variant="subtitle1"
+                      className="/* TODO: Convert color: text.primary */ /* TODO: Convert fontWeight: bold */ /* TODO: Convert mb: 2 */"
+                    >
+                      Zľava
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="/* TODO: Convert color: text.secondary */"
+                    >
+                      {selectedRental.discount.type === 'percentage'
+                        ? `${selectedRental.discount.value}%`
+                        : `${selectedRental.discount.value} €`}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </DialogContent>
+
+          <DialogActions
+            className="p-4 /* TODO: Convert backgroundColor: background.paper */ /* TODO: Convert borderTop: 1px solid */ /* TODO: Convert borderColor: divider */"
+          >
+            <Button
+              onClick={handleCloseRentalDetail}
+              variant="outlined"
+              className="/* TODO: Convert minWidth: 100 */"
+            >
+              Zavrieť
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </>
+  );
+}

@@ -309,7 +309,7 @@ const EnhancedRentalSearch: React.FC<EnhancedRentalSearchProps> = ({
       // Trigger search with current query
       const searchBar = document.querySelector(
         'input[type="text"]'
-      ) as any;
+      ) as HTMLInputElement | null;
       const currentQuery = searchBar?.value || '';
 
       searchRentals(currentQuery, filterId || undefined).then(results => {

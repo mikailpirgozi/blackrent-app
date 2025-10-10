@@ -43,7 +43,7 @@ export interface UnifiedSelectFieldProps {
   // Basic props
   label?: string;
   value?: string | number | string[] | number[];
-  onChange?: (_value: any) => void;
+  onChange?: (_value: string | number | string[] | number[]) => void;
   onValueChange?: (_value: string) => void; // shadcn compatibility
   
   // Options
@@ -69,9 +69,9 @@ export interface UnifiedSelectFieldProps {
   // MUI compatibility
   variant?: 'outlined' | 'filled' | 'standard';
   margin?: 'none' | 'dense' | 'normal';
-  renderValue?: (_value: any) => React.ReactNode;
+  renderValue?: (_value: string | number | string[] | number[]) => React.ReactNode;
   displayEmpty?: boolean;
-  MenuProps?: any;
+  MenuProps?: Record<string, unknown>;
   native?: boolean;
   sx?: Record<string, unknown>;
   

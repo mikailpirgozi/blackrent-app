@@ -127,7 +127,7 @@ export function useCreateUser() {
         ...newUser,
         permissions:
           newUser.permissions?.map(p => ({
-            resource: p as any,
+            resource: p as string,
             actions: ['read'] as const,
           })) || [],
         isActive: true,

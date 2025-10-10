@@ -266,7 +266,7 @@ export class WebSocketClient {
         console.error('🚫 WebSocket connection error:', error);
         logger.debug('🔍 WebSocket connection details:', {
           baseUrl: this.baseUrl,
-          errorType: (error as any).type || 'unknown',
+          errorType: (error as Record<string, unknown>).type || 'unknown',
           errorMessage: error.message,
           reconnectAttempts: this.reconnectAttempts + 1,
         });

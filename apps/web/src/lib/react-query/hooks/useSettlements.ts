@@ -3,15 +3,17 @@ import type { Settlement } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
+import { CACHE_TIMES } from '../queryClient';
 
 // GET settlements
 export function useSettlements() {
   return useQuery({
     queryKey: queryKeys.settlements.list(),
     queryFn: () => apiService.getSettlements(),
-    staleTime: 0, // ✅ FIX: 0s pre okamžité real-time updates (+ NO_CACHE v SW)
-    gcTime: 0, // ✅ CRITICAL FIX: No GC cache
-    refetchOnMount: 'always', // ✅ FIX: Vždy refetch pri mounte
+    // ⚡ PERFORMANCE: Use DYNAMIC cache tier (frequently changing data)
+    staleTime: CACHE_TIMES.DYNAMIC.staleTime, // 30s
+    gcTime: CACHE_TIMES.DYNAMIC.gcTime, // 2 min
+    refetchOnMount: false, // Don't refetch if data is fresh
   });
 }
 
