@@ -23,22 +23,13 @@ router.get('/',
       totalCompanies: companies.length 
     });
     
-    // ✅ PLATFORM FILTERING: Admin vidí len firmy zo svojej platformy
-    if (req.user?.role === 'admin' && req.user.platformId) {
+    // ✅ PLATFORM FILTERING: Admin a Company Admin vidia len firmy zo svojej platformy
+    // Super admin vidí VŠETKY firmy (všetky platformy)
+    if (req.user?.role !== 'super_admin' && (req.user?.role === 'admin' || req.user?.role === 'company_admin') && req.user.platformId) {
       const originalCount = companies.length;
       companies = companies.filter(c => c.platformId === req.user?.platformId);
-      console.log('🌐 Admin Platform Filter:', {
-        userPlatformId: req.user.platformId,
-        originalCount,
-        filteredCount: companies.length
-      });
-    }
-    
-    // 🏢 COMPANY OWNER - filter len svoju vlastnú firmu (legacy)
-    if (req.user?.role === 'company_admin' && req.user.platformId) {
-      const originalCount = companies.length;
-      companies = companies.filter(c => c.platformId === req.user?.platformId);
-      console.log('🏢 Company Admin Filter:', {
+      console.log('🌐 Platform Admin Filter:', {
+        userRole: req.user.role,
         userPlatformId: req.user.platformId,
         originalCount,
         filteredCount: companies.length

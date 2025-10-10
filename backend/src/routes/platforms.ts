@@ -19,15 +19,20 @@ router.get('/',
   authenticateToken,
   async (req: Request, res: Response<ApiResponse<Platform[]>>) => {
     try {
-      // 🛡️ SECURITY: Only super_admin or admin can view all platforms
-      if (req.user?.role !== 'super_admin' && req.user?.role !== 'admin') {
+      // 🛡️ SECURITY: Only super_admin, admin, and company_admin can view platforms
+      if (req.user?.role !== 'super_admin' && req.user?.role !== 'admin' && req.user?.role !== 'company_admin') {
         return res.status(403).json({
           success: false,
-          error: 'Prístup zamietnutý. Len super admin môže vidieť platformy.'
+          error: 'Prístup zamietnutý. Len admin môže vidieť platformy.'
         });
       }
 
-      const platforms = await postgresDatabase.getPlatforms();
+      let platforms = await postgresDatabase.getPlatforms();
+      
+      // ✅ PLATFORM FILTERING: Company admin sees only their own platform
+      if (req.user?.role === 'company_admin' && req.user.platformId) {
+        platforms = platforms.filter(p => p.id === req.user?.platformId);
+      }
       
       logger.info(`✅ Platforms retrieved by super admin: ${req.user.username}`, {
         count: platforms.length,
