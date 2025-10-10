@@ -87,7 +87,7 @@ const generateMeaningfulFilename = (
   }
 };
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Multer konfigurácia pre upload súborov
 const upload = multer({

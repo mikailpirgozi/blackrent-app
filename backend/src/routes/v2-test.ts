@@ -7,7 +7,7 @@ import express from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import { checkQueues } from '../queues/setup';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Test V2 infrastructure
 router.get('/test-v2-infrastructure', async (req, res) => {

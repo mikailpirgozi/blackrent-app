@@ -6,7 +6,7 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { advancedUserService } from '../services/advanced-user-service';
 import type { AuthRequest } from '../types';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // ================================================================================
 // ORGANIZATION MANAGEMENT

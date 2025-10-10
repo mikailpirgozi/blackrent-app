@@ -7,7 +7,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { r2Storage } from '../utils/r2-storage';
 import type { ApiResponse, CompanyDocument } from '../types';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Multer konfigurácia pre upload súborov
 const upload = multer({

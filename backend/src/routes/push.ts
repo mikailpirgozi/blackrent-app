@@ -12,7 +12,7 @@ interface QueryResult {
   rowCount?: number;
 }
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // VAPID keys configuration
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';

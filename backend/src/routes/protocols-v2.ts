@@ -11,7 +11,7 @@ import { photoServiceV2 } from '../services/photo-service-v2';
 import { r2Storage } from '../utils/r2-storage';
 import { migrationService } from '../utils/v2/migration-script';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Multer setup pre file uploads
 const upload = multer({

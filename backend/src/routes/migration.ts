@@ -2,7 +2,7 @@ import express from 'express';
 import { r2Migration } from '../utils/migrate-to-r2';
 import { r2Storage } from '../utils/r2-storage';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Kontrola R2 konfigurácie
 router.get('/r2-status', async (req, res) => {

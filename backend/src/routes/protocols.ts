@@ -9,7 +9,7 @@ import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
 import { r2Storage } from '../utils/r2-storage';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // UUID validation function
 const isValidUUID = (uuid: string): boolean => {

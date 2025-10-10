@@ -10,7 +10,7 @@ import { r2Storage } from '../utils/r2-storage';
 import { HashCalculator } from '../utils/v2/hash-calculator';
 import { ImageProcessor } from '../utils/v2/sharp-processor';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 /**
  * GET /api/v2-system-test/full-test

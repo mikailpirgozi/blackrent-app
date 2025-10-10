@@ -3,7 +3,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { authenticateToken } from '../middleware/auth';
 import { r2Storage } from '../utils/r2-storage';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // 🔧 TEST endpoint (test DB columns)
 router.get('/test', authenticateToken, async (req, res) => {

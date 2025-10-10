@@ -6,7 +6,7 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // In-memory feature flags (can be moved to database later)
 const featureFlags = {

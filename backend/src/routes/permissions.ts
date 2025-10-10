@@ -5,7 +5,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, CompanyPermissions } from '../types';
 import { UserCompanyAccess } from '../types';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // GET /api/permissions/user/:userId - Získanie práv používateľa
 router.get('/user/:userId', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
