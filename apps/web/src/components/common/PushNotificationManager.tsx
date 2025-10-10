@@ -36,12 +36,12 @@ const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] =
     useState<NotificationPermission>('default');
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<Record<string, boolean> | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const [testNotification, setTestNotification] = useState<any>({
+  const [testNotification, setTestNotification] = useState<{title: string; body: string; icon: string}>({
     title: 'BlackRent Test',
     body: 'Toto je testovacia notifikácia',
     icon: '/logo192.png',
@@ -69,7 +69,7 @@ const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
       if (status.isSubscribed) {
         const prefs =
           await pushNotificationService.getNotificationPreferences();
-        setPreferences(prefs);
+        setPreferences(prefs as Record<string, boolean> | null);
       }
     } catch (error) {
       console.error('Failed to initialize notifications:', error);
@@ -92,7 +92,7 @@ const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
         // Load preferences
         const prefs =
           await pushNotificationService.getNotificationPreferences();
-        setPreferences(prefs);
+        setPreferences(prefs as Record<string, boolean> | null);
       }
     } catch (error) {
       console.error('Failed to subscribe:', error);
@@ -475,7 +475,7 @@ const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
                 onChange={(
                   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                 ) =>
-                  setTestNotification((prev: any) => ({
+                  setTestNotification(prev => ({
                     ...prev,
                     title: e.target.value,
                   }))
@@ -492,7 +492,7 @@ const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
                 onChange={(
                   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                 ) =>
-                  setTestNotification((prev: any) => ({
+                  setTestNotification(prev => ({
                     ...prev,
                     body: e.target.value,
                   }))
@@ -508,7 +508,7 @@ const PushNotificationManager = ({ showAdvanced = false, compact = false }) => {
                 onChange={(
                   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
                 ) =>
-                  setTestNotification((prev: any) => ({
+                  setTestNotification(prev => ({
                     ...prev,
                     icon: e.target.value,
                   }))

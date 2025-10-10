@@ -77,7 +77,7 @@ export const OfflineIndicator = ({
       window.navigator &&
       window.navigator.serviceWorker
     ) {
-      const handleMessage = (event: any) => {
+      const handleMessage = (event: MessageEvent<{type: string; payload: {count?: number}}>) => {
         const { type, payload } = event.data;
 
         switch (type) {
@@ -128,7 +128,7 @@ export const OfflineIndicator = ({
           const registration = await window.navigator.serviceWorker.ready;
           // Background sync (if supported)
           if ('sync' in registration) {
-            (registration as any).sync.register('blackrent-sync');
+            (registration as ServiceWorkerRegistration & { sync: { register: (tag: string) => Promise<void> } }).sync.register('blackrent-sync');
           }
         }
       }

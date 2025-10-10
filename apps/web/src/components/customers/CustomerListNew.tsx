@@ -153,7 +153,7 @@ export default function CustomerListNew() {
     }
   };
 
-  const handleImportCSV = (event: React.ChangeEvent<any>) => {
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 

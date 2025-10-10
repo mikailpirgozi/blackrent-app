@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Building2, Shield, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Shield, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -29,8 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Separator } from '../ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { apiService } from '@/services/api';
-import type { User, Company, CompanyPermissions, UserRole } from '@/types';
-import { getUserRoleDisplayName } from '@/hooks/usePermissions';
+import type { Company, CompanyPermissions, UserRole } from '@/types';
 
 interface CreateUserWithPermissionsProps {
   open: boolean;
@@ -129,7 +128,7 @@ export default function CreateUserWithPermissions({
         setFormData(prev => ({ ...prev, companyId: companiesData[0].id }));
         setSelectedCompanies([companiesData[0].id]);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Chyba',
         description: 'Nepodarilo sa načítať firmy',

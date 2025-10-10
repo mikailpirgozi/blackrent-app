@@ -71,12 +71,12 @@ export const PWAStatus = ({
   const { networkQuality } = useNetworkStatus();
   const isSlowConnection = networkQuality === 'slow';
 
-  const [anchorEl, setAnchorEl] = useState<any>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [version, setVersion] = useState<string>('');
   const [, setLoading] = useState(false);
 
-  const handleMenuClick = (event: any) => {
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 

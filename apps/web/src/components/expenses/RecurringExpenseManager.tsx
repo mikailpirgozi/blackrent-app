@@ -197,7 +197,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
           return formatDateToString(new Date()).split(' ')[0]!;
         }
         return formatDateToString(date).split(' ')[0]!;
-      } catch (_error) {
+      } catch {
         return formatDateToString(new Date()).split(' ')[0]!;
       }
     })();
@@ -208,7 +208,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
         const date = parseDate(recurring.endDate);
         if (!date || isNaN(date.getTime())) return '';
         return formatDateToString(date).split(' ')[0]!;
-      } catch (_error) {
+      } catch {
         return '';
       }
     })();
@@ -450,7 +450,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
       if (isNaN(validDate.getTime())) {
         throw new Error('Invalid date');
       }
-    } catch (_error) {
+    } catch {
       console.warn('Invalid date received:', date);
       return 'Neplatný dátum';
     }
@@ -664,7 +664,7 @@ const RecurringExpenseManager: React.FC<RecurringExpenseManagerProps> = ({
                                       : format(date, 'dd.MM.yyyy', {
                                           locale: sk,
                                         });
-                                  } catch (_error) {
+                                  } catch {
                                     return 'Neplatný dátum';
                                   }
                                 })()}

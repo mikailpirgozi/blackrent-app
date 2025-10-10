@@ -7,7 +7,6 @@ import {
   Users,
   Car,
   FileText,
-  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +33,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { Platform } from '@/types';
 
 export default function PlatformManagementDashboard() {
-  const { isSuperAdmin, state } = useAuth();
+  const { isSuperAdmin } = useAuth();
 
   // 🛡️ HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS
   const { data: platforms, isLoading } = usePlatforms();
@@ -105,7 +104,7 @@ export default function PlatformManagementDashboard() {
 
   const handleDelete = async (id: string) => {
     if (
-      !confirm(
+      !window.confirm(
         'Naozaj chceš vymazať túto platformu? Vymažú sa všetky related dáta!'
       )
     ) {

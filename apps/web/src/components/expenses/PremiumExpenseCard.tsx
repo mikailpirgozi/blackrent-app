@@ -30,7 +30,7 @@ const PremiumExpenseCard: React.FC<PremiumExpenseCardProps> = ({
   onDelete,
 }) => {
   // Category configuration with gradients
-  const categoryConfig: Record<string, { label: string; gradient: string; icon: any }> = {
+  const categoryConfig: Record<string, { label: string; gradient: string; icon: React.ComponentType<{ className?: string }> }> = {
     fuel: {
       label: 'Palivo',
       gradient: 'from-orange-500 to-red-600',

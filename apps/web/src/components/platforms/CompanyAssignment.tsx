@@ -20,7 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { Company } from '@/types';
 
 export default function CompanyAssignment() {
-  const { isSuperAdmin, state } = useAuth();
+  const { state } = useAuth();
 
   // 🛡️ HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS
   const { data: platforms, isLoading: platformsLoading } = usePlatforms();
