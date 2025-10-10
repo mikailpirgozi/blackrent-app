@@ -72,7 +72,7 @@ const BasicUserManagement: React.FC = () => {
       const date = new Date(dateValue);
       if (isNaN(date.getTime())) return fallback;
       return format(date, formatString, { locale: sk });
-    } catch (_error) {
+    } catch {
       return fallback;
     }
   };
@@ -105,10 +105,6 @@ const BasicUserManagement: React.FC = () => {
   // Platforms for dropdown
   const [platforms, setPlatforms] = useState<Record<string, unknown>[]>([]);
   const [loadingPlatforms, setLoadingPlatforms] = useState(false);
-  
-  // Companies for dropdown (still needed for displaying company info)
-  const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   // Loading states - handled by React Query mutations
 
@@ -175,8 +171,8 @@ const BasicUserManagement: React.FC = () => {
         );
         setInvestors([]);
       }
-    } catch (_error) {
-      console.warn('Error loading investors (non-critical):', error);
+    } catch (err) {
+      console.warn('Error loading investors (non-critical):', err);
       setInvestors([]);
     } finally {
       setLoadingInvestors(false);
@@ -201,37 +197,11 @@ const BasicUserManagement: React.FC = () => {
         console.warn('Failed to load platforms:', response.status);
         setPlatforms([]);
       }
-    } catch (error) {
-      console.warn('Error loading platforms:', error);
+    } catch (err) {
+      console.warn('Error loading platforms:', err);
       setPlatforms([]);
     } finally {
       setLoadingPlatforms(false);
-    }
-  }, [getAuthToken]);
-
-  const loadCompanies = useCallback(async () => {
-    try {
-      setLoadingCompanies(true);
-      const response = await fetch(`${getApiBaseUrl()}/companies`, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const companiesList = data.data || data || [];
-        setCompanies(companiesList);
-        logger.debug('🏢 Loaded companies:', companiesList.length);
-      } else {
-        console.warn('Failed to load companies:', response.status);
-        setCompanies([]);
-      }
-    } catch (error) {
-      console.warn('Error loading companies:', error);
-      setCompanies([]);
-    } finally {
-      setLoadingCompanies(false);
     }
   }, [getAuthToken]);
 
@@ -239,9 +209,7 @@ const BasicUserManagement: React.FC = () => {
     refetchUsers();
     loadInvestors();
     loadPlatforms();
-    loadCompanies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only on mount
+  }, [refetchUsers, loadInvestors, loadPlatforms]); // Run only on mount
   
   // Auto-set platform for admin users
   useEffect(() => {
@@ -317,8 +285,8 @@ const BasicUserManagement: React.FC = () => {
       resetUserForm();
       setError(null);
       logger.debug('🎉 User creation process completed successfully!');
-    } catch (_error) {
-      console.error('❌ User creation error:', error);
+    } catch (err) {
+      console.error('❌ User creation error:', err);
       setError('Chyba pri vytváraní používateľa');
     } finally {
       // Creating state is handled by React Query mutation
@@ -367,8 +335,8 @@ const BasicUserManagement: React.FC = () => {
       setSelectedUser(null);
       resetUserForm();
       setError(null);
-    } catch (_error) {
-      console.error('Error updating user:', error);
+    } catch (err) {
+      console.error('Error updating user:', err);
       setError('Chyba pri úprave používateľa');
     }
   };
@@ -382,8 +350,8 @@ const BasicUserManagement: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
       setError(null);
-    } catch (_error) {
-      console.error('Error deleting user:', error);
+    } catch (err) {
+      console.error('Error deleting user:', err);
       setError('Chyba pri mazaní používateľa');
     }
   };
@@ -521,7 +489,7 @@ const BasicUserManagement: React.FC = () => {
         return `Pred ${Math.round(diffInMinutes / 1440)} dňami`;
 
       return formatDate(lastLoginData instanceof Date ? lastLoginData.toISOString() : lastLoginData, 'dd.MM.yyyy HH:mm', 'Neznámy');
-    } catch (_error) {
+    } catch {
       return 'Chyba dát';
     }
   };

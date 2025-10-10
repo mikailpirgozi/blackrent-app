@@ -47,18 +47,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install deps (backend)
         working-directory: backend
-        run: npm ci
+        run: pnpm install --no-frozen-lockfile
 
       - name: Lint backend (optional)
-        run: npm run lint --workdir backend || true
+        working-directory: backend
+        run: pnpm run lint || echo "Lint warnings/errors found but continuing..."
 
       - name: Build backend
         working-directory: backend
-        run: npm run build
+        run: pnpm run build
