@@ -3149,6 +3149,7 @@ export class PostgresDatabase {
           company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
           category: row.category || null, // 🚗 Mapovanie category
           ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+          platformId: row.platform_id, // ✅ MULTI-TENANCY: Platform ID
           pricing: Array.isArray(pricing) ? pricing.filter(item => item.extraKilometerRate === undefined) : pricing, // Odstránenie extraKilometerRate z pricing array
           commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
           status: row.status,
@@ -3640,6 +3641,7 @@ export class PostgresDatabase {
         year: row.year,
         stk: row.stk,
         ownerCompanyId: row.company_id,
+        platformId: row.platform_id, // ✅ MULTI-TENANCY: Platform ID
         createdAt: row.created_at
       }));
 

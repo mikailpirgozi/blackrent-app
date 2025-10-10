@@ -40,6 +40,9 @@ export const authenticateToken = async (
       found: !!user,
       id: user?.id,
       username: user?.username,
+      role: user?.role,
+      platformId: user?.platformId,
+      linkedInvestorId: user?.linkedInvestorId,
     });
 
     if (!user) {
@@ -56,6 +59,8 @@ export const authenticateToken = async (
       lastName: user.lastName,
       role: user.role,
       companyId: user.companyId,
+      platformId: user.platformId, // ✅ PRIDANÉ: Multi-tenancy support
+      linkedInvestorId: user.linkedInvestorId, // ✅ PRIDANÉ: Investor linking
       employeeNumber: user.employeeNumber,
       hireDate: user.hireDate,
       isActive: user.isActive,
