@@ -1,6 +1,6 @@
 /**
  * Modern Photo Capture - Ultra-rýchly photo systém
- * 
+ *
  * Features:
  * - Web Worker paralelné processing
  * - HTTP/2 parallel uploads
@@ -26,6 +26,28 @@ import { processAndUploadPhotos } from '@/utils/protocolPhotoWorkflow';
 import { SessionStorageManager } from '@/utils/sessionStorageManager';
 import type { ProtocolImage, ProtocolVideo } from '@/types';
 import { logger } from '@/utils/logger';
+import { getApiBaseUrl } from '@/utils/apiUrl';
+
+// Helper to convert R2/local URL to accessible URL
+const getAccessibleUrl = (url: string | undefined): string => {
+  if (!url) return '';
+
+  // If it's local storage URL, make it accessible
+  if (url.includes('local-storage')) {
+    // Already has full URL with localhost:3001
+    return url;
+  }
+
+  // If it's R2 URL, convert to proxy
+  if (url.includes('r2.dev') || url.includes('cloudflare')) {
+    const apiBaseUrl = getApiBaseUrl();
+    const urlParts = url.split('/');
+    const key = urlParts.slice(3).join('/');
+    return `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
+  }
+
+  return url;
+};
 
 interface ModernPhotoCaptureProps {
   open: boolean;
@@ -75,7 +97,7 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
   // Cleanup previews on unmount
   useEffect(() => {
     return () => {
-      photos.forEach((photo) => {
+      photos.forEach(photo => {
         if (photo.preview.startsWith('blob:')) {
           URL.revokeObjectURL(photo.preview);
         }
@@ -86,7 +108,9 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
   /**
    * Handle file selection - Používa nový unified workflow
    */
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
@@ -100,13 +124,13 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
       setWorking(true);
 
       // Create previews immediately for responsive UI
-      const newPhotos: CapturedPhoto[] = files.map((file) => ({
+      const newPhotos: CapturedPhoto[] = files.map(file => ({
         id: crypto.randomUUID(),
         file,
         preview: URL.createObjectURL(file),
       }));
 
-      setPhotos((prev) => [...prev, ...newPhotos]);
+      setPhotos(prev => [...prev, ...newPhotos]);
 
       // Use unified workflow
       const result = await processAndUploadPhotos(files, {
@@ -117,19 +141,23 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
           setProgress({
             current: completed,
             total,
-            phase: message.includes('Processing') ? 'processing' : message.includes('Uploading') ? 'uploading' : 'done',
+            phase: message.includes('Processing')
+              ? 'processing'
+              : message.includes('Uploading')
+                ? 'uploading'
+                : 'done',
             eta: 0,
           });
         },
       });
 
       // Store uploaded images
-      setUploadedImages((prev) => [...prev, ...result.images]);
+      setUploadedImages(prev => [...prev, ...result.images]);
 
       // Mark photos as uploaded
-      setPhotos((prev) =>
-        prev.map((photo) => {
-          const uploaded = result.images.find((img) => img.id === photo.id);
+      setPhotos(prev =>
+        prev.map(photo => {
+          const uploaded = result.images.find(img => img.id === photo.id);
           if (uploaded) {
             return {
               ...photo,
@@ -163,12 +191,12 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
    * Remove photo
    */
   const handleRemove = (id: string) => {
-    setPhotos((prev) => {
-      const photo = prev.find((p) => p.id === id);
+    setPhotos(prev => {
+      const photo = prev.find(p => p.id === id);
       if (photo && photo.preview.startsWith('blob:')) {
         URL.revokeObjectURL(photo.preview);
       }
-      return prev.filter((p) => p.id !== id);
+      return prev.filter(p => p.id !== id);
     });
   };
 
@@ -187,7 +215,7 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
    * Close and cleanup
    */
   const handleClose = () => {
-    photos.forEach((photo) => {
+    photos.forEach(photo => {
       if (photo.preview.startsWith('blob:')) {
         URL.revokeObjectURL(photo.preview);
       }
@@ -203,7 +231,7 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+      <Dialog open={open} onOpenChange={isOpen => !isOpen && handleClose()}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -239,7 +267,11 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
             <Badge variant="outline">
               {photos.length}/{maxImages} fotiek
             </Badge>
-            <Badge variant={uploadedCount === photos.length ? 'default' : 'secondary'}>
+            <Badge
+              variant={
+                uploadedCount === photos.length ? 'default' : 'secondary'
+              }
+            >
               {uploadedCount} uploadnutých
             </Badge>
             {SessionStorageManager.getStats().imageCount > 0 && (
@@ -283,7 +315,7 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
           {/* Photo Grid */}
           {photos.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-              {photos.map((photo) => (
+              {photos.map(photo => (
                 <div
                   key={photo.id}
                   className="relative group rounded-lg overflow-hidden border"
@@ -303,7 +335,9 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
                     ) : working ? (
                       <Badge variant="secondary">
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        {progress.phase === 'processing' ? 'Spracovávam...' : 'Uploadujem...'}
+                        {progress.phase === 'processing'
+                          ? 'Spracovávam...'
+                          : 'Uploadujem...'}
                       </Badge>
                     ) : (
                       <Badge variant="outline">Čaká</Badge>
@@ -380,7 +414,10 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
 
       {/* Preview Dialog */}
       {previewPhoto && (
-        <Dialog open={!!previewPhoto} onOpenChange={() => setPreviewPhoto(null)}>
+        <Dialog
+          open={!!previewPhoto}
+          onOpenChange={() => setPreviewPhoto(null)}
+        >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Náhľad fotografie</DialogTitle>
@@ -388,11 +425,26 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
                 Zobrazenie fotografie v plnej kvalite
               </DialogDescription>
             </DialogHeader>
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center bg-black/5 rounded-lg p-4">
               <img
-                src={previewPhoto.preview}
+                src={
+                  previewPhoto.uploadUrl
+                    ? getAccessibleUrl(previewPhoto.uploadUrl)
+                    : previewPhoto.preview
+                }
                 alt="Preview"
                 className="max-w-full max-h-[70vh] object-contain"
+                onError={e => {
+                  // Fallback to blob URL if uploaded URL fails
+                  const img = e.target as HTMLImageElement;
+                  if (
+                    previewPhoto.uploadUrl &&
+                    img.src !== previewPhoto.preview
+                  ) {
+                    logger.warn('Upload URL failed, using blob preview');
+                    img.src = previewPhoto.preview;
+                  }
+                }}
               />
             </div>
           </DialogContent>
@@ -401,4 +453,3 @@ export const ModernPhotoCapture: React.FC<ModernPhotoCaptureProps> = ({
     </>
   );
 };
-

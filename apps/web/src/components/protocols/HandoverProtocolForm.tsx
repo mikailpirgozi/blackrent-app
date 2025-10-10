@@ -49,6 +49,7 @@ import {
 } from '../../utils/protocolFormCache';
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
+import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';
 
 interface HandoverProtocolFormProps {
@@ -74,7 +75,8 @@ const SignatureDisplay = memo<{
       className="mr-2 mb-2 cursor-pointer hover:opacity-80"
       onClick={handleRemove}
     >
-      {signature.signerName} ({signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'})
+      {signature.signerName} (
+      {signature.signerRole === 'customer' ? 'Zákazník' : 'Zamestnanec'})
     </Badge>
   );
 });
@@ -100,6 +102,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
       name: string;
       role: 'customer' | 'employee';
     } | null>(null);
+
+    // Gallery state
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [galleryImages, setGalleryImages] = useState<ProtocolImage[]>([]);
 
     // Retry mechanism state
     const [retryCount, setRetryCount] = useState(0);
@@ -560,9 +566,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // Return result for email status handling - React Query returns protocol directly
         return {
           protocol: protocolData || null,
-          email: emailInfo 
+          email: emailInfo
             ? emailInfo
-            : (result && 'email' in result)
+            : result && 'email' in result
               ? (result.email as {
                   sent: boolean;
                   recipient?: string;
@@ -632,7 +638,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           });
 
           // Wait with exponential backoff
-          await new Promise(resolve => window.setTimeout(resolve, 2000 * attempt));
+          await new Promise(resolve =>
+            window.setTimeout(resolve, 2000 * attempt)
+          );
         }
       }
 
@@ -736,7 +744,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           logger.debug('📱 Protocol form unmounted');
         };
       }
-      
+
       return undefined; // Explicit return for non-mobile case
     }, [open, rental?.id, formData]);
 
@@ -777,9 +785,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
     }
 
     return (
-      <div
-        className="w-full max-w-full"
-      >
+      <div className="w-full max-w-full">
         {/* Email Status */}
         {(loading || emailStatus?.status === 'pending') && (
           <div className="mb-2">
@@ -812,9 +818,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               Pokus {retryCount + 1}/{MAX_RETRIES}
             </p>
             {isRetrying && (
-              <div
-                className="flex items-center justify-center gap-1"
-              >
+              <div className="flex items-center justify-center gap-1">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <p className="text-sm">Opakujem...</p>
               </div>
@@ -857,14 +861,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="col-span-1 sm:col-span-1 md:col-span-1">        
+              <div className="col-span-1 sm:col-span-1 md:col-span-1">
                 <p className="text-sm font-medium text-muted-foreground">
                   Číslo objednávky
                 </p>
-                <Badge
-                  variant="outline"
-                  className="font-bold"
-                >
+                <Badge variant="outline" className="font-bold">
                   {rental.orderNumber || 'Neuvedené'}
                 </Badge>
               </div>
@@ -1011,13 +1012,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 </p>
               </div>
               <div className="col-span-1 sm:col-span-1 md:col-span-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  ŠPZ
-                </p>
-                <Badge
-                  variant="outline"
-                  className="font-bold"
-                >
+                <p className="text-sm font-medium text-muted-foreground">ŠPZ</p>
+                <Badge variant="outline" className="font-bold">
                   {currentVehicle?.licensePlate ||
                     rental.vehicleCode ||
                     'Neuvedené'}
@@ -1065,14 +1061,12 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               Údaje protokolu
             </h3>
 
-            <div
-              className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-2"
-            >
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-2">
               <div className="space-y-2">
                 <Label htmlFor="location">Miesto prevzatia *</Label>
                 <Select
                   value={formData.location}
-                  onValueChange={(value) => handleInputChange('location', value)}
+                  onValueChange={value => handleInputChange('location', value)}
                 >
                   <SelectTrigger id="location">
                     <SelectValue placeholder="Vyberte miesto prevzatia" />
@@ -1083,7 +1077,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                     <SelectItem value="Žilina">Žilina</SelectItem>
                     <SelectItem value="Trnava">Trnava</SelectItem>
                     <SelectItem value="Nitra">Nitra</SelectItem>
-                    <SelectItem value="Banská Bystrica">Banská Bystrica</SelectItem>
+                    <SelectItem value="Banská Bystrica">
+                      Banská Bystrica
+                    </SelectItem>
                     <SelectItem value="Prešov">Prešov</SelectItem>
                     <SelectItem value="Trenčín">Trenčín</SelectItem>
                   </SelectContent>
@@ -1094,7 +1090,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 <Textarea
                   id="notes"
                   value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  onChange={e => handleInputChange('notes', e.target.value)}
                   className="min-h-[60px]"
                   rows={2}
                   placeholder="Dodatočné poznámky k odovzdávaniu vozidla"
@@ -1112,16 +1108,14 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               Stav vozidla pri odovzdaní
             </h3>
 
-            <div
-              className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2"
-            >
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2">
               <div className="space-y-2">
                 <Label htmlFor="odometer">Stav tachometra (km) *</Label>
                 <Input
                   id="odometer"
                   type="number"
                   value={formData.odometer || ''}
-                  onChange={(e) => {
+                  onChange={e => {
                     const value = e.target.value;
                     if (value === '') {
                       handleInputChange('odometer', undefined);
@@ -1135,7 +1129,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                   required
                   placeholder="Zadajte stav tachometra"
                 />
-                <p className="text-sm text-muted-foreground">Aktuálny stav kilometrov na vozidle</p>
+                <p className="text-sm text-muted-foreground">
+                  Aktuálny stav kilometrov na vozidle
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fuelLevel">Úroveň paliva (%) *</Label>
@@ -1143,7 +1139,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                   id="fuelLevel"
                   type="number"
                   value={formData.fuelLevel}
-                  onChange={(e) =>
+                  onChange={e =>
                     handleInputChange(
                       'fuelLevel',
                       parseInt(e.target.value) || 100
@@ -1154,13 +1150,17 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                   required
                   placeholder="Zadajte úroveň paliva"
                 />
-                <p className="text-sm text-muted-foreground">Percentuálna úroveň paliva v nádrži</p>
+                <p className="text-sm text-muted-foreground">
+                  Percentuálna úroveň paliva v nádrži
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="depositPaymentMethod">Spôsob úhrady depozitu *</Label>
+                <Label htmlFor="depositPaymentMethod">
+                  Spôsob úhrady depozitu *
+                </Label>
                 <Select
                   value={formData.depositPaymentMethod}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     handleInputChange('depositPaymentMethod', value)
                   }
                 >
@@ -1169,7 +1169,9 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="cash">Hotovosť</SelectItem>
-                    <SelectItem value="bank_transfer">Bankový prevod</SelectItem>
+                    <SelectItem value="bank_transfer">
+                      Bankový prevod
+                    </SelectItem>
                     <SelectItem value="card">Kartová zábezpeka</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1186,48 +1188,101 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               Fotodokumentácia
             </h3>
 
-            <div
-              className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2"
-            >
-              <Button
-                variant="outline"
-                onClick={() => handlePhotoCapture('vehicle')}
-                size="lg"
-              >
-                    <PhotoCamera className="mr-2 h-4 w-4" />
-                Fotky vozidla ({formData.vehicleImages.length})
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handlePhotoCapture('document')}
-                size="lg"
-              >
-                Dokumenty ({formData.documentImages.length})
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handlePhotoCapture('damage')}
-                size="lg"
-              >
-                <PhotoCamera className="mr-2 h-4 w-4" />
-                Poškodenia ({formData.damageImages.length})
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handlePhotoCapture('odometer')}
-                size="lg"
-              >
-                <PhotoCamera className="mr-2 h-4 w-4" />
-                Fotka km ({formData.odometerImages.length})
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handlePhotoCapture('fuel')}
-                size="lg"
-              >
-                <PhotoCamera className="mr-2 h-4 w-4" />
-                Fotka paliva ({formData.fuelImages.length})
-              </Button>
+            <div className="space-y-3">
+              {/* Vehicle Photos */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePhotoCapture('vehicle')}
+                  size="lg"
+                  className="flex-1"
+                >
+                  <PhotoCamera className="mr-2 h-4 w-4" />
+                  Fotky vozidla ({formData.vehicleImages.length})
+                </Button>
+                {formData.vehicleImages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => {
+                      setGalleryImages(formData.vehicleImages);
+                      setGalleryOpen(true);
+                    }}
+                  >
+                    👁️ Zobraziť
+                  </Button>
+                )}
+              </div>
+
+              {/* Document Photos */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePhotoCapture('document')}
+                  size="lg"
+                  className="flex-1"
+                >
+                  <PhotoCamera className="mr-2 h-4 w-4" />
+                  Dokumenty ({formData.documentImages.length})
+                </Button>
+                {formData.documentImages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => {
+                      setGalleryImages(formData.documentImages);
+                      setGalleryOpen(true);
+                    }}
+                  >
+                    👁️ Zobraziť
+                  </Button>
+                )}
+              </div>
+
+              {/* Damage Photos */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePhotoCapture('damage')}
+                  size="lg"
+                  className="flex-1"
+                >
+                  <PhotoCamera className="mr-2 h-4 w-4" />
+                  Poškodenia ({formData.damageImages.length})
+                </Button>
+                {formData.damageImages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => {
+                      setGalleryImages(formData.damageImages);
+                      setGalleryOpen(true);
+                    }}
+                  >
+                    👁️ Zobraziť
+                  </Button>
+                )}
+              </div>
+
+              {/* Odometer & Fuel */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePhotoCapture('odometer')}
+                  size="lg"
+                >
+                  <PhotoCamera className="mr-2 h-4 w-4" />
+                  Km ({formData.odometerImages.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handlePhotoCapture('fuel')}
+                  size="lg"
+                >
+                  <PhotoCamera className="mr-2 h-4 w-4" />
+                  Palivo ({formData.fuelImages.length})
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1299,17 +1354,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         </Card>
 
         {/* Tlačidlá */}
-        <div
-          className="flex gap-2 justify-end mt-3 mb-2"
-        >
+        <div className="flex gap-2 justify-end mt-3 mb-2">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Zrušiť
           </Button>
-          <Button
-            variant="default"
-            onClick={handleSave}
-            disabled={loading}
-          >
+          <Button variant="default" onClick={handleSave} disabled={loading}>
             <Save className="mr-2 h-4 w-4" />
             {loading ? 'Ukladám...' : 'Uložiť a generovať PDF'}
           </Button>
@@ -1340,12 +1389,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
         {/* SignaturePad modal */}
         {showSignaturePad && currentSigner && (
-          <div
-            className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[9999] p-2"
-          >
-            <div
-              className="bg-white rounded-lg max-w-[600px] w-full max-h-[90vh] overflow-auto"
-            >
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-[9999] p-2">
+            <div className="bg-white rounded-lg max-w-[600px] w-full max-h-[90vh] overflow-auto">
               <SignaturePad
                 onSave={handleSignatureSave}
                 onCancel={() => setShowSignaturePad(false)}
@@ -1356,6 +1401,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             </div>
           </div>
         )}
+
+        {/* Protocol Gallery */}
+        <ProtocolGallery
+          images={galleryImages}
+          open={galleryOpen}
+          onClose={() => setGalleryOpen(false)}
+        />
       </div>
     );
   }

@@ -1,6 +1,6 @@
 /**
  * Test Page pre Perfect Protocols V1
- * 
+ *
  * Jednoduchá stránka pre testovanie nového photo systému
  */
 
@@ -9,7 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Camera, CheckCircle, XCircle, Loader2, Eye, Trash2 } from 'lucide-react';
+import {
+  Camera,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Eye,
+  Trash2,
+} from 'lucide-react';
 import { ModernPhotoCapture } from '@/components/common/ModernPhotoCapture';
 import { ProtocolGallery } from '@/components/common/ProtocolGallery';
 import { generateProtocolPDFQuick } from '@/utils/protocolPhotoWorkflow';
@@ -32,10 +39,8 @@ export default function TestProtocolPhotos() {
     totalTime: number;
   } | null>(null);
 
-  const handlePhotoCaptureSuccess = (
-    capturedImages: ProtocolImage[]
-  ) => {
-    setImages((prev) => [...prev, ...capturedImages]);
+  const handlePhotoCaptureSuccess = (capturedImages: ProtocolImage[]) => {
+    setImages(prev => [...prev, ...capturedImages]);
     setCaptureOpen(false);
 
     logger.info('Photos captured successfully', {
@@ -53,18 +58,18 @@ export default function TestProtocolPhotos() {
     setPdfGenerating(true);
 
     try {
-      // Create mock protocol
+      // Create mock protocol s reálnymi dátami
       const mockProtocol: HandoverProtocol = {
         id: window.crypto.randomUUID(),
         type: 'handover',
-        rentalId: 'test-rental-id',
+        rentalId: 'test-rental-123',
         rental: {} as any,
-        location: 'Test Location',
+        location: 'Košice',
         status: 'completed',
         createdAt: new Date(),
         completedAt: new Date(),
         vehicleCondition: {
-          odometer: 10000,
+          odometer: 555,
           fuelLevel: 100,
           fuelType: 'gasoline',
           exteriorCondition: 'Dobrý',
@@ -79,26 +84,27 @@ export default function TestProtocolPhotos() {
         damages: [],
         signatures: [],
         rentalData: {
-          orderNumber: 'TEST-001',
+          orderNumber: '123',
           vehicle: {
-            id: 'test-vehicle',
-            brand: 'Test Brand',
-            model: 'Test Model',
-            licensePlate: 'TEST-123',
+            id: 'vehicle-c95246',
+            brand: 'BMW',
+            model: 'X5 - záložená',
+            licensePlate: 'C95246',
           } as any,
           customer: {
-            id: 'test-customer',
-            name: 'Test Customer',
-            email: 'test@example.com',
-            phone: '+421900000000',
+            id: 'customer-mikail',
+            name: 'Mikail Pirgozi',
+            email: 'mikail@blackrent.sk',
+            phone: '+421900123456',
           } as any,
-          startDate: new Date(),
-          endDate: new Date(),
-          totalPrice: 100,
-          deposit: 50,
+          startDate: new Date('2025-10-21'),
+          endDate: new Date('2025-10-30'),
+          totalPrice: 600,
+          deposit: 130,
           currency: 'EUR',
         },
-        createdBy: 'test-user',
+        createdBy: 'admin',
+        notes: 'Testovací protokol - Perfect V1 System',
       };
 
       logger.info('Generating PDF...', { imageCount: images.length });
@@ -121,7 +127,9 @@ export default function TestProtocolPhotos() {
         totalTime,
       });
 
-      alert(`✅ PDF vygenerované úspešne!\nČas: ${(totalTime / 1000).toFixed(2)}s`);
+      alert(
+        `✅ PDF vygenerované úspešne!\nČas: ${(totalTime / 1000).toFixed(2)}s`
+      );
     } catch (error) {
       logger.error('PDF generation failed', { error });
       alert(
@@ -255,11 +263,7 @@ export default function TestProtocolPhotos() {
 
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Button
-          onClick={() => setCaptureOpen(true)}
-          size="lg"
-          className="h-20"
-        >
+        <Button onClick={() => setCaptureOpen(true)} size="lg" className="h-20">
           <Camera className="mr-2 h-6 w-6" />
           Pridať fotky
         </Button>
@@ -288,9 +292,7 @@ export default function TestProtocolPhotos() {
               Generujem PDF...
             </>
           ) : (
-            <>
-              📄 Generovať PDF
-            </>
+            <>📄 Generovať PDF</>
           )}
         </Button>
 
@@ -311,7 +313,9 @@ export default function TestProtocolPhotos() {
         <Alert className="mb-6 border-blue-200 bg-blue-50">
           <AlertDescription className="text-blue-800">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">✅ PDF je pripravené na stiahnutie</span>
+              <span className="font-semibold">
+                ✅ PDF je pripravené na stiahnutie
+              </span>
               <Button
                 variant="outline"
                 size="sm"
@@ -370,7 +374,9 @@ export default function TestProtocolPhotos() {
           <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
             <li>Klikni "Pridať fotky" a vyber fotky z galérie</li>
             <li>Počkaj kým sa uploadnú (sleduj progress)</li>
-            <li>Skontroluj SessionStorage stats (malo by byť ~30KB × počet fotiek)</li>
+            <li>
+              Skontroluj SessionStorage stats (malo by byť ~30KB × počet fotiek)
+            </li>
             <li>Klikni "Generovať PDF" (malo trvať 1-2s)</li>
             <li>Stiahnuť PDF a overiť že obsahuje fotky</li>
             <li>Klikni "Zobraziť galériu" a testuj zoom/swipe</li>
@@ -378,7 +384,9 @@ export default function TestProtocolPhotos() {
           </ol>
 
           <div className="mt-4 p-4 bg-muted rounded-lg">
-            <p className="text-sm font-semibold mb-2 text-white">🎯 Performance Targets:</p>
+            <p className="text-sm font-semibold mb-2 text-white">
+              🎯 Performance Targets:
+            </p>
             <ul className="text-xs space-y-1 text-muted-foreground">
               <li>• 1 fotka: &lt;3s</li>
               <li>• 10 fotiek: &lt;15s</li>
@@ -410,7 +418,7 @@ export default function TestProtocolPhotos() {
       <ModernPhotoCapture
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}
-        onSave={(imgs) => handlePhotoCaptureSuccess(imgs)}
+        onSave={imgs => handlePhotoCaptureSuccess(imgs)}
         title="Test Photo Capture"
         entityId="test-protocol-123"
         mediaType="vehicle"
@@ -426,4 +434,3 @@ export default function TestProtocolPhotos() {
     </div>
   );
 }
-

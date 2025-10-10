@@ -207,7 +207,7 @@ export class EnhancedPDFGenerator {
 
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
-      
+
       if (!image) {
         console.warn('⚠️ Image is undefined, skipping');
         continue;
@@ -215,7 +215,7 @@ export class EnhancedPDFGenerator {
 
       try {
         const imgObj = image as { thumbnail?: string; filename?: string };
-        
+
         // Načítanie thumbnailu (800px) priamo do PDF
         if (!imgObj.thumbnail) {
           console.warn('⚠️ Image thumbnail is missing, skipping image');
@@ -266,7 +266,11 @@ export class EnhancedPDFGenerator {
         }
       } catch (error) {
         const imgObj = image as { filename?: string };
-        console.error('❌ Error processing image:', imgObj.filename || 'unknown', error);
+        console.error(
+          '❌ Error processing image:',
+          imgObj.filename || 'unknown',
+          error
+        );
         // Pridaj placeholder pre chybný obrázok
         const placeholder = this.createImagePlaceholder(
           maxWidth,
@@ -639,7 +643,7 @@ export class EnhancedPDFGenerator {
 
   /**
    * ✨ NOVÁ METÓDA: Generovanie PDF s použitím SessionStorage
-   * 
+   *
    * Namiesto sťahovania fotiek z R2, používa komprimované JPEG verzie
    * uložené v SessionStorage počas uploadu.
    */
@@ -751,7 +755,10 @@ export class EnhancedPDFGenerator {
           y += imgHeight + margin + 10;
         }
       } catch (error) {
-        logger.error('Failed to add image to PDF', { imageId: image.id, error });
+        logger.error('Failed to add image to PDF', {
+          imageId: image.id,
+          error,
+        });
       }
     }
   }
@@ -767,7 +774,9 @@ export class EnhancedPDFGenerator {
     this.doc.setFontSize(24);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(
-      protocol.type === 'handover' ? 'ODOVZDÁVACÍ PROTOKOL' : 'PREBERACÍ PROTOKOL',
+      protocol.type === 'handover'
+        ? 'ODOVZDÁVACÍ PROTOKOL'
+        : 'PREBERACÍ PROTOKOL',
       105,
       15,
       { align: 'center' }
@@ -788,9 +797,82 @@ export class EnhancedPDFGenerator {
   /**
    * Basic info pre nový systém
    */
-  private addProtocolBasicInfo(protocol: HandoverProtocol | ReturnProtocol): void {
+  private addProtocolBasicInfo(
+    protocol: HandoverProtocol | ReturnProtocol
+  ): void {
     let y = 40;
 
+    // Základné informácie
+    this.doc.setFontSize(14);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('Základné informácie', 20, y);
+    y += 10;
+
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+
+    // Protocol info
+    this.doc.text(
+      `Číslo protokolu: ${protocol.id.substring(0, 8).toUpperCase()}`,
+      20,
+      y
+    );
+    y += 6;
+    this.doc.text(
+      `Dátum vytvorenia: ${new Date(protocol.createdAt).toLocaleString('sk-SK')}`,
+      20,
+      y
+    );
+    y += 6;
+    this.doc.text(`Miesto: ${protocol.location || 'Neuvedené'}`, 20, y);
+    y += 6;
+    this.doc.text(
+      `Stav: ${protocol.status === 'completed' ? 'Dokončený' : 'Rozpracovaný'}`,
+      20,
+      y
+    );
+    y += 10;
+
+    // Informácie o prenájme
+    this.doc.setFontSize(14);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('Informácie o prenájme', 20, y);
+    y += 10;
+
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+
+    const rental = protocol.rentalData;
+    if (rental) {
+      this.doc.text(`Číslo objednávky: ${rental.orderNumber || 'N/A'}`, 20, y);
+      y += 6;
+      this.doc.text(
+        `Dátum od: ${new Date(rental.startDate).toLocaleDateString('sk-SK')}`,
+        20,
+        y
+      );
+      y += 6;
+      this.doc.text(
+        `Dátum do: ${new Date(rental.endDate).toLocaleDateString('sk-SK')}`,
+        20,
+        y
+      );
+      y += 6;
+      this.doc.text(
+        `Celková cena: ${rental.totalPrice?.toFixed(2) || '0.00'} ${rental.currency || 'EUR'}`,
+        20,
+        y
+      );
+      y += 6;
+      this.doc.text(
+        `Depozit: ${rental.deposit?.toFixed(2) || '0.00'} ${rental.currency || 'EUR'}`,
+        20,
+        y
+      );
+      y += 10;
+    }
+
+    // Informácie o vozidle
     this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text('Informácie o vozidle', 20, y);
@@ -801,9 +883,13 @@ export class EnhancedPDFGenerator {
 
     const vehicle = protocol.rentalData?.vehicle;
     if (vehicle) {
-      this.doc.text(`Vozidlo: ${vehicle.brand} ${vehicle.model}`, 20, y);
+      this.doc.text(
+        `Vozidlo: ${vehicle.brand || 'N/A'} ${vehicle.model || ''}`,
+        20,
+        y
+      );
       y += 6;
-      this.doc.text(`ŠPZ: ${vehicle.licensePlate}`, 20, y);
+      this.doc.text(`ŠPZ: ${vehicle.licensePlate || 'N/A'}`, 20, y);
       y += 6;
       if (protocol.rentalData?.vehicleVin) {
         this.doc.text(`VIN: ${protocol.rentalData.vehicleVin}`, 20, y);
@@ -812,26 +898,76 @@ export class EnhancedPDFGenerator {
     }
 
     y += 4;
-    this.doc.text(`Miesto: ${protocol.location}`, 20, y);
-    y += 6;
-    this.doc.text(
-      `Dátum: ${new Date(protocol.createdAt).toLocaleString('sk-SK')}`,
-      20,
-      y
-    );
-    y += 10;
 
-    // Vehicle condition
-    this.doc.setFontSize(12);
+    // Informácie o zákazníkovi
+    this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('Stav vozidla', 20, y);
-    y += 8;
+    this.doc.text('Informácie o zákazníkovi', 20, y);
+    y += 10;
 
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Tachometer: ${protocol.vehicleCondition.odometer} km`, 20, y);
+
+    const customer = protocol.rentalData?.customer;
+    if (customer) {
+      this.doc.text(`Meno: ${customer.name || 'N/A'}`, 20, y);
+      y += 6;
+      if (customer.email) {
+        this.doc.text(`Email: ${customer.email}`, 20, y);
+        y += 6;
+      }
+      if (customer.phone) {
+        this.doc.text(`Telefón: ${customer.phone}`, 20, y);
+        y += 6;
+      }
+    }
+
+    y += 4;
+
+    // Vehicle condition
+    this.doc.setFontSize(14);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('Stav vozidla pri prevzatí', 20, y);
+    y += 10;
+
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text(
+      `Stav tachometra: ${protocol.vehicleCondition.odometer || 0} km`,
+      20,
+      y
+    );
     y += 6;
-    this.doc.text(`Palivo: ${protocol.vehicleCondition.fuelLevel}%`, 20, y);
+    this.doc.text(
+      `Úroveň paliva: ${protocol.vehicleCondition.fuelLevel || 0}%`,
+      20,
+      y
+    );
+    y += 6;
+    this.doc.text(
+      `Exterier: ${protocol.vehicleCondition.exteriorCondition || 'Neuvedené'}`,
+      20,
+      y
+    );
+    y += 6;
+    this.doc.text(
+      `Interier: ${protocol.vehicleCondition.interiorCondition || 'Neuvedené'}`,
+      20,
+      y
+    );
+
+    if (protocol.notes) {
+      y += 10;
+      this.doc.setFontSize(12);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text('Poznámky', 20, y);
+      y += 8;
+
+      this.doc.setFontSize(10);
+      this.doc.setFont('helvetica', 'normal');
+      const lines = this.doc.splitTextToSize(protocol.notes, 170);
+      this.doc.text(lines, 20, y);
+    }
   }
 
   /**
@@ -890,7 +1026,9 @@ export class EnhancedPDFGenerator {
   /**
    * Footer pre nový systém
    */
-  private addProtocolFooter(_protocol: HandoverProtocol | ReturnProtocol): void {
+  private addProtocolFooter(
+    _protocol: HandoverProtocol | ReturnProtocol
+  ): void {
     const pageCount = this.doc.getNumberOfPages();
 
     for (let i = 1; i <= pageCount; i++) {
@@ -900,7 +1038,9 @@ export class EnhancedPDFGenerator {
       this.doc.setTextColor(128, 128, 128);
 
       // Page number
-      this.doc.text(`Strana ${i} z ${pageCount}`, 105, 285, { align: 'center' });
+      this.doc.text(`Strana ${i} z ${pageCount}`, 105, 285, {
+        align: 'center',
+      });
 
       // Generated info
       this.doc.text(

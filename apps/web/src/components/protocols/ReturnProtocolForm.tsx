@@ -39,6 +39,7 @@ import type {
 // import { getApiBaseUrl } from '../../utils/apiUrl'; // REMOVED - React Query handles API calls
 import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
+import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';
 import { logger } from '@/utils/smartLogger';
 
@@ -76,6 +77,10 @@ export default function ReturnProtocolForm({
   } | null>(null);
 
   // Retry mechanism state - REMOVED (React Query handles retries automatically)
+
+  // Gallery state
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<ProtocolImage[]>([]);
 
   // 🔧 NOVÉ: Editácia ceny za km
   const [isEditingKmRate, setIsEditingKmRate] = useState(false);
@@ -935,31 +940,78 @@ export default function ReturnProtocolForm({
             Fotodokumentácia
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setActivePhotoCapture('vehicle')}
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <PhotoCamera className="h-5 w-5" />
-              <span>Fotky vozidla ({formData.vehicleImages.length})</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setActivePhotoCapture('document')}
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <PhotoCamera className="h-5 w-5" />
-              <span>Dokumenty ({formData.documentImages.length})</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setActivePhotoCapture('damage')}
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <PhotoCamera className="h-5 w-5" />
-              <span>Poškodenia ({formData.damageImages.length})</span>
-            </Button>
+          <div className="space-y-3">
+            {/* Vehicle Photos */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setActivePhotoCapture('vehicle')}
+                className="flex-1 h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <PhotoCamera className="h-5 w-5" />
+                <span>Fotky vozidla ({formData.vehicleImages.length})</span>
+              </Button>
+              {formData.vehicleImages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setGalleryImages(formData.vehicleImages);
+                    setGalleryOpen(true);
+                  }}
+                  className="px-4"
+                >
+                  👁️ Zobraziť
+                </Button>
+              )}
+            </div>
+
+            {/* Document Photos */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setActivePhotoCapture('document')}
+                className="flex-1 h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <PhotoCamera className="h-5 w-5" />
+                <span>Dokumenty ({formData.documentImages.length})</span>
+              </Button>
+              {formData.documentImages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setGalleryImages(formData.documentImages);
+                    setGalleryOpen(true);
+                  }}
+                  className="px-4"
+                >
+                  👁️ Zobraziť
+                </Button>
+              )}
+            </div>
+
+            {/* Damage Photos */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setActivePhotoCapture('damage')}
+                className="flex-1 h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <PhotoCamera className="h-5 w-5" />
+                <span>Poškodenia ({formData.damageImages.length})</span>
+              </Button>
+              {formData.damageImages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setGalleryImages(formData.damageImages);
+                    setGalleryOpen(true);
+                  }}
+                  className="px-4"
+                >
+                  👁️ Zobraziť
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1104,6 +1156,13 @@ export default function ReturnProtocolForm({
           </div>
         </div>
       )}
+
+      {/* Protocol Gallery */}
+      <ProtocolGallery
+        images={galleryImages}
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
     </div>
   );
 }
