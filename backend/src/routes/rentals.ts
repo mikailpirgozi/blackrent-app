@@ -11,13 +11,35 @@ const router: Router = Router();
 // 🔍 CONTEXT FUNCTIONS
 const getRentalContext = async (req: Request) => {
   const rentalId = req.params.id;
-  if (!rentalId) return {};
+  if (!rentalId) {
+    console.log('🔍 getRentalContext: No rental ID');
+    return {};
+  }
   
   const rental = await postgresDatabase.getRental(rentalId);
-  if (!rental || !rental.vehicleId) return {};
+  if (!rental) {
+    console.log('🔍 getRentalContext: Rental not found:', rentalId);
+    return {};
+  }
+  
+  if (!rental.vehicleId) {
+    console.log('🔍 getRentalContext: No vehicle ID in rental:', rentalId);
+    return {};
+  }
   
   // Získaj vehicle pre company context
   const vehicle = await postgresDatabase.getVehicle(rental.vehicleId);
+  
+  console.log('🔍 getRentalContext:', {
+    rentalId,
+    vehicleId: rental.vehicleId,
+    hasVehicle: !!vehicle,
+    resourceCompanyId: vehicle?.ownerCompanyId,
+    amount: rental.totalPrice,
+    userCompanyId: req.user?.companyId,
+    userName: req.user?.username
+  });
+  
   return {
     resourceCompanyId: vehicle?.ownerCompanyId,
     amount: rental.totalPrice
@@ -559,7 +581,7 @@ router.put('/:id',
   checkPermission('rentals', 'update', { getContext: getRentalContext }),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    // console.log('🚀 RENTAL UPDATE ENDPOINT HIT - ID:', req.params.id);
+    console.log('🚀 RENTAL UPDATE ENDPOINT HIT - ID:', req.params.id, 'USER:', { username: req.user?.username, role: req.user?.role, companyId: req.user?.companyId });
     const { id } = req.params;
     const updateData = req.body;
 
