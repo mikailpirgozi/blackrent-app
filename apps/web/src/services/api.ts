@@ -76,22 +76,43 @@ class ApiService {
     try {
       const response = await fetch(url, config);
 
-      // Ak je odpoveď 401 (Unauthorized) alebo 403 (Forbidden), presmeruj na prihlásenie
+      // 🔐 SECURITY: Handle 401/403 errors intelligently
+      // Only logout on authentication endpoints, not authorization failures
       if (response.status === 401 || response.status === 403) {
-        logger.warn('Auth error - clearing storage and redirecting', {
-          status: response.status,
-        });
-        localStorage.removeItem('blackrent_token');
-        localStorage.removeItem('blackrent_user');
-        localStorage.removeItem('blackrent_remember_me');
-        sessionStorage.removeItem('blackrent_token');
-        sessionStorage.removeItem('blackrent_user');
+        const isAuthEndpoint =
+          endpoint.includes('/auth/me') || endpoint.includes('/auth/login');
 
-        // Presmeruj len ak nie sme už na login stránke
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        logger.warn('Auth error detected', {
+          status: response.status,
+          endpoint,
+          isAuthEndpoint,
+          willLogout: isAuthEndpoint,
+        });
+
+        // Only force logout for authentication endpoints (invalid token)
+        // For other endpoints, it might be authorization issue (insufficient permissions)
+        if (isAuthEndpoint) {
+          logger.warn('Invalid token - clearing storage and redirecting');
+          localStorage.removeItem('blackrent_token');
+          localStorage.removeItem('blackrent_user');
+          localStorage.removeItem('blackrent_remember_me');
+          sessionStorage.removeItem('blackrent_token');
+          sessionStorage.removeItem('blackrent_user');
+
+          // Redirect only if not already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          throw new Error('Neplatný token - presmerovanie na prihlásenie');
         }
-        throw new Error('Neplatný token - presmerovanie na prihlásenie');
+
+        // For non-auth endpoints, just throw error without logging out
+        // This allows handling authorization errors without losing session
+        const errorMessage =
+          response.status === 401
+            ? 'Nemáte platné prihlásenie pre túto akciu'
+            : 'Nemáte oprávnenie pre túto akciu';
+        throw new Error(errorMessage);
       }
 
       // Check if response has content before parsing JSON
@@ -722,19 +743,19 @@ class ApiService {
     try {
       const response = await fetch(url, config);
 
+      // 🔐 SECURITY: Handle 401/403 intelligently - don't logout on every auth error
       if (response.status === 401 || response.status === 403) {
         console.warn(
-          '🚨 Auth error:',
+          '⚠️ Auth error on protocols endpoint:',
           response.status,
-          'Clearing storage and redirecting to login'
+          '- not logging out (might be authorization issue)'
         );
-        localStorage.removeItem('blackrent_token');
-        localStorage.removeItem('blackrent_user');
-        localStorage.removeItem('blackrent_remember_me');
-        sessionStorage.removeItem('blackrent_token');
-        sessionStorage.removeItem('blackrent_user');
-        window.location.href = '/login';
-        throw new Error('Neplatný token - presmerovanie na prihlásenie');
+        // Don't logout - just throw error
+        throw new Error(
+          response.status === 401
+            ? 'Nemáte platné prihlásenie pre túto akciu'
+            : 'Nemáte oprávnenie načítať protokoly'
+        );
       }
 
       if (!response.ok) {
@@ -1793,10 +1814,13 @@ class ApiService {
     companyId: string,
     permissions: Record<string, unknown>
   ): Promise<void> {
-    return this.request<void>(`/permissions/user/${userId}/company/${companyId}`, {
-      method: 'POST',
-      body: JSON.stringify({ permissions }),
-    });
+    return this.request<void>(
+      `/permissions/user/${userId}/company/${companyId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ permissions }),
+      }
+    );
   }
 
   /**
@@ -1806,9 +1830,12 @@ class ApiService {
     userId: string,
     companyId: string
   ): Promise<void> {
-    return this.request<void>(`/permissions/user/${userId}/company/${companyId}`, {
-      method: 'DELETE',
-    });
+    return this.request<void>(
+      `/permissions/user/${userId}/company/${companyId}`,
+      {
+        method: 'DELETE',
+      }
+    );
   }
 
   /**
@@ -1823,7 +1850,10 @@ class ApiService {
    */
   async bulkSetUserPermissions(
     userId: string,
-    assignments: Array<{ companyId: string; permissions: Record<string, unknown> }>
+    assignments: Array<{
+      companyId: string;
+      permissions: Record<string, unknown>;
+    }>
   ): Promise<void> {
     return this.request<void>('/permissions/bulk', {
       method: 'POST',
