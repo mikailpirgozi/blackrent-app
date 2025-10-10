@@ -22,7 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function EnhancedUserManagement() {
   const isMobile = useMobile();
-  const { state, isSuperAdmin } = useAuth();
+  const { state } = useAuth();
   const [currentTab, setCurrentTab] = useState('users');
 
   const handleTabChange = (value: string) => {

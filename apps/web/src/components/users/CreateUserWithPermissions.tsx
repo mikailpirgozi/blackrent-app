@@ -335,6 +335,9 @@ export default function CreateUserWithPermissions({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="admin">
+                      👑 Platform Admin (úplné práva)
+                    </SelectItem>
                     <SelectItem value="company_admin">
                       🏢 Company Admin
                     </SelectItem>

@@ -1015,12 +1015,13 @@ const BasicUserManagement: React.FC = () => {
                     <SelectValue placeholder="Vyberte rolu" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="admin">👑 Platform Admin (úplné práva)</SelectItem>
+                    <SelectItem value="company_admin">🏢 Admin Firmy</SelectItem>
                     <SelectItem value="investor">💼 Investor (Read-only)</SelectItem>
                     <SelectItem value="employee">👤 Zamestnanec</SelectItem>
                     <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
                     <SelectItem value="sales_rep">💰 Obchodník</SelectItem>
                     <SelectItem value="temp_worker">⏱️ Brigádnik</SelectItem>
-                    <SelectItem value="company_admin">🏢 Admin Firmy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
