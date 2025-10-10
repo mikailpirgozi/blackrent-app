@@ -207,7 +207,7 @@ export default function Layout({ children }: LayoutProps) {
       icon: <MailIcon />,
       path: '/email-monitoring',
       resource: 'users' as const,
-      blackrentOnly: true, // ✅ Only for Blackrent platform
+      adminOnly: true, // ✅ Only for admin users
     },
   ];
 
