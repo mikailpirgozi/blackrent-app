@@ -5,7 +5,7 @@ import type { ExpenseCategory, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/expense-categories - Získanie všetkých kategórií nákladov
 router.get('/', 

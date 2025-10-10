@@ -6,7 +6,7 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Vehicle, VehicleStatus } from '../types';
 
-const router = Router();
+const router: Router = Router();
 
 // 🔍 CONTEXT FUNCTIONS
 const getVehicleContext = async (req: Request) => {

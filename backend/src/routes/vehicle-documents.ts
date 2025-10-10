@@ -8,7 +8,7 @@ import { checkPermission } from '../middleware/permissions';
 import { r2Storage } from '../utils/r2-storage';
 import { v4 as uuidv4 } from 'uuid';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/vehicle-documents - Získanie všetkých dokumentov vozidiel alebo pre konkrétne vozidlo
 router.get('/', 

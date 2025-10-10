@@ -80,7 +80,7 @@ export default function ChangePasswordForm({
       } else {
         setError(data.message || 'Chyba pri zmene hesla');
       }
-    } catch (error: unknown) {
+    } catch {
       setError('Chyba pri zmene hesla');
     } finally {
       setLoading(false);

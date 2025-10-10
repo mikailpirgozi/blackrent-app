@@ -5,7 +5,7 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, RecurringExpense } from '../types';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/recurring-expenses - Získanie všetkých pravidelných nákladov
 router.get('/', 

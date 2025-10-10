@@ -28,7 +28,7 @@ interface ParsedEmailData {
   orderNumber?: string;
 }
 
-const router = Router();
+const router: Router = Router();
 
 interface ApiResponse<T = unknown> {
   success: boolean;

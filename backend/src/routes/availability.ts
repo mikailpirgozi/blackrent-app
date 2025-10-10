@@ -6,7 +6,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse } from '../types';
 import { calculateRentalDays } from '../utils/rentalDaysCalculator';
 
-const router = Router();
+const router: Router = Router();
 
 // 🚀 FÁZA 2.4: DATA STRUCTURE OPTIMIZATION helper function
 function optimizeDataStructure(data: any): { data: any; meta: any } {

@@ -4,12 +4,11 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Shield, Building2, Users, Plus, Trash2, Edit, Check, X, Save } from 'lucide-react';
+import { Shield, Building2, Users, Trash2, Edit, Check, X, Save } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
 import { 
   Select, 
   SelectContent, 
@@ -43,7 +42,7 @@ interface PermissionManagementProps {
   userId?: string;
 }
 
-export default function PermissionManagement({ userId }: PermissionManagementProps) {
+export default function PermissionManagement({ userId: _userId }: PermissionManagementProps) {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -68,7 +67,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
       ]);
       setUsers(usersData);
       setCompanies(companiesData);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Chyba',
         description: 'Nepodarilo sa načítať dáta',
@@ -84,7 +83,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
       const access = await apiService.getUserCompanyAccess(user.id);
       setUserCompanyAccess(access as unknown as UserCompanyAccess[]);
       setSelectedUser(user);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Chyba',
         description: 'Nepodarilo sa načítať permissions',
@@ -132,7 +131,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
       // Reload permissions
       await loadUserPermissions(selectedUser);
       setEditDialogOpen(false);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Chyba',
         description: 'Nepodarilo sa uložiť permissions',
@@ -154,7 +153,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
 
       // Reload permissions
       await loadUserPermissions(selectedUser);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Chyba',
         description: 'Nepodarilo sa odstrániť prístup',
@@ -432,8 +431,8 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
                   onClick={() => {
                     // Set all read
                     const newPerms = { ...editingPermissions };
-                    Object.keys(newPerms).forEach(key => {
-                      (newPerms as any)[key].read = true;
+                    (Object.keys(newPerms) as Array<keyof CompanyPermissions>).forEach(key => {
+                      newPerms[key].read = true;
                     });
                     setEditingPermissions(newPerms);
                   }}
@@ -446,9 +445,9 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
                   onClick={() => {
                     // Set all write
                     const newPerms = { ...editingPermissions };
-                    Object.keys(newPerms).forEach(key => {
-                      (newPerms as any)[key].read = true;
-                      (newPerms as any)[key].write = true;
+                    (Object.keys(newPerms) as Array<keyof CompanyPermissions>).forEach(key => {
+                      newPerms[key].read = true;
+                      newPerms[key].write = true;
                     });
                     setEditingPermissions(newPerms);
                   }}
@@ -461,10 +460,10 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
                   onClick={() => {
                     // Set all delete
                     const newPerms = { ...editingPermissions };
-                    Object.keys(newPerms).forEach(key => {
-                      (newPerms as any)[key].read = true;
-                      (newPerms as any)[key].write = true;
-                      (newPerms as any)[key].delete = true;
+                    (Object.keys(newPerms) as Array<keyof CompanyPermissions>).forEach(key => {
+                      newPerms[key].read = true;
+                      newPerms[key].write = true;
+                      newPerms[key].delete = true;
                     });
                     setEditingPermissions(newPerms);
                   }}
@@ -477,10 +476,10 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
                   onClick={() => {
                     // Clear all
                     const newPerms = { ...editingPermissions };
-                    Object.keys(newPerms).forEach(key => {
-                      (newPerms as any)[key].read = false;
-                      (newPerms as any)[key].write = false;
-                      (newPerms as any)[key].delete = false;
+                    (Object.keys(newPerms) as Array<keyof CompanyPermissions>).forEach(key => {
+                      newPerms[key].read = false;
+                      newPerms[key].write = false;
+                      newPerms[key].delete = false;
                     });
                     setEditingPermissions(newPerms);
                   }}

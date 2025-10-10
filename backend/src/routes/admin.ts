@@ -5,7 +5,7 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import fs from 'fs';
 import path from 'path';
 
-const router = Router();
+const router: Router = Router();
 
 // 🔑 GET ADMIN TOKEN - Pre reset databázy
 router.post('/get-token', async (req: Request, res: Response) => {

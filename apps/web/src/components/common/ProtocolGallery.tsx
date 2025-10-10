@@ -134,7 +134,7 @@ export default function ProtocolGallery({
         return `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
       }
       return r2Url;
-    } catch (_error) {
+    } catch {
       return r2Url || '';
     }
   };

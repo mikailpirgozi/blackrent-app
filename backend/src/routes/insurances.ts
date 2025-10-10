@@ -5,7 +5,7 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Insurance } from '../types';
 
-const router = Router();
+const router: Router = Router();
 
 // Helper function for filtering insurances based on query parameters
 const filterInsurances = (insurances: Insurance[], query: Record<string, unknown>) => {

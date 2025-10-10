@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { cacheStatsMiddleware } from '../middleware/cache-middleware';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/cache/stats - Cache statistics (admin only)
 router.get('/stats', 

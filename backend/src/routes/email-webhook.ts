@@ -13,7 +13,7 @@ interface QueryResult {
   rowCount?: number;
 }
 
-const router = Router();
+const router: Router = Router();
 const postgresDatabase = new PostgresDatabase();
 
 // =====================================================

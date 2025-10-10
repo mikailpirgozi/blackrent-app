@@ -5,7 +5,7 @@ import type { Platform, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 
 // ============================================================================
 // 🌐 PLATFORM MANAGEMENT ROUTES

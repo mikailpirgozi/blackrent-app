@@ -5,7 +5,7 @@ import type { CompanyInvestor, CompanyInvestorShare, ApiResponse } from '../type
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/company-investors - Získanie všetkých spoluinvestorov
 router.get('/', 

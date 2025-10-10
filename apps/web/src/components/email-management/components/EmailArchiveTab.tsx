@@ -100,7 +100,7 @@ export const EmailArchiveTab: React.FC<EmailArchiveTabProps> = ({
         const result = await fetchArchivedEmails(offset, senderFilter);
         setArchivedEmails(result.emails);
         setArchivePagination(result.pagination);
-      } catch (_err) {
+      } catch {
         // Error handled by hook
       } finally {
         setArchiveLoading(false);

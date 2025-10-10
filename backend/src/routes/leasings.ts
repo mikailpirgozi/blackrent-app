@@ -67,7 +67,7 @@ const leasingFiltersSchema = z.object({
   pageSize: z.number().int().positive().max(100).default(20),
 });
 
-const router = Router();
+const router: Router = Router();
 
 // ===================================================================
 // CRUD OPERÁCIE

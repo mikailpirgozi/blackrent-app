@@ -102,7 +102,7 @@ export const EmailHistoryTab: React.FC<EmailHistoryTabProps> = ({
       setEmails(result.emails);
       setTotalEmails(result.totalEmails);
       setTotalPages(result.totalPages);
-    } catch (_err) {
+    } catch {
       // Error handled by hook
     }
   }, [fetchEmails, currentPage, statusFilter, senderFilter]);

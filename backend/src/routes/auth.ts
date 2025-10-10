@@ -34,7 +34,7 @@ interface StepResult {
   data?: Record<string, unknown>;
 }
 
-const router = Router();
+const router: Router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'blackrent-secret-key-2024';
 
 // POST /api/auth/create-admin - Dočasný endpoint na vytvorenie admin používateľa

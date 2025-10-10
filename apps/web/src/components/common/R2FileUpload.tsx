@@ -244,7 +244,7 @@ const R2FileUpload: React.FC<R2FileUploadProps> = ({
       }
 
       setUploadedFiles(prev => prev.filter(file => file.key !== fileKey));
-    } catch (_err) {
+    } catch {
       setError('Chyba pri mazaní súboru');
     }
   };

@@ -4,7 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import ImapEmailService from '../services/imap-email-service';
 
-const router = Router();
+const router: Router = Router();
 
 interface ApiResponse {
   success: boolean;

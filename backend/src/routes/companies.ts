@@ -7,7 +7,7 @@ import { checkPermission } from '../middleware/permissions';
 import { cacheResponse, userSpecificCache, invalidateCache } from '../middleware/cache-middleware';
 import { v4 as uuidv4 } from 'uuid';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/companies - Získanie všetkých firiem
 router.get('/', 

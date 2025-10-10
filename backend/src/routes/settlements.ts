@@ -5,7 +5,7 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Settlement } from '../types';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/settlements - Získanie všetkých vyúčtovaní
 router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Settlement[]>>) => {

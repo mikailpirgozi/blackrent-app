@@ -16,7 +16,6 @@ import {
   Mail as MailIcon,
   Receipt as ReceiptLongOutlined,
   Shield as SecurityOutlined,
-  Shield,
   CreditCard as CreditCardIcon,
   Building2 as Building2Icon,
 } from 'lucide-react';
@@ -48,6 +47,30 @@ import ChangePasswordForm from './auth/ChangePasswordForm';
 import { EnhancedErrorToast } from './common/EnhancedErrorToast';
 import MobileDebugPanel from './common/MobileDebugPanel';
 import RealTimeNotifications from './common/RealTimeNotifications';
+
+interface MenuItem {
+  text: string;
+  icon: React.ReactNode;
+  path: string;
+  resource:
+    | 'vehicles'
+    | 'rentals'
+    | 'customers'
+    | 'finances'
+    | 'users'
+    | 'companies'
+    | 'maintenance'
+    | 'protocols'
+    | 'pricing'
+    | 'expenses'
+    | 'insurances'
+    | 'platforms'
+    | 'statistics'
+    | '*';
+  superAdminOnly?: boolean;
+  adminOnly?: boolean;
+  blackrentOnly?: boolean;
+}
 import { SuccessToast } from './common/SuccessToast';
 import UserProfile from './users/UserProfile';
 
@@ -105,7 +128,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   // Pôvodné menu položky ako v backup verzii
-  const allMenuItems = [
+  const allMenuItems: MenuItem[] = [
     {
       text: 'Dashboard',
       icon: <DashboardOutlined />,
@@ -197,7 +220,7 @@ export default function Layout({ children }: LayoutProps) {
     const isAdminUser = user?.role === 'admin' || user?.role === 'super_admin';
 
     // ✅ Check blackrentOnly flag - hide for non-Blackrent platforms
-    if ((item as any).blackrentOnly) {
+    if (item.blackrentOnly) {
       // Super admin sees everything
       if (user?.role === 'super_admin') {
         return true;
@@ -211,12 +234,12 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     // Check superAdminOnly flag NAJPRV (admin a super_admin majú prístup)
-    if ((item as any).superAdminOnly) {
+    if (item.superAdminOnly) {
       return isAdminUser;
     }
 
     // Check adminOnly flag
-    if ((item as any).adminOnly) {
+    if (item.adminOnly) {
       return isAdminUser;
     }
 

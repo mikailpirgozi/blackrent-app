@@ -14,7 +14,7 @@ interface QueryResult {
   rowCount?: number;
 }
 
-const router = Router();
+const router: Router = Router();
 
 // ✅ FÁZA 1.1: Helper funkcia pre timezone-safe date formatting
 const formatExpenseDate = (expense: Expense): Expense => ({

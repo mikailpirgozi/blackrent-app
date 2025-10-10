@@ -19,7 +19,6 @@ import {
   useCompanies,
   useCreateCompany,
 } from '@/lib/react-query/hooks/useCompanies';
-import { useExpenses } from '@/lib/react-query/hooks/useExpenses';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import type { Expense, ExpenseCategory } from '../../types';
 // ✅ FIX: Import timezone-safe date utilities
@@ -43,7 +42,6 @@ export default function ExpenseForm({
   // ✅ MIGRATED: React Query hooks instead of AppContext
   const { data: companies = [] } = useCompanies();
   const { data: vehicles = [] } = useVehicles();
-  const { data: expenses = [] } = useExpenses();
 
   // ✅ FIX: Toast notifications
   const toastNotify = useExpenseToast();

@@ -4,7 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse } from '../types';
 
-const router = Router();
+const router: Router = Router();
 
 // ⚡ BULK DATA ENDPOINT - Načíta všetky dáta jedným requestom
 router.get('/data', 

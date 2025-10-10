@@ -5,7 +5,7 @@ import type { Insurer, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/insurers - Získanie všetkých poisťovní
 router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<Insurer[]>>) => {

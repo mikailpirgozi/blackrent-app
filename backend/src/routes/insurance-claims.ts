@@ -4,7 +4,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import type { InsuranceClaim, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/insurance-claims - Získanie všetkých poistných udalostí
 router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<InsuranceClaim[]>>) => {

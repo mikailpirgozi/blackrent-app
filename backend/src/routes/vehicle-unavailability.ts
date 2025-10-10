@@ -5,7 +5,7 @@ import type { VehicleUnavailability, ApiResponse } from '../types';
 import { authenticateToken } from '../middleware/auth';
 import { invalidateRelatedCache } from '../utils/cache-service';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/vehicle-unavailability - Získanie všetkých nedostupností
 router.get('/', authenticateToken, async (req: Request, res: Response<ApiResponse<VehicleUnavailability[]>>) => {

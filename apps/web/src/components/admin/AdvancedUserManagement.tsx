@@ -319,7 +319,7 @@ const AdvancedUserManagement: React.FC = () => {
       } else {
         setCompanies([]);
       }
-    } catch (_error) {
+    } catch {
       console.warn('Chyba pri načítavaní firiem');
       setCompanies([]);
     }
@@ -342,7 +342,7 @@ const AdvancedUserManagement: React.FC = () => {
       } else {
         setUserPermissions([]);
       }
-    } catch (_error) {
+    } catch {
       setUserPermissions([]);
     }
   };
@@ -447,8 +447,8 @@ const AdvancedUserManagement: React.FC = () => {
           await loadActivityLog();
           break;
       }
-    } catch (_error) {
-      console.error('Error loading data:', error);
+    } catch (err) {
+      console.error('Error loading data:', err);
       setError('Chyba pri načítavaní dát');
     } finally {
       setLoading(false);
@@ -492,7 +492,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní používateľa');
       }
-    } catch (_error) {
+    } catch {
       setError('Chyba pri vytváraní používateľa');
     }
   };
@@ -516,7 +516,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní role');
       }
-    } catch (_error) {
+    } catch {
       setError('Chyba pri vytváraní role');
     }
   };
@@ -543,7 +543,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní oddelenia');
       }
-    } catch (_error) {
+    } catch {
       setError('Chyba pri vytváraní oddelenia');
     }
   };
@@ -567,7 +567,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri vytváraní tímu');
       }
-    } catch (_error) {
+    } catch {
       setError('Chyba pri vytváraní tímu');
     }
   };
@@ -648,7 +648,8 @@ const AdvancedUserManagement: React.FC = () => {
         } catch (permError) {
           console.warn(
             'Chyba pri ukladaní oprávnení pre firmu:',
-            permission.companyName
+            permission.companyName,
+            permError
           );
         }
       }
@@ -657,7 +658,7 @@ const AdvancedUserManagement: React.FC = () => {
       setEditingUser(null);
       setUserPermissions([]);
       await loadUsers(); // Reload users to show changes
-    } catch (_error) {
+    } catch {
       setError('Chyba pri úprave používateľa');
     }
   };
@@ -695,7 +696,7 @@ const AdvancedUserManagement: React.FC = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Chyba pri deaktivácii používateľa');
       }
-    } catch (_error) {
+    } catch {
       setError('Chyba pri deaktivácii používateľa');
     }
   };

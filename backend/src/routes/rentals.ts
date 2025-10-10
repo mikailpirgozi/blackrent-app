@@ -6,7 +6,7 @@ import { postgresDatabase } from '../models/postgres-database';
 import { getWebSocketService } from '../services/websocket-service';
 import type { ApiResponse, Rental } from '../types';
 
-const router = Router();
+const router: Router = Router();
 
 // 🔍 CONTEXT FUNCTIONS
 const getRentalContext = async (req: Request) => {
