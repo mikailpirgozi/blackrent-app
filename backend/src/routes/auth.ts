@@ -691,15 +691,21 @@ router.get('/users', authenticateToken, requireRole(['admin', 'super_admin', 'co
   try {
     let users = await postgresDatabase.getUsers();
     
-    // ✅ PLATFORM FILTERING: Admin a Company Admin vidia len userov zo svojej platformy
-    if ((req.user?.role === 'admin' || req.user?.role === 'company_admin') && req.user.platformId) {
+    // ✅ PLATFORM FILTERING: 
+    // - 'admin' (Platform Admin) vidí VŠETKÝCH používateľov (žiadny filter)
+    // - 'company_admin' vidí len userov zo svojej platformy
+    if (req.user?.role === 'company_admin' && req.user.platformId) {
       const originalCount = users.length;
       users = users.filter(u => u.platformId === req.user?.platformId);
-      console.log('🌐 Admin/Company Admin Platform Filter (users):', {
+      console.log('🌐 Company Admin Platform Filter (users):', {
         userRole: req.user.role,
         userPlatformId: req.user.platformId,
         originalCount,
         filteredCount: users.length
+      });
+    } else if (req.user?.role === 'admin') {
+      console.log('👑 Platform Admin - viewing ALL users:', {
+        totalUsers: users.length
       });
     }
     
