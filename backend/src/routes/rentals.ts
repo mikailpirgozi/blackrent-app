@@ -116,24 +116,36 @@ router.get('/',
       // console.log('🚀 CLEAN: Rentals already have company field from database');
       
       // 🔐 PERMISSION FILTERING - Apply company-based filtering for non-admin users
-      if (req.user?.role !== 'admin' && req.user) {
+      if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
         const user = req.user; // TypeScript safe assignment
         
-        // Získaj company access pre používateľa
-        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
-        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        let allowedCompanyIds: string[] = [];
+        let validCompanyNames: (string | null)[] = [];
         
-        // Get allowed company names once
-        const allowedCompanyNames = await Promise.all(
-          allowedCompanyIds.map(async (companyId) => {
-            try {
-              return await postgresDatabase.getCompanyNameById(companyId);
-            } catch (error) {
-              return null;
-            }
-          })
-        );
-        const validCompanyNames = allowedCompanyNames.filter(name => name !== null);
+        // ✅ PLATFORM FILTERING: Company admin with platformId sees all platform companies
+        if (user.role === 'company_admin' && user.platformId) {
+          console.log('🌐 RENTALS: Company admin - filtering by platform:', user.platformId);
+          const companies = await postgresDatabase.getCompanies();
+          const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+          allowedCompanyIds = platformCompanies.map(c => c.id);
+          validCompanyNames = platformCompanies.map(c => c.name);
+        } else {
+          // Získaj company access pre používateľa
+          const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+          allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+          
+          // Get allowed company names once
+          const allowedCompanyNames = await Promise.all(
+            allowedCompanyIds.map(async (companyId) => {
+              try {
+                return await postgresDatabase.getCompanyNameById(companyId);
+              } catch (error) {
+                return null;
+              }
+            })
+          );
+          validCompanyNames = allowedCompanyNames.filter(name => name !== null);
+        }
         
         // Filter rentals based on (now corrected) historical ownership
         rentals = rentals.filter(rental => {

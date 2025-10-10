@@ -18,7 +18,8 @@ export interface CreateUserData {
   firstName: string;
   lastName: string;
   role: string;
-  companyId?: string;
+  platformId: string; // ← POVINNÉ
+  linkedInvestorId?: string; // ← Pre investor rolu
   permissions?: string[];
 }
 
@@ -29,7 +30,8 @@ export interface UpdateUserData {
   firstName?: string;
   lastName?: string;
   role?: string;
-  companyId?: string;
+  platformId?: string;
+  linkedInvestorId?: string;
   permissions?: string[];
   isActive?: boolean;
 }
@@ -59,8 +61,8 @@ export function useUsers(filters?: UserFilters) {
 
       return data.filter(user => {
         if (filters.role && user.role !== filters.role) return false;
-        if (filters.companyId && user.companyId !== filters.companyId)
-          return false;
+        if (filters.companyId && user.platformId !== filters.companyId)
+          return false; // Note: filtering by platformId now
         if (filters.status && user.isActive !== (filters.status === 'active'))
           return false;
         if (filters.search) {
@@ -87,13 +89,13 @@ export function useUser(id: string) {
   });
 }
 
-// GET users by company
-export function useUsersByCompany(companyId: string) {
+// GET users by platform
+export function useUsersByPlatform(platformId: string) {
   return useQuery({
-    queryKey: queryKeys.users.byCompany(companyId),
-    queryFn: () => apiService.getUsers({ companyId }),
-    enabled: !!companyId,
-    select: (data: User[]) => data.filter(user => user.companyId === companyId),
+    queryKey: queryKeys.users.byCompany(platformId), // keeping same key for compatibility
+    queryFn: () => apiService.getUsers({ companyId: platformId }), // keeping same param for compatibility
+    enabled: !!platformId,
+    select: (data: User[]) => data.filter(user => user.platformId === platformId),
   });
 }
 

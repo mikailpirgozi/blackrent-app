@@ -67,18 +67,31 @@ router.get('/data',
           insuranceClaims
         };
 
-        if (user.role !== 'admin') {
+        if (user.role !== 'admin' && user.role !== 'super_admin') {
           console.log('🔐 BULK: Applying permission filtering...');
           const filterStart = Date.now();
           
-          // Get user permissions once (should be cached from Phase 2 optimization)
-          const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
-          const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
-          const allowedCompanyNames = userCompanyAccess.map(access => access.companyName);
+          let allowedCompanyIds: string[] = [];
+          let allowedCompanyNames: string[] = [];
+          
+          // ✅ PLATFORM FILTERING: Company admin with platformId sees all platform companies
+          if (user.role === 'company_admin' && user.platformId) {
+            console.log('🌐 BULK: Company admin - filtering by platform:', user.platformId);
+            const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+            allowedCompanyIds = platformCompanies.map(c => c.id);
+            allowedCompanyNames = platformCompanies.map(c => c.name);
+          } else {
+            // Get user permissions once (should be cached from Phase 2 optimization)
+            const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+            allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+            allowedCompanyNames = userCompanyAccess.map(access => access.companyName);
+          }
           
           console.log('🔐 BULK: User access:', {
             allowedCompanyIds: allowedCompanyIds.length,
-            allowedCompanyNames: allowedCompanyNames.length
+            allowedCompanyNames: allowedCompanyNames.length,
+            userRole: user.role,
+            platformId: user.platformId
           });
 
           // Filter data based on permissions

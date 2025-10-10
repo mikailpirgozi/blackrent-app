@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -53,11 +54,10 @@ export default function PlatformManagementDashboard() {
     subdomain: '',
   });
 
-  // 🛡️ SECURITY: Only super_admin or admin can access (AFTER ALL HOOKS)
-  const isAdmin =
-    state.user?.role === 'admin' || state.user?.role === 'super_admin';
+  // 🛡️ SECURITY: Only super_admin can access (AFTER ALL HOOKS)
+  // isSuperAdmin is already provided by useAuth() hook
 
-  if (!isAdmin) {
+  if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Card className="p-6">
@@ -175,6 +175,9 @@ export default function PlatformManagementDashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Vytvor novú platformu</DialogTitle>
+            <DialogDescription>
+              Vytvor novú platformu pre správu autopožičovní
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -233,6 +236,9 @@ export default function PlatformManagementDashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Uprav platformu</DialogTitle>
+            <DialogDescription>
+              Uprav údaje existujúcej platformy
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>

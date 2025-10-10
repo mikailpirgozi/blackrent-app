@@ -71,8 +71,7 @@ export default function CreateUserWithPermissions({
     customers: { read: true, write: false, delete: false },
     insurances: { read: true, write: false, delete: false },
     maintenance: { read: true, write: false, delete: false },
-    protocols: { read: true, write: false, delete: false },
-    statistics: { read: true, write: false, delete: false }
+    protocols: { read: true, write: false, delete: false }
   });
 
   // Load companies
@@ -93,8 +92,7 @@ export default function CreateUserWithPermissions({
         customers: { read: true, write: true, delete: true },
         insurances: { read: true, write: true, delete: true },
         maintenance: { read: true, write: true, delete: true },
-        protocols: { read: true, write: true, delete: true },
-        statistics: { read: true, write: true, delete: true }
+        protocols: { read: true, write: true, delete: true }
       });
     } else if (formData.role === 'investor') {
       setPermissions({
@@ -105,8 +103,7 @@ export default function CreateUserWithPermissions({
         customers: { read: true, write: false, delete: false },
         insurances: { read: true, write: false, delete: false },
         maintenance: { read: true, write: false, delete: false },
-        protocols: { read: true, write: false, delete: false },
-        statistics: { read: true, write: false, delete: false }
+        protocols: { read: true, write: false, delete: false }
       });
     } else if (formData.role === 'employee') {
       setPermissions({
@@ -117,8 +114,7 @@ export default function CreateUserWithPermissions({
         customers: { read: true, write: true, delete: false },
         insurances: { read: true, write: false, delete: false },
         maintenance: { read: true, write: true, delete: false },
-        protocols: { read: true, write: true, delete: false },
-        statistics: { read: true, write: false, delete: false }
+        protocols: { read: true, write: true, delete: false }
       });
     }
   }, [formData.role]);
@@ -172,12 +168,10 @@ export default function CreateUserWithPermissions({
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        firstName: formData.firstName || undefined,
-        lastName: formData.lastName || undefined,
+        firstName: formData.firstName || '',
+        lastName: formData.lastName || '',
         role: formData.role,
         companyId: formData.companyId || undefined,
-        employeeNumber: formData.employeeNumber || undefined,
-        isActive: true,
       });
 
       // Assign permissions if needed
@@ -186,7 +180,7 @@ export default function CreateUserWithPermissions({
         
         if (userId) {
           for (const companyId of selectedCompanies) {
-            await apiService.setUserCompanyPermission(userId, companyId, permissions);
+            await apiService.setUserCompanyPermission(userId, companyId, permissions as unknown as Record<string, unknown>);
           }
         }
       }
@@ -226,6 +220,8 @@ export default function CreateUserWithPermissions({
   const roleDescriptions: Record<UserRole, string> = {
     admin: 'Plné práva na všetko (legacy)',
     super_admin: 'Plné práva na všetky firmy',
+    platform_admin: 'Platform administrator',
+    platform_employee: 'Platform employee',
     company_admin: 'Admin konkrétnej firmy',
     investor: 'Majiteľ firmy (read-only)',
     employee: 'Zamestnanec s prispôsobiteľnými právami',

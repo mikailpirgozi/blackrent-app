@@ -14,21 +14,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
-        run: |
-          curl -fsSL https://railway.app/install.sh | sh
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Run Railway Backup
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          PGHOST: ${{ secrets.PGHOST }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPORT: ${{ secrets.PGPORT }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           cd scripts/backup
-          railway link 38dbf675-5b8e-489d-b1e0-e727883208ce
-          railway run node railway-cron-backup.js
+          npm ci --production
+          node railway-cron-backup.js
 
       - name: Backup Status
+        if: success()
         run: |
           echo "✅ Daily backup completed successfully!"
           echo "📅 Date: $(date)"
           echo "🔗 Check R2 Storage for backup files"
+      
+      - name: Backup Failed
+        if: failure()
+        run: |
+          echo "❌ Daily backup failed!"
+          echo "📅 Date: $(date)"
+          echo "🔍 Check logs above for details"

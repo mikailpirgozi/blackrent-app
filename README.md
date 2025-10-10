@@ -1,56 +1,70 @@
-# Blackrent - Systém pre správu prenájmov vozidiel
+# 🚗 BlackRent - Systém pre správu prenájmov vozidiel
 
-## Popis
+> **Profesionálny autopožičovňa management systém**
 
-Blackrent je webová aplikácia pre správu prenájmov vozidiel s backend API a frontend React aplikáciou. Systém umožňuje správu vozidiel, prenájmov, zákazníkov, nákladov a poistiek.
+BlackRent je komplexná webová aplikácia pre správu prenájmov vozidiel s pokročilým backend API a moderným React frontend. Systém umožňuje správu vozidiel, prenájmov, zákazníkov, nákladov, poistiek, protokolov a multi-tenancy platform management.
 
-## Architektúra
+## 📚 Dokumentácia
 
-- **Frontend**: React + TypeScript + Material-UI
-- **Backend**: Node.js + Express + TypeScript + SQLite
-- **Databáza**: SQLite (pre jednoduchosť, možno nahradiť PostgreSQL/MySQL)
+**Kompletná dokumentácia je dostupná tu: [DOCUMENTATION.md](./DOCUMENTATION.md)**
 
-## Inštalácia a spustenie
+### Quick Links
+- 🚀 [Getting Started](./docs/01-getting-started/README.md)
+- 📖 [Kompletný Dokumentačný Index](./docs/README.md)
+- 🏗️ [Architecture Overview](./docs/architecture/ARCHITECTURE.md)
+- 🚀 [Deployment Guide](./docs/deployment/DEPLOYMENT-GUIDE.md)
+- 🔧 [Diagnostics Guide](./docs/diagnostics/DIAGNOSTICS-GUIDE.md)
 
-### Backend
+## 🏗️ Architektúra
 
-1. Prejdite do priečinka backend:
+- **Frontend**: React + TypeScript + shadcn/ui (migrované z Material-UI)
+- **Backend**: Node.js + Express + TypeScript
+- **Databáza**: PostgreSQL (Railway)
+- **Storage**: Cloudflare R2
+- **Email**: SMTP/IMAP (Active24)
+- **Deployment**: Railway (backend) + Vercel (frontend)
+
+## 🚀 Quick Start
+
+### Kompletná Inštalácia
+
 ```bash
-cd backend
+# 1. Nainštaluj dependencies (pnpm only)
+pnpm install
+
+# 2. Setup environment (.env súbory)
+# Skopíruj .env.example a vyplň hodnoty
+
+# 3. Spusti aplikáciu
+npm run dev:start
 ```
 
-2. Nainštalujte závislosti:
+**Frontend:** http://localhost:3000  
+**Backend:** http://localhost:3001
+
+### Užitočné Príkazy
+
 ```bash
-npm install
+# Development
+npm run dev:start      # Spustiť celú aplikáciu
+npm run dev:stop       # Zastaviť aplikáciu
+npm run dev:restart    # Reštartovať aplikáciu
+
+# Diagnostics
+npm run health         # Health check
+npm run fix            # Auto-fix problémov
+npm run diagnose       # Interaktívna diagnostika
+
+# Testing
+npm run test           # Spustiť testy
+npm run test:ui        # Test UI
+
+# Build
+npm run build          # Build frontend
+cd backend && npm run build  # Build backend
 ```
 
-3. Vytvorte .env súbor:
-```bash
-PORT=5000
-NODE_ENV=development
-JWT_SECRET=blackrent-super-secret-key-change-in-production
-```
-
-4. Spustite vývojový server:
-```bash
-npm run dev
-```
-
-Backend bude dostupný na `http://localhost:5000`
-
-### Frontend
-
-1. V koreňovom priečinku projektu:
-```bash
-npm install
-```
-
-2. Spustite vývojový server:
-```bash
-npm start
-```
-
-Frontend bude dostupný na `http://localhost:3000`
+**Viac info:** [Getting Started Guide](./docs/01-getting-started/QUICK-START.md)
 
 ## API Endpoints
 
@@ -71,27 +85,56 @@ Frontend bude dostupný na `http://localhost:3000`
 ### Health Check
 - `GET /health` - Kontrola funkčnosti API
 
-## Funkcie
+## ✨ Hlavné Features
 
-### Frontend
-- ✅ Správa vozidiel (pridávanie, úprava, mazanie)
+### 🚗 Vozidlá & Prenájmy
+- ✅ Kompletná správa vozidiel
 - ✅ Správa prenájmov s automatickými výpočtami
-- ✅ Správa zákazníkov
-- ✅ Správa nákladov
-- ✅ Správa poistiek
-- ✅ Vyúčtovania a štatistiky
-- ✅ Import/Export CSV s ISO 8601 dátumami
-- ✅ Responzívny dizajn pre mobilné zariadenia
-- ✅ Filtrovanie a triedenie prenájmov
-- ✅ Automatické ukladanie do localStorage (zatiaľ)
+- ✅ Availability tracking
+- ✅ Clone rental funkcionalita
+- ✅ Smart priority sorting
 
-### Backend
-- ✅ RESTful API
-- ✅ SQLite databáza
-- ✅ TypeScript podpora
-- ✅ CORS podpora
-- ✅ Error handling
-- ✅ Logging
+### 👥 Zákazníci & Platformy
+- ✅ Správa zákazníkov
+- ✅ Multi-tenancy platform management
+- ✅ Company isolation
+- ✅ Platform statistics
+
+### 📄 Protokoly V2
+- ✅ Digital handover/return protocols
+- ✅ 5 kategórií fotiek (vehicle, document, damage, odometer, fuel)
+- ✅ Digitálne podpisy (employee + customer)
+- ✅ Automatické PDF generovanie
+- ✅ Cloudflare R2 storage
+- ✅ Real-time progress tracking
+
+### 💰 Financie & Štatistiky
+- ✅ Správa nákladov a poistiek
+- ✅ Leasing systém
+- ✅ Vyúčtovania (settlements)
+- ✅ Detailné štatistiky
+- ✅ Financial reports
+
+### 📧 Email Systém
+- ✅ SMTP/IMAP integrácia
+- ✅ Automatické notifikácie
+- ✅ Protocol doručovanie
+- ✅ Email monitoring
+
+### 🔐 Security & Permissions
+- ✅ JWT Authentication
+- ✅ Role-based permissions
+- ✅ Company isolation (RLS)
+- ✅ Audit logging
+
+### 🎨 UI/UX
+- ✅ Modern shadcn/ui components
+- ✅ Dark/Light mode
+- ✅ Responzívny dizajn
+- ✅ Enhanced filters & search
+- ✅ Real-time updates (WebSocket)
+
+**Viac info:** [Features Documentation](./docs/features/)
 
 ## Databáza
 
@@ -148,24 +191,64 @@ npm run build
 
 2. Nasajte obsah `build` priečinka na webový server
 
-## Prípadné vylepšenia
+## 🔮 Budúce Vylepšenia
 
-- [ ] Autentifikácia a autorizácia (JWT)
-- [ ] PostgreSQL/MySQL databáza
-- [ ] Docker kontajnerizácia
-- [ ] Unit testy
-- [ ] E-mail notifikácie
-- [ ] PDF reporty
-- [ ] Real-time notifikácie (WebSocket)
-- [ ] Backup a restore databázy
-- [ ] API dokumentácia (Swagger)
+### V Pláne
+- [ ] Customer website (blackrent.sk)
+- [ ] Owner portal (multi-tenant booking platform)
+- [ ] Mobile app (React Native)
+- [ ] Advanced analytics dashboard
+- [ ] AI-powered chat support
+- [ ] Automatic damage detection (AI)
+- [ ] Integration s účtovníctvom
 
-## Podpora
+### V Úvahe
+- [ ] Multi-language support
+- [ ] White-label solutions
+- [ ] Fleet optimization algorithms
+- [ ] Predictive maintenance
+- [ ] Blockchain-based verification
 
-Pre otázky a problémy vytvorte issue v GitHub repozitári.
-# Force Railway redeploy
-# Force Vercel redeploy Thu Jul 31 11:22:56 CEST 2025
-# Trigger Vercel deployment
-# Force cache bust Fri Oct  3 04:10:35 CEST 2025
-# Force Vercel redeploy Fri Oct  3 04:19:37 CEST 2025
-# Trigger deployment with R2 URL 04:53:54
+**Viac info:** [Implementation Plans](./docs/04-implementation-plans/)
+
+---
+
+## 📊 Project Statistics
+
+- **Lines of Code:** 50,000+
+- **Features Implemented:** 100+
+- **Documentation Pages:** 150+
+- **Test Coverage:** Improving
+- **Active Development:** ✅
+
+---
+
+## 🤝 Contributing
+
+Pre príspevky k projektu:
+1. Prečítaj [Development Workflow](./docs/setup/DEVELOPMENT-WORKFLOW.md)
+2. Skontroluj [Architecture Guide](./docs/architecture/ARCHITECTURE.md)
+3. Dodržuj [TypeScript Best Practices](./docs/architecture/TYPESCRIPT_BEST_PRACTICES.md)
+
+---
+
+## 📞 Podpora
+
+### Pri Problémoch
+1. [Diagnostics Guide](./docs/diagnostics/DIAGNOSTICS-GUIDE.md)
+2. Spusti `npm run diagnose`
+3. Pozri [Fixes & Bugs](./docs/08-fixes-and-bugs/)
+
+### Pre Otázky
+- Vytvor issue v GitHub repository
+- Alebo kontaktuj project maintainera
+
+---
+
+## 📄 Licencia
+
+Proprietary - BlackRent © 2025
+
+---
+
+**Made with ❤️ for efficient car rental management**

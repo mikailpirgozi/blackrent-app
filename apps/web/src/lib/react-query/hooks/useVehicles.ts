@@ -173,17 +173,19 @@ export function useUpdateVehicle() {
         );
       }
     },
-    onSuccess: data => {
+    onSuccess: (data: void | Vehicle) => {
       // ✅ OPTIMIZED: Update cache directly with real data
-      queryClient.setQueryData(
-        queryKeys.vehicles.detail(data.id),
-        data
-      );
-      queryClient.setQueryData(
-        queryKeys.vehicles.lists(),
-        (old: Vehicle[] = []) =>
-          old.map(v => (v.id === data.id ? data : v))
-      );
+      if (data && typeof data === 'object' && 'id' in data) {
+        queryClient.setQueryData(
+          queryKeys.vehicles.detail(data.id),
+          data
+        );
+        queryClient.setQueryData(
+          queryKeys.vehicles.lists(),
+          (old: Vehicle[] = []) =>
+            old.map(v => (v.id === data.id ? data : v))
+        );
+      }
 
       // Trigger WebSocket notification (background)
       window.dispatchEvent(

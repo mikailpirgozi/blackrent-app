@@ -52,18 +52,7 @@ import {
   type CreateUserData,
   type UpdateUserData,
 } from '../../lib/react-query/hooks/useUsers';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
-  firstName?: string;
-  lastName?: string;
-  isActive: boolean;
-  lastLogin?: string;
-  createdAt: string;
-}
+import type { User } from '@/types';
 
 const BasicUserManagement: React.FC = () => {
   const { state } = useAuth();
@@ -113,7 +102,11 @@ const BasicUserManagement: React.FC = () => {
   const [investors, setInvestors] = useState<Record<string, unknown>[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
   
-  // Companies for dropdown
+  // Platforms for dropdown
+  const [platforms, setPlatforms] = useState<Record<string, unknown>[]>([]);
+  const [loadingPlatforms, setLoadingPlatforms] = useState(false);
+  
+  // Companies for dropdown (still needed for displaying company info)
   const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
 
@@ -126,9 +119,9 @@ const BasicUserManagement: React.FC = () => {
     password: '',
     firstName: '',
     lastName: '',
-    role: 'user',
-    linkedInvestorId: 'none',
-    companyId: '',
+    role: 'employee',
+    platformId: '', // ← Nové (namiesto companyId)
+    linkedInvestorId: '', // ← Pre investor (upravené z 'none')
   });
 
   // API Base URL helper
@@ -190,6 +183,32 @@ const BasicUserManagement: React.FC = () => {
     }
   }, [getAuthToken]);
 
+  const loadPlatforms = useCallback(async () => {
+    try {
+      setLoadingPlatforms(true);
+      const response = await fetch(`${getApiBaseUrl()}/platforms`, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const platformsList = data.data || [];
+        setPlatforms(platformsList);
+        logger.debug('🌐 Loaded platforms:', platformsList.length);
+      } else {
+        console.warn('Failed to load platforms:', response.status);
+        setPlatforms([]);
+      }
+    } catch (error) {
+      console.warn('Error loading platforms:', error);
+      setPlatforms([]);
+    } finally {
+      setLoadingPlatforms(false);
+    }
+  }, [getAuthToken]);
+
   const loadCompanies = useCallback(async () => {
     try {
       setLoadingCompanies(true);
@@ -219,9 +238,17 @@ const BasicUserManagement: React.FC = () => {
   useEffect(() => {
     refetchUsers();
     loadInvestors();
+    loadPlatforms();
     loadCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
+  
+  // Auto-set platform for admin users
+  useEffect(() => {
+    if (state.user?.role === 'admin' && state.user?.platformId) {
+      setUserForm(prev => ({ ...prev, platformId: state.user?.platformId as string }));
+    }
+  }, [state.user]);
 
   // Track prihlásenie aktuálneho používateľa
   useEffect(() => {
@@ -253,6 +280,22 @@ const BasicUserManagement: React.FC = () => {
       return;
     }
 
+    // Validate platformId
+    if (!userForm.platformId) {
+      const errorMsg = 'Platforma je povinná';
+      console.error('❌ Validation failed:', errorMsg);
+      setError(errorMsg);
+      return;
+    }
+
+    // Validate linkedInvestorId for investor role
+    if (userForm.role === 'investor' && !userForm.linkedInvestorId) {
+      const errorMsg = 'Pre investor rolu musíte vybrať spoluinvestora';
+      console.error('❌ Validation failed:', errorMsg);
+      setError(errorMsg);
+      return;
+    }
+
     // Creating state is handled by React Query mutation
     setError(null);
 
@@ -264,7 +307,8 @@ const BasicUserManagement: React.FC = () => {
         firstName: userForm.firstName,
         lastName: userForm.lastName,
         role: userForm.role,
-        companyId: userForm.companyId,
+        platformId: userForm.platformId, // ← POVINNÉ
+        linkedInvestorId: userForm.role === 'investor' ? userForm.linkedInvestorId : undefined,
       };
 
       await createUserMutation.mutateAsync(createUserData);
@@ -290,10 +334,8 @@ const BasicUserManagement: React.FC = () => {
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       role: user.role,
-      linkedInvestorId: 'none', // Pre edit dialog nepovoľujeme zmenu investora
-      companyId:
-        ((user as unknown as Record<string, unknown>).companyId as string) ||
-        '',
+      platformId: user.platformId || '',
+      linkedInvestorId: user.linkedInvestorId || '',
     });
     setEditDialogOpen(true);
   };
@@ -309,7 +351,8 @@ const BasicUserManagement: React.FC = () => {
         firstName: userForm.firstName,
         lastName: userForm.lastName,
         role: userForm.role,
-        companyId: userForm.companyId,
+        platformId: userForm.platformId,
+        linkedInvestorId: userForm.linkedInvestorId,
       };
 
       // Only include password if it's provided
@@ -346,15 +389,20 @@ const BasicUserManagement: React.FC = () => {
   };
 
   const resetUserForm = () => {
+    // Auto-set platform for admin users
+    const defaultPlatformId = state.user?.role === 'admin' && state.user?.platformId 
+      ? state.user?.platformId 
+      : '';
+      
     setUserForm({
       username: '',
       email: '',
       password: '',
       firstName: '',
       lastName: '',
-      role: 'user',
-      linkedInvestorId: 'none',
-      companyId: '',
+      role: 'employee',
+      platformId: defaultPlatformId,
+      linkedInvestorId: '',
     });
   };
 
@@ -472,7 +520,7 @@ const BasicUserManagement: React.FC = () => {
       if (diffInMinutes < 10080)
         return `Pred ${Math.round(diffInMinutes / 1440)} dňami`;
 
-      return formatDate(lastLoginData, 'dd.MM.yyyy HH:mm', 'Neznámy');
+      return formatDate(lastLoginData instanceof Date ? lastLoginData.toISOString() : lastLoginData, 'dd.MM.yyyy HH:mm', 'Neznámy');
     } catch (_error) {
       return 'Chyba dát';
     }
@@ -566,6 +614,12 @@ const BasicUserManagement: React.FC = () => {
             >
               {getRoleLabel(user.role)}
             </Badge>
+            {/* Platform Badge */}
+            {user.platformId && (
+              <Badge variant="secondary" className="text-xs">
+                🌐 {platforms.find((p: Record<string, unknown>) => p.id === user.platformId)?.name as string || 'Unknown'}
+              </Badge>
+            )}
             <Badge
               variant={user.isActive ? 'default' : 'destructive'}
               className="text-xs"
@@ -596,7 +650,7 @@ const BasicUserManagement: React.FC = () => {
                 Vytvorený:
               </Typography>
               <Typography className="text-sm">
-                {formatDate(user.createdAt, 'dd.MM.yyyy', 'Neznámy')}
+                {formatDate(user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt, 'dd.MM.yyyy', 'Neznámy')}
               </Typography>
             </div>
           </div>
@@ -685,9 +739,17 @@ const BasicUserManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Sort users alphabetically by firstName, lastName, then username */}
+          {/* Filter by platform and sort users alphabetically */}
           {(() => {
-            const sortedUsers = [...users].sort((a, b) => {
+            // ✅ FILTROVANIE: Admin vidí len userov zo svojej platformy
+            let filteredUsers = [...users];
+            if (state.user?.role === 'admin' && state.user?.platformId) {
+              filteredUsers = filteredUsers.filter(
+                user => user.platformId === state.user?.platformId
+              );
+            }
+            
+            const sortedUsers = filteredUsers.sort((a, b) => {
               // Sort by firstName first
               const firstNameA = a.firstName || '';
               const firstNameB = b.firstName || '';
@@ -733,6 +795,7 @@ const BasicUserManagement: React.FC = () => {
                         <TableRow>
                           <TableHead>Používateľ</TableHead>
                           <TableHead>Email</TableHead>
+                          <TableHead>Platforma</TableHead>
                           <TableHead>Rola</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Posledné prihlásenie</TableHead>
@@ -783,6 +846,14 @@ const BasicUserManagement: React.FC = () => {
                               </Typography>
                             </TableCell>
                             <TableCell>
+                              <Typography variant="body2" className="text-sm">
+                                {user.platformId 
+                                  ? platforms.find((p: Record<string, unknown>) => p.id === user.platformId)?.name as string || '-'
+                                  : '-'
+                                }
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
                               <div className="flex flex-wrap gap-1">
                                 <Badge
                                   variant="outline"
@@ -820,7 +891,7 @@ const BasicUserManagement: React.FC = () => {
                             <TableCell>
                               <Typography variant="body2" className="text-sm">
                                 {formatDate(
-                                  user.createdAt,
+                                  user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
                                   'dd.MM.yyyy',
                                   'Neznámy'
                                 )}
@@ -988,39 +1059,46 @@ const BasicUserManagement: React.FC = () => {
             </div>
 
               <div>
-                <Label htmlFor="company">
-                  Platforma/Firma *
+                <Label htmlFor="platform">
+                  Platforma *
                 </Label>
                 <Select
-                  value={userForm.companyId}
+                  value={userForm.platformId}
                   onValueChange={value =>
                     setUserForm(prev => ({
                       ...prev,
-                      companyId: value,
+                      platformId: value,
                     }))
                   }
-                  disabled={loadingCompanies}
+                  disabled={
+                    loadingPlatforms || 
+                    (state.user?.role === 'admin' && !!state.user?.platformId)
+                  }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Vyberte platformu" />
+                    <SelectValue placeholder={
+                      state.user?.role === 'admin' && state.user?.platformId
+                        ? platforms.find((p: Record<string, unknown>) => p.id === state.user?.platformId)?.name as string || 'Vaša platforma'
+                        : 'Vyberte platformu'
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {companies.map(company => (
+                    {platforms.map((platform: Record<string, unknown>) => (
                       <SelectItem
-                        key={company.id as string}
-                        value={company.id as string}
+                        key={platform.id as string}
+                        value={platform.id as string}
                       >
-                        🏢 {company.name as string}
+                        🌐 {platform.name as string}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Typography className="text-xs text-muted-foreground mt-1">
-                  {userForm.role === 'investor' && 'Pre investora vyberte hlavnú platformu'}
-                  {userForm.role === 'company_admin' && 'Admin bude mať plné práva v tejto firme'}
-                  {userForm.role === 'employee' && 'Zamestnanec bude patriť k tejto firme'}
+                  {state.user?.role === 'admin' 
+                    ? 'Používatelia budú vytvorení vo vašej platforme' 
+                    : 'Vyberte platformu ku ktorej bude používateľ patriť'}
                 </Typography>
-                {loadingCompanies && (
+                {loadingPlatforms && (
                   <div className="flex items-center mt-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
                     <Typography className="text-sm text-muted-foreground">
@@ -1033,7 +1111,7 @@ const BasicUserManagement: React.FC = () => {
               {userForm.role === 'investor' && (
                 <div>
                   <Label htmlFor="investor">
-                    Priradenie k investorovi (voliteľné)
+                    Priradenie k spoluinvestorovi *
                   </Label>
                   <Select
                     value={userForm.linkedInvestorId}
@@ -1046,12 +1124,9 @@ const BasicUserManagement: React.FC = () => {
                     disabled={loadingInvestors}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Vyberte investora" />
+                      <SelectValue placeholder="Vyberte spoluinvestora" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">
-                        Žiadne priradenie - bežný používateľ
-                      </SelectItem>
                       {investors.length > 0 ? (
                         investors.map(investor => (
                           <SelectItem
@@ -1061,7 +1136,7 @@ const BasicUserManagement: React.FC = () => {
                             💼 {investor.firstName as string}{' '}
                             {investor.lastName as string}
                             {(investor.companies as Record<string, unknown>[])?.length > 0 && 
-                              ` - Podiely: ${(investor.companies as Record<string, unknown>[])
+                              ` - Firmy: ${(investor.companies as Record<string, unknown>[])
                                 ?.map(
                                   (c: Record<string, unknown>) =>
                                     `${c.companyName as string} (${c.ownershipPercentage as number}%)`
@@ -1071,12 +1146,15 @@ const BasicUserManagement: React.FC = () => {
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="none" disabled>
+                        <SelectItem value="no-investors" disabled>
                           Žiadni investori v databáze
                         </SelectItem>
                       )}
                     </SelectContent>
                   </Select>
+                  <Typography className="text-xs text-muted-foreground mt-1">
+                    Používateľ bude vidieť len firmy kde má tento investor podiely
+                  </Typography>
                   {loadingInvestors && (
                     <div className="flex items-center mt-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
@@ -1087,7 +1165,7 @@ const BasicUserManagement: React.FC = () => {
                   )}
                   {!loadingInvestors && investors.length === 0 && (
                     <Typography className="text-xs text-amber-600 mt-1">
-                      ⚠️ Žiadni investori nenájdení. Vytvorte investorov v sekcii "Databáza vozidiel" → Firmy → Investori.
+                      ⚠️ Žiadni investori nenájdení. Vytvorte investorov v sekcii "🤝 Správa spoluinvestorov".
                     </Typography>
                   )}
                 </div>
@@ -1232,36 +1310,84 @@ const BasicUserManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Company Selector in Edit */}
+            {/* Platform Selector in Edit */}
             <div>
-              <Label htmlFor="edit-company">
-                Platforma/Firma *
+              <Label htmlFor="edit-platform">
+                Platforma *
               </Label>
               <Select
-                value={userForm.companyId}
+                value={userForm.platformId}
                 onValueChange={value =>
                   setUserForm(prev => ({
                     ...prev,
-                    companyId: value,
+                    platformId: value,
                   }))
                 }
-                disabled={loadingCompanies}
+                disabled={
+                  loadingPlatforms || 
+                  (state.user?.role === 'admin' && !!state.user?.platformId)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Vyberte platformu" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies.map(company => (
+                  {platforms.map((platform: Record<string, unknown>) => (
                     <SelectItem
-                      key={company.id as string}
-                      value={company.id as string}
+                      key={platform.id as string}
+                      value={platform.id as string}
                     >
-                      🏢 {company.name as string}
+                      🌐 {platform.name as string}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {state.user?.role === 'admin' && (
+                <Typography className="text-xs text-muted-foreground mt-1">
+                  Nemôžete zmeniť platformu používateľa
+                </Typography>
+              )}
             </div>
+            
+            {/* Investor Selector in Edit - ak je investor */}
+            {userForm.role === 'investor' && (
+              <div>
+                <Label htmlFor="edit-investor">
+                  Spoluinvestor *
+                </Label>
+                <Select
+                  value={userForm.linkedInvestorId}
+                  onValueChange={value =>
+                    setUserForm(prev => ({
+                      ...prev,
+                      linkedInvestorId: value,
+                    }))
+                  }
+                  disabled={loadingInvestors}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte spoluinvestora" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {investors.length > 0 ? (
+                      investors.map(investor => (
+                        <SelectItem
+                          key={investor.id as string}
+                          value={investor.id as string}
+                        >
+                          💼 {investor.firstName as string}{' '}
+                          {investor.lastName as string}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-investors-edit" disabled>
+                        Žiadni investori v databáze
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter
             className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}

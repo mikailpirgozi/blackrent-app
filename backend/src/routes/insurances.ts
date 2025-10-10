@@ -85,16 +85,19 @@ router.get('/',
     try {
       let insurances = await postgresDatabase.getInsurances();
       
-      // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
-      if (req.user?.role === 'company_admin' && req.user.companyId) {
+      // ✅ PLATFORM FILTERING: Admin and company_admin see only their platform insurances
+      if (req.user && (req.user.role === 'admin' || req.user.role === 'company_admin') && req.user.platformId) {
+        console.log('🌐 INSURANCES: Filtering by platform:', req.user.platformId);
         const vehicles = await postgresDatabase.getVehicles();
-        const companyVehicleIds = vehicles
-          .filter(v => v.ownerCompanyId === req.user?.companyId)
+        const platformVehicleIds = vehicles
+          .filter(v => v.platformId === req.user?.platformId)
           .map(v => v.id);
         
+        const originalCount = insurances.length;
         insurances = insurances.filter(i => 
-          i.vehicleId && companyVehicleIds.includes(i.vehicleId)
+          i.vehicleId && platformVehicleIds.includes(i.vehicleId)
         );
+        console.log('🌐 INSURANCES: Platform filter applied:', { originalCount, filteredCount: insurances.length });
       }
       
       res.json({

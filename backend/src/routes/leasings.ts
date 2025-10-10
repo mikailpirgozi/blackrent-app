@@ -110,15 +110,24 @@ router.get(
         userRole: req.user?.role,
       });
 
+      // ✅ PLATFORM FILTERING: Admin and company_admin see only their platform leasings
+      let filteredLeasings = result.leasings;
+      if (req.user && (req.user.role === 'admin' || req.user.role === 'company_admin') && req.user.platformId) {
+        console.log('🌐 LEASINGS PAGINATED: Filtering by platform:', req.user.platformId);
+        const originalCount = filteredLeasings.length;
+        filteredLeasings = filteredLeasings.filter((l: any) => l.platformId === req.user?.platformId);
+        console.log('🌐 LEASINGS PAGINATED: Platform filter applied:', { originalCount, filteredCount: filteredLeasings.length });
+      }
+
       res.json({
         success: true,
         data: {
-          leasings: result.leasings,
+          leasings: filteredLeasings,
           pagination: {
             currentPage: pageNum,
-            totalPages: Math.ceil(result.total / limitNum),
-            totalItems: result.total,
-            hasMore: (pageNum * limitNum) < result.total,
+            totalPages: Math.ceil(filteredLeasings.length / limitNum),
+            totalItems: filteredLeasings.length,
+            hasMore: (pageNum * limitNum) < filteredLeasings.length,
             itemsPerPage: limitNum,
           },
         },
@@ -150,7 +159,15 @@ router.get(
       
       console.log('🔍 GET LEASINGS REQUEST:', { filters, query: req.query });
       
-      const leasings = await postgresDatabase.getLeasings(filters);
+      let leasings = await postgresDatabase.getLeasings(filters);
+      
+      // ✅ PLATFORM FILTERING: Admin and company_admin see only their platform leasings
+      if (req.user && (req.user.role === 'admin' || req.user.role === 'company_admin') && req.user.platformId) {
+        console.log('🌐 LEASINGS: Filtering by platform:', req.user.platformId);
+        const originalCount = leasings.length;
+        leasings = leasings.filter((l: any) => l.platformId === req.user?.platformId);
+        console.log('🌐 LEASINGS: Platform filter applied:', { originalCount, filteredCount: leasings.length });
+      }
       
       console.log('✅ GET LEASINGS RESPONSE:', { 
         count: leasings.length,

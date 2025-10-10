@@ -184,13 +184,31 @@ export default function Layout({ children }: LayoutProps) {
       icon: <MailIcon />,
       path: '/email-monitoring',
       resource: 'users' as const,
+      blackrentOnly: true, // ✅ Only for Blackrent platform
     },
   ];
+
+  // ✅ Blackrent platform ID
+  const BLACKRENT_PLATFORM_ID = '56d0d727-f725-47be-9508-d988ecfc0705';
 
   // Filtruj menu items podľa permissions
   const menuItems = allMenuItems.filter(item => {
     // 🛡️ ADMIN OVERRIDE: Admin roles majú prístup ku všetkému
     const isAdminUser = user?.role === 'admin' || user?.role === 'super_admin';
+
+    // ✅ Check blackrentOnly flag - hide for non-Blackrent platforms
+    if ((item as any).blackrentOnly) {
+      // Super admin sees everything
+      if (user?.role === 'super_admin') {
+        return true;
+      }
+      // Platform admin/company_admin only sees if they're on Blackrent platform
+      if (user?.role === 'admin' || user?.role === 'company_admin') {
+        return user?.platformId === BLACKRENT_PLATFORM_ID;
+      }
+      // Other roles don't see blackrentOnly items
+      return false;
+    }
 
     // Check superAdminOnly flag NAJPRV (admin a super_admin majú prístup)
     if ((item as any).superAdminOnly) {

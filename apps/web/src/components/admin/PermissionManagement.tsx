@@ -82,7 +82,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
   const loadUserPermissions = async (user: User) => {
     try {
       const access = await apiService.getUserCompanyAccess(user.id);
-      setUserCompanyAccess(access);
+      setUserCompanyAccess(access as unknown as UserCompanyAccess[]);
       setSelectedUser(user);
     } catch (error) {
       toast({
@@ -103,8 +103,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
       customers: { read: true, write: false, delete: false },
       insurances: { read: true, write: false, delete: false },
       maintenance: { read: true, write: false, delete: false },
-      protocols: { read: true, write: false, delete: false },
-      statistics: { read: true, write: false, delete: false }
+      protocols: { read: true, write: false, delete: false }
     });
     setEditDialogOpen(true);
   };
@@ -122,7 +121,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
       await apiService.setUserCompanyPermission(
         selectedUser.id,
         selectedCompanyId,
-        editingPermissions
+        editingPermissions as unknown as Record<string, unknown>
       );
 
       toast({
@@ -188,8 +187,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
     customers: '👥 Zákazníci',
     insurances: '🛡️ Poistky/STK',
     maintenance: '🔧 Údržba',
-    protocols: '📋 Protokoly',
-    statistics: '📈 Štatistiky'
+    protocols: '📋 Protokoly'
   };
 
   if (loading) {
@@ -270,7 +268,7 @@ export default function PermissionManagement({ userId }: PermissionManagementPro
               </CardTitle>
               <CardDescription>
                 Role: {getUserRoleDisplayName(selectedUser.role)}
-                {selectedUser.companyId && ` • Firma: ${companies.find(c => c.id === selectedUser.companyId)?.name}`}
+                {selectedUser.platformId && ` • Platforma: ${companies.find(c => c.id === selectedUser.platformId)?.name}`}
               </CardDescription>
             </CardHeader>
           </Card>

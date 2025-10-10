@@ -687,9 +687,22 @@ router.get('/me', authenticateToken, (req: AuthRequest, res: Response<ApiRespons
 });
 
 // GET /api/auth/users - Získanie všetkých používateľov (len admin a super_admin)
-router.get('/users', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse<Omit<User, 'password'>[]>>) => {
+router.get('/users', authenticateToken, requireRole(['admin', 'super_admin', 'company_admin']), async (req: AuthRequest, res: Response<ApiResponse<Omit<User, 'password'>[]>>) => {
   try {
-    const users = await postgresDatabase.getUsers();
+    let users = await postgresDatabase.getUsers();
+    
+    // ✅ PLATFORM FILTERING: Admin a Company Admin vidia len userov zo svojej platformy
+    if ((req.user?.role === 'admin' || req.user?.role === 'company_admin') && req.user.platformId) {
+      const originalCount = users.length;
+      users = users.filter(u => u.platformId === req.user?.platformId);
+      console.log('🌐 Admin/Company Admin Platform Filter (users):', {
+        userRole: req.user.role,
+        userPlatformId: req.user.platformId,
+        originalCount,
+        filteredCount: users.length
+      });
+    }
+    
     const usersWithoutPasswords: Omit<User, 'password'>[] = users.map(user => ({
       id: user.id,
       username: user.username,
@@ -697,7 +710,8 @@ router.get('/users', authenticateToken, requireRole(['admin', 'super_admin']), a
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      companyId: user.companyId,
+      platformId: user.platformId, // ← CHANGED from companyId
+      linkedInvestorId: user.linkedInvestorId, // ← Added
       employeeNumber: user.employeeNumber,
       hireDate: user.hireDate,
       isActive: user.isActive,
@@ -721,8 +735,8 @@ router.get('/users', authenticateToken, requireRole(['admin', 'super_admin']), a
   }
 });
 
-// POST /api/auth/users - Vytvorenie nového používateľa (len admin a super_admin)
-router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
+// POST /api/auth/users - Vytvorenie nového používateľa (len admin, super_admin a company_admin)
+router.post('/users', authenticateToken, requireRole(['admin', 'super_admin', 'company_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { 
       username, 
@@ -731,7 +745,7 @@ router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), 
       role,
       firstName,
       lastName,
-      companyId,
+      platformId, // ← CHANGED from companyId
       employeeNumber,
       hireDate,
       isActive,
@@ -764,7 +778,7 @@ router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), 
       role,
       firstName: firstName || null,
       lastName: lastName || null,
-      companyId: companyId || null,
+      platformId: platformId || null, // ← CHANGED from companyId
       employeeNumber: employeeNumber || null,
       hireDate: hireDate ? new Date(hireDate) : null,
       isActive: isActive !== undefined ? isActive : true,
@@ -807,7 +821,7 @@ router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), 
 });
 
 // GET /api/auth/investors-with-shares - Získanie investorov s podielmi (pre dropdown)
-router.get('/investors-with-shares', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.get('/investors-with-shares', authenticateToken, requireRole(['admin', 'super_admin', 'company_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const investors = await postgresDatabase.getInvestorsWithShares();
     
@@ -827,10 +841,10 @@ router.get('/investors-with-shares', authenticateToken, requireRole(['admin', 's
 });
 
 // PUT /api/auth/users/:id - Aktualizácia používateľa (len admin a super_admin)
-router.put('/users/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.put('/users/:id', authenticateToken, requireRole(['admin', 'super_admin', 'company_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { username, email, password, role } = req.body;
+    const { username, email, password, role, platformId, linkedInvestorId } = req.body;
 
     // Nájdi existujúceho používateľa
     const existingUser = await postgresDatabase.getUserById(id);
@@ -849,7 +863,9 @@ router.put('/users/:id', authenticateToken, requireRole(['admin', 'super_admin']
       lastName: existingUser.lastName,
       password: password || existingUser.password,
       role: role || existingUser.role,
-      companyId: existingUser.companyId,
+      platformId: platformId !== undefined ? platformId : existingUser.platformId, // ✅ Accept platformId from request
+      linkedInvestorId: linkedInvestorId !== undefined ? linkedInvestorId : existingUser.linkedInvestorId, // ✅ Accept linkedInvestorId from request
+      companyId: existingUser.companyId, // DEPRECATED but kept for backward compatibility
       employeeNumber: existingUser.employeeNumber,
       hireDate: existingUser.hireDate,
       isActive: existingUser.isActive,
@@ -877,7 +893,7 @@ router.put('/users/:id', authenticateToken, requireRole(['admin', 'super_admin']
 });
 
 // DELETE /api/auth/users/:id - Vymazanie používateľa (len admin a super_admin)
-router.delete('/users/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/users/:id', authenticateToken, requireRole(['admin', 'super_admin', 'company_admin']), async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
 

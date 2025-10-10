@@ -139,6 +139,7 @@ export interface Vehicle {
   commission: Commission;
   status: VehicleStatus;
   ownerCompanyId?: string; // 🏢 ID vlastníckej firmy
+  platformId?: string; // 🌐 ID platformy (multi-tenancy support)
   assignedMechanicId?: string; // 🔨 ID priradeného mechanika
   stk?: Date; // 📋 STK platnosť do
   createdAt?: Date;

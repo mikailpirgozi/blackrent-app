@@ -1,4 +1,5 @@
 import { apiService } from '@/services/api';
+import type { Rental } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
 
@@ -315,5 +316,116 @@ export function usePendingAutomaticRentals() {
     queryFn: () => apiService.getPendingAutomaticRentals(),
     staleTime: 30 * 1000, // 30 sekúnd
     refetchInterval: 60000, // Auto-refresh každú minútu
+  });
+}
+
+// APPROVE automatic rental
+export function useApproveAutomaticRental() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (rentalId: string) => apiService.approveAutomaticRental(rentalId),
+    onMutate: async rentalId => {
+      // Cancel pending queries
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.emailManagement.pendingRentals(),
+      });
+
+      // Get current pending rentals
+      const previousRentals = queryClient.getQueryData(
+        queryKeys.emailManagement.pendingRentals()
+      );
+
+      // Optimistically remove from pending list
+      queryClient.setQueryData(
+        queryKeys.emailManagement.pendingRentals(),
+        (old: Rental[] = []) => old.filter(r => r.id !== rentalId)
+      );
+
+      return { previousRentals };
+    },
+    onError: (_err, _rentalId, context) => {
+      // Rollback on error
+      if (context?.previousRentals) {
+        queryClient.setQueryData(
+          queryKeys.emailManagement.pendingRentals(),
+          context.previousRentals
+        );
+      }
+    },
+    onSuccess: (_data, rentalId) => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(
+        new CustomEvent('rental-approved', { detail: { id: rentalId, data: _data } })
+      );
+    },
+    onSettled: () => {
+      // Invalidate pending rentals
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.emailManagement.pendingRentals(),
+      });
+      // Invalidate rentals list (zobrazí sa nový confirmed rental)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.rentals.all,
+      });
+      // Invalidate statistics
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statistics.all,
+      });
+    },
+  });
+}
+
+// REJECT automatic rental
+export function useRejectAutomaticRental() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ rentalId, reason }: { rentalId: string; reason: string }) =>
+      apiService.rejectAutomaticRental(rentalId, reason),
+    onMutate: async ({ rentalId }) => {
+      // Cancel pending queries
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.emailManagement.pendingRentals(),
+      });
+
+      // Get current pending rentals
+      const previousRentals = queryClient.getQueryData(
+        queryKeys.emailManagement.pendingRentals()
+      );
+
+      // Optimistically remove from pending list
+      queryClient.setQueryData(
+        queryKeys.emailManagement.pendingRentals(),
+        (old: Rental[] = []) => old.filter(r => r.id !== rentalId)
+      );
+
+      return { previousRentals };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousRentals) {
+        queryClient.setQueryData(
+          queryKeys.emailManagement.pendingRentals(),
+          context.previousRentals
+        );
+      }
+    },
+    onSuccess: (_data, { rentalId }) => {
+      // Trigger WebSocket notification
+      window.dispatchEvent(
+        new CustomEvent('rental-rejected', { detail: { id: rentalId, data: _data } })
+      );
+    },
+    onSettled: () => {
+      // Invalidate pending rentals
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.emailManagement.pendingRentals(),
+      });
+      // Invalidate rentals list
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.rentals.all,
+      });
+    },
   });
 }

@@ -309,7 +309,7 @@ export function usePermissions() {
         if (user.role === 'admin' || user.role === 'super_admin') {
           return hasLegacyPermission(user.role, resource, action, {
             userId: user.id,
-            ...(user.companyId && { companyId: user.companyId }),
+            ...(user.platformId && { companyId: user.platformId }),
             ...context,
           });
         }
@@ -343,7 +343,7 @@ export function usePermissions() {
           mappedAction,
           {
             userId: user.id,
-            ...(user.companyId && { companyId: user.companyId }),
+            ...(user.platformId && { companyId: user.platformId }),
             ...context,
           }
         );

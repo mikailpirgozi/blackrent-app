@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Building2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,23 @@ export default function CompanyAssignment() {
 
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [selectedPlatformId, setSelectedPlatformId] = useState<string>('');
+
+  // ✅ FILTROVANIE: Admin vidí len firmy zo svojej platformy (PRED conditional returns!)
+  const filteredCompanies = useMemo(() => {
+    if (!companies) return [];
+    
+    // Super_admin vidí všetky firmy
+    if (state.user?.role === 'super_admin') {
+      return companies;
+    }
+    
+    // Admin vidí len firmy zo svojej platformy
+    if (state.user?.role === 'admin' && state.user?.platformId) {
+      return companies.filter(c => c.platformId === state.user?.platformId);
+    }
+    
+    return companies;
+  }, [companies, state.user]);
 
   // 🛡️ SECURITY: Only super_admin or admin can access (AFTER ALL HOOKS)
   const isAdmin =
@@ -76,7 +93,7 @@ export default function CompanyAssignment() {
   }
 
   // Group companies by platform
-  const companiesByPlatform = companies?.reduce(
+  const companiesByPlatform = filteredCompanies?.reduce(
     (acc, company) => {
       const platformId = company.platformId || 'unassigned';
       if (!acc[platformId]) {

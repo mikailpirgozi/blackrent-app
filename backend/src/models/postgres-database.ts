@@ -8974,7 +8974,52 @@ export class PostgresDatabase {
         return employeeData;
       }
       
-      // 3. Ak má linked investor → použiť investor shares
+      // 3. Company admin s platformId → prístup k všetkým firmám platformy
+      const userWithPlatform = await client.query(
+        'SELECT platform_id FROM users WHERE id = $1::uuid',
+        [userId]
+      );
+      
+      if (user.role === 'company_admin' && userWithPlatform.rows[0]?.platform_id) {
+        const platformId = userWithPlatform.rows[0].platform_id;
+        logger.migration('🌐 Company admin with platform:', platformId);
+        
+        const platformCompaniesResult = await client.query(
+          'SELECT id as company_id, name as company_name FROM companies WHERE platform_id = $1 AND is_active = true ORDER BY name',
+          [platformId]
+        );
+        
+        const platformData = platformCompaniesResult.rows.map(row => ({
+          companyId: row.company_id.toString(),
+          companyName: row.company_name,
+          permissions: {
+            vehicles: { read: true, write: true, delete: true },
+            rentals: { read: true, write: true, delete: true },
+            expenses: { read: true, write: true, delete: true },
+            settlements: { read: true, write: true, delete: true },
+            customers: { read: true, write: true, delete: true },
+            insurances: { read: true, write: true, delete: true },
+            maintenance: { read: true, write: true, delete: true },
+            protocols: { read: true, write: true, delete: true },
+            statistics: { read: true, write: true, delete: true }
+          }
+        }));
+        
+        // Cache platform permissions
+        this.permissionCache.set(cacheKey, {
+          data: platformData,
+          timestamp: Date.now()
+        });
+        
+        logger.migration('🌐 Platform-based access:', {
+          platformId,
+          companies: platformData.length
+        });
+        
+        return platformData;
+      }
+      
+      // 4. Ak má linked investor → použiť investor shares
       if (user.linked_investor_id) {
         logger.migration('🔗 User has linked investor:', user.linked_investor_id);
         
@@ -9022,7 +9067,7 @@ export class PostgresDatabase {
         return shareData;
       }
       
-      // 4. Fallback: Použiť starý systém user_permissions
+      // 5. Fallback: Použiť starý systém user_permissions
       const result = await client.query(`
         SELECT up.company_id, c.name as company_name, up.permissions
         FROM user_permissions up
@@ -9094,14 +9139,18 @@ export class PostgresDatabase {
     try {
       const result = await client.query(`
         SELECT 
-          i.id, i.investor_name, i.investor_email,
-          s.company_id, s.share_percentage,
+          i.id, 
+          i.first_name, 
+          i.last_name, 
+          i.email,
+          s.company_id, 
+          s.ownership_percentage,
           c.name as company_name
         FROM company_investors i
         LEFT JOIN company_investor_shares s ON i.id = s.investor_id
         LEFT JOIN companies c ON s.company_id = c.id
-        WHERE i.status = 'active'
-        ORDER BY i.investor_name, c.name
+        WHERE i.is_active = true
+        ORDER BY i.first_name, i.last_name, c.name
       `);
 
       // Zoskupenie podľa investora
@@ -9111,16 +9160,11 @@ export class PostgresDatabase {
         const investorId = row.id;
         
         if (!investorsMap.has(investorId)) {
-          // Rozdelíme investor_name na firstName a lastName
-          const nameParts = (row.investor_name || '').split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-          
           investorsMap.set(investorId, {
             id: investorId,
-            firstName: firstName,
-            lastName: lastName,
-            email: row.investor_email,
+            firstName: row.first_name || '',
+            lastName: row.last_name || '',
+            email: row.email || '',
             companies: []
           });
         }
@@ -9130,7 +9174,7 @@ export class PostgresDatabase {
           investorsMap.get(investorId).companies.push({
             companyId: row.company_id.toString(),
             companyName: row.company_name,
-            ownershipPercentage: parseFloat(row.share_percentage)
+            ownershipPercentage: parseFloat(row.ownership_percentage) || 0
           });
         }
       });
@@ -9887,6 +9931,7 @@ export class PostgresDatabase {
         contract_document_url as "contractDocumentUrl",
         payment_schedule_url as "paymentScheduleUrl",
         photos_zip_url as "photosZipUrl",
+        platform_id as "platformId",
         created_at as "createdAt", updated_at as "updatedAt"
       FROM leasings WHERE 1=1
     `;
@@ -10012,6 +10057,7 @@ export class PostgresDatabase {
           l.contract_document_url as "contractDocumentUrl",
           l.payment_schedule_url as "paymentScheduleUrl",
           l.photos_zip_url as "photosZipUrl",
+          l.platform_id as "platformId",
           l.created_at as "createdAt", l.updated_at as "updatedAt"
         FROM leasings l
         WHERE ${whereClause}
@@ -10052,6 +10098,7 @@ export class PostgresDatabase {
         contract_document_url as "contractDocumentUrl",
         payment_schedule_url as "paymentScheduleUrl",
         photos_zip_url as "photosZipUrl",
+        platform_id as "platformId",
         created_at as "createdAt", updated_at as "updatedAt"
       FROM leasings WHERE id = $1`,
       [id]
@@ -10648,36 +10695,37 @@ export class PostgresDatabase {
     totalRentals: number;
   }> {
     try {
-      // 🏢 Počet firiem na platforme
+      // 🏢 Počet firiem na platforme (priamy platform_id)
       const companies = await this.pool.query(
         'SELECT COUNT(*) as count FROM companies WHERE platform_id = $1::uuid',
         [platformId]
       );
       
-      // 👥 Počet používateľov - JOINnutých cez company_id (c.id::text::uuid casting pre INTEGER -> UUID JOIN)
+      // 👥 Počet používateľov (priamy platform_id)
       const users = await this.pool.query(
-        `SELECT COUNT(DISTINCT u.id) as count 
-         FROM users u 
-         INNER JOIN companies c ON u.company_id = c.id::text::uuid 
-         WHERE c.platform_id = $1::uuid`,
+        `SELECT COUNT(DISTINCT id) as count 
+         FROM users 
+         WHERE platform_id = $1::uuid`,
         [platformId]
       );
       
-      // 🚗 Počet vozidiel - JOINnutých cez owner_company_id (c.id::text::uuid casting pre INTEGER -> UUID JOIN)
+      // 🚗 Počet vozidiel - cez companies.platform_id
+      // NOTE: owner_company_id je UUID odkaz na companies, ale companies.id je INTEGER!
+      // Potrebujeme použiť fallback stratégiu pre vehicles bez owner_company_id
       const vehicles = await this.pool.query(
         `SELECT COUNT(DISTINCT v.id) as count 
          FROM vehicles v 
-         INNER JOIN companies c ON v.owner_company_id = c.id::text::uuid 
-         WHERE c.platform_id = $1::uuid`,
+         LEFT JOIN companies c ON c.platform_id = $1::uuid
+         WHERE v.company_id = c.id`,
         [platformId]
       );
       
-      // 📋 Počet prenájmov - JOINnutých cez vehicle -> company (c.id::text::uuid casting pre INTEGER -> UUID JOIN)
+      // 📋 Počet prenájmov - cez vehicles -> companies
       const rentals = await this.pool.query(
         `SELECT COUNT(DISTINCT r.id) as count 
          FROM rentals r 
          INNER JOIN vehicles v ON r.vehicle_id = v.id 
-         INNER JOIN companies c ON v.owner_company_id = c.id::text::uuid 
+         LEFT JOIN companies c ON v.company_id = c.id
          WHERE c.platform_id = $1::uuid`,
         [platformId]
       );

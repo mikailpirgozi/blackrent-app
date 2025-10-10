@@ -19,19 +19,29 @@ router.get('/',
     
     console.log('🏢 Companies GET - user:', { 
       role: req.user?.role, 
-      companyId: req.user?.companyId, 
+      platformId: req.user?.platformId, 
       totalCompanies: companies.length 
     });
     
-    // 🏢 COMPANY OWNER - filter len svoju vlastnú firmu
-    if (req.user?.role === 'company_admin' && req.user.companyId) {
+    // ✅ PLATFORM FILTERING: Admin vidí len firmy zo svojej platformy
+    if (req.user?.role === 'admin' && req.user.platformId) {
       const originalCount = companies.length;
-      companies = companies.filter(c => c.id === req.user?.companyId);
-      console.log('🏢 Company Owner Filter:', {
-        userCompanyId: req.user.companyId,
+      companies = companies.filter(c => c.platformId === req.user?.platformId);
+      console.log('🌐 Admin Platform Filter:', {
+        userPlatformId: req.user.platformId,
         originalCount,
-        filteredCount: companies.length,
-        userCompany: companies[0]?.name || 'Not found'
+        filteredCount: companies.length
+      });
+    }
+    
+    // 🏢 COMPANY OWNER - filter len svoju vlastnú firmu (legacy)
+    if (req.user?.role === 'company_admin' && req.user.platformId) {
+      const originalCount = companies.length;
+      companies = companies.filter(c => c.platformId === req.user?.platformId);
+      console.log('🏢 Company Admin Filter:', {
+        userPlatformId: req.user.platformId,
+        originalCount,
+        filteredCount: companies.length
       });
     }
     

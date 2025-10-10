@@ -86,7 +86,7 @@ export const PendingRentalsTab: React.FC = () => {
             </CardTitle>
             <Button
               variant="outline"
-              onClick={fetchPendingRentals}
+              onClick={() => fetchPendingRentals()}
               disabled={pendingLoading}
               className="flex items-center gap-2"
             >

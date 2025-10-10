@@ -410,8 +410,8 @@ export interface User {
   firstName?: string; // Meno zamestnanca
   lastName?: string; // Priezvisko zamestnanca
   role: UserRole;
-  platformId?: string; // 🌐 Pripojenie na platformu
-  companyId?: string; // Prepojenie na firmu (deprecated pre nový systém)
+  platformId: string; // 🌐 Pripojenie na platformu (POVINNÉ)
+  linkedInvestorId?: string; // 🤝 Prepojenie na CompanyInvestor (pre investor rolu)
   employeeNumber?: string; // Zamestnanecké číslo
   hireDate?: Date; // Dátum nástupu
   isActive: boolean; // Aktívny používateľ
