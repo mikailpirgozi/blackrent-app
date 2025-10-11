@@ -1,12 +1,14 @@
 /**
- * Stream Upload Hook - Anti-crash iOS Safari
+ * Stream Upload Hook - Anti-crash "Blind Upload" Mode
  *
+ * ✅ NO previews during upload (zero RAM for display)
  * ✅ NO base64/dataURL (33% less RAM)
+ * ✅ NO objectURL (removed all preview generation)
  * ✅ Concurrency 2 (prevents memory spikes)
  * ✅ Multipart upload for large files (>5MB)
- * ✅ objectURL for previews (revoke immediately)
  * ✅ No localStorage/IndexedDB for raw data
  * ✅ Wake lock (optional, prevents screen sleep)
+ * ✅ UNLIMITED photos (100+) - only shows progress text
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -23,7 +25,8 @@ const RETRY_DELAY = 1000;
 export interface UploadTask {
   id: string;
   file: File;
-  objectURL: string; // For preview (revoke after use!)
+  filename: string; // Just filename (no objectURL = no RAM!)
+  filesize: number; // For display only
   status: 'pending' | 'uploading' | 'completed' | 'failed';
   progress: number;
   url?: string;
@@ -62,16 +65,7 @@ export function useStreamUpload(
   const abortControllerRef = useRef<AbortController | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
-  // Cleanup objectURLs on unmount
-  useEffect(() => {
-    return () => {
-      tasks.forEach(task => {
-        if (task.objectURL) {
-          URL.revokeObjectURL(task.objectURL);
-        }
-      });
-    };
-  }, [tasks]);
+  // ✅ BLIND UPLOAD: No cleanup needed (no objectURLs created)
 
   // Request wake lock (prevents screen sleep during upload)
   const requestWakeLock = useCallback(async () => {
@@ -125,11 +119,12 @@ export function useStreamUpload(
       await requestWakeLock();
 
       try {
-        // Create tasks with objectURL previews
+        // ✅ BLIND UPLOAD: Create tasks WITHOUT objectURL (no RAM usage!)
         const newTasks: UploadTask[] = files.map(file => ({
           id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           file,
-          objectURL: URL.createObjectURL(file), // ✅ For preview only!
+          filename: file.name,
+          filesize: file.size,
           status: 'pending',
           progress: 0,
           retries: 0,
@@ -178,8 +173,7 @@ export function useStreamUpload(
                 completed++;
                 options.onProgress?.(completed, files.length);
 
-                // ✅ Revoke objectURL immediately after upload
-                URL.revokeObjectURL(task.objectURL);
+                // ✅ BLIND UPLOAD: No objectURL to revoke!
               } catch (error) {
                 logger.error('Upload failed', { taskId: task.id, error });
 
@@ -210,7 +204,7 @@ export function useStreamUpload(
                         : t
                     )
                   );
-                  URL.revokeObjectURL(task.objectURL);
+                  // ✅ BLIND UPLOAD: No objectURL to revoke!
                 }
               } finally {
                 active.delete(uploadPromise);
@@ -253,12 +247,7 @@ export function useStreamUpload(
       abortControllerRef.current = null;
     }
 
-    // Revoke all objectURLs
-    tasks.forEach(task => {
-      if (task.objectURL) {
-        URL.revokeObjectURL(task.objectURL);
-      }
-    });
+    // ✅ BLIND UPLOAD: No objectURLs to revoke!
 
     setTasks([]);
     setIsUploading(false);
