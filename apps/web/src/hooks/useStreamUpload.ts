@@ -99,7 +99,7 @@ export function useStreamUpload(
 
   // Upload single file with multipart support
   const uploadFile = useCallback(
-    async (task: UploadTask, signal: AbortSignal): Promise<string> => {
+    async (task: UploadTask, signal: AbortSignal): Promise<UploadResult> => {
       const { file } = task;
       const isLargeFile = file.size > CHUNK_SIZE;
 
