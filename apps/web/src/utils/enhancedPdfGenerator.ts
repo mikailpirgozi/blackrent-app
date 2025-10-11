@@ -758,25 +758,42 @@ export class EnhancedPDFGenerator {
       try {
         // 🚀 PRIORITY 1: IndexedDB JPEG 20% (FASTEST - in memory!)
         if (!base64) {
+          console.log('🔍 [PDF] Looking for image in IndexedDB:', { imageId: image.id });
           logger.info('🟢 Loading PDF-optimized JPEG from IndexedDB', {
             imageId: image.id,
           });
 
           try {
             const imageData = await indexedDBManager.getImage(image.id);
+            console.log('🔍 [PDF] IndexedDB result:', { 
+              imageId: image.id, 
+              found: !!imageData,
+              hasPdfData: !!imageData?.pdfData,
+              pdfDataLength: imageData?.pdfData?.length || 0
+            });
+            
             if (imageData?.pdfData) {
               base64 = imageData.pdfData;
               source = 'IndexedDB JPEG 20%';
+              console.log('✅ [PDF] Image loaded from IndexedDB:', { 
+                imageId: image.id,
+                size: `${Math.floor((base64.length * 0.75) / 1024)} KB`
+              });
               logger.info('✅ Image loaded from IndexedDB (fast!)', {
                 imageId: image.id,
                 size: `${Math.floor((base64.length * 0.75) / 1024)} KB`,
               });
             } else {
+              console.warn('⚠️ [PDF] IndexedDB: No pdfData found:', { 
+                imageId: image.id,
+                imageData: imageData ? Object.keys(imageData) : null
+              });
               logger.warn('⚠️ IndexedDB image found but no pdfData', {
                 imageId: image.id,
               });
             }
           } catch (indexedDBError) {
+            console.error('❌ [PDF] IndexedDB error:', { imageId: image.id, error: indexedDBError });
             logger.warn('⚠️ IndexedDB not available, falling back to R2', {
               imageId: image.id,
               error: indexedDBError,

@@ -286,8 +286,11 @@ async function compressImageForPdfStorage(
   imageId: string,
   protocolId: string
 ): Promise<void> {
+  console.log('🟡 [COMPRESS] Starting compression:', { imageId, fileType: file.type, fileSize: file.size });
+  
   // ✅ ANTI-CRASH: Skip compression for non-image files
   if (!file.type.startsWith('image/')) {
+    console.log('⚠️ [COMPRESS] Skipping non-image file:', { imageId, fileType: file.type });
     logger.warn('⚠️ Skipping PDF compression for non-image file', {
       imageId,
       fileType: file.type,
@@ -335,6 +338,13 @@ async function compressImageForPdfStorage(
         const base64 = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
 
         // Store in IndexedDB
+        console.log('🟡 [COMPRESS] Saving to IndexedDB:', { 
+          imageId, 
+          protocolId,
+          pdfDataLength: base64.length,
+          compressedSize: Math.floor((base64.length * 0.75) / 1024)
+        });
+        
         try {
           await indexedDBManager.saveImage({
             id: imageId,
@@ -345,6 +355,7 @@ async function compressImageForPdfStorage(
             compressedSize: Math.floor((base64.length * 0.75) / 1024), // Estimate KB
           });
 
+          console.log('✅ [COMPRESS] Saved to IndexedDB successfully:', { imageId });
           logger.info('📦 PDF JPEG stored in IndexedDB', {
             imageId,
             originalSize: `${(file.size / 1024).toFixed(0)} KB`,
@@ -353,6 +364,7 @@ async function compressImageForPdfStorage(
             quality: '20%',
           });
         } catch (dbError) {
+          console.error('❌ [COMPRESS] IndexedDB save failed:', { imageId, error: dbError });
           logger.error('⚠️ IndexedDB save failed (quota exceeded?)', {
             imageId,
             error: dbError,
@@ -395,6 +407,7 @@ async function uploadSingle(
   const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // 2. Compress and store JPEG 20% in IndexedDB (parallel with upload)
+  console.log('🔵 [UPLOAD] Starting compression for:', { imageId, filename: task.file.name });
   const compressionPromise = compressImageForPdfStorage(
     task.file,
     imageId,
@@ -429,7 +442,9 @@ async function uploadSingle(
   const result = await response.json();
   
   // 4. Wait for compression to finish
+  console.log('🔵 [UPLOAD] Waiting for compression to finish:', { imageId });
   await compressionPromise;
+  console.log('🟢 [UPLOAD] Compression done, returning result:', { imageId, url: result.url || result.publicUrl });
 
   // 5. Return both URL and imageId (for IndexedDB lookup)
   return {
