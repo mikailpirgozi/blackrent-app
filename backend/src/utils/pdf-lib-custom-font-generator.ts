@@ -2,8 +2,9 @@ import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument, PageSizes, rgb } from 'pdf-lib';
-import type { HandoverProtocol, ProtocolDamage, ProtocolImage, ProtocolSignature, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ProtocolDamage, ProtocolImage, ProtocolSignature, ReturnProtocol, Company } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
+import { postgresDatabase } from '../models/postgres-database';
 
 /**
  * PDF-lib CUSTOM Font Generator - Používa vlastný font používateľa
@@ -144,6 +145,21 @@ export class PDFLibCustomFontGenerator {
     console.log(`🎨 PDF-LIB CUSTOM FONT GENERÁTOR SPUSTENÝ - ${this.fontName.toUpperCase()}`);
     console.log('📋 Protokol ID:', protocol.id);
     
+    // 🏢 Načítanie company objektu pre správne zobrazenie fakturačnej firmy
+    let ownerCompany: Company | null = null;
+    if (protocol.rentalData?.vehicle?.ownerCompanyId) {
+      try {
+        ownerCompany = await postgresDatabase.getCompanyById(protocol.rentalData.vehicle.ownerCompanyId);
+        console.log('🏢 Owner company načítaná:', { 
+          id: ownerCompany?.id, 
+          name: ownerCompany?.name,
+          protocolDisplayName: ownerCompany?.protocolDisplayName 
+        });
+      } catch (error) {
+        console.error('⚠️ Chyba pri načítaní owner company:', error);
+      }
+    }
+    
     // Vytvorenie PDF dokumentu s fontkit
     this.doc = await PDFDocument.create();
     this.doc.registerFontkit(fontkit);
@@ -177,15 +193,19 @@ export class PDFLibCustomFontGenerator {
       ]);
     }
     
-    // 4. Informácie o vozidle
+    // 4. Informácie o vozidle (s owner company objekt pre protocolDisplayName)
     if (protocol.rentalData?.vehicle) {
-              this.addInfoSection('Informácie o vozidle', [
-          ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
-          ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
-          ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-          ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
-          ...getRepresentativeSection()
-        ]);
+      const companyDisplay = ownerCompany 
+        ? getProtocolCompanyDisplay(ownerCompany)
+        : getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+        
+      this.addInfoSection('Informácie o vozidle', [
+        ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
+        ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
+        ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
+        ['Spoločnosť:', companyDisplay],
+        ...getRepresentativeSection()
+      ]);
     }
     
     // 5. Stav vozidla
@@ -242,6 +262,21 @@ export class PDFLibCustomFontGenerator {
   async generateReturnProtocol(protocol: ReturnProtocol): Promise<Buffer> {
     console.log(`🎨 PDF-LIB CUSTOM FONT - Return protokol (${this.fontName})`);
     
+    // 🏢 Načítanie company objektu pre správne zobrazenie fakturačnej firmy
+    let ownerCompany: Company | null = null;
+    if (protocol.rentalData?.vehicle?.ownerCompanyId) {
+      try {
+        ownerCompany = await postgresDatabase.getCompanyById(protocol.rentalData.vehicle.ownerCompanyId);
+        console.log('🏢 Owner company načítaná (return):', { 
+          id: ownerCompany?.id, 
+          name: ownerCompany?.name,
+          protocolDisplayName: ownerCompany?.protocolDisplayName 
+        });
+      } catch (error) {
+        console.error('⚠️ Chyba pri načítaní owner company:', error);
+      }
+    }
+    
     this.doc = await PDFDocument.create();
     this.doc.registerFontkit(fontkit);
     this.currentPage = this.doc.addPage(PageSizes.A4);
@@ -277,13 +312,17 @@ export class PDFLibCustomFontGenerator {
       ]);
     }
     
-    // 4. Informácie o vozidle
+    // 4. Informácie o vozidle (s owner company objekt pre protocolDisplayName)
     if (protocol.rentalData?.vehicle) {
+      const companyDisplay = ownerCompany 
+        ? getProtocolCompanyDisplay(ownerCompany)
+        : getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+        
       this.addInfoSection('Informácie o vozidle', [
         ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
         ['Model:', protocol.rentalData.vehicle.model || 'N/A'],
         ['ŠPZ:', protocol.rentalData.vehicle.licensePlate || 'N/A'],
-        ['Spoločnosť:', getProtocolCompanyDisplay(protocol.rentalData.vehicle.company)],
+        ['Spoločnosť:', companyDisplay],
         ...getRepresentativeSection()
       ]);
     }
