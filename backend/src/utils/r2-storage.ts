@@ -45,9 +45,17 @@ class R2Storage {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<string> {
-    // 🛠️ DEVELOPMENT FALLBACK - ak R2 nefunguje, použij lokálny storage
+    // Check if R2 is configured
     if (!this.isConfigured()) {
-      console.log('⚠️ R2 nie je nakonfigurované, používam lokálny storage pre development');
+      // ✅ PRODUCTION: R2 MUST be configured!
+      if (process.env.NODE_ENV === 'production') {
+        console.error('🚨 CRITICAL: R2 not configured in production!');
+        console.error('🚨 Please set R2_* environment variables in Railway');
+        throw new Error('R2 storage is not configured. Please contact administrator.');
+      }
+      
+      // 🛠️ DEVELOPMENT ONLY: Fallback to local storage
+      console.log('⚠️ R2 not configured, using local storage for development');
       return this.uploadFileLocally(key, buffer);
     }
 
@@ -70,16 +78,13 @@ class R2Storage {
     } catch (error) {
       console.error('❌ R2 upload failed:', error);
       
-      // 🛠️ DEVELOPMENT FALLBACK - ak R2 zlyhá, použij lokálny storage
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 R2 zlyhal, fallback na lokálny storage pre development');
-        return this.uploadFileLocally(key, buffer);
-      }
+      // ❌ REMOVED: No fallback to local-storage in production!
+      // This forces proper R2 configuration
       
       if (error instanceof Error && error.message.includes('Unauthorized')) {
-        console.error('🚨 R2 API TOKEN JE NEPLATNÝ!');
-        console.error('🚨 Potrebujete vytvoriť nový R2 API token v Cloudflare dashboard');
-        console.error('🚨 Dokumentácia: docs/deployment/R2-TOKEN-SETUP-GUIDE.md');
+        console.error('🚨 R2 API TOKEN IS INVALID!');
+        console.error('🚨 You need to create a new R2 API token in Cloudflare dashboard');
+        console.error('🚨 Documentation: docs/deployment/R2-TOKEN-SETUP-GUIDE.md');
       }
       
       throw new Error(`R2 upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
