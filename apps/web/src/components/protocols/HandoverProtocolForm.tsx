@@ -200,8 +200,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
     // 🚀 OPTIMALIZÁCIA: Memoized photo capture handler
     const handlePhotoCapture = useCallback((mediaType: string) => {
+      console.log('🎥🎥🎥 handlePhotoCapture CALLED', { mediaType });
       logger.info('🎥 Photo capture button clicked', { mediaType });
+      console.log('🔄 About to call setActivePhotoCapture...');
       setActivePhotoCapture(mediaType);
+      console.log('✅ setActivePhotoCapture called');
     }, []);
 
     // 🚀 OPTIMALIZÁCIA: Memoized photo capture success handler
@@ -1196,23 +1199,25 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 <Button
                   variant="outline"
                   onClick={(e) => {
-                    console.log('🔥🔥🔥 VEHICLE BUTTON RAW CLICK EVENT', e);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    logger.info('🔥 VEHICLE BUTTON CLICKED - Direct handler');
-                    handlePhotoCapture('vehicle');
-                  }}
-                  onPointerDown={(e) => {
-                    console.log('👆 POINTER DOWN EVENT', e);
-                  }}
-                  onMouseDown={(e) => {
-                    console.log('🖱️ MOUSE DOWN EVENT', e);
+                    try {
+                      console.log('🔥🔥🔥 VEHICLE BUTTON RAW CLICK EVENT', e);
+                      console.log('📊 Current activePhotoCapture state:', activePhotoCapture);
+                      logger.info('🔥 VEHICLE BUTTON CLICKED - Direct handler');
+                      handlePhotoCapture('vehicle');
+                      console.log('✅ handlePhotoCapture called successfully');
+                      
+                      // Check state after small delay
+                      setTimeout(() => {
+                        console.log('📊 activePhotoCapture after 100ms:', activePhotoCapture);
+                      }, 100);
+                    } catch (error) {
+                      console.error('❌ ERROR in onClick handler:', error);
+                      logger.error('Button click error', { error });
+                    }
                   }}
                   size="lg"
                   className="flex-1"
                   type="button"
-                  disabled={false}
-                  style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 10 }}
                 >
                   <PhotoCamera className="mr-2 h-4 w-4" />
                   Fotky vozidla ({formData.vehicleImages.length})
@@ -1382,19 +1387,21 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         </div>
 
         {/* Photo capture modal - ENTERPRISE BLIND UPLOAD */}
-        {activePhotoCapture && (
-          <EnterprisePhotoCapture
-            protocolId={rental.id}
-            protocolType="handover"
-            mediaType={
-              activePhotoCapture as
-                | 'vehicle'
-                | 'document'
-                | 'damage'
-                | 'odometer'
-                | 'fuel'
-            }
-            onPhotosUploaded={(urls) => {
+        {(() => {
+          console.log('🎬 Render check - activePhotoCapture:', activePhotoCapture);
+          return activePhotoCapture ? (
+            <EnterprisePhotoCapture
+              protocolId={rental.id}
+              protocolType="handover"
+              mediaType={
+                activePhotoCapture as
+                  | 'vehicle'
+                  | 'document'
+                  | 'damage'
+                  | 'odometer'
+                  | 'fuel'
+              }
+              onPhotosUploaded={(urls) => {
               // Convert URLs to ProtocolImage format
               const images = urls.map((url, idx) => ({
                 id: `photo-${Date.now()}-${idx}`,
@@ -1412,7 +1419,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             }}
             maxPhotos={100}
           />
-        )}
+        ) : null;
+        })()}
 
         {/* SignaturePad modal */}
         {showSignaturePad && currentSigner && (
