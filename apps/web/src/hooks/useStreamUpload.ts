@@ -36,12 +36,17 @@ export interface UploadTask {
   retries: number;
 }
 
+export interface UploadResult {
+  url: string;
+  imageId: string; // ID used in IndexedDB
+}
+
 export interface UseStreamUploadOptions {
   protocolId: string;
   mediaType: 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel';
   protocolType?: 'handover' | 'return';
   onProgress?: (completed: number, total: number) => void;
-  onComplete?: (urls: string[]) => void;
+  onComplete?: (results: UploadResult[]) => void; // Changed: now returns URL + imageId
   onError?: (error: Error) => void;
   enableWakeLock?: boolean;
 }
@@ -134,10 +139,10 @@ export function useStreamUpload(
 
         setTasks(newTasks);
 
-        // Upload queue with concurrency 2
+        // Upload queue with concurrency 6
         const queue = [...newTasks];
         const active = new Set<Promise<void>>();
-        const results: string[] = [];
+        const results: UploadResult[] = [];
         let completed = 0;
 
         while (queue.length > 0 || active.size > 0) {
@@ -156,8 +161,8 @@ export function useStreamUpload(
                   )
                 );
 
-                // Upload
-                const url = await uploadFile(
+                // Upload (returns {url, imageId})
+                const uploadResult = await uploadFile(
                   task,
                   abortControllerRef.current!.signal
                 );
@@ -166,12 +171,12 @@ export function useStreamUpload(
                 setTasks(prev =>
                   prev.map(t =>
                     t.id === task.id
-                      ? { ...t, status: 'completed', url, progress: 100 }
+                      ? { ...t, status: 'completed', url: uploadResult.url, progress: 100 }
                       : t
                   )
                 );
 
-                results.push(url);
+                results.push(uploadResult);
                 completed++;
                 options.onProgress?.(completed, files.length);
 
@@ -353,9 +358,9 @@ async function uploadSingle(
   task: UploadTask,
   signal: AbortSignal,
   options: UseStreamUploadOptions
-): Promise<string> {
-  // 1. Generate image ID
-  const imageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+): Promise<UploadResult> {
+  // 1. Generate image ID (CRITICAL: This ID is used in IndexedDB!)
+  const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // 2. Compress and store JPEG 20% in IndexedDB (parallel with upload)
   const compressionPromise = compressImageForPdfStorage(
@@ -394,7 +399,11 @@ async function uploadSingle(
   // 4. Wait for compression to finish
   await compressionPromise;
 
-  return result.url || result.publicUrl;
+  // 5. Return both URL and imageId (for IndexedDB lookup)
+  return {
+    url: result.url || result.publicUrl,
+    imageId,
+  };
 }
 
 /**
@@ -405,14 +414,25 @@ async function uploadMultipart(
   task: UploadTask,
   signal: AbortSignal,
   options: UseStreamUploadOptions
-): Promise<string> {
+): Promise<UploadResult> {
   const { file } = task;
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+  // Generate image ID for IndexedDB
+  const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Start compression in parallel
+  const compressionPromise = compressImageForPdfStorage(
+    file,
+    imageId,
+    options.protocolId
+  );
 
   logger.info('Starting multipart upload', {
     filename: file.name,
     size: file.size,
     chunks: totalChunks,
+    imageId,
   });
 
   // 1. Initiate multipart upload
@@ -492,5 +512,12 @@ async function uploadMultipart(
   }
 
   const { url } = await completeResponse.json();
-  return url;
+  
+  // Wait for compression to finish
+  await compressionPromise;
+  
+  return {
+    url,
+    imageId,
+  };
 }

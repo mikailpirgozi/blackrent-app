@@ -1151,14 +1151,15 @@ export default function ReturnProtocolForm({
                 protocolId={rental.id}
                 protocolType="return"
                 mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
-                onPhotosUploaded={(urls) => {
-                  console.log('📸 Photos uploaded successfully', { count: urls.length });
-                  // Convert URLs to ProtocolImage format
-                  const images = urls.map((url, idx) => ({
-                    id: `photo-${Date.now()}-${idx}`,
-                    url,
-                    originalUrl: url,
-                    pdfUrl: url,
+                onPhotosUploaded={(results) => {
+                  console.log('📸 Photos uploaded successfully', { count: results.length });
+                  // Convert UploadResult[] to ProtocolImage format
+                  // CRITICAL: Use imageId from upload result (matches IndexedDB key!)
+                  const images = results.map((result) => ({
+                    id: result.imageId, // ✅ CRITICAL: Use ID from upload (IndexedDB key)
+                    url: result.url,
+                    originalUrl: result.url,
+                    pdfUrl: result.url,
                     type: activePhotoCapture,
                     description: '',
                     timestamp: new Date(),
