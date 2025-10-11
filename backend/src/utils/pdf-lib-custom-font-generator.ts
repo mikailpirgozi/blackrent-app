@@ -638,12 +638,12 @@ export class PDFLibCustomFontGenerator {
         this.currentY -= 20;
         
         // 🖼️ Embed signature image ak existuje
-        if (signature.signatureData) {
+        if (signature.signature) {
           try {
             console.log(`🖊️ Embedding signature ${i + 1} for ${signature.signerName}`);
             
             // Remove data:image/png;base64, prefix if present
-            const base64Data = signature.signatureData.replace(/^data:image\/\w+;base64,/, '');
+            const base64Data = signature.signature.replace(/^data:image\/\w+;base64,/, '');
             const imageBytes = Uint8Array.from(Buffer.from(base64Data, 'base64'));
             
             // Embed PNG image
