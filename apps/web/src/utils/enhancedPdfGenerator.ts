@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { logger } from './logger';
+import { indexedDBManager } from './storage/IndexedDBManager';
 import type { HandoverProtocol, ReturnProtocol, ProtocolImage } from '../types';
 
 export interface ProtocolData {
@@ -755,7 +756,35 @@ export class EnhancedPDFGenerator {
       let source = 'unknown';
 
       try {
-        // ✅ ANTI-CRASH: Download from R2 JPEG URL (PDF-optimized)
+        // 🚀 PRIORITY 1: IndexedDB JPEG 20% (FASTEST - in memory!)
+        if (!base64) {
+          logger.info('🟢 Loading PDF-optimized JPEG from IndexedDB', {
+            imageId: image.id,
+          });
+
+          try {
+            const imageData = await indexedDBManager.getImage(image.id);
+            if (imageData?.pdfData) {
+              base64 = imageData.pdfData;
+              source = 'IndexedDB JPEG 20%';
+              logger.info('✅ Image loaded from IndexedDB (fast!)', {
+                imageId: image.id,
+                size: `${Math.floor((base64.length * 0.75) / 1024)} KB`,
+              });
+            } else {
+              logger.warn('⚠️ IndexedDB image found but no pdfData', {
+                imageId: image.id,
+              });
+            }
+          } catch (indexedDBError) {
+            logger.warn('⚠️ IndexedDB not available, falling back to R2', {
+              imageId: image.id,
+              error: indexedDBError,
+            });
+          }
+        }
+
+        // 🟡 PRIORITY 2: Download from R2 JPEG URL (PDF-optimized)
         if (!base64 && image.pdfUrl) {
           logger.info('🟡 Downloading PDF-optimized JPEG from R2', {
             imageId: image.id,
@@ -778,19 +807,17 @@ export class EnhancedPDFGenerator {
           }
         }
 
-        // ✅ ANTI-CRASH: No DB pdfData fallback (removed)
-
-        // 🔴 PRIORITY 4: Last resort - download WebP from R2 (slowest, needs conversion)
+        // 🔴 PRIORITY 3: Last resort - download WebP from R2 (slowest, needs compression)
         if (!base64 && (image.originalUrl || image.url)) {
           const url = image.originalUrl || image.url;
-          logger.warn('🔴 Downloading WebP from R2 (slow, last resort!)', {
+          logger.warn('🔴 Downloading WebP from R2 (slow, compressing...)', {
             imageId: image.id,
             url,
           });
 
           try {
             base64 = await this.downloadImageFromR2(url);
-            source = 'R2 WebP download';
+            source = 'R2 WebP (compressed)';
             r2Fallbacks++;
           } catch (downloadError) {
             logger.error('Failed to download WebP from R2', {

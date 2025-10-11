@@ -14,12 +14,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { logger } from '../utils/logger';
 import { getApiBaseUrl } from '../utils/apiUrl';
+import { indexedDBManager } from '../utils/storage/IndexedDBManager';
 
 // Constants
-const CONCURRENCY = 2; // Max parallel uploads (iOS safe)
+const CONCURRENCY = 6; // Max parallel uploads (faster upload, compression happens in parallel)
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks for multipart
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+const PDF_JPEG_QUALITY = 0.2; // 20% quality for PDF (small file, still readable)
 
 // Types
 export interface UploadTask {
@@ -271,6 +273,80 @@ export function useStreamUpload(
 }
 
 /**
+ * Compress image to JPEG 20% quality for PDF storage
+ * Stores in IndexedDB for fast PDF generation
+ */
+async function compressImageForPdfStorage(
+  file: File,
+  imageId: string,
+  protocolId: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectURL = URL.createObjectURL(file);
+
+    img.onload = async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          throw new Error('Canvas context not available');
+        }
+
+        // Scale to max 800px (sufficient for PDF)
+        const MAX_SIZE = 800;
+        let { width, height } = img;
+
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+          const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+          width = Math.floor(width * ratio);
+          height = Math.floor(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
+
+        // Store in IndexedDB
+        await indexedDBManager.saveImage({
+          id: imageId,
+          protocolId,
+          pdfData: base64, // JPEG 20% for PDF
+          compressed: true,
+          originalSize: file.size,
+          compressedSize: Math.floor((base64.length * 0.75) / 1024), // Estimate KB
+        });
+
+        logger.info('📦 PDF JPEG stored in IndexedDB', {
+          imageId,
+          originalSize: `${(file.size / 1024).toFixed(0)} KB`,
+          compressedSize: `${Math.floor((base64.length * 0.75) / 1024)} KB`,
+          dimensions: `${width}x${height}`,
+          quality: '20%',
+        });
+
+        URL.revokeObjectURL(objectURL);
+        resolve();
+      } catch (error) {
+        URL.revokeObjectURL(objectURL);
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectURL);
+      reject(new Error('Failed to load image for compression'));
+    };
+
+    img.src = objectURL;
+  });
+}
+
+/**
  * Upload single file (< 5MB)
  */
 async function uploadSingle(
@@ -278,6 +354,17 @@ async function uploadSingle(
   signal: AbortSignal,
   options: UseStreamUploadOptions
 ): Promise<string> {
+  // 1. Generate image ID
+  const imageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // 2. Compress and store JPEG 20% in IndexedDB (parallel with upload)
+  const compressionPromise = compressImageForPdfStorage(
+    task.file,
+    imageId,
+    options.protocolId
+  );
+
+  // 3. Upload original file to R2
   const formData = new FormData();
   formData.append('file', task.file);
   formData.append('type', 'protocol');
@@ -303,6 +390,10 @@ async function uploadSingle(
   }
 
   const result = await response.json();
+  
+  // 4. Wait for compression to finish
+  await compressionPromise;
+
   return result.url || result.publicUrl;
 }
 
