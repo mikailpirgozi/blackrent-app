@@ -323,18 +323,10 @@ class ImapEmailService {
           };
 
           console.log(`📧 IMAP: Spracúvam email: "${emailData.subject}" od: ${emailData.from}`);
-          console.log(`📄 EMAIL OBSAH DEBUG:`);
-          console.log(`- Text dĺžka: ${emailData.text.length}`);
-          console.log(`- HTML dĺžka: ${emailData.html.length}`);
-          console.log(`- Text preview:`, emailData.text.substring(0, 200));
-          console.log(`- HTML preview:`, emailData.html.substring(0, 200));
           
-          // Skontroluj prílohy
+          // Skontroluj prílohy (bez detailov)
           if (parsed.attachments && parsed.attachments.length > 0) {
             console.log(`📎 EMAIL PRÍLOHY: ${parsed.attachments.length}`);
-            parsed.attachments.forEach((att: EmailAttachment, index: number) => {
-              console.log(`📎 Príloha ${index + 1}: ${att.filename} (${att.contentType})`);
-            });
           }
           
           // FILTER 1: Spracúvaj LEN emaily od objednavky@blackrent.sk
@@ -495,7 +487,6 @@ class ImapEmailService {
     }
 
     // 🚗 PARSOVANIE VOZIDLA Z HTML TABULKY
-    console.log('🔍 Parsing vehicle from HTML...');
     
     // HTML format: <td>Volkswagen Polo GTI</td> <td>TN076HA</td> <td>50,00 &#8364;</td> <td>200,00 &#8364;</td>
     const htmlVehicleMatch = text.match(/<tr[^>]*>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>([A-Z0-9]{6,7})<\/td>\s*<td[^>]*>([\d\s,]+)\s*(?:&#8364;|€)<\/td>\s*<td[^>]*>([\d\s,]+)\s*(?:&#8364;|€)<\/td>/);
@@ -521,15 +512,12 @@ class ImapEmailService {
       const vehicleMatch = text.match(/Položky objednávky\s*\n\s*Názov\s+Kód\s+Cena\s+Spolu\s*\n([^\n]+)/);
       if (vehicleMatch) {
         const vehicleLine = vehicleMatch[1].trim();
-        console.log('🔍 Parsing plain text vehicle line:', vehicleLine);
         
         // Rozdeliť riadok podľa tabuliek alebo viacerých medzier
         const parts = vehicleLine.split(/\s+/).filter(part => part.trim());
-        console.log('🔍 Vehicle parts:', parts);
         
         // Nájdi ŠPZ (6-7 znakov, len písmená a čísla)
         const spzIndex = parts.findIndex(part => /^[A-Z0-9]{6,7}$/.test(part.trim()));
-        console.log('🔍 SPZ index:', spzIndex, 'SPZ:', spzIndex >= 0 ? parts[spzIndex] : 'not found');
         
         if (spzIndex > 0) {
           // Názov auta je všetko pred ŠPZ
@@ -547,54 +535,42 @@ class ImapEmailService {
             code: data.vehicleCode,
             price: data.vehiclePrice
           });
-        } else {
-          console.log('❌ Could not find SPZ in vehicle line');
         }
       }
     }
 
     // Parsovanie kilometrov - VŠETKY sa považujú za denné km - IDENTICKÉ S FRONTEND
-    console.log('🔍 DEBUG: Searching for kilometers in text...');
-    console.log('🔍 Text sample around km:', text.substring(text.indexOf('Počet povolených km') - 20, text.indexOf('Počet povolených km') + 50));
-    
     // NAJVYŠŠIA PRIORITA: Špecifické patterny pre "Počet povolených km" (plain text aj HTML)
     let specificKmMatch = text.match(/Počet povolených km\s+(\d+)\s*km/i);
     if (!specificKmMatch) {
       // HTML format: <td>Počet povolených km</td> <td>210 km</td>
       specificKmMatch = text.match(/Počet povolených km<\/td>\s*<td[^>]*>(\d+)\s*km/i);
     }
-    console.log('🔍 DEBUG: specificKmMatch result:', specificKmMatch);
     
     if (specificKmMatch) {
       data.dailyKilometers = parseInt(specificKmMatch[1]);
-      console.log(`🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day (interpreted as daily)`);
+      console.log(`🚗 Parsed "Počet povolených km": ${data.dailyKilometers} km/day`);
     } else {
-      console.log('🔍 DEBUG: specificKmMatch failed, trying other patterns...');
       // Prioritne hľadáme explicitne denné km patterny
       const explicitDailyKmMatch = text.match(/(\d+)\s*km\s*\/\s*de[ňn]/i) ||
                                   text.match(/(\d+)\s*km\s*na\s*de[ňn]/i) ||
                                   text.match(/denný\s*limit[:\s]*(\d+)\s*km/i) ||
                                   text.match(/denne[:\s]*(\d+)\s*km/i) ||
                                   text.match(/(\d+)\s*km\s*daily/i);
-      console.log('🔍 DEBUG: explicitDailyKmMatch result:', explicitDailyKmMatch);
       
       if (explicitDailyKmMatch) {
         data.dailyKilometers = parseInt(explicitDailyKmMatch[1]);
         console.log(`🚗 Parsed explicit daily km: ${data.dailyKilometers} km/day`);
       } else {
-        console.log('🔍 DEBUG: explicitDailyKmMatch failed, trying general patterns...');
         // Ak nie sú explicitne denné, hľadáme ostatné všeobecné km patterny a považujeme ich za denné
         const generalKmMatch = text.match(/Povolené\s+km[:\s]+(\d+)/i) || 
                               text.match(/Kilometrov[:\s]+(\d+)/i) ||
                               text.match(/Limit\s+km[:\s]+(\d+)/i) ||
                               text.match(/(\d+)\s*km/i); // Všeobecný pattern pre číslo + km (najnižšia priorita)
-        console.log('🔍 DEBUG: generalKmMatch result:', generalKmMatch);
         
         if (generalKmMatch) {
           data.dailyKilometers = parseInt(generalKmMatch[1]);
-          console.log(`🚗 Parsed general km as daily: ${data.dailyKilometers} km/day (interpreted as daily)`);
-        } else {
-          console.log('🔍 DEBUG: No kilometer patterns matched!');
+          console.log(`🚗 Parsed general km as daily: ${data.dailyKilometers} km/day`);
         }
       }
     }
@@ -681,11 +657,16 @@ class ImapEmailService {
       }
       
       console.log('🎯 PARSING: Používam identickú logiku ako manuálne parsovanie...');
-      console.log('📧 EMAIL TEXT pre parsing:', content.substring(0, 300) + '...');
       
       // 🎯 IDENTICKÁ PARSING LOGIKA AKO V EmailParser.tsx
       const parsedData = this.parseEmailText(content);
-      console.log('📊 PARSED DATA (identické s manuálnym):', parsedData);
+      console.log('📊 PARSED DATA:', {
+        orderNumber: parsedData.orderNumber,
+        customerName: parsedData.customerName,
+        vehicleName: parsedData.vehicleName,
+        vehicleCode: parsedData.vehicleCode,
+        totalAmount: parsedData.totalAmount
+      });
       
       // Validácia povinných údajov
       if (!parsedData.orderNumber || !parsedData.customerName) {

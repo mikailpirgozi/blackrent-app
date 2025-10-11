@@ -64,3 +64,4 @@ cleanup-*.sh
 # Logs
 logs/
 *.log
+complete-backups/

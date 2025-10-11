@@ -301,8 +301,8 @@ async function autoStartImapMonitoring() {
 
     globalImapService = new ImapEmailService();
 
-    // Start monitoring in background (každých 30 sekúnd)
-    await globalImapService.startMonitoring(0.5);
+    // Start monitoring in background (každých 5 minút - optimalizované pre Railway rate limit)
+    await globalImapService.startMonitoring(5);
 
     // Set environment flag for status tracking
     process.env.IMAP_AUTO_STARTED = 'true';
