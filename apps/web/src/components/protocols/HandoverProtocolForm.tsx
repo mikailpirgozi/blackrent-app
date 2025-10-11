@@ -200,6 +200,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
 
     // 🚀 OPTIMALIZÁCIA: Memoized photo capture handler
     const handlePhotoCapture = useCallback((mediaType: string) => {
+      logger.info('🎥 Photo capture button clicked', { mediaType });
       setActivePhotoCapture(mediaType);
     }, []);
 
@@ -1194,9 +1195,13 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => handlePhotoCapture('vehicle')}
+                  onClick={() => {
+                    logger.info('🔥 VEHICLE BUTTON CLICKED - Direct handler');
+                    handlePhotoCapture('vehicle');
+                  }}
                   size="lg"
                   className="flex-1"
+                  type="button"
                 >
                   <PhotoCamera className="mr-2 h-4 w-4" />
                   Fotky vozidla ({formData.vehicleImages.length})
