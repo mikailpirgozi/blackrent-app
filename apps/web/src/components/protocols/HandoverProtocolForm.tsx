@@ -46,7 +46,7 @@ import {
   cacheFormDefaults,
   getSmartDefaults,
 } from '../../utils/protocolFormCache';
-import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
+import { EnterprisePhotoCapture } from '../common/EnterprisePhotoCapture';
 import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';
 
@@ -1365,16 +1365,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
           </Button>
         </div>
 
-        {/* Photo capture modal - MODERN SYSTEM */}
+        {/* Photo capture modal - ENTERPRISE BLIND UPLOAD */}
         {activePhotoCapture && (
-          <ModernPhotoCapture
-            open={true}
-            onClose={() => setActivePhotoCapture(null)}
-            onSave={(images, videos) =>
-              handlePhotoCaptureSuccess(activePhotoCapture, images, videos)
-            }
-            title={`Fotky - ${activePhotoCapture}`}
-            entityId={rental.id}
+          <EnterprisePhotoCapture
+            protocolId={rental.id}
             protocolType="handover"
             mediaType={
               activePhotoCapture as
@@ -1384,7 +1378,23 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                 | 'odometer'
                 | 'fuel'
             }
-            maxImages={50}
+            onPhotosUploaded={(urls) => {
+              // Convert URLs to ProtocolImage format
+              const images = urls.map((url, idx) => ({
+                id: `photo-${Date.now()}-${idx}`,
+                url,
+                originalUrl: url,
+                pdfUrl: url,
+                type: activePhotoCapture,
+                description: '',
+                timestamp: new Date(),
+                compressed: true,
+                originalSize: 0,
+                compressedSize: 0,
+              }));
+              handlePhotoCaptureSuccess(activePhotoCapture, images, []);
+            }}
+            maxPhotos={100}
           />
         )}
 
