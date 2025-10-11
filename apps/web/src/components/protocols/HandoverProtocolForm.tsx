@@ -1195,13 +1195,24 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => {
+                  onClick={(e) => {
+                    console.log('🔥🔥🔥 VEHICLE BUTTON RAW CLICK EVENT', e);
+                    e.preventDefault();
+                    e.stopPropagation();
                     logger.info('🔥 VEHICLE BUTTON CLICKED - Direct handler');
                     handlePhotoCapture('vehicle');
+                  }}
+                  onPointerDown={(e) => {
+                    console.log('👆 POINTER DOWN EVENT', e);
+                  }}
+                  onMouseDown={(e) => {
+                    console.log('🖱️ MOUSE DOWN EVENT', e);
                   }}
                   size="lg"
                   className="flex-1"
                   type="button"
+                  disabled={false}
+                  style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 10 }}
                 >
                   <PhotoCamera className="mr-2 h-4 w-4" />
                   Fotky vozidla ({formData.vehicleImages.length})
