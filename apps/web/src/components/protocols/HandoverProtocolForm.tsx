@@ -1387,40 +1387,63 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         </div>
 
         {/* Photo capture modal - ENTERPRISE BLIND UPLOAD */}
-        {(() => {
-          console.log('🎬 Render check - activePhotoCapture:', activePhotoCapture);
-          return activePhotoCapture ? (
-            <EnterprisePhotoCapture
-              protocolId={rental.id}
-              protocolType="handover"
-              mediaType={
-                activePhotoCapture as
-                  | 'vehicle'
-                  | 'document'
-                  | 'damage'
-                  | 'odometer'
-                  | 'fuel'
-              }
-              onPhotosUploaded={(urls) => {
-              // Convert URLs to ProtocolImage format
-              const images = urls.map((url, idx) => ({
-                id: `photo-${Date.now()}-${idx}`,
-                url,
-                originalUrl: url,
-                pdfUrl: url,
-                type: activePhotoCapture,
-                description: '',
-                timestamp: new Date(),
-                compressed: true,
-                originalSize: 0,
-                compressedSize: 0,
-              }));
-              handlePhotoCaptureSuccess(activePhotoCapture, images, []);
-            }}
-            maxPhotos={100}
-          />
-        ) : null;
-        })()}
+        {activePhotoCapture && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">
+                    {activePhotoCapture === 'vehicle' && '🚗 Fotky vozidla'}
+                    {activePhotoCapture === 'document' && '📄 Fotky dokladov'}
+                    {activePhotoCapture === 'damage' && '⚠️ Fotky poškodenia'}
+                    {activePhotoCapture === 'odometer' && '🔢 Fotky tachometra'}
+                    {activePhotoCapture === 'fuel' && '⛽ Fotky paliva'}
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      console.log('❌ Closing photo capture modal');
+                      setActivePhotoCapture(null);
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <EnterprisePhotoCapture
+                  protocolId={rental.id}
+                  protocolType="handover"
+                  mediaType={
+                    activePhotoCapture as
+                      | 'vehicle'
+                      | 'document'
+                      | 'damage'
+                      | 'odometer'
+                      | 'fuel'
+                  }
+                  onPhotosUploaded={(urls) => {
+                    console.log('📸 Photos uploaded successfully', { count: urls.length });
+                    // Convert URLs to ProtocolImage format
+                    const images = urls.map((url, idx) => ({
+                      id: `photo-${Date.now()}-${idx}`,
+                      url,
+                      originalUrl: url,
+                      pdfUrl: url,
+                      type: activePhotoCapture,
+                      description: '',
+                      timestamp: new Date(),
+                      compressed: true,
+                      originalSize: 0,
+                      compressedSize: 0,
+                    }));
+                    handlePhotoCaptureSuccess(activePhotoCapture, images, []);
+                  }}
+                  maxPhotos={100}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* SignaturePad modal */}
         {showSignaturePad && currentSigner && (
