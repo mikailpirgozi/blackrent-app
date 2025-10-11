@@ -524,6 +524,155 @@ export class IndexedDBManager {
       estimatedSize,
     };
   }
+
+  // ==================== PDF IMAGES (REPLACES SessionStorage) ====================
+
+  /**
+   * Save PDF image base64 to IndexedDB (replaces SessionStorage)
+   * This is temporary storage for PDF generation only
+   */
+  async savePDFImage(imageId: string, base64: string): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readwrite');
+      const store = tx.objectStore('images');
+      
+      // Store as special PDF image with minimal metadata
+      const pdfImageData = {
+        id: `pdf_${imageId}`,
+        protocolId: 'pdf_temp',
+        blob: new Blob([base64], { type: 'text/plain' }), // Store base64 as blob
+        filename: `${imageId}.pdf.jpeg`,
+        type: 'pdf_temp',
+        uploadStatus: 'pending' as const,
+        timestamp: Date.now(),
+        size: base64.length,
+      };
+
+      const request = store.put(pdfImageData);
+
+      request.onsuccess = () => {
+        logger.debug('PDF image saved to IndexedDB', { 
+          imageId, 
+          size: base64.length 
+        });
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Get PDF image base64 from IndexedDB
+   */
+  async getPDFImage(imageId: string): Promise<string | null> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readonly');
+      const store = tx.objectStore('images');
+      const request = store.get(`pdf_${imageId}`);
+
+      request.onsuccess = async () => {
+        const result = request.result;
+        if (!result || !result.blob) {
+          resolve(null);
+          return;
+        }
+
+        // Convert blob back to base64 string
+        try {
+          const text = await result.blob.text();
+          resolve(text);
+        } catch (error) {
+          logger.error('Failed to convert PDF blob to text', { error });
+          resolve(null);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Get all PDF images (for debugging)
+   */
+  async getAllPDFImages(): Promise<Map<string, string>> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readonly');
+      const store = tx.objectStore('images');
+      const request = store.getAll();
+
+      request.onsuccess = async () => {
+        const results = request.result || [];
+        const pdfImages = new Map<string, string>();
+
+        for (const item of results) {
+          if (item.id.startsWith('pdf_') && item.blob) {
+            try {
+              const base64 = await item.blob.text();
+              const originalId = item.id.replace('pdf_', '');
+              pdfImages.set(originalId, base64);
+            } catch (error) {
+              logger.error('Failed to convert PDF blob', { error });
+            }
+          }
+        }
+
+        resolve(pdfImages);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Remove PDF image from IndexedDB
+   */
+  async removePDFImage(imageId: string): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readwrite');
+      const store = tx.objectStore('images');
+      const request = store.delete(`pdf_${imageId}`);
+
+      request.onsuccess = () => {
+        logger.debug('PDF image removed from IndexedDB', { imageId });
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Clear all PDF images (after successful PDF generation)
+   */
+  async clearPDFImages(): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readwrite');
+      const store = tx.objectStore('images');
+      const request = store.openCursor();
+
+      let clearedCount = 0;
+
+      request.onsuccess = event => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          if (cursor.value.id.startsWith('pdf_')) {
+            cursor.delete();
+            clearedCount++;
+          }
+          cursor.continue();
+        } else {
+          logger.info('🧹 PDF images cleared from IndexedDB', { 
+            count: clearedCount 
+          });
+          resolve();
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
 }
 
 // Singleton instance

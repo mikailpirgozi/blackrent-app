@@ -9365,6 +9365,42 @@ export class PostgresDatabase {
     }
   }
 
+  async getCompanyById(companyId: string): Promise<Company | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT 
+          id, 
+          name, 
+          platform_id as "platformId",
+          business_id as "businessId", 
+          tax_id as "taxId", 
+          address, 
+          contact_person as "contactPerson", 
+          email, 
+          phone, 
+          contract_start_date as "contractStartDate", 
+          contract_end_date as "contractEndDate", 
+          commission_rate as "commissionRate", 
+          is_active as "isActive", 
+          created_at as "createdAt", 
+          updated_at as "updatedAt",
+          personal_iban as "personalIban",
+          business_iban as "businessIban",
+          owner_name as "ownerName",
+          contact_email as "contactEmail",
+          contact_phone as "contactPhone",
+          default_commission_rate as "defaultCommissionRate",
+          protocol_display_name as "protocolDisplayName"
+        FROM companies WHERE id = $1`, 
+        [companyId]
+      );
+      return result.rows.length > 0 ? result.rows[0] : null;
+    } finally {
+      client.release();
+    }
+  }
+
   async getAllCompanies(): Promise<{id: string, name: string}[]> {
     const client = await this.pool.connect();
     try {

@@ -1,0 +1,1 @@
+export { ElementPlatbaKartou } from "./ElementPlatbaKartou";

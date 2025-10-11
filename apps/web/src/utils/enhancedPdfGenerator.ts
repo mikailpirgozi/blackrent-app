@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { SessionStorageManager } from './sessionStorageManager';
+import { indexedDBManager } from './storage/IndexedDBManager';
 import { logger } from './logger';
 import type { HandoverProtocol, ReturnProtocol, ProtocolImage } from '../types';
 
@@ -72,16 +72,16 @@ export class EnhancedPDFGenerator {
     // 9. Päta
     this.addFooter(protocol);
 
-    // 🧹 10. Cleanup SessionStorage (auto-delete temporary PDF images)
-    this.cleanupSessionStorage(protocol);
+    // 🧹 10. Cleanup IndexedDB (auto-delete temporary PDF images)
+    await this.cleanupIndexedDB(protocol);
 
     return this.doc.output('blob');
   }
 
   /**
-   * 🧹 Auto-cleanup SessionStorage after PDF generation
+   * 🧹 Auto-cleanup IndexedDB after PDF generation (replaces SessionStorage)
    */
-  private cleanupSessionStorage(protocol: ProtocolData): void {
+  private async cleanupIndexedDB(protocol: ProtocolData): Promise<void> {
     try {
       const allImages = [
         ...(protocol.vehicleImages || []),
@@ -92,17 +92,17 @@ export class EnhancedPDFGenerator {
       let cleanedCount = 0;
       for (const image of allImages) {
         if (image.id) {
-          SessionStorageManager.removePDFImage(image.id);
+          await indexedDBManager.removePDFImage(image.id);
           cleanedCount++;
         }
       }
 
-      logger.info('🧹 SessionStorage cleaned up after PDF generation', {
+      logger.info('🧹 IndexedDB cleaned up after PDF generation', {
         cleanedImages: cleanedCount,
         protocolId: protocol.id,
       });
     } catch (error) {
-      logger.error('Failed to cleanup SessionStorage', error);
+      logger.error('Failed to cleanup IndexedDB', error);
     }
   }
 
@@ -734,7 +734,7 @@ export class EnhancedPDFGenerator {
    * 🎯 SMART FALLBACK: Pridanie fotiek s triple fallback systémom
    *
    * Priority:
-   * 1. SessionStorage (fastest, 1-2s) ✅
+   * 1. IndexedDB (fastest, 1-2s) ✅ [2GB+ capacity]
    * 2. pdfData z DB (medium, 5-10s) 🟡
    * 3. Download z R2 (slowest, 30-60s) 🔴
    */
@@ -754,16 +754,16 @@ export class EnhancedPDFGenerator {
     const imgHeight = 60;
     const margin = 10;
 
-    let sessionStorageHits = 0;
+    let indexedDBHits = 0;
     let dbFallbacks = 0;
     let r2Fallbacks = 0;
     let errors = 0;
 
-    // 🔍 DEBUG: Log SessionStorage contents before processing
-    const sessionStorageImages = SessionStorageManager.getAllPDFImages();
-    logger.info('🔍 SessionStorage Debug Info', {
-      totalImagesInStorage: sessionStorageImages.size,
-      storageKeys: Array.from(sessionStorageImages.keys()),
+    // 🔍 DEBUG: Log IndexedDB contents before processing
+    const indexedDBImages = await indexedDBManager.getAllPDFImages();
+    logger.info('🔍 IndexedDB Debug Info', {
+      totalImagesInStorage: indexedDBImages.size,
+      storageKeys: Array.from(indexedDBImages.keys()),
       protocolImageIds: images.map(img => img.id),
     });
 
@@ -772,26 +772,26 @@ export class EnhancedPDFGenerator {
       let source = 'unknown';
 
       try {
-        // 🚀 PRIORITY 1: Try SessionStorage (fastest)
-        base64 = SessionStorageManager.getPDFImage(image.id);
+        // 🚀 PRIORITY 1: Try IndexedDB (fastest, 2GB+ capacity)
+        base64 = await indexedDBManager.getPDFImage(image.id);
 
         // 🔍 DEBUG: Log lookup result
-        logger.debug('🔍 SessionStorage Lookup', {
+        logger.debug('🔍 IndexedDB Lookup', {
           imageId: image.id,
           found: !!base64,
           base64Length: base64?.length || 0,
         });
 
         if (base64) {
-          source = 'SessionStorage';
-          sessionStorageHits++;
-          logger.debug('✅ Image loaded from SessionStorage', {
+          source = 'IndexedDB';
+          indexedDBHits++;
+          logger.debug('✅ Image loaded from IndexedDB', {
             imageId: image.id,
           });
         } else {
-          logger.warn('⚠️ Image NOT found in SessionStorage', {
+          logger.warn('⚠️ Image NOT found in IndexedDB', {
             imageId: image.id,
-            availableKeys: Array.from(sessionStorageImages.keys()),
+            availableKeys: Array.from(indexedDBImages.keys()),
           });
         }
 
@@ -853,7 +853,7 @@ export class EnhancedPDFGenerator {
         if (!base64) {
           logger.error('No image data available for image', {
             imageId: image.id,
-            hasSessionStorage: false,
+            hasIndexedDB: false,
             hasPdfData: !!image.pdfData,
             hasUrl: !!(image.originalUrl || image.url),
           });
@@ -906,7 +906,7 @@ export class EnhancedPDFGenerator {
     // Log statistics
     logger.info('📊 PDF Image Loading Statistics', {
       total: images.length,
-      sessionStorageHits,
+      indexedDBHits,
       dbFallbacks,
       r2Fallbacks,
       errors,

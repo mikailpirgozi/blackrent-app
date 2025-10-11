@@ -11,7 +11,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ImageProcessor } from './imageProcessing';
 import { UploadManager } from '../services/uploadManager';
-import { SessionStorageManager } from './sessionStorageManager';
+import { indexedDBManager } from './storage/IndexedDBManager';
 import { EnhancedPDFGenerator } from './enhancedPdfGenerator';
 import { perfMonitor } from './performanceMonitor';
 import { logger } from './logger';
@@ -142,7 +142,7 @@ export async function processAndUploadPhotos(
 
     // Phase 3: Ensure all images have consistent IDs BEFORE saving
     // 🎯 FIX: Generate IDs once and reuse everywhere
-    const sessionStart = performance.now();
+    const storageStart = performance.now();
 
     processedImages.forEach((img, idx) => {
       // Generate unique ID if missing - DO THIS ONCE!
@@ -156,22 +156,20 @@ export async function processAndUploadPhotos(
       }
     });
 
-    // Now save to SessionStorage with guaranteed IDs
-    processedImages.forEach(img => {
-      SessionStorageManager.savePDFImage(img.id, img.pdf.base64);
-      logger.debug('💾 Saved to SessionStorage', {
-        imageId: img.id,
-        base64Length: img.pdf.base64.length,
-      });
-    });
+    // 🎯 NEW: Save to IndexedDB instead of SessionStorage (2GB+ vs 10MB limit)
+    await Promise.all(
+      processedImages.map(img => 
+        indexedDBManager.savePDFImage(img.id, img.pdf.base64)
+      )
+    );
 
-    const sessionStorageTime = performance.now() - sessionStart;
+    const storageTime = performance.now() - storageStart;
 
-    logger.info('SessionStorage save complete', {
+    logger.info('✅ PDF images saved to IndexedDB', {
       count: processedImages.length,
-      time: sessionStorageTime,
+      time: storageTime,
       imageIds: processedImages.map(img => img.id),
-      stats: SessionStorageManager.getStats(),
+      avgTimePerImage: storageTime / processedImages.length,
     });
 
     // Phase 4: Create ProtocolImage objects
@@ -239,11 +237,11 @@ export async function processAndUploadPhotos(
       imageCount: protocolImages.length,
       processingTime,
       uploadTime,
-      sessionStorageTime,
+      storageTime,
       totalTime,
       avgTimePerImage: totalTime / protocolImages.length,
       // 🔍 DEBUG: Log IDs for verification
-      sessionStorageIds: processedImages.map(img => img.id),
+      indexedDBIds: processedImages.map(img => img.id),
       protocolImageIds: protocolImages.map(img => img.id),
       idsMatch:
         JSON.stringify(processedImages.map(img => img.id)) ===
@@ -254,7 +252,7 @@ export async function processAndUploadPhotos(
       images: protocolImages,
       processingTime,
       uploadTime,
-      sessionStorageTime,
+      sessionStorageTime: storageTime, // Renamed but keeping interface compatibility
       totalTime,
     };
   } catch (error) {
@@ -264,9 +262,10 @@ export async function processAndUploadPhotos(
 }
 
 /**
- * Generate PDF with SessionStorage data
+ * Generate PDF with IndexedDB data
  *
  * Ultra-rýchle PDF generovanie bez sťahovania z R2
+ * 🎯 NOW USES IndexedDB (2GB+) instead of SessionStorage (10MB limit)
  */
 export async function generateProtocolPDFQuick(
   protocol: HandoverProtocol | ReturnProtocol
@@ -283,13 +282,13 @@ export async function generateProtocolPDFQuick(
         (protocol.damageImages?.length || 0),
     });
 
-    // Check SessionStorage has images
-    const sessionImages = SessionStorageManager.getAllPDFImages();
-    logger.info('Retrieved PDF images from SessionStorage', {
-      count: sessionImages.size,
+    // 🎯 NEW: Check IndexedDB has images (instead of SessionStorage)
+    const indexedDBImages = await indexedDBManager.getAllPDFImages();
+    logger.info('✅ Retrieved PDF images from IndexedDB', {
+      count: indexedDBImages.size,
     });
 
-    // Generate PDF using SessionStorage data
+    // Generate PDF using IndexedDB data
     const pdfGenerator = new EnhancedPDFGenerator();
     const pdfBlob = await pdfGenerator.generateProtocolPDF(protocol);
 
@@ -349,9 +348,9 @@ export async function generateProtocolPDFQuick(
 
     logger.info('PDF downloaded automatically');
 
-    // Clear SessionStorage after successful PDF generation
-    SessionStorageManager.clearPDFImages();
-    logger.debug('SessionStorage cleared after PDF generation');
+    // 🎯 NEW: Clear IndexedDB after successful PDF generation (instead of SessionStorage)
+    await indexedDBManager.clearPDFImages();
+    logger.info('🧹 IndexedDB PDF images cleared after successful generation');
 
     return {
       pdfBlob,

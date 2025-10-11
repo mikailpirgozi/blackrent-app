@@ -1,0 +1,1 @@
+export { FooterMobile } from "./FooterMobile";

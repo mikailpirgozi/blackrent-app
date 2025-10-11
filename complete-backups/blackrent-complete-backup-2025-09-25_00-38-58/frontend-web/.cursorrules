@@ -1,0 +1,78 @@
+# BlackRent Web App - Cursor Rules
+
+## 🎯 KRITICKÉ PRAVIDLÁ PRE SHADCN MIGRÁCIU
+
+### ⚠️ ABSOLÚTNE ZÁKAZY:
+1. **NIKDY nevytvárať nové súbory** - VŽDY migrovať existujúce súbory postupne
+2. **NIKDY nepreskakovať súbory** - každý rozrobený súbor MUSÍ byť dokončený na 100%
+3. **NIKDY nezjednodušovať** - radšej pracnejšie ale správne
+4. **NIKDY neodstraňovať funkcionalitu** - všetko musí fungovať ako predtým
+5. **NIKDY nevynechávať súbory** - všetky súbory s MUI komponentmi musia byť zmigrované
+6. **NIKDY neignorovať veľké súbory** - aj veľké súbory musia byť zmigrované kompletne
+
+### ✅ POVINNÉ PRAVIDLÁ:
+1. **Systematická migrácia** - jeden súbor kompletne, až potom ďalší
+2. **100% dokončenie** - 0 TypeScript chýb, 0 warnings, všetky testy prechádzajú
+3. **Zachovanie funkcionality** - všetko musí fungovať presne ako pred migráciou
+4. **Postupná migrácia** - MUI a shadcn môžu koexistovať počas migrácie
+5. **KOMPLETNÁ MIGRÁCIA KAŽDÉHO SÚBORU** - každý súbor musí byť zmigrovaný úplne
+6. **POSTUPNÁ MIGRÁCIA V SÚBORE** - veľké súbory migrovať po malých častiach, ale dokončiť celý súbor
+
+### 📋 MIGRAČNÝ PROCES PRE KAŽDÝ SÚBOR:
+1. Analyzovať MUI komponenty v súbore
+2. Nahradiť importy postupne (nie všetky naraz)
+3. Migrovať komponenty jeden po druhom
+4. Upraviť props a styling
+5. Otestovať funkcionalitu
+6. Opraviť všetky chyby a warnings
+7. **DOKONČIŤ CELÝ SÚBOR** - všetky MUI komponenty musia byť nahradené
+8. Až keď je súbor 100% funkčný a zmigrovaný, prejsť na ďalší
+9. **NIKDY nevynechávať súbory** - všetky súbory s MUI musia byť zmigrované
+
+### 🛠️ TECHNICKÉ DETAILY:
+- **Téma**: Blue default s dark/light mode
+- **Styling**: Tailwind CSS (žiadne inline styles)
+- **Responzivita**: Všetky breakpointy musia fungovať
+- **Komponenty**: shadcn/ui s Radix primitívami
+- **Date/Time picker**: Calendar s časovou funkcionalitou
+
+### 📁 ŠTRUKTÚRA:
+```
+src/
+  components/
+    ui/           # shadcn komponenty
+    [modules]/    # existujúce moduly - NEMENIŤ štruktúru
+```
+
+### 🔄 MIGRAČNÉ MAPOVANIE:
+- Button → Button (shadcn)
+- TextField → Input + Label
+- Select → Select (shadcn)
+- Dialog → Dialog (shadcn)
+- Card → Card (shadcn)
+- DataGrid → Table s custom funkcionalitou
+- DatePicker → Calendar + Popover + Time picker
+- Typography → custom Text komponenty
+
+### ⚡ WORKFLOW:
+1. VŽDY začať s `npm run analyze:mui [súbor]` 
+2. Použiť migračné skripty kde sa dá
+3. Manuálne dokončiť čo skripty nezvládnu
+4. NIKDY nepushovať kým nie je všetko otestované
+
+### 🚫 NIKDY:
+- Nevytvárať "NewComponent" verzie
+- Nevytvárať dočasné súbory
+- Nepreskakovať chyby "vyriešime neskôr"
+- Neodstraňovať existujúcu logiku
+
+### ✅ VŽDY:
+- Migrovať priamo v existujúcom súbore
+- Dokončiť súbor na 100% pred prechodom na ďalší
+- Zachovať všetku funkcionalitu
+- Testovať po každej zmene
+
+## 📝 POZNÁMKY:
+- Toto je interna webová aplikácia pre zamestnancov BlackRent
+- NIE customer website
+- Priorita je stabilita a funkcionalita

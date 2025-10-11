@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps (root)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint || echo "Lint warnings/errors found but continuing..."
+
+      - name: Prettier check
+        run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}" || echo "Formatting issues found but continuing..."
+
+      - name: Build (Vite)
+        run: npm run build
+
+      - name: Test (Vitest)
+        run: npm run test:run
+
+  backend:
+    name: Backend (Railway app)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare isolated backend build
+        run: |
+          echo "🔧 Preparing isolated backend build..."
+          # Create temporary directory outside workspace
+          mkdir -p /tmp/backend-build
+          # Copy backend source files
+          cp -r apps/backend/* /tmp/backend-build/
+          # Remove any workspace-related files
+          rm -f /tmp/backend-build/package-lock.json
+          rm -f /tmp/backend-build/.npmrc
+          ls -la /tmp/backend-build/
+
+      - name: Install deps (backend)
+        working-directory: /tmp/backend-build
+        env:
+          NPM_CONFIG_WORKSPACES: false
+          NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
+        run: |
+          echo "📦 Installing backend dependencies in isolated environment..."
+          npm config set workspaces false
+          npm config set include-workspace-root false
+          npm install --no-optional --legacy-peer-deps
+          echo "✅ Backend dependencies installed"
+
+      - name: Build backend
+        working-directory: /tmp/backend-build
+        env:
+          NPM_CONFIG_WORKSPACES: false
+          NPM_CONFIG_INCLUDE_WORKSPACE_ROOT: false
+        run: |
+          echo "🔨 Building backend..."
+          npm run build
+          echo "✅ Backend build completed"
+          ls -la dist/
+
+      - name: Lint backend (optional)
+        working-directory: /tmp/backend-build
+        run: npm run lint || true

@@ -1,0 +1,1 @@
+export { ElementIkonyMobil } from "./ElementIkonyMobil";

@@ -1,0 +1,1 @@
+export { ElementAkovnStrnka } from "./ElementAkovnStrnka";

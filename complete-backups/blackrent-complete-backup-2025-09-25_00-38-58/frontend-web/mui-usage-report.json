@@ -1,0 +1,4759 @@
+{
+  "Box (@mui/material)": {
+    "component": "Box",
+    "count": 132,
+    "files": [
+      "src/App.tsx",
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/auth/ProtectedRoute.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/BulkDownload.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/InfiniteScrollContainer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/OptimizedImage.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PermissionGuard.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/R2FileUpload.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/common/SkeletonLoader.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerForm.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx",
+      "src/components/rentals/components/PriceDisplay.tsx",
+      "src/components/rentals/components/PriceSummary.tsx",
+      "src/components/rentals/components/RentalActions.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalExport.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/EnhancedRentalSearch.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/statistics/ResponsiveChart.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/IntegratedUserManagement.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleActions.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleImage.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPage.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "CssBaseline (@mui/material)": {
+    "component": "CssBaseline",
+    "count": 2,
+    "files": [
+      "src/App.tsx",
+      "src/components/Layout.tsx"
+    ]
+  },
+  "ThemeProvider as MuiThemeProvider (@mui/material/styles)": {
+    "component": "ThemeProvider as MuiThemeProvider",
+    "count": 1,
+    "files": [
+      "src/App.tsx"
+    ]
+  },
+  "AdapterDateFns (@mui/x-date-pickers/AdapterDateFns)": {
+    "component": "AdapterDateFns",
+    "count": 3,
+    "files": [
+      "src/App.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx"
+    ]
+  },
+  "LocalizationProvider (@mui/x-date-pickers/LocalizationProvider)": {
+    "component": "LocalizationProvider",
+    "count": 3,
+    "files": [
+      "src/App.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx"
+    ]
+  },
+  "ThemeProvider (@mui/material/styles)": {
+    "component": "ThemeProvider",
+    "count": 1,
+    "files": [
+      "src/components/__tests__/Button.test.tsx"
+    ]
+  },
+  "createTheme (@mui/material/styles)": {
+    "component": "createTheme",
+    "count": 3,
+    "files": [
+      "src/components/__tests__/Button.test.tsx",
+      "src/theme/darkTheme.ts",
+      "src/theme/theme.ts"
+    ]
+  },
+  "Add as AddIcon (@mui/icons-material)": {
+    "component": "Add as AddIcon",
+    "count": 20,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalActions.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/VehicleActions.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleForm.tsx"
+    ]
+  },
+  "// VpnKey as KeyIcon (@mui/icons-material)": {
+    "component": "// VpnKey as KeyIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "Analytics as AnalyticsIcon (@mui/icons-material)": {
+    "component": "Analytics as AnalyticsIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "Block as BlockIcon (@mui/icons-material)": {
+    "component": "Block as BlockIcon",
+    "count": 2,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx"
+    ]
+  },
+  "Business as BusinessIcon (@mui/icons-material)": {
+    "component": "Business as BusinessIcon",
+    "count": 10,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "Delete as DeleteIcon (@mui/icons-material)": {
+    "component": "Delete as DeleteIcon",
+    "count": 29,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerCard.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleListNew.tsx"
+    ]
+  },
+  "Edit as EditIcon (@mui/icons-material)": {
+    "component": "Edit as EditIcon",
+    "count": 26,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/customers/CustomerCard.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx"
+    ]
+  },
+  "ExpandMore as ExpandMoreIcon (@mui/icons-material)": {
+    "component": "ExpandMore as ExpandMoreIcon",
+    "count": 17,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "Group as GroupIcon (@mui/icons-material)": {
+    "component": "Group as GroupIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "PersonAdd as PersonAddIcon (@mui/icons-material)": {
+    "component": "PersonAdd as PersonAddIcon",
+    "count": 2,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "Security as SecurityIcon (@mui/icons-material)": {
+    "component": "Security as SecurityIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/users/IntegratedUserManagement.tsx"
+    ]
+  },
+  "Timeline as TimelineIcon (@mui/icons-material)": {
+    "component": "Timeline as TimelineIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/common/LazyDetailView.tsx"
+    ]
+  },
+  "// Settings as SettingsIcon (@mui/icons-material)": {
+    "component": "// Settings as SettingsIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx"
+    ]
+  },
+  "Visibility as ViewIcon (@mui/icons-material)": {
+    "component": "Visibility as ViewIcon",
+    "count": 9,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "Accordion (@mui/material)": {
+    "component": "Accordion",
+    "count": 6,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "AccordionDetails (@mui/material)": {
+    "component": "AccordionDetails",
+    "count": 7,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "AccordionSummary (@mui/material)": {
+    "component": "AccordionSummary",
+    "count": 7,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "Alert (@mui/material)": {
+    "component": "Alert",
+    "count": 42,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PermissionGuard.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/R2FileUpload.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "Avatar (@mui/material)": {
+    "component": "Avatar",
+    "count": 17,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "Button (@mui/material)": {
+    "component": "Button",
+    "count": 80,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerForm.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalActions.tsx",
+      "src/components/rentals/components/RentalExport.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleActions.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Card (@mui/material)": {
+    "component": "Card",
+    "count": 73,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/common/SkeletonLoader.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/customers/CustomerForm.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/EmailStatsCards.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/ChartsTab.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/ui/UnifiedCard.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "CardContent (@mui/material)": {
+    "component": "CardContent",
+    "count": 69,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/common/SkeletonLoader.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/customers/CustomerForm.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/EmailStatsCards.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/ChartsTab.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/ui/UnifiedCard.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Chip (@mui/material)": {
+    "component": "Chip",
+    "count": 81,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/email-management/components/StatusChip.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx",
+      "src/components/rentals/components/PriceDisplay.tsx",
+      "src/components/rentals/components/PriceSummary.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/ui/UnifiedChip.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Dialog (@mui/material)": {
+    "component": "Dialog",
+    "count": 39,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleForm.tsx"
+    ]
+  },
+  "DialogActions (@mui/material)": {
+    "component": "DialogActions",
+    "count": 29,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "DialogContent (@mui/material)": {
+    "component": "DialogContent",
+    "count": 36,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "DialogTitle (@mui/material)": {
+    "component": "DialogTitle",
+    "count": 34,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "// List (@mui/material)": {
+    "component": "// List",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "// ListItem (@mui/material)": {
+    "component": "// ListItem",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "// ListItemAvatar (@mui/material)": {
+    "component": "// ListItemAvatar",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "// ListItemText (@mui/material)": {
+    "component": "// ListItemText",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "// ListItemSecondaryAction (@mui/material)": {
+    "component": "// ListItemSecondaryAction",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "Divider (@mui/material)": {
+    "component": "Divider",
+    "count": 37,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/PriceSummary.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "FormControl (@mui/material)": {
+    "component": "FormControl",
+    "count": 31,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "FormControlLabel (@mui/material)": {
+    "component": "FormControlLabel",
+    "count": 13,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleListNew.tsx"
+    ]
+  },
+  "Grid (@mui/material)": {
+    "component": "Grid",
+    "count": 60,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/SkeletonLoader.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailStatsCards.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/ChartsTab.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "IconButton (@mui/material)": {
+    "component": "IconButton",
+    "count": 68,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "InputLabel (@mui/material)": {
+    "component": "InputLabel",
+    "count": 31,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "MenuItem (@mui/material)": {
+    "component": "MenuItem",
+    "count": 35,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Paper (@mui/material)": {
+    "component": "Paper",
+    "count": 27,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserProfile.tsx"
+    ]
+  },
+  "Select (@mui/material)": {
+    "component": "Select",
+    "count": 31,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Skeleton (@mui/material)": {
+    "component": "Skeleton",
+    "count": 7,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/OptimizedImage.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/SkeletonLoader.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "Switch (@mui/material)": {
+    "component": "Switch",
+    "count": 6,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "Tab (@mui/material)": {
+    "component": "Tab",
+    "count": 7,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/users/IntegratedUserManagement.tsx",
+      "src/components/vehicles/VehicleListNew.tsx"
+    ]
+  },
+  "Table (@mui/material)": {
+    "component": "Table",
+    "count": 15,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "TableBody (@mui/material)": {
+    "component": "TableBody",
+    "count": 16,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "TableCell (@mui/material)": {
+    "component": "TableCell",
+    "count": 18,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "TableContainer (@mui/material)": {
+    "component": "TableContainer",
+    "count": 16,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "TableHead (@mui/material)": {
+    "component": "TableHead",
+    "count": 16,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "TableRow (@mui/material)": {
+    "component": "TableRow",
+    "count": 18,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx"
+    ]
+  },
+  "Tabs (@mui/material)": {
+    "component": "Tabs",
+    "count": 6,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/vehicles/VehicleListNew.tsx"
+    ]
+  },
+  "TextField (@mui/material)": {
+    "component": "TextField",
+    "count": 48,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerForm.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseForm.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserProfile.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "// useTheme (@mui/material)": {
+    "component": "// useTheme",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "// alpha (@mui/material)": {
+    "component": "// alpha",
+    "count": 1,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx"
+    ]
+  },
+  "Tooltip (@mui/material)": {
+    "component": "Tooltip",
+    "count": 29,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx"
+    ]
+  },
+  "Typography (@mui/material)": {
+    "component": "Typography",
+    "count": 126,
+    "files": [
+      "src/components/admin/AdvancedUserManagement.tsx",
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/LoginForm.tsx",
+      "src/components/auth/ProtectedRoute.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/BulkDownload.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/InfiniteScrollContainer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PermissionGuard.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/R2FileUpload.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/customers/CustomerForm.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/EmailStatsCards.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx",
+      "src/components/rentals/components/PriceDisplay.tsx",
+      "src/components/rentals/components/PriceSummary.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/EnhancedRentalSearch.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/ChartsTab.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/CustomTooltip.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/PaymentsTab.tsx",
+      "src/components/statistics/ResponsiveChart.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleForm.tsx",
+      "src/components/vehicles/VehicleImage.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPage.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Clear as ClearIcon (@mui/icons-material)": {
+    "component": "Clear as ClearIcon",
+    "count": 10,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Memory as MemoryIcon (@mui/icons-material)": {
+    "component": "Memory as MemoryIcon",
+    "count": 2,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/common/MobileDebugPanel.tsx"
+    ]
+  },
+  "Refresh as RefreshIcon (@mui/icons-material)": {
+    "component": "Refresh as RefreshIcon",
+    "count": 24,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Speed as SpeedIcon (@mui/icons-material)": {
+    "component": "Speed as SpeedIcon",
+    "count": 7,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx"
+    ]
+  },
+  "Storage as StorageIcon (@mui/icons-material)": {
+    "component": "Storage as StorageIcon",
+    "count": 2,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx"
+    ]
+  },
+  "TrendingUp as TrendingUpIcon (@mui/icons-material)": {
+    "component": "TrendingUp as TrendingUpIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsCard.tsx"
+    ]
+  },
+  "LinearProgress (@mui/material)": {
+    "component": "LinearProgress",
+    "count": 13,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/InfiniteScrollContainer.tsx",
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx"
+    ]
+  },
+  "Stack (@mui/material)": {
+    "component": "Stack",
+    "count": 19,
+    "files": [
+      "src/components/admin/CacheMonitoring.tsx",
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/rentals/EnhancedRentalSearch.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx"
+    ]
+  },
+  "CheckCircle as ApproveIcon (@mui/icons-material)": {
+    "component": "CheckCircle as ApproveIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "Archive as ArchiveIcon (@mui/icons-material)": {
+    "component": "Archive as ArchiveIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx"
+    ]
+  },
+  "CalendarToday as CalendarIcon (@mui/icons-material)": {
+    "component": "CalendarToday as CalendarIcon",
+    "count": 9,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx"
+    ]
+  },
+  "DirectionsCar as CarIcon (@mui/icons-material)": {
+    "component": "DirectionsCar as CarIcon",
+    "count": 23,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/components/RentalRow.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleImage.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "CheckCircle (@mui/icons-material)": {
+    "component": "CheckCircle",
+    "count": 4,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "Email as EmailIcon (@mui/icons-material)": {
+    "component": "Email as EmailIcon",
+    "count": 9,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/customers/CustomerCard.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "Euro as EuroIcon (@mui/icons-material)": {
+    "component": "Euro as EuroIcon",
+    "count": 16,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/rentals/components/PriceDisplay.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopStatsTab.tsx"
+    ]
+  },
+  "ExpandLess as ExpandLessIcon (@mui/icons-material)": {
+    "component": "ExpandLess as ExpandLessIcon",
+    "count": 10,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalFilters.tsx"
+    ]
+  },
+  "LocationOn as LocationIcon (@mui/icons-material)": {
+    "component": "LocationOn as LocationIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "// Edit as EditIcon (@mui/icons-material)": {
+    "component": "// Edit as EditIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx"
+    ]
+  },
+  "NotificationsNone as NotificationIcon (@mui/icons-material)": {
+    "component": "NotificationsNone as NotificationIcon",
+    "count": 2,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx"
+    ]
+  },
+  "Schedule as PendingIcon (@mui/icons-material)": {
+    "component": "Schedule as PendingIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "Person as PersonIcon (@mui/icons-material)": {
+    "component": "Person as PersonIcon",
+    "count": 15,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/rentals/components/RentalCard.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/CompaniesTab.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/OverviewTab.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/statistics/TopStatsTab.tsx",
+      "src/components/users/IntegratedUserManagement.tsx"
+    ]
+  },
+  "Cancel as RejectIcon (@mui/icons-material)": {
+    "component": "Cancel as RejectIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "PlayArrow as StartIcon (@mui/icons-material)": {
+    "component": "PlayArrow as StartIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx"
+    ]
+  },
+  "Stop as StopIcon (@mui/icons-material)": {
+    "component": "Stop as StopIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx"
+    ]
+  },
+  "CheckCircle as TestIcon (@mui/icons-material)": {
+    "component": "CheckCircle as TestIcon",
+    "count": 3,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx"
+    ]
+  },
+  "Badge (@mui/material)": {
+    "component": "Badge",
+    "count": 7,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "CircularProgress (@mui/material)": {
+    "component": "CircularProgress",
+    "count": 33,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/auth/ChangePasswordForm.tsx",
+      "src/components/auth/ProtectedRoute.tsx",
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/InfiniteScrollContainer.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/LazyEditDialog.tsx",
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/R2FileUpload.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Collapse (@mui/material)": {
+    "component": "Collapse",
+    "count": 19,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/email-management/components/PendingRentalsTab.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/EmailParser.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/vehicles/components/InvestorCard.tsx",
+      "src/components/vehicles/components/OwnerCard.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Pagination (@mui/material)": {
+    "component": "Pagination",
+    "count": 3,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx"
+    ]
+  },
+  "useMediaQuery (@mui/material)": {
+    "component": "useMediaQuery",
+    "count": 41,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/EmailStatsCards.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/EnhancedRentalSearch.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/ResponsiveChart.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/IntegratedUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "useTheme (@mui/material)": {
+    "component": "useTheme",
+    "count": 51,
+    "files": [
+      "src/components/admin/EmailManagementDashboard.tsx",
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PerformanceOptimizedList.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/QuickFilters.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/common/SkeletonLoader.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/email-management/components/dialogs/EmailDetailDialog.tsx",
+      "src/components/email-management/components/dialogs/RejectDialog.tsx",
+      "src/components/email-management/components/EmailArchiveTab.tsx",
+      "src/components/email-management/components/EmailFilters.tsx",
+      "src/components/email-management/components/EmailHistoryTab.tsx",
+      "src/components/email-management/components/EmailStatsCards.tsx",
+      "src/components/email-management/components/ImapStatusCard.tsx",
+      "src/components/email-management/EmailManagementLayout.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalStats.tsx",
+      "src/components/rentals/EnhancedRentalSearch.tsx",
+      "src/components/rentals/RentalDashboard.tsx",
+      "src/components/rentals/RentalList.tsx",
+      "src/components/rentals/RentalStatusChip.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/CollapsibleSection.tsx",
+      "src/components/statistics/ResponsiveChart.tsx",
+      "src/components/statistics/StatisticsCard.tsx",
+      "src/components/statistics/StatisticsMobile.tsx",
+      "src/components/users/BasicUserManagement.tsx",
+      "src/components/users/IntegratedUserManagement.tsx",
+      "src/components/vehicles/components/VehicleDialogs.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Info as InfoIcon (@mui/icons-material)": {
+    "component": "Info as InfoIcon",
+    "count": 5,
+    "files": [
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "PlayArrow (@mui/icons-material)": {
+    "component": "PlayArrow",
+    "count": 2,
+    "files": [
+      "src/components/admin/ImapEmailMonitoring.tsx",
+      "src/components/common/ProtocolGallery.tsx"
+    ]
+  },
+  "CheckCircle as CheckCircleIcon (@mui/icons-material)": {
+    "component": "CheckCircle as CheckCircleIcon",
+    "count": 11,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalStatusChip.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalStatusChip.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/PaymentsTab.tsx"
+    ]
+  },
+  "Cloud as CloudIcon (@mui/icons-material)": {
+    "component": "Cloud as CloudIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/R2Configuration.tsx"
+    ]
+  },
+  "Download as DownloadIcon (@mui/icons-material)": {
+    "component": "Download as DownloadIcon",
+    "count": 6,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/BulkDownload.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx"
+    ]
+  },
+  "Error as ErrorIcon (@mui/icons-material)": {
+    "component": "Error as ErrorIcon",
+    "count": 9,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalStatusChip.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalStatusChip.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "Settings as SettingsIcon (@mui/icons-material)": {
+    "component": "Settings as SettingsIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/expenses/ExpenseListNew.tsx"
+    ]
+  },
+  "Upload as UploadIcon (@mui/icons-material)": {
+    "component": "Upload as UploadIcon",
+    "count": 2,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/customers/CustomerListNew.tsx"
+    ]
+  },
+  "Warning as WarningIcon (@mui/icons-material)": {
+    "component": "Warning as WarningIcon",
+    "count": 7,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/InsuranceList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "// Divider (@mui/material)": {
+    "component": "// Divider",
+    "count": 5,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx"
+    ]
+  },
+  "List (@mui/material)": {
+    "component": "List",
+    "count": 9,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "ListItem (@mui/material)": {
+    "component": "ListItem",
+    "count": 11,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "ListItemIcon (@mui/material)": {
+    "component": "ListItemIcon",
+    "count": 7,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "ListItemText (@mui/material)": {
+    "component": "ListItemText",
+    "count": 12,
+    "files": [
+      "src/components/admin/R2Configuration.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/Layout.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Cancel as CancelIcon (@mui/icons-material)": {
+    "component": "Cancel as CancelIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/rentals/RentalStatusChip.tsx"
+    ]
+  },
+  "Business as CompanyIcon (@mui/icons-material)": {
+    "component": "Business as CompanyIcon",
+    "count": 6,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "CalendarToday as DateIcon (@mui/icons-material)": {
+    "component": "CalendarToday as DateIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx"
+    ]
+  },
+  "History as HistoryIcon (@mui/icons-material)": {
+    "component": "History as HistoryIcon",
+    "count": 4,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx"
+    ]
+  },
+  "Save as SaveIcon (@mui/icons-material)": {
+    "component": "Save as SaveIcon",
+    "count": 5,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx",
+      "src/components/common/SignaturePad.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx"
+    ]
+  },
+  "SwapHoriz (@mui/icons-material)": {
+    "component": "SwapHoriz",
+    "count": 1,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx"
+    ]
+  },
+  "SwapHoriz as TransferIcon (@mui/icons-material)": {
+    "component": "SwapHoriz as TransferIcon",
+    "count": 1,
+    "files": [
+      "src/components/admin/VehicleOwnershipTransfer.tsx"
+    ]
+  },
+  "AccountCircle as AccountIcon (@mui/icons-material)": {
+    "component": "AccountCircle as AccountIcon",
+    "count": 1,
+    "files": [
+      "src/components/auth/LoginForm.tsx"
+    ]
+  },
+  "LockOutlined as LockIcon (@mui/icons-material)": {
+    "component": "LockOutlined as LockIcon",
+    "count": 1,
+    "files": [
+      "src/components/auth/LoginForm.tsx"
+    ]
+  },
+  "Checkbox (@mui/material)": {
+    "component": "Checkbox",
+    "count": 9,
+    "files": [
+      "src/components/auth/LoginForm.tsx",
+      "src/components/common/ResponsiveTable.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/components/vehicles/components/VehicleTable.tsx",
+      "src/components/vehicles/VehicleListNew.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Container (@mui/material)": {
+    "component": "Container",
+    "count": 3,
+    "files": [
+      "src/components/auth/LoginForm.tsx",
+      "src/pages/AvailabilityPage.tsx",
+      "src/pages/SmartAvailabilityPage.tsx"
+    ]
+  },
+  "DirectionsCar as RentedIcon (@mui/icons-material)": {
+    "component": "DirectionsCar as RentedIcon",
+    "count": 1,
+    "files": [
+      "src/components/availability/AddUnavailabilityModal.tsx"
+    ]
+  },
+  "Build as ServiceIcon (@mui/icons-material)": {
+    "component": "Build as ServiceIcon",
+    "count": 2,
+    "files": [
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/expenses/ExpenseListNew.tsx"
+    ]
+  },
+  "Autocomplete (@mui/material)": {
+    "component": "Autocomplete",
+    "count": 6,
+    "files": [
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceForm.tsx",
+      "src/components/rentals/EditRentalDialog.tsx"
+    ]
+  },
+  "DatePicker (@mui/x-date-pickers/DatePicker)": {
+    "component": "DatePicker",
+    "count": 2,
+    "files": [
+      "src/components/availability/AddUnavailabilityModal.tsx",
+      "src/components/common/UnifiedDocumentForm.tsx"
+    ]
+  },
+  "CalendarToday (@mui/icons-material)": {
+    "component": "CalendarToday",
+    "count": 2,
+    "files": [
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/Layout.tsx"
+    ]
+  },
+  "ChevronLeft (@mui/icons-material)": {
+    "component": "ChevronLeft",
+    "count": 1,
+    "files": [
+      "src/components/availability/AvailabilityCalendar.tsx"
+    ]
+  },
+  "ChevronRight (@mui/icons-material)": {
+    "component": "ChevronRight",
+    "count": 1,
+    "files": [
+      "src/components/availability/AvailabilityCalendar.tsx"
+    ]
+  },
+  "DirectionsCar (@mui/icons-material)": {
+    "component": "DirectionsCar",
+    "count": 5,
+    "files": [
+      "src/components/availability/AvailabilityCalendar.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2Wrapper.tsx"
+    ]
+  },
+  "Refresh (@mui/icons-material)": {
+    "component": "Refresh",
+    "count": 1,
+    "files": [
+      "src/components/availability/AvailabilityCalendar.tsx"
+    ]
+  },
+  "ArrowBack as ArrowBackIcon (@mui/icons-material)": {
+    "component": "ArrowBack as ArrowBackIcon",
+    "count": 1,
+    "files": [
+      "src/components/availability/SmartAvailabilityDashboard.tsx"
+    ]
+  },
+  "ArrowForward as ArrowForwardIcon (@mui/icons-material)": {
+    "component": "ArrowForward as ArrowForwardIcon",
+    "count": 1,
+    "files": [
+      "src/components/availability/SmartAvailabilityDashboard.tsx"
+    ]
+  },
+  "CheckCircle as AvailableIcon (@mui/icons-material)": {
+    "component": "CheckCircle as AvailableIcon",
+    "count": 2,
+    "files": [
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "FilterList as FilterIcon (@mui/icons-material)": {
+    "component": "FilterList as FilterIcon",
+    "count": 3,
+    "files": [
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/QuickFilters.tsx"
+    ]
+  },
+  "Build as MaintenanceIcon (@mui/icons-material)": {
+    "component": "Build as MaintenanceIcon",
+    "count": 2,
+    "files": [
+      "src/components/availability/SmartAvailabilityDashboard.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "Cancel as UnavailableIcon (@mui/icons-material)": {
+    "component": "Cancel as UnavailableIcon",
+    "count": 1,
+    "files": [
+      "src/components/availability/SmartAvailabilityDashboard.tsx"
+    ]
+  },
+  "BugReport as BugReportIcon (@mui/icons-material)": {
+    "component": "BugReport as BugReportIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorBoundary.tsx"
+    ]
+  },
+  "Close as CloseIcon (@mui/icons-material)": {
+    "component": "Close as CloseIcon",
+    "count": 14,
+    "files": [
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/MobileDebugPanel.tsx",
+      "src/components/common/PDFViewer.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementDetail.tsx"
+    ]
+  },
+  "Snackbar (@mui/material)": {
+    "component": "Snackbar",
+    "count": 4,
+    "files": [
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx",
+      "src/components/common/SuccessToast.tsx"
+    ]
+  },
+  "alpha (@mui/material)": {
+    "component": "alpha",
+    "count": 4,
+    "files": [
+      "src/components/common/EnhancedErrorToast.tsx",
+      "src/components/common/EnhancedLoading.tsx",
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PushNotificationManager.tsx"
+    ]
+  },
+  "Search as SearchIcon (@mui/icons-material)": {
+    "component": "Search as SearchIcon",
+    "count": 11,
+    "files": [
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "TrendingUp as SuggestionIcon (@mui/icons-material)": {
+    "component": "TrendingUp as SuggestionIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/EnhancedSearchBar.tsx"
+    ]
+  },
+  "Fade (@mui/material)": {
+    "component": "Fade",
+    "count": 7,
+    "files": [
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/common/ImageGalleryLazy.tsx",
+      "src/components/common/LazyImage.tsx",
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/SuccessToast.tsx",
+      "src/components/rentals/components/PriceDisplay.tsx",
+      "src/components/rentals/MobileRentalRow.tsx"
+    ]
+  },
+  "InputAdornment (@mui/material)": {
+    "component": "InputAdornment",
+    "count": 3,
+    "files": [
+      "src/components/common/EnhancedSearchBar.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/RentalTableHeader.tsx"
+    ]
+  },
+  "Home as HomeIcon (@mui/icons-material)": {
+    "component": "Home as HomeIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/ErrorBoundary.tsx",
+      "src/utils/vehicles/vehicleHelpers.tsx"
+    ]
+  },
+  "AlertTitle (@mui/material)": {
+    "component": "AlertTitle",
+    "count": 2,
+    "files": [
+      "src/components/common/ErrorBoundary.tsx",
+      "src/components/common/ErrorToastContainer.tsx"
+    ]
+  },
+  "Wifi as WifiIcon (@mui/icons-material)": {
+    "component": "Wifi as WifiIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/PWAInstallPrompt.tsx"
+    ]
+  },
+  "WifiOff as WifiOffIcon (@mui/icons-material)": {
+    "component": "WifiOff as WifiOffIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/ErrorToast.tsx",
+      "src/components/common/ErrorToastContainer.tsx"
+    ]
+  },
+  "ChevronLeft as PrevIcon (@mui/icons-material)": {
+    "component": "ChevronLeft as PrevIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/ImageGalleryLazy.tsx"
+    ]
+  },
+  "ChevronRight as NextIcon (@mui/icons-material)": {
+    "component": "ChevronRight as NextIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/ImageGalleryLazy.tsx"
+    ]
+  },
+  "ZoomIn as ZoomInIcon (@mui/icons-material)": {
+    "component": "ZoomIn as ZoomInIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/ImageGalleryLazy.tsx"
+    ]
+  },
+  "Close (@mui/icons-material)": {
+    "component": "Close",
+    "count": 5,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/ProtocolGallery.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx"
+    ]
+  },
+  "NavigateBefore (@mui/icons-material)": {
+    "component": "NavigateBefore",
+    "count": 2,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/ProtocolGallery.tsx"
+    ]
+  },
+  "NavigateNext (@mui/icons-material)": {
+    "component": "NavigateNext",
+    "count": 2,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/ProtocolGallery.tsx"
+    ]
+  },
+  "Download (@mui/icons-material)": {
+    "component": "Download",
+    "count": 2,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/ProtocolGallery.tsx"
+    ]
+  },
+  "ZoomIn (@mui/icons-material)": {
+    "component": "ZoomIn",
+    "count": 2,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx",
+      "src/components/common/ProtocolGallery.tsx"
+    ]
+  },
+  "ZoomOut (@mui/icons-material)": {
+    "component": "ZoomOut",
+    "count": 1,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx"
+    ]
+  },
+  "Fullscreen (@mui/icons-material)": {
+    "component": "Fullscreen",
+    "count": 1,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx"
+    ]
+  },
+  "FullscreenExit (@mui/icons-material)": {
+    "component": "FullscreenExit",
+    "count": 1,
+    "files": [
+      "src/components/common/ImageGalleryModal.tsx"
+    ]
+  },
+  "Assessment as AssessmentIcon (@mui/icons-material)": {
+    "component": "Assessment as AssessmentIcon",
+    "count": 3,
+    "files": [
+      "src/components/common/LazyDetailView.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx"
+    ]
+  },
+  "Image as ImageIcon (@mui/icons-material)": {
+    "component": "Image as ImageIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/LazyImage.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx"
+    ]
+  },
+  "Backdrop (@mui/material)": {
+    "component": "Backdrop",
+    "count": 1,
+    "files": [
+      "src/components/common/LoadingStates.tsx"
+    ]
+  },
+  "keyframes (@mui/material)": {
+    "component": "keyframes",
+    "count": 2,
+    "files": [
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/SkeletonLoader.tsx"
+    ]
+  },
+  "styled (@mui/material)": {
+    "component": "styled",
+    "count": 2,
+    "files": [
+      "src/components/common/LoadingStates.tsx",
+      "src/components/common/SkeletonLoader.tsx"
+    ]
+  },
+  "BugReport as BugIcon (@mui/icons-material)": {
+    "component": "BugReport as BugIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/MobileDebugPanel.tsx"
+    ]
+  },
+  "FlashOff (@mui/icons-material)": {
+    "component": "FlashOff",
+    "count": 1,
+    "files": [
+      "src/components/common/NativeCamera.tsx"
+    ]
+  },
+  "FlashOn (@mui/icons-material)": {
+    "component": "FlashOn",
+    "count": 1,
+    "files": [
+      "src/components/common/NativeCamera.tsx"
+    ]
+  },
+  "FlipCameraIos (@mui/icons-material)": {
+    "component": "FlipCameraIos",
+    "count": 1,
+    "files": [
+      "src/components/common/NativeCamera.tsx"
+    ]
+  },
+  "PhotoCamera (@mui/icons-material)": {
+    "component": "PhotoCamera",
+    "count": 5,
+    "files": [
+      "src/components/common/NativeCamera.tsx",
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx"
+    ]
+  },
+  "CloudOff as CloudOffIcon (@mui/icons-material)": {
+    "component": "CloudOff as CloudOffIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx"
+    ]
+  },
+  "ExpandLess as CollapseIcon (@mui/icons-material)": {
+    "component": "ExpandLess as CollapseIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx"
+    ]
+  },
+  "ExpandMore as ExpandIcon (@mui/icons-material)": {
+    "component": "ExpandMore as ExpandIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx"
+    ]
+  },
+  "WifiOff as OfflineIcon (@mui/icons-material)": {
+    "component": "WifiOff as OfflineIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "Wifi as OnlineIcon (@mui/icons-material)": {
+    "component": "Wifi as OnlineIcon",
+    "count": 2,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "Schedule as ScheduleIcon (@mui/icons-material)": {
+    "component": "Schedule as ScheduleIcon",
+    "count": 7,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalStatusChip.tsx"
+    ]
+  },
+  "Sync as SyncIcon (@mui/icons-material)": {
+    "component": "Sync as SyncIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx"
+    ]
+  },
+  "// Fade (@mui/material)": {
+    "component": "// Fade",
+    "count": 1,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx"
+    ]
+  },
+  "Slide (@mui/material)": {
+    "component": "Slide",
+    "count": 3,
+    "files": [
+      "src/components/common/OfflineIndicator.tsx",
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/SuccessToast.tsx"
+    ]
+  },
+  "OpenInNew as OpenInNewIcon (@mui/icons-material)": {
+    "component": "OpenInNew as OpenInNewIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PDFViewer.tsx"
+    ]
+  },
+  "PictureAsPdf as PDFIcon (@mui/icons-material)": {
+    "component": "PictureAsPdf as PDFIcon",
+    "count": 5,
+    "files": [
+      "src/components/common/PDFViewer.tsx",
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalList.tsx"
+    ]
+  },
+  "PhotoLibrary (@mui/icons-material)": {
+    "component": "PhotoLibrary",
+    "count": 1,
+    "files": [
+      "src/components/common/ProtocolGallery.tsx"
+    ]
+  },
+  "NotificationsActive (@mui/icons-material)": {
+    "component": "NotificationsActive",
+    "count": 1,
+    "files": [
+      "src/components/common/PushNotificationManager.tsx"
+    ]
+  },
+  "NotificationsOff (@mui/icons-material)": {
+    "component": "NotificationsOff",
+    "count": 1,
+    "files": [
+      "src/components/common/PushNotificationManager.tsx"
+    ]
+  },
+  "VolumeOff as QuietIcon (@mui/icons-material)": {
+    "component": "VolumeOff as QuietIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PushNotificationManager.tsx"
+    ]
+  },
+  "Science as TestIcon (@mui/icons-material)": {
+    "component": "Science as TestIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PushNotificationManager.tsx"
+    ]
+  },
+  "FormGroup (@mui/material)": {
+    "component": "FormGroup",
+    "count": 3,
+    "files": [
+      "src/components/common/PushNotificationManager.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx"
+    ]
+  },
+  "Computer as DesktopIcon (@mui/icons-material)": {
+    "component": "Computer as DesktopIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAInstallPrompt.tsx"
+    ]
+  },
+  "GetApp as InstallIcon (@mui/icons-material)": {
+    "component": "GetApp as InstallIcon",
+    "count": 3,
+    "files": [
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/common/PWAStatus.tsx",
+      "src/components/Layout.tsx"
+    ]
+  },
+  "NotificationsActive as NotificationIcon (@mui/icons-material)": {
+    "component": "NotificationsActive as NotificationIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAInstallPrompt.tsx"
+    ]
+  },
+  "PhoneIphone as PhoneIcon (@mui/icons-material)": {
+    "component": "PhoneIphone as PhoneIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAInstallPrompt.tsx"
+    ]
+  },
+  "// Star as StarIcon (@mui/icons-material)": {
+    "component": "// Star as StarIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAInstallPrompt.tsx"
+    ]
+  },
+  "Fab (@mui/material)": {
+    "component": "Fab",
+    "count": 3,
+    "files": [
+      "src/components/common/PWAInstallPrompt.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx"
+    ]
+  },
+  "ClearAll as ClearCacheIcon (@mui/icons-material)": {
+    "component": "ClearAll as ClearCacheIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "CloudDone as InstalledIcon (@mui/icons-material)": {
+    "component": "CloudDone as InstalledIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "Update as UpdateIcon (@mui/icons-material)": {
+    "component": "Update as UpdateIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "// Switch (@mui/material)": {
+    "component": "// Switch",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "// FormControlLabel (@mui/material)": {
+    "component": "// FormControlLabel",
+    "count": 1,
+    "files": [
+      "src/components/common/PWAStatus.tsx"
+    ]
+  },
+  "Menu (@mui/material)": {
+    "component": "Menu",
+    "count": 3,
+    "files": [
+      "src/components/common/PWAStatus.tsx",
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/Layout.tsx"
+    ]
+  },
+  "CloudUpload (@mui/icons-material)": {
+    "component": "CloudUpload",
+    "count": 1,
+    "files": [
+      "src/components/common/R2FileUpload.tsx"
+    ]
+  },
+  "Delete (@mui/icons-material)": {
+    "component": "Delete",
+    "count": 2,
+    "files": [
+      "src/components/common/R2FileUpload.tsx",
+      "src/components/common/SerialPhotoCapture.tsx"
+    ]
+  },
+  "Visibility (@mui/icons-material)": {
+    "component": "Visibility",
+    "count": 1,
+    "files": [
+      "src/components/common/R2FileUpload.tsx"
+    ]
+  },
+  "CheckCircle as CheckIcon (@mui/icons-material)": {
+    "component": "CheckCircle as CheckIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "NotificationsActive as NotificationsActiveIcon (@mui/icons-material)": {
+    "component": "NotificationsActive as NotificationsActiveIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "Notifications as NotificationsIcon (@mui/icons-material)": {
+    "component": "Notifications as NotificationsIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "// Warning as WarningIcon (@mui/icons-material)": {
+    "component": "// Warning as WarningIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "// TODO: Implement warning notifications\n  // Error as ErrorIcon (@mui/icons-material)": {
+    "component": "// TODO: Implement warning notifications\n  // Error as ErrorIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "// TODO: Implement error notifications\n  Wifi as WiFiIcon (@mui/icons-material)": {
+    "component": "// TODO: Implement error notifications\n  Wifi as WiFiIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "WifiOff as WiFiOffIcon (@mui/icons-material)": {
+    "component": "WifiOff as WiFiOffIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "// Paper (@mui/material)": {
+    "component": "// Paper",
+    "count": 2,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx",
+      "src/components/settlements/SettlementDetail.tsx"
+    ]
+  },
+  "// TODO: Implement paper container\n  List (@mui/material)": {
+    "component": "// TODO: Implement paper container\n  List",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "// MenuItem (@mui/material)": {
+    "component": "// MenuItem",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "// TODO: Implement menu functionality\n  Typography (@mui/material)": {
+    "component": "// TODO: Implement menu functionality\n  Typography",
+    "count": 1,
+    "files": [
+      "src/components/common/RealTimeNotifications.tsx"
+    ]
+  },
+  "Preview (@mui/icons-material)": {
+    "component": "Preview",
+    "count": 1,
+    "files": [
+      "src/components/common/SerialPhotoCapture.tsx"
+    ]
+  },
+  "Save (@mui/icons-material)": {
+    "component": "Save",
+    "count": 5,
+    "files": [
+      "src/components/common/SerialPhotoCapture.tsx",
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/users/UserProfile.tsx"
+    ]
+  },
+  "VideoCall (@mui/icons-material)": {
+    "component": "VideoCall",
+    "count": 1,
+    "files": [
+      "src/components/common/SerialPhotoCapture.tsx"
+    ]
+  },
+  "Alert (@mui/material/Alert)": {
+    "component": "Alert",
+    "count": 1,
+    "files": [
+      "src/components/common/SerialPhotoCapture.tsx"
+    ]
+  },
+  "CloudDone as CloudDoneIcon (@mui/icons-material)": {
+    "component": "CloudDone as CloudDoneIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/SuccessToast.tsx"
+    ]
+  },
+  "AssignmentIcon (@mui/icons-material/Assignment)": {
+    "component": "AssignmentIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/UnifiedDocumentForm.tsx"
+    ]
+  },
+  "FileIcon (@mui/icons-material/AttachFile)": {
+    "component": "FileIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/UnifiedDocumentForm.tsx"
+    ]
+  },
+  "BuildIcon (@mui/icons-material/Build)": {
+    "component": "BuildIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/UnifiedDocumentForm.tsx"
+    ]
+  },
+  "HighwayIcon (@mui/icons-material/LocalShipping)": {
+    "component": "HighwayIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/UnifiedDocumentForm.tsx"
+    ]
+  },
+  "SecurityIcon (@mui/icons-material/Security)": {
+    "component": "SecurityIcon",
+    "count": 1,
+    "files": [
+      "src/components/common/UnifiedDocumentForm.tsx"
+    ]
+  },
+  "Assignment as ContractIcon (@mui/icons-material)": {
+    "component": "Assignment as ContractIcon",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// Download as DownloadIcon (@mui/icons-material)": {
+    "component": "// Download as DownloadIcon",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// TODO: Implement download functionality\n  ExpandMore as ExpandMoreIcon (@mui/icons-material)": {
+    "component": "// TODO: Implement download functionality\n  ExpandMore as ExpandMoreIcon",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// Description as DocumentIcon (@mui/icons-material)": {
+    "component": "// Description as DocumentIcon",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// TODO: Implement document icons\n  Receipt as InvoiceIcon (@mui/icons-material)": {
+    "component": "// TODO: Implement document icons\n  Receipt as InvoiceIcon",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// TODO: Implement dividers\n  Alert (@mui/material)": {
+    "component": "// TODO: Implement dividers\n  Alert",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// Card (@mui/material)": {
+    "component": "// Card",
+    "count": 2,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// TODO: Implement card layout\n  // CardContent (@mui/material)": {
+    "component": "// TODO: Implement card layout\n  // CardContent",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "// TODO: Implement card content\n  Dialog (@mui/material)": {
+    "component": "// TODO: Implement card content\n  Dialog",
+    "count": 1,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx"
+    ]
+  },
+  "ListItemSecondaryAction (@mui/material)": {
+    "component": "ListItemSecondaryAction",
+    "count": 5,
+    "files": [
+      "src/components/companies/CompanyDocumentManager.tsx",
+      "src/components/expenses/ExpenseCategoryManager.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx"
+    ]
+  },
+  "Phone as PhoneIcon (@mui/icons-material)": {
+    "component": "Phone as PhoneIcon",
+    "count": 6,
+    "files": [
+      "src/components/customers/CustomerCard.tsx",
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx"
+    ]
+  },
+  "// Business as BusinessIcon (@mui/icons-material)": {
+    "component": "// Business as BusinessIcon",
+    "count": 1,
+    "files": [
+      "src/components/customers/CustomerCard.tsx"
+    ]
+  },
+  "// TODO: Implement business icon (@mui/icons-material)": {
+    "component": "// TODO: Implement business icon",
+    "count": 1,
+    "files": [
+      "src/components/customers/CustomerCard.tsx"
+    ]
+  },
+  "FilterList as FilterListIcon (@mui/icons-material)": {
+    "component": "FilterList as FilterListIcon",
+    "count": 12,
+    "files": [
+      "src/components/customers/CustomerListNew.tsx",
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx",
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/rentals/components/RentalFilters.tsx",
+      "src/components/rentals/components/RentalSearchAndFilters.tsx",
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalFilters.tsx",
+      "src/components/rentals/RentalTableHeader.tsx",
+      "src/components/settlements/SettlementListNew.tsx",
+      "src/components/vehicles/components/VehicleFilters.tsx",
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  },
+  "Visibility as VisibilityIcon (@mui/icons-material)": {
+    "component": "Visibility as VisibilityIcon",
+    "count": 7,
+    "files": [
+      "src/components/customers/CustomerRentalHistory.tsx",
+      "src/components/protocols/ProtocolDetailViewer.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx"
+    ]
+  },
+  "Category as CategoryIcon (@mui/icons-material)": {
+    "component": "Category as CategoryIcon",
+    "count": 1,
+    "files": [
+      "src/components/expenses/ExpenseCategoryManager.tsx"
+    ]
+  },
+  "DragIndicator as DragIcon (@mui/icons-material)": {
+    "component": "DragIndicator as DragIcon",
+    "count": 1,
+    "files": [
+      "src/components/expenses/ExpenseCategoryManager.tsx"
+    ]
+  },
+  "DateRange as DateIcon (@mui/icons-material)": {
+    "component": "DateRange as DateIcon",
+    "count": 1,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx"
+    ]
+  },
+  "LocalGasStation as FuelIcon (@mui/icons-material)": {
+    "component": "LocalGasStation as FuelIcon",
+    "count": 2,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx"
+    ]
+  },
+  "Security as InsuranceIcon (@mui/icons-material)": {
+    "component": "Security as InsuranceIcon",
+    "count": 3,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Category as OtherIcon (@mui/icons-material)": {
+    "component": "Category as OtherIcon",
+    "count": 1,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx"
+    ]
+  },
+  "Receipt as ReceiptIcon (@mui/icons-material)": {
+    "component": "Receipt as ReceiptIcon",
+    "count": 3,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/statistics/StatisticsMobile.tsx"
+    ]
+  },
+  "Repeat as RepeatIcon (@mui/icons-material)": {
+    "component": "Repeat as RepeatIcon",
+    "count": 2,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx"
+    ]
+  },
+  "DirectionsCar as VehicleIcon (@mui/icons-material)": {
+    "component": "DirectionsCar as VehicleIcon",
+    "count": 4,
+    "files": [
+      "src/components/expenses/ExpenseListNew.tsx",
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "Event as EventIcon (@mui/icons-material)": {
+    "component": "Event as EventIcon",
+    "count": 3,
+    "files": [
+      "src/components/expenses/RecurringExpenseManager.tsx",
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx"
+    ]
+  },
+  "PlayArrow as GenerateIcon (@mui/icons-material)": {
+    "component": "PlayArrow as GenerateIcon",
+    "count": 1,
+    "files": [
+      "src/components/expenses/RecurringExpenseManager.tsx"
+    ]
+  },
+  "ReportProblem as ClaimIcon (@mui/icons-material)": {
+    "component": "ReportProblem as ClaimIcon",
+    "count": 2,
+    "files": [
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/insurances/InsuranceClaimList.tsx"
+    ]
+  },
+  "Assignment as DocumentIcon (@mui/icons-material)": {
+    "component": "Assignment as DocumentIcon",
+    "count": 3,
+    "files": [
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/vehicles/TechnicalCertificateUpload.tsx",
+      "src/components/vehicles/VehicleForm.tsx"
+    ]
+  },
+  "DateTimePicker (@mui/x-date-pickers/DateTimePicker)": {
+    "component": "DateTimePicker",
+    "count": 3,
+    "files": [
+      "src/components/insurances/InsuranceClaimForm.tsx",
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/rentals/RentalForm.tsx"
+    ]
+  },
+  "TablePagination (@mui/material)": {
+    "component": "TablePagination",
+    "count": 1,
+    "files": [
+      "src/components/insurances/InsuranceClaimList.tsx"
+    ]
+  },
+  "Assignment as AssignmentIcon (@mui/icons-material)": {
+    "component": "Assignment as AssignmentIcon",
+    "count": 1,
+    "files": [
+      "src/components/insurances/VehicleCentricInsuranceList.tsx"
+    ]
+  },
+  "Build as BuildIcon (@mui/icons-material)": {
+    "component": "Build as BuildIcon",
+    "count": 1,
+    "files": [
+      "src/components/insurances/VehicleCentricInsuranceList.tsx"
+    ]
+  },
+  "AttachFile as FileIcon (@mui/icons-material)": {
+    "component": "AttachFile as FileIcon",
+    "count": 1,
+    "files": [
+      "src/components/insurances/VehicleCentricInsuranceList.tsx"
+    ]
+  },
+  "LocalShipping as HighwayIcon (@mui/icons-material)": {
+    "component": "LocalShipping as HighwayIcon",
+    "count": 1,
+    "files": [
+      "src/components/insurances/VehicleCentricInsuranceList.tsx"
+    ]
+  },
+  "Assessment as ReportIcon (@mui/icons-material)": {
+    "component": "Assessment as ReportIcon",
+    "count": 3,
+    "files": [
+      "src/components/insurances/VehicleCentricInsuranceList.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "Sort as SortIcon (@mui/icons-material)": {
+    "component": "Sort as SortIcon",
+    "count": 1,
+    "files": [
+      "src/components/insurances/VehicleCentricInsuranceList.tsx"
+    ]
+  },
+  "AccountCircle (@mui/icons-material)": {
+    "component": "AccountCircle",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "AdminPanelSettingsOutlined (@mui/icons-material)": {
+    "component": "AdminPanelSettingsOutlined",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "AssessmentOutlined (@mui/icons-material)": {
+    "component": "AssessmentOutlined",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "AttachMoney (@mui/icons-material)": {
+    "component": "AttachMoney",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "CarRental (@mui/icons-material)": {
+    "component": "CarRental",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "DarkMode (@mui/icons-material)": {
+    "component": "DarkMode",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "DashboardOutlined (@mui/icons-material)": {
+    "component": "DashboardOutlined",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "Email (@mui/icons-material)": {
+    "component": "Email",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "GroupOutlined (@mui/icons-material)": {
+    "component": "GroupOutlined",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "LightMode (@mui/icons-material)": {
+    "component": "LightMode",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "Lock as LockIcon (@mui/icons-material)": {
+    "component": "Lock as LockIcon",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "Logout (@mui/icons-material)": {
+    "component": "Logout",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "Menu as MenuIcon (@mui/icons-material)": {
+    "component": "Menu as MenuIcon",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "ReceiptLongOutlined (@mui/icons-material)": {
+    "component": "ReceiptLongOutlined",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "SecurityOutlined (@mui/icons-material)": {
+    "component": "SecurityOutlined",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "AppBar (@mui/material)": {
+    "component": "AppBar",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "Drawer (@mui/material)": {
+    "component": "Drawer",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "ListItemButton (@mui/material)": {
+    "component": "ListItemButton",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "Toolbar (@mui/material)": {
+    "component": "Toolbar",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "useMediaQuery (@mui/material/useMediaQuery)": {
+    "component": "useMediaQuery",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "PhoneIphone as MobileIcon (@mui/icons-material)": {
+    "component": "PhoneIphone as MobileIcon",
+    "count": 1,
+    "files": [
+      "src/components/Layout.tsx"
+    ]
+  },
+  "LocationOn (@mui/icons-material)": {
+    "component": "LocationOn",
+    "count": 3,
+    "files": [
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx"
+    ]
+  },
+  "Person (@mui/icons-material)": {
+    "component": "Person",
+    "count": 4,
+    "files": [
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx",
+      "src/components/users/UserProfile.tsx"
+    ]
+  },
+  "Receipt (@mui/icons-material)": {
+    "component": "Receipt",
+    "count": 2,
+    "files": [
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx"
+    ]
+  },
+  "SpeedOutlined (@mui/icons-material)": {
+    "component": "SpeedOutlined",
+    "count": 3,
+    "files": [
+      "src/components/protocols/HandoverProtocolForm.tsx",
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/protocols/v2/HandoverProtocolFormV2.tsx"
+    ]
+  },
+  "Description as DescriptionIcon (@mui/icons-material)": {
+    "component": "Description as DescriptionIcon",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ProtocolDetailViewer.tsx"
+    ]
+  },
+  "CardMedia (@mui/material)": {
+    "component": "CardMedia",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ProtocolDetailViewer.tsx"
+    ]
+  },
+  "Calculate (@mui/icons-material)": {
+    "component": "Calculate",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ReturnProtocolForm.tsx"
+    ]
+  },
+  "Cancel (@mui/icons-material)": {
+    "component": "Cancel",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ReturnProtocolForm.tsx"
+    ]
+  },
+  "Check (@mui/icons-material)": {
+    "component": "Check",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ReturnProtocolForm.tsx"
+    ]
+  },
+  "Edit (@mui/icons-material)": {
+    "component": "Edit",
+    "count": 2,
+    "files": [
+      "src/components/protocols/ReturnProtocolForm.tsx",
+      "src/components/users/UserProfile.tsx"
+    ]
+  },
+  "// CircularProgress (@mui/material)": {
+    "component": "// CircularProgress",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ReturnProtocolForm.tsx"
+    ]
+  },
+  "// REMOVED - not needed with React Query\n  Grid (@mui/material)": {
+    "component": "// REMOVED - not needed with React Query\n  Grid",
+    "count": 1,
+    "files": [
+      "src/components/protocols/ReturnProtocolForm.tsx"
+    ]
+  },
+  "LocalOffer as DiscountIcon (@mui/icons-material)": {
+    "component": "LocalOffer as DiscountIcon",
+    "count": 2,
+    "files": [
+      "src/components/rentals/components/PriceDisplay.tsx",
+      "src/components/rentals/components/PriceSummary.tsx"
+    ]
+  },
+  "Add as PlusIcon (@mui/icons-material)": {
+    "component": "Add as PlusIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/PriceDisplay.tsx"
+    ]
+  },
+  "TrendingDown as SavingsIcon (@mui/icons-material)": {
+    "component": "TrendingDown as SavingsIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/PriceDisplay.tsx"
+    ]
+  },
+  "Grow (@mui/material)": {
+    "component": "Grow",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/PriceDisplay.tsx"
+    ]
+  },
+  "// Stack (@mui/material)": {
+    "component": "// Stack",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/RentalCard.tsx"
+    ]
+  },
+  "// TODO: Implement stack layout\n  Avatar (@mui/material)": {
+    "component": "// TODO: Implement stack layout\n  Avatar",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/RentalCard.tsx"
+    ]
+  },
+  "FileUpload as DownloadIcon (@mui/icons-material)": {
+    "component": "FileUpload as DownloadIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/RentalExport.tsx"
+    ]
+  },
+  "FileDownload as ExportIcon (@mui/icons-material)": {
+    "component": "FileDownload as ExportIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/components/RentalExport.tsx"
+    ]
+  },
+  "GetApp as ExportIcon (@mui/icons-material)": {
+    "component": "GetApp as ExportIcon",
+    "count": 2,
+    "files": [
+      "src/components/rentals/components/RentalListHeader.tsx",
+      "src/components/rentals/RentalTableHeader.tsx"
+    ]
+  },
+  "PhotoLibrary as GalleryIcon (@mui/icons-material)": {
+    "component": "PhotoLibrary as GalleryIcon",
+    "count": 4,
+    "files": [
+      "src/components/rentals/components/RentalProtocols.tsx",
+      "src/components/rentals/OptimizedRentalRow.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalList.tsx"
+    ]
+  },
+  "Pending as PendingIcon (@mui/icons-material)": {
+    "component": "Pending as PendingIcon",
+    "count": 3,
+    "files": [
+      "src/components/rentals/components/RentalStatusChip.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/rentals/RentalStatusChip.tsx"
+    ]
+  },
+  "Check as CheckIcon (@mui/icons-material)": {
+    "component": "Check as CheckIcon",
+    "count": 4,
+    "files": [
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx",
+      "src/components/users/RolePermissionsDisplay.tsx",
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "ContentCopy as ContentCopyIcon (@mui/icons-material)": {
+    "component": "ContentCopy as ContentCopyIcon",
+    "count": 2,
+    "files": [
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/MobileRentalRow.tsx"
+    ]
+  },
+  "DialogContentText (@mui/material)": {
+    "component": "DialogContentText",
+    "count": 2,
+    "files": [
+      "src/components/rentals/components/RentalTable.tsx",
+      "src/components/rentals/PendingRentalsManager.tsx"
+    ]
+  },
+  "Percent as PercentIcon (@mui/icons-material)": {
+    "component": "Percent as PercentIcon",
+    "count": 3,
+    "files": [
+      "src/components/rentals/EditRentalDialog.tsx",
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsMobile.tsx"
+    ]
+  },
+  "AutoFixHighIcon (@mui/icons-material/AutoFixHigh)": {
+    "component": "AutoFixHighIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/EmailParser.tsx"
+    ]
+  },
+  "CloseIcon (@mui/icons-material/Close)": {
+    "component": "CloseIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/EmailParser.tsx"
+    ]
+  },
+  "ContentPasteIcon (@mui/icons-material/ContentPaste)": {
+    "component": "ContentPasteIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/EmailParser.tsx"
+    ]
+  },
+  "DirectionsCar as HandoverIcon (@mui/icons-material)": {
+    "component": "DirectionsCar as HandoverIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/OptimizedRentalRow.tsx"
+    ]
+  },
+  "CarRental as ReturnIcon (@mui/icons-material)": {
+    "component": "CarRental as ReturnIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/OptimizedRentalRow.tsx"
+    ]
+  },
+  "Payment as PaymentIcon (@mui/icons-material)": {
+    "component": "Payment as PaymentIcon",
+    "count": 4,
+    "files": [
+      "src/components/rentals/RentalAdvancedFilters.tsx",
+      "src/components/rentals/RentalCardView.tsx",
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "Assignment as ProtocolIcon (@mui/icons-material)": {
+    "component": "Assignment as ProtocolIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalAdvancedFilters.tsx"
+    ]
+  },
+  "Assignment as HandoverIcon (@mui/icons-material)": {
+    "component": "Assignment as HandoverIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalCardView.tsx"
+    ]
+  },
+  "AssignmentReturn as ReturnIcon (@mui/icons-material)": {
+    "component": "AssignmentReturn as ReturnIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalCardView.tsx"
+    ]
+  },
+  "EditIcon (@mui/icons-material/Edit)": {
+    "component": "EditIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalForm.tsx"
+    ]
+  },
+  "EmailIcon (@mui/icons-material/Email)": {
+    "component": "EmailIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalForm.tsx"
+    ]
+  },
+  "PercentIcon (@mui/icons-material/Percent)": {
+    "component": "PercentIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalForm.tsx"
+    ]
+  },
+  "PhoneIcon (@mui/icons-material/Phone)": {
+    "component": "PhoneIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalForm.tsx"
+    ]
+  },
+  "Autocomplete (@mui/material/Autocomplete)": {
+    "component": "Autocomplete",
+    "count": 2,
+    "files": [
+      "src/components/rentals/RentalForm.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "Assignment as HandoverProtocolIcon (@mui/icons-material)": {
+    "component": "Assignment as HandoverProtocolIcon",
+    "count": 2,
+    "files": [
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx"
+    ]
+  },
+  "AssignmentReturn as ReturnProtocolIcon (@mui/icons-material)": {
+    "component": "AssignmentReturn as ReturnProtocolIcon",
+    "count": 2,
+    "files": [
+      "src/components/rentals/RentalMobileCard.tsx",
+      "src/components/rentals/RentalTableRow.tsx"
+    ]
+  },
+  "PlayArrow as ActiveIcon (@mui/icons-material)": {
+    "component": "PlayArrow as ActiveIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalStatusChip.tsx"
+    ]
+  },
+  "ViewList as ViewListIcon (@mui/icons-material)": {
+    "component": "ViewList as ViewListIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx"
+    ]
+  },
+  "ViewModule as ViewModuleIcon (@mui/icons-material)": {
+    "component": "ViewModule as ViewModuleIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx"
+    ]
+  },
+  "ViewComfy as ViewComfyIcon (@mui/icons-material)": {
+    "component": "ViewComfy as ViewComfyIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx"
+    ]
+  },
+  "GridView as GridViewIcon (@mui/icons-material)": {
+    "component": "GridView as GridViewIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx"
+    ]
+  },
+  "ViewColumn as ViewColumnIcon (@mui/icons-material)": {
+    "component": "ViewColumn as ViewColumnIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx"
+    ]
+  },
+  "ViewAgenda as ViewAgendaIcon (@mui/icons-material)": {
+    "component": "ViewAgenda as ViewAgendaIcon",
+    "count": 1,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx"
+    ]
+  },
+  "ToggleButton (@mui/material)": {
+    "component": "ToggleButton",
+    "count": 2,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "ToggleButtonGroup (@mui/material)": {
+    "component": "ToggleButtonGroup",
+    "count": 2,
+    "files": [
+      "src/components/rentals/RentalViewToggle.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "AccountBalance as BankIcon (@mui/icons-material)": {
+    "component": "AccountBalance as BankIcon",
+    "count": 2,
+    "files": [
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "TrendingDown as LossIcon (@mui/icons-material)": {
+    "component": "TrendingDown as LossIcon",
+    "count": 2,
+    "files": [
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "PictureAsPdf as PdfIcon (@mui/icons-material)": {
+    "component": "PictureAsPdf as PdfIcon",
+    "count": 1,
+    "files": [
+      "src/components/settlements/SettlementDetail.tsx"
+    ]
+  },
+  "TrendingUp as ProfitIcon (@mui/icons-material)": {
+    "component": "TrendingUp as ProfitIcon",
+    "count": 2,
+    "files": [
+      "src/components/settlements/SettlementDetail.tsx",
+      "src/components/settlements/SettlementListNew.tsx"
+    ]
+  },
+  "// TODO: Implement Paper layout\n  Table (@mui/material)": {
+    "component": "// TODO: Implement Paper layout\n  Table",
+    "count": 1,
+    "files": [
+      "src/components/settlements/SettlementDetail.tsx"
+    ]
+  },
+  "AccountBalance as AccountBalanceIcon (@mui/icons-material)": {
+    "component": "AccountBalance as AccountBalanceIcon",
+    "count": 1,
+    "files": [
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "CreditCard as CreditCardIcon (@mui/icons-material)": {
+    "component": "CreditCard as CreditCardIcon",
+    "count": 1,
+    "files": [
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "Dashboard as DashboardIcon (@mui/icons-material)": {
+    "component": "Dashboard as DashboardIcon",
+    "count": 1,
+    "files": [
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "AttachMoney as MoneyIcon (@mui/icons-material)": {
+    "component": "AttachMoney as MoneyIcon",
+    "count": 2,
+    "files": [
+      "src/components/Statistics.tsx",
+      "src/components/statistics/TopStatsTab.tsx"
+    ]
+  },
+  "ShowChart as ShowChartIcon (@mui/icons-material)": {
+    "component": "ShowChart as ShowChartIcon",
+    "count": 1,
+    "files": [
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "Star as StarIcon (@mui/icons-material)": {
+    "component": "Star as StarIcon",
+    "count": 2,
+    "files": [
+      "src/components/Statistics.tsx",
+      "src/components/statistics/TopStatsTab.tsx"
+    ]
+  },
+  "AccessTime as TimeIcon (@mui/icons-material)": {
+    "component": "AccessTime as TimeIcon",
+    "count": 2,
+    "files": [
+      "src/components/Statistics.tsx",
+      "src/components/statistics/TopStatsTab.tsx"
+    ]
+  },
+  "TrendingDown as TrendingDownIcon (@mui/icons-material)": {
+    "component": "TrendingDown as TrendingDownIcon",
+    "count": 2,
+    "files": [
+      "src/components/Statistics.tsx",
+      "src/components/statistics/StatisticsCard.tsx"
+    ]
+  },
+  "EmojiEvents as TrophyIcon (@mui/icons-material)": {
+    "component": "EmojiEvents as TrophyIcon",
+    "count": 5,
+    "files": [
+      "src/components/Statistics.tsx",
+      "src/components/statistics/EmployeesTab.tsx",
+      "src/components/statistics/TopListCard.tsx",
+      "src/components/statistics/TopStatCard.tsx",
+      "src/components/statistics/TopStatsTab.tsx"
+    ]
+  },
+  "KeyboardArrowDownIcon (@mui/icons-material/KeyboardArrowDown)": {
+    "component": "KeyboardArrowDownIcon",
+    "count": 1,
+    "files": [
+      "src/components/Statistics.tsx"
+    ]
+  },
+  "Remove as StableIcon (@mui/icons-material)": {
+    "component": "Remove as StableIcon",
+    "count": 1,
+    "files": [
+      "src/components/statistics/StatisticsCard.tsx"
+    ]
+  },
+  "Assessment as StatsIcon (@mui/icons-material)": {
+    "component": "Assessment as StatsIcon",
+    "count": 1,
+    "files": [
+      "src/components/statistics/StatisticsMobile.tsx"
+    ]
+  },
+  "TrendingUp as TrendIcon (@mui/icons-material)": {
+    "component": "TrendingUp as TrendIcon",
+    "count": 1,
+    "files": [
+      "src/components/statistics/StatisticsMobile.tsx"
+    ]
+  },
+  "KeyboardArrowDown as KeyboardArrowDownIcon (@mui/icons-material)": {
+    "component": "KeyboardArrowDown as KeyboardArrowDownIcon",
+    "count": 1,
+    "files": [
+      "src/components/statistics/TopListCard.tsx"
+    ]
+  },
+  "CardActions (@mui/material)": {
+    "component": "CardActions",
+    "count": 2,
+    "files": [
+      "src/components/ui/UnifiedCard.tsx",
+      "src/components/vehicles/VehicleCardLazy.tsx"
+    ]
+  },
+  "styled (@mui/material/styles)": {
+    "component": "styled",
+    "count": 2,
+    "files": [
+      "src/components/ui/UnifiedCard.tsx",
+      "src/components/ui/UnifiedChip.tsx"
+    ]
+  },
+  "// SupervisorAccount as AdvancedIcon (@mui/icons-material)": {
+    "component": "// SupervisorAccount as AdvancedIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/IntegratedUserManagement.tsx"
+    ]
+  },
+  "// Nepoužívané\n  Notifications as NotificationIcon (@mui/icons-material)": {
+    "component": "// Nepoužívané\n  Notifications as NotificationIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/IntegratedUserManagement.tsx"
+    ]
+  },
+  "// Typography (@mui/material)": {
+    "component": "// Typography",
+    "count": 1,
+    "files": [
+      "src/components/users/IntegratedUserManagement.tsx"
+    ]
+  },
+  "// Nepoužívané\n  Tabs (@mui/material)": {
+    "component": "// Nepoužívané\n  Tabs",
+    "count": 1,
+    "files": [
+      "src/components/users/IntegratedUserManagement.tsx"
+    ]
+  },
+  "// Close as CloseIcon (@mui/icons-material)": {
+    "component": "// Close as CloseIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// Nepoužívané\n  AdminPanelSettings as AdminIcon (@mui/icons-material)": {
+    "component": "// Nepoužívané\n  AdminPanelSettings as AdminIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "Work as EmployeeIcon (@mui/icons-material)": {
+    "component": "Work as EmployeeIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "Engineering as MechanicIcon (@mui/icons-material)": {
+    "component": "Engineering as MechanicIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "BusinessCenter as SalesIcon (@mui/icons-material)": {
+    "component": "BusinessCenter as SalesIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "Build as TempWorkerIcon (@mui/icons-material)": {
+    "component": "Build as TempWorkerIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "Person as UserIcon (@mui/icons-material)": {
+    "component": "Person as UserIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// Nepoužívané\n  Accordion (@mui/material)": {
+    "component": "// Nepoužívané\n  Accordion",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// Nepoužívané\n  // CardContent (@mui/material)": {
+    "component": "// Nepoužívané\n  // CardContent",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// Nepoužívané\n  Chip (@mui/material)": {
+    "component": "// Nepoužívané\n  Chip",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// Grid (@mui/material)": {
+    "component": "// Grid",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "// Nepoužívané\n  List (@mui/material)": {
+    "component": "// Nepoužívané\n  List",
+    "count": 1,
+    "files": [
+      "src/components/users/RolePermissionsDisplay.tsx"
+    ]
+  },
+  "Visibility as ReadIcon (@mui/icons-material)": {
+    "component": "Visibility as ReadIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "Remove as RemoveIcon (@mui/icons-material)": {
+    "component": "Remove as RemoveIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "Edit as WriteIcon (@mui/icons-material)": {
+    "component": "Edit as WriteIcon",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "// Chip (@mui/material)": {
+    "component": "// Chip",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "// Nepoužívané\n  Alert (@mui/material)": {
+    "component": "// Nepoužívané\n  Alert",
+    "count": 2,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx",
+      "src/components/users/UserProfile.tsx"
+    ]
+  },
+  "CardHeader (@mui/material)": {
+    "component": "CardHeader",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "// Nepoužívané\n  // Tooltip (@mui/material)": {
+    "component": "// Nepoužívané\n  // Tooltip",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "// Nepoužívané\n  IconButton (@mui/material)": {
+    "component": "// Nepoužívané\n  IconButton",
+    "count": 1,
+    "files": [
+      "src/components/users/UserCompanyPermissions.tsx"
+    ]
+  },
+  "TrendingDown as DecreaseIcon (@mui/icons-material)": {
+    "component": "TrendingDown as DecreaseIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Assignment as EKIcon (@mui/icons-material)": {
+    "component": "Assignment as EKIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TrendingUp as IncreaseIcon (@mui/icons-material)": {
+    "component": "TrendingUp as IncreaseIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Build as STKIcon (@mui/icons-material)": {
+    "component": "Build as STKIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Remove as SameIcon (@mui/icons-material)": {
+    "component": "Remove as SameIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Timeline (@mui/lab)": {
+    "component": "Timeline",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TimelineConnector (@mui/lab)": {
+    "component": "TimelineConnector",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TimelineContent (@mui/lab)": {
+    "component": "TimelineContent",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TimelineDot (@mui/lab)": {
+    "component": "TimelineDot",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TimelineItem (@mui/lab)": {
+    "component": "TimelineItem",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TimelineOppositeContent (@mui/lab)": {
+    "component": "TimelineOppositeContent",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "TimelineSeparator (@mui/lab)": {
+    "component": "TimelineSeparator",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleKmHistory.tsx"
+    ]
+  },
+  "Speed as KmIcon (@mui/icons-material)": {
+    "component": "Speed as KmIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/components/VehicleTable.tsx"
+    ]
+  },
+  "Radio (@mui/material)": {
+    "component": "Radio",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/VehicleForm.tsx"
+    ]
+  },
+  "RadioGroup (@mui/material)": {
+    "component": "RadioGroup",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/VehicleForm.tsx"
+    ]
+  },
+  "PhotoCamera as PhotoIcon (@mui/icons-material)": {
+    "component": "PhotoCamera as PhotoIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/VehicleImage.tsx"
+    ]
+  },
+  "LocalShipping as TruckIcon (@mui/icons-material)": {
+    "component": "LocalShipping as TruckIcon",
+    "count": 1,
+    "files": [
+      "src/components/vehicles/VehicleImage.tsx"
+    ]
+  },
+  "Today as TodayIcon (@mui/icons-material)": {
+    "component": "Today as TodayIcon",
+    "count": 1,
+    "files": [
+      "src/pages/AvailabilityPageNew.tsx"
+    ]
+  }
+}

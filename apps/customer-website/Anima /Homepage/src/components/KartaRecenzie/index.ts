@@ -1,0 +1,1 @@
+export { KartaRecenzie } from "./KartaRecenzie";
