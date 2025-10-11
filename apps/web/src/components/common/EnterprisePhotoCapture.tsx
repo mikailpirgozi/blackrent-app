@@ -1,11 +1,13 @@
 /**
- * Enterprise Photo Capture Component
+ * Enterprise Photo Capture Component - ANTI-CRASH iOS VERSION
  * 
  * Production-grade photo upload system with:
+ * ✅ ANTI-CRASH: Concurrency 2 (no memory spikes)
+ * ✅ ANTI-CRASH: No base64/blob storage
+ * ✅ ANTI-CRASH: objectURL with automatic cleanup
+ * ✅ ANTI-CRASH: Wake Lock support
  * - Device capability detection & adaptive batching
- * - Streaming image processing (1-3 images in memory)
- * - IndexedDB storage (2GB+ capacity)
- * - Background Sync queue for offline resilience
+ * - Multipart upload for large files (>5MB)
  * - Virtualized gallery rendering
  * - Draft recovery on crash
  * - Memory-efficient operation
@@ -20,7 +22,7 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { VirtualizedPhotoGallery, type PhotoItem } from '../protocols/VirtualizedPhotoGallery';
-import { StreamingImageProcessor } from '@/utils/processing/StreamingImageProcessor';
+import { useStreamUpload } from '@/hooks/useStreamUpload';
 import { deviceCapabilityDetector } from '@/utils/device/DeviceCapabilityDetector';
 import { indexedDBManager } from '@/utils/storage/IndexedDBManager';
 import { logger } from '@/utils/logger';
@@ -43,24 +45,54 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
   disabled = false,
 }) => {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [progressMessage, setProgressMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const processorRef = useRef<StreamingImageProcessor | null>(null);
+
+  // ✅ ANTI-CRASH: Use stream upload hook
+  const {
+    tasks,
+    uploadFiles,
+    cancel,
+    isUploading,
+    completed,
+    total,
+    progress,
+  } = useStreamUpload({
+    protocolId,
+    mediaType,
+    protocolType,
+    enableWakeLock: true,
+    onProgress: (completedCount, totalCount) => {
+      logger.debug('Upload progress', {
+        completed: completedCount,
+        total: totalCount,
+        progress: (completedCount / totalCount) * 100,
+      });
+    },
+    onComplete: (urls) => {
+      logger.info('All uploads complete', { count: urls.length });
+      onPhotosUploaded(urls);
+      
+      // Add to gallery
+      const newPhotos: PhotoItem[] = urls.map((url, idx) => ({
+        id: `photo-${Date.now()}-${idx}`,
+        preview: url,
+        uploaded: true,
+        uploadUrl: url,
+      }));
+      setPhotos(prev => [...prev, ...newPhotos]);
+    },
+    onError: (err) => {
+      setError(err.message);
+      logger.error('Upload error', { error: err });
+    },
+  });
 
   // Initialize
   useEffect(() => {
     initializeSystem();
-    return () => {
-      // Cleanup
-      if (processorRef.current) {
-        processorRef.current.destroy();
-      }
-    };
   }, [protocolId]);
 
   /**
@@ -97,7 +129,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
   };
 
   /**
-   * Handle file selection
+   * Handle file selection - ANTI-CRASH VERSION
    */
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,74 +144,16 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
       }
 
       setError(null);
-      setIsProcessing(true);
-      setProgress(0);
-      setProgressMessage('Starting...');
+
+      logger.info('✅ ANTI-CRASH: Starting stream upload', {
+        fileCount: files.length,
+        concurrency: 2,
+        wakeLock: true,
+      });
 
       try {
-        // Detect capabilities for adaptive processing
-        const capabilities = await deviceCapabilityDetector.detect();
-        const qualitySettings = deviceCapabilityDetector.getQualitySettings(
-          capabilities.recommendedQuality
-        );
-
-        logger.info('Processing photos with adaptive settings', {
-          fileCount: files.length,
-          batchSize: capabilities.recommendedBatchSize,
-          quality: capabilities.recommendedQuality,
-        });
-
-        // Create processor
-        if (!processorRef.current) {
-          processorRef.current = new StreamingImageProcessor();
-        }
-
-        // Process with streaming architecture
-        const result = await processorRef.current.processStream(
-          files,
-          {
-            protocolId,
-            mediaType,
-            protocolType,
-            batchSize: capabilities.recommendedBatchSize,
-            quality: capabilities.recommendedQuality,
-            useBackgroundSync: capabilities.isPWA,
-          },
-          {
-            onProgress: (completed, total, message) => {
-              setProgress((completed / total) * 100);
-              setProgressMessage(message);
-            },
-            onImageComplete: (imageId, url) => {
-              // Add to gallery immediately
-              setPhotos(prev => [
-                ...prev,
-                {
-                  id: imageId,
-                  preview: url,
-                  uploaded: true,
-                  uploadUrl: url,
-                },
-              ]);
-            },
-            onError: (imageId, error) => {
-              logger.error('Image processing error', { imageId, error });
-            },
-          }
-        );
-
-        logger.info('Photo processing complete', {
-          processed: result.images.length,
-          stats: result.stats,
-        });
-
-        // Notify parent
-        const urls = result.images.map(img => img.url);
-        onPhotosUploaded(urls);
-
-        setProgressMessage(
-          `Complete! ${result.images.length} photos uploaded in ${(result.stats.totalTime / 1000).toFixed(1)}s`
-        );
+        // ✅ ANTI-CRASH: Use stream upload (concurrency 2, no base64)
+        await uploadFiles(files);
 
         // Clear input
         if (fileInputRef.current) {
@@ -189,16 +163,10 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Upload failed';
         setError(errorMsg);
-        logger.error('Photo processing failed', { error });
-      } finally {
-        setIsProcessing(false);
-        setTimeout(() => {
-          setProgress(0);
-          setProgressMessage('');
-        }, 3000);
+        logger.error('Upload failed', { error });
       }
     },
-    [photos.length, maxPhotos, protocolId, mediaType, protocolType, onPhotosUploaded]
+    [photos.length, maxPhotos, uploadFiles]
   );
 
   /**
@@ -233,14 +201,21 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
           </p>
         </div>
         
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isProcessing || photos.length >= maxPhotos}
-          className="gap-2"
-        >
-          <Camera className="h-4 w-4" />
-          Add Photos
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploading || photos.length >= maxPhotos}
+            className="gap-2"
+          >
+            <Camera className="h-4 w-4" />
+            Add Photos
+          </Button>
+          {isUploading && (
+            <Button variant="destructive" onClick={cancel}>
+              Cancel
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Device Info */}
@@ -250,12 +225,19 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
         </div>
       )}
 
-      {/* Progress */}
-      {isProcessing && (
+      {/* Progress - ANTI-CRASH VERSION */}
+      {isUploading && (
         <div className="mb-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">{progressMessage}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">
+                ✅ Anti-Crash Mode: {completed}/{total} ({Math.round(progress)}%)
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Concurrency: 2 | Wake Lock: ON
+            </span>
           </div>
           <Progress value={progress} />
         </div>
