@@ -1,6 +1,6 @@
 /**
  * Enterprise Photo Capture Component - "BLIND UPLOAD" MODE
- * 
+ *
  * Production-grade photo upload system with ZERO memory footprint:
  * ✅ NO PREVIEWS during upload (zero RAM!)
  * ✅ NO objectURL generation (no memory for display)
@@ -12,17 +12,24 @@
  * - Device capability detection & adaptive batching
  * - Multipart upload for large files (>5MB)
  * - Draft recovery on crash
- * 
+ *
  * Replaces ModernPhotoCapture and SerialPhotoCapture
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Upload, X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import {
+  Camera,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { VirtualizedPhotoGallery, type PhotoItem } from '../protocols/VirtualizedPhotoGallery';
+import {
+  VirtualizedPhotoGallery,
+  type PhotoItem,
+} from '../protocols/VirtualizedPhotoGallery';
 import { useStreamUpload } from '@/hooks/useStreamUpload';
 import { deviceCapabilityDetector } from '@/utils/device/DeviceCapabilityDetector';
 import { indexedDBManager } from '@/utils/storage/IndexedDBManager';
@@ -48,12 +55,11 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<string>('');
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ✅ ANTI-CRASH: Use stream upload hook
   const {
-    tasks,
     uploadFiles,
     cancel,
     isUploading,
@@ -72,10 +78,10 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
         progress: (completedCount / totalCount) * 100,
       });
     },
-    onComplete: (urls) => {
+    onComplete: urls => {
       logger.info('All uploads complete', { count: urls.length });
       onPhotosUploaded(urls);
-      
+
       // Add to gallery
       const newPhotos: PhotoItem[] = urls.map((url, idx) => ({
         id: `photo-${Date.now()}-${idx}`,
@@ -85,7 +91,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
       }));
       setPhotos(prev => [...prev, ...newPhotos]);
     },
-    onError: (err) => {
+    onError: err => {
       setError(err.message);
       logger.error('Upload error', { error: err });
     },
@@ -103,7 +109,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
     try {
       // Detect device capabilities
       const capabilities = await deviceCapabilityDetector.detect();
-      
+
       setDeviceInfo(
         `${capabilities.ram}GB RAM · ${capabilities.cpuCores} cores · ${capabilities.networkSpeed} network · Batch: ${capabilities.recommendedBatchSize}`
       );
@@ -121,7 +127,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
           uploaded: draft.uploadedCount,
           total: draft.totalCount,
         });
-        
+
         // TODO: Show recovery dialog (Phase 4)
       }
     } catch (error) {
@@ -135,7 +141,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
-      
+
       if (files.length === 0) return;
 
       // Validate count
@@ -161,9 +167,9 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Upload failed';
+        const errorMsg =
+          error instanceof Error ? error.message : 'Upload failed';
         setError(errorMsg);
         logger.error('Upload failed', { error });
       }
@@ -176,7 +182,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
    */
   const handleRemovePhoto = useCallback(async (photoId: string) => {
     setPhotos(prev => prev.filter(p => p.id !== photoId));
-    
+
     try {
       await indexedDBManager.deleteImage(photoId);
     } catch (error) {
@@ -202,7 +208,7 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
             {photos.length} / {maxPhotos} photos
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button
             onClick={() => fileInputRef.current?.click()}
@@ -241,10 +247,12 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
                   </span>
                 </div>
                 <div className="text-sm text-blue-800">
-                  Uploading {completed} of {total} photos ({Math.round(progress)}%)
+                  Uploading {completed} of {total} photos (
+                  {Math.round(progress)}%)
                 </div>
                 <div className="text-xs text-blue-600">
-                  💡 Previews will appear after upload completes · Memory usage: ~0 MB
+                  💡 Previews will appear after upload completes · Memory usage:
+                  ~0 MB
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
@@ -261,14 +269,25 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
         </Alert>
       )}
 
-      {/* Gallery */}
-      <VirtualizedPhotoGallery
-        photos={photos}
-        onRemove={handleRemovePhoto}
-        onPreview={handlePreviewPhoto}
-        height={400}
-        columns={4}
-      />
+      {/* ✅ BLIND UPLOAD: Gallery ONLY shown AFTER upload completes */}
+      {!isUploading && photos.length > 0 && (
+        <VirtualizedPhotoGallery
+          photos={photos}
+          onRemove={handleRemovePhoto}
+          onPreview={handlePreviewPhoto}
+          height={400}
+          columns={4}
+        />
+      )}
+
+      {/* No photos yet */}
+      {!isUploading && photos.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg text-muted-foreground">
+          <Camera className="h-12 w-12 mb-2 opacity-50" />
+          <p className="text-sm">No photos yet</p>
+          <p className="text-xs">Click "Add Photos" to get started</p>
+        </div>
+      )}
 
       {/* Hidden file input */}
       <input
@@ -282,4 +301,3 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
     </Card>
   );
 };
-
