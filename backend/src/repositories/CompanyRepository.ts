@@ -147,6 +147,11 @@ export class CompanyRepository extends BaseRepository {
     name: string;
     personalIban: string;
     businessIban: string;
+    ownerName: string;
+    contactEmail: string;
+    contactPhone: string;
+    defaultCommissionRate: number;
+    protocolDisplayName: string;
     businessId: string;
     taxId: string;
     address: string;
@@ -698,7 +703,12 @@ export class CompanyRepository extends BaseRepository {
       createdAt: new Date(row.created_at as string),
       updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
       personalIban: row.personal_iban ? String(row.personal_iban) : undefined,
-      businessIban: row.business_iban ? String(row.business_iban) : undefined
+      businessIban: row.business_iban ? String(row.business_iban) : undefined,
+      ownerName: row.owner_name ? String(row.owner_name) : undefined,
+      contactEmail: row.contact_email ? String(row.contact_email) : undefined,
+      contactPhone: row.contact_phone ? String(row.contact_phone) : undefined,
+      defaultCommissionRate: row.default_commission_rate ? Number(row.default_commission_rate) : undefined,
+      protocolDisplayName: row.protocol_display_name ? String(row.protocol_display_name) : undefined
     };
   }
 

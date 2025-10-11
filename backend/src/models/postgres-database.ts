@@ -2389,6 +2389,46 @@ export class PostgresDatabase {
         logger.migration('⚠️ Migrácia 31 chyba:', errorObj.message);
       }
 
+      // Migrácia 32: Company Owner Fields - Rozšírené polia pre majiteľov firiem
+      try {
+        logger.migration('📋 Migrácia 32: Pridávam owner polia do companies tabuľky...');
+        
+        // 32.1: Pridaj owner polia
+        await client.query(`
+          ALTER TABLE companies 
+          ADD COLUMN IF NOT EXISTS personal_iban VARCHAR(34),
+          ADD COLUMN IF NOT EXISTS business_iban VARCHAR(34),
+          ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50),
+          ADD COLUMN IF NOT EXISTS default_commission_rate DECIMAL(5,2) DEFAULT 20.00,
+          ADD COLUMN IF NOT EXISTS protocol_display_name VARCHAR(255)
+        `);
+        logger.migration('   ✅ Owner polia pridané do companies');
+        
+        // 32.2: Skontroluj či stĺpce boli pridané
+        const columnsCheck = await client.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'companies' 
+          AND column_name IN ('personal_iban', 'business_iban', 'owner_name', 'contact_email', 'contact_phone', 'default_commission_rate', 'protocol_display_name')
+        `);
+        logger.migration(`   ℹ️ Pridané stĺpce: ${columnsCheck.rows.map(r => r.column_name).join(', ')}`);
+        
+        logger.migration('✅ Migrácia 32: 🏢 Company Owner Fields úspešne pridané!');
+        logger.migration('   💳 personal_iban - Súkromný IBAN majiteľa');
+        logger.migration('   🏦 business_iban - Firemný IBAN');
+        logger.migration('   👤 owner_name - Meno a priezvisko majiteľa');
+        logger.migration('   📧 contact_email - Kontaktný email');
+        logger.migration('   📞 contact_phone - Kontaktný telefón');
+        logger.migration('   💰 default_commission_rate - Default provízia pre nové vozidlá');
+        logger.migration('   📄 protocol_display_name - Fakturačná firma pre protokoly');
+        
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 32 chyba:', errorObj.message);
+      }
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.migration('⚠️ Migrácie celkovo preskočené:', errorMessage);
