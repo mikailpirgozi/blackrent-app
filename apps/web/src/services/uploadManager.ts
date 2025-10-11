@@ -36,20 +36,31 @@ export class UploadManager {
   private readonly RETRY_DELAY = 2000; // 2s base delay
 
   /**
-   * ✅ iOS ANTI-CRASH: Detect optimal parallelism based on device
+   * ✅ ANTI-CRASH: Detect optimal parallelism based on device
+   * 
+   * After testing:
+   * - iOS: 2 concurrent (memory limited)
+   * - Safari Desktop: 3 concurrent (crashes at 6 with 19+ photos)
+   * - Chrome Desktop: 4 concurrent (crashes at 6 with 38+ photos)
    */
   private detectOptimalParallelism(): number {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isLowMemory =
       (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
 
     if (isIOS || isLowMemory) {
       logger.info('📱 iOS/Low Memory detected - using concurrency 2');
-      return 2; // iOS: max 2 concurrent uploads
+      return 2;
+    }
+    
+    if (isSafari) {
+      logger.info('🦁 Safari detected - using concurrency 3');
+      return 3;
     }
 
-    logger.info('💻 Desktop detected - using concurrency 6');
-    return 6; // Desktop: 6 concurrent uploads
+    logger.info('💻 Chrome/Desktop detected - using concurrency 4');
+    return 4; // Was 6, but crashes with 30+ photos
   }
 
   /**

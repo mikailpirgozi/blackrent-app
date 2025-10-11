@@ -164,11 +164,16 @@ export class ImageProcessor {
     const results: ProcessImageResult[] = [];
     let completed = 0;
 
-    // ✅ iOS ANTI-CRASH: Detect device and adjust batch size
+    // ✅ ANTI-CRASH: Universal safe batch size for all devices
+    // iOS/Low Memory: 2 concurrent
+    // Safari: 3 concurrent (better than Chrome but still limited)
+    // Chrome/Desktop: 4 concurrent (was 6, but crashes with 30+ photos)
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isLowMemory =
       (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
-    const BATCH_SIZE = isIOS || isLowMemory ? 2 : 6;
+    
+    const BATCH_SIZE = isIOS || isLowMemory ? 2 : isSafari ? 3 : 4;
 
     logger.info('Starting batch image processing', {
       totalFiles: files.length,
