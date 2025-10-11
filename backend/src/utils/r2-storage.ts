@@ -47,15 +47,30 @@ class R2Storage {
   ): Promise<string> {
     // Check if R2 is configured
     if (!this.isConfigured()) {
-      // ✅ PRODUCTION: R2 MUST be configured!
-      if (process.env.NODE_ENV === 'production') {
-        console.error('🚨 CRITICAL: R2 not configured in production!');
-        console.error('🚨 Please set R2_* environment variables in Railway');
+      // ✅ ENHANCED PRODUCTION DETECTION
+      // Check multiple indicators (not just NODE_ENV)
+      const isProduction = 
+        process.env.NODE_ENV === 'production' ||
+        process.env.RAILWAY_ENVIRONMENT === 'production' ||
+        process.env.VERCEL_ENV === 'production' ||
+        !!process.env.RAILWAY_PROJECT_ID || // Railway deployment
+        !!process.env.VERCEL; // Vercel deployment
+      
+      if (isProduction) {
+        console.error('🚨 CRITICAL: R2 not configured in production environment!');
+        console.error('🚨 Environment detected:', {
+          NODE_ENV: process.env.NODE_ENV,
+          RAILWAY_PROJECT: !!process.env.RAILWAY_PROJECT_ID,
+          VERCEL: !!process.env.VERCEL,
+        });
+        console.error('🚨 Please set R2_* environment variables');
+        console.error('🚨 See: backend/RAILWAY_R2_SETUP.md');
         throw new Error('R2 storage is not configured. Please contact administrator.');
       }
       
-      // 🛠️ DEVELOPMENT ONLY: Fallback to local storage
-      console.log('⚠️ R2 not configured, using local storage for development');
+      // 🛠️ LOCAL DEVELOPMENT ONLY: Fallback to local storage
+      console.log('⚠️ R2 not configured, using local storage for local development');
+      console.log('⚠️ This will NOT work in production!');
       return this.uploadFileLocally(key, buffer);
     }
 
