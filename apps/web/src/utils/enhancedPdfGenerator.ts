@@ -27,11 +27,15 @@ export class EnhancedPDFGenerator {
   private margin: number = 20;
   private primaryColor: [number, number, number] = [25, 118, 210]; // Blue
   private secondaryColor: [number, number, number] = [66, 66, 66]; // Dark gray
+  private mode: 'preview' | 'archive' = 'preview';
 
-  constructor() {
+  constructor(mode: 'preview' | 'archive' = 'preview') {
     this.doc = new jsPDF();
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
+    this.mode = mode;
+    
+    logger.debug('EnhancedPDFGenerator initialized', { mode });
   }
 
   /**

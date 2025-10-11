@@ -31,6 +31,8 @@ import { ThemeProvider } from './context/ThemeContext';
 // import { initializeCriticalResources } from './utils/criticalResources'; // REMOVED: Replaced with fast startup
 import { optimizedStartup } from './utils/fastStartup';
 import { logger } from './utils/smartLogger';
+import { crashDetector } from './utils/monitoring/CrashDetector';
+import { indexedDBManager } from './utils/storage/IndexedDBManager';
 
 const PremiumDashboard = lazy(
   () => import('./components/dashboard/PremiumDashboard')
@@ -82,7 +84,7 @@ const WebSocketIntegrationWrapper: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  // ⚡ FAST STARTUP: Optimized initialization
+  // ⚡ FAST STARTUP: Optimized initialization + Enterprise PWA
   React.useEffect(() => {
     logger.info(
       '🚀 Starting optimized app initialization...',
@@ -93,6 +95,16 @@ const AppContent: React.FC = () => {
     try {
       // Run optimized parallel startup (< 1s)
       optimizedStartup();
+      
+      // Initialize Enterprise PWA systems
+      Promise.all([
+        indexedDBManager.init(),
+        crashDetector.initialize(),
+      ]).then(() => {
+        logger.info('✅ Enterprise PWA systems initialized');
+      }).catch((error) => {
+        logger.error('❌ PWA initialization failed', error);
+      });
     } catch (error) {
       logger.error('❌ Optimized startup failed', error);
     }
