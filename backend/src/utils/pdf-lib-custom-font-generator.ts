@@ -221,7 +221,7 @@ export class PDFLibCustomFontGenerator {
     
     // 11. Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
-      this.addSignaturesSection(protocol.signatures);
+      await this.addSignaturesSection(protocol.signatures);
     }
     
     // 12. Poznámky
@@ -343,7 +343,7 @@ export class PDFLibCustomFontGenerator {
     
     // 13. Podpisy
     if (protocol.signatures && protocol.signatures.length > 0) {
-      this.addSignaturesSection(protocol.signatures);
+      await this.addSignaturesSection(protocol.signatures);
     }
     
     // 14. Footer s vlastným fontom
@@ -603,20 +603,97 @@ export class PDFLibCustomFontGenerator {
   }
 
   /**
-   * Sekcia pre podpisy
+   * Sekcia pre podpisy - upravené aby vložilo signature obrázky
    */
-  private addSignaturesSection(signatures: ProtocolSignature[]): void {
-    const signatureData: [string, string][] = [];
+  private async addSignaturesSection(signatures: ProtocolSignature[]): Promise<void> {
+    this.checkPageBreak(150);
     
-    signatures.forEach((signature, index) => {
-      signatureData.push(
-        [`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`],
-        [`Čas podpisu:`, new Date(signature.timestamp).toLocaleString('sk-SK')],
-        [`Miesto:`, signature.location || 'N/A']
-      );
-    });
+    // 🎨 Header sekcie s h2 štýlom
+    this.drawStyledText('✍️ PODPISY', this.margin, this.currentY - 15, 'h2');
+    this.currentY -= 40;
     
-    this.addInfoSection('Podpisy', signatureData);
+    // Embed každý podpis
+    for (let i = 0; i < signatures.length; i++) {
+      const signature = signatures[i];
+      
+      try {
+        this.checkPageBreak(180);
+        
+        // Meno a rola
+        this.drawStyledText(
+          `${signature.signerName} (${signature.signerRole})`,
+          this.margin,
+          this.currentY - 12,
+          'h3'
+        );
+        this.currentY -= 20;
+        
+        // Čas a miesto
+        this.drawStyledText(
+          `${new Date(signature.timestamp).toLocaleString('sk-SK')} · ${signature.location || 'N/A'}`,
+          this.margin,
+          this.currentY - 8,
+          'caption'
+        );
+        this.currentY -= 20;
+        
+        // 🖼️ Embed signature image ak existuje
+        if (signature.signatureData) {
+          try {
+            console.log(`🖊️ Embedding signature ${i + 1} for ${signature.signerName}`);
+            
+            // Remove data:image/png;base64, prefix if present
+            const base64Data = signature.signatureData.replace(/^data:image\/\w+;base64,/, '');
+            const imageBytes = Uint8Array.from(Buffer.from(base64Data, 'base64'));
+            
+            // Embed PNG image
+            const pdfImage = await this.doc.embedPng(imageBytes);
+            const imgDims = pdfImage.scale(0.3); // Scale down signature
+            
+            // Draw signature image
+            this.currentPage.drawImage(pdfImage, {
+              x: this.margin,
+              y: this.currentY - imgDims.height - 10,
+              width: imgDims.width,
+              height: imgDims.height,
+            });
+            
+            this.currentY -= (imgDims.height + 20);
+            console.log(`✅ Signature ${i + 1} embedded successfully`);
+            
+          } catch (error) {
+            console.error(`❌ Failed to embed signature ${i + 1}:`, error);
+            // Fallback: len text
+            this.drawStyledText(
+              '[Podpis nedostupný]',
+              this.margin,
+              this.currentY - 8,
+              'caption'
+            );
+            this.currentY -= 30;
+          }
+        } else {
+          // Ak nemá signature data, zobraz placeholder
+          this.drawStyledText(
+            '[Bez podpisu]',
+            this.margin,
+            this.currentY - 8,
+            'caption'
+          );
+          this.currentY -= 30;
+        }
+        
+        // Spacing medzi podpismi
+        if (i < signatures.length - 1) {
+          this.currentY -= 20;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error processing signature ${i + 1}:`, error);
+      }
+    }
+    
+    this.currentY -= 20;
   }
 
   /**
