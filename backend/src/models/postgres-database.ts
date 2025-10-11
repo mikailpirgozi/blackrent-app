@@ -9355,6 +9355,58 @@ export class PostgresDatabase {
     }
   }
 
+  async getCompanyById(companyId: string): Promise<Company | null> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT 
+          id, name, contact_person as "contactPerson", email, phone, 
+          address, ico, dic, ic_dph as "icDph", business_iban as "businessIban",
+          personal_iban as "personalIban", owner_name as "ownerName", 
+          contact_email as "contactEmail", contact_phone as "contactPhone",
+          default_commission_rate as "defaultCommissionRate",
+          protocol_display_name as "protocolDisplayName",
+          logo_url as "logoUrl", website, commission, notes,
+          platform_id as "platformId", is_active as "isActive",
+          created_at as "createdAt", updated_at as "updatedAt"
+        FROM companies WHERE id = $1`, 
+        [companyId]
+      );
+      
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        name: row.name,
+        contactPerson: row.contactPerson,
+        email: row.email,
+        phone: row.phone,
+        address: row.address,
+        ico: row.ico,
+        dic: row.dic,
+        icDph: row.icDph,
+        businessIban: row.businessIban,
+        personalIban: row.personalIban,
+        ownerName: row.ownerName,
+        contactEmail: row.contactEmail,
+        contactPhone: row.contactPhone,
+        defaultCommissionRate: row.defaultCommissionRate,
+        protocolDisplayName: row.protocolDisplayName,
+        logoUrl: row.logoUrl,
+        website: row.website,
+        commission: row.commission,
+        notes: row.notes,
+        platformId: row.platformId,
+        isActive: row.isActive,
+        createdAt: new Date(row.createdAt),
+        updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
   async getCompanyNameById(companyId: string): Promise<string | null> {
     const client = await this.pool.connect();
     try {
