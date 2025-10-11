@@ -15,12 +15,17 @@ import { logger } from '../logger';
 export interface ImageMetadata {
   id: string;
   protocolId: string;
-  filename: string;
-  type: string; // 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer'
-  uploadStatus: 'pending' | 'uploading' | 'completed' | 'failed';
+  filename?: string;
+  type?: string; // 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer'
+  uploadStatus?: 'pending' | 'uploading' | 'completed' | 'failed';
   url?: string; // R2 URL after upload
-  timestamp: number;
-  size: number;
+  timestamp?: number;
+  size?: number;
+  // ✅ NEW: PDF-optimized JPEG for fast PDF generation
+  pdfData?: string; // base64 JPEG 20% quality (~50 KB)
+  compressed?: boolean;
+  originalSize?: number;
+  compressedSize?: number;
   // ❌ REMOVED: blob (never store raw data in IndexedDB for iOS)
 }
 
@@ -176,6 +181,20 @@ export class IndexedDBManager {
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);
     });
+  }
+
+  /**
+   * Alias for saveImageMetadata (for backward compatibility)
+   */
+  async saveImage(metadata: ImageMetadata): Promise<void> {
+    return this.saveImageMetadata(metadata);
+  }
+
+  /**
+   * Alias for getImageMetadata (for backward compatibility)
+   */
+  async getImage(imageId: string): Promise<ImageMetadata | null> {
+    return this.getImageMetadata(imageId);
   }
 
   /**
