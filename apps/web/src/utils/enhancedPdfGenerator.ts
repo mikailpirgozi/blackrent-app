@@ -867,6 +867,7 @@ export class EnhancedPDFGenerator {
 
   /**
    * 🔴 Download image from R2 as base64 (fallback method)
+   * ✅ COMPRESSION: Converts to JPEG with 60% quality to reduce PDF size
    */
   private async downloadImageFromR2(url: string): Promise<string> {
     const response = await fetch(url);
@@ -877,11 +878,74 @@ export class EnhancedPDFGenerator {
 
     const blob = await response.blob();
 
+    // ✅ COMPRESSION: Convert to JPEG 60% quality for PDF
+    return await this.compressImageForPdf(blob);
+  }
+
+  /**
+   * 🗜️ Compress image to JPEG with 60% quality for PDF
+   * Reduces file size dramatically (e.g. 5MB → 300KB)
+   */
+  private async compressImageForPdf(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+      const img = new Image();
+      const objectURL = URL.createObjectURL(blob);
+
+      img.onload = () => {
+        try {
+          // Create canvas
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            throw new Error('Canvas context not available');
+          }
+
+          // Set max dimensions for PDF (A4 at 300dpi ≈ 2480px)
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1600;
+          
+          let { width, height } = img;
+          
+          // Scale down if necessary
+          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+            const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+            width = Math.floor(width * ratio);
+            height = Math.floor(height * ratio);
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw image
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with 60% quality
+          const base64 = canvas.toDataURL('image/jpeg', 0.6);
+          
+          // Cleanup
+          URL.revokeObjectURL(objectURL);
+          
+          logger.info('📉 PDF image compressed', {
+            originalSize: `${(blob.size / 1024).toFixed(0)} KB`,
+            compressedSize: `${((base64.length * 0.75) / 1024).toFixed(0)} KB`,
+            dimensions: `${width}x${height}`,
+            quality: '60%',
+          });
+
+          resolve(base64);
+        } catch (error) {
+          URL.revokeObjectURL(objectURL);
+          reject(error);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectURL);
+        reject(new Error('Failed to load image'));
+      };
+
+      img.src = objectURL;
     });
   }
 
