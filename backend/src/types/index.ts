@@ -688,7 +688,9 @@ export interface ProtocolImage {
   id: string;
   url: string;
   originalUrl?: string; // High quality version for gallery display
-  compressedUrl?: string; // Compressed version for PDF generation with smaller file sizes
+  compressedUrl?: string; // DEPRECATED
+  pdfUrl?: string; // 🎯 NEW: R2 JPEG URL (optimized for PDF, 80%, 600x450)
+  pdfData?: string; // 🎯 V1 Perfect: Base64 compressed JPEG for SessionStorage + fallback
   type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
   timestamp: Date;

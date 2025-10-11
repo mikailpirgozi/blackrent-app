@@ -590,7 +590,8 @@ export interface ProtocolImage {
   url: string; // Deprecated - use originalUrl instead
   originalUrl: string; // WebP high quality pre galériu (R2 URL)
   compressedUrl?: string; // DEPRECATED - už nepoužívame
-  pdfData?: string; // OPTIONAL - iba pre Variant 2 fallback (base64)
+  pdfUrl?: string; // 🎯 NEW: R2 JPEG URL (optimized for PDF, 80%, 600x450)
+  pdfData?: string; // 🎯 V1 PERFECT: Base64 compressed JPEG for SessionStorage + fallback
   type: 'vehicle' | 'damage' | 'document' | 'fuel' | 'odometer';
   description?: string;
   timestamp: Date;

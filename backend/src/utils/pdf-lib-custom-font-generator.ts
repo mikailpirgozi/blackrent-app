@@ -931,23 +931,63 @@ export class PDFLibCustomFontGenerator {
       const image = images[i];
       
       try {
-        // Stiahnuť obrázok z R2 - použij komprimovanú verziu pre PDF ak existuje
-        const imageUrl = image.compressedUrl || image.url;
-        console.log(`🔍 Using image URL for PDF: ${String(imageUrl).substring(0, 100)}...`);
-        const imageBytes = await this.downloadImageFromR2(String(imageUrl));
+        // 🎯 V1 PERFECT: Triple Fallback Strategy for Image Loading
+        let imageBytes: Uint8Array | null = null;
+        let imageSource = 'unknown';
+        
+        // 🚀 PRIORITY 1: Download pdfUrl (R2 JPEG, PDF-optimized 90%, 800x600) - BEST!
+        if (image.pdfUrl) {
+          try {
+            console.log(`🚀 Downloading PDF-optimized JPEG from R2 for image ${i + 1} - best quality!`);
+            const downloadedBytes = await this.downloadImageFromR2(String(image.pdfUrl));
+            if (downloadedBytes) {
+              imageBytes = downloadedBytes;
+              imageSource = 'pdfUrl (R2 JPEG 90%)';
+              // Type assertion safe because we checked downloadedBytes is not null
+              console.log(`✅ Loaded from R2 JPEG: ${(imageBytes as Uint8Array).length} bytes`);
+            }
+          } catch (error) {
+            console.error('❌ Failed to download pdfUrl, falling back...', error);
+          }
+        }
+        
+        // 🟡 FALLBACK 2: Use pdfData (base64 compressed JPEG from DB) - FAST!
+        if (!imageBytes && image.pdfData) {
+          try {
+            console.log(`🟡 Using pdfData (DB base64) for image ${i + 1} - fallback`);
+            // Remove data:image/jpeg;base64, prefix if present
+            const base64Data = image.pdfData.replace(/^data:image\/\w+;base64,/, '');
+            imageBytes = Uint8Array.from(Buffer.from(base64Data, 'base64'));
+            imageSource = 'pdfData (DB base64)';
+            console.log(`✅ Loaded from pdfData: ${imageBytes.length} bytes`);
+          } catch (error) {
+            console.error('❌ Failed to decode pdfData, falling back...', error);
+          }
+        }
+        
+        // 🔴 FALLBACK 3: Download WebP from R2 (last resort, needs conversion)
+        if (!imageBytes) {
+          const imageUrl = image.compressedUrl || image.url;
+          console.log(`🔴 Last resort: Downloading WebP from R2: ${String(imageUrl).substring(0, 100)}...`);
+          imageBytes = await this.downloadImageFromR2(String(imageUrl));
+          imageSource = image.compressedUrl ? 'compressedUrl (R2 WebP)' : 'url (R2 WebP)';
+        }
         
         if (!imageBytes) {
           // Placeholder pre chybný obrázok alebo nepodporovaný formát
-          await this.addImagePlaceholderInGrid(i + 1, 'WebP formát - konverzia nedostupná', currentCol, actualMaxWidth, 100);
+          await this.addImagePlaceholderInGrid(i + 1, 'Image unavailable', currentCol, actualMaxWidth, 100);
           this.moveToNextGridPosition();
           continue;
         }
+        
+        console.log(`📊 Image ${i + 1} loaded from: ${imageSource} (${imageBytes.length} bytes)`);
 
         // Embed obrázok do PDF - inteligentná detekcia formátu
         let pdfImage;
         try {
           // 🔍 Detekcia formátu pre správne embedovanie
-          const formatInfo = this.detectImageFormat(imageBytes);
+          // TypeScript type narrowing - imageBytes je guaranteed non-null tu
+          const formatInfo = this.detectImageFormat(imageBytes as Uint8Array);
           console.log(`🔍 Embedding image as ${formatInfo.format}`);
           
           if (formatInfo.format === 'jpeg' || formatInfo.format === 'jpg') {

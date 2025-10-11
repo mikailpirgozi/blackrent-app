@@ -7364,6 +7364,9 @@ export class PostgresDatabase {
           hasUrl: !!firstImage.url,
           hasOriginalUrl: !!firstImage.originalUrl,
           hasCompressedUrl: !!firstImage.compressedUrl,
+          hasPdfData: !!firstImage.pdfData, // 🎯 KEY CHECK!
+          pdfDataLength: typeof firstImage.pdfData === 'string' ? firstImage.pdfData.length : 0,
+          pdfDataPreview: typeof firstImage.pdfData === 'string' ? firstImage.pdfData.substring(0, 50) + '...' : 'undefined',
           url: typeof firstImage.url === 'string' ? firstImage.url.substring(0, 80) + '...' : 'undefined',
           originalUrl: typeof firstImage.originalUrl === 'string' ? firstImage.originalUrl.substring(0, 80) + '...' : 'undefined',
           compressedUrl: typeof firstImage.compressedUrl === 'string' ? firstImage.compressedUrl.substring(0, 80) + '...' : 'undefined',

@@ -1,6 +1,6 @@
 /**
  * Protocol Photo Workflow - Complete integration helper
- * 
+ *
  * Zabaluje celý workflow pre fotografie v protokoloch:
  * 1. Image processing (Web Worker)
  * 2. R2 upload (parallel)
@@ -35,10 +35,10 @@ export interface PhotoWorkflowResult {
 
 /**
  * Process and upload photos for protocol
- * 
+ *
  * Kompletný workflow:
  * - Web Worker processing
- * - Parallel R2 upload  
+ * - Parallel R2 upload
  * - SessionStorage management
  */
 export async function processAndUploadPhotos(
@@ -56,44 +56,68 @@ export async function processAndUploadPhotos(
   try {
     // Phase 1: Image Processing
     const processor = new ImageProcessor();
-    
-    const processedImages = await processor.processBatch(files, (completed, total) => {
-      options.onProgress?.(
-        completed,
-        total,
-        `Processing images: ${completed}/${total}`
-      );
-    });
+
+    const processedImages = await processor.processBatch(
+      files,
+      (completed, total) => {
+        options.onProgress?.(
+          completed,
+          total,
+          `Processing images: ${completed}/${total}`
+        );
+      }
+    );
 
     const processingTime = performance.now() - totalStart;
-    
+
     logger.info('Image processing complete', {
       count: processedImages.length,
       time: processingTime,
       avgPerImage: processingTime / processedImages.length,
     });
 
-    // Phase 2: R2 Upload
+    // Phase 2: R2 Upload - 🎯 NEW: Upload both WebP (gallery) + JPEG (PDF)
     const uploadStart = performance.now();
     const uploadManager = new UploadManager();
-    
-    const uploadTasks = processedImages.map((img, idx) => {
-      // Generate unique ID if missing
+
+    // 🎯 Create upload tasks for BOTH versions
+    const uploadTasks: Array<{
+      id: string;
+      blob: Blob;
+      path: string;
+      type: string;
+      entityId: string;
+      protocolType: string;
+      mediaType: string;
+    }> = [];
+
+    processedImages.forEach((img, idx) => {
       const imageId = img.id || uuidv4();
       const timestamp = Date.now();
-      const uniqueFilename = `${imageId}_${timestamp}_${idx}.webp`;
-      
-      return {
+
+      // 1. WebP version (high-quality gallery)
+      uploadTasks.push({
         id: imageId,
         blob: img.gallery.blob,
-        path: `protocols/${options.protocolId}/${options.mediaType}/${uniqueFilename}`,
+        path: `protocols/${options.protocolId}/${options.mediaType}/${imageId}_${timestamp}_${idx}.webp`,
         type: 'protocol',
         entityId: options.protocolId,
         protocolType: options.protocolType || 'handover',
         mediaType: options.mediaType,
-      };
+      });
+
+      // 2. 🎯 NEW: JPEG version (PDF-optimized)
+      uploadTasks.push({
+        id: `${imageId}_pdf`, // Different ID for PDF version
+        blob: img.pdf.blob,
+        path: `protocols/${options.protocolId}/${options.mediaType}/${imageId}_${timestamp}_${idx}_pdf.jpeg`,
+        type: 'protocol',
+        entityId: options.protocolId,
+        protocolType: options.protocolType || 'handover',
+        mediaType: options.mediaType,
+      });
     });
-    
+
     const uploadResults = await uploadManager.uploadBatch(
       uploadTasks,
       (completed, total, message) => {
@@ -104,69 +128,107 @@ export async function processAndUploadPhotos(
         );
       }
     );
-    
+
     const uploadTime = performance.now() - uploadStart;
-    
+
     logger.info('Upload complete', {
       count: uploadResults.length,
+      webpCount: processedImages.length,
+      jpegCount: processedImages.length,
       time: uploadTime,
       avgPerImage: uploadTime / uploadResults.length,
       totalSize: uploadResults.reduce((sum, r) => sum + r.size, 0),
     });
 
-    // Phase 3: Save PDF data to SessionStorage
+    // Phase 3: Ensure all images have consistent IDs BEFORE saving
+    // 🎯 FIX: Generate IDs once and reuse everywhere
     const sessionStart = performance.now();
-    
+
     processedImages.forEach((img, idx) => {
-      // Generate unique ID if missing
-      const imageId = img.id || uuidv4();
-      
-      // Update processedImages with ID
+      // Generate unique ID if missing - DO THIS ONCE!
       if (!img.id) {
-        processedImages[idx] = { ...img, id: imageId };
+        const newId = uuidv4();
+        processedImages[idx] = { ...img, id: newId };
+        logger.debug('🆔 Generated new ID for image', {
+          index: idx,
+          newId,
+        });
       }
-      
-      SessionStorageManager.savePDFImage(imageId, img.pdf.base64);
     });
-    
+
+    // Now save to SessionStorage with guaranteed IDs
+    processedImages.forEach(img => {
+      SessionStorageManager.savePDFImage(img.id, img.pdf.base64);
+      logger.debug('💾 Saved to SessionStorage', {
+        imageId: img.id,
+        base64Length: img.pdf.base64.length,
+      });
+    });
+
     const sessionStorageTime = performance.now() - sessionStart;
-    
+
     logger.info('SessionStorage save complete', {
       count: processedImages.length,
       time: sessionStorageTime,
+      imageIds: processedImages.map(img => img.id),
       stats: SessionStorageManager.getStats(),
     });
 
     // Phase 4: Create ProtocolImage objects
-    const protocolImages: ProtocolImage[] = uploadResults.map((result, idx) => {
-      const processedImg = processedImages[idx];
-      const metadata = processedImg?.metadata;
-      
-      // Generate unique ID if missing
-      const imageId = processedImg?.id || uuidv4();
-      
-      return {
-        id: imageId,
-        url: result.url,
-        originalUrl: result.url,
-        type: options.mediaType,
-        description: '',
-        timestamp: new Date(),
-        compressed: true,
-        originalSize: metadata?.originalSize || 0,
-        compressedSize: processedImg?.gallery.size || 0,
-        metadata: metadata ? {
-          gps: metadata.gps ? {
-            latitude: metadata.gps.lat,
-            longitude: metadata.gps.lng,
-          } : undefined,
-          deviceInfo: {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-          },
-        } : undefined,
-      };
-    });
+    // 🎯 NEW: uploadResults now contains 2x items (WebP + JPEG), extract both URLs
+    const protocolImages: ProtocolImage[] = processedImages.map(
+      (processedImg, idx) => {
+        // uploadResults: [webp0, jpeg0, webp1, jpeg1, ...]
+        const webpResultIdx = idx * 2; // WebP result
+        const jpegResultIdx = idx * 2 + 1; // JPEG result
+
+        const webpResult = uploadResults[webpResultIdx];
+        const jpegResult = uploadResults[jpegResultIdx];
+
+        if (!webpResult || !jpegResult) {
+          throw new Error(`Missing upload result for image at index ${idx}`);
+        }
+
+        const metadata = processedImg.metadata;
+        const imageId = processedImg.id;
+
+        logger.debug('📦 Creating ProtocolImage', {
+          imageId,
+          webpUrl: webpResult.url,
+          jpegUrl: jpegResult.url,
+          index: idx,
+          hasPdfData: !!processedImg?.pdf?.base64,
+        });
+
+        return {
+          id: imageId,
+          url: webpResult.url, // WebP for gallery
+          originalUrl: webpResult.url, // WebP high-quality
+          pdfUrl: jpegResult.url, // 🎯 NEW: JPEG R2 URL for PDF
+          pdfData: processedImg?.pdf?.base64, // Base64 for fallback + SessionStorage
+          type: options.mediaType,
+          description: '',
+          timestamp: new Date(),
+          compressed: true,
+          originalSize: metadata?.originalSize || 0,
+          compressedSize: processedImg?.gallery.size || 0,
+          metadata: metadata
+            ? {
+                gps: metadata.gps
+                  ? {
+                      latitude: metadata.gps.lat,
+                      longitude: metadata.gps.lng,
+                    }
+                  : undefined,
+                deviceInfo: {
+                  userAgent: navigator.userAgent,
+                  platform: navigator.platform,
+                },
+              }
+            : undefined,
+        };
+      }
+    );
 
     // Cleanup
     processor.destroy();
@@ -180,6 +242,12 @@ export async function processAndUploadPhotos(
       sessionStorageTime,
       totalTime,
       avgTimePerImage: totalTime / protocolImages.length,
+      // 🔍 DEBUG: Log IDs for verification
+      sessionStorageIds: processedImages.map(img => img.id),
+      protocolImageIds: protocolImages.map(img => img.id),
+      idsMatch:
+        JSON.stringify(processedImages.map(img => img.id)) ===
+        JSON.stringify(protocolImages.map(img => img.id)),
     });
 
     return {
@@ -197,7 +265,7 @@ export async function processAndUploadPhotos(
 
 /**
  * Generate PDF with SessionStorage data
- * 
+ *
  * Ultra-rýchle PDF generovanie bez sťahovania z R2
  */
 export async function generateProtocolPDFQuick(
@@ -242,7 +310,7 @@ export async function generateProtocolPDFQuick(
       pdfBlob,
       `protocol_${protocol.type}_${protocol.id.substring(0, 8)}.pdf`
     );
-    
+
     formData.append('type', 'protocol');
     formData.append('entityId', protocol.id);
     formData.append('category', 'pdf');
@@ -278,7 +346,7 @@ export async function generateProtocolPDFQuick(
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(downloadUrl);
-    
+
     logger.info('PDF downloaded automatically');
 
     // Clear SessionStorage after successful PDF generation
@@ -298,7 +366,7 @@ export async function generateProtocolPDFQuick(
 
 /**
  * Complete protocol save workflow
- * 
+ *
  * Kombinuje photo processing, upload a PDF generation
  */
 export async function completeProtocolWorkflow(

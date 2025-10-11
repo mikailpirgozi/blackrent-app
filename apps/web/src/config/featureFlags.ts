@@ -40,6 +40,14 @@ export class FeatureManager {
       users: [],
       percentage: 0,
     },
+    // 🎯 V1 PERFECT MIGRATION FLAG
+    USE_V1_PERFECT_PROTOCOLS: {
+      enabled: true, // ✅ ENABLED by default for all users
+      users: [],
+      percentage: 100, // 100% rollout
+      description:
+        'Enable V1 Perfect protocol system with Web Worker processing and parallel uploads',
+    },
   };
 
   static getInstance(): FeatureManager {
@@ -300,6 +308,11 @@ export const PROTOCOL_V2_FLAGS = {
   QUEUE_SYSTEM: 'PROTOCOL_V2_QUEUE_SYSTEM',
   MANIFEST_GENERATION: 'PROTOCOL_V2_MANIFEST_GENERATION',
   FULL_V2_SYSTEM: 'PROTOCOL_V2_FULL_SYSTEM',
+} as const;
+
+// 🎯 V1 PERFECT FLAGS
+export const V1_PERFECT_FLAGS = {
+  ENABLED: 'USE_V1_PERFECT_PROTOCOLS',
 } as const;
 
 // Helper funkcie pre konkrétne flags

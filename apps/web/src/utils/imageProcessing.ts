@@ -1,6 +1,6 @@
 /**
  * Image Processor - wrapper pre Web Worker
- * 
+ *
  * Paralelne spracováva fotky pomocou Web Workera s GPU acceleration
  */
 
@@ -15,7 +15,8 @@ export interface ProcessImageResult {
     height: number;
   };
   pdf: {
-    base64: string;
+    base64: string; // For SessionStorage (temporary)
+    blob: Blob; // 🎯 NEW: For R2 upload (permanent)
     size: number;
   };
   metadata: {
@@ -30,13 +31,14 @@ interface ProcessImageTask {
   file: File;
   options: {
     gallery: { format: 'webp'; quality: 0.95; maxWidth: 1920 };
-    pdf: { format: 'jpeg'; quality: 0.5; maxWidth: 400; maxHeight: 300 };
+    pdf: { format: 'jpeg'; quality: 0.9; maxWidth: 800; maxHeight: 600 };
   };
 }
 
 export class ImageProcessor {
   private worker: Worker | null = null;
-  private taskQueue: Map<string, (result: ProcessImageResult) => void> = new Map();
+  private taskQueue: Map<string, (result: ProcessImageResult) => void> =
+    new Map();
   private isReady = false;
   private readyPromise: Promise<void>;
 
@@ -53,7 +55,7 @@ export class ImageProcessor {
         { type: 'module' }
       );
 
-      this.worker.onmessage = (e) => {
+      this.worker.onmessage = e => {
         const data = e.data;
 
         // Handle ready signal
@@ -64,7 +66,7 @@ export class ImageProcessor {
         }
 
         // Handle task result
-        const { id, error, ...result } = data;
+        const { id, error } = data;
 
         if (error) {
           logger.error('Worker processing error', { id, error });
@@ -76,19 +78,20 @@ export class ImageProcessor {
           return;
         }
 
+        // 🎯 FIX: Pass complete data object INCLUDING id!
         const resolver = this.taskQueue.get(id);
         if (resolver) {
-          resolver(result as ProcessImageResult);
+          resolver(data as ProcessImageResult);
           this.taskQueue.delete(id);
         }
       };
 
-      this.worker.onerror = (error) => {
+      this.worker.onerror = error => {
         logger.error('ImageProcessor worker error', { error });
       };
 
       // Wait for ready signal
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         const checkReady = setInterval(() => {
           if (this.isReady) {
             clearInterval(checkReady);
@@ -131,7 +134,7 @@ export class ImageProcessor {
         file,
         options: {
           gallery: { format: 'webp', quality: 0.95, maxWidth: 1920 },
-          pdf: { format: 'jpeg', quality: 0.5, maxWidth: 400, maxHeight: 300 },
+          pdf: { format: 'jpeg', quality: 0.9, maxWidth: 800, maxHeight: 600 },
         },
       };
 
@@ -174,7 +177,7 @@ export class ImageProcessor {
       });
 
       const batchResults = await Promise.all(
-        batch.map((file) => this.processImage(file))
+        batch.map(file => this.processImage(file))
       );
 
       results.push(...batchResults);
@@ -205,4 +208,3 @@ export class ImageProcessor {
     }
   }
 }
-

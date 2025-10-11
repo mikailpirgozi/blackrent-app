@@ -1,6 +1,6 @@
 /**
  * SessionStorage Manager pre dočasné PDF data
- * 
+ *
  * Ukladá komprimované JPEG base64 stringy do SessionStorage
  * pre okamžité PDF generovanie bez nutnosti sťahovania z R2
  */
@@ -58,6 +58,18 @@ export class SessionStorageManager {
   }
 
   /**
+   * Remove specific PDF image from SessionStorage
+   */
+  static removePDFImage(imageId: string): void {
+    const key = `${PDF_IMAGES_PREFIX}${imageId}`;
+    sessionStorage.removeItem(key);
+
+    logger.debug('PDF image removed from SessionStorage', {
+      imageId,
+    });
+  }
+
+  /**
    * Get all PDF images as Map
    */
   static getAllPDFImages(): Map<string, string> {
@@ -94,7 +106,7 @@ export class SessionStorageManager {
       }
     }
 
-    keysToRemove.forEach((key) => sessionStorage.removeItem(key));
+    keysToRemove.forEach(key => sessionStorage.removeItem(key));
 
     logger.info('SessionStorage PDF images cleared', {
       count: keysToRemove.length,
@@ -180,4 +192,3 @@ export class SessionStorageManager {
     return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   }
 }
-

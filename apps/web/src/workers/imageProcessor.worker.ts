@@ -1,10 +1,10 @@
 /**
  * Ultra-rýchly Image Processor Worker s GPU acceleration
- * 
+ *
  * Paralelne spracováva fotky na:
  * - WebP high-quality (95%, 1920px) pre galériu
- * - JPEG low-quality (50%, 400x300) pre PDF
- * 
+ * - JPEG professional-quality (90%, 800x600) pre PDF
+ *
  * Použitie: OffscreenCanvas pre GPU acceleration
  */
 
@@ -13,7 +13,7 @@ interface ProcessImageTask {
   file: File;
   options: {
     gallery: { format: 'webp'; quality: 0.95; maxWidth: 1920 };
-    pdf: { format: 'jpeg'; quality: 0.5; maxWidth: 400; maxHeight: 300 };
+    pdf: { format: 'jpeg'; quality: 0.9; maxWidth: 800; maxHeight: 600 };
   };
 }
 
@@ -26,7 +26,8 @@ interface ProcessImageResult {
     height: number;
   };
   pdf: {
-    base64: string;
+    base64: string; // For SessionStorage (temporary)
+    blob: Blob; // 🎯 NEW: For R2 upload (permanent)
     size: number;
   };
   metadata: {
@@ -152,7 +153,8 @@ self.onmessage = async (e: MessageEvent<ProcessImageTask>) => {
         height: bitmap.height,
       },
       pdf: {
-        base64: pdfBase64,
+        base64: pdfBase64, // For SessionStorage (instant PDF)
+        blob: pdfBlob, // 🎯 NEW: For R2 upload (permanent storage)
         size: pdfBlob.size,
       },
       metadata,

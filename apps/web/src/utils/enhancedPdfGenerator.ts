@@ -9,9 +9,9 @@ export interface ProtocolData {
   rental: Record<string, unknown>;
   location: string;
   vehicleCondition: Record<string, unknown>;
-  vehicleImages: unknown[];
-  documentImages: unknown[];
-  damageImages: unknown[];
+  vehicleImages: ProtocolImage[];
+  documentImages: ProtocolImage[];
+  damageImages: ProtocolImage[];
   damages: unknown[];
   signatures: unknown[];
   notes: string;
@@ -68,7 +68,38 @@ export class EnhancedPDFGenerator {
     // 9. Päta
     this.addFooter(protocol);
 
+    // 🧹 10. Cleanup SessionStorage (auto-delete temporary PDF images)
+    this.cleanupSessionStorage(protocol);
+
     return this.doc.output('blob');
+  }
+
+  /**
+   * 🧹 Auto-cleanup SessionStorage after PDF generation
+   */
+  private cleanupSessionStorage(protocol: ProtocolData): void {
+    try {
+      const allImages = [
+        ...(protocol.vehicleImages || []),
+        ...(protocol.documentImages || []),
+        ...(protocol.damageImages || []),
+      ];
+
+      let cleanedCount = 0;
+      for (const image of allImages) {
+        if (image.id) {
+          SessionStorageManager.removePDFImage(image.id);
+          cleanedCount++;
+        }
+      }
+
+      logger.info('🧹 SessionStorage cleaned up after PDF generation', {
+        cleanedImages: cleanedCount,
+        protocolId: protocol.id,
+      });
+    } catch (error) {
+      logger.error('Failed to cleanup SessionStorage', error);
+    }
   }
 
   /**
@@ -696,7 +727,12 @@ export class EnhancedPDFGenerator {
   }
 
   /**
-   * Pridanie fotiek z SessionStorage
+   * 🎯 SMART FALLBACK: Pridanie fotiek s triple fallback systémom
+   *
+   * Priority:
+   * 1. SessionStorage (fastest, 1-2s) ✅
+   * 2. pdfData z DB (medium, 5-10s) 🟡
+   * 3. Download z R2 (slowest, 30-60s) 🔴
    */
   private async addImagesFromSession(
     title: string,
@@ -714,26 +750,121 @@ export class EnhancedPDFGenerator {
     const imgHeight = 60;
     const margin = 10;
 
+    let sessionStorageHits = 0;
+    let dbFallbacks = 0;
+    let r2Fallbacks = 0;
+    let errors = 0;
+
+    // 🔍 DEBUG: Log SessionStorage contents before processing
+    const sessionStorageImages = SessionStorageManager.getAllPDFImages();
+    logger.info('🔍 SessionStorage Debug Info', {
+      totalImagesInStorage: sessionStorageImages.size,
+      storageKeys: Array.from(sessionStorageImages.keys()),
+      protocolImageIds: images.map(img => img.id),
+    });
+
     for (const image of images) {
-      // Načítaj PDF verziu z SessionStorage
-      const base64 = SessionStorageManager.getPDFImage(image.id);
+      let base64: string | null = null;
+      let source = 'unknown';
 
-      if (!base64) {
-        logger.warn('PDF image not found in SessionStorage', {
-          imageId: image.id,
-        });
-        continue;
-      }
-
-      // Check page break
-      if (y + imgHeight > 270) {
-        this.doc.addPage();
-        y = 20;
-        x = 20;
-      }
-
-      // Add image
       try {
+        // 🚀 PRIORITY 1: Try SessionStorage (fastest)
+        base64 = SessionStorageManager.getPDFImage(image.id);
+
+        // 🔍 DEBUG: Log lookup result
+        logger.debug('🔍 SessionStorage Lookup', {
+          imageId: image.id,
+          found: !!base64,
+          base64Length: base64?.length || 0,
+        });
+
+        if (base64) {
+          source = 'SessionStorage';
+          sessionStorageHits++;
+          logger.debug('✅ Image loaded from SessionStorage', {
+            imageId: image.id,
+          });
+        } else {
+          logger.warn('⚠️ Image NOT found in SessionStorage', {
+            imageId: image.id,
+            availableKeys: Array.from(sessionStorageImages.keys()),
+          });
+        }
+
+        // 🟡 PRIORITY 2: Try R2 JPEG URL (PDF-optimized, fast)
+        if (!base64 && image.pdfUrl) {
+          logger.info('🟡 Downloading PDF-optimized JPEG from R2', {
+            imageId: image.id,
+            pdfUrl: image.pdfUrl,
+          });
+
+          try {
+            base64 = await this.downloadImageFromR2(image.pdfUrl);
+            source = 'R2 JPEG (pdfUrl)';
+            r2Fallbacks++;
+            logger.info('✅ Image loaded from R2 JPEG', {
+              imageId: image.id,
+            });
+          } catch (downloadError) {
+            logger.error('Failed to download JPEG from R2', {
+              imageId: image.id,
+              pdfUrl: image.pdfUrl,
+              error: downloadError,
+            });
+          }
+        }
+
+        // 🟠 PRIORITY 3: Fallback to pdfData from DB (base64)
+        if (!base64 && image.pdfData) {
+          base64 = image.pdfData;
+          source = 'DB (pdfData base64)';
+          dbFallbacks++;
+          logger.info('🟠 Image loaded from DB pdfData fallback', {
+            imageId: image.id,
+          });
+        }
+
+        // 🔴 PRIORITY 4: Last resort - download WebP from R2 (slowest, needs conversion)
+        if (!base64 && (image.originalUrl || image.url)) {
+          const url = image.originalUrl || image.url;
+          logger.warn('🔴 Downloading WebP from R2 (slow, last resort!)', {
+            imageId: image.id,
+            url,
+          });
+
+          try {
+            base64 = await this.downloadImageFromR2(url);
+            source = 'R2 WebP download';
+            r2Fallbacks++;
+          } catch (downloadError) {
+            logger.error('Failed to download WebP from R2', {
+              imageId: image.id,
+              url,
+              error: downloadError,
+            });
+          }
+        }
+
+        // If still no image data, skip this image
+        if (!base64) {
+          logger.error('No image data available for image', {
+            imageId: image.id,
+            hasSessionStorage: false,
+            hasPdfData: !!image.pdfData,
+            hasUrl: !!(image.originalUrl || image.url),
+          });
+          errors++;
+          continue;
+        }
+
+        // Check page break
+        if (y + imgHeight > 270) {
+          this.doc.addPage();
+          y = 20;
+          x = 20;
+        }
+
+        // Add image to PDF
         this.doc.addImage(base64, 'JPEG', x, y, imgWidth, imgHeight);
 
         // Add description if exists
@@ -754,13 +885,58 @@ export class EnhancedPDFGenerator {
           x = 20;
           y += imgHeight + margin + 10;
         }
+
+        logger.debug('✅ Image added to PDF', {
+          imageId: image.id,
+          source,
+        });
       } catch (error) {
         logger.error('Failed to add image to PDF', {
           imageId: image.id,
           error,
         });
+        errors++;
       }
     }
+
+    // Log statistics
+    logger.info('📊 PDF Image Loading Statistics', {
+      total: images.length,
+      sessionStorageHits,
+      dbFallbacks,
+      r2Fallbacks,
+      errors,
+      successRate:
+        (((images.length - errors) / images.length) * 100).toFixed(1) + '%',
+    });
+
+    // Performance warning if too many R2 downloads
+    if (r2Fallbacks > 0) {
+      logger.warn('⚠️ Performance degradation detected', {
+        message: `${r2Fallbacks} images loaded from R2 (slow). Consider implementing pdfData fallback in DB.`,
+        estimatedDelay: `~${r2Fallbacks * 2}s additional delay`,
+      });
+    }
+  }
+
+  /**
+   * 🔴 Download image from R2 as base64 (fallback method)
+   */
+  private async downloadImageFromR2(url: string): Promise<string> {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 
   /**
