@@ -528,10 +528,11 @@ export class IndexedDBManager {
   // ==================== PDF IMAGES (REPLACES SessionStorage) ====================
 
   /**
-   * Save PDF image base64 to IndexedDB (replaces SessionStorage)
+   * Save PDF image blob to IndexedDB (replaces SessionStorage)
    * This is temporary storage for PDF generation only
+   * IndexedDB natively supports Blob objects - no base64 conversion needed!
    */
-  async savePDFImage(imageId: string, base64: string): Promise<void> {
+  async savePDFImage(imageId: string, blob: Blob): Promise<void> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('images', 'readwrite');
@@ -541,20 +542,20 @@ export class IndexedDBManager {
       const pdfImageData = {
         id: `pdf_${imageId}`,
         protocolId: 'pdf_temp',
-        blob: new Blob([base64], { type: 'text/plain' }), // Store base64 as blob
+        blob: blob, // Store blob directly (2GB+ capacity!)
         filename: `${imageId}.pdf.jpeg`,
         type: 'pdf_temp',
         uploadStatus: 'pending' as const,
         timestamp: Date.now(),
-        size: base64.length,
+        size: blob.size,
       };
 
       const request = store.put(pdfImageData);
 
       request.onsuccess = () => {
-        logger.debug('PDF image saved to IndexedDB', { 
+        logger.debug('PDF image blob saved to IndexedDB', { 
           imageId, 
-          size: base64.length 
+          size: blob.size 
         });
         resolve();
       };
@@ -563,58 +564,60 @@ export class IndexedDBManager {
   }
 
   /**
-   * Get PDF image base64 from IndexedDB
+   * Get PDF image blob from IndexedDB
+   * Returns blob directly - convert to base64 only if needed for jsPDF
    */
-  async getPDFImage(imageId: string): Promise<string | null> {
+  async getPDFImage(imageId: string): Promise<Blob | null> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('images', 'readonly');
       const store = tx.objectStore('images');
       const request = store.get(`pdf_${imageId}`);
 
-      request.onsuccess = async () => {
+      request.onsuccess = () => {
         const result = request.result;
         if (!result || !result.blob) {
           resolve(null);
           return;
         }
 
-        // Convert blob back to base64 string
-        try {
-          const text = await result.blob.text();
-          resolve(text);
-        } catch (error) {
-          logger.error('Failed to convert PDF blob to text', { error });
-          resolve(null);
-        }
+        // Return blob directly
+        resolve(result.blob);
       };
       request.onerror = () => reject(request.error);
     });
   }
 
   /**
-   * Get all PDF images (for debugging)
+   * Convert blob to base64 (only when needed for jsPDF)
    */
-  async getAllPDFImages(): Promise<Map<string, string>> {
+  async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  /**
+   * Get all PDF images as blobs (for debugging)
+   */
+  async getAllPDFImages(): Promise<Map<string, Blob>> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('images', 'readonly');
       const store = tx.objectStore('images');
       const request = store.getAll();
 
-      request.onsuccess = async () => {
+      request.onsuccess = () => {
         const results = request.result || [];
-        const pdfImages = new Map<string, string>();
+        const pdfImages = new Map<string, Blob>();
 
         for (const item of results) {
           if (item.id.startsWith('pdf_') && item.blob) {
-            try {
-              const base64 = await item.blob.text();
-              const originalId = item.id.replace('pdf_', '');
-              pdfImages.set(originalId, base64);
-            } catch (error) {
-              logger.error('Failed to convert PDF blob', { error });
-            }
+            const originalId = item.id.replace('pdf_', '');
+            pdfImages.set(originalId, item.blob);
           }
         }
 

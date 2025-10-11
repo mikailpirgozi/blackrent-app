@@ -773,20 +773,18 @@ export class EnhancedPDFGenerator {
 
       try {
         // 🚀 PRIORITY 1: Try IndexedDB (fastest, 2GB+ capacity)
-        base64 = await indexedDBManager.getPDFImage(image.id);
+        const blob = await indexedDBManager.getPDFImage(image.id);
 
-        // 🔍 DEBUG: Log lookup result
-        logger.debug('🔍 IndexedDB Lookup', {
-          imageId: image.id,
-          found: !!base64,
-          base64Length: base64?.length || 0,
-        });
-
-        if (base64) {
+        if (blob) {
+          // Convert blob to base64 only when needed for jsPDF
+          base64 = await indexedDBManager.blobToBase64(blob);
           source = 'IndexedDB';
           indexedDBHits++;
-          logger.debug('✅ Image loaded from IndexedDB', {
+          
+          logger.debug('✅ Image loaded from IndexedDB and converted to base64', {
             imageId: image.id,
+            blobSize: blob.size,
+            base64Length: base64.length,
           });
         } else {
           logger.warn('⚠️ Image NOT found in IndexedDB', {

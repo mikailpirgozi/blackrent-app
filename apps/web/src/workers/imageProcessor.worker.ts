@@ -26,8 +26,7 @@ interface ProcessImageResult {
     height: number;
   };
   pdf: {
-    base64: string; // For SessionStorage (temporary)
-    blob: Blob; // 🎯 NEW: For R2 upload (permanent)
+    blob: Blob; // For R2 upload + IndexedDB
     size: number;
   };
   metadata: {
@@ -91,20 +90,9 @@ async function extractMetadata(file: File): Promise<{
   return metadata;
 }
 
-/**
- * Convert Blob to base64 string
- */
-async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      resolve(result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+// ❌ REMOVED: blobToBase64 function
+// No longer needed - we store blobs directly in IndexedDB
+// IndexedDB can handle Blob objects natively (2GB+ capacity)
 
 // Signal ready immediately on worker startup
 self.postMessage({ type: 'ready' });
@@ -137,13 +125,10 @@ self.onmessage = async (e: MessageEvent<ProcessImageTask>) => {
       ),
     ]);
 
-    // 3. Convert PDF blob to base64 (pre SessionStorage)
-    const pdfBase64 = await blobToBase64(pdfBlob);
-
-    // 4. Extract metadata
+    // 3. Extract metadata
     const metadata = await extractMetadata(file);
 
-    // 5. Send result back
+    // 4. Send result back (only 2 versions now!)
     const result: ProcessImageResult = {
       id,
       gallery: {
@@ -153,8 +138,7 @@ self.onmessage = async (e: MessageEvent<ProcessImageTask>) => {
         height: bitmap.height,
       },
       pdf: {
-        base64: pdfBase64, // For SessionStorage (instant PDF)
-        blob: pdfBlob, // 🎯 NEW: For R2 upload (permanent storage)
+        blob: pdfBlob, // For R2 upload + IndexedDB (can convert to base64 if needed)
         size: pdfBlob.size,
       },
       metadata,

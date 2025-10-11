@@ -157,9 +157,10 @@ export async function processAndUploadPhotos(
     });
 
     // 🎯 NEW: Save to IndexedDB instead of SessionStorage (2GB+ vs 10MB limit)
+    // Store blob directly (no base64 conversion = 33% less memory!)
     await Promise.all(
       processedImages.map(img => 
-        indexedDBManager.savePDFImage(img.id, img.pdf.base64)
+        indexedDBManager.savePDFImage(img.id, img.pdf.blob)
       )
     );
 
@@ -202,8 +203,8 @@ export async function processAndUploadPhotos(
           id: imageId,
           url: webpResult.url, // WebP for gallery
           originalUrl: webpResult.url, // WebP high-quality
-          pdfUrl: jpegResult.url, // 🎯 NEW: JPEG R2 URL for PDF
-          pdfData: processedImg?.pdf?.base64, // Base64 for fallback + SessionStorage
+          pdfUrl: jpegResult.url, // 🎯 JPEG R2 URL for PDF
+          // ❌ REMOVED: pdfData base64 (now in IndexedDB as blob)
           type: options.mediaType,
           description: '',
           timestamp: new Date(),

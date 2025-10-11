@@ -15,8 +15,7 @@ export interface ProcessImageResult {
     height: number;
   };
   pdf: {
-    base64: string; // For SessionStorage (temporary)
-    blob: Blob; // 🎯 NEW: For R2 upload (permanent)
+    blob: Blob; // For R2 upload + IndexedDB (only 1 version now!)
     size: number;
   };
   metadata: {
@@ -30,8 +29,8 @@ interface ProcessImageTask {
   id: string;
   file: File;
   options: {
-    gallery: { format: 'webp'; quality: 0.95; maxWidth: 1920 };
-    pdf: { format: 'jpeg'; quality: 0.9; maxWidth: 800; maxHeight: 600 };
+    gallery: { format: 'webp'; quality: number; maxWidth: number };
+    pdf: { format: 'jpeg'; quality: number; maxWidth: number; maxHeight: number };
   };
 }
 
