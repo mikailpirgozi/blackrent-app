@@ -30,7 +30,12 @@ interface ProcessImageTask {
   file: File;
   options: {
     gallery: { format: 'webp'; quality: number; maxWidth: number };
-    pdf: { format: 'jpeg'; quality: number; maxWidth: number; maxHeight: number };
+    pdf: {
+      format: 'jpeg';
+      quality: number;
+      maxWidth: number;
+      maxHeight: number;
+    };
   };
 }
 
@@ -159,8 +164,11 @@ export class ImageProcessor {
     const results: ProcessImageResult[] = [];
     let completed = 0;
 
-    // Process v dávkach po 6 (optimálne pre väčšinu zariadení)
-    const BATCH_SIZE = 6;
+    // ✅ iOS ANTI-CRASH: Detect device and adjust batch size
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isLowMemory =
+      (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+    const BATCH_SIZE = isIOS || isLowMemory ? 2 : 6;
 
     logger.info('Starting batch image processing', {
       totalFiles: files.length,

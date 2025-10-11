@@ -249,13 +249,12 @@ export default function SerialPhotoCapture({
 
   const uploadToR2 = useCallback(
     async (file: File, suffix = ''): Promise<string> => {
-      // Fallback na base64 ak R2 nie je povolené
+      // ✅ ANTI-CRASH: Use objectURL instead of base64
       if (!autoUploadToR2) {
-        return new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
+        // Create objectURL for preview (memory safe)
+        const objectUrl = URL.createObjectURL(file);
+        // Store for cleanup later
+        return objectUrl;
       }
 
       // Kontrola entityId
@@ -453,24 +452,17 @@ export default function SerialPhotoCapture({
               url = originalUrl;
             } catch (error) {
               console.error(
-                '❌ DUAL R2 UPLOAD FAILED, falling back to base64:',
+                '❌ DUAL R2 UPLOAD FAILED, using objectURL fallback:',
                 error
               );
-              url = await new Promise<string>(resolve => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(processedFile);
-              });
+              // ✅ ANTI-CRASH: Use objectURL instead of base64
+              url = URL.createObjectURL(processedFile);
             }
             // setUploadingToR2(false); // React Query handles this
           } else {
-            logger.debug('⚠️ USING BASE64 FALLBACK - R2 conditions not met');
-            // Fallback na base64
-            url = await new Promise<string>(resolve => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.readAsDataURL(processedFile);
-            });
+            logger.debug('⚠️ USING OBJECTURL FALLBACK - R2 conditions not met');
+            // ✅ ANTI-CRASH: Use objectURL instead of base64
+            url = URL.createObjectURL(processedFile);
           }
 
           const media: CapturedMedia = {
@@ -756,12 +748,8 @@ export default function SerialPhotoCapture({
           }
         }
 
-        // Convert to base64
-        url = await new Promise<string>(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(processedFile);
-        });
+        // ✅ ANTI-CRASH: Use objectURL instead of base64
+        url = URL.createObjectURL(processedFile);
       }
 
       if (media.type === 'image') {

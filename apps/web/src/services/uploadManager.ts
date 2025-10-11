@@ -1,6 +1,6 @@
 /**
  * Upload Manager - HTTP/2 Parallel Upload s Retry Mechanikou
- * 
+ *
  * Features:
  * - Paralelné uploady (6× súčasne pre HTTP/2 multiplex)
  * - Automatic retry s exponential backoff
@@ -31,9 +31,26 @@ export interface UploadResult {
 }
 
 export class UploadManager {
-  private MAX_PARALLEL = 6; // Adaptive: will be updated based on device
+  private MAX_PARALLEL = this.detectOptimalParallelism(); // ✅ iOS ANTI-CRASH: Auto-detect
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 2000; // 2s base delay
+
+  /**
+   * ✅ iOS ANTI-CRASH: Detect optimal parallelism based on device
+   */
+  private detectOptimalParallelism(): number {
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isLowMemory =
+      (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+
+    if (isIOS || isLowMemory) {
+      logger.info('📱 iOS/Low Memory detected - using concurrency 2');
+      return 2; // iOS: max 2 concurrent uploads
+    }
+
+    logger.info('💻 Desktop detected - using concurrency 6');
+    return 6; // Desktop: 6 concurrent uploads
+  }
 
   /**
    * Set adaptive parallel upload count based on device capabilities
@@ -48,7 +65,11 @@ export class UploadManager {
    */
   async uploadBatch(
     tasks: UploadTask[],
-    onProgress?: (completed: number, total: number, currentTask?: string) => void,
+    onProgress?: (
+      completed: number,
+      total: number,
+      currentTask?: string
+    ) => void,
     adaptiveBatchSize?: number
   ): Promise<UploadResult[]> {
     const results: UploadResult[] = [];
@@ -74,23 +95,29 @@ export class UploadManager {
       });
 
       const batchResults = await Promise.all(
-        batch.map((task) => this.uploadWithRetry(task, onProgress))
+        batch.map(task => this.uploadWithRetry(task, onProgress))
       );
 
       results.push(...batchResults);
       completed += batch.length;
       onProgress?.(completed, tasks.length);
 
-      logger.debug('Batch upload completed', { completed, total: tasks.length });
+      logger.debug('Batch upload completed', {
+        completed,
+        total: tasks.length,
+      });
     }
 
     logger.info('Adaptive batch upload complete', {
       totalUploaded: results.length,
       totalSize: results.reduce((sum, r) => sum + r.size, 0),
       totalTime: results.reduce((sum, r) => sum + r.uploadTime, 0),
-      avgTimePerFile: results.length > 0 
-        ? (results.reduce((sum, r) => sum + r.uploadTime, 0) / results.length).toFixed(0) + 'ms'
-        : '0ms',
+      avgTimePerFile:
+        results.length > 0
+          ? (
+              results.reduce((sum, r) => sum + r.uploadTime, 0) / results.length
+            ).toFixed(0) + 'ms'
+          : '0ms',
     });
 
     return results;
@@ -101,7 +128,11 @@ export class UploadManager {
    */
   private async uploadWithRetry(
     task: UploadTask,
-    onProgress?: (completed: number, total: number, currentTask?: string) => void
+    onProgress?: (
+      completed: number,
+      total: number,
+      currentTask?: string
+    ) => void
   ): Promise<UploadResult> {
     let lastError: Error | null = null;
 
@@ -143,7 +174,7 @@ export class UploadManager {
         if (attempt < this.MAX_RETRIES) {
           // Exponential backoff: 2s, 4s, 8s
           const delay = this.RETRY_DELAY * Math.pow(2, attempt - 1);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
@@ -159,18 +190,22 @@ export class UploadManager {
    */
   private async uploadToR2(task: UploadTask): Promise<string> {
     const formData = new FormData();
-    
+
     // Create File from Blob with proper filename
-    const file = new File([task.blob], task.path.split('/').pop() || 'upload.webp', {
-      type: task.blob.type || 'image/webp',
-    });
-    
+    const file = new File(
+      [task.blob],
+      task.path.split('/').pop() || 'upload.webp',
+      {
+        type: task.blob.type || 'image/webp',
+      }
+    );
+
     formData.append('file', file);
-    
+
     // Backend required fields
     formData.append('type', task.type || 'protocol');
     formData.append('entityId', task.entityId || 'unknown');
-    
+
     // Optional fields
     if (task.protocolType) {
       formData.append('protocolType', task.protocolType);
@@ -218,4 +253,3 @@ export class UploadManager {
     return result.url || result.publicUrl;
   }
 }
-
