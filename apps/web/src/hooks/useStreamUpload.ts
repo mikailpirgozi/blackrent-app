@@ -335,22 +335,30 @@ async function compressImageForPdfStorage(
         const base64 = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
 
         // Store in IndexedDB
-        await indexedDBManager.saveImage({
-          id: imageId,
-          protocolId,
-          pdfData: base64, // JPEG 20% for PDF
-          compressed: true,
-          originalSize: file.size,
-          compressedSize: Math.floor((base64.length * 0.75) / 1024), // Estimate KB
-        });
+        try {
+          await indexedDBManager.saveImage({
+            id: imageId,
+            protocolId,
+            pdfData: base64, // JPEG 20% for PDF
+            compressed: true,
+            originalSize: file.size,
+            compressedSize: Math.floor((base64.length * 0.75) / 1024), // Estimate KB
+          });
 
-        logger.info('📦 PDF JPEG stored in IndexedDB', {
-          imageId,
-          originalSize: `${(file.size / 1024).toFixed(0)} KB`,
-          compressedSize: `${Math.floor((base64.length * 0.75) / 1024)} KB`,
-          dimensions: `${width}x${height}`,
-          quality: '20%',
-        });
+          logger.info('📦 PDF JPEG stored in IndexedDB', {
+            imageId,
+            originalSize: `${(file.size / 1024).toFixed(0)} KB`,
+            compressedSize: `${Math.floor((base64.length * 0.75) / 1024)} KB`,
+            dimensions: `${width}x${height}`,
+            quality: '20%',
+          });
+        } catch (dbError) {
+          logger.error('⚠️ IndexedDB save failed (quota exceeded?)', {
+            imageId,
+            error: dbError,
+          });
+          // Continue anyway - PDF will use R2 fallback
+        }
 
         URL.revokeObjectURL(objectURL);
         resolve();
