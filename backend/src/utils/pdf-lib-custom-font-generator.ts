@@ -145,15 +145,13 @@ export class PDFLibCustomFontGenerator {
     console.log(`🎨 PDF-LIB CUSTOM FONT GENERÁTOR SPUSTENÝ - ${this.fontName.toUpperCase()}`);
     console.log('📋 Protokol ID:', protocol.id);
     
-    // 🏢 Načítanie company objektu pre správne zobrazenie fakturačnej firmy
-    let ownerCompany: Company | null = null;
+    // 🏢 Načítanie company názvu pre správne zobrazenie fakturačnej firmy
+    let ownerCompany: string | null = null;
     if (protocol.rentalData?.vehicle?.ownerCompanyId) {
       try {
         ownerCompany = await postgresDatabase.getCompanyNameById(protocol.rentalData.vehicle.ownerCompanyId);
         console.log('🏢 Owner company načítaná:', { 
-          id: ownerCompany?.id, 
-          name: ownerCompany?.name,
-          protocolDisplayName: ownerCompany?.protocolDisplayName 
+          name: ownerCompany 
         });
       } catch (error) {
         console.error('⚠️ Chyba pri načítaní owner company:', error);
@@ -196,7 +194,7 @@ export class PDFLibCustomFontGenerator {
     // 4. Informácie o vozidle (s owner company objekt pre protocolDisplayName)
     if (protocol.rentalData?.vehicle) {
       const companyDisplay = ownerCompany 
-        ? getProtocolCompanyDisplay(ownerCompany)
+        ? ownerCompany
         : getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
         
       this.addInfoSection('Informácie o vozidle', [
@@ -262,15 +260,13 @@ export class PDFLibCustomFontGenerator {
   async generateReturnProtocol(protocol: ReturnProtocol): Promise<Buffer> {
     console.log(`🎨 PDF-LIB CUSTOM FONT - Return protokol (${this.fontName})`);
     
-    // 🏢 Načítanie company objektu pre správne zobrazenie fakturačnej firmy
-    let ownerCompany: Company | null = null;
+    // 🏢 Načítanie company názvu pre správne zobrazenie fakturačnej firmy
+    let ownerCompany: string | null = null;
     if (protocol.rentalData?.vehicle?.ownerCompanyId) {
       try {
         ownerCompany = await postgresDatabase.getCompanyNameById(protocol.rentalData.vehicle.ownerCompanyId);
         console.log('🏢 Owner company načítaná (return):', { 
-          id: ownerCompany?.id, 
-          name: ownerCompany?.name,
-          protocolDisplayName: ownerCompany?.protocolDisplayName 
+          name: ownerCompany 
         });
       } catch (error) {
         console.error('⚠️ Chyba pri načítaní owner company:', error);
@@ -315,7 +311,7 @@ export class PDFLibCustomFontGenerator {
     // 4. Informácie o vozidle (s owner company objekt pre protocolDisplayName)
     if (protocol.rentalData?.vehicle) {
       const companyDisplay = ownerCompany 
-        ? getProtocolCompanyDisplay(ownerCompany)
+        ? ownerCompany
         : getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
         
       this.addInfoSection('Informácie o vozidle', [
