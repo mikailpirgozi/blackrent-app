@@ -28,7 +28,6 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCreateHandoverProtocol } from '@/lib/react-query/hooks/useProtocols';
-import { generateProtocolPDFQuick } from '@/utils/protocolPhotoWorkflow';
 // import { useApp } from '../../context/AppContext'; // Migrated to React Query
 import { useAuth } from '../../context/AuthContext';
 import { useVehicles } from '../../lib/react-query/hooks/useVehicles';
@@ -47,7 +46,6 @@ import {
   cacheFormDefaults,
   getSmartDefaults,
 } from '../../utils/protocolFormCache';
-import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
 import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';

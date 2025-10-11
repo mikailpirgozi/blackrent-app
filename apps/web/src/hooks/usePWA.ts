@@ -125,6 +125,15 @@ export const usePWA = (): PWAState & PWAActions => {
           handleServiceWorkerMessage
         );
 
+        // Check Background Sync API availability (PWA Enterprise feature)
+        if ('sync' in registration) {
+          logger.debug('✅ Background Sync API available - PWA mode active');
+          logger.debug('📤 Protocol photos will auto-upload when online');
+        } else {
+          logger.warn('⚠️ Background Sync API not available');
+          logger.warn('📤 Uploads will use immediate retry only');
+        }
+
         // PWA functions activated silently - no user notification needed
 
         return registration;
@@ -287,9 +296,7 @@ export const usePWA = (): PWAState & PWAActions => {
     // Check if running as installed PWA
     const isInstalled =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (
-        window.navigator as PWANavigator
-      ).standalone === true;
+      (window.navigator as PWANavigator).standalone === true;
 
     setState(prev => ({ ...prev, isInstalled }));
   };
@@ -466,9 +473,7 @@ export const usePWA = (): PWAState & PWAActions => {
       if (typeof window !== 'undefined' && 'caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(
-          cacheNames.map((cacheName: string) =>
-            caches.delete(cacheName)
-          )
+          cacheNames.map((cacheName: string) => caches.delete(cacheName))
         );
       }
 

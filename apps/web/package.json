@@ -85,6 +85,7 @@
     "react-infinite-scroll-component": "^6.1.0",
     "react-resizable-panels": "^3.0.6",
     "react-router-dom": "^6.20.1",
+    "react-virtuoso": "^4.14.1",
     "react-window": "^2.2.0",
     "react-zoom-pan-pinch": "^3.7.0",
     "recharts": "^2.8.0",

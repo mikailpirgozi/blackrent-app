@@ -1088,3 +1088,196 @@ async function getVAPIDPublicKey() {
     return null;
   }
 }
+
+// ==============================================
+// BACKGROUND SYNC - Protocol Photo Upload Queue
+// Enterprise PWA System - Automatic offline upload retry
+// ==============================================
+
+self.addEventListener('sync', async (event) => {
+  console.log('🔄 Background Sync triggered:', event.tag);
+  
+  if (event.tag === 'upload-protocol-images') {
+    event.waitUntil(processUploadQueue());
+  }
+});
+
+async function processUploadQueue() {
+  try {
+    console.log('📤 Processing upload queue from Background Sync...');
+    
+    // Open IndexedDB
+    const db = await openProtocolDB();
+    const tasks = await getQueuedTasks(db);
+    
+    console.log(`📋 Found ${tasks.length} queued uploads`);
+    
+    if (tasks.length === 0) {
+      console.log('✅ Queue empty, nothing to upload');
+      return;
+    }
+    
+    // Process each task with retry logic
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const task of tasks) {
+      try {
+        console.log(`📤 Uploading: ${task.filename}`);
+        await uploadImageFromQueue(task);
+        await removeFromQueue(db, task.id);
+        successCount++;
+        console.log(`✅ Uploaded successfully: ${task.filename}`);
+        
+        // Notify user (optional)
+        if (self.Notification && self.Notification.permission === 'granted') {
+          await showNotification('Upload Complete', {
+            body: `${task.filename} uploaded successfully`,
+            icon: '/logo192.png',
+            badge: '/logo192.png',
+            tag: 'upload-success',
+          });
+        }
+      } catch (error) {
+        failCount++;
+        console.error(`❌ Failed to upload ${task.filename}:`, error);
+        
+        // Update task with error
+        await updateQueueTaskError(db, task.id, error.message);
+        
+        // Show error notification if max retries exceeded
+        if ((task.retries || 0) >= 2) {
+          if (self.Notification && self.Notification.permission === 'granted') {
+            await showNotification('Upload Failed', {
+              body: `Failed to upload ${task.filename} after 3 attempts`,
+              icon: '/logo192.png',
+              badge: '/logo192.png',
+              tag: 'upload-error',
+            });
+          }
+        }
+      }
+    }
+    
+    console.log(`✅ Upload queue processing complete: ${successCount} success, ${failCount} failed`);
+    
+    // Show summary notification if multiple uploads
+    if (tasks.length > 1 && self.Notification && self.Notification.permission === 'granted') {
+      await showNotification('Background Upload Complete', {
+        body: `Uploaded ${successCount}/${tasks.length} photos`,
+        icon: '/logo192.png',
+        badge: '/logo192.png',
+        tag: 'upload-summary',
+      });
+    }
+  } catch (error) {
+    console.error('❌ Background sync error:', error);
+  }
+}
+
+function openProtocolDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('blackrent-protocols', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = (event) => {
+      // If DB doesn't exist yet, create basic structure
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('queue')) {
+        const queueStore = db.createObjectStore('queue', { keyPath: 'id' });
+        queueStore.createIndex('timestamp', 'timestamp', { unique: false });
+        queueStore.createIndex('retries', 'retries', { unique: false });
+        queueStore.createIndex('entityId', 'entityId', { unique: false });
+      }
+    };
+  });
+}
+
+async function getQueuedTasks(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('queue', 'readonly');
+    const store = tx.objectStore('queue');
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function uploadImageFromQueue(task) {
+  // Reconstruct FormData
+  const formData = new FormData();
+  formData.append('file', task.blob, task.filename);
+  formData.append('type', task.type || 'protocol');
+  formData.append('entityId', task.entityId);
+  formData.append('protocolType', task.protocolType);
+  formData.append('mediaType', task.mediaType);
+  
+  if (task.category) {
+    formData.append('category', task.category);
+  }
+  
+  if (task.metadata) {
+    formData.append('metadata', JSON.stringify(task.metadata));
+  }
+  
+  const response = await fetch(`${task.apiBaseUrl}/files/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${task.token}`,
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+  }
+  
+  return await response.json();
+}
+
+async function removeFromQueue(db, taskId) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('queue', 'readwrite');
+    const store = tx.objectStore('queue');
+    const request = store.delete(taskId);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function updateQueueTaskError(db, taskId, errorMessage) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('queue', 'readwrite');
+    const store = tx.objectStore('queue');
+    const getRequest = store.get(taskId);
+    
+    getRequest.onsuccess = () => {
+      const task = getRequest.result;
+      if (!task) {
+        reject(new Error(`Task ${taskId} not found`));
+        return;
+      }
+      
+      task.retries = (task.retries || 0) + 1;
+      task.lastError = errorMessage;
+      task.lastAttempt = Date.now();
+      
+      const putRequest = store.put(task);
+      putRequest.onsuccess = () => resolve();
+      putRequest.onerror = () => reject(putRequest.error);
+    };
+    
+    getRequest.onerror = () => reject(getRequest.error);
+  });
+}
+
+async function showNotification(title, options) {
+  if ('Notification' in self && self.Notification.permission === 'granted') {
+    try {
+      await self.registration.showNotification(title, options);
+    } catch (error) {
+      console.error('Failed to show notification:', error);
+    }
+  }
+}

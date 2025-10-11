@@ -37,7 +37,6 @@ import type {
   Vehicle,
 } from '../../types';
 // import { getApiBaseUrl } from '../../utils/apiUrl'; // REMOVED - React Query handles API calls
-import SerialPhotoCapture from '../common/SerialPhotoCapture';
 import { ModernPhotoCapture } from '../common/ModernPhotoCapture';
 import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';
