@@ -286,12 +286,30 @@ async function compressImageForPdfStorage(
   imageId: string,
   protocolId: string
 ): Promise<void> {
+  // ✅ ANTI-CRASH: Skip compression for non-image files
+  if (!file.type.startsWith('image/')) {
+    logger.warn('⚠️ Skipping PDF compression for non-image file', {
+      imageId,
+      fileType: file.type,
+    });
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectURL = URL.createObjectURL(file);
 
+    // ✅ ANTI-CRASH: Set timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      URL.revokeObjectURL(objectURL);
+      logger.error('⏱️ Image compression timeout', { imageId });
+      reject(new Error('Image compression timeout'));
+    }, 30000); // 30s timeout
+
     img.onload = async () => {
       try {
+        clearTimeout(timeout);
+        
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
@@ -337,14 +355,20 @@ async function compressImageForPdfStorage(
         URL.revokeObjectURL(objectURL);
         resolve();
       } catch (error) {
+        clearTimeout(timeout);
         URL.revokeObjectURL(objectURL);
-        reject(error);
+        logger.error('❌ Image compression failed', { imageId, error });
+        // ✅ ANTI-CRASH: Don't reject, just log error (upload can continue)
+        resolve(); // Continue upload even if compression fails
       }
     };
 
     img.onerror = () => {
+      clearTimeout(timeout);
       URL.revokeObjectURL(objectURL);
-      reject(new Error('Failed to load image for compression'));
+      logger.error('❌ Failed to load image for compression', { imageId });
+      // ✅ ANTI-CRASH: Don't reject, just log error (upload can continue)
+      resolve(); // Continue upload even if image load fails
     };
 
     img.src = objectURL;
