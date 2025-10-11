@@ -1,25 +1,27 @@
 /**
- * Enterprise IndexedDB Manager for PWA
- * - Stores processed images temporarily during upload
- * - Stores protocol drafts for crash recovery
- * - Stores offline upload queue for Background Sync
- * - 2GB+ capacity (vs 10MB SessionStorage)
- * - Survives page reloads and app restarts
+ * Enterprise IndexedDB Manager for PWA - ANTI-CRASH iOS
+ *
+ * ✅ NO raw data storage (only metadata)
+ * ✅ NO base64 storage (causes crashes on iOS)
+ * ✅ Stores protocol drafts for crash recovery
+ * ✅ Stores offline upload queue for Background Sync
+ * ✅ Minimal memory footprint
+ * ✅ Survives page reloads and app restarts
  */
 
 import { logger } from '../logger';
 
 // Types
-export interface ImageData {
+export interface ImageMetadata {
   id: string;
   protocolId: string;
-  blob: Blob;
   filename: string;
   type: string; // 'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer'
   uploadStatus: 'pending' | 'uploading' | 'completed' | 'failed';
-  url?: string;
+  url?: string; // R2 URL after upload
   timestamp: number;
   size: number;
+  // ❌ REMOVED: blob (never store raw data in IndexedDB for iOS)
 }
 
 export interface ProtocolDraft {
@@ -34,7 +36,8 @@ export interface ProtocolDraft {
 
 export interface QueueTask {
   id: string;
-  blob: Blob;
+  // ❌ REMOVED: blob (never queue raw data for iOS)
+  url: string; // R2 URL to upload
   filename: string;
   type: string; // 'protocol', 'vehicle', etc.
   entityId: string; // Protocol ID
@@ -70,8 +73,13 @@ export class IndexedDBManager {
       return Promise.resolve(this.db);
     }
 
+    // Check if indexedDB is available
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      throw new Error('IndexedDB is not available in this environment');
+    }
+
     this.initPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
+      const request = window.indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => {
         logger.error('IndexedDB initialization failed', {
@@ -138,17 +146,17 @@ export class IndexedDBManager {
   // ==================== IMAGES ====================
 
   /**
-   * Save image data
+   * Save image metadata (NO raw data!)
    */
-  async saveImage(imageData: ImageData): Promise<void> {
+  async saveImageMetadata(metadata: ImageMetadata): Promise<void> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('images', 'readwrite');
       const store = tx.objectStore('images');
-      const request = store.put(imageData);
+      const request = store.put(metadata);
 
       request.onsuccess = () => {
-        logger.debug('Image saved to IndexedDB', { imageId: imageData.id });
+        logger.debug('Image metadata saved', { imageId: metadata.id });
         resolve();
       };
       request.onerror = () => reject(request.error);
@@ -156,9 +164,9 @@ export class IndexedDBManager {
   }
 
   /**
-   * Get image by ID
+   * Get image metadata by ID
    */
-  async getImage(imageId: string): Promise<ImageData | null> {
+  async getImageMetadata(imageId: string): Promise<ImageMetadata | null> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('images', 'readonly');
@@ -171,9 +179,9 @@ export class IndexedDBManager {
   }
 
   /**
-   * Get all images for a protocol
+   * Get all image metadata for a protocol
    */
-  async getProtocolImages(protocolId: string): Promise<ImageData[]> {
+  async getProtocolImageMetadata(protocolId: string): Promise<ImageMetadata[]> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('images', 'readonly');
@@ -525,157 +533,10 @@ export class IndexedDBManager {
     };
   }
 
-  // ==================== PDF IMAGES (REPLACES SessionStorage) ====================
-
-  /**
-   * Save PDF image blob to IndexedDB (replaces SessionStorage)
-   * This is temporary storage for PDF generation only
-   * IndexedDB natively supports Blob objects - no base64 conversion needed!
-   */
-  async savePDFImage(imageId: string, blob: Blob): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('images', 'readwrite');
-      const store = tx.objectStore('images');
-      
-      // Store as special PDF image with minimal metadata
-      const pdfImageData = {
-        id: `pdf_${imageId}`,
-        protocolId: 'pdf_temp',
-        blob: blob, // Store blob directly (2GB+ capacity!)
-        filename: `${imageId}.pdf.jpeg`,
-        type: 'pdf_temp',
-        uploadStatus: 'pending' as const,
-        timestamp: Date.now(),
-        size: blob.size,
-      };
-
-      const request = store.put(pdfImageData);
-
-      request.onsuccess = () => {
-        logger.debug('PDF image blob saved to IndexedDB', { 
-          imageId, 
-          size: blob.size 
-        });
-        resolve();
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Get PDF image blob from IndexedDB
-   * Returns blob directly - convert to base64 only if needed for jsPDF
-   */
-  async getPDFImage(imageId: string): Promise<Blob | null> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('images', 'readonly');
-      const store = tx.objectStore('images');
-      const request = store.get(`pdf_${imageId}`);
-
-      request.onsuccess = () => {
-        const result = request.result;
-        if (!result || !result.blob) {
-          resolve(null);
-          return;
-        }
-
-        // Return blob directly
-        resolve(result.blob);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Convert blob to base64 (only when needed for jsPDF)
-   */
-  async blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  /**
-   * Get all PDF images as blobs (for debugging)
-   */
-  async getAllPDFImages(): Promise<Map<string, Blob>> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('images', 'readonly');
-      const store = tx.objectStore('images');
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const results = request.result || [];
-        const pdfImages = new Map<string, Blob>();
-
-        for (const item of results) {
-          if (item.id.startsWith('pdf_') && item.blob) {
-            const originalId = item.id.replace('pdf_', '');
-            pdfImages.set(originalId, item.blob);
-          }
-        }
-
-        resolve(pdfImages);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Remove PDF image from IndexedDB
-   */
-  async removePDFImage(imageId: string): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('images', 'readwrite');
-      const store = tx.objectStore('images');
-      const request = store.delete(`pdf_${imageId}`);
-
-      request.onsuccess = () => {
-        logger.debug('PDF image removed from IndexedDB', { imageId });
-        resolve();
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Clear all PDF images (after successful PDF generation)
-   */
-  async clearPDFImages(): Promise<void> {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('images', 'readwrite');
-      const store = tx.objectStore('images');
-      const request = store.openCursor();
-
-      let clearedCount = 0;
-
-      request.onsuccess = event => {
-        const cursor = (event.target as IDBRequest).result;
-        if (cursor) {
-          if (cursor.value.id.startsWith('pdf_')) {
-            cursor.delete();
-            clearedCount++;
-          }
-          cursor.continue();
-        } else {
-          logger.info('🧹 PDF images cleared from IndexedDB', { 
-            count: clearedCount 
-          });
-          resolve();
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
-  }
+  // ==================== PDF METADATA ====================
+  // ❌ REMOVED: PDF blob storage (causes iOS crashes)
+  // ✅ NEW: PDFs generated directly from R2 URLs
+  // No temporary storage needed - just use pdfUrl from protocol images
 }
 
 // Singleton instance

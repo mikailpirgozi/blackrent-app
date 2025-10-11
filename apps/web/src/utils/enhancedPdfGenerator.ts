@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import { indexedDBManager } from './storage/IndexedDBManager';
 import { logger } from './logger';
 import type { HandoverProtocol, ReturnProtocol, ProtocolImage } from '../types';
 
@@ -27,15 +26,13 @@ export class EnhancedPDFGenerator {
   private margin: number = 20;
   private primaryColor: [number, number, number] = [25, 118, 210]; // Blue
   private secondaryColor: [number, number, number] = [66, 66, 66]; // Dark gray
-  private mode: 'preview' | 'archive' = 'preview';
 
-  constructor(mode: 'preview' | 'archive' = 'preview') {
+  constructor(_mode: 'preview' | 'archive' = 'preview') {
     this.doc = new jsPDF();
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
-    this.mode = mode;
-    
-    logger.debug('EnhancedPDFGenerator initialized', { mode });
+
+    logger.debug('EnhancedPDFGenerator initialized', { mode: _mode });
   }
 
   /**
@@ -83,24 +80,13 @@ export class EnhancedPDFGenerator {
    */
   private async cleanupIndexedDB(protocol: ProtocolData): Promise<void> {
     try {
-      const allImages = [
-        ...(protocol.vehicleImages || []),
-        ...(protocol.documentImages || []),
-        ...(protocol.damageImages || []),
-      ];
-
-      let cleanedCount = 0;
-      for (const image of allImages) {
-        if (image.id) {
-          await indexedDBManager.removePDFImage(image.id);
-          cleanedCount++;
+      // ✅ ANTI-CRASH: No IndexedDB cleanup needed (we don't store blobs anymore)
+      logger.info(
+        '✅ PDF cleanup skipped (anti-crash mode - no local storage)',
+        {
+          protocolId: protocol.id,
         }
-      }
-
-      logger.info('🧹 IndexedDB cleaned up after PDF generation', {
-        cleanedImages: cleanedCount,
-        protocolId: protocol.id,
-      });
+      );
     } catch (error) {
       logger.error('Failed to cleanup IndexedDB', error);
     }
@@ -754,16 +740,13 @@ export class EnhancedPDFGenerator {
     const imgHeight = 60;
     const margin = 10;
 
-    let indexedDBHits = 0;
-    let dbFallbacks = 0;
+    // ✅ ANTI-CRASH: No IndexedDB usage, all from R2
     let r2Fallbacks = 0;
     let errors = 0;
 
-    // 🔍 DEBUG: Log IndexedDB contents before processing
-    const indexedDBImages = await indexedDBManager.getAllPDFImages();
-    logger.info('🔍 IndexedDB Debug Info', {
-      totalImagesInStorage: indexedDBImages.size,
-      storageKeys: Array.from(indexedDBImages.keys()),
+    // ✅ ANTI-CRASH: No IndexedDB blob storage
+    // Download all images from R2 on-demand
+    logger.info('🔍 PDF Generation - Loading images from R2', {
       protocolImageIds: images.map(img => img.id),
     });
 
@@ -772,28 +755,7 @@ export class EnhancedPDFGenerator {
       let source = 'unknown';
 
       try {
-        // 🚀 PRIORITY 1: Try IndexedDB (fastest, 2GB+ capacity)
-        const blob = await indexedDBManager.getPDFImage(image.id);
-
-        if (blob) {
-          // Convert blob to base64 only when needed for jsPDF
-          base64 = await indexedDBManager.blobToBase64(blob);
-          source = 'IndexedDB';
-          indexedDBHits++;
-          
-          logger.debug('✅ Image loaded from IndexedDB and converted to base64', {
-            imageId: image.id,
-            blobSize: blob.size,
-            base64Length: base64.length,
-          });
-        } else {
-          logger.warn('⚠️ Image NOT found in IndexedDB', {
-            imageId: image.id,
-            availableKeys: Array.from(indexedDBImages.keys()),
-          });
-        }
-
-        // 🟡 PRIORITY 2: Try R2 JPEG URL (PDF-optimized, fast)
+        // ✅ ANTI-CRASH: Download from R2 JPEG URL (PDF-optimized)
         if (!base64 && image.pdfUrl) {
           logger.info('🟡 Downloading PDF-optimized JPEG from R2', {
             imageId: image.id,
@@ -816,15 +778,7 @@ export class EnhancedPDFGenerator {
           }
         }
 
-        // 🟠 PRIORITY 3: Fallback to pdfData from DB (base64)
-        if (!base64 && image.pdfData) {
-          base64 = image.pdfData;
-          source = 'DB (pdfData base64)';
-          dbFallbacks++;
-          logger.info('🟠 Image loaded from DB pdfData fallback', {
-            imageId: image.id,
-          });
-        }
+        // ✅ ANTI-CRASH: No DB pdfData fallback (removed)
 
         // 🔴 PRIORITY 4: Last resort - download WebP from R2 (slowest, needs conversion)
         if (!base64 && (image.originalUrl || image.url)) {
@@ -904,21 +858,11 @@ export class EnhancedPDFGenerator {
     // Log statistics
     logger.info('📊 PDF Image Loading Statistics', {
       total: images.length,
-      indexedDBHits,
-      dbFallbacks,
-      r2Fallbacks,
+      r2Downloads: r2Fallbacks,
       errors,
       successRate:
         (((images.length - errors) / images.length) * 100).toFixed(1) + '%',
     });
-
-    // Performance warning if too many R2 downloads
-    if (r2Fallbacks > 0) {
-      logger.warn('⚠️ Performance degradation detected', {
-        message: `${r2Fallbacks} images loaded from R2 (slow). Consider implementing pdfData fallback in DB.`,
-        estimatedDelay: `~${r2Fallbacks * 2}s additional delay`,
-      });
-    }
   }
 
   /**

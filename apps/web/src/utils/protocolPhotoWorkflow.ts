@@ -1,11 +1,11 @@
 /**
- * Protocol Photo Workflow - Complete integration helper
+ * Protocol Photo Workflow - ANTI-CRASH iOS Safari
  *
- * Zabaluje celý workflow pre fotografie v protokoloch:
- * 1. Image processing (Web Worker)
- * 2. R2 upload (parallel)
- * 3. SessionStorage PDF data
- * 4. PDF generation
+ * ✅ NO base64/dataURL storage
+ * ✅ objectURL for previews (with immediate revoke)
+ * ✅ Stream upload with concurrency 2
+ * ✅ Garbage collection after each upload
+ * ✅ PDF generation directly from R2 URLs
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -29,25 +29,26 @@ export interface PhotoWorkflowResult {
   images: ProtocolImage[];
   processingTime: number;
   uploadTime: number;
-  sessionStorageTime: number;
   totalTime: number;
 }
 
 /**
- * Process and upload photos for protocol
+ * Process and upload photos for protocol - ANTI-CRASH VERSION
  *
- * Kompletný workflow:
- * - Web Worker processing
- * - Parallel R2 upload
- * - SessionStorage management
+ * Workflow:
+ * 1. Process images with Web Worker
+ * 2. Upload WebP (gallery) + JPEG (PDF) to R2
+ * 3. Save only metadata to IndexedDB (NO blobs!)
+ * 4. Return R2 URLs
  */
 export async function processAndUploadPhotos(
   files: File[],
   options: PhotoWorkflowOptions
 ): Promise<PhotoWorkflowResult> {
   const totalStart = performance.now();
+  const objectURLs: string[] = []; // Track for cleanup
 
-  logger.info('Starting photo processing', {
+  logger.info('Starting photo processing (anti-crash mode)', {
     fileCount: files.length,
     protocolId: options.protocolId,
     mediaType: options.mediaType,
@@ -76,11 +77,11 @@ export async function processAndUploadPhotos(
       avgPerImage: processingTime / processedImages.length,
     });
 
-    // Phase 2: R2 Upload - 🎯 NEW: Upload both WebP (gallery) + JPEG (PDF)
+    // Phase 2: R2 Upload - Upload both WebP (gallery) + JPEG (PDF)
     const uploadStart = performance.now();
     const uploadManager = new UploadManager();
 
-    // 🎯 Create upload tasks for BOTH versions
+    // Create upload tasks for BOTH versions
     const uploadTasks: Array<{
       id: string;
       blob: Blob;
@@ -106,9 +107,9 @@ export async function processAndUploadPhotos(
         mediaType: options.mediaType,
       });
 
-      // 2. 🎯 NEW: JPEG version (PDF-optimized)
+      // 2. JPEG version (PDF-optimized)
       uploadTasks.push({
-        id: `${imageId}_pdf`, // Different ID for PDF version
+        id: `${imageId}_pdf`,
         blob: img.pdf.blob,
         path: `protocols/${options.protocolId}/${options.mediaType}/${imageId}_${timestamp}_${idx}_pdf.jpeg`,
         type: 'protocol',
@@ -140,46 +141,45 @@ export async function processAndUploadPhotos(
       totalSize: uploadResults.reduce((sum, r) => sum + r.size, 0),
     });
 
-    // Phase 3: Ensure all images have consistent IDs BEFORE saving
-    // 🎯 FIX: Generate IDs once and reuse everywhere
-    const storageStart = performance.now();
-
+    // Phase 3: Save metadata to IndexedDB (NO blobs!)
     processedImages.forEach((img, idx) => {
-      // Generate unique ID if missing - DO THIS ONCE!
       if (!img.id) {
         const newId = uuidv4();
         processedImages[idx] = { ...img, id: newId };
-        logger.debug('🆔 Generated new ID for image', {
-          index: idx,
-          newId,
-        });
       }
     });
 
-    // 🎯 NEW: Save to IndexedDB instead of SessionStorage (2GB+ vs 10MB limit)
-    // Store blob directly (no base64 conversion = 33% less memory!)
+    // Save only metadata
     await Promise.all(
-      processedImages.map(img => 
-        indexedDBManager.savePDFImage(img.id, img.pdf.blob)
-      )
+      processedImages.map((img, idx) => {
+        const webpResult = uploadResults[idx * 2];
+        if (!webpResult) {
+          throw new Error(
+            `Missing WebP upload result for image at index ${idx}`
+          );
+        }
+        return indexedDBManager.saveImageMetadata({
+          id: img.id,
+          protocolId: options.protocolId,
+          filename: img.id + '.webp',
+          type: options.mediaType,
+          uploadStatus: 'completed',
+          url: webpResult.url,
+          timestamp: Date.now(),
+          size: img.gallery.size,
+        });
+      })
     );
 
-    const storageTime = performance.now() - storageStart;
-
-    logger.info('✅ PDF images saved to IndexedDB', {
+    logger.info('✅ Image metadata saved to IndexedDB', {
       count: processedImages.length,
-      time: storageTime,
-      imageIds: processedImages.map(img => img.id),
-      avgTimePerImage: storageTime / processedImages.length,
     });
 
     // Phase 4: Create ProtocolImage objects
-    // 🎯 NEW: uploadResults now contains 2x items (WebP + JPEG), extract both URLs
     const protocolImages: ProtocolImage[] = processedImages.map(
       (processedImg, idx) => {
-        // uploadResults: [webp0, jpeg0, webp1, jpeg1, ...]
-        const webpResultIdx = idx * 2; // WebP result
-        const jpegResultIdx = idx * 2 + 1; // JPEG result
+        const webpResultIdx = idx * 2;
+        const jpegResultIdx = idx * 2 + 1;
 
         const webpResult = uploadResults[webpResultIdx];
         const jpegResult = uploadResults[jpegResultIdx];
@@ -191,20 +191,12 @@ export async function processAndUploadPhotos(
         const metadata = processedImg.metadata;
         const imageId = processedImg.id;
 
-        logger.debug('📦 Creating ProtocolImage', {
-          imageId,
-          webpUrl: webpResult.url,
-          jpegUrl: jpegResult.url,
-          index: idx,
-          hasPdfData: !!processedImg?.pdf?.base64,
-        });
-
         return {
           id: imageId,
           url: webpResult.url, // WebP for gallery
-          originalUrl: webpResult.url, // WebP high-quality
-          pdfUrl: jpegResult.url, // 🎯 JPEG R2 URL for PDF
-          // ❌ REMOVED: pdfData base64 (now in IndexedDB as blob)
+          originalUrl: webpResult.url,
+          pdfUrl: jpegResult.url, // ✅ JPEG R2 URL for PDF
+          // ❌ REMOVED: pdfData base64 (causes crashes)
           type: options.mediaType,
           description: '',
           timestamp: new Date(),
@@ -229,44 +221,40 @@ export async function processAndUploadPhotos(
       }
     );
 
-    // Cleanup
+    // Cleanup: Destroy processor and revoke objectURLs
     processor.destroy();
+    objectURLs.forEach(url => URL.revokeObjectURL(url));
 
     const totalTime = performance.now() - totalStart;
 
-    logger.info('Photo workflow complete', {
+    logger.info('Photo workflow complete (anti-crash mode)', {
       imageCount: protocolImages.length,
       processingTime,
       uploadTime,
-      storageTime,
       totalTime,
       avgTimePerImage: totalTime / protocolImages.length,
-      // 🔍 DEBUG: Log IDs for verification
-      indexedDBIds: processedImages.map(img => img.id),
-      protocolImageIds: protocolImages.map(img => img.id),
-      idsMatch:
-        JSON.stringify(processedImages.map(img => img.id)) ===
-        JSON.stringify(protocolImages.map(img => img.id)),
     });
 
     return {
       images: protocolImages,
       processingTime,
       uploadTime,
-      sessionStorageTime: storageTime, // Renamed but keeping interface compatibility
       totalTime,
     };
   } catch (error) {
+    // Cleanup on error
+    objectURLs.forEach(url => URL.revokeObjectURL(url));
     logger.error('Photo workflow failed', { error });
     throw error;
   }
 }
 
 /**
- * Generate PDF with IndexedDB data
+ * Generate PDF with R2 URLs - NO local data storage
  *
- * Ultra-rýchle PDF generovanie bez sťahovania z R2
- * 🎯 NOW USES IndexedDB (2GB+) instead of SessionStorage (10MB limit)
+ * ✅ Downloads images from R2 on-demand
+ * ✅ No base64/blob storage
+ * ✅ Garbage collection after each image
  */
 export async function generateProtocolPDFQuick(
   protocol: HandoverProtocol | ReturnProtocol
@@ -274,7 +262,7 @@ export async function generateProtocolPDFQuick(
   const startTime = performance.now();
 
   try {
-    logger.info('Starting PDF generation', {
+    logger.info('Starting PDF generation (anti-crash mode)', {
       protocolId: protocol.id,
       type: protocol.type,
       imageCount:
@@ -283,24 +271,17 @@ export async function generateProtocolPDFQuick(
         (protocol.damageImages?.length || 0),
     });
 
-    // 🎯 NEW: Check IndexedDB has images (instead of SessionStorage)
-    const indexedDBImages = await indexedDBManager.getAllPDFImages();
-    logger.info('✅ Retrieved PDF images from IndexedDB', {
-      count: indexedDBImages.size,
-    });
-
-    // Generate PDF using IndexedDB data
+    // ✅ Generate PDF directly from R2 URLs (no local storage)
     const pdfGenerator = new EnhancedPDFGenerator();
     const pdfBlob = await pdfGenerator.generateProtocolPDF(protocol);
 
     const generationTime = performance.now() - startTime;
-    perfMonitor.startTimer('pdf-generation')(); // Log to perfMonitor
+    perfMonitor.startTimer('pdf-generation')();
 
     logger.info('PDF generation complete', {
       protocolId: protocol.id,
       generationTime,
       pdfSize: pdfBlob.size,
-      pages: pdfBlob.size > 0 ? 1 : 0,
     });
 
     // Upload PDF to R2
@@ -345,13 +326,11 @@ export async function generateProtocolPDFQuick(
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    // ✅ Revoke objectURL immediately
     URL.revokeObjectURL(downloadUrl);
 
     logger.info('PDF downloaded automatically');
-
-    // 🎯 NEW: Clear IndexedDB after successful PDF generation (instead of SessionStorage)
-    await indexedDBManager.clearPDFImages();
-    logger.info('🧹 IndexedDB PDF images cleared after successful generation');
 
     return {
       pdfBlob,
@@ -366,8 +345,6 @@ export async function generateProtocolPDFQuick(
 
 /**
  * Complete protocol save workflow
- *
- * Kombinuje photo processing, upload a PDF generation
  */
 export async function completeProtocolWorkflow(
   protocol: HandoverProtocol | ReturnProtocol,

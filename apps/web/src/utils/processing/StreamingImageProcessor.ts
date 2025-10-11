@@ -110,16 +110,13 @@ export class StreamingImageProcessor {
       try {
         // ===== PHASE 1: Process images =====
         const processStart = Date.now();
-        const processed = await this.worker.processBatch(
-          batch,
-          (completed) => {
-            callbacks.onProgress?.(
-              i + completed,
-              files.length,
-              `Processing images ${i + completed}/${files.length}`
-            );
-          }
-        );
+        const processed = await this.worker.processBatch(batch, completed => {
+          callbacks.onProgress?.(
+            i + completed,
+            files.length,
+            `Processing images ${i + completed}/${files.length}`
+          );
+        });
         const processTime = Date.now() - processStart;
         totalProcessingTime += processTime;
 
@@ -147,11 +144,10 @@ export class StreamingImageProcessor {
               options
             );
 
-            // Store minimal metadata in IndexedDB (NOT the blobs!)
-            await indexedDBManager.saveImage({
+            // ✅ ANTI-CRASH: Store only metadata (NO blobs!)
+            await indexedDBManager.saveImageMetadata({
               id: img.id,
               protocolId: options.protocolId,
-              blob: img.pdf.blob, // Small PDF version for queue
               filename: `${img.id}_gallery.webp`,
               type: options.mediaType,
               uploadStatus: 'completed',

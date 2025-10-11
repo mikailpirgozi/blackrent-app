@@ -1,6 +1,6 @@
 /**
  * Smart Error Recovery System
- * 
+ *
  * Context-aware error classification and recovery strategies
  * - Network errors → Retry with exponential backoff
  * - Server errors → Queue for Background Sync
@@ -12,7 +12,7 @@ import { logger } from '../logger';
 import { backgroundSyncQueue } from '../sync/BackgroundSyncQueue';
 import { indexedDBManager } from '../storage/IndexedDBManager';
 
-export type ErrorCategory = 
+export type ErrorCategory =
   | 'network'
   | 'server'
   | 'client'
@@ -26,14 +26,22 @@ export interface ErrorContext {
   operation: 'upload' | 'process' | 'save';
   retryable: boolean;
   userMessage: string;
-  recoveryStrategy: 'retry' | 'queue' | 'reduce_batch' | 'user_action' | 'abort';
+  recoveryStrategy:
+    | 'retry'
+    | 'queue'
+    | 'reduce_batch'
+    | 'user_action'
+    | 'abort';
 }
 
 export class SmartErrorRecovery {
   /**
    * Classify error and determine recovery strategy
    */
-  classifyError(error: Error, operation: 'upload' | 'process' | 'save'): ErrorContext {
+  classifyError(
+    error: Error,
+    operation: 'upload' | 'process' | 'save'
+  ): ErrorContext {
     const errorMsg = error.message.toLowerCase();
 
     // Network errors
@@ -48,7 +56,8 @@ export class SmartErrorRecovery {
         category: 'network',
         operation,
         retryable: true,
-        userMessage: 'Network connection lost. Will retry automatically when online.',
+        userMessage:
+          'Network connection lost. Will retry automatically when online.',
         recoveryStrategy: 'queue',
       };
     }
@@ -65,7 +74,8 @@ export class SmartErrorRecovery {
         category: 'server',
         operation,
         retryable: true,
-        userMessage: 'Server is temporarily unavailable. Will retry automatically.',
+        userMessage:
+          'Server is temporarily unavailable. Will retry automatically.',
         recoveryStrategy: 'queue',
       };
     }
@@ -105,10 +115,7 @@ export class SmartErrorRecovery {
     }
 
     // Timeout errors
-    if (
-      errorMsg.includes('timeout') ||
-      errorMsg.includes('timed out')
-    ) {
+    if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
       return {
         error,
         category: 'timeout',
@@ -189,21 +196,22 @@ export class SmartErrorRecovery {
       mediaType?: string;
     }
   ): Promise<void> {
-    if (!metadata.blob || !metadata.filename || !metadata.protocolType || !metadata.mediaType) {
+    if (
+      !metadata.blob ||
+      !metadata.filename ||
+      !metadata.protocolType ||
+      !metadata.mediaType
+    ) {
       logger.warn('Cannot queue for background sync - missing metadata');
       return;
     }
 
     try {
-      await backgroundSyncQueue.enqueue(
-        metadata.blob,
-        metadata.filename,
-        {
-          entityId: metadata.protocolId,
-          protocolType: metadata.protocolType,
-          mediaType: metadata.mediaType,
-        }
-      );
+      await backgroundSyncQueue.enqueue(metadata.blob, metadata.filename, {
+        entityId: metadata.protocolId,
+        protocolType: metadata.protocolType,
+        mediaType: metadata.mediaType,
+      });
 
       logger.info('Task queued for Background Sync', {
         filename: metadata.filename,
@@ -219,12 +227,15 @@ export class SmartErrorRecovery {
    */
   private async reduceMemoryFootprint(protocolId: string): Promise<void> {
     try {
-      // Get current images
-      const images = await indexedDBManager.getProtocolImages(protocolId);
-      
+      // ✅ ANTI-CRASH: Get only metadata
+      const images =
+        await indexedDBManager.getProtocolImageMetadata(protocolId);
+
       // Keep only uploaded images, clear pending ones
-      const pendingImages = images.filter(img => img.uploadStatus === 'pending');
-      
+      const pendingImages = images.filter(
+        img => img.uploadStatus === 'pending'
+      );
+
       for (const img of pendingImages) {
         await indexedDBManager.deleteImage(img.id);
       }
@@ -243,8 +254,12 @@ export class SmartErrorRecovery {
    */
   private async saveDraft(protocolId: string): Promise<void> {
     try {
-      const images = await indexedDBManager.getProtocolImages(protocolId);
-      const uploadedCount = images.filter(img => img.uploadStatus === 'completed').length;
+      // ✅ ANTI-CRASH: Get only metadata
+      const images =
+        await indexedDBManager.getProtocolImageMetadata(protocolId);
+      const uploadedCount = images.filter(
+        img => img.uploadStatus === 'completed'
+      ).length;
 
       await indexedDBManager.saveDraft({
         protocolId,
@@ -269,7 +284,10 @@ export class SmartErrorRecovery {
   /**
    * Get user-friendly error message
    */
-  getUserMessage(error: Error, operation: 'upload' | 'process' | 'save'): string {
+  getUserMessage(
+    error: Error,
+    operation: 'upload' | 'process' | 'save'
+  ): string {
     const context = this.classifyError(error, operation);
     return context.userMessage;
   }
@@ -285,4 +303,3 @@ export class SmartErrorRecovery {
 
 // Singleton instance
 export const smartErrorRecovery = new SmartErrorRecovery();
-

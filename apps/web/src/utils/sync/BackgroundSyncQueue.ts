@@ -37,10 +37,13 @@ export class BackgroundSyncQueue {
       throw new Error('No authentication token found');
     }
 
-    // Create queue task
+    // ✅ ANTI-CRASH: Create objectURL instead of storing blob
+    const objectURL = URL.createObjectURL(blob);
+
+    // Create queue task (with objectURL, not blob)
     const task: Omit<QueueTask, 'timestamp' | 'retries'> = {
       id: crypto.randomUUID(),
-      blob,
+      url: objectURL, // ✅ Store objectURL, not blob
       filename,
       type: metadata.type || 'protocol',
       entityId: metadata.entityId,
@@ -158,8 +161,12 @@ export class BackgroundSyncQueue {
    * Upload single task
    */
   private async uploadTask(task: QueueTask): Promise<unknown> {
+    // ✅ ANTI-CRASH: Fetch blob from objectURL
+    const response = await fetch(task.url);
+    const blob = await response.blob();
+
     const formData = new FormData();
-    formData.append('file', task.blob, task.filename);
+    formData.append('file', blob, task.filename);
     formData.append('type', task.type);
     formData.append('entityId', task.entityId);
     formData.append('protocolType', task.protocolType);
@@ -173,7 +180,7 @@ export class BackgroundSyncQueue {
       formData.append('metadata', JSON.stringify(task.metadata));
     }
 
-    const response = await fetch(`${task.apiBaseUrl}/files/upload`, {
+    const uploadResponse = await fetch(`${task.apiBaseUrl}/files/upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${task.token}`,
@@ -181,12 +188,17 @@ export class BackgroundSyncQueue {
       body: formData,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse
+        .text()
+        .catch(() => 'Unknown error');
+      throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
     }
 
-    return await response.json();
+    // ✅ Revoke objectURL after successful upload
+    URL.revokeObjectURL(task.url);
+
+    return await uploadResponse.json();
   }
 
   /**
@@ -223,8 +235,8 @@ export class BackgroundSyncQueue {
       // Count by protocol
       byProtocol[task.entityId] = (byProtocol[task.entityId] || 0) + 1;
 
-      // Sum size
-      totalSize += task.blob.size;
+      // ✅ ANTI-CRASH: No blob.size (we use objectURL now)
+      // totalSize += task.blob.size;
 
       // Find oldest
       if (task.timestamp < oldestTimestamp) {
