@@ -31,32 +31,46 @@ export interface UploadResult {
 }
 
 export class UploadManager {
-  private readonly MAX_PARALLEL = 6; // Optimálne pre HTTP/2
+  private MAX_PARALLEL = 6; // Adaptive: will be updated based on device
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 2000; // 2s base delay
 
   /**
-   * Upload batch of files in parallel
+   * Set adaptive parallel upload count based on device capabilities
+   */
+  setAdaptiveParallelism(batchSize: number): void {
+    this.MAX_PARALLEL = Math.max(1, Math.min(6, batchSize));
+    logger.info('Adaptive parallelism set', { maxParallel: this.MAX_PARALLEL });
+  }
+
+  /**
+   * Upload batch of files in parallel with adaptive sizing
    */
   async uploadBatch(
     tasks: UploadTask[],
-    onProgress?: (completed: number, total: number, currentTask?: string) => void
+    onProgress?: (completed: number, total: number, currentTask?: string) => void,
+    adaptiveBatchSize?: number
   ): Promise<UploadResult[]> {
     const results: UploadResult[] = [];
     let completed = 0;
 
-    logger.info('Starting batch upload', {
+    // Use adaptive batch size if provided
+    const parallelCount = adaptiveBatchSize || this.MAX_PARALLEL;
+
+    logger.info('Starting adaptive batch upload', {
       totalTasks: tasks.length,
-      maxParallel: this.MAX_PARALLEL,
+      parallelCount,
+      adaptive: !!adaptiveBatchSize,
     });
 
-    // Upload v dávkach po 6 (HTTP/2 multiplex)
-    for (let i = 0; i < tasks.length; i += this.MAX_PARALLEL) {
-      const batch = tasks.slice(i, i + this.MAX_PARALLEL);
+    // Upload v adaptívnych dávkach
+    for (let i = 0; i < tasks.length; i += parallelCount) {
+      const batch = tasks.slice(i, i + parallelCount);
 
-      logger.debug('Uploading batch', {
-        batchIndex: Math.floor(i / this.MAX_PARALLEL) + 1,
+      logger.debug('Uploading adaptive batch', {
+        batchIndex: Math.floor(i / parallelCount) + 1,
         batchSize: batch.length,
+        parallelCount,
       });
 
       const batchResults = await Promise.all(
@@ -70,10 +84,13 @@ export class UploadManager {
       logger.debug('Batch upload completed', { completed, total: tasks.length });
     }
 
-    logger.info('Batch upload complete', {
+    logger.info('Adaptive batch upload complete', {
       totalUploaded: results.length,
       totalSize: results.reduce((sum, r) => sum + r.size, 0),
       totalTime: results.reduce((sum, r) => sum + r.uploadTime, 0),
+      avgTimePerFile: results.length > 0 
+        ? (results.reduce((sum, r) => sum + r.uploadTime, 0) / results.length).toFixed(0) + 'ms'
+        : '0ms',
     });
 
     return results;
