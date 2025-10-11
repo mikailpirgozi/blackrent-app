@@ -149,7 +149,7 @@ export class PDFLibCustomFontGenerator {
     let ownerCompany: Company | null = null;
     if (protocol.rentalData?.vehicle?.ownerCompanyId) {
       try {
-        ownerCompany = await postgresDatabase.getCompanyById(protocol.rentalData.vehicle.ownerCompanyId);
+        ownerCompany = await postgresDatabase.getCompanyNameById(protocol.rentalData.vehicle.ownerCompanyId);
         console.log('🏢 Owner company načítaná:', { 
           id: ownerCompany?.id, 
           name: ownerCompany?.name,
@@ -266,7 +266,7 @@ export class PDFLibCustomFontGenerator {
     let ownerCompany: Company | null = null;
     if (protocol.rentalData?.vehicle?.ownerCompanyId) {
       try {
-        ownerCompany = await postgresDatabase.getCompanyById(protocol.rentalData.vehicle.ownerCompanyId);
+        ownerCompany = await postgresDatabase.getCompanyNameById(protocol.rentalData.vehicle.ownerCompanyId);
         console.log('🏢 Owner company načítaná (return):', { 
           id: ownerCompany?.id, 
           name: ownerCompany?.name,
