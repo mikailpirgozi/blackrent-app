@@ -62,7 +62,7 @@ export default function R2FileManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Filters & Pagination
   const [search, setSearch] = useState('');
   const [prefix, setPrefix] = useState('__all__');
@@ -319,14 +319,16 @@ export default function R2FileManager() {
               <SelectContent>
                 <SelectItem value="__all__">Všetky priečinky</SelectItem>
                 {stats &&
-                  Object.keys(stats.byFolder).map(folder => (
-                    <SelectItem key={folder} value={folder}>
-                      <div className="flex items-center gap-2">
-                        <Folder className="h-4 w-4" />
-                        {folder} ({stats?.byFolder[folder]?.count || 0})
-                      </div>
-                    </SelectItem>
-                  ))}
+                  Object.keys(stats.byFolder)
+                    .filter(folder => folder !== '')
+                    .map(folder => (
+                      <SelectItem key={folder} value={folder}>
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-4 w-4" />
+                          {folder} ({stats?.byFolder[folder]?.count || 0})
+                        </div>
+                      </SelectItem>
+                    ))}
               </SelectContent>
             </Select>
           </div>
