@@ -604,7 +604,7 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
     
     try {  
       const result = await client.query(
-        'SELECT id, username, email, password_hash, role, first_name, last_name, signature_template, created_at FROM users WHERE username = $1', 
+        'SELECT id, username, email, password_hash, role, platform_id, linked_investor_id, first_name, last_name, signature_template, created_at FROM users WHERE username = $1', 
         [username]
       );
       user = result.rows[0];
@@ -615,7 +615,9 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
         passwordHashLength: user?.password_hash?.length,
         hasFirstName: !!user?.first_name,
         hasLastName: !!user?.last_name,
-        hasSignatureTemplate: !!user?.signature_template
+        hasSignatureTemplate: !!user?.signature_template,
+        platformId: user?.platform_id,
+        linkedInvestorId: user?.linked_investor_id
       });
     } finally {
       client.release();
@@ -665,7 +667,9 @@ router.post('/login', async (req: Request, res: Response<AuthResponse>) => {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
-      companyId: user.company_id,
+      platformId: user.platform_id, // ✅ Added: platform_id for platform-based access control
+      linkedInvestorId: user.linked_investor_id, // ✅ Added: linked_investor_id for investor role
+      companyId: user.company_id, // DEPRECATED but kept for backward compatibility
       employeeNumber: user.employee_number,
       hireDate: user.hire_date ? new Date(user.hire_date) : undefined,
       isActive: user.is_active ?? true,
