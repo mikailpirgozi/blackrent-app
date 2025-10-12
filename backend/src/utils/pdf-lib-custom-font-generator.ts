@@ -193,9 +193,21 @@ export class PDFLibCustomFontGenerator {
     
     // 4. Informácie o vozidle (s owner company objekt pre protocolDisplayName)
     if (protocol.rentalData?.vehicle) {
-      const companyDisplay = ownerCompany 
-        ? ownerCompany
-        : getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+      // ✅ FIX: Vždy použi ownerCompany (protocol_display_name) ak existuje ownerCompanyId
+      let companyDisplay = 'N/A';
+      if (ownerCompany) {
+        companyDisplay = ownerCompany;
+      } else if (protocol.rentalData.vehicle.ownerCompanyId) {
+        // Ak ownerCompany nebolo načítané, skús znovu
+        try {
+          const displayName = await postgresDatabase.getCompanyNameById(protocol.rentalData.vehicle.ownerCompanyId);
+          companyDisplay = displayName || getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+        } catch (error) {
+          companyDisplay = getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+        }
+      } else {
+        companyDisplay = getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+      }
         
       this.addInfoSection('Informácie o vozidle', [
         ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
@@ -309,9 +321,21 @@ export class PDFLibCustomFontGenerator {
     
     // 4. Informácie o vozidle (s owner company objekt pre protocolDisplayName)
     if (protocol.rentalData?.vehicle) {
-      const companyDisplay = ownerCompany 
-        ? ownerCompany
-        : getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+      // ✅ FIX: Vždy použi ownerCompany (protocol_display_name) ak existuje ownerCompanyId
+      let companyDisplay = 'N/A';
+      if (ownerCompany) {
+        companyDisplay = ownerCompany;
+      } else if (protocol.rentalData.vehicle.ownerCompanyId) {
+        // Ak ownerCompany nebolo načítané, skús znovu
+        try {
+          const displayName = await postgresDatabase.getCompanyNameById(protocol.rentalData.vehicle.ownerCompanyId);
+          companyDisplay = displayName || getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+        } catch (error) {
+          companyDisplay = getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+        }
+      } else {
+        companyDisplay = getProtocolCompanyDisplay(protocol.rentalData.vehicle.company);
+      }
         
       this.addInfoSection('Informácie o vozidle', [
         ['Značka:', protocol.rentalData.vehicle.brand || 'N/A'],
