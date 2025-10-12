@@ -210,7 +210,6 @@ export class PDFLibCustomFontGenerator {
     this.addInfoSection('Stav vozidla pri prevzatí', [
       ['Stav tachometra:', `${protocol.vehicleCondition.odometer} km`],
       ['Úroveň paliva:', `${protocol.vehicleCondition.fuelLevel}%`],
-      ['Typ paliva:', protocol.vehicleCondition.fuelType],
       ['Exteriér:', protocol.vehicleCondition.exteriorCondition],
       ['Interiér:', protocol.vehicleCondition.interiorCondition]
     ]);
@@ -333,7 +332,6 @@ export class PDFLibCustomFontGenerator {
       ['Počiatočný stav tachometra:', `${initialOdometer} km`],
       ['Konečný stav tachometra:', `${currentOdometer} km`],
       ['Úroveň paliva:', `${protocol.vehicleCondition?.fuelLevel || 'N/A'}%`],
-      ['Typ paliva:', protocol.vehicleCondition?.fuelType || 'N/A'],
       ['Exteriér:', protocol.vehicleCondition?.exteriorCondition || 'N/A'],
       ['Interiér:', protocol.vehicleCondition?.interiorCondition || 'N/A']
     ]);
@@ -1029,8 +1027,8 @@ export class PDFLibCustomFontGenerator {
     // 🖼️ USPORIADANIE OBRÁZKOV 3 V RADE - VÄČŠIE A KVALITNEJŠIE
     const imagesPerRow = 3; // 🔧 ZLEPŠENÉ: 3 namiesto 4 pre väčšie obrázky
     const imageSpacing = 12; // 🔧 ZLEPŠENÉ: Väčší spacing pre lepší vzhľad
-    const maxImageWidth = 160; // 🔧 ZLEPŠENÉ: Väčšie obrázky (160px namiesto 120px)
-    const maxImageHeight = 120; // 🔧 ZLEPŠENÉ: Väčšie obrázky (120px namiesto 90px)
+    const maxImageWidth = 240; // 🔧 FINAL: Väčšie obrázky (240px) pre lepšiu čitateľnosť
+    const maxImageHeight = 180; // 🔧 FINAL: Väčšie obrázky (180px) pre lepšiu čitateľnosť
     
     const availableWidth = this.pageWidth - 2 * this.margin;
     const imageAreaWidth = (availableWidth - imageSpacing) / imagesPerRow;
