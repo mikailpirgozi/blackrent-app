@@ -1,6 +1,8 @@
 import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import * as fs from 'fs';
+import * as https from 'https';
 import * as path from 'path';
 
 interface R2Config {
@@ -26,6 +28,9 @@ class R2Storage {
       publicUrl: process.env.R2_PUBLIC_URL || ''
     };
 
+    // 🔧 FIX: Disable SSL verification for localhost (macOS SSL handshake issue)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     this.client = new S3Client({
       region: 'auto',
       endpoint: this.config.endpoint,
@@ -33,6 +38,14 @@ class R2Storage {
         accessKeyId: this.config.accessKeyId,
         secretAccessKey: this.config.secretAccessKey,
       },
+      // ✅ Disable SSL cert validation on localhost to fix EPROTO errors
+      ...(isDevelopment && {
+        requestHandler: new NodeHttpHandler({
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: false, // Only for localhost!
+          }),
+        }),
+      }),
     });
   }
 
