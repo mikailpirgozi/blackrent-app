@@ -171,6 +171,70 @@ router.get('/reset-admin-get', async (req: Request, res: Response<ApiResponse>) 
   }
 });
 
+// GET /api/auth/create-super-admin - Vytvorenie super_admin účtu s úplnými právami
+router.get('/create-super-admin', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    logger.auth('🔧 GET request - Vytváram super_admin účet...');
+    
+    const client = await postgresDatabase.dbPool.connect();
+    try {
+      // Skontroluj či už super_admin existuje
+      const existingCheck = await client.query('SELECT id FROM users WHERE username = $1', ['superadmin']);
+      
+      if (existingCheck.rows.length > 0) {
+        // Ak existuje, vymaž ho a vytvor nový
+        await client.query('DELETE FROM users WHERE username = $1', ['superadmin']);
+        logger.auth('🗑️ Starý super_admin účet vymazaný');
+      }
+      
+      // Vytvor hashovane heslo - SuperAdmin123
+      const hashedPassword = await bcrypt.hash('SuperAdmin123', 12);
+      
+      // Vytvor super_admin účet (БEZ platformId - vidí všetko)
+      await client.query(
+        `INSERT INTO users 
+        (id, username, email, password_hash, role, platform_id, is_active, first_name, last_name) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          uuidv4(), 
+          'superadmin', 
+          'superadmin@blackrent.sk', 
+          hashedPassword, 
+          'super_admin',
+          null, // БEZ platformId - pristup ku všetkým platformám
+          true,
+          'Super',
+          'Admin'
+        ]
+      );
+      
+      logger.auth('✅ Super Admin účet úspešne vytvorený s heslom SuperAdmin123');
+      
+      return res.json({
+        success: true,
+        message: '🚀 Super Admin účet úspešne vytvorený!',
+        data: {
+          username: 'superadmin',
+          password: 'SuperAdmin123',
+          role: 'super_admin',
+          permissions: 'VŠETKY - pristup ku všetkým platformám a dátam',
+          loginUrl: process.env.NODE_ENV === 'production' 
+            ? 'https://blackrent-app.vercel.app/login'
+            : 'http://localhost:3000/login'
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error: unknown) {
+    console.error('❌ Chyba pri vytváraní super_admin účtu:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Chyba pri vytváraní super_admin účtu: ' + (error instanceof Error ? error.message : String(error))
+    });
+  }
+});
+
 // GET /api/auth/init-database - Inicializácia databázy a vytvorenie vzorových dát  
 router.get('/init-database', async (req: Request, res: Response<ApiResponse>) => {
   try {
