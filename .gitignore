@@ -23,8 +23,33 @@ dist/
 # Misc
 .DS_Store
 *.pem
+
+# ═══════════════════════════════════════════════
+# 🔐 ENV FILES (CRITICAL - NEVER COMMIT SECRETS!)
+# ═══════════════════════════════════════════════
+# Block ALL .env files except .env.example templates
 .env
-.env*.local
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+.env.staging
+.env.vercel
+.env.vercel-prod
+.env.vercel.production
+.env.new
+.env.bak
+.env.localhost
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+# Allow only .env.example templates (safe to commit)
+!.env.example
+!.env*.example
+!**/.env.example
+!**/.env*.example
 
 # Debug
 npm-debug.log*
@@ -107,3 +132,27 @@ vehicle-*.jpg
 * 2.md
 * 2.ts
 * 2.tsx
+
+# ═══════════════════════════════════════════════
+# 📦 PRODUCTION DATA (CRITICAL - NEVER IN GIT!)
+# ═══════════════════════════════════════════════
+# Local storage obsahuje production PDFs, fotky zákazníkov, GDPR dáta!
+backend/local-storage/
+apps/backend/local-storage/
+**/local-storage/protocols/
+**/local-storage/companies/
+**/local-storage/documents/
+
+# ═══════════════════════════════════════════════
+# 🚫 DUPLICATES & LEGACY (CLEANED UP)
+# ═══════════════════════════════════════════════
+# Zabráň opätovnému commitu vymazaných štruktúr
+apps/backend/
+apps/customer-website/
+customer-website/Anima/
+customer-website/Anima */
+
+# ═══════════════════════════════════════════════
+# 📋 BACKUP ZÁLOŽKY (PRE TVOJU BEZPEČNOSŤ)
+# ═══════════════════════════════════════════════
+.env-backup-*/
