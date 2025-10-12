@@ -110,9 +110,9 @@ router.get(
         userRole: req.user?.role,
       });
 
-      // ✅ PLATFORM FILTERING: Admin and company_admin see only their platform leasings
+      // ✅ PLATFORM FILTERING: ALL users with platformId (except super_admin) see only their platform leasings
       let filteredLeasings = result.leasings;
-      if (req.user && (req.user.role === 'admin' || req.user.role === 'company_admin') && req.user.platformId) {
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
         console.log('🌐 LEASINGS PAGINATED: Filtering by platform:', req.user.platformId);
         const originalCount = filteredLeasings.length;
         filteredLeasings = filteredLeasings.filter((l: any) => l.platformId === req.user?.platformId);
@@ -161,8 +161,24 @@ router.get(
       
       let leasings = await postgresDatabase.getLeasings(filters);
       
-      // ✅ PLATFORM FILTERING: Admin and company_admin see only their platform leasings
-      if (req.user && (req.user.role === 'admin' || req.user.role === 'company_admin') && req.user.platformId) {
+      console.log('🏦 Leasings GET - user:', {
+        role: req.user?.role,
+        userId: req.user?.id,
+        username: req.user?.username,
+        platformId: req.user?.platformId,
+        totalLeasings: leasings.length
+      });
+      
+      // 🔍 DEBUG: Log first 3 leasings with platformId
+      console.log('🔍 LEASINGS SAMPLE (first 3):', leasings.slice(0, 3).map(l => ({
+        id: l.id,
+        leasingCompany: l.leasingCompany,
+        vehicleId: l.vehicleId,
+        platformId: (l as any).platformId
+      })));
+      
+      // ✅ PLATFORM FILTERING: ALL users with platformId (except super_admin) see only their platform leasings
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
         console.log('🌐 LEASINGS: Filtering by platform:', req.user.platformId);
         const originalCount = leasings.length;
         leasings = leasings.filter((l: any) => l.platformId === req.user?.platformId);

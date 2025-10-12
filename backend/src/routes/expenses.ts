@@ -52,17 +52,50 @@ router.get('/',
       
       console.log('💰 Expenses GET - user:', { 
         role: req.user?.role, 
-        userId: req.user?.id, 
+        userId: req.user?.id,
+        username: req.user?.username,
+        platformId: req.user?.platformId,
         totalExpenses: expenses.length 
       });
       
-      // 🔐 NON-ADMIN USERS - filter podľa company permissions
-      if (req.user?.role !== 'admin' && req.user) {
-        const user = req.user; // TypeScript safe assignment
+      // 🔍 DEBUG: Log first 3 expenses with company info
+      console.log('🔍 EXPENSES SAMPLE (first 3):', expenses.slice(0, 3).map(e => ({
+        id: e.id,
+        date: e.date,
+        amount: e.amount,
+        category: e.category,
+        company: e.company,
+        vehicleId: e.vehicleId
+      })));
+      
+      // 🔐 PLATFORM FILTERING - Apply to ALL users with platformId (including admin role)
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        const user = req.user;
+        const originalCount = expenses.length;
+        
+        // ✅ PLATFORM FILTERING: Any user with platformId sees only their platform expenses
+        console.log('🌐 EXPENSES: Platform filtering - user:', { username: user.username, role: user.role, platformId: user.platformId });
+        
+        // Get all companies for this platform
+        const companies = await postgresDatabase.getCompanies();
+        const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+        const validCompanyNames = platformCompanies.map(c => c.name);
+        
+        console.log('🔍 EXPENSES: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: validCompanyNames });
+        
+        // Filter expenses by platform companies
+        expenses = expenses.filter(e => 
+          e.company && validCompanyNames.includes(e.company)
+        );
+        
+        console.log('🌐 EXPENSES: Platform filter applied:', { originalCount, filteredCount: expenses.length });
+      } else if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
+        // Regular users WITHOUT platformId: filter podľa company permissions
+        const user = req.user;
         const originalCount = expenses.length;
         
         // Získaj company access pre používateľa
-        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
         const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
         
         // Získaj názvy firiem pre mapping
@@ -77,7 +110,7 @@ router.get('/',
         );
         
         console.log('🔐 Expenses Company Permission Filter:', {
-          userId: user!.id,
+          userId: user.id,
           allowedCompanyIds,
           allowedCompanyNames,
           originalCount,

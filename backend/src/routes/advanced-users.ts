@@ -386,20 +386,61 @@ router.delete('/roles/:id', authenticateToken, requireRole(['admin', 'super_admi
 router.get('/users', authenticateToken, requireRole(['admin', 'manager']), async (req: AuthRequest, res) => {
   try {
     const user = req.user;
-    if (!user?.companyId) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not associated with organization'
-      });
+    
+    console.log('👥 Users GET - user:', { 
+      role: user?.role,
+      userId: user?.id,
+      username: user?.username,
+      platformId: user?.platformId,
+      companyId: user?.companyId
+    });
+    
+    // 🔐 PLATFORM FILTERING: Users with platformId see all platform users
+    let users;
+    if (user?.platformId && user.role !== 'super_admin') {
+      console.log('🌐 USERS: Platform filtering - loading all platform users for platform:', user.platformId);
+      
+      // Get all companies for this platform
+      const { postgresDatabase } = await import('../models/postgres-database');
+      const companies = await postgresDatabase.getCompanies();
+      const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+      const platformCompanyIds = platformCompanies.map(c => c.id);
+      
+      console.log('🔍 USERS: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: platformCompanies.map(c => c.name) });
+      
+      // Get all users from all platform companies
+      const allUsers = await Promise.all(
+        platformCompanyIds.map(companyId => 
+          advancedUserService.getUsersByOrganization(companyId).catch(() => [])
+        )
+      );
+      users = allUsers.flat();
+      
+      console.log('🌐 USERS: Platform filter applied:', { totalUsers: users.length });
+    } else {
+      // Regular logic: get users for user's company only
+      if (!user?.companyId) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not associated with organization'
+        });
+      }
+      users = await advancedUserService.getUsersByOrganization(user.companyId);
     }
-
-    const users = await advancedUserService.getUsersByOrganization(user.companyId);
 
     // Remove password hashes from response
     const safeUsers = users.map(u => {
       const { passwordHash, ...safeUser } = u;
       return safeUser;
     });
+    
+    // 🔍 DEBUG: Log first 3 users
+    console.log('🔍 USERS SAMPLE (first 3):', safeUsers.slice(0, 3).map(u => ({
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      organizationId: u.organizationId
+    })));
 
     res.json({
       success: true,

@@ -24,16 +24,61 @@ router.get('/',
     console.log('👥 Customers GET - user:', { 
       role: req.user?.role, 
       userId: req.user?.id,
+      username: req.user?.username,
+      platformId: req.user?.platformId,
       totalCustomers: customers.length 
     });
     
-    // 🔐 NON-ADMIN USERS - filter podľa company permissions
-    if (req.user?.role !== 'admin' && req.user) {
-      const user = req.user; // TypeScript safe assignment
+    // 🔍 DEBUG: Log first 3 customers
+    console.log('🔍 CUSTOMERS SAMPLE (first 3):', customers.slice(0, 3).map(c => ({
+      id: c.id,
+      name: c.name,
+      email: c.email
+    })));
+    
+    // 🔐 PLATFORM FILTERING - Apply to ALL users with platformId (including admin role)
+    if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+      const user = req.user;
+      const originalCount = customers.length;
+      
+      console.log('🌐 CUSTOMERS: Platform filtering - user:', { username: user.username, role: user.role, platformId: user.platformId });
+      
+      // Get all companies for this platform
+      const companies = await postgresDatabase.getCompanies();
+      const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+      const allowedCompanyIds = platformCompanies.map(c => c.id);
+      
+      console.log('🔍 CUSTOMERS: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: platformCompanies.map(c => c.name) });
+      
+      // Získaj všetky rentals a vehicles pre mapping
+      const rentals = await postgresDatabase.getRentals();
+      const vehicles = await postgresDatabase.getVehicles();
+      
+      // Filter zákazníkov len tých, ktorí mali prenajaté vozidlá z platform companies
+      const allowedCustomerIds = new Set<string>();
+      
+      rentals.forEach(rental => {
+        if (!rental.customerId || !rental.vehicleId) return;
+        
+        const vehicle = vehicles.find(v => v.id === rental.vehicleId);
+        if (!vehicle || !vehicle.ownerCompanyId) return;
+        
+        // Check if vehicle belongs to platform company
+        if (allowedCompanyIds.includes(vehicle.ownerCompanyId)) {
+          allowedCustomerIds.add(rental.customerId);
+        }
+      });
+      
+      customers = customers.filter(c => allowedCustomerIds.has(c.id));
+      
+      console.log('🌐 CUSTOMERS: Platform filter applied:', { originalCount, filteredCount: customers.length });
+    } else if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
+      // Regular users WITHOUT platformId: filter podľa company permissions
+      const user = req.user;
       const originalCount = customers.length;
       
       // Získaj company access pre používateľa
-      const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
+      const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
       const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
       
       // Získaj všetky rentals a vehicles pre mapping
@@ -57,7 +102,7 @@ router.get('/',
       customers = customers.filter(c => allowedCustomerIds.has(c.id));
       
       console.log('🔐 Customers Company Permission Filter:', {
-        userId: user!.id,
+        userId: user.id,
         allowedCompanyIds,
         originalCount,
         filteredCount: customers.length,
