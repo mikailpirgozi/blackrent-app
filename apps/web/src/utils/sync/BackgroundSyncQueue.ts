@@ -228,7 +228,7 @@ export class BackgroundSyncQueue {
     const tasks = await this.getQueuedTasks();
 
     const byProtocol: Record<string, number> = {};
-    let totalSize = 0;
+    const totalSize = 0;
     let oldestTimestamp = Date.now();
 
     for (const task of tasks) {

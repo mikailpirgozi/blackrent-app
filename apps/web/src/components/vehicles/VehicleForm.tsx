@@ -24,11 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  SearchableSelect,
-} from '@/components/ui/SearchableSelect';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // import { useApp } from '../../context/AppContext'; // ❌ REMOVED - migrated to React Query
@@ -130,16 +128,27 @@ export default function VehicleForm({
   const [unifiedDocumentData, setUnifiedDocumentData] =
     useState<UnifiedDocumentData | null>(null);
 
+  // ✅ FIX: Track vehicle ID to prevent unnecessary form resets
+  const prevVehicleIdRef = useRef<string | null>(null);
+
+  // ✅ FIX: Split useEffect to prevent form reset while editing
+  // Initialize form data only when vehicle ID actually changes (not on every render)
   useEffect(() => {
-    if (vehicle) {
+    if (vehicle && vehicle.id !== prevVehicleIdRef.current) {
+      prevVehicleIdRef.current = vehicle.id;
       setFormData(vehicle);
-      // Načítaj dokumenty pre existujúce vozidlo
+    }
+  }, [vehicle]);
+
+  // Load vehicle documents separately - don't reset form data
+  useEffect(() => {
+    if (vehicle?.id && vehicleDocumentsData.length > 0) {
       const vehicleDocs = vehicleDocumentsData.filter(
         doc => doc.vehicleId === vehicle.id
       );
       setVehicleDocuments(vehicleDocs);
     }
-  }, [vehicle, vehicleDocumentsData]);
+  }, [vehicle?.id, vehicleDocumentsData]);
 
   const handleInputChange = (field: keyof Vehicle, value: unknown) => {
     setFormData(prev => {

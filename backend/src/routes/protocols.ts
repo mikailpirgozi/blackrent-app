@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import express from 'express';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import { emailService } from '../services/email-service';
 import { getWebSocketService } from '../services/websocket-service';
@@ -244,7 +245,7 @@ router.get('/pdf/:protocolId', authenticateToken, async (req, res) => {
 });
 
 // Create handover protocol
-router.post('/handover', authenticateToken, async (req, res) => {
+router.post('/handover', authenticateToken, checkPermission('protocols', 'create'), async (req, res) => {
   try {
     console.log('📝 Received handover protocol request');
     
@@ -410,7 +411,7 @@ router.post('/handover', authenticateToken, async (req, res) => {
 });
 
 // Create return protocol
-router.post('/return', authenticateToken, async (req, res) => {
+router.post('/return', authenticateToken, checkPermission('protocols', 'create'), async (req, res) => {
   try {
     console.log('📝 Received return protocol request');
     

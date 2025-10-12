@@ -52,9 +52,38 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     },
   ],
 
-  // Ostatné roly sa teraz riadia company-based permissions
+  // Ostatné roly sa teraz riadia company-based permissions (ale majú base permissions)
   investor: [],
-  employee: [],
+
+  // 👥 EMPLOYEE - Základné operácie s vozidlami, prenájmami, zákazníkmi
+  employee: [
+    {
+      resource: 'vehicles',
+      actions: ['read', 'create', 'update'],
+      conditions: {},
+    },
+    {
+      resource: 'rentals',
+      actions: ['read', 'create', 'update'],
+      conditions: {},
+    },
+    {
+      resource: 'customers',
+      actions: ['read', 'create', 'update'],
+      conditions: {},
+    },
+    {
+      resource: 'maintenance',
+      actions: ['read', 'create'],
+      conditions: {},
+    },
+    {
+      resource: 'protocols',
+      actions: ['read', 'create', 'update'],
+      conditions: {},
+    },
+  ],
+
   temp_worker: [],
   mechanic: [],
   sales_rep: [],
@@ -79,6 +108,28 @@ export function hasCompanyPermission(
   // Company Admin má plné práva vo svojej firme
   if (userRole === 'company_admin') {
     return { hasAccess: true, requiresApproval: false };
+  }
+
+  // ✅ OPRAVA: Skontroluj najprv base ROLE_PERMISSIONS pre danú rolu
+  const rolePermissions = ROLE_PERMISSIONS[userRole];
+  if (rolePermissions && rolePermissions.length > 0) {
+    const permission = rolePermissions.find(
+      p => p.resource === resource || p.resource === '*'
+    );
+
+    if (permission) {
+      // Map action to permission actions
+      let requiredAction: 'read' | 'create' | 'update' | 'delete';
+      if (action === 'read') requiredAction = 'read';
+      else if (action === 'write')
+        requiredAction = 'update'; // write maps to update
+      else requiredAction = 'delete';
+
+      if (permission.actions.includes(requiredAction)) {
+        // Má base oprávnenie z roly
+        return { hasAccess: true, requiresApproval: false };
+      }
+    }
   }
 
   // Ak nie je zadané companyId, skontroluj všetky firmy používateľa

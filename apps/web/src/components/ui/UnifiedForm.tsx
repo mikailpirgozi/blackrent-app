@@ -214,7 +214,7 @@ export const UnifiedForm = forwardRef<HTMLFormElement, UnifiedFormProps>(
       defaultValues,
       mode,
       reValidateMode,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       ...(validationSchema && {
         resolver: zodResolver(validationSchema as any),
       }),
