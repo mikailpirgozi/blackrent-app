@@ -54,41 +54,41 @@ router.get('/',
         company: v.company
       })));
       
-      // 🔐 NON-ADMIN/NON-SUPER_ADMIN USERS - filter podľa platform alebo company permissions
-      if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
-        const user = req.user; // TypeScript safe assignment
+      // 🔐 PLATFORM FILTERING - Apply to ALL users with platformId (including admin role)
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        const user = req.user;
         const originalCount = vehicles.length;
         
-        // ✅ PLATFORM FILTERING: Company admin with platformId sees all platform vehicles
-        if (user.role === 'company_admin' && user.platformId) {
-          console.log('🌐 VEHICLES: Company admin - filtering by platform:', user.platformId);
-          console.log('🔍 VEHICLES: Before filter - vehicles platformIds:', vehicles.map(v => v.platformId));
-          vehicles = vehicles.filter(v => v.platformId === user.platformId);
-          console.log('🌐 VEHICLES: Platform filter applied:', { originalCount, filteredCount: vehicles.length });
-        } else {
-          // Regular users: filter podľa company permissions
-          const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
-          const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
-          
-          // Filter vozidlá len pre firmy, ku ktorým má používateľ prístup
-          // ✅ Všetky vozidlá majú teraz owner_company_id - používame len to
-          vehicles = vehicles.filter(v => {
-            return v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId);
-          });
-          
-          console.log('🔐 Company Permission Filter:', {
-            userId: user!.id,
-            allowedCompanyIds,
-            userCompanyAccess: userCompanyAccess.map(a => ({ id: a.companyId, name: a.companyName })),
-            originalCount,
-            filteredCount: vehicles.length,
-            sampleResults: vehicles.slice(0, 3).map(v => ({ 
-              licensePlate: v.licensePlate, 
-              company: v.company, 
-              ownerCompanyId: v.ownerCompanyId 
-            }))
-          });
-        }
+        // ✅ PLATFORM FILTERING: Any user with platformId sees only their platform vehicles
+        console.log('🌐 VEHICLES: Platform filtering - user:', { username: user.username, role: user.role, platformId: user.platformId });
+        console.log('🔍 VEHICLES: Before filter - vehicles platformIds:', vehicles.map(v => v.platformId));
+        vehicles = vehicles.filter(v => v.platformId === user.platformId);
+        console.log('🌐 VEHICLES: Platform filter applied:', { originalCount, filteredCount: vehicles.length });
+      } else if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
+        // Regular users WITHOUT platformId: filter podľa company permissions
+        const user = req.user;
+        const originalCount = vehicles.length;
+        
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        // Filter vozidlá len pre firmy, ku ktorým má používateľ prístup
+        vehicles = vehicles.filter(v => {
+          return v.ownerCompanyId && allowedCompanyIds.includes(v.ownerCompanyId);
+        });
+        
+        console.log('🔐 Company Permission Filter:', {
+          userId: user.id,
+          allowedCompanyIds,
+          userCompanyAccess: userCompanyAccess.map(a => ({ id: a.companyId, name: a.companyName })),
+          originalCount,
+          filteredCount: vehicles.length,
+          sampleResults: vehicles.slice(0, 3).map(v => ({ 
+            licensePlate: v.licensePlate, 
+            company: v.company, 
+            ownerCompanyId: v.ownerCompanyId 
+          }))
+        });
       }
       
       res.json({
