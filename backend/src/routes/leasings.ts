@@ -240,12 +240,67 @@ router.get(
   // 🔥 REMOVED: cacheResponse - dashboard needs real-time payment count updates
   async (req: Request, res: Response<ApiResponse<unknown>>) => {
     try {
+      console.log('📊 LEASING DASHBOARD GET - user:', { 
+        role: req.user?.role, 
+        userId: req.user?.id,
+        username: req.user?.username,
+        platformId: req.user?.platformId
+      });
+      
+      // Get all leasings dashboard data
       const dashboard = await postgresDatabase.getLeasingDashboard();
       
-      res.json({
-        success: true,
-        data: dashboard,
-      });
+      // ✅ PLATFORM FILTERING: Apply to dashboard stats for users with platformId (except super_admin)
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        console.log('🌐 LEASING DASHBOARD: Applying platform filter:', { username: req.user.username, platformId: req.user.platformId });
+        
+        // Get all leasings for this platform
+        const allLeasings = await postgresDatabase.getLeasings({});
+        const platformLeasings = allLeasings.filter((l: any) => l.platformId === req.user?.platformId);
+        const platformLeasingIds = platformLeasings.map((l: any) => l.id);
+        
+        console.log('🔍 LEASING DASHBOARD: Platform leasings:', { 
+          totalLeasings: allLeasings.length, 
+          platformLeasings: platformLeasings.length,
+          platformLeasingIds 
+        });
+        
+        // Recalculate dashboard stats for platform leasings only
+        const activeLeasings = platformLeasings.filter((l: any) => l.remainingInstallments > 0);
+        const completedLeasings = platformLeasings.filter((l: any) => l.remainingInstallments === 0);
+        
+        const filteredDashboard = {
+          totalDebt: activeLeasings.reduce((sum: number, l: any) => sum + (l.currentBalance || 0), 0),
+          monthlyTotalCost: activeLeasings.reduce((sum: number, l: any) => sum + (l.totalMonthlyPayment || 0), 0),
+          upcomingPayments: {
+            within7Days: 0, // Will need to filter payment_schedule
+            within14Days: 0,
+            within30Days: 0,
+          },
+          overduePayments: [], // Will need to filter payment_schedule
+          activeLeasingsCount: activeLeasings.length,
+          completedLeasingsCount: completedLeasings.length,
+        };
+        
+        console.log('📊 LEASING DASHBOARD: Platform-filtered stats:', filteredDashboard);
+        
+        res.json({
+          success: true,
+          data: filteredDashboard,
+        });
+      } else if (req.user?.role === 'super_admin') {
+        console.log('👑 LEASING DASHBOARD: Super Admin - showing ALL stats (no platform filter)');
+        res.json({
+          success: true,
+          data: dashboard,
+        });
+      } else {
+        // Fallback - no platform, show all
+        res.json({
+          success: true,
+          data: dashboard,
+        });
+      }
     } catch (error) {
       console.error('Get leasing dashboard error:', error);
       res.status(500).json({
