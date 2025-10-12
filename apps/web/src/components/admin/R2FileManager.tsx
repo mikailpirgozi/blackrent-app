@@ -2,10 +2,17 @@ import { format } from 'date-fns';
 import {
   AlertCircle,
   ArrowUpDown,
+  ChevronRight,
+  Download,
+  Eye,
+  FileText,
   Folder,
+  Home,
+  Image as ImageIcon,
   RefreshCw,
   Search,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -80,6 +87,16 @@ export default function R2FileManager() {
   const [prefixDeleteDialogOpen, setPrefixDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [prefixToDelete, setPrefixToDelete] = useState('');
+  
+  // Preview Modal
+  const [previewFile, setPreviewFile] = useState<R2File | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  
+  // Navigation breadcrumbs
+  const [navigationPath, setNavigationPath] = useState<string[]>([]);
+  
+  // View mode: 'flat' or 'hierarchical'
+  const [viewMode, setViewMode] = useState<'flat' | 'hierarchical'>('flat');
 
   /**
    * Load files from R2
@@ -238,6 +255,16 @@ export default function R2FileManager() {
   );
 
   const isSelected = (key: string) => selected.indexOf(key) !== -1;
+  
+  // Group files by folder for hierarchical view
+  const groupedFiles = files.reduce((acc, file) => {
+    const folder = getFolderFromKey(file.key);
+    if (!acc[folder]) {
+      acc[folder] = [];
+    }
+    acc[folder].push(file);
+    return acc;
+  }, {} as Record<string, R2File[]>);
 
   return (
     <div className="p-6 space-y-6">
@@ -292,6 +319,36 @@ export default function R2FileManager() {
         </Alert>
       )}
 
+      {/* Breadcrumbs Navigation */}
+      {(prefix !== '__all__' || search) && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
+          <Home className="h-4 w-4" />
+          <button
+            onClick={() => {
+              setPrefix('__all__');
+              setSearch('');
+            }}
+            className="hover:text-foreground transition-colors"
+          >
+            Všetky súbory
+          </button>
+          {prefix !== '__all__' && (
+            <>
+              <ChevronRight className="h-4 w-4" />
+              <Folder className="h-4 w-4" />
+              <span className="font-medium text-foreground">{prefix}</span>
+            </>
+          )}
+          {search && (
+            <>
+              <ChevronRight className="h-4 w-4" />
+              <Search className="h-4 w-4" />
+              <span className="font-medium text-foreground">"{search}"</span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Filters & Actions */}
       <div className="bg-card border rounded-lg p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
@@ -334,7 +391,21 @@ export default function R2FileManager() {
           </div>
 
           {/* Actions */}
-          <div className="md:col-span-5 flex gap-2 justify-end">
+          <div className="md:col-span-5 flex gap-2 justify-end flex-wrap">
+            {/* View Mode Toggle */}
+            <Select
+              value={viewMode}
+              onValueChange={(value: 'flat' | 'hierarchical') => setViewMode(value)}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="flat">📋 Plochý zoznam</SelectItem>
+                <SelectItem value="hierarchical">📁 Hierarchický</SelectItem>
+              </SelectContent>
+            </Select>
+            
             <UnifiedButton
               variant="outlined"
               startIcon={<RefreshCw className="h-4 w-4" />}
@@ -364,68 +435,118 @@ export default function R2FileManager() {
             </UnifiedButton>
           </div>
         </div>
+        
+        {/* Quick Filters */}
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t">
+          <span className="text-sm text-muted-foreground">Rýchle filtre:</span>
+          <UnifiedButton
+            size="small"
+            variant="outlined"
+            onClick={() => setSearch('BMW')}
+            className="text-xs"
+          >
+            🚗 BMW
+          </UnifiedButton>
+          <UnifiedButton
+            size="small"
+            variant="outlined"
+            onClick={() => setSearch('X5')}
+            className="text-xs"
+          >
+            BMW X5
+          </UnifiedButton>
+          <UnifiedButton
+            size="small"
+            variant="outlined"
+            onClick={() => setSearch('.pdf')}
+            className="text-xs"
+          >
+            📄 PDF
+          </UnifiedButton>
+          <UnifiedButton
+            size="small"
+            variant="outlined"
+            onClick={() => setSearch('.jpg')}
+            className="text-xs"
+          >
+            🖼️ Obrázky
+          </UnifiedButton>
+          <UnifiedButton
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              setPrefix('__all__');
+              setSearch('');
+            }}
+            className="text-xs"
+          >
+            ✨ Vyčistiť
+          </UnifiedButton>
+        </div>
       </div>
 
       {/* Loading */}
       {loading && <Progress value={undefined} className="mb-4" />}
 
-      {/* Files Table */}
+      {/* Files Table/Hierarchical View */}
       <div className="bg-card border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={
-                      paginatedFiles.length > 0 &&
-                      selected.length === paginatedFiles.length
-                    }
-                    onCheckedChange={checked => {
-                      if (checked) {
-                        const newSelected = paginatedFiles.map(
-                          file => file.key
-                        );
-                        setSelected(newSelected);
-                      } else {
-                        setSelected([]);
+        {viewMode === 'flat' ? (
+          /* Flat Table View */
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={
+                        paginatedFiles.length > 0 &&
+                        selected.length === paginatedFiles.length
                       }
-                    }}
-                  />
-                </TableHead>
-                <TableHead>
-                  <button
-                    onClick={() => handleSort('name')}
-                    className="flex items-center gap-1 hover:text-foreground"
-                  >
-                    Názov súboru
-                    {sortBy === 'name' && <ArrowUpDown className="h-4 w-4" />}
-                  </button>
-                </TableHead>
-                <TableHead>Priečinok</TableHead>
-                <TableHead>
-                  <button
-                    onClick={() => handleSort('size')}
-                    className="flex items-center gap-1 hover:text-foreground"
-                  >
-                    Veľkosť
-                    {sortBy === 'size' && <ArrowUpDown className="h-4 w-4" />}
-                  </button>
-                </TableHead>
-                <TableHead>
-                  <button
-                    onClick={() => handleSort('date')}
-                    className="flex items-center gap-1 hover:text-foreground"
-                  >
-                    Posledná úprava
-                    {sortBy === 'date' && <ArrowUpDown className="h-4 w-4" />}
-                  </button>
-                </TableHead>
-                <TableHead className="text-right">Akcie</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedFiles.map(file => {
+                      onCheckedChange={checked => {
+                        if (checked) {
+                          const newSelected = paginatedFiles.map(
+                            file => file.key
+                          );
+                          setSelected(newSelected);
+                        } else {
+                          setSelected([]);
+                        }
+                      }}
+                    />
+                  </TableHead>
+                  <TableHead>
+                    <button
+                      onClick={() => handleSort('name')}
+                      className="flex items-center gap-1 hover:text-foreground"
+                    >
+                      Názov súboru
+                      {sortBy === 'name' && <ArrowUpDown className="h-4 w-4" />}
+                    </button>
+                  </TableHead>
+                  <TableHead>Priečinok</TableHead>
+                  <TableHead>
+                    <button
+                      onClick={() => handleSort('size')}
+                      className="flex items-center gap-1 hover:text-foreground"
+                    >
+                      Veľkosť
+                      {sortBy === 'size' && <ArrowUpDown className="h-4 w-4" />}
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button
+                      onClick={() => handleSort('date')}
+                      className="flex items-center gap-1 hover:text-foreground"
+                    >
+                      Posledná úprava
+                      {sortBy === 'date' && <ArrowUpDown className="h-4 w-4" />}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-right">Akcie</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedFiles.map(file => {
                 const isItemSelected = isSelected(file.key);
                 return (
                   <TableRow
@@ -439,8 +560,18 @@ export default function R2FileManager() {
                       <Checkbox checked={isItemSelected} />
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-xs truncate" title={file.key}>
-                        {getFilenameFromKey(file.key)}
+                      <div className="flex items-center gap-2 max-w-xs">
+                        {/* File type icon */}
+                        {file.key.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        ) : file.key.match(/\.pdf$/i) ? (
+                          <FileText className="h-4 w-4 text-red-500 flex-shrink-0" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                        <span className="truncate" title={file.key}>
+                          {getFilenameFromKey(file.key)}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -454,27 +585,153 @@ export default function R2FileManager() {
                       {format(new Date(file.lastModified), 'dd.MM.yyyy HH:mm')}
                     </TableCell>
                     <TableCell className="text-right">
-                      <UnifiedButton
-                        size="small"
-                        variant="ghost"
-                        color="error"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setFileToDelete(file.key);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </UnifiedButton>
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Preview button for images and PDFs */}
+                        {(file.key.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)) && (
+                          <UnifiedButton
+                            size="small"
+                            variant="ghost"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setPreviewFile(file);
+                              setPreviewOpen(true);
+                            }}
+                            title="Náhľad"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </UnifiedButton>
+                        )}
+                        {/* Download button */}
+                        <UnifiedButton
+                          size="small"
+                          variant="ghost"
+                          onClick={e => {
+                            e.stopPropagation();
+                            window.open(file.url, '_blank');
+                          }}
+                          title="Stiahnuť"
+                        >
+                          <Download className="h-4 w-4" />
+                        </UnifiedButton>
+                        {/* Delete button */}
+                        <UnifiedButton
+                          size="small"
+                          variant="ghost"
+                          color="error"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setFileToDelete(file.key);
+                            setDeleteDialogOpen(true);
+                          }}
+                          title="Vymazať"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </UnifiedButton>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        ) : (
+          /* Hierarchical View */
+          <div className="p-4 space-y-4">
+            {Object.entries(groupedFiles).map(([folder, folderFiles]) => (
+              <details key={folder} className="border rounded-lg" open>
+                <summary className="cursor-pointer bg-muted/30 p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{folder}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({folderFiles.length} súborov, {formatFileSize(folderFiles.reduce((sum, f) => sum + f.size, 0))})
+                      </span>
+                    </div>
+                  </div>
+                </summary>
+                <div className="p-2 space-y-1">
+                  {folderFiles.map(file => {
+                    const isItemSelected = isSelected(file.key);
+                    return (
+                      <div
+                        key={file.key}
+                        className={`flex items-center justify-between p-3 rounded hover:bg-muted/50 transition-colors ${
+                          isItemSelected ? 'bg-muted' : ''
+                        }`}
+                        onClick={() => handleSelectOne(file.key)}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Checkbox checked={isItemSelected} />
+                          {file.key.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          ) : file.key.match(/\.pdf$/i) ? (
+                            <FileText className="h-4 w-4 text-red-500 flex-shrink-0" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          )}
+                          <span className="truncate flex-1" title={file.key}>
+                            {getFilenameFromKey(file.key)}
+                          </span>
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            {formatFileSize(file.size)}
+                          </span>
+                          <span className="text-sm text-muted-foreground whitespace-nowrap hidden md:block">
+                            {format(new Date(file.lastModified), 'dd.MM.yyyy HH:mm')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 ml-4">
+                          {(file.key.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)) && (
+                            <UnifiedButton
+                              size="small"
+                              variant="ghost"
+                              onClick={e => {
+                                e.stopPropagation();
+                                setPreviewFile(file);
+                                setPreviewOpen(true);
+                              }}
+                              title="Náhľad"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </UnifiedButton>
+                          )}
+                          <UnifiedButton
+                            size="small"
+                            variant="ghost"
+                            onClick={e => {
+                              e.stopPropagation();
+                              window.open(file.url, '_blank');
+                            }}
+                            title="Stiahnuť"
+                          >
+                            <Download className="h-4 w-4" />
+                          </UnifiedButton>
+                          <UnifiedButton
+                            size="small"
+                            variant="ghost"
+                            color="error"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setFileToDelete(file.key);
+                              setDeleteDialogOpen(true);
+                            }}
+                            title="Vymazať"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </UnifiedButton>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
 
-        {/* Pagination */}
+        {/* Pagination (only for flat view) */}
+        {viewMode === 'flat' && (
         <div className="flex items-center justify-between px-4 py-3 border-t">
           <div className="text-sm text-muted-foreground">
             Zobrazených {page * rowsPerPage + 1}-
@@ -519,6 +776,7 @@ export default function R2FileManager() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Delete File Dialog */}
@@ -631,6 +889,84 @@ export default function R2FileManager() {
               disabled={!prefixToDelete}
             >
               Vymazať všetko s "{prefixToDelete}"
+            </UnifiedButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="truncate pr-4">
+                {previewFile && getFilenameFromKey(previewFile.key)}
+              </span>
+              <UnifiedButton
+                size="small"
+                variant="ghost"
+                onClick={() => setPreviewOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </UnifiedButton>
+            </DialogTitle>
+            <DialogDescription>
+              {previewFile && (
+                <div className="flex items-center gap-4 text-sm">
+                  <span>
+                    Veľkosť: {formatFileSize(previewFile.size)}
+                  </span>
+                  <span>
+                    Upravené: {format(new Date(previewFile.lastModified), 'dd.MM.yyyy HH:mm')}
+                  </span>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="relative w-full overflow-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+            {previewFile && (
+              <>
+                {/* Image Preview */}
+                {previewFile.key.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                  <div className="flex items-center justify-center bg-muted/20 p-4 rounded-lg">
+                    <img
+                      src={previewFile.url}
+                      alt={getFilenameFromKey(previewFile.key)}
+                      className="max-w-full h-auto rounded shadow-lg"
+                      style={{ maxHeight: 'calc(90vh - 250px)' }}
+                    />
+                  </div>
+                )}
+                
+                {/* PDF Preview */}
+                {previewFile.key.match(/\.pdf$/i) && (
+                  <div className="w-full h-full bg-muted/20 rounded-lg overflow-hidden">
+                    <iframe
+                      src={previewFile.url}
+                      className="w-full border-0 rounded"
+                      style={{ height: 'calc(90vh - 250px)', minHeight: '500px' }}
+                      title={getFilenameFromKey(previewFile.key)}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <UnifiedButton
+              variant="outlined"
+              onClick={() => window.open(previewFile?.url, '_blank')}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Stiahnuť
+            </UnifiedButton>
+            <UnifiedButton
+              variant="contained"
+              onClick={() => setPreviewOpen(false)}
+            >
+              Zavrieť
             </UnifiedButton>
           </DialogFooter>
         </DialogContent>
