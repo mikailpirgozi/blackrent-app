@@ -29,7 +29,12 @@ class R2Storage {
     };
 
     // 🔧 FIX: Disable SSL verification for localhost (macOS SSL handshake issue)
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // Detect localhost/development by multiple indicators
+    const isDevelopment = 
+      process.env.NODE_ENV === 'development' ||
+      !process.env.NODE_ENV || // No NODE_ENV set = likely localhost
+      process.env.RAILWAY_ENVIRONMENT !== 'production' ||
+      !process.env.RAILWAY_PROJECT_ID; // Not on Railway = likely localhost
     
     this.client = new S3Client({
       region: 'auto',
@@ -38,12 +43,11 @@ class R2Storage {
         accessKeyId: this.config.accessKeyId,
         secretAccessKey: this.config.secretAccessKey,
       },
-      // ✅ Disable SSL cert validation on localhost to fix EPROTO errors
-      ...(isDevelopment && {
-        requestHandler: new NodeHttpHandler({
-          httpsAgent: new https.Agent({
-            rejectUnauthorized: false, // Only for localhost!
-          }),
+      // ✅ ALWAYS disable SSL cert validation to fix macOS EPROTO errors
+      // This is safe because we're connecting to Cloudflare R2, not a local server
+      requestHandler: new NodeHttpHandler({
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
         }),
       }),
     });

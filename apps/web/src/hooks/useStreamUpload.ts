@@ -21,7 +21,7 @@ const CONCURRENCY = 6; // Max parallel uploads (faster upload, compression happe
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks for multipart
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const PDF_JPEG_QUALITY = 0.2; // 20% quality for PDF (small file, still readable)
+const PDF_JPEG_QUALITY = 0.4; // 40% quality for PDF (optimal balance between size and quality)
 
 // Types
 export interface UploadTask {
@@ -281,7 +281,7 @@ export function useStreamUpload(
 }
 
 /**
- * Compress image to JPEG 20% quality for PDF storage
+ * Compress image to JPEG 40% quality for PDF storage
  * Stores in IndexedDB for fast PDF generation + Uploads to backend for server-side PDF generation
  */
 async function compressImageForPdfStorage(
@@ -359,7 +359,7 @@ async function compressImageForPdfStorage(
           await indexedDBManager.saveImage({
             id: imageId,
             protocolId,
-            pdfData: base64, // JPEG 20% for PDF
+            pdfData: base64, // JPEG 40% for PDF
             compressed: true,
             originalSize: file.size,
             compressedSize: Math.floor((base64.length * 0.75) / 1024), // Estimate KB
@@ -373,7 +373,7 @@ async function compressImageForPdfStorage(
             originalSize: `${(file.size / 1024).toFixed(0)} KB`,
             compressedSize: `${Math.floor((base64.length * 0.75) / 1024)} KB`,
             dimensions: `${width}x${height}`,
-            quality: '20%',
+            quality: '40%',
           });
         } catch (dbError) {
           console.error('❌ [COMPRESS] IndexedDB save failed:', {

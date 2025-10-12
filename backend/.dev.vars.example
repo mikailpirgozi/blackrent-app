@@ -1,0 +1,15 @@
+# Cloudflare R2 Credentials for local Wrangler CLI
+# Copy this file to .dev.vars and fill in your actual credentials
+# NEVER commit .dev.vars to git!
+
+# Get these from: Cloudflare Dashboard → R2 → Settings → Manage R2 API Tokens
+CLOUDFLARE_ACCOUNT_ID=your-account-id-here
+CLOUDFLARE_API_TOKEN=your-api-token-here
+
+# R2 Configuration (should match your env vars)
+R2_ACCOUNT_ID=your-account-id-here
+R2_ACCESS_KEY_ID=your-access-key-id-here
+R2_SECRET_ACCESS_KEY=your-secret-access-key-here
+R2_BUCKET_NAME=blackrent
+R2_ENDPOINT=https://0a8a2b35935b3b9aca17baf2f6ced3c5.r2.cloudflarestorage.com
+

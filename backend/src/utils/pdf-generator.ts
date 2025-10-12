@@ -69,9 +69,9 @@ const addCompressedUrlsToImages = (images: ProtocolImage[]): ProtocolImage[] => 
   return images.map(image => {
     if (!image || !image.url) return image;
     
-    // 🌟 PRIORITY 1: pdfUrl (komprimovaný JPEG 20% nahraný z frontendu)
+    // 🌟 PRIORITY 1: pdfUrl (komprimovaný JPEG 40% nahraný z frontendu)
     if (image.pdfUrl) {
-      console.log('✅ Using pdfUrl (JPEG 20%) from upload:', image.pdfUrl.substring(0, 100) + '...');
+      console.log('✅ Using pdfUrl (JPEG 40%) from upload:', image.pdfUrl.substring(0, 100) + '...');
       return {
         ...image,
         compressedUrl: image.pdfUrl

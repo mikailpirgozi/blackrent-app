@@ -423,7 +423,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               url: img.url,
               originalUrl: img.originalUrl || img.url, // 🌟 Pre galériu (vysoká kvalita)
               compressedUrl: img.compressedUrl || img.url, // 🌟 Pre PDF (nízka kvalita)
-              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 20% uploaded from frontend)
+              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 40% uploaded from frontend)
               pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation (fallback)
               type: img.type,
               mediaType:
@@ -449,7 +449,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               url: img.url,
               originalUrl: img.originalUrl || img.url, // 🌟 Pre galériu (vysoká kvalita)
               compressedUrl: img.compressedUrl || img.url, // 🌟 Pre PDF (nízka kvalita)
-              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 20% uploaded from frontend)
+              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 40% uploaded from frontend)
               pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation (fallback)
               type: img.type,
               mediaType:
@@ -464,7 +464,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               url: img.url,
               originalUrl: img.originalUrl || img.url, // 🌟 Pre galériu (vysoká kvalita)
               compressedUrl: img.compressedUrl || img.url, // 🌟 Pre PDF (nízka kvalita)
-              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 20% uploaded from frontend)
+              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 40% uploaded from frontend)
               pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation (fallback)
               type: img.type,
               mediaType:
@@ -1440,7 +1440,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                       id: result.imageId, // ✅ CRITICAL: Use ID from upload (IndexedDB key)
                       url: result.url,
                       originalUrl: result.url,
-                      pdfUrl: result.pdfUrl || undefined, // ✅ NEW: Use backend PDF URL for server-side PDF generation (JPEG 20%)
+                      pdfUrl: result.pdfUrl || undefined, // ✅ NEW: Use backend PDF URL for server-side PDF generation (JPEG 40%)
                       type: activePhotoCapture as
                         | 'vehicle'
                         | 'document'

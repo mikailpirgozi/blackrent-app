@@ -17,7 +17,16 @@
     "migrate:auth": "bash scripts/run-migration.sh",
     "seed:auth": "ts-node scripts/seed-auth-system.ts",
     "test:auth": "ts-node scripts/test-auth-system.ts",
-    "setup:auth": "npm run migrate:auth && npm run seed:auth && npm run test:auth"
+    "setup:auth": "npm run migrate:auth && npm run seed:auth && npm run test:auth",
+    "r2:setup": "bash scripts/r2-auto-setup.sh",
+    "r2": "source .dev.vars 2>/dev/null || true && bash scripts/r2-cli.sh",
+    "r2:list": "source .dev.vars 2>/dev/null || true && bash scripts/r2-cli.sh list",
+    "r2:stats": "ts-node scripts/r2-simple-stats.ts",
+    "r2:auth": "source .dev.vars 2>/dev/null || true && bash scripts/r2-cli.sh auth",
+    "r2:advanced": "source .dev.vars 2>/dev/null || true && ts-node scripts/r2-advanced.ts",
+    "r2:test": "source .dev.vars 2>/dev/null || true && ts-node scripts/r2-advanced.ts test",
+    "r2:analyze": "source .dev.vars 2>/dev/null || true && ts-node scripts/r2-advanced.ts analyze",
+    "r2:cleanup": "source .dev.vars 2>/dev/null || true && ts-node scripts/r2-advanced.ts cleanup"
   },
   "keywords": [
     "blackrent",
@@ -84,6 +93,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react-window-infinite-loader": "^1.0.9",
     "nodemon": "^3.0.2",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "wrangler": "^4.42.2"
   }
 }
