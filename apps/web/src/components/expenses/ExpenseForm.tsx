@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DatePicker } from '@/components/ui/date-picker';
+import { MaskedDateInput } from '@/components/ui/MaskedDateInput';
 import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -177,15 +177,15 @@ export default function ExpenseForm({
               />
             </div>
 
-            <DatePicker
-              label="Dátum *"
-              placeholder="Vyberte dátum nákladu"
-              value={parseDate(
-                formData.date as string | Date | null | undefined
-              )}
-              onChange={date => handleInputChange('date', date || undefined)}
-              required
-            />
+            <div className="space-y-2">
+              <Label>Dátum *</Label>
+              <MaskedDateInput
+                value={parseDate(
+                  formData.date as string | Date | null | undefined
+                )}
+                onChange={date => handleInputChange('date', date || undefined)}
+              />
+            </div>
 
             <SearchableSelect
               label="Kategória"
