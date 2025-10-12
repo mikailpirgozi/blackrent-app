@@ -423,6 +423,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               url: img.url,
               originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
               compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
+              pdfUrl: undefined, // ✅ Force IndexedDB lookup for PDF
               pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation
               type: img.type,
               mediaType:
@@ -448,6 +449,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               url: img.url,
               originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
               compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
+              pdfUrl: undefined, // ✅ Force IndexedDB lookup for PDF
               pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation
               type: img.type,
               mediaType:
@@ -462,6 +464,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               url: img.url,
               originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
               compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
+              pdfUrl: undefined, // ✅ Force IndexedDB lookup for PDF
               pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation
               type: img.type,
               mediaType:
