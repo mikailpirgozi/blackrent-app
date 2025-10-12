@@ -396,7 +396,7 @@ router.get('/users', authenticateToken, requireRole(['admin', 'manager']), async
     });
     
     // 🔐 PLATFORM FILTERING: Users with platformId see all platform users
-    let users;
+    let users: Awaited<ReturnType<typeof advancedUserService.getUsersByOrganization>> = [];
     if (user?.platformId && user.role !== 'super_admin') {
       console.log('🌐 USERS: Platform filtering - loading all platform users for platform:', user.platformId);
       
@@ -408,17 +408,31 @@ router.get('/users', authenticateToken, requireRole(['admin', 'manager']), async
       
       console.log('🔍 USERS: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: platformCompanies.map(c => c.name) });
       
-      // Get all users from all platform companies
-      const allUsers = await Promise.all(
-        platformCompanyIds.map(companyId => 
-          advancedUserService.getUsersByOrganization(companyId).catch(() => [])
-        )
-      );
-      users = allUsers.flat();
-      
-      console.log('🌐 USERS: Platform filter applied:', { totalUsers: users.length });
-    } else {
-      // Regular logic: get users for user's company only
+      // 🚨 If no companies for this platform, return empty array (don't fallback to companyId)
+      if (platformCompanyIds.length === 0) {
+        console.log('⚠️ USERS: No companies found for platform, returning empty user list');
+        users = [];
+      } else {
+        // Get all users from all platform companies
+        const allUsers = await Promise.all(
+          platformCompanyIds.map(companyId => 
+            advancedUserService.getUsersByOrganization(companyId).catch(() => [])
+          )
+        );
+        const rawUsers = allUsers.flat();
+        
+        // 🚨 STRICT FILTERING: Only include users whose organizationId matches platform companies
+        users = rawUsers.filter(u => platformCompanyIds.includes(u.organizationId));
+        
+        console.log('🌐 USERS: Platform filter applied:', { 
+          platformCompanyIds,
+          rawUserCount: rawUsers.length,
+          filteredUserCount: users.length,
+          rejectedCount: rawUsers.length - users.length
+        });
+      }
+    } else if (user?.role !== 'super_admin') {
+      // Regular logic: get users for user's company only (if NO platformId)
       if (!user?.companyId) {
         return res.status(404).json({
           success: false,
@@ -426,6 +440,10 @@ router.get('/users', authenticateToken, requireRole(['admin', 'manager']), async
         });
       }
       users = await advancedUserService.getUsersByOrganization(user.companyId);
+    } else {
+      // super_admin sees all users - but this would need to fetch from all organizations
+      // For now, return empty to avoid showing wrong data
+      users = [];
     }
 
     // Remove password hashes from response

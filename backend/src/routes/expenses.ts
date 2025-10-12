@@ -83,10 +83,23 @@ router.get('/',
         
         console.log('🔍 EXPENSES: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: validCompanyNames });
         
-        // Filter expenses by platform companies
-        expenses = expenses.filter(e => 
-          e.company && validCompanyNames.includes(e.company)
-        );
+        // 🚨 STRICT FILTERING: Only show expenses where company can be determined AND matches platform
+        expenses = expenses.filter(e => {
+          // ❌ REJECT: No company data
+          if (!e.company) {
+            console.log('🚫 EXPENSES: Rejected expense (no company):', e.id);
+            return false;
+          }
+          
+          // ✅ ACCEPT: company matches platform
+          if (validCompanyNames.includes(e.company)) {
+            return true;
+          }
+          
+          // ❌ REJECT: company doesn't match platform
+          console.log('🚫 EXPENSES: Rejected expense (wrong platform):', { id: e.id, company: e.company, expectedCompanies: validCompanyNames });
+          return false;
+        });
         
         console.log('🌐 EXPENSES: Platform filter applied:', { originalCount, filteredCount: expenses.length });
       } else if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
