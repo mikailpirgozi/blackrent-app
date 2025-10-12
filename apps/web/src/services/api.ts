@@ -1503,10 +1503,12 @@ class ApiService {
     id: string;
     username?: string;
     email?: string;
+    password?: string;
     firstName?: string;
     lastName?: string;
     role?: string;
-    companyId?: string;
+    platformId?: string; // ✅ Updated: platformId instead of companyId
+    linkedInvestorId?: string; // ✅ Added: for investor role
     permissions?: string[];
     isActive?: boolean;
   }): Promise<User> {
