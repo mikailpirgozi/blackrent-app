@@ -8,13 +8,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Calculator,
-  Loader2,
-  Plus,
-  X,
-  Calendar as CalendarIcon,
-} from 'lucide-react';
+import { Calculator, Loader2, Plus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +23,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
@@ -56,7 +49,8 @@ import {
   type PaymentType,
 } from '@/types/leasing-types';
 import { toast } from 'sonner';
-import { format, parse, isValid } from 'date-fns';
+import { format } from 'date-fns';
+import { MaskedDateInput } from '@/components/ui/MaskedDateInput';
 import { sk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/smartLogger';
@@ -126,8 +120,6 @@ export function LeasingForm({
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<string>('');
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [lastDateCalendarOpen, setLastDateCalendarOpen] = useState(false);
 
   // 🎯 Track previous input values - na detekciu zmeny vstupných parametrov
   const prevInputs = useRef<{
@@ -972,82 +964,21 @@ export function LeasingForm({
                 {/* Dátum prvej splátky */}
                 <div className="space-y-2">
                   <Label>Dátum prvej splátky *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={
-                        watchedValues.firstPaymentDate
-                          ? format(
-                              new Date(watchedValues.firstPaymentDate),
-                              'dd.MM.yyyy'
-                            )
-                          : ''
+                  <MaskedDateInput
+                    value={
+                      watchedValues.firstPaymentDate
+                        ? new Date(watchedValues.firstPaymentDate)
+                        : undefined
+                    }
+                    onChange={date => {
+                      if (date) {
+                        setValue(
+                          'firstPaymentDate',
+                          format(date, 'yyyy-MM-dd')
+                        );
                       }
-                      onChange={e => {
-                        const value = e.target.value;
-                        const formats = [
-                          'dd.MM.yyyy',
-                          'd.M.yyyy',
-                          'dd/MM/yyyy',
-                          'd/M/yyyy',
-                          'yyyy-MM-dd',
-                        ];
-
-                        for (const formatStr of formats) {
-                          try {
-                            const parsedDate = parse(
-                              value,
-                              formatStr,
-                              new Date()
-                            );
-                            if (isValid(parsedDate)) {
-                              setValue(
-                                'firstPaymentDate',
-                                format(parsedDate, 'yyyy-MM-dd')
-                              );
-                              return;
-                            }
-                          } catch {
-                            // Continue to next format
-                          }
-                        }
-                      }}
-                      placeholder="dd.mm.rrrr"
-                      className="flex-1"
-                    />
-                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0"
-                        >
-                          <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={
-                            watchedValues.firstPaymentDate
-                              ? new Date(watchedValues.firstPaymentDate)
-                              : undefined
-                          }
-                          onSelect={date => {
-                            if (date) {
-                              setValue(
-                                'firstPaymentDate',
-                                format(date, 'yyyy-MM-dd')
-                              );
-                              setCalendarOpen(false);
-                            }
-                          }}
-                          locale={sk}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                    }}
+                  />
                   {errors.firstPaymentDate && (
                     <p className="text-sm text-destructive">
                       {errors.firstPaymentDate.message}
@@ -1074,85 +1005,18 @@ export function LeasingForm({
                 {/* Dátum poslednej splátky */}
                 <div className="space-y-2">
                   <Label>Dátum poslednej splátky</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={
-                        watchedValues.lastPaymentDate
-                          ? format(
-                              new Date(watchedValues.lastPaymentDate),
-                              'dd.MM.yyyy'
-                            )
-                          : ''
+                  <MaskedDateInput
+                    value={
+                      watchedValues.lastPaymentDate
+                        ? new Date(watchedValues.lastPaymentDate)
+                        : undefined
+                    }
+                    onChange={date => {
+                      if (date) {
+                        setValue('lastPaymentDate', format(date, 'yyyy-MM-dd'));
                       }
-                      onChange={e => {
-                        const value = e.target.value;
-                        const formats = [
-                          'dd.MM.yyyy',
-                          'd.M.yyyy',
-                          'dd/MM/yyyy',
-                          'd/M/yyyy',
-                          'yyyy-MM-dd',
-                        ];
-
-                        for (const formatStr of formats) {
-                          try {
-                            const parsedDate = parse(
-                              value,
-                              formatStr,
-                              new Date()
-                            );
-                            if (isValid(parsedDate)) {
-                              setValue(
-                                'lastPaymentDate',
-                                format(parsedDate, 'yyyy-MM-dd')
-                              );
-                              return;
-                            }
-                          } catch {
-                            // Continue to next format
-                          }
-                        }
-                      }}
-                      placeholder="dd.mm.rrrr"
-                      className="flex-1"
-                    />
-                    <Popover
-                      open={lastDateCalendarOpen}
-                      onOpenChange={setLastDateCalendarOpen}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0"
-                        >
-                          <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={
-                            watchedValues.lastPaymentDate
-                              ? new Date(watchedValues.lastPaymentDate)
-                              : undefined
-                          }
-                          onSelect={date => {
-                            if (date) {
-                              setValue(
-                                'lastPaymentDate',
-                                format(date, 'yyyy-MM-dd')
-                              );
-                              setLastDateCalendarOpen(false);
-                            }
-                          }}
-                          locale={sk}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                    }}
+                  />
                   <p className="text-xs text-muted-foreground">
                     Auto-vypočítané alebo manuálne
                   </p>

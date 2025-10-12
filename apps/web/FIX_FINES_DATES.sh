@@ -1,3 +1,9 @@
+#!/bin/bash
+# Quick script to replace all date inputs in FinesFields with DateInput component
+
+FILE="src/components/insurances/batch-components/FinesFields.tsx"
+
+cat > "$FILE" << 'EOF'
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -5,10 +11,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 import { useCustomers } from '@/lib/react-query/hooks/useCustomers';
 import { CustomerCombobox } from './CustomerCombobox';
-import { MaskedDateInput } from '@/components/ui/MaskedDateInput';
+import { DateInput } from '@/components/ui/DateInput';
 
 interface FinesData {
   fineDate?: Date;
@@ -64,7 +74,7 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
         {/* Fine Date */}
         <div className="space-y-2">
           <Label>Dátum pokuty *</Label>
-          <MaskedDateInput
+          <DateInput
             value={data.fineDate}
             onChange={date => onChange('fineDate', date)}
           />
@@ -179,7 +189,7 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
                 </Badge>
               )}
             </div>
-            <MaskedDateInput
+            <DateInput
               value={data.ownerPaidDate}
               onChange={date => onChange('ownerPaidDate', date)}
             />
@@ -218,7 +228,7 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
                 </Badge>
               )}
             </div>
-            <MaskedDateInput
+            <DateInput
               value={data.customerPaidDate}
               onChange={date => onChange('customerPaidDate', date)}
             />
@@ -253,3 +263,7 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
     </div>
   );
 }
+EOF
+
+echo "FinesFields.tsx fixed!"
+

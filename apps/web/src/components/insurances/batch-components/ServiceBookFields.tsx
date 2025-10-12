@@ -1,17 +1,9 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { format, parse, isValid } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { MaskedDateInput } from '@/components/ui/MaskedDateInput';
 
 interface ServiceBookData {
   serviceDate?: Date;
@@ -43,59 +35,10 @@ export function ServiceBookFields({ data, onChange }: ServiceBookFieldsProps) {
         {/* Service Date */}
         <div className="space-y-2">
           <Label>Dátum servisu *</Label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={
-                data.serviceDate
-                  ? format(new Date(data.serviceDate), 'dd.MM.yyyy')
-                  : ''
-              }
-              onChange={e => {
-                const value = e.target.value;
-                const formats = [
-                  'dd.MM.yyyy',
-                  'd.M.yyyy',
-                  'dd/MM/yyyy',
-                  'd/M/yyyy',
-                  'yyyy-MM-dd',
-                ];
-
-                for (const formatStr of formats) {
-                  try {
-                    const parsedDate = parse(value, formatStr, new Date());
-                    if (isValid(parsedDate)) {
-                      onChange('serviceDate', parsedDate);
-                      return;
-                    }
-                  } catch {
-                    // Continue to next format
-                  }
-                }
-              }}
-              placeholder="dd.mm.rrrr"
-              className="flex-1 border-2"
-            />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0 border-2"
-                >
-                  <CalendarIcon className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={data.serviceDate}
-                  onSelect={date => onChange('serviceDate', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          <MaskedDateInput
+            value={data.serviceDate}
+            onChange={date => onChange('serviceDate', date)}
+          />
         </div>
 
         {/* Service KM */}

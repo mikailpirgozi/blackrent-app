@@ -11,12 +11,6 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertCircle,
@@ -26,7 +20,6 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -34,7 +27,7 @@ import { useState } from 'react';
 import { useInsurers, useVehicles } from '@/lib/react-query/hooks';
 import type { PaymentFrequency, VignetteCountry } from '@/types';
 import R2FileUpload from '../common/R2FileUpload';
-import { format, parse, isValid } from 'date-fns';
+import { MaskedDateInput } from '@/components/ui/MaskedDateInput';
 
 // Import modular components
 import { VehicleCombobox } from './batch-components/VehicleCombobox';
@@ -732,138 +725,24 @@ function DocumentSectionForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Platné od *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={
-                        section.data.validFrom
-                          ? format(
-                              new Date(section.data.validFrom),
-                              'dd.MM.yyyy'
-                            )
-                          : ''
-                      }
-                      onChange={e => {
-                        const value = e.target.value;
-                        const formats = [
-                          'dd.MM.yyyy',
-                          'd.M.yyyy',
-                          'dd/MM/yyyy',
-                          'd/M/yyyy',
-                          'yyyy-MM-dd',
-                        ];
-
-                        for (const formatStr of formats) {
-                          try {
-                            const parsedDate = parse(
-                              value,
-                              formatStr,
-                              new Date()
-                            );
-                            if (isValid(parsedDate)) {
-                              onUpdateData('validFrom', parsedDate);
-                              return;
-                            }
-                          } catch {
-                            // Continue to next format
-                          }
-                        }
-                      }}
-                      placeholder="dd.mm.rrrr"
-                      className="flex-1 border-2"
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0 border-2"
-                        >
-                          <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={section.data.validFrom}
-                          onSelect={date => onUpdateData('validFrom', date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <MaskedDateInput
+                    value={section.data.validFrom}
+                    onChange={date => onUpdateData('validFrom', date)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>
                     Platné do * {isInsurance && !isLeasing && '(automaticky)'}
                   </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={
-                        section.data.validTo
-                          ? format(new Date(section.data.validTo), 'dd.MM.yyyy')
-                          : ''
-                      }
-                      onChange={e => {
-                        const value = e.target.value;
-                        const formats = [
-                          'dd.MM.yyyy',
-                          'd.M.yyyy',
-                          'dd/MM/yyyy',
-                          'd/M/yyyy',
-                          'yyyy-MM-dd',
-                        ];
-
-                        for (const formatStr of formats) {
-                          try {
-                            const parsedDate = parse(
-                              value,
-                              formatStr,
-                              new Date()
-                            );
-                            if (isValid(parsedDate)) {
-                              onUpdateData('validTo', parsedDate || new Date());
-                              return;
-                            }
-                          } catch {
-                            // Continue to next format
-                          }
-                        }
-                      }}
-                      placeholder="dd.mm.rrrr"
-                      disabled={isInsurance && !isLeasing}
-                      className={cn(
-                        'flex-1 border-2',
-                        isInsurance && !isLeasing && 'bg-slate-100'
-                      )}
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          disabled={isInsurance && !isLeasing}
-                          className="shrink-0 border-2"
-                        >
-                          <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      {(!isInsurance || isLeasing) && (
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={section.data.validTo}
-                            onSelect={date =>
-                              onUpdateData('validTo', date || new Date())
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      )}
-                    </Popover>
-                  </div>
+                  <MaskedDateInput
+                    value={section.data.validTo}
+                    onChange={date =>
+                      onUpdateData('validTo', date || new Date())
+                    }
+                    disabled={isInsurance && !isLeasing}
+                    className={cn(isInsurance && !isLeasing && 'opacity-60')}
+                  />
                   {isInsurance && !isLeasing && (
                     <p className="text-sm text-slate-500">
                       Automaticky vypočítané podľa frekvencie platenia
@@ -915,145 +794,21 @@ function DocumentSectionForm({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Biela karta platná od</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="text"
-                            value={
-                              section.data.greenCardValidFrom
-                                ? format(
-                                    new Date(section.data.greenCardValidFrom),
-                                    'dd.MM.yyyy'
-                                  )
-                                : ''
-                            }
-                            onChange={e => {
-                              const value = e.target.value;
-                              const formats = [
-                                'dd.MM.yyyy',
-                                'd.M.yyyy',
-                                'dd/MM/yyyy',
-                                'd/M/yyyy',
-                                'yyyy-MM-dd',
-                              ];
-
-                              for (const formatStr of formats) {
-                                try {
-                                  const parsedDate = parse(
-                                    value,
-                                    formatStr,
-                                    new Date()
-                                  );
-                                  if (isValid(parsedDate)) {
-                                    onUpdateData(
-                                      'greenCardValidFrom',
-                                      parsedDate
-                                    );
-                                    return;
-                                  }
-                                } catch {
-                                  // Continue to next format
-                                }
-                              }
-                            }}
-                            placeholder="dd.mm.rrrr"
-                            className="flex-1 border-2"
-                          />
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="shrink-0 border-2"
-                              >
-                                <CalendarIcon className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={section.data.greenCardValidFrom}
-                                onSelect={date =>
-                                  onUpdateData('greenCardValidFrom', date)
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
+                        <MaskedDateInput
+                          value={section.data.greenCardValidFrom}
+                          onChange={date =>
+                            onUpdateData('greenCardValidFrom', date)
+                          }
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Biela karta platná do</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="text"
-                            value={
-                              section.data.greenCardValidTo
-                                ? format(
-                                    new Date(section.data.greenCardValidTo),
-                                    'dd.MM.yyyy'
-                                  )
-                                : ''
-                            }
-                            onChange={e => {
-                              const value = e.target.value;
-                              const formats = [
-                                'dd.MM.yyyy',
-                                'd.M.yyyy',
-                                'dd/MM/yyyy',
-                                'd/M/yyyy',
-                                'yyyy-MM-dd',
-                              ];
-
-                              for (const formatStr of formats) {
-                                try {
-                                  const parsedDate = parse(
-                                    value,
-                                    formatStr,
-                                    new Date()
-                                  );
-                                  if (isValid(parsedDate)) {
-                                    onUpdateData(
-                                      'greenCardValidTo',
-                                      parsedDate
-                                    );
-                                    return;
-                                  }
-                                } catch {
-                                  // Continue to next format
-                                }
-                              }
-                            }}
-                            placeholder="dd.mm.rrrr"
-                            className="flex-1 border-2"
-                          />
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="shrink-0 border-2"
-                              >
-                                <CalendarIcon className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={section.data.greenCardValidTo}
-                                onSelect={date =>
-                                  onUpdateData('greenCardValidTo', date)
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
+                        <MaskedDateInput
+                          value={section.data.greenCardValidTo}
+                          onChange={date =>
+                            onUpdateData('greenCardValidTo', date)
+                          }
+                        />
                       </div>
                     </div>
                   </div>
