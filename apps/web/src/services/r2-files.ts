@@ -177,7 +177,7 @@ export function formatFileSize(bytes: number): string {
 export function getFolderFromKey(key: string | undefined): string {
   if (!key) return 'root';
   const parts = key.split('/');
-  return parts.length > 1 ? parts[0] : 'root';
+  return parts.length > 1 && parts[0] ? parts[0] : 'root';
 }
 
 /**

@@ -95,8 +95,8 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
   selectedProtocolType,
   selectedPdf,
   galleryImages,
-  galleryVideos,
-  galleryTitle,
+  galleryVideos: _galleryVideos,
+  galleryTitle: _galleryTitle,
 
   // Protocols data
   protocols,
@@ -324,8 +324,6 @@ export const RentalProtocols: React.FC<RentalDialogsProps> = ({
         open={galleryOpen}
         onClose={handleCloseGallery}
         images={galleryImages}
-        videos={galleryVideos}
-        title={galleryTitle}
       />
 
       {/* Protocol Menu Dialog */}

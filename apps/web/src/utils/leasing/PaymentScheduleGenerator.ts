@@ -56,8 +56,8 @@ export interface ScheduleSummary {
   totalInterest: number;
   totalFees: number;
   totalAmount: number;
-  firstPaymentDate: Date;
-  lastPaymentDate: Date;
+  firstPaymentDate: Date | undefined;
+  lastPaymentDate: Date | undefined;
   averageMonthlyPayment: number;
 }
 
@@ -234,8 +234,8 @@ export function calculateScheduleSummary(
     0
   );
 
-  const firstPaymentDate = schedule[0].dueDate;
-  const lastPaymentDate = schedule[schedule.length - 1].dueDate;
+  const firstPaymentDate = schedule[0]?.dueDate;
+  const lastPaymentDate = schedule[schedule.length - 1]?.dueDate;
 
   const averageMonthlyPayment = roundMoney(totalAmount / schedule.length);
 
@@ -306,9 +306,8 @@ export function calculateCurrentBalance(
 
   if (lastPaidNumber === 0) {
     // Žiadna splátka nebola zaplatená - zostatok = počiatočná suma
-    return schedule.length > 0
-      ? schedule[0].remainingBalance + schedule[0].principal
-      : 0;
+    const firstItem = schedule[0];
+    return firstItem ? firstItem.remainingBalance + firstItem.principal : 0;
   }
 
   // Nájdi poslednú zaplaténú položku v kalendári

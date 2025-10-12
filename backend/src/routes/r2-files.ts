@@ -1,11 +1,11 @@
 import { DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Router } from 'express';
 import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { r2Storage } from '../utils/r2-storage';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // ===== ZOD SCHEMAS =====
 

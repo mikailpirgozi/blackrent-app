@@ -187,7 +187,7 @@ export class SmartErrorRecovery {
    * Queue failed upload for Background Sync
    */
   private async queueForBackgroundSync(
-    context: ErrorContext,
+    _context: ErrorContext,
     metadata: {
       protocolId: string;
       blob?: Blob;

@@ -136,7 +136,7 @@ export interface UnifiedDataTableProps {
 export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
   rows,
   columns,
-  getRowId = row => row.id,
+  getRowId = row => row.id as string | number,
   checkboxSelection = false,
   disableSelectionOnClick = false,
   onSelectionModelChange,
@@ -233,6 +233,17 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
       const bValue = b[sortBy.field];
 
       if (aValue === bValue) return 0;
+
+      // Type guard for comparable values
+      const isComparable = (val: unknown): val is string | number | Date => {
+        return (
+          typeof val === 'string' ||
+          typeof val === 'number' ||
+          val instanceof Date
+        );
+      };
+
+      if (!isComparable(aValue) || !isComparable(bValue)) return 0;
 
       const comparison = aValue < bValue ? -1 : 1;
       return sortBy.sort === 'asc' ? comparison : -comparison;
@@ -559,7 +570,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                       ? column.valueGetter({ row, field: column.field })
                       : row[column.field];
 
-                    const displayValue = column.valueFormatter
+                    const displayValue: React.ReactNode = column.valueFormatter
                       ? column.valueFormatter({
                           value,
                           row,
@@ -567,7 +578,7 @@ export const UnifiedDataTable: React.FC<UnifiedDataTableProps> = ({
                         })
                       : column.renderCell
                         ? column.renderCell({ value, row, field: column.field })
-                        : value;
+                        : (value as React.ReactNode);
 
                     return (
                       <TableCell

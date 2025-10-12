@@ -1,42 +1,12 @@
-import DeleteIcon from '@mui/icons-material/Delete';
-import FolderIcon from '@mui/icons-material/Folder';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import SearchIcon from '@mui/icons-material/Search';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  FormControl,
-  Grid,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
-  Paper,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TableSortLabel,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
 import { format } from 'date-fns';
+import {
+  AlertCircle,
+  ArrowUpDown,
+  Folder,
+  RefreshCw,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
   type R2File,
@@ -50,6 +20,37 @@ import {
   getR2Stats,
   listR2Files,
 } from '../../services/r2-files';
+import { Alert, AlertDescription } from '../ui/alert';
+import { UnifiedButton } from '../ui/UnifiedButton';
+import { UnifiedCard } from '../ui/UnifiedCard';
+import { Checkbox } from '../ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import { Label } from '../ui/label';
+import { Progress } from '../ui/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../ui/table';
+import { UnifiedTextField } from '../ui/UnifiedTextField';
+import { UnifiedTypography } from '../ui/UnifiedTypography';
 
 type SortBy = 'name' | 'size' | 'date';
 type SortOrder = 'asc' | 'desc';
@@ -134,18 +135,6 @@ export default function R2FileManager() {
     } else {
       setSortBy(column);
       setSortOrder('asc');
-    }
-  };
-
-  /**
-   * Handle select all
-   */
-  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      const newSelected = paginatedFiles.map(file => file.key);
-      setSelected(newSelected);
-    } else {
-      setSelected([]);
     }
   };
 
@@ -251,241 +240,221 @@ export default function R2FileManager() {
   const isSelected = (key: string) => selected.indexOf(key) !== -1;
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          R2 File Manager
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
+      <div className="space-y-1">
+        <UnifiedTypography variant="h4">R2 File Manager</UnifiedTypography>
+        <UnifiedTypography variant="body2" className="text-muted-foreground">
           Správa súborov v Cloudflare R2 Storage
-        </Typography>
-      </Box>
+        </UnifiedTypography>
+      </div>
 
       {/* Stats Cards */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6">Celkový počet súborov</Typography>
-                <Typography variant="h3">
-                  {stats.totalFiles.toLocaleString()}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6">Celková veľkosť</Typography>
-                <Typography variant="h3">
-                  {formatFileSize(stats.totalSize)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6">Počet priečinkov</Typography>
-                <Typography variant="h3">
-                  {Object.keys(stats.byFolder).length}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <UnifiedCard variant="statistics">
+            <UnifiedTypography variant="h6" className="mb-2">
+              Celkový počet súborov
+            </UnifiedTypography>
+            <UnifiedTypography variant="h3">
+              {stats.totalFiles.toLocaleString()}
+            </UnifiedTypography>
+          </UnifiedCard>
+          <UnifiedCard variant="statistics">
+            <UnifiedTypography variant="h6" className="mb-2">
+              Celková veľkosť
+            </UnifiedTypography>
+            <UnifiedTypography variant="h3">
+              {formatFileSize(stats.totalSize)}
+            </UnifiedTypography>
+          </UnifiedCard>
+          <UnifiedCard variant="statistics">
+            <UnifiedTypography variant="h6" className="mb-2">
+              Počet priečinkov
+            </UnifiedTypography>
+            <UnifiedTypography variant="h3">
+              {Object.keys(stats.byFolder).length}
+            </UnifiedTypography>
+          </UnifiedCard>
+        </div>
       )}
 
       {/* Alerts */}
       {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-          {error}
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       {success && (
-        <Alert
-          severity="success"
-          onClose={() => setSuccess(null)}
-          sx={{ mb: 2 }}
-        >
-          {success}
+        <Alert className="mb-4 border-green-500 bg-green-50 text-green-800">
+          <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
 
       {/* Filters & Actions */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2} alignItems="center">
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           {/* Search */}
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
+          <div className="md:col-span-4">
+            <UnifiedTextField
               placeholder="Hľadať súbory..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
+                  <Search className="h-4 w-4 text-muted-foreground" />
                 ),
               }}
             />
-          </Grid>
+          </div>
 
           {/* Prefix Filter */}
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Filter podľa priečinka</InputLabel>
-              <Select
-                value={prefix}
-                label="Filter podľa priečinka"
-                onChange={e => setPrefix(e.target.value)}
-              >
-                <MenuItem value="">Všetky priečinky</MenuItem>
+          <div className="md:col-span-3 space-y-2">
+            <Label>Filter podľa priečinka</Label>
+            <Select value={prefix} onValueChange={setPrefix}>
+              <SelectTrigger>
+                <SelectValue placeholder="Všetky priečinky" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Všetky priečinky</SelectItem>
                 {stats &&
                   Object.keys(stats.byFolder).map(folder => (
-                    <MenuItem key={folder} value={folder}>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <FolderIcon fontSize="small" />
+                    <SelectItem key={folder} value={folder}>
+                      <div className="flex items-center gap-2">
+                        <Folder className="h-4 w-4" />
                         {folder} ({stats?.byFolder[folder]?.count || 0})
-                      </Box>
-                    </MenuItem>
+                      </div>
+                    </SelectItem>
                   ))}
-              </Select>
-            </FormControl>
-          </Grid>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Actions */}
-          <Grid
-            item
-            xs={12}
-            md={5}
-            sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}
-          >
-            <Button
+          <div className="md:col-span-5 flex gap-2 justify-end">
+            <UnifiedButton
               variant="outlined"
-              startIcon={<RefreshIcon />}
+              startIcon={<RefreshCw className="h-4 w-4" />}
               onClick={() => {
                 loadFiles();
                 loadStats();
               }}
             >
               Obnoviť
-            </Button>
+            </UnifiedButton>
             {selected.length > 0 && (
-              <Button
+              <UnifiedButton
                 variant="contained"
                 color="error"
-                startIcon={<DeleteIcon />}
+                startIcon={<Trash2 className="h-4 w-4" />}
                 onClick={() => setBulkDeleteDialogOpen(true)}
               >
                 Vymazať ({selected.length})
-              </Button>
+              </UnifiedButton>
             )}
-            <Button
+            <UnifiedButton
               variant="outlined"
               color="error"
               onClick={() => setPrefixDeleteDialogOpen(true)}
             >
               Vymazať podľa prefixu
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+            </UnifiedButton>
+          </div>
+        </div>
+      </div>
 
       {/* Loading */}
-      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      {loading && <Progress value={undefined} className="mb-4" />}
 
       {/* Files Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={
-                    selected.length > 0 &&
-                    selected.length < paginatedFiles.length
-                  }
-                  checked={
-                    paginatedFiles.length > 0 &&
-                    selected.length === paginatedFiles.length
-                  }
-                  onChange={handleSelectAll}
-                />
-              </TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={sortBy === 'name'}
-                  direction={sortBy === 'name' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('name')}
-                >
-                  Názov súboru
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>Priečinok</TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={sortBy === 'size'}
-                  direction={sortBy === 'size' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('size')}
-                >
-                  Veľkosť
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={sortBy === 'date'}
-                  direction={sortBy === 'date' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('date')}
-                >
-                  Posledná úprava
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">Akcie</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedFiles.map(file => {
-              const isItemSelected = isSelected(file.key);
-              return (
-                <TableRow
-                  key={file.key}
-                  hover
-                  selected={isItemSelected}
-                  onClick={() => handleSelectOne(file.key)}
-                  sx={{ cursor: 'pointer' }}
-                >
-                  <TableCell padding="checkbox">
-                    <Checkbox checked={isItemSelected} />
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title={file.key}>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+      <div className="bg-card border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      paginatedFiles.length > 0 &&
+                      selected.length === paginatedFiles.length
+                    }
+                    onCheckedChange={checked => {
+                      if (checked) {
+                        const newSelected = paginatedFiles.map(
+                          file => file.key
+                        );
+                        setSelected(newSelected);
+                      } else {
+                        setSelected([]);
+                      }
+                    }}
+                  />
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('name')}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Názov súboru
+                    {sortBy === 'name' && <ArrowUpDown className="h-4 w-4" />}
+                  </button>
+                </TableHead>
+                <TableHead>Priečinok</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('size')}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Veľkosť
+                    {sortBy === 'size' && <ArrowUpDown className="h-4 w-4" />}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('date')}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Posledná úprava
+                    {sortBy === 'date' && <ArrowUpDown className="h-4 w-4" />}
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">Akcie</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedFiles.map(file => {
+                const isItemSelected = isSelected(file.key);
+                return (
+                  <TableRow
+                    key={file.key}
+                    className={
+                      isItemSelected ? 'bg-muted/50' : 'cursor-pointer'
+                    }
+                    onClick={() => handleSelectOne(file.key)}
+                  >
+                    <TableCell>
+                      <Checkbox checked={isItemSelected} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs truncate" title={file.key}>
                         {getFilenameFromKey(file.key)}
-                      </Typography>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      icon={<FolderIcon />}
-                      label={getFolderFromKey(file.key)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>{formatFileSize(file.size)}</TableCell>
-                  <TableCell>
-                    {format(new Date(file.lastModified), 'dd.MM.yyyy HH:mm')}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Vymazať">
-                      <IconButton
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Folder className="h-4 w-4" />
+                        {getFolderFromKey(file.key)}
+                      </div>
+                    </TableCell>
+                    <TableCell>{formatFileSize(file.size)}</TableCell>
+                    <TableCell>
+                      {format(new Date(file.lastModified), 'dd.MM.yyyy HH:mm')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <UnifiedButton
                         size="small"
+                        variant="ghost"
                         color="error"
                         onClick={e => {
                           e.stopPropagation();
@@ -493,114 +462,177 @@ export default function R2FileManager() {
                           setDeleteDialogOpen(true);
                         }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-        <TablePagination
-          component="div"
-          count={files.length}
-          page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={e => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          labelRowsPerPage="Riadkov na stránku:"
-        />
-      </TableContainer>
+                        <Trash2 className="h-4 w-4" />
+                      </UnifiedButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="text-sm text-muted-foreground">
+            Zobrazených {page * rowsPerPage + 1}-
+            {Math.min((page + 1) * rowsPerPage, files.length)} z {files.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm">Riadkov na stránku:</Label>
+            <Select
+              value={rowsPerPage.toString()}
+              onValueChange={value => {
+                setRowsPerPage(parseInt(value, 10));
+                setPage(0);
+              }}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-1">
+              <UnifiedButton
+                size="small"
+                variant="outlined"
+                disabled={page === 0}
+                onClick={() => setPage(page - 1)}
+              >
+                Predchádzajúca
+              </UnifiedButton>
+              <UnifiedButton
+                size="small"
+                variant="outlined"
+                disabled={(page + 1) * rowsPerPage >= files.length}
+                onClick={() => setPage(page + 1)}
+              >
+                Nasledujúca
+              </UnifiedButton>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Delete File Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Vymazať súbor</DialogTitle>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
-          <DialogContentText>
-            Naozaj chcete vymazať tento súbor?
-            <br />
-            <strong>{fileToDelete}</strong>
-            <br />
-            <br />
-            Táto akcia je nevratná!
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>Vymazať súbor</DialogTitle>
+            <DialogDescription>
+              Naozaj chcete vymazať tento súbor?
+              <br />
+              <strong className="text-foreground">{fileToDelete}</strong>
+              <br />
+              <br />
+              Táto akcia je nevratná!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <UnifiedButton
+              variant="outlined"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Zrušiť
+            </UnifiedButton>
+            <UnifiedButton
+              variant="contained"
+              color="error"
+              onClick={handleDeleteFile}
+            >
+              Vymazať
+            </UnifiedButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Zrušiť</Button>
-          <Button onClick={handleDeleteFile} color="error" variant="contained">
-            Vymazať
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Bulk Delete Dialog */}
       <Dialog
         open={bulkDeleteDialogOpen}
-        onClose={() => setBulkDeleteDialogOpen(false)}
+        onOpenChange={setBulkDeleteDialogOpen}
       >
-        <DialogTitle>Vymazať vybrané súbory</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Naozaj chcete vymazať <strong>{selected.length}</strong> vybraných
-            súborov?
-            <br />
-            <br />
-            Táto akcia je nevratná!
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>Vymazať vybrané súbory</DialogTitle>
+            <DialogDescription>
+              Naozaj chcete vymazať <strong>{selected.length}</strong> vybraných
+              súborov?
+              <br />
+              <br />
+              Táto akcia je nevratná!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <UnifiedButton
+              variant="outlined"
+              onClick={() => setBulkDeleteDialogOpen(false)}
+            >
+              Zrušiť
+            </UnifiedButton>
+            <UnifiedButton
+              variant="contained"
+              color="error"
+              onClick={handleBulkDelete}
+            >
+              Vymazať {selected.length} súborov
+            </UnifiedButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBulkDeleteDialogOpen(false)}>Zrušiť</Button>
-          <Button onClick={handleBulkDelete} color="error" variant="contained">
-            Vymazať {selected.length} súborov
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Prefix Delete Dialog */}
       <Dialog
         open={prefixDeleteDialogOpen}
-        onClose={() => setPrefixDeleteDialogOpen(false)}
+        onOpenChange={setPrefixDeleteDialogOpen}
       >
-        <DialogTitle>Vymazať podľa prefixu</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Vymaže <strong>všetky</strong> súbory začínajúce na zadaný prefix.
-            <br />
-            Napríklad: <code>2025/08/BMW</code> vymaže všetky BMW súbory z
-            augusta 2025.
-            <br />
-            <br />
-            ⚠️ <strong>POZOR:</strong> Táto akcia je nevratná!
-          </DialogContentText>
-          <TextField
-            fullWidth
-            label="Prefix (napr. 2025/08/BMW)"
-            value={prefixToDelete}
-            onChange={e => setPrefixToDelete(e.target.value)}
-            placeholder="2025/08/BMW_X5"
-          />
+          <DialogHeader>
+            <DialogTitle>Vymazať podľa prefixu</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>
+                Vymaže <strong>všetky</strong> súbory začínajúce na zadaný
+                prefix.
+              </p>
+              <p>
+                Napríklad: <code className="text-foreground">2025/08/BMW</code>{' '}
+                vymaže všetky BMW súbory z augusta 2025.
+              </p>
+              <p className="text-destructive font-semibold">
+                ⚠️ POZOR: Táto akcia je nevratná!
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <UnifiedTextField
+              label="Prefix (napr. 2025/08/BMW)"
+              value={prefixToDelete}
+              onChange={e => setPrefixToDelete(e.target.value)}
+              placeholder="2025/08/BMW_X5"
+            />
+          </div>
+          <DialogFooter>
+            <UnifiedButton
+              variant="outlined"
+              onClick={() => setPrefixDeleteDialogOpen(false)}
+            >
+              Zrušiť
+            </UnifiedButton>
+            <UnifiedButton
+              variant="contained"
+              color="error"
+              onClick={handlePrefixDelete}
+              disabled={!prefixToDelete}
+            >
+              Vymazať všetko s "{prefixToDelete}"
+            </UnifiedButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPrefixDeleteDialogOpen(false)}>
-            Zrušiť
-          </Button>
-          <Button
-            onClick={handlePrefixDelete}
-            color="error"
-            variant="contained"
-            disabled={!prefixToDelete}
-          >
-            Vymazať všetko s "{prefixToDelete}"
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 }

@@ -301,17 +301,23 @@ export function useInfiniteRentals(
     };
 
     // Listen for both refresh and optimistic update events
-    window.addEventListener('rental-list-refresh', handleRefresh as EventListener);
+    window.addEventListener(
+      'rental-list-refresh',
+      handleRefresh as EventListener
+    );
     window.addEventListener(
       'rental-optimistic-update',
-      handleOptimisticUpdate as EventListener
+      handleOptimisticUpdate as unknown as EventListener
     );
 
     return () => {
-      window.removeEventListener('rental-list-refresh', handleRefresh as EventListener);
+      window.removeEventListener(
+        'rental-list-refresh',
+        handleRefresh as unknown as EventListener
+      );
       window.removeEventListener(
         'rental-optimistic-update',
-        handleOptimisticUpdate as EventListener
+        handleOptimisticUpdate as unknown as EventListener
       );
     };
   }, [refresh, updateRentalInList, handleSmartRentalUpdate]);

@@ -155,7 +155,7 @@ const VehicleDialogs: React.FC<VehicleDialogsProps> = ({
           <div className="mt-4">
             <VehicleForm
               vehicle={editingVehicle}
-              onSave={onSubmit}
+              onSave={onSubmit as (..._args: unknown[]) => void}
               onCancel={onCloseDialog}
             />
           </div>

@@ -255,7 +255,7 @@ export const usePWA = (): PWAState & PWAActions => {
 
   const handleBeforeInstallPrompt = (event: Event) => {
     event.preventDefault();
-    const promptEvent = event as BeforeInstallPromptEvent;
+    const promptEvent = event as unknown as BeforeInstallPromptEvent;
 
     setState(prev => ({
       ...prev,

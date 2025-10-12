@@ -66,9 +66,9 @@ export default function ReturnProtocolForm({
     status: 'pending' | 'success' | 'error' | 'warning';
     message?: string;
   } | null>(null);
-  const [activePhotoCapture, setActivePhotoCapture] = useState<string | null>(
-    null
-  );
+  const [activePhotoCapture, setActivePhotoCapture] = useState<
+    'vehicle' | 'document' | 'damage' | 'fuel' | 'odometer' | null
+  >(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [currentSigner, setCurrentSigner] = useState<{
     name: string;
@@ -1150,12 +1150,16 @@ export default function ReturnProtocolForm({
               <EnterprisePhotoCapture
                 protocolId={rental.id}
                 protocolType="return"
-                mediaType={activePhotoCapture as 'vehicle' | 'document' | 'damage'}
-                onPhotosUploaded={(results) => {
-                  console.log('📸 Photos uploaded successfully', { count: results.length });
+                mediaType={
+                  activePhotoCapture as 'vehicle' | 'document' | 'damage'
+                }
+                onPhotosUploaded={results => {
+                  console.log('📸 Photos uploaded successfully', {
+                    count: results.length,
+                  });
                   // Convert UploadResult[] to ProtocolImage format
                   // CRITICAL: Use imageId from upload result (matches IndexedDB key!)
-                  const images = results.map((result) => ({
+                  const images = results.map(result => ({
                     id: result.imageId, // ✅ CRITICAL: Use ID from upload (IndexedDB key)
                     url: result.url,
                     originalUrl: result.url,

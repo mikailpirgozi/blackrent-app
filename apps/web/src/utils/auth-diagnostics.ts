@@ -11,10 +11,10 @@ export function diagnoseAuthIssue() {
   console.log('📦 LocalStorage:');
   const token = localStorage.getItem('blackrent_token');
   const userStr = localStorage.getItem('blackrent_user');
-  
+
   console.log('  Token:', token ? '✅ EXISTS' : '❌ MISSING');
   console.log('  User:', userStr ? '✅ EXISTS' : '❌ MISSING');
-  
+
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
@@ -22,7 +22,7 @@ export function diagnoseAuthIssue() {
         username: user.username,
         role: user.role,
         email: user.email,
-        isActive: user.isActive
+        isActive: user.isActive,
       });
     } catch (e) {
       console.log('  ❌ User data parse error:', e);
@@ -42,14 +42,15 @@ export function diagnoseAuthIssue() {
 
   // 4. Test API connection
   console.log('🌐 Testing API Connection:');
-  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+  const apiUrl =
+    import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
   console.log('  API URL:', apiUrl);
-  
+
   fetch(`${apiUrl}/auth/me`, {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
   })
     .then(res => res.json())
     .then(data => {
@@ -58,7 +59,7 @@ export function diagnoseAuthIssue() {
         console.log('  User from API:', {
           username: data.data.username,
           role: data.data.role,
-          isActive: data.data.isActive
+          isActive: data.data.isActive,
         });
       }
     })
@@ -78,7 +79,8 @@ export function diagnoseAuthIssue() {
 
 // Make it globally available
 if (typeof window !== 'undefined') {
-  (window as Window & { diagnoseAuth: typeof diagnoseAuthIssue }).diagnoseAuth = diagnoseAuthIssue;
+  (
+    window as unknown as Window & { diagnoseAuth: typeof diagnoseAuthIssue }
+  ).diagnoseAuth = diagnoseAuthIssue;
   console.log('💡 Auth diagnostics ready! Run: window.diagnoseAuth()');
 }
-

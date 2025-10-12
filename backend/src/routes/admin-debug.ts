@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { postgresDatabase } from '../models/postgres-database.js';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator.js';
 import { r2Storage } from '../utils/r2-storage.js';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Get company info (debug endpoint)
 router.get('/companies/:name', async (req, res) => {

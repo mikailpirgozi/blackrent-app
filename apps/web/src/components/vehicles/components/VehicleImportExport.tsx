@@ -5,6 +5,7 @@ import React from 'react';
 import { apiService } from '../../../services/api';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/utils/smartLogger';
+import type { Vehicle } from '@/types';
 
 interface VehicleImportExportProps {
   loading: boolean;
@@ -193,7 +194,7 @@ const VehicleImportExport: React.FC<VehicleImportExportProps> = ({
 
           // Použij batch import namiesto CSV importu
           const result = await apiService.batchImportVehicles(
-            batchVehicles as Record<string, unknown>[]
+            batchVehicles as unknown as Vehicle[]
           );
 
           logger.debug('📥 CSV Import result:', result);

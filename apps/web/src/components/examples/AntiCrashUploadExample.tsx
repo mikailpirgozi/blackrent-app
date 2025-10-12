@@ -173,15 +173,6 @@ export function AntiCrashUploadExample() {
                       <Progress value={task.progress} className="h-1" />
                     </div>
                   )}
-
-                  {/* Preview (using objectURL) */}
-                  {task.objectURL && (
-                    <img
-                      src={task.objectURL}
-                      alt={task.file.name}
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                  )}
                 </div>
               ))}
             </div>

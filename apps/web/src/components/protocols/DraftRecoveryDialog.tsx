@@ -1,12 +1,12 @@
 /**
  * Draft Recovery Dialog
- * 
+ *
  * Shows when user returns to an unfinished protocol
  * Allows recovery of partially uploaded photos
  */
 
 import React, { useState } from 'react';
-import { AlertTriangle, RefreshCw, Trash2, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { indexedDBManager, type ProtocolDraft } from '@/utils/storage/IndexedDBManager';
+import {
+  indexedDBManager,
+  type ProtocolDraft,
+} from '@/utils/storage/IndexedDBManager';
 import { logger } from '@/utils/logger';
 
 interface DraftRecoveryDialogProps {
@@ -54,10 +57,10 @@ export const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
     setIsDiscarding(true);
     try {
       logger.info('Discarding draft', { protocolId: draft.protocolId });
-      
+
       // Clear from IndexedDB
       await indexedDBManager.clearProtocolData(draft.protocolId);
-      
+
       onDiscard();
     } catch (error) {
       logger.error('Draft discard failed', { error });
@@ -69,9 +72,9 @@ export const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
   const timeSinceLastModified = Date.now() - draft.lastModified;
   const minutesAgo = Math.floor(timeSinceLastModified / 60000);
   const hoursAgo = Math.floor(minutesAgo / 60);
-  
-  const timeString = 
-    hoursAgo > 0 
+
+  const timeString =
+    hoursAgo > 0
       ? `${hoursAgo} hour${hoursAgo > 1 ? 's' : ''} ago`
       : `${minutesAgo} minute${minutesAgo > 1 ? 's' : ''} ago`;
 
@@ -94,12 +97,15 @@ export const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="font-medium">Photos uploaded:</span>
-                  <span>{draft.uploadedCount} / {draft.totalCount}</span>
+                  <span>
+                    {draft.uploadedCount} / {draft.totalCount}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Progress:</span>
                   <span>
-                    {Math.round((draft.uploadedCount / draft.totalCount) * 100)}%
+                    {Math.round((draft.uploadedCount / draft.totalCount) * 100)}
+                    %
                   </span>
                 </div>
               </div>
@@ -130,7 +136,7 @@ export const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
               </>
             )}
           </Button>
-          
+
           <Button
             onClick={handleRecover}
             disabled={isRecovering || isDiscarding}
@@ -153,4 +159,3 @@ export const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
     </Dialog>
   );
 };
-

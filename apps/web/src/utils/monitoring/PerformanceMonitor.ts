@@ -1,6 +1,6 @@
 /**
  * Performance Monitor
- * 
+ *
  * Tracks memory usage, processing time, bottlenecks
  * Detects performance issues and triggers warnings
  */
@@ -90,7 +90,11 @@ export class PerformanceMonitor {
     const memoryUsage = this.getMemoryMetrics();
     const processingTime = this.getProcessingMetrics();
     const uploadTime = this.getUploadMetrics();
-    const bottleneck = this.identifyBottleneck(processingTime, uploadTime, memoryUsage);
+    const bottleneck = this.identifyBottleneck(
+      processingTime,
+      uploadTime,
+      memoryUsage
+    );
 
     return {
       memoryUsage,
@@ -149,7 +153,7 @@ export class PerformanceMonitor {
    */
   private getMemoryMetrics() {
     const readings = this.metrics.memoryReadings;
-    
+
     if (readings.length === 0) {
       return {
         current: 0,
@@ -161,7 +165,7 @@ export class PerformanceMonitor {
 
     const current = readings[readings.length - 1];
     const peak = Math.max(...readings);
-    
+
     // Get memory limit
     let limit = 0;
     if ('memory' in performance) {
@@ -172,7 +176,7 @@ export class PerformanceMonitor {
     const percentage = limit > 0 ? (peak / limit) * 100 : 0;
 
     return {
-      current: Math.round(current),
+      current: Math.round(current || 0),
       peak: Math.round(peak),
       limit: Math.round(limit),
       percentage: Math.round(percentage),
@@ -243,12 +247,18 @@ export class PerformanceMonitor {
     }
 
     // Processing slow
-    if (processing.avgPerImage > 2000 && processing.avgPerImage > upload.avgPerImage * 2) {
+    if (
+      processing.avgPerImage > 2000 &&
+      processing.avgPerImage > upload.avgPerImage * 2
+    ) {
       return 'processing';
     }
 
     // Upload slow
-    if (upload.avgPerImage > 3000 && upload.avgPerImage > processing.avgPerImage * 2) {
+    if (
+      upload.avgPerImage > 3000 &&
+      upload.avgPerImage > processing.avgPerImage * 2
+    ) {
       return 'upload';
     }
 
@@ -260,7 +270,7 @@ export class PerformanceMonitor {
    */
   private triggerWarning(message: string): void {
     logger.warn('Performance warning', { message });
-    
+
     for (const callback of this.warningCallbacks) {
       try {
         callback(message);
@@ -283,4 +293,3 @@ export class PerformanceMonitor {
 
 // Singleton instance
 export const performanceMonitor = new PerformanceMonitor();
-
