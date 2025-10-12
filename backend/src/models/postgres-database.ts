@@ -7429,7 +7429,8 @@ export class PostgresDatabase {
                    v.owner_company_id,
                    c.id as company_id,
                    c.name as company_name,
-                   COALESCE(c.name, v.company, 'N/A') as billing_company_name
+                   c.protocol_display_name,
+                   COALESCE(c.protocol_display_name, c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
             LEFT JOIN companies c ON c.id = CASE 
@@ -7603,7 +7604,8 @@ export class PostgresDatabase {
                    v.owner_company_id,
                    c.id as company_id,
                    c.name as company_name,
-                   COALESCE(c.name, v.company, 'N/A') as billing_company_name
+                   c.protocol_display_name,
+                   COALESCE(c.protocol_display_name, c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
             LEFT JOIN companies c ON c.id = CASE 
