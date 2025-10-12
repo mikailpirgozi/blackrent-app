@@ -13,12 +13,14 @@ interface ProtectedRouteProps {
     action: string;
   };
   allowedRoles?: string[];
+  allowedUsernames?: string[]; // New: restrict by username
 }
 
 export default function ProtectedRoute({
   children,
   requiredPermission,
   allowedRoles,
+  allowedUsernames,
 }: ProtectedRouteProps) {
   const { state, hasPermission } = useAuth();
 
@@ -100,6 +102,22 @@ export default function ProtectedRoute({
       user: state.user?.username,
       userRole: state.user?.role,
       allowedRoles,
+    });
+
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Typography variant="h6" className="text-destructive">
+          Nemáte oprávnenie pristupovať k tejto stránke
+        </Typography>
+      </div>
+    );
+  }
+
+  // Kontrola username (super restrictive)
+  if (allowedUsernames && state.user && !allowedUsernames.includes(state.user.username)) {
+    logger.warn('🛡️ ProtectedRoute: Username access denied', {
+      user: state.user?.username,
+      allowedUsernames,
     });
 
     return (

@@ -216,6 +216,7 @@ export default function Layout({ children }: LayoutProps) {
       path: '/admin/r2-files',
       resource: '*' as const,
       adminOnly: true, // ✅ Only for admin users
+      superAdminOnly: true, // 🔒 Only for username: 'admin'
     },
   ];
 
@@ -241,9 +242,9 @@ export default function Layout({ children }: LayoutProps) {
       return false;
     }
 
-    // Check superAdminOnly flag NAJPRV (admin a super_admin majú prístup)
+    // Check superAdminOnly flag NAJPRV (len username 'admin' má prístup)
     if (item.superAdminOnly) {
-      return isAdminUser;
+      return user?.username === 'admin';
     }
 
     // Check adminOnly flag

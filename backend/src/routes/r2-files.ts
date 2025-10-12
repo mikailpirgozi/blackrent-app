@@ -1,11 +1,26 @@
 import { DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import express, { Request, Response, Router } from 'express';
+import express, { Request, Response, Router, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { r2Storage } from '../utils/r2-storage';
 
 const router: Router = express.Router();
+
+// Middleware: Check if user is exactly 'admin' username
+const checkAdminUsername = (req: Request, res: Response, next: NextFunction): void => {
+  const user = (req as any).user;
+  
+  if (!user || user.username !== 'admin') {
+    res.status(403).json({ 
+      error: 'Access denied',
+      message: 'Only the main admin user can access R2 File Manager'
+    });
+    return;
+  }
+  
+  next();
+};
 
 // ===== ZOD SCHEMAS =====
 
@@ -125,7 +140,7 @@ function getFolderStats(files: R2File[]): Record<string, { count: number; size: 
  * GET /api/r2-files/list
  * List files with filtering, search, and pagination
  */
-router.get('/list', authenticateToken, checkPermission('*', 'read'), async (req: Request, res: Response): Promise<void> => {
+router.get('/list', authenticateToken, checkAdminUsername, async (req: Request, res: Response): Promise<void> => {
   try {
     const query = ListFilesQuerySchema.parse(req.query);
 
@@ -189,7 +204,7 @@ router.get('/list', authenticateToken, checkPermission('*', 'read'), async (req:
  * GET /api/r2-files/stats
  * Get storage statistics
  */
-router.get('/stats', authenticateToken, checkPermission('*', 'read'), async (req: Request, res: Response): Promise<void> => {
+router.get('/stats', authenticateToken, checkAdminUsername, async (req: Request, res: Response): Promise<void> => {
   try {
     // Get R2 client
     const client = (r2Storage as any).client;
@@ -237,7 +252,7 @@ router.get('/stats', authenticateToken, checkPermission('*', 'read'), async (req
  * DELETE /api/r2-files/delete
  * Delete a single file
  */
-router.delete('/delete', authenticateToken, checkPermission('*', 'delete'), async (req: Request, res: Response): Promise<void> => {
+router.delete('/delete', authenticateToken, checkAdminUsername, async (req: Request, res: Response): Promise<void> => {
   try {
     const body = DeleteFileSchema.parse(req.body);
 
@@ -258,7 +273,7 @@ router.delete('/delete', authenticateToken, checkPermission('*', 'delete'), asyn
  * POST /api/r2-files/bulk-delete
  * Delete multiple files
  */
-router.post('/bulk-delete', authenticateToken, checkPermission('*', 'delete'), async (req: Request, res: Response): Promise<void> => {
+router.post('/bulk-delete', authenticateToken, checkAdminUsername, async (req: Request, res: Response): Promise<void> => {
   try {
     const body = BulkDeleteSchema.parse(req.body);
 
@@ -289,7 +304,7 @@ router.post('/bulk-delete', authenticateToken, checkPermission('*', 'delete'), a
  * POST /api/r2-files/delete-by-prefix
  * Delete all files matching a prefix (dangerous!)
  */
-router.post('/delete-by-prefix', authenticateToken, checkPermission('*', 'delete'), async (req: Request, res: Response): Promise<void> => {
+router.post('/delete-by-prefix', authenticateToken, checkAdminUsername, async (req: Request, res: Response): Promise<void> => {
   try {
     const body = DeleteByPrefixSchema.parse(req.body);
 

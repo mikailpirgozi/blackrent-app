@@ -382,7 +382,7 @@ const AppContent: React.FC = () => {
                           path="/admin/r2-files"
                           element={
                             <ProtectedRoute
-                              allowedRoles={['admin', 'super_admin']}
+                              allowedUsernames={['admin']}
                             >
                               <Layout>
                                 <ErrorBoundary>
