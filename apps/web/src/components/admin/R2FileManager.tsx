@@ -62,10 +62,10 @@ export default function R2FileManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
+  
   // Filters & Pagination
   const [search, setSearch] = useState('');
-  const [prefix, setPrefix] = useState('');
+  const [prefix, setPrefix] = useState('__all__');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [sortBy, setSortBy] = useState<SortBy>('date');
@@ -90,7 +90,7 @@ export default function R2FileManager() {
       setError(null);
 
       const response = await listR2Files({
-        prefix,
+        prefix: prefix === '__all__' ? undefined : prefix,
         search,
         limit: 1000, // Load more for client-side pagination
         sortBy,
@@ -317,7 +317,7 @@ export default function R2FileManager() {
                 <SelectValue placeholder="Všetky priečinky" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Všetky priečinky</SelectItem>
+                <SelectItem value="__all__">Všetky priečinky</SelectItem>
                 {stats &&
                   Object.keys(stats.byFolder).map(folder => (
                     <SelectItem key={folder} value={folder}>

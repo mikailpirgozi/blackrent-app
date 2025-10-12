@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use Vite proxy on localhost, direct URL in production
+const API_URL = import.meta.env.MODE === 'development' 
+  ? '/api'  // Vite proxy
+  : import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface R2File {
   key: string;
