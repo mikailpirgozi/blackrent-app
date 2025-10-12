@@ -2785,7 +2785,7 @@ export class PostgresDatabase {
     try {
       // Najprv skús v hlavnej users tabuľke
       const result = await this.pool.query(
-        'SELECT id, username, email, password_hash as password, role, platform_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE username = $1',
+        'SELECT id, username, email, password_hash as password, role, platform_id, linked_investor_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE username = $1',
         [username]
       );
 
@@ -2800,7 +2800,8 @@ export class PostgresDatabase {
           lastName: row.last_name,
           role: row.role,
           platformId: row.platform_id,
-          companyId: row.company_id,
+          linkedInvestorId: row.linked_investor_id, // ✅ Added: linked_investor_id mapping
+          companyId: row.company_id, // DEPRECATED but kept for backward compatibility
           employeeNumber: row.employee_number,
           hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
           isActive: row.is_active ?? true,
@@ -2810,8 +2811,6 @@ export class PostgresDatabase {
           updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
         };
       }
-
-
 
       return null;
     } catch (error) {
@@ -2823,7 +2822,7 @@ export class PostgresDatabase {
   async getUserById(id: string): Promise<User | null> {
     try {
       const result = await this.pool.query(
-        'SELECT id, username, email, password_hash as password, role, platform_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE id = $1',
+        'SELECT id, username, email, password_hash as password, role, platform_id, linked_investor_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users WHERE id = $1',
         [id]
       );
 
@@ -2838,7 +2837,8 @@ export class PostgresDatabase {
           lastName: row.last_name,
           role: row.role,
           platformId: row.platform_id,
-          companyId: row.company_id,
+          linkedInvestorId: row.linked_investor_id, // ✅ Added: linked_investor_id mapping
+          companyId: row.company_id, // DEPRECATED but kept for backward compatibility
           employeeNumber: row.employee_number,
           hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
           isActive: row.is_active ?? true,
@@ -2973,7 +2973,7 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT id, username, email, password_hash as password, role, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users ORDER BY created_at DESC'
+        'SELECT id, username, email, password_hash as password, role, platform_id, linked_investor_id, company_id, employee_number, hire_date, is_active, last_login, first_name, last_name, signature_template, created_at, updated_at FROM users ORDER BY created_at DESC'
       );
       
       return result.rows.map(row => ({
@@ -2984,7 +2984,9 @@ export class PostgresDatabase {
         firstName: row.first_name,
         lastName: row.last_name,
         role: row.role,
-        companyId: row.company_id,
+        platformId: row.platform_id, // ✅ Added: platform_id mapping
+        linkedInvestorId: row.linked_investor_id, // ✅ Added: linked_investor_id mapping
+        companyId: row.company_id, // DEPRECATED but kept for backward compatibility
         employeeNumber: row.employee_number,
         hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
         isActive: row.is_active ?? true,
