@@ -140,7 +140,8 @@ class EmailService {
           {
             filename: pdfFilename,
             content: pdfBuffer,
-            contentType: 'application/pdf'
+            contentType: 'application/pdf',
+            encoding: 'base64'
           }
         ]
       };
@@ -214,7 +215,8 @@ class EmailService {
           {
             filename: pdfFilename,
             content: pdfBuffer,
-            contentType: 'application/pdf'
+            contentType: 'application/pdf',
+            encoding: 'base64'
           }
         ]
       };
@@ -568,7 +570,8 @@ info@blackrent.sk | +421 xxx xxx xxx
           {
             filename: `TEST-${pdfFilename}`,
             content: pdfBuffer,
-            contentType: 'application/pdf'
+            contentType: 'application/pdf',
+            encoding: 'base64'
           }
         ]
       };
