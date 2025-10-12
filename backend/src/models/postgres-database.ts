@@ -2937,13 +2937,15 @@ export class PostgresDatabase {
     try {
       const hashedPassword = await bcrypt.hash(user.password, 12);
       await client.query(
-        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, company_id = $5, employee_number = $6, hire_date = $7, is_active = $8, first_name = $9, last_name = $10, signature_template = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12',
+        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, platform_id = $5, linked_investor_id = $6, company_id = $7, employee_number = $8, hire_date = $9, is_active = $10, first_name = $11, last_name = $12, signature_template = $13, updated_at = CURRENT_TIMESTAMP WHERE id = $14',
         [
           user.username, 
           user.email, 
           hashedPassword, 
-          user.role, 
-          user.companyId || null, // UUID string, no conversion needed
+          user.role,
+          user.platformId || null, // ✅ Added: platform_id support
+          user.linkedInvestorId || null, // ✅ Added: linked_investor_id support
+          user.companyId || null, // DEPRECATED but kept for backward compatibility
           user.employeeNumber,
           user.hireDate,
           user.isActive,
