@@ -283,7 +283,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 pb-24">
+        <nav className="flex-1 px-3 py-4 pb-24 overflow-y-auto">
           <div className="space-y-1">
             {menuItems.map(item => (
               <Button

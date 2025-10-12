@@ -2479,6 +2479,37 @@ export class PostgresDatabase {
         logger.migration('⚠️ Migrácia 33 chyba:', errorObj.message);
       }
 
+      // Migrácia 34: Keep leasings.vehicle_id as VARCHAR to support integer vehicle IDs
+      try {
+        logger.migration('📋 Migrácia 34: Zisťujem typ leasings.vehicle_id...');
+        
+        // Skontroluj aktuálny typ
+        const checkType = await client.query(`
+          SELECT data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'leasings' AND column_name = 'vehicle_id'
+        `);
+        
+        const currentType = checkType.rows[0]?.data_type;
+        
+        // Ak je UUID, konvertuj späť na VARCHAR (vehicles.id je integer, nie UUID)
+        if (currentType === 'uuid') {
+          logger.migration('   🔄 vehicle_id je UUID, konvertujem späť na VARCHAR pre kompatibilitu s vehicles.id (integer)');
+          await client.query(`
+            ALTER TABLE leasings 
+            ALTER COLUMN vehicle_id TYPE VARCHAR(50) USING vehicle_id::text
+          `);
+          logger.migration('   ✅ vehicle_id konvertované z UUID na VARCHAR(50)');
+        } else {
+          logger.migration(`   ℹ️ vehicle_id už je ${currentType} typ - OK`);
+        }
+        
+        logger.migration('✅ Migrácia 34: leasings.vehicle_id typ je VARCHAR (kompatibilný s integer vehicle IDs)');
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 34 chyba:', errorObj.message);
+      }
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.migration('⚠️ Migrácie celkovo preskočené:', errorMessage);
@@ -10291,7 +10322,7 @@ export class PostgresDatabase {
       const countResult = await this.pool.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0]?.total || '0');
 
-      // Query na leasings s pagination
+      // Query na leasings s pagination + vehicle JOIN
       const dataQuery = `
         SELECT 
           l.id, l.vehicle_id as "vehicleId", l.leasing_company as "leasingCompany",
@@ -10312,8 +10343,13 @@ export class PostgresDatabase {
           l.payment_schedule_url as "paymentScheduleUrl",
           l.photos_zip_url as "photosZipUrl",
           l.platform_id as "platformId",
-          l.created_at as "createdAt", l.updated_at as "updatedAt"
+          l.created_at as "createdAt", l.updated_at as "updatedAt",
+          v.brand as "vehicleBrand", v.model as "vehicleModel", 
+          v.license_plate as "vehicleLicensePlate", v.year as "vehicleYear",
+          c.name as "vehicleCompany"
         FROM leasings l
+        LEFT JOIN vehicles v ON l.vehicle_id::text = v.id::text
+        LEFT JOIN companies c ON v.company_id = c.id
         WHERE ${whereClause}
         ORDER BY l.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

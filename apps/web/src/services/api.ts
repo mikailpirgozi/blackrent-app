@@ -76,6 +76,16 @@ class ApiService {
     try {
       const response = await fetch(url, config);
 
+      // 🔍 DEBUG: Log response for leasings
+      if (endpoint.includes('leasings')) {
+        console.log('🔍 LEASINGS API Response:', {
+          endpoint,
+          status: response.status,
+          ok: response.ok,
+          statusText: response.statusText,
+        });
+      }
+
       // 🔐 SECURITY: Handle 401/403 errors intelligently
       // Only logout on authentication endpoints, not authorization failures
       if (response.status === 401 || response.status === 403) {
