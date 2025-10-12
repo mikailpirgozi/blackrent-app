@@ -767,6 +767,15 @@ router.get('/users', authenticateToken, requireRole(['admin', 'super_admin', 'co
       totalUsers: users.length 
     });
     
+    // 🔒 SECURITY: Hide super_admin users from everyone except super_admin
+    if (req.user?.role !== 'super_admin') {
+      users = users.filter(u => u.role !== 'super_admin');
+      console.log('🔒 USERS: Hiding super_admin users from non-super_admin:', {
+        username: req.user?.username,
+        userRole: req.user?.role
+      });
+    }
+    
     // ✅ PLATFORM FILTERING: ALL users with platformId (including admin and company_admin, except super_admin) see only their platform users
     if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
       const originalCount = users.length;
