@@ -132,44 +132,79 @@ router.get('/',
     try {
       let rentals = await postgresDatabase.getRentals();
       
-      // console.log('🚗 Rentals GET - user:', { role: req.user?.role, userId: req.user?.id, totalRentals: rentals.length });
+      console.log('🚗 Rentals GET - user:', { 
+        role: req.user?.role, 
+        userId: req.user?.id,
+        username: req.user?.username,
+        platformId: req.user?.platformId,
+        totalRentals: rentals.length 
+      });
       
-      // 🎯 CLEAN SOLUTION: Rental má svoj company field - žiadny enrichment potrebný! ✅
-      // console.log('🚀 CLEAN: Rentals already have company field from database');
+      // 🔍 DEBUG: Log first 3 rentals with platformId
+      console.log('🔍 RENTALS SAMPLE (first 3):', rentals.slice(0, 3).map(r => ({
+        id: r.id,
+        customerName: r.customerName,
+        vehicleBrand: r.vehicle?.brand,
+        vehicleModel: r.vehicle?.model,
+        vehiclePlatformId: r.vehicle?.platformId,
+        vehicleCompany: r.vehicle?.company
+      })));
       
-      // 🔐 PERMISSION FILTERING - Apply company-based filtering for non-admin users
-      if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
-        const user = req.user; // TypeScript safe assignment
+      // 🔐 PLATFORM FILTERING - Apply to ALL users with platformId (including admin role)
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        const user = req.user;
+        const originalCount = rentals.length;
         
-        let allowedCompanyIds: string[] = [];
-        let validCompanyNames: (string | null)[] = [];
+        // ✅ PLATFORM FILTERING: Any user with platformId sees only their platform rentals
+        console.log('🌐 RENTALS: Platform filtering - user:', { username: user.username, role: user.role, platformId: user.platformId });
         
-        // ✅ PLATFORM FILTERING: Company admin with platformId sees all platform companies
-        if (user.role === 'company_admin' && user.platformId) {
-          console.log('🌐 RENTALS: Company admin - filtering by platform:', user.platformId);
-          const companies = await postgresDatabase.getCompanies();
-          const platformCompanies = companies.filter(c => c.platformId === user.platformId);
-          allowedCompanyIds = platformCompanies.map(c => c.id);
-          validCompanyNames = platformCompanies.map(c => c.name);
-        } else {
-          // Získaj company access pre používateľa
-          const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
-          allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
-          
-          // Get allowed company names once
-          const allowedCompanyNames = await Promise.all(
-            allowedCompanyIds.map(async (companyId) => {
-              try {
-                return await postgresDatabase.getCompanyNameById(companyId);
-              } catch (error) {
-                return null;
-              }
-            })
-          );
-          validCompanyNames = allowedCompanyNames.filter(name => name !== null);
-        }
+        // Get all companies for this platform
+        const companies = await postgresDatabase.getCompanies();
+        const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+        const allowedCompanyIds = platformCompanies.map(c => c.id);
+        const validCompanyNames = platformCompanies.map(c => c.name);
         
-        // Filter rentals based on (now corrected) historical ownership
+        console.log('🔍 RENTALS: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: validCompanyNames });
+        
+        // Filter rentals by platform (via vehicle's company platformId)
+        rentals = rentals.filter(rental => {
+          // Filter by vehicle platformId
+          if (rental.vehicle && rental.vehicle.platformId === user.platformId) {
+            return true;
+          }
+          // Fallback: filter by ownerCompanyId
+          if (rental.vehicle && rental.vehicle.ownerCompanyId && allowedCompanyIds.includes(rental.vehicle.ownerCompanyId)) {
+            return true;
+          }
+          // Fallback: filter by company name
+          if (rental.vehicle && rental.vehicle.company && validCompanyNames.includes(rental.vehicle.company)) {
+            return true;
+          }
+          return false;
+        });
+        
+        console.log('🌐 RENTALS: Platform filter applied:', { originalCount, filteredCount: rentals.length });
+      } else if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
+        // Regular users WITHOUT platformId: filter podľa company permissions
+        const user = req.user;
+        
+        // Získaj company access pre používateľa
+        const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user.id);
+        const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+        
+        // Get allowed company names once
+        const allowedCompanyNames = await Promise.all(
+          allowedCompanyIds.map(async (companyId) => {
+            try {
+              return await postgresDatabase.getCompanyNameById(companyId);
+            } catch (error) {
+              return null;
+            }
+          })
+        );
+        const validCompanyNames = allowedCompanyNames.filter(name => name !== null);
+        
+        // Filter rentals based on historical ownership
         rentals = rentals.filter(rental => {
           if (rental.vehicle && rental.vehicle.ownerCompanyId) {
             return allowedCompanyIds.includes(rental.vehicle.ownerCompanyId);
@@ -179,7 +214,7 @@ router.get('/',
           return false; // If no vehicle or company info, don't show
         });
         
-        // console.log('🔐 Rentals Permission Filter:', { userId: user!.id, allowedCompanyIds, filteredCount: rentals.length, filterType: 'historical_ownership_based' });
+        console.log('🔐 Rentals Permission Filter:', { userId: user.id, allowedCompanyIds, filteredCount: rentals.length, filterType: 'company_access_based' });
       }
       
       // 🔧 DEBUG: Log final response data (first rental)
