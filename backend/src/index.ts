@@ -122,6 +122,7 @@ app.use('/local-storage', express.static('local-storage'));
 
 // Import routes
 import adminRoutes from './routes/admin';
+import adminDebugRoutes from './routes/admin-debug'; // 🔧 ADMIN DEBUG: Protocol regeneration & company management
 import authRoutes from './routes/auth';
 import availabilityRoutes from './routes/availability';
 import bulkRoutes from './routes/bulk';
@@ -149,6 +150,7 @@ import platformRoutes from './routes/platforms'; // 🌐 PLATFORM MULTI-TENANCY
 import protocolRoutes from './routes/protocols';
 import protocolsV2Routes from './routes/protocols-v2';
 import pushRoutes from './routes/push';
+import r2FilesRoutes from './routes/r2-files';
 import recurringExpenseRoutes from './routes/recurring-expenses';
 import rentalRoutes from './routes/rentals';
 import settlementRoutes from './routes/settlements';
@@ -160,6 +162,7 @@ import vehicleRoutes from './routes/vehicles';
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin-debug', adminDebugRoutes); // 🔧 ADMIN DEBUG: Protocol regeneration & company management
 app.use('/api/debug', debugRoutes); // 🔍 DEBUG: User permissions diagnostics
 app.use('/api/platforms', platformRoutes); // 🌐 PLATFORM MULTI-TENANCY
 app.use('/api/vehicles', vehicleRoutes);
@@ -192,6 +195,7 @@ app.use('/api/email-imap', emailImapRoutes);
 app.use('/api/email-management', emailManagementRoutes);
 app.use('/api/cache', cacheRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/r2-files', r2FilesRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
 app.use('/api/feature-flags', featureFlagsRoutes);
 // app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
