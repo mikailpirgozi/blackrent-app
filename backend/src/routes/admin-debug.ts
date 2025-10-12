@@ -5,6 +5,63 @@ import { r2Storage } from '../utils/r2-storage.js';
 
 const router: Router = express.Router();
 
+// 🔍 DEBUG: Platform isolation diagnostics
+router.get('/platform-isolation', async (req, res) => {
+  try {
+    const client = await (postgresDatabase as any).pool.connect();
+    
+    try {
+      // 1. Check users with platform_id
+      const users = await client.query(`
+        SELECT id, username, role, platform_id, company_id 
+        FROM users 
+        WHERE username ILIKE '%impresario%'
+      `);
+      
+      // 2. Check platforms
+      const platforms = await client.query(`SELECT id, name FROM platforms ORDER BY name`);
+      
+      // 3. Check companies with platform_id
+      const companies = await client.query(`
+        SELECT id, name, platform_id 
+        FROM companies 
+        ORDER BY name
+        LIMIT 20
+      `);
+      
+      // 4. Check vehicles with platform_id via JOIN
+      const vehicles = await client.query(`
+        SELECT v.id, v.brand, v.model, v.license_plate, 
+               v.company_id as vehicle_company_id,
+               c.name as company_name, 
+               c.platform_id as company_platform_id
+        FROM vehicles v
+        LEFT JOIN companies c ON v.company_id = c.id
+        ORDER BY v.brand, v.model
+        LIMIT 20
+      `);
+      
+      res.json({
+        success: true,
+        data: {
+          users: users.rows,
+          platforms: platforms.rows,
+          companies: companies.rows,
+          vehicles: vehicles.rows
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Platform isolation debug error:', error);
+    res.status(500).json({
+      success: false,
+      error: String(error)
+    });
+  }
+});
+
 // Get company info (debug endpoint)
 router.get('/companies/:name', async (req, res) => {
   try {
