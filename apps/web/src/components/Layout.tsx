@@ -209,7 +209,7 @@ export default function Layout({ children }: LayoutProps) {
       path: '/email-monitoring',
       resource: 'users' as const,
       adminOnly: true, // ✅ Only for admin users
-      superAdminOnly: true, // 🔒 Only for super_admin (not platform admins)
+      blackrentOnly: true, // 🔒 Only for BlackRent platform (super_admin sees all)
     },
     {
       text: 'R2 File Manager',

@@ -13,7 +13,8 @@ interface ProtectedRouteProps {
     action: string;
   };
   allowedRoles?: string[];
-  allowedUsernames?: string[]; // New: restrict by username
+  allowedUsernames?: string[]; // Restrict by username
+  allowedPlatformIds?: string[]; // NEW: Restrict by platform ID
 }
 
 export default function ProtectedRoute({
@@ -21,6 +22,7 @@ export default function ProtectedRoute({
   requiredPermission,
   allowedRoles,
   allowedUsernames,
+  allowedPlatformIds,
 }: ProtectedRouteProps) {
   const { state, hasPermission } = useAuth();
 
@@ -114,7 +116,11 @@ export default function ProtectedRoute({
   }
 
   // Kontrola username (super restrictive)
-  if (allowedUsernames && state.user && !allowedUsernames.includes(state.user.username)) {
+  if (
+    allowedUsernames &&
+    state.user &&
+    !allowedUsernames.includes(state.user.username)
+  ) {
     logger.warn('🛡️ ProtectedRoute: Username access denied', {
       user: state.user?.username,
       allowedUsernames,
@@ -127,6 +133,44 @@ export default function ProtectedRoute({
         </Typography>
       </div>
     );
+  }
+
+  // Kontrola platformy (pre platform-specific features)
+  if (allowedPlatformIds && state.user) {
+    // super_admin má prístup ku všetkému
+    if (state.user.role === 'super_admin') {
+      // super_admin bypasses platform check
+    } else if (
+      state.user.platformId &&
+      !allowedPlatformIds.includes(state.user.platformId)
+    ) {
+      logger.warn('🛡️ ProtectedRoute: Platform access denied', {
+        user: state.user?.username,
+        userPlatformId: state.user.platformId,
+        allowedPlatformIds,
+      });
+
+      return (
+        <div className="flex justify-center items-center min-h-screen">
+          <Typography variant="h6" className="text-destructive">
+            Táto funkcia je dostupná len pre platformu BlackRent
+          </Typography>
+        </div>
+      );
+    } else if (!state.user.platformId) {
+      // User without platform cannot access platform-specific features
+      logger.warn('🛡️ ProtectedRoute: No platform assigned', {
+        user: state.user?.username,
+      });
+
+      return (
+        <div className="flex justify-center items-center min-h-screen">
+          <Typography variant="h6" className="text-destructive">
+            Táto funkcia je dostupná len pre platformu BlackRent
+          </Typography>
+        </div>
+      );
+    }
   }
 
   // Ak všetky kontroly prešli, zobraz obsah

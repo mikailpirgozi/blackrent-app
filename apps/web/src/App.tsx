@@ -193,7 +193,12 @@ const AppContent: React.FC = () => {
                         <Route
                           path="/email-monitoring"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allowedRoles={['admin', 'super_admin']}
+                              allowedPlatformIds={[
+                                '56d0d727-f725-47be-9508-d988ecfc0705',
+                              ]}
+                            >
                               <Layout>
                                 <ErrorBoundary>
                                   <Suspense fallback={<PageLoader />}>
