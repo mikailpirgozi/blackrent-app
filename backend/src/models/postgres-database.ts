@@ -7420,22 +7420,37 @@ export class PostgresDatabase {
       let enhancedRentalData = protocolData.rentalData || {};
       if (protocolData.rentalId && (enhancedRentalData as { vehicle?: unknown }).vehicle) {
         try {
+          // 🔍 DEBUG: Log rental ID
+          logger.migration('🔍 Loading billing company for rental:', protocolData.rentalId);
+          
           // Načítaj rental s billing company name
           const rentalResult = await client.query(`
             SELECT v.id, v.company as vehicle_company, 
                    v.owner_company_id,
+                   c.id as company_id,
+                   c.name as company_name,
                    COALESCE(c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-            LEFT JOIN companies c ON CAST(v.owner_company_id AS INTEGER) = c.id
+            LEFT JOIN companies c ON c.id = CASE 
+              WHEN v.owner_company_id ~ '^[0-9]+$' THEN CAST(v.owner_company_id AS INTEGER)
+              ELSE NULL 
+            END
             WHERE r.id = $1
           `, [protocolData.rentalId]);
+          
+          logger.migration('🔍 Query result:', {
+            rowCount: rentalResult.rows.length,
+            rows: rentalResult.rows
+          });
           
           if (rentalResult.rows.length > 0) {
             const billingCompanyName = rentalResult.rows[0].billing_company_name;
             logger.migration('🏢 Using billing company for protocol:', {
               vehicleCompany: rentalResult.rows[0].vehicle_company,
               ownerCompanyId: rentalResult.rows[0].owner_company_id,
+              companyId: rentalResult.rows[0].company_id,
+              companyName: rentalResult.rows[0].company_name,
               billingCompanyName: billingCompanyName
             });
             
@@ -7447,6 +7462,10 @@ export class PostgresDatabase {
                 company: billingCompanyName
               }
             } as typeof enhancedRentalData;
+            
+            logger.migration('✅ Enhanced rental data with billing company:', {
+              vehicleCompany: (enhancedRentalData as { vehicle?: { company?: string } }).vehicle?.company
+            });
           }
         } catch (companyError) {
           logger.migration('⚠️ Error loading billing company, using original company:', companyError);
@@ -7575,22 +7594,37 @@ export class PostgresDatabase {
       let enhancedRentalData = protocolData.rentalData || {};
       if (protocolData.rentalId && (enhancedRentalData as { vehicle?: unknown }).vehicle) {
         try {
+          // 🔍 DEBUG: Log rental ID
+          logger.migration('🔍 Loading billing company for return rental:', protocolData.rentalId);
+          
           // Načítaj rental s billing company name
           const rentalResult = await client.query(`
             SELECT v.id, v.company as vehicle_company, 
                    v.owner_company_id,
+                   c.id as company_id,
+                   c.name as company_name,
                    COALESCE(c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-            LEFT JOIN companies c ON CAST(v.owner_company_id AS INTEGER) = c.id
+            LEFT JOIN companies c ON c.id = CASE 
+              WHEN v.owner_company_id ~ '^[0-9]+$' THEN CAST(v.owner_company_id AS INTEGER)
+              ELSE NULL 
+            END
             WHERE r.id = $1
           `, [protocolData.rentalId]);
+          
+          logger.migration('🔍 Query result (return):', {
+            rowCount: rentalResult.rows.length,
+            rows: rentalResult.rows
+          });
           
           if (rentalResult.rows.length > 0) {
             const billingCompanyName = rentalResult.rows[0].billing_company_name;
             logger.migration('🏢 Using billing company for return protocol:', {
               vehicleCompany: rentalResult.rows[0].vehicle_company,
               ownerCompanyId: rentalResult.rows[0].owner_company_id,
+              companyId: rentalResult.rows[0].company_id,
+              companyName: rentalResult.rows[0].company_name,
               billingCompanyName: billingCompanyName
             });
             
@@ -7602,6 +7636,10 @@ export class PostgresDatabase {
                 company: billingCompanyName
               }
             } as typeof enhancedRentalData;
+            
+            logger.migration('✅ Enhanced rental data with billing company:', {
+              vehicleCompany: (enhancedRentalData as { vehicle?: { company?: string } }).vehicle?.company
+            });
           }
         } catch (companyError) {
           logger.migration('⚠️ Error loading billing company, using original company:', companyError);
