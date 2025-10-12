@@ -56,7 +56,7 @@ export async function listR2Files(
   const token = localStorage.getItem('blackrent_token');
   const queryString = buildQueryString(params);
 
-  const response = await fetch(`${API_URL}/api/r2-files/list?${queryString}`, {
+  const response = await fetch(`${API_URL}/r2-files/list?${queryString}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -75,7 +75,7 @@ export async function listR2Files(
 export async function getR2Stats(): Promise<R2StatsResponse> {
   const token = localStorage.getItem('blackrent_token');
 
-  const response = await fetch(`${API_URL}/api/r2-files/stats`, {
+  const response = await fetch(`${API_URL}/r2-files/stats`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -94,7 +94,7 @@ export async function getR2Stats(): Promise<R2StatsResponse> {
 export async function deleteR2File(key: string): Promise<void> {
   const token = localStorage.getItem('blackrent_token');
 
-  const response = await fetch(`${API_URL}/api/r2-files/delete`, {
+  const response = await fetch(`${API_URL}/r2-files/delete`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -118,7 +118,7 @@ export async function bulkDeleteR2Files(keys: string[]): Promise<{
 }> {
   const token = localStorage.getItem('blackrent_token');
 
-  const response = await fetch(`${API_URL}/api/r2-files/bulk-delete`, {
+  const response = await fetch(`${API_URL}/r2-files/bulk-delete`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -145,7 +145,7 @@ export async function deleteByPrefix(prefix: string): Promise<{
 }> {
   const token = localStorage.getItem('blackrent_token');
 
-  const response = await fetch(`${API_URL}/api/r2-files/delete-by-prefix`, {
+  const response = await fetch(`${API_URL}/r2-files/delete-by-prefix`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
