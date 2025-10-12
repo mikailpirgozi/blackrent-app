@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/popover';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { format, parse, isValid } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface ServiceBookData {
   serviceDate?: Date;
@@ -42,29 +43,59 @@ export function ServiceBookFields({ data, onChange }: ServiceBookFieldsProps) {
         {/* Service Date */}
         <div className="space-y-2">
           <Label>Dátum servisu *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal border-2',
-                  !data.serviceDate && 'text-muted-foreground'
-                )}
-              >
-                {data.serviceDate
-                  ? new Date(data.serviceDate).toLocaleDateString('sk-SK')
-                  : 'Vyberte dátum'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={data.serviceDate}
-                onSelect={date => onChange('serviceDate', date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={
+                data.serviceDate
+                  ? format(new Date(data.serviceDate), 'dd.MM.yyyy')
+                  : ''
+              }
+              onChange={e => {
+                const value = e.target.value;
+                const formats = [
+                  'dd.MM.yyyy',
+                  'd.M.yyyy',
+                  'dd/MM/yyyy',
+                  'd/M/yyyy',
+                  'yyyy-MM-dd',
+                ];
+
+                for (const formatStr of formats) {
+                  try {
+                    const parsedDate = parse(value, formatStr, new Date());
+                    if (isValid(parsedDate)) {
+                      onChange('serviceDate', parsedDate);
+                      return;
+                    }
+                  } catch {
+                    // Continue to next format
+                  }
+                }
+              }}
+              placeholder="dd.mm.rrrr"
+              className="flex-1 border-2"
+            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 border-2"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={data.serviceDate}
+                  onSelect={date => onChange('serviceDate', date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {/* Service KM */}

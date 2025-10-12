@@ -11,10 +11,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Calendar as CalendarIcon,
+} from 'lucide-react';
 import { useCustomers } from '@/lib/react-query/hooks/useCustomers';
 import { CustomerCombobox } from './CustomerCombobox';
+import { format, parse, isValid } from 'date-fns';
 
 interface FinesData {
   fineDate?: Date;
@@ -70,29 +75,59 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
         {/* Fine Date */}
         <div className="space-y-2">
           <Label>Dátum pokuty *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal border-2',
-                  !data.fineDate && 'text-muted-foreground'
-                )}
-              >
-                {data.fineDate
-                  ? new Date(data.fineDate).toLocaleDateString('sk-SK')
-                  : 'Vyberte dátum'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={data.fineDate}
-                onSelect={date => onChange('fineDate', date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={
+                data.fineDate
+                  ? format(new Date(data.fineDate), 'dd.MM.yyyy')
+                  : ''
+              }
+              onChange={e => {
+                const value = e.target.value;
+                const formats = [
+                  'dd.MM.yyyy',
+                  'd.M.yyyy',
+                  'dd/MM/yyyy',
+                  'd/M/yyyy',
+                  'yyyy-MM-dd',
+                ];
+
+                for (const formatStr of formats) {
+                  try {
+                    const parsedDate = parse(value, formatStr, new Date());
+                    if (isValid(parsedDate)) {
+                      onChange('fineDate', parsedDate);
+                      return;
+                    }
+                  } catch {
+                    // Continue to next format
+                  }
+                }
+              }}
+              placeholder="dd.mm.rrrr"
+              className="flex-1 border-2"
+            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 border-2"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={data.fineDate}
+                  onSelect={date => onChange('fineDate', date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {/* Customer */}
@@ -204,29 +239,59 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
                 </Badge>
               )}
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal border-2',
-                    !data.ownerPaidDate && 'text-muted-foreground'
-                  )}
-                >
-                  {data.ownerPaidDate
-                    ? new Date(data.ownerPaidDate).toLocaleDateString('sk-SK')
-                    : 'Ešte nezaplatil'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={data.ownerPaidDate}
-                  onSelect={date => onChange('ownerPaidDate', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={
+                  data.ownerPaidDate
+                    ? format(new Date(data.ownerPaidDate), 'dd.MM.yyyy')
+                    : ''
+                }
+                onChange={e => {
+                  const value = e.target.value;
+                  const formats = [
+                    'dd.MM.yyyy',
+                    'd.M.yyyy',
+                    'dd/MM/yyyy',
+                    'd/M/yyyy',
+                    'yyyy-MM-dd',
+                  ];
+
+                  for (const formatStr of formats) {
+                    try {
+                      const parsedDate = parse(value, formatStr, new Date());
+                      if (isValid(parsedDate)) {
+                        onChange('ownerPaidDate', parsedDate);
+                        return;
+                      }
+                    } catch {
+                      // Continue to next format
+                    }
+                  }
+                }}
+                placeholder="dd.mm.rrrr"
+                className="flex-1 border-2"
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 border-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={data.ownerPaidDate}
+                    onSelect={date => onChange('ownerPaidDate', date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             {data.ownerPaidDate && (
               <Button
                 type="button"
@@ -262,31 +327,59 @@ export function FinesFields({ data, onChange }: FinesFieldsProps) {
                 </Badge>
               )}
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal border-2',
-                    !data.customerPaidDate && 'text-muted-foreground'
-                  )}
-                >
-                  {data.customerPaidDate
-                    ? new Date(data.customerPaidDate).toLocaleDateString(
-                        'sk-SK'
-                      )
-                    : 'Ešte nezaplatil'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={data.customerPaidDate}
-                  onSelect={date => onChange('customerPaidDate', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={
+                  data.customerPaidDate
+                    ? format(new Date(data.customerPaidDate), 'dd.MM.yyyy')
+                    : ''
+                }
+                onChange={e => {
+                  const value = e.target.value;
+                  const formats = [
+                    'dd.MM.yyyy',
+                    'd.M.yyyy',
+                    'dd/MM/yyyy',
+                    'd/M/yyyy',
+                    'yyyy-MM-dd',
+                  ];
+
+                  for (const formatStr of formats) {
+                    try {
+                      const parsedDate = parse(value, formatStr, new Date());
+                      if (isValid(parsedDate)) {
+                        onChange('customerPaidDate', parsedDate);
+                        return;
+                      }
+                    } catch {
+                      // Continue to next format
+                    }
+                  }
+                }}
+                placeholder="dd.mm.rrrr"
+                className="flex-1 border-2"
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 border-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={data.customerPaidDate}
+                    onSelect={date => onChange('customerPaidDate', date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             {data.customerPaidDate && (
               <Button
                 type="button"

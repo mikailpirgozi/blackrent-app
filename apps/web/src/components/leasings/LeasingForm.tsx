@@ -8,7 +8,13 @@ import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calculator, Loader2, Plus, X } from 'lucide-react';
+import {
+  Calculator,
+  Loader2,
+  Plus,
+  X,
+  Calendar as CalendarIcon,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -50,7 +56,7 @@ import {
   type PaymentType,
 } from '@/types/leasing-types';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/smartLogger';
@@ -204,7 +210,9 @@ export function LeasingForm({
       const l = existingLeasing.leasing;
 
       // Parse numeric strings to numbers
-      const parseNum = (val: string | number | undefined): number | undefined =>
+      const parseNum = (
+        val: string | number | undefined
+      ): number | undefined =>
         typeof val === 'string' ? parseFloat(val) : val;
 
       setValue('vehicleId', l.vehicleId);
@@ -236,7 +244,8 @@ export function LeasingForm({
       setValue('earlyRepaymentPenalty', parseNum(l.earlyRepaymentPenalty) || 0);
       setValue(
         'earlyRepaymentPenaltyType',
-        (l.earlyRepaymentPenaltyType as 'percent_principal' | 'fixed_amount') || 'percent_principal'
+        (l.earlyRepaymentPenaltyType as 'percent_principal' | 'fixed_amount') ||
+          'percent_principal'
       );
       setValue(
         'acquisitionPriceWithoutVAT',
@@ -963,47 +972,82 @@ export function LeasingForm({
                 {/* Dátum prvej splátky */}
                 <div className="space-y-2">
                   <Label>Dátum prvej splátky *</Label>
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !watchedValues.firstPaymentDate &&
-                            'text-muted-foreground'
-                        )}
-                      >
-                        {watchedValues.firstPaymentDate
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={
+                        watchedValues.firstPaymentDate
                           ? format(
                               new Date(watchedValues.firstPaymentDate),
-                              'dd.MM.yyyy',
-                              { locale: sk }
+                              'dd.MM.yyyy'
                             )
-                          : 'Vyber dátum'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={
-                          watchedValues.firstPaymentDate
-                            ? new Date(watchedValues.firstPaymentDate)
-                            : undefined
-                        }
-                        onSelect={date => {
-                          if (date) {
-                            setValue(
-                              'firstPaymentDate',
-                              format(date, 'yyyy-MM-dd')
+                          : ''
+                      }
+                      onChange={e => {
+                        const value = e.target.value;
+                        const formats = [
+                          'dd.MM.yyyy',
+                          'd.M.yyyy',
+                          'dd/MM/yyyy',
+                          'd/M/yyyy',
+                          'yyyy-MM-dd',
+                        ];
+
+                        for (const formatStr of formats) {
+                          try {
+                            const parsedDate = parse(
+                              value,
+                              formatStr,
+                              new Date()
                             );
-                            setCalendarOpen(false);
+                            if (isValid(parsedDate)) {
+                              setValue(
+                                'firstPaymentDate',
+                                format(parsedDate, 'yyyy-MM-dd')
+                              );
+                              return;
+                            }
+                          } catch {
+                            // Continue to next format
                           }
-                        }}
-                        locale={sk}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                        }
+                      }}
+                      placeholder="dd.mm.rrrr"
+                      className="flex-1"
+                    />
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={
+                            watchedValues.firstPaymentDate
+                              ? new Date(watchedValues.firstPaymentDate)
+                              : undefined
+                          }
+                          onSelect={date => {
+                            if (date) {
+                              setValue(
+                                'firstPaymentDate',
+                                format(date, 'yyyy-MM-dd')
+                              );
+                              setCalendarOpen(false);
+                            }
+                          }}
+                          locale={sk}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   {errors.firstPaymentDate && (
                     <p className="text-sm text-destructive">
                       {errors.firstPaymentDate.message}
@@ -1030,50 +1074,85 @@ export function LeasingForm({
                 {/* Dátum poslednej splátky */}
                 <div className="space-y-2">
                   <Label>Dátum poslednej splátky</Label>
-                  <Popover
-                    open={lastDateCalendarOpen}
-                    onOpenChange={setLastDateCalendarOpen}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !watchedValues.lastPaymentDate &&
-                            'text-muted-foreground'
-                        )}
-                      >
-                        {watchedValues.lastPaymentDate
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={
+                        watchedValues.lastPaymentDate
                           ? format(
                               new Date(watchedValues.lastPaymentDate),
-                              'dd.MM.yyyy',
-                              { locale: sk }
+                              'dd.MM.yyyy'
                             )
-                          : 'Vypočítané'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={
-                          watchedValues.lastPaymentDate
-                            ? new Date(watchedValues.lastPaymentDate)
-                            : undefined
-                        }
-                        onSelect={date => {
-                          if (date) {
-                            setValue(
-                              'lastPaymentDate',
-                              format(date, 'yyyy-MM-dd')
+                          : ''
+                      }
+                      onChange={e => {
+                        const value = e.target.value;
+                        const formats = [
+                          'dd.MM.yyyy',
+                          'd.M.yyyy',
+                          'dd/MM/yyyy',
+                          'd/M/yyyy',
+                          'yyyy-MM-dd',
+                        ];
+
+                        for (const formatStr of formats) {
+                          try {
+                            const parsedDate = parse(
+                              value,
+                              formatStr,
+                              new Date()
                             );
-                            setLastDateCalendarOpen(false);
+                            if (isValid(parsedDate)) {
+                              setValue(
+                                'lastPaymentDate',
+                                format(parsedDate, 'yyyy-MM-dd')
+                              );
+                              return;
+                            }
+                          } catch {
+                            // Continue to next format
                           }
-                        }}
-                        locale={sk}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                        }
+                      }}
+                      placeholder="dd.mm.rrrr"
+                      className="flex-1"
+                    />
+                    <Popover
+                      open={lastDateCalendarOpen}
+                      onOpenChange={setLastDateCalendarOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={
+                            watchedValues.lastPaymentDate
+                              ? new Date(watchedValues.lastPaymentDate)
+                              : undefined
+                          }
+                          onSelect={date => {
+                            if (date) {
+                              setValue(
+                                'lastPaymentDate',
+                                format(date, 'yyyy-MM-dd')
+                              );
+                              setLastDateCalendarOpen(false);
+                            }
+                          }}
+                          locale={sk}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Auto-vypočítané alebo manuálne
                   </p>
