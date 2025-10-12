@@ -242,9 +242,9 @@ export default function Layout({ children }: LayoutProps) {
       return false;
     }
 
-    // Check superAdminOnly flag NAJPRV (len username 'admin' má prístup)
+    // Check superAdminOnly flag NAJPRV (username 'admin' alebo role 'super_admin')
     if (item.superAdminOnly) {
-      return user?.username === 'admin';
+      return user?.username === 'admin' || user?.role === 'super_admin';
     }
 
     // Check adminOnly flag

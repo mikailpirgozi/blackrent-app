@@ -7,14 +7,14 @@ import { r2Storage } from '../utils/r2-storage';
 
 const router: Router = express.Router();
 
-// Middleware: Check if user is exactly 'admin' username
+// Middleware: Check if user is 'admin' username OR 'super_admin' role
 const checkAdminUsername = (req: Request, res: Response, next: NextFunction): void => {
   const user = (req as any).user;
   
-  if (!user || user.username !== 'admin') {
+  if (!user || (user.username !== 'admin' && user.role !== 'super_admin')) {
     res.status(403).json({ 
       error: 'Access denied',
-      message: 'Only the main admin user can access R2 File Manager'
+      message: 'Only admin or super_admin can access R2 File Manager'
     });
     return;
   }

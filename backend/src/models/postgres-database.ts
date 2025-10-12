@@ -3200,11 +3200,12 @@ export class PostgresDatabase {
         ? `WHERE v.status NOT IN (${excludedStatuses.map(s => `'${s}'`).join(', ')})` 
         : '';
       
-      // 🚀 N+1 OPTIMIZATION: JOIN s companies pre načítanie company_name v jednom dotaze
+      // 🚀 N+1 OPTIMIZATION: JOIN s companies pre načítanie company_name a platform_id v jednom dotaze
       const result = await client.query(
         `SELECT 
            v.*,
-           c.name as company_name
+           c.name as company_name,
+           c.platform_id as company_platform_id
          FROM vehicles v 
          LEFT JOIN companies c ON v.company_id = c.id
          ${whereClause}
@@ -3239,7 +3240,7 @@ export class PostgresDatabase {
           company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
           category: row.category || null, // 🚗 Mapovanie category
           ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
-          platformId: row.platform_id, // ✅ MULTI-TENANCY: Platform ID
+          platformId: row.company_platform_id?.toString() || null, // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
           pricing: Array.isArray(pricing) ? pricing.filter(item => item.extraKilometerRate === undefined) : pricing, // Odstránenie extraKilometerRate z pricing array
           commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
           status: row.status,

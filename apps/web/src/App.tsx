@@ -383,6 +383,7 @@ const AppContent: React.FC = () => {
                           element={
                             <ProtectedRoute
                               allowedUsernames={['admin']}
+                              allowedRoles={['super_admin']}
                             >
                               <Layout>
                                 <ErrorBoundary>
