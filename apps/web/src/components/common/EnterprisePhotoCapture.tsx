@@ -17,11 +17,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Camera,
-  AlertCircle,
-  Loader2,
-} from 'lucide-react';
+import { Camera, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -39,7 +35,9 @@ interface EnterprisePhotoCaptureProps {
   protocolId: string;
   mediaType: 'vehicle' | 'document' | 'damage' | 'odometer' | 'fuel';
   protocolType: 'handover' | 'return';
-  onPhotosUploaded: (urls: string[]) => void;
+  onPhotosUploaded: (
+    results: Array<{ url: string; imageId: string; pdfUrl?: string | null }>
+  ) => void;
   maxPhotos?: number;
   disabled?: boolean;
 }
@@ -59,43 +57,37 @@ export const EnterprisePhotoCapture: React.FC<EnterprisePhotoCaptureProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ✅ ANTI-CRASH: Use stream upload hook
-  const {
-    uploadFiles,
-    cancel,
-    isUploading,
-    completed,
-    total,
-    progress,
-  } = useStreamUpload({
-    protocolId,
-    mediaType,
-    protocolType,
-    enableWakeLock: true,
-    onProgress: (completedCount, totalCount) => {
-      logger.debug('Upload progress', {
-        completed: completedCount,
-        total: totalCount,
-        progress: (completedCount / totalCount) * 100,
-      });
-    },
-    onComplete: urls => {
-      logger.info('All uploads complete', { count: urls.length });
-      onPhotosUploaded(urls);
+  const { uploadFiles, cancel, isUploading, completed, total, progress } =
+    useStreamUpload({
+      protocolId,
+      mediaType,
+      protocolType,
+      enableWakeLock: true,
+      onProgress: (completedCount, totalCount) => {
+        logger.debug('Upload progress', {
+          completed: completedCount,
+          total: totalCount,
+          progress: (completedCount / totalCount) * 100,
+        });
+      },
+      onComplete: results => {
+        logger.info('All uploads complete', { count: results.length });
+        onPhotosUploaded(results);
 
-      // Add to gallery
-      const newPhotos: PhotoItem[] = urls.map((url, idx) => ({
-        id: `photo-${Date.now()}-${idx}`,
-        preview: url,
-        uploaded: true,
-        uploadUrl: url,
-      }));
-      setPhotos(prev => [...prev, ...newPhotos]);
-    },
-    onError: err => {
-      setError(err.message);
-      logger.error('Upload error', { error: err });
-    },
-  });
+        // Add to gallery
+        const newPhotos: PhotoItem[] = results.map((result, idx) => ({
+          id: `photo-${Date.now()}-${idx}`,
+          preview: result.url,
+          uploaded: true,
+          uploadUrl: result.url,
+        }));
+        setPhotos(prev => [...prev, ...newPhotos]);
+      },
+      onError: err => {
+        setError(err.message);
+        logger.error('Upload error', { error: err });
+      },
+    });
 
   // Initialize
   useEffect(() => {

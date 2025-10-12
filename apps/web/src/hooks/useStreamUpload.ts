@@ -11,7 +11,7 @@
  * ✅ UNLIMITED photos (100+) - only shows progress text
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 import { getApiBaseUrl } from '../utils/apiUrl';
 import { indexedDBManager } from '../utils/storage/IndexedDBManager';
@@ -39,6 +39,7 @@ export interface UploadTask {
 export interface UploadResult {
   url: string;
   imageId: string; // ID used in IndexedDB
+  pdfUrl?: string | null; // PDF-optimized JPEG URL (for backend PDF generation)
 }
 
 export interface UseStreamUploadOptions {
@@ -150,9 +151,7 @@ export function useStreamUpload(
           while (active.size < CONCURRENCY && queue.length > 0) {
             const task = queue.shift()!;
 
-            let uploadPromise: Promise<void>;
-
-            uploadPromise = (async () => {
+            const uploadPromise: Promise<void> = (async () => {
               try {
                 // Update status
                 setTasks(prev =>
@@ -171,7 +170,12 @@ export function useStreamUpload(
                 setTasks(prev =>
                   prev.map(t =>
                     t.id === task.id
-                      ? { ...t, status: 'completed', url: uploadResult.url, progress: 100 }
+                      ? {
+                          ...t,
+                          status: 'completed',
+                          url: uploadResult.url,
+                          progress: 100,
+                        }
                       : t
                   )
                 );
@@ -213,12 +217,11 @@ export function useStreamUpload(
                   );
                   // ✅ BLIND UPLOAD: No objectURL to revoke!
                 }
-              } finally {
-                active.delete(uploadPromise);
               }
             })();
 
             active.add(uploadPromise);
+            uploadPromise.finally(() => active.delete(uploadPromise));
           }
 
           // Wait for at least one to complete
@@ -279,23 +282,30 @@ export function useStreamUpload(
 
 /**
  * Compress image to JPEG 20% quality for PDF storage
- * Stores in IndexedDB for fast PDF generation
+ * Stores in IndexedDB for fast PDF generation + Uploads to backend for server-side PDF generation
  */
 async function compressImageForPdfStorage(
   file: File,
   imageId: string,
   protocolId: string
-): Promise<void> {
-  console.log('🟡 [COMPRESS] Starting compression:', { imageId, fileType: file.type, fileSize: file.size });
-  
+): Promise<string | null> {
+  console.log('🟡 [COMPRESS] Starting compression:', {
+    imageId,
+    fileType: file.type,
+    fileSize: file.size,
+  });
+
   // ✅ ANTI-CRASH: Skip compression for non-image files
   if (!file.type.startsWith('image/')) {
-    console.log('⚠️ [COMPRESS] Skipping non-image file:', { imageId, fileType: file.type });
+    console.log('⚠️ [COMPRESS] Skipping non-image file:', {
+      imageId,
+      fileType: file.type,
+    });
     logger.warn('⚠️ Skipping PDF compression for non-image file', {
       imageId,
       fileType: file.type,
     });
-    return Promise.resolve();
+    return Promise.resolve(null);
   }
 
   return new Promise((resolve, reject) => {
@@ -312,7 +322,7 @@ async function compressImageForPdfStorage(
     img.onload = async () => {
       try {
         clearTimeout(timeout);
-        
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
@@ -338,13 +348,13 @@ async function compressImageForPdfStorage(
         const base64 = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
 
         // Store in IndexedDB
-        console.log('🟡 [COMPRESS] Saving to IndexedDB:', { 
-          imageId, 
+        console.log('🟡 [COMPRESS] Saving to IndexedDB:', {
+          imageId,
           protocolId,
           pdfDataLength: base64.length,
-          compressedSize: Math.floor((base64.length * 0.75) / 1024)
+          compressedSize: Math.floor((base64.length * 0.75) / 1024),
         });
-        
+
         try {
           await indexedDBManager.saveImage({
             id: imageId,
@@ -355,7 +365,9 @@ async function compressImageForPdfStorage(
             compressedSize: Math.floor((base64.length * 0.75) / 1024), // Estimate KB
           });
 
-          console.log('✅ [COMPRESS] Saved to IndexedDB successfully:', { imageId });
+          console.log('✅ [COMPRESS] Saved to IndexedDB successfully:', {
+            imageId,
+          });
           logger.info('📦 PDF JPEG stored in IndexedDB', {
             imageId,
             originalSize: `${(file.size / 1024).toFixed(0)} KB`,
@@ -364,35 +376,39 @@ async function compressImageForPdfStorage(
             quality: '20%',
           });
         } catch (dbError) {
-          console.error('❌ [COMPRESS] IndexedDB save failed:', { 
-            imageId, 
+          console.error('❌ [COMPRESS] IndexedDB save failed:', {
+            imageId,
             error: dbError,
             errorName: (dbError as Error)?.name,
             errorMessage: (dbError as Error)?.message,
-            isQuotaError: (dbError as Error)?.name === 'QuotaExceededError'
+            isQuotaError: (dbError as Error)?.name === 'QuotaExceededError',
           });
           logger.error('⚠️ IndexedDB save failed', {
             imageId,
             errorName: (dbError as Error)?.name,
             errorMessage: (dbError as Error)?.message,
           });
-          
+
           // 🚨 CRITICAL: Warn user if quota exceeded
           if ((dbError as Error)?.name === 'QuotaExceededError') {
-            console.error('🚨🚨🚨 QUOTA EXCEEDED! IndexedDB is full. PDF will be LARGE!');
-            alert('⚠️ Upozornenie: Pamäť prehliadača je plná. PDF bude veľké. Vymažte staré dáta prehliadača (F12 → Application → Clear storage).');
+            console.error(
+              '🚨🚨🚨 QUOTA EXCEEDED! IndexedDB is full. PDF will be LARGE!'
+            );
+            alert(
+              '⚠️ Upozornenie: Pamäť prehliadača je plná. PDF bude veľké. Vymažte staré dáta prehliadača (F12 → Application → Clear storage).'
+            );
           }
           // Continue anyway - PDF will use R2 fallback
         }
 
         URL.revokeObjectURL(objectURL);
-        resolve();
+        resolve(base64); // Return base64 for backend upload
       } catch (error) {
         clearTimeout(timeout);
         URL.revokeObjectURL(objectURL);
         logger.error('❌ Image compression failed', { imageId, error });
         // ✅ ANTI-CRASH: Don't reject, just log error (upload can continue)
-        resolve(); // Continue upload even if compression fails
+        resolve(null); // Continue upload even if compression fails
       }
     };
 
@@ -401,7 +417,7 @@ async function compressImageForPdfStorage(
       URL.revokeObjectURL(objectURL);
       logger.error('❌ Failed to load image for compression', { imageId });
       // ✅ ANTI-CRASH: Don't reject, just log error (upload can continue)
-      resolve(); // Continue upload even if image load fails
+      resolve(null); // Continue upload even if image load fails
     };
 
     img.src = objectURL;
@@ -420,7 +436,10 @@ async function uploadSingle(
   const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // 2. Compress and store JPEG 20% in IndexedDB (parallel with upload)
-  console.log('🔵 [UPLOAD] Starting compression for:', { imageId, filename: task.file.name });
+  console.log('🔵 [UPLOAD] Starting compression for:', {
+    imageId,
+    filename: task.file.name,
+  });
   const compressionPromise = compressImageForPdfStorage(
     task.file,
     imageId,
@@ -453,16 +472,76 @@ async function uploadSingle(
   }
 
   const result = await response.json();
-  
+
   // 4. Wait for compression to finish
   console.log('🔵 [UPLOAD] Waiting for compression to finish:', { imageId });
-  await compressionPromise;
-  console.log('🟢 [UPLOAD] Compression done, returning result:', { imageId, url: result.url || result.publicUrl });
+  const pdfBase64 = await compressionPromise;
+  console.log('🟢 [UPLOAD] Compression done:', {
+    imageId,
+    hasPdfData: !!pdfBase64,
+  });
 
-  // 5. Return both URL and imageId (for IndexedDB lookup)
+  // 5. Upload PDF version to backend if compression succeeded
+  let pdfUrl = null;
+  if (pdfBase64) {
+    try {
+      console.log('🔵 [UPLOAD] Uploading PDF version to backend:', { imageId });
+
+      // Convert base64 to blob
+      const pdfBlob = await fetch(pdfBase64).then(r => r.blob());
+
+      const pdfFormData = new FormData();
+      pdfFormData.append('file', pdfBlob, `${imageId}_pdf.jpg`);
+      pdfFormData.append('type', 'protocol');
+      pdfFormData.append('entityId', options.protocolId);
+      pdfFormData.append('mediaType', `${options.mediaType}_pdf`);
+      pdfFormData.append('protocolType', options.protocolType || 'handover');
+
+      const pdfResponse = await fetch(`${getApiBaseUrl()}/files/upload`, {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: pdfFormData,
+        signal,
+      });
+
+      if (pdfResponse.ok) {
+        const pdfResult = await pdfResponse.json();
+        pdfUrl = pdfResult.url || pdfResult.publicUrl;
+        console.log('✅ [UPLOAD] PDF version uploaded successfully:', {
+          imageId,
+          pdfUrl,
+        });
+        logger.info('📤 PDF version uploaded to backend', {
+          imageId,
+          pdfUrl,
+          originalSize: task.file.size,
+          pdfSize: pdfBlob.size,
+        });
+      } else {
+        console.warn('⚠️ [UPLOAD] PDF version upload failed:', {
+          imageId,
+          status: pdfResponse.status,
+        });
+      }
+    } catch (pdfError) {
+      console.warn('⚠️ [UPLOAD] PDF version upload failed:', {
+        imageId,
+        error: pdfError,
+      });
+      logger.warn('⚠️ PDF version upload failed (not critical)', {
+        imageId,
+        error: pdfError,
+      });
+    }
+  }
+
+  // 6. Return both URLs and imageId
   return {
     url: result.url || result.publicUrl,
     imageId,
+    pdfUrl,
   };
 }
 
@@ -572,12 +651,52 @@ async function uploadMultipart(
   }
 
   const { url } = await completeResponse.json();
-  
-  // Wait for compression to finish
-  await compressionPromise;
-  
+
+  // Wait for compression and upload PDF version
+  const pdfBase64 = await compressionPromise;
+
+  // Upload PDF version (same as in uploadSingle)
+  let pdfUrl = null;
+  if (pdfBase64) {
+    try {
+      console.log('🔵 [MULTIPART] Uploading PDF version:', { imageId });
+      const pdfBlob = await fetch(pdfBase64).then(r => r.blob());
+
+      const pdfFormData = new FormData();
+      pdfFormData.append('file', pdfBlob, `${imageId}_pdf.jpg`);
+      pdfFormData.append('type', 'protocol');
+      pdfFormData.append('entityId', options.protocolId);
+      pdfFormData.append('mediaType', `${options.mediaType}_pdf`);
+      pdfFormData.append('protocolType', options.protocolType || 'handover');
+
+      const pdfResponse = await fetch(`${getApiBaseUrl()}/files/upload`, {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: pdfFormData,
+        signal,
+      });
+
+      if (pdfResponse.ok) {
+        const pdfResult = await pdfResponse.json();
+        pdfUrl = pdfResult.url || pdfResult.publicUrl;
+        console.log('✅ [MULTIPART] PDF version uploaded:', {
+          imageId,
+          pdfUrl,
+        });
+      }
+    } catch (pdfError) {
+      console.warn('⚠️ [MULTIPART] PDF upload failed:', {
+        imageId,
+        error: pdfError,
+      });
+    }
+  }
+
   return {
     url,
     imageId,
+    pdfUrl,
   };
 }

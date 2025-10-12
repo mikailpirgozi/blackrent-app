@@ -421,10 +421,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
-              originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
-              compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
-              pdfUrl: undefined, // ✅ Force IndexedDB lookup for PDF
-              pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation
+              originalUrl: img.originalUrl || img.url, // 🌟 Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl || img.url, // 🌟 Pre PDF (nízka kvalita)
+              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 20% uploaded from frontend)
+              pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation (fallback)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -447,10 +447,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
-              originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
-              compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
-              pdfUrl: undefined, // ✅ Force IndexedDB lookup for PDF
-              pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation
+              originalUrl: img.originalUrl || img.url, // 🌟 Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl || img.url, // 🌟 Pre PDF (nízka kvalita)
+              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 20% uploaded from frontend)
+              pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation (fallback)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -462,10 +462,10 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
             (img: ProtocolImage) => ({
               id: img.id,
               url: img.url,
-              originalUrl: img.originalUrl || img.url, // 🌟 NOVÉ: Pre galériu (vysoká kvalita)
-              compressedUrl: img.compressedUrl || img.url, // 🌟 NOVÉ: Pre PDF (nízka kvalita)
-              pdfUrl: undefined, // ✅ Force IndexedDB lookup for PDF
-              pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation
+              originalUrl: img.originalUrl || img.url, // 🌟 Pre galériu (vysoká kvalita)
+              compressedUrl: img.compressedUrl || img.url, // 🌟 Pre PDF (nízka kvalita)
+              pdfUrl: img.pdfUrl, // ✅ Backend PDF URL (JPEG 20% uploaded from frontend)
+              pdfData: img.pdfData, // 🎯 V1 PERFECT: Base64 compressed JPEG for ultra-fast PDF generation (fallback)
               type: img.type,
               mediaType:
                 (img as unknown as { mediaType?: string }).mediaType || 'image',
@@ -1201,17 +1201,23 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={(e) => {
+                  onClick={e => {
                     try {
                       console.log('🔥🔥🔥 VEHICLE BUTTON RAW CLICK EVENT', e);
-                      console.log('📊 Current activePhotoCapture state:', activePhotoCapture);
+                      console.log(
+                        '📊 Current activePhotoCapture state:',
+                        activePhotoCapture
+                      );
                       logger.info('🔥 VEHICLE BUTTON CLICKED - Direct handler');
                       handlePhotoCapture('vehicle');
                       console.log('✅ handlePhotoCapture called successfully');
-                      
+
                       // Check state after small delay
                       setTimeout(() => {
-                        console.log('📊 activePhotoCapture after 100ms:', activePhotoCapture);
+                        console.log(
+                          '📊 activePhotoCapture after 100ms:',
+                          activePhotoCapture
+                        );
                       }, 100);
                     } catch (error) {
                       console.error('❌ ERROR in onClick handler:', error);
@@ -1424,16 +1430,23 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                       | 'odometer'
                       | 'fuel'
                   }
-                  onPhotosUploaded={(results) => {
-                    console.log('📸 Photos uploaded successfully', { count: results.length });
+                  onPhotosUploaded={results => {
+                    console.log('📸 Photos uploaded successfully', {
+                      count: results.length,
+                    });
                     // Convert UploadResult[] to ProtocolImage format
                     // CRITICAL: Use imageId from upload result (matches IndexedDB key!)
-                    const images = results.map((result) => ({
+                    const images = results.map(result => ({
                       id: result.imageId, // ✅ CRITICAL: Use ID from upload (IndexedDB key)
                       url: result.url,
                       originalUrl: result.url,
-                      pdfUrl: undefined, // ✅ Force PDF to use IndexedDB JPEG 20% (not R2 WebP!)
-                      type: activePhotoCapture,
+                      pdfUrl: result.pdfUrl || undefined, // ✅ NEW: Use backend PDF URL for server-side PDF generation (JPEG 20%)
+                      type: activePhotoCapture as
+                        | 'vehicle'
+                        | 'document'
+                        | 'damage'
+                        | 'odometer'
+                        | 'fuel',
                       description: '',
                       timestamp: new Date(),
                       compressed: true,

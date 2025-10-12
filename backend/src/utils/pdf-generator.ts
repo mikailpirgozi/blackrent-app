@@ -69,13 +69,22 @@ const addCompressedUrlsToImages = (images: ProtocolImage[]): ProtocolImage[] => 
   return images.map(image => {
     if (!image || !image.url) return image;
     
-    // 🌟 NOVÉ: Ak už má compressedUrl z databázy, použij ho!
+    // 🌟 PRIORITY 1: pdfUrl (komprimovaný JPEG 20% nahraný z frontendu)
+    if (image.pdfUrl) {
+      console.log('✅ Using pdfUrl (JPEG 20%) from upload:', image.pdfUrl.substring(0, 100) + '...');
+      return {
+        ...image,
+        compressedUrl: image.pdfUrl
+      };
+    }
+    
+    // 🌟 PRIORITY 2: Ak už má compressedUrl z databázy, použij ho!
     if (image.compressedUrl) {
       console.log('✅ Using existing compressedUrl from database:', image.compressedUrl.substring(0, 100) + '...');
       return image; // Vráť bez zmien
     }
     
-    // 🔄 FALLBACK: Ak nemá compressedUrl, vytvor ho dynamicky (pre staré protokoly)
+    // 🔄 FALLBACK: Ak nemá ani pdfUrl ani compressedUrl, vytvor ho dynamicky (pre staré protokoly)
     let compressedUrl = image.url;
     
     // If it's a WebP file, create a compressed JPEG URL
