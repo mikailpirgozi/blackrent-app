@@ -364,11 +364,24 @@ async function compressImageForPdfStorage(
             quality: '20%',
           });
         } catch (dbError) {
-          console.error('❌ [COMPRESS] IndexedDB save failed:', { imageId, error: dbError });
-          logger.error('⚠️ IndexedDB save failed (quota exceeded?)', {
-            imageId,
+          console.error('❌ [COMPRESS] IndexedDB save failed:', { 
+            imageId, 
             error: dbError,
+            errorName: (dbError as Error)?.name,
+            errorMessage: (dbError as Error)?.message,
+            isQuotaError: (dbError as Error)?.name === 'QuotaExceededError'
           });
+          logger.error('⚠️ IndexedDB save failed', {
+            imageId,
+            errorName: (dbError as Error)?.name,
+            errorMessage: (dbError as Error)?.message,
+          });
+          
+          // 🚨 CRITICAL: Warn user if quota exceeded
+          if ((dbError as Error)?.name === 'QuotaExceededError') {
+            console.error('🚨🚨🚨 QUOTA EXCEEDED! IndexedDB is full. PDF will be LARGE!');
+            alert('⚠️ Upozornenie: Pamäť prehliadača je plná. PDF bude veľké. Vymažte staré dáta prehliadača (F12 → Application → Clear storage).');
+          }
           // Continue anyway - PDF will use R2 fallback
         }
 
