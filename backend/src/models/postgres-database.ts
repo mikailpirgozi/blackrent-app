@@ -3240,7 +3240,7 @@ export class PostgresDatabase {
           company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
           category: row.category || null, // 🚗 Mapovanie category
           ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
-          platformId: row.company_platform_id?.toString() || null, // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
+          platformId: row.company_platform_id?.toString() || undefined, // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
           pricing: Array.isArray(pricing) ? pricing.filter(item => item.extraKilometerRate === undefined) : pricing, // Odstránenie extraKilometerRate z pricing array
           commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
           status: row.status,
@@ -3262,11 +3262,12 @@ export class PostgresDatabase {
   async getVehicle(id: string): Promise<Vehicle | null> {
     const client = await this.pool.connect();
     try {
-      // 🚀 N+1 OPTIMIZATION: JOIN s companies pre načítanie company_name v jednom dotaze
+      // 🚀 N+1 OPTIMIZATION: JOIN s companies pre načítanie company_name a platform_id v jednom dotaze
       const result = await client.query(
         `SELECT 
            v.*,
-           c.name as company_name
+           c.name as company_name,
+           c.platform_id as company_platform_id
          FROM vehicles v 
          LEFT JOIN companies c ON v.company_id = c.id
          WHERE v.id = $1`, 
@@ -3304,6 +3305,7 @@ export class PostgresDatabase {
         company: row.company_name || row.company || 'N/A', // 🚀 OPTIMALIZOVANÉ: Používa company_name z JOIN
         category: row.category || null, // 🚗 Mapovanie category
         ownerCompanyId: row.company_id?.toString(), // Mapovanie company_id na ownerCompanyId
+        platformId: row.company_platform_id?.toString() || undefined, // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
         pricing: Array.isArray(pricing) ? pricing.filter(item => item.extraKilometerRate === undefined) : pricing, // Odstránenie extraKilometerRate z pricing array
         commission: typeof row.commission === 'string' ? JSON.parse(row.commission) : row.commission, // Parsovanie JSON
         status: row.status,
@@ -3703,7 +3705,8 @@ export class PostgresDatabase {
       const dataQuery = `
         SELECT 
           v.*,
-          c.name as company_name
+          c.name as company_name,
+          c.platform_id as company_platform_id
         FROM vehicles v
         LEFT JOIN companies c ON v.company_id = c.id
         ${whereClause}
@@ -3732,7 +3735,7 @@ export class PostgresDatabase {
         year: row.year,
         stk: row.stk,
         ownerCompanyId: row.company_id,
-        platformId: row.platform_id, // ✅ MULTI-TENANCY: Platform ID
+        platformId: row.company_platform_id?.toString() || undefined, // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
         createdAt: row.created_at
       }));
 
@@ -4442,7 +4445,7 @@ export class PostgresDatabase {
           r.discount, r.custom_commission,
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
-          c.name as company_name, v.company as vehicle_company,
+          c.name as company_name, v.company as vehicle_company, c.platform_id as company_platform_id, v.company_id,
           -- 👤 CUSTOMER INFO: Načítanie kompletných zákazníckych údajov pre protokoly
           cust.id as customer_db_id, cust.name as customer_db_name, 
           cust.email as customer_db_email, cust.phone as customer_db_phone, cust.created_at as customer_created_at,
@@ -4617,7 +4620,8 @@ export class PostgresDatabase {
         pricing: this.safeJsonParse(row.pricing, []) as { id: string; minDays: number; maxDays: number; pricePerDay: number }[],
         commission: this.safeJsonParse(row.v_commission, { type: 'percentage', value: 0 }) as { type: 'percentage' | 'fixed'; value: number },
         status: (toString(row.v_status) || 'available') as 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'stolen' | 'private',
-        ownerCompanyId: row.company_id ? toString(row.company_id) : undefined
+        ownerCompanyId: row.company_id ? toString(row.company_id) : undefined,
+        platformId: row.company_platform_id ? toString(row.company_platform_id) : undefined // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
       } : undefined
     };
   }
@@ -4658,7 +4662,7 @@ export class PostgresDatabase {
           r.is_flexible, r.flexible_end_date,
           v.brand, v.model, v.license_plate, v.vin, v.pricing, v.commission as v_commission, v.status as v_status,
           -- 🏢 COMPANY INFO: Pridané pre štatistiky Top firiem
-          c.name as company_name, v.company as vehicle_company,
+          c.name as company_name, v.company as vehicle_company, c.platform_id as company_platform_id, v.company_id,
           -- 👤 CUSTOMER INFO: Načítanie kompletných zákazníckych údajov pre protokoly
           cust.id as customer_db_id, cust.name as customer_db_name, 
           cust.email as customer_db_email, cust.phone as customer_db_phone, cust.created_at as customer_created_at
@@ -4759,7 +4763,9 @@ export class PostgresDatabase {
           company: row.company_name || row.vehicle_company || 'Bez firmy',
           pricing: typeof row.pricing === 'string' ? JSON.parse(row.pricing) : row.pricing || [],
           commission: typeof row.v_commission === 'string' ? JSON.parse(row.v_commission) : row.v_commission || { type: 'percentage', value: 0 },
-          status: row.v_status || 'available'
+          status: row.v_status || 'available',
+          ownerCompanyId: row.company_id?.toString(),
+          platformId: row.company_platform_id?.toString() || undefined // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
         } : undefined
         };
       });
@@ -5036,7 +5042,8 @@ export class PostgresDatabase {
                r.handover_place, r.company, r.vehicle_name, r.extra_km_charge, r.extra_kilometer_rate, r.discount, 
                r.custom_commission, r.is_flexible, r.flexible_end_date, r.confirmed, r.payments, r.history,
                v.brand, v.model, v.license_plate, v.vin, v.company as vehicle_company,
-               COALESCE(c.name, v.company, 'BlackRent') as billing_company_name
+               COALESCE(c.name, v.company, 'BlackRent') as billing_company_name,
+               c.platform_id as company_platform_id, v.company_id
         FROM rentals r 
         LEFT JOIN vehicles v ON r.vehicle_id = v.id 
         LEFT JOIN companies c ON v.company_id = c.id
@@ -5101,7 +5108,9 @@ export class PostgresDatabase {
           company: row.billing_company_name || 'N/A', // ✅ OPRAVENÉ: Používa fakturačnú firmu
           pricing: [],
           commission: { type: 'percentage', value: 0 },
-          status: 'available'
+          status: 'available',
+          ownerCompanyId: row.company_id?.toString(),
+          platformId: row.company_platform_id?.toString() || undefined // ✅ MULTI-TENANCY: Platform ID z companies tabuľky
         }
       };
     } finally {
