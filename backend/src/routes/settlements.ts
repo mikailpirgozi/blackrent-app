@@ -14,35 +14,56 @@ router.get('/', authenticateToken, async (req: Request, res: Response<ApiRespons
     
     console.log('💰 Settlements GET - user:', { 
       role: req.user?.role, 
-      companyId: req.user?.companyId, 
+      userId: req.user?.id,
+      username: req.user?.username,
+      platformId: req.user?.platformId,
       totalSettlements: settlements.length 
     });
     
-    // 🔐 NON-ADMIN USERS - filter podľa company permissions
-    if (req.user?.role !== 'admin' && req.user) {
-      const user = req.user; // TypeScript safe assignment
+    // 🔐 PLATFORM FILTERING - Apply to ALL users with platformId (including admin role, except super_admin)
+    if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+      const user = req.user;
       const originalCount = settlements.length;
       
-      // Získaj company access pre používateľa
-      const userCompanyAccess = await postgresDatabase.getUserCompanyAccess(user!.id);
-      const allowedCompanyIds = userCompanyAccess.map(access => access.companyId);
+      // ✅ PLATFORM FILTERING: Any user with platformId sees only their platform settlements
+      console.log('🌐 SETTLEMENTS: Platform filtering - user:', { username: user.username, role: user.role, platformId: user.platformId });
       
-      // Získaj všetky companies pre mapping
+      // Get all companies for this platform
       const companies = await postgresDatabase.getCompanies();
-      const allowedCompanyNames = companies
-        .filter(c => allowedCompanyIds.includes(c.id))
-        .map(c => c.name);
+      const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+      const validCompanyNames = platformCompanies.map(c => c.name);
       
-      // Filter settlements len pre povolené firmy
-      settlements = settlements.filter(s => s.company && allowedCompanyNames.includes(s.company!));
+      console.log('🔍 SETTLEMENTS: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: validCompanyNames });
       
-      console.log('🔐 Settlements Company Permission Filter:', {
-        userId: user!.id,
-        allowedCompanyIds,
-        allowedCompanyNames,
+      // 🚨 STRICT FILTERING: Only show settlements where company can be determined AND matches platform
+      settlements = settlements.filter(s => {
+        // ❌ REJECT: No company data
+        if (!s.company) {
+          console.log('🚫 SETTLEMENTS: Rejected settlement (no company):', s.id);
+          return false;
+        }
+        
+        // ✅ ACCEPT: company matches platform
+        if (validCompanyNames.includes(s.company)) {
+          return true;
+        }
+        
+        // ❌ REJECT: company doesn't match platform
+        console.log('🚫 SETTLEMENTS: Rejected settlement (wrong platform):', { id: s.id, company: s.company, expectedCompanies: validCompanyNames });
+        return false;
+      });
+      
+      console.log('🔐 SETTLEMENTS Platform Filter:', {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        platformId: user.platformId,
+        validCompanyNames,
         originalCount,
         filteredCount: settlements.length
       });
+    } else if (req.user && req.user.role === 'super_admin') {
+      console.log('🌐 SETTLEMENTS: Super Admin - showing ALL settlements (no platform filter)');
     }
     
     res.json({

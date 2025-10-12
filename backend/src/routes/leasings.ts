@@ -110,15 +110,15 @@ router.get(
         userRole: req.user?.role,
       });
 
-      // ✅ PLATFORM FILTERING: ALL users with platformId (except super_admin and admin) see only their platform leasings
+      // ✅ PLATFORM FILTERING: ALL users with platformId (including admin, except super_admin) see only their platform leasings
       let filteredLeasings = result.leasings;
-      if (req.user && req.user.platformId && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
-        console.log('🌐 LEASINGS PAGINATED: Filtering by platform:', req.user.platformId);
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        console.log('🌐 LEASINGS PAGINATED: Filtering by platform:', { username: req.user.username, role: req.user.role, platformId: req.user.platformId });
         const originalCount = filteredLeasings.length;
         filteredLeasings = filteredLeasings.filter((l: any) => l.platformId === req.user?.platformId);
         console.log('🌐 LEASINGS PAGINATED: Platform filter applied:', { originalCount, filteredCount: filteredLeasings.length });
-      } else if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
-        console.log('🌐 LEASINGS PAGINATED: Admin/Super Admin - showing ALL leasings (no platform filter)');
+      } else if (req.user && req.user.role === 'super_admin') {
+        console.log('🌐 LEASINGS PAGINATED: Super Admin - showing ALL leasings (no platform filter)');
       }
 
       // 🚗 Transform flat vehicle data to nested object
@@ -198,14 +198,14 @@ router.get(
         platformId: (l as any).platformId
       })));
       
-      // ✅ PLATFORM FILTERING: ALL users with platformId (except super_admin and admin) see only their platform leasings
-      if (req.user && req.user.platformId && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
-        console.log('🌐 LEASINGS: Filtering by platform:', req.user.platformId);
+      // ✅ PLATFORM FILTERING: ALL users with platformId (including admin, except super_admin) see only their platform leasings
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        console.log('🌐 LEASINGS: Filtering by platform:', { username: req.user.username, role: req.user.role, platformId: req.user.platformId });
         const originalCount = leasings.length;
         leasings = leasings.filter((l: any) => l.platformId === req.user?.platformId);
         console.log('🌐 LEASINGS: Platform filter applied:', { originalCount, filteredCount: leasings.length });
-      } else if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
-        console.log('🌐 LEASINGS: Admin/Super Admin - showing ALL leasings (no platform filter)');
+      } else if (req.user && req.user.role === 'super_admin') {
+        console.log('🌐 LEASINGS: Super Admin - showing ALL leasings (no platform filter)');
       }
       
       console.log('✅ GET LEASINGS RESPONSE:', { 
