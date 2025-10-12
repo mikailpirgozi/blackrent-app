@@ -39,8 +39,20 @@ router.get('/',
       console.log('🚗 Vehicles GET - user:', { 
         role: req.user?.role, 
         userId: req.user?.id,
+        username: req.user?.username,
+        platformId: req.user?.platformId,
         totalVehicles: vehicles.length 
       });
+      
+      // 🔍 DEBUG: Log first 3 vehicles with platformId
+      console.log('🔍 VEHICLES SAMPLE (first 3):', vehicles.slice(0, 3).map(v => ({
+        brand: v.brand,
+        model: v.model,
+        licensePlate: v.licensePlate,
+        platformId: v.platformId,
+        ownerCompanyId: v.ownerCompanyId,
+        company: v.company
+      })));
       
       // 🔐 NON-ADMIN/NON-SUPER_ADMIN USERS - filter podľa platform alebo company permissions
       if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user) {
@@ -50,6 +62,7 @@ router.get('/',
         // ✅ PLATFORM FILTERING: Company admin with platformId sees all platform vehicles
         if (user.role === 'company_admin' && user.platformId) {
           console.log('🌐 VEHICLES: Company admin - filtering by platform:', user.platformId);
+          console.log('🔍 VEHICLES: Before filter - vehicles platformIds:', vehicles.map(v => v.platformId));
           vehicles = vehicles.filter(v => v.platformId === user.platformId);
           console.log('🌐 VEHICLES: Platform filter applied:', { originalCount, filteredCount: vehicles.length });
         } else {
