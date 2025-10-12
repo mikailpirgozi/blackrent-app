@@ -1429,7 +1429,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                       id: result.imageId, // ✅ CRITICAL: Use ID from upload (IndexedDB key)
                       url: result.url,
                       originalUrl: result.url,
-                      pdfUrl: result.url,
+                      pdfUrl: undefined, // ✅ Force PDF to use IndexedDB JPEG 20% (not R2 WebP!)
                       type: activePhotoCapture,
                       description: '',
                       timestamp: new Date(),
