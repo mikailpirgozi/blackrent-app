@@ -7426,17 +7426,14 @@ export class PostgresDatabase {
           // Načítaj rental s billing company name
           const rentalResult = await client.query(`
             SELECT v.id, v.company as vehicle_company, 
-                   v.owner_company_id,
+                   v.company_id,
                    c.id as company_id,
                    c.name as company_name,
                    c.protocol_display_name,
                    COALESCE(c.protocol_display_name, c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-            LEFT JOIN companies c ON c.id = CASE 
-              WHEN v.owner_company_id ~ '^[0-9]+$' THEN CAST(v.owner_company_id AS INTEGER)
-              ELSE NULL 
-            END
+            LEFT JOIN companies c ON c.id = v.company_id
             WHERE r.id = $1
           `, [protocolData.rentalId]);
           
@@ -7449,9 +7446,10 @@ export class PostgresDatabase {
             const billingCompanyName = rentalResult.rows[0].billing_company_name;
             logger.migration('🏢 Using billing company for protocol:', {
               vehicleCompany: rentalResult.rows[0].vehicle_company,
-              ownerCompanyId: rentalResult.rows[0].owner_company_id,
+              companyIdFromVehicle: rentalResult.rows[0].company_id,
               companyId: rentalResult.rows[0].company_id,
               companyName: rentalResult.rows[0].company_name,
+              protocolDisplayName: rentalResult.rows[0].protocol_display_name,
               billingCompanyName: billingCompanyName
             });
             
@@ -7601,17 +7599,14 @@ export class PostgresDatabase {
           // Načítaj rental s billing company name
           const rentalResult = await client.query(`
             SELECT v.id, v.company as vehicle_company, 
-                   v.owner_company_id,
+                   v.company_id,
                    c.id as company_id,
                    c.name as company_name,
                    c.protocol_display_name,
                    COALESCE(c.protocol_display_name, c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-            LEFT JOIN companies c ON c.id = CASE 
-              WHEN v.owner_company_id ~ '^[0-9]+$' THEN CAST(v.owner_company_id AS INTEGER)
-              ELSE NULL 
-            END
+            LEFT JOIN companies c ON c.id = v.company_id
             WHERE r.id = $1
           `, [protocolData.rentalId]);
           
