@@ -500,10 +500,6 @@ export class PuppeteerPDFGeneratorV2 {
                 <span class="info-value">${protocol.vehicleCondition.fuelLevel}%</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Typ paliva:</span>
-                <span class="info-value">${protocol.vehicleCondition.fuelType}</span>
-            </div>
-            <div class="info-item">
                 <span class="info-label">Exteriér:</span>
                 <span class="info-value">${protocol.vehicleCondition.exteriorCondition}</span>
             </div>

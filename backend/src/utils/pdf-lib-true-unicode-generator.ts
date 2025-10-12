@@ -81,7 +81,6 @@ export class PDFLibTrueUnicodeGenerator {
     this.addInfoSection('Stav vozidla pri prevzatí', [
       ['Stav tachometra:', `${protocol.vehicleCondition.odometer} km`],
       ['Úroveň paliva:', `${protocol.vehicleCondition.fuelLevel}%`],
-      ['Typ paliva:', protocol.vehicleCondition.fuelType],
       ['Exteriér:', protocol.vehicleCondition.exteriorCondition],
       ['Interiér:', protocol.vehicleCondition.interiorCondition]
     ]);
@@ -177,7 +176,6 @@ export class PDFLibTrueUnicodeGenerator {
       ['Počiatočný stav tachometra:', `${initialOdometer} km`],
       ['Konečný stav tachometra:', `${currentOdometer} km`],
       ['Úroveň paliva:', `${protocol.vehicleCondition?.fuelLevel || 'N/A'}%`],
-      ['Typ paliva:', protocol.vehicleCondition?.fuelType || 'N/A'],
       ['Exteriér:', protocol.vehicleCondition?.exteriorCondition || 'N/A'],
       ['Interiér:', protocol.vehicleCondition?.interiorCondition || 'N/A']
     ]);

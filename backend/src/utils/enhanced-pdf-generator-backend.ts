@@ -68,7 +68,6 @@ export class EnhancedPDFGeneratorBackend {
     this.addInfoBox('Stav vozidla pri prevzatí', [
       ['Stav tachometra:', `${protocol.vehicleCondition.odometer} km`],
       ['Úroveň paliva:', `${protocol.vehicleCondition.fuelLevel}%`],
-      ['Typ paliva:', protocol.vehicleCondition.fuelType],
       ['Exteriér:', protocol.vehicleCondition.exteriorCondition],
       ['Interiér:', protocol.vehicleCondition.interiorCondition]
     ]);

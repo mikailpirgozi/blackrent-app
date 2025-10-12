@@ -7416,6 +7416,40 @@ export class PostgresDatabase {
 
       logger.migration('🔄 PDF URL before DB insert:', protocolData.pdfUrl);
 
+      // 🏢 FIX: Načítaj fakturačnú firmu pre protokol
+      let enhancedRentalData = protocolData.rentalData || {};
+      if (protocolData.rentalId && (enhancedRentalData as { vehicle?: unknown }).vehicle) {
+        try {
+          // Načítaj rental s billing company name
+          const rentalResult = await client.query(`
+            SELECT v.id, v.company as vehicle_company, COALESCE(c.name, v.company, 'N/A') as billing_company_name
+            FROM rentals r 
+            LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+            LEFT JOIN companies c ON v.owner_company_id = c.id::text
+            WHERE r.id = $1
+          `, [protocolData.rentalId]);
+          
+          if (rentalResult.rows.length > 0) {
+            const billingCompanyName = rentalResult.rows[0].billing_company_name;
+            logger.migration('🏢 Using billing company for protocol:', {
+              vehicleCompany: rentalResult.rows[0].vehicle_company,
+              billingCompanyName: billingCompanyName
+            });
+            
+            // Nahraď vehicle.company za billing_company_name
+            enhancedRentalData = {
+              ...enhancedRentalData,
+              vehicle: {
+                ...(enhancedRentalData as { vehicle?: Record<string, unknown> }).vehicle,
+                company: billingCompanyName
+              }
+            } as typeof enhancedRentalData;
+          }
+        } catch (companyError) {
+          logger.migration('⚠️ Error loading billing company, using original company:', companyError);
+        }
+      }
+
       const result = await client.query(`
         INSERT INTO handover_protocols (
           rental_id, location, odometer, fuel_level, fuel_type,
@@ -7440,7 +7474,7 @@ export class PostgresDatabase {
         JSON.stringify(protocolData.damageImages || []), // ✅ OPRAVENÉ: JSON.stringify pre JSONB
         JSON.stringify(protocolData.damages || []),
         JSON.stringify(protocolData.signatures || []),
-        JSON.stringify(protocolData.rentalData || {}),
+        JSON.stringify(enhancedRentalData), // ✅ FIX: Použiť enhancedRentalData s fakturačnou firmou
         protocolData.pdfUrl || null,
         protocolData.emailSent || false,
         protocolData.notes || '',
@@ -7534,6 +7568,40 @@ export class PostgresDatabase {
       
       logger.migration('🔄 Creating return protocol:', protocolData.id);
 
+      // 🏢 FIX: Načítaj fakturačnú firmu pre return protokol
+      let enhancedRentalData = protocolData.rentalData || {};
+      if (protocolData.rentalId && (enhancedRentalData as { vehicle?: unknown }).vehicle) {
+        try {
+          // Načítaj rental s billing company name
+          const rentalResult = await client.query(`
+            SELECT v.id, v.company as vehicle_company, COALESCE(c.name, v.company, 'N/A') as billing_company_name
+            FROM rentals r 
+            LEFT JOIN vehicles v ON r.vehicle_id = v.id 
+            LEFT JOIN companies c ON v.owner_company_id = c.id::text
+            WHERE r.id = $1
+          `, [protocolData.rentalId]);
+          
+          if (rentalResult.rows.length > 0) {
+            const billingCompanyName = rentalResult.rows[0].billing_company_name;
+            logger.migration('🏢 Using billing company for return protocol:', {
+              vehicleCompany: rentalResult.rows[0].vehicle_company,
+              billingCompanyName: billingCompanyName
+            });
+            
+            // Nahraď vehicle.company za billing_company_name
+            enhancedRentalData = {
+              ...enhancedRentalData,
+              vehicle: {
+                ...(enhancedRentalData as { vehicle?: Record<string, unknown> }).vehicle,
+                company: billingCompanyName
+              }
+            } as typeof enhancedRentalData;
+          }
+        } catch (companyError) {
+          logger.migration('⚠️ Error loading billing company, using original company:', companyError);
+        }
+      }
+
       const result = await client.query(`
         INSERT INTO return_protocols (
           id, rental_id, handover_protocol_id, location, status, completed_at,
@@ -7577,7 +7645,7 @@ export class PostgresDatabase {
         protocolData.depositRefund || 0,
         protocolData.additionalCharges || 0,
         protocolData.finalRefund || 0,
-        JSON.stringify(protocolData.rentalData || {}),
+        JSON.stringify(enhancedRentalData), // ✅ FIX: Použiť enhancedRentalData s fakturačnou firmou
         protocolData.pdfUrl || null,
         protocolData.emailSent || false,
         protocolData.notes || '',
