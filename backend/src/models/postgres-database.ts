@@ -7422,10 +7422,12 @@ export class PostgresDatabase {
         try {
           // Načítaj rental s billing company name
           const rentalResult = await client.query(`
-            SELECT v.id, v.company as vehicle_company, COALESCE(c.name, v.company, 'N/A') as billing_company_name
+            SELECT v.id, v.company as vehicle_company, 
+                   v.owner_company_id,
+                   COALESCE(c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-            LEFT JOIN companies c ON v.owner_company_id = c.id::text
+            LEFT JOIN companies c ON CAST(v.owner_company_id AS INTEGER) = c.id
             WHERE r.id = $1
           `, [protocolData.rentalId]);
           
@@ -7433,6 +7435,7 @@ export class PostgresDatabase {
             const billingCompanyName = rentalResult.rows[0].billing_company_name;
             logger.migration('🏢 Using billing company for protocol:', {
               vehicleCompany: rentalResult.rows[0].vehicle_company,
+              ownerCompanyId: rentalResult.rows[0].owner_company_id,
               billingCompanyName: billingCompanyName
             });
             
@@ -7574,10 +7577,12 @@ export class PostgresDatabase {
         try {
           // Načítaj rental s billing company name
           const rentalResult = await client.query(`
-            SELECT v.id, v.company as vehicle_company, COALESCE(c.name, v.company, 'N/A') as billing_company_name
+            SELECT v.id, v.company as vehicle_company, 
+                   v.owner_company_id,
+                   COALESCE(c.name, v.company, 'N/A') as billing_company_name
             FROM rentals r 
             LEFT JOIN vehicles v ON r.vehicle_id = v.id 
-            LEFT JOIN companies c ON v.owner_company_id = c.id::text
+            LEFT JOIN companies c ON CAST(v.owner_company_id AS INTEGER) = c.id
             WHERE r.id = $1
           `, [protocolData.rentalId]);
           
@@ -7585,6 +7590,7 @@ export class PostgresDatabase {
             const billingCompanyName = rentalResult.rows[0].billing_company_name;
             logger.migration('🏢 Using billing company for return protocol:', {
               vehicleCompany: rentalResult.rows[0].vehicle_company,
+              ownerCompanyId: rentalResult.rows[0].owner_company_id,
               billingCompanyName: billingCompanyName
             });
             
