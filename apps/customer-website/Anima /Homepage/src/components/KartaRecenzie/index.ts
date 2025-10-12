@@ -1,1 +1,0 @@
-export { KartaRecenzie } from "./KartaRecenzie";

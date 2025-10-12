@@ -1,1 +1,0 @@
-export { ElementPlatbaKartou } from "./ElementPlatbaKartou";

@@ -1,1 +1,0 @@
-export { ElementAkovnStrnka } from "./ElementAkovnStrnka";

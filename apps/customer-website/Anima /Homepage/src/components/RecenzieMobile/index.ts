@@ -1,1 +1,0 @@
-export { RecenzieMobile } from "./RecenzieMobile";

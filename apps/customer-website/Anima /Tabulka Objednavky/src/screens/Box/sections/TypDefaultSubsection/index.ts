@@ -1,1 +1,0 @@
-export { TypDefaultSubsection } from "./TypDefaultSubsection";

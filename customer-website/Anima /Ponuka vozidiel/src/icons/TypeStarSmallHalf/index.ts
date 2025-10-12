@@ -1,1 +1,0 @@
-export { TypeStarSmallHalf } from "./TypeStarSmallHalf";

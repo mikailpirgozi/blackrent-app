@@ -1,1 +1,0 @@
-export { PropertyFrameWrapper } from "./PropertyFrameWrapper";

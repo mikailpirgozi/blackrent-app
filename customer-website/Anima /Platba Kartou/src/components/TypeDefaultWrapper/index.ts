@@ -1,1 +1,0 @@
-export { TypeDefaultWrapper } from "./TypeDefaultWrapper";

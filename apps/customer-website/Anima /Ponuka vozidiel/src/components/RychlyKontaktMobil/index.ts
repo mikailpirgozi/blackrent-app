@@ -1,1 +1,0 @@
-export { RychlyKontaktMobil } from "./RychlyKontaktMobil";

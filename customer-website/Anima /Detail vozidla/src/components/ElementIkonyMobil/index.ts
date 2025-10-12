@@ -1,1 +1,0 @@
-export { ElementIkonyMobil } from "./ElementIkonyMobil";

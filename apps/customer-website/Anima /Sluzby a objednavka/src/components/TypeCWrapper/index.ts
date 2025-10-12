@@ -1,1 +1,0 @@
-export { TypeCWrapper } from "./TypeCWrapper";

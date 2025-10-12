@@ -1,1 +1,0 @@
-export { PropertyXWrapper } from "./PropertyXWrapper";

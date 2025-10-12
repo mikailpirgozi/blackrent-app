@@ -1,1 +1,0 @@
-export { FaqRychlyKontakt } from "./FaqRychlyKontakt";

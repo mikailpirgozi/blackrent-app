@@ -1,1 +1,0 @@
-export { TypKaroseria } from "./TypKaroseria";

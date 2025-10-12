@@ -1,1 +1,0 @@
-export { TypeBWrapper } from "./TypeBWrapper";

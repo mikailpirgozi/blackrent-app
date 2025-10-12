@@ -1,1 +1,0 @@
-export { KartaVozidla } from "./KartaVozidla";

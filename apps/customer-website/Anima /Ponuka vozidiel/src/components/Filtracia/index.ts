@@ -1,1 +1,0 @@
-export { Filtracia } from "./Filtracia";

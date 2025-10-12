@@ -1,1 +1,0 @@
-export { TypBike } from "./TypBike";

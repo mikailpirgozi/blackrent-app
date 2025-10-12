@@ -1,1 +1,0 @@
-export { RychlyKontakt } from "./RychlyKontakt";

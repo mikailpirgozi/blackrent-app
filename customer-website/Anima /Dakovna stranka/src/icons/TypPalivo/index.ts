@@ -1,1 +1,0 @@
-export { TypPalivo } from "./TypPalivo";

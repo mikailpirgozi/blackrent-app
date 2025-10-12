@@ -1,1 +1,0 @@
-export { TabulkaObjednvky } from "./TabulkaObjednvky";
