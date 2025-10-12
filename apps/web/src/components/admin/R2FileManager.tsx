@@ -351,7 +351,7 @@ export default function R2FileManager() {
                         sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
                       >
                         <FolderIcon fontSize="small" />
-                        {folder} ({stats.byFolder[folder].count})
+                        {folder} ({stats?.byFolder[folder]?.count || 0})
                       </Box>
                     </MenuItem>
                   ))}

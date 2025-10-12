@@ -34,7 +34,7 @@ export interface R2ListParams {
 /**
  * Helper to build query string from params
  */
-function buildQueryString(params: Record<string, unknown>): string {
+function buildQueryString(params: R2ListParams): string {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
@@ -50,7 +50,7 @@ function buildQueryString(params: Record<string, unknown>): string {
 export async function listR2Files(
   params: R2ListParams = {}
 ): Promise<R2ListResponse> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('blackrent_token');
   const queryString = buildQueryString(params);
 
   const response = await fetch(`${API_URL}/api/r2-files/list?${queryString}`, {
@@ -70,7 +70,7 @@ export async function listR2Files(
  * Get R2 storage statistics
  */
 export async function getR2Stats(): Promise<R2StatsResponse> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('blackrent_token');
 
   const response = await fetch(`${API_URL}/api/r2-files/stats`, {
     headers: {
@@ -89,7 +89,7 @@ export async function getR2Stats(): Promise<R2StatsResponse> {
  * Delete a single R2 file
  */
 export async function deleteR2File(key: string): Promise<void> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('blackrent_token');
 
   const response = await fetch(`${API_URL}/api/r2-files/delete`, {
     method: 'DELETE',
@@ -113,7 +113,7 @@ export async function bulkDeleteR2Files(keys: string[]): Promise<{
   failed: number;
   total: number;
 }> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('blackrent_token');
 
   const response = await fetch(`${API_URL}/api/r2-files/bulk-delete`, {
     method: 'POST',
@@ -140,7 +140,7 @@ export async function deleteByPrefix(prefix: string): Promise<{
   total: number;
   prefix: string;
 }> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('blackrent_token');
 
   const response = await fetch(`${API_URL}/api/r2-files/delete-by-prefix`, {
     method: 'POST',
@@ -174,7 +174,8 @@ export function formatFileSize(bytes: number): string {
 /**
  * Extract folder name from file key
  */
-export function getFolderFromKey(key: string): string {
+export function getFolderFromKey(key: string | undefined): string {
+  if (!key) return 'root';
   const parts = key.split('/');
   return parts.length > 1 ? parts[0] : 'root';
 }
