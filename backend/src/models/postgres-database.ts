@@ -2429,6 +2429,56 @@ export class PostgresDatabase {
         logger.migration('⚠️ Migrácia 32 chyba:', errorObj.message);
       }
 
+      // 🔧 MIGRÁCIA 33: Auto-set company_id pre vozidlá podľa company string názvu
+      try {
+        logger.migration('🚀 Migrácia 33 - START: Auto-linking vehicles to companies');
+        
+        // 1. Skontroluj počet vozidiel bez company_id
+        const vehiclesWithoutCompanyId = await client.query(`
+          SELECT COUNT(*) as count FROM vehicles WHERE company_id IS NULL
+        `);
+        const missingCount = parseInt(vehiclesWithoutCompanyId.rows[0].count);
+        
+        if (missingCount > 0) {
+          logger.migration(`   📋 Našlo sa ${missingCount} vozidiel bez company_id`);
+          
+          // 2. Update vozidlá podľa company string názvu
+          // Priorita: Najskôr skús exact match, potom case-insensitive
+          const updateResult = await client.query(`
+            UPDATE vehicles v
+            SET company_id = c.id
+            FROM companies c
+            WHERE v.company_id IS NULL
+              AND v.company IS NOT NULL
+              AND LOWER(TRIM(v.company)) = LOWER(TRIM(c.name))
+          `);
+          
+          logger.migration(`   ✅ Automaticky nastavené company_id pre ${updateResult.rowCount} vozidiel`);
+          
+          // 3. Skontroluj zvyšné vozidlá
+          const stillMissing = await client.query(`
+            SELECT id, brand, model, license_plate, company 
+            FROM vehicles 
+            WHERE company_id IS NULL
+            LIMIT 10
+          `);
+          
+          if (stillMissing.rows.length > 0) {
+            logger.migration(`   ⚠️ Zostáva ${stillMissing.rows.length} vozidiel bez company_id:`);
+            stillMissing.rows.forEach((v: { id: number; brand: string; model: string; company: string }) => {
+              logger.migration(`      - Vozidlo ${v.id}: ${v.brand} ${v.model} (company: "${v.company}")`);
+            });
+          }
+        } else {
+          logger.migration('   ✅ Všetky vozidlá už majú company_id');
+        }
+        
+        logger.migration('✅ Migrácia 33: Auto-linking vozidiel dokončená!');
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 33 chyba:', errorObj.message);
+      }
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.migration('⚠️ Migrácie celkovo preskočené:', errorMessage);
