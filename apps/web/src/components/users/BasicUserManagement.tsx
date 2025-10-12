@@ -101,7 +101,7 @@ const BasicUserManagement: React.FC = () => {
   // Investors for dropdown
   const [investors, setInvestors] = useState<Record<string, unknown>[]>([]);
   const [loadingInvestors, setLoadingInvestors] = useState(false);
-  
+
   // Platforms for dropdown
   const [platforms, setPlatforms] = useState<Record<string, unknown>[]>([]);
   const [loadingPlatforms, setLoadingPlatforms] = useState(false);
@@ -210,11 +210,14 @@ const BasicUserManagement: React.FC = () => {
     loadInvestors();
     loadPlatforms();
   }, [refetchUsers, loadInvestors, loadPlatforms]); // Run only on mount
-  
+
   // Auto-set platform for admin users
   useEffect(() => {
     if (state.user?.role === 'admin' && state.user?.platformId) {
-      setUserForm(prev => ({ ...prev, platformId: state.user?.platformId as string }));
+      setUserForm(prev => ({
+        ...prev,
+        platformId: state.user?.platformId as string,
+      }));
     }
   }, [state.user]);
 
@@ -276,7 +279,8 @@ const BasicUserManagement: React.FC = () => {
         lastName: userForm.lastName,
         role: userForm.role,
         platformId: userForm.platformId, // ← POVINNÉ
-        linkedInvestorId: userForm.role === 'investor' ? userForm.linkedInvestorId : undefined,
+        linkedInvestorId:
+          userForm.role === 'investor' ? userForm.linkedInvestorId : undefined,
       };
 
       await createUserMutation.mutateAsync(createUserData);
@@ -294,6 +298,13 @@ const BasicUserManagement: React.FC = () => {
   };
 
   const handleEditUser = (user: User) => {
+    logger.debug('✏️ Opening edit dialog for user:', {
+      username: user.username,
+      role: user.role,
+      platformId: user.platformId,
+      linkedInvestorId: user.linkedInvestorId,
+    });
+
     setSelectedUser(user);
     setUserForm({
       username: user.username,
@@ -329,14 +340,17 @@ const BasicUserManagement: React.FC = () => {
           userForm.password;
       }
 
+      logger.debug('🔄 Updating user:', { updateData, userForm });
+
       await updateUserMutation.mutateAsync(updateData);
 
+      logger.debug('✅ User updated successfully');
       setEditDialogOpen(false);
       setSelectedUser(null);
       resetUserForm();
       setError(null);
     } catch (err) {
-      console.error('Error updating user:', err);
+      console.error('❌ Error updating user:', err);
       setError('Chyba pri úprave používateľa');
     }
   };
@@ -358,10 +372,11 @@ const BasicUserManagement: React.FC = () => {
 
   const resetUserForm = () => {
     // Auto-set platform for admin users
-    const defaultPlatformId = state.user?.role === 'admin' && state.user?.platformId 
-      ? state.user?.platformId 
-      : '';
-      
+    const defaultPlatformId =
+      state.user?.role === 'admin' && state.user?.platformId
+        ? state.user?.platformId
+        : '';
+
     setUserForm({
       username: '',
       email: '',
@@ -488,7 +503,13 @@ const BasicUserManagement: React.FC = () => {
       if (diffInMinutes < 10080)
         return `Pred ${Math.round(diffInMinutes / 1440)} dňami`;
 
-      return formatDate(lastLoginData instanceof Date ? lastLoginData.toISOString() : lastLoginData, 'dd.MM.yyyy HH:mm', 'Neznámy');
+      return formatDate(
+        lastLoginData instanceof Date
+          ? lastLoginData.toISOString()
+          : lastLoginData,
+        'dd.MM.yyyy HH:mm',
+        'Neznámy'
+      );
     } catch {
       return 'Chyba dát';
     }
@@ -585,7 +606,10 @@ const BasicUserManagement: React.FC = () => {
             {/* Platform Badge */}
             {user.platformId && (
               <Badge variant="secondary" className="text-xs">
-                🌐 {platforms.find((p: Record<string, unknown>) => p.id === user.platformId)?.name as string || 'Unknown'}
+                🌐{' '}
+                {(platforms.find(
+                  (p: Record<string, unknown>) => p.id === user.platformId
+                )?.name as string) || 'Unknown'}
               </Badge>
             )}
             <Badge
@@ -618,7 +642,13 @@ const BasicUserManagement: React.FC = () => {
                 Vytvorený:
               </Typography>
               <Typography className="text-sm">
-                {formatDate(user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt, 'dd.MM.yyyy', 'Neznámy')}
+                {formatDate(
+                  user.createdAt instanceof Date
+                    ? user.createdAt.toISOString()
+                    : user.createdAt,
+                  'dd.MM.yyyy',
+                  'Neznámy'
+                )}
               </Typography>
             </div>
           </div>
@@ -716,7 +746,7 @@ const BasicUserManagement: React.FC = () => {
                 user => user.platformId === state.user?.platformId
               );
             }
-            
+
             const sortedUsers = filteredUsers.sort((a, b) => {
               // Sort by firstName first
               const firstNameA = a.firstName || '';
@@ -815,10 +845,12 @@ const BasicUserManagement: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               <Typography variant="body2" className="text-sm">
-                                {user.platformId 
-                                  ? platforms.find((p: Record<string, unknown>) => p.id === user.platformId)?.name as string || '-'
-                                  : '-'
-                                }
+                                {user.platformId
+                                  ? (platforms.find(
+                                      (p: Record<string, unknown>) =>
+                                        p.id === user.platformId
+                                    )?.name as string) || '-'
+                                  : '-'}
                               </Typography>
                             </TableCell>
                             <TableCell>
@@ -859,7 +891,9 @@ const BasicUserManagement: React.FC = () => {
                             <TableCell>
                               <Typography variant="body2" className="text-sm">
                                 {formatDate(
-                                  user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+                                  user.createdAt instanceof Date
+                                    ? user.createdAt.toISOString()
+                                    : user.createdAt,
                                   'dd.MM.yyyy',
                                   'Neznámy'
                                 )}
@@ -1015,9 +1049,15 @@ const BasicUserManagement: React.FC = () => {
                     <SelectValue placeholder="Vyberte rolu" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">👑 Platform Admin (úplné práva)</SelectItem>
-                    <SelectItem value="company_admin">🏢 Admin Firmy</SelectItem>
-                    <SelectItem value="investor">💼 Investor (Read-only)</SelectItem>
+                    <SelectItem value="admin">
+                      👑 Platform Admin (úplné práva)
+                    </SelectItem>
+                    <SelectItem value="company_admin">
+                      🏢 Admin Firmy
+                    </SelectItem>
+                    <SelectItem value="investor">
+                      💼 Investor (Read-only)
+                    </SelectItem>
                     <SelectItem value="employee">👤 Zamestnanec</SelectItem>
                     <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
                     <SelectItem value="sales_rep">💰 Obchodník</SelectItem>
@@ -1027,118 +1067,124 @@ const BasicUserManagement: React.FC = () => {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="platform">Platforma *</Label>
+              <Select
+                value={userForm.platformId}
+                onValueChange={value =>
+                  setUserForm(prev => ({
+                    ...prev,
+                    platformId: value,
+                  }))
+                }
+                disabled={
+                  loadingPlatforms ||
+                  (state.user?.role === 'admin' && !!state.user?.platformId)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      state.user?.role === 'admin' && state.user?.platformId
+                        ? (platforms.find(
+                            (p: Record<string, unknown>) =>
+                              p.id === state.user?.platformId
+                          )?.name as string) || 'Vaša platforma'
+                        : 'Vyberte platformu'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {platforms.map((platform: Record<string, unknown>) => (
+                    <SelectItem
+                      key={platform.id as string}
+                      value={platform.id as string}
+                    >
+                      🌐 {platform.name as string}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Typography className="text-xs text-muted-foreground mt-1">
+                {state.user?.role === 'admin'
+                  ? 'Používatelia budú vytvorení vo vašej platforme'
+                  : 'Vyberte platformu ku ktorej bude používateľ patriť'}
+              </Typography>
+              {loadingPlatforms && (
+                <div className="flex items-center mt-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                  <Typography className="text-sm text-muted-foreground">
+                    Načítavam platformy...
+                  </Typography>
+                </div>
+              )}
+            </div>
+
+            {userForm.role === 'investor' && (
               <div>
-                <Label htmlFor="platform">
-                  Platforma *
+                <Label htmlFor="investor">
+                  Priradenie k spoluinvestorovi *
                 </Label>
                 <Select
-                  value={userForm.platformId}
+                  value={userForm.linkedInvestorId}
                   onValueChange={value =>
                     setUserForm(prev => ({
                       ...prev,
-                      platformId: value,
+                      linkedInvestorId: value,
                     }))
                   }
-                  disabled={
-                    loadingPlatforms || 
-                    (state.user?.role === 'admin' && !!state.user?.platformId)
-                  }
+                  disabled={loadingInvestors}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={
-                      state.user?.role === 'admin' && state.user?.platformId
-                        ? platforms.find((p: Record<string, unknown>) => p.id === state.user?.platformId)?.name as string || 'Vaša platforma'
-                        : 'Vyberte platformu'
-                    } />
+                    <SelectValue placeholder="Vyberte spoluinvestora" />
                   </SelectTrigger>
                   <SelectContent>
-                    {platforms.map((platform: Record<string, unknown>) => (
-                      <SelectItem
-                        key={platform.id as string}
-                        value={platform.id as string}
-                      >
-                        🌐 {platform.name as string}
+                    {investors.length > 0 ? (
+                      investors.map(investor => (
+                        <SelectItem
+                          key={investor.id as string}
+                          value={investor.id as string}
+                        >
+                          💼 {investor.firstName as string}{' '}
+                          {investor.lastName as string}
+                          {(investor.companies as Record<string, unknown>[])
+                            ?.length > 0 &&
+                            ` - Firmy: ${(
+                              investor.companies as Record<string, unknown>[]
+                            )
+                              ?.map(
+                                (c: Record<string, unknown>) =>
+                                  `${c.companyName as string} (${c.ownershipPercentage as number}%)`
+                              )
+                              .join(', ')}`}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-investors" disabled>
+                        Žiadni investori v databáze
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
                 <Typography className="text-xs text-muted-foreground mt-1">
-                  {state.user?.role === 'admin' 
-                    ? 'Používatelia budú vytvorení vo vašej platforme' 
-                    : 'Vyberte platformu ku ktorej bude používateľ patriť'}
+                  Používateľ bude vidieť len firmy kde má tento investor podiely
                 </Typography>
-                {loadingPlatforms && (
+                {loadingInvestors && (
                   <div className="flex items-center mt-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
                     <Typography className="text-sm text-muted-foreground">
-                      Načítavam platformy...
+                      Načítavam investorov...
                     </Typography>
                   </div>
                 )}
-              </div>
-
-              {userForm.role === 'investor' && (
-                <div>
-                  <Label htmlFor="investor">
-                    Priradenie k spoluinvestorovi *
-                  </Label>
-                  <Select
-                    value={userForm.linkedInvestorId}
-                    onValueChange={value =>
-                      setUserForm(prev => ({
-                        ...prev,
-                        linkedInvestorId: value,
-                      }))
-                    }
-                    disabled={loadingInvestors}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte spoluinvestora" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {investors.length > 0 ? (
-                        investors.map(investor => (
-                          <SelectItem
-                            key={investor.id as string}
-                            value={investor.id as string}
-                          >
-                            💼 {investor.firstName as string}{' '}
-                            {investor.lastName as string}
-                            {(investor.companies as Record<string, unknown>[])?.length > 0 && 
-                              ` - Firmy: ${(investor.companies as Record<string, unknown>[])
-                                ?.map(
-                                  (c: Record<string, unknown>) =>
-                                    `${c.companyName as string} (${c.ownershipPercentage as number}%)`
-                                )
-                                .join(', ')}`
-                            }
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-investors" disabled>
-                          Žiadni investori v databáze
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Typography className="text-xs text-muted-foreground mt-1">
-                    Používateľ bude vidieť len firmy kde má tento investor podiely
+                {!loadingInvestors && investors.length === 0 && (
+                  <Typography className="text-xs text-amber-600 mt-1">
+                    ⚠️ Žiadni investori nenájdení. Vytvorte investorov v sekcii
+                    "🤝 Správa spoluinvestorov".
                   </Typography>
-                  {loadingInvestors && (
-                    <div className="flex items-center mt-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                      <Typography className="text-sm text-muted-foreground">
-                        Načítavam investorov...
-                      </Typography>
-                    </div>
-                  )}
-                  {!loadingInvestors && investors.length === 0 && (
-                    <Typography className="text-xs text-amber-600 mt-1">
-                      ⚠️ Žiadni investori nenájdení. Vytvorte investorov v sekcii "🤝 Správa spoluinvestorov".
-                    </Typography>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter
             className={`${isMobile ? 'flex-col-reverse gap-2' : 'flex-row gap-2'}`}
@@ -1268,12 +1314,16 @@ const BasicUserManagement: React.FC = () => {
                     <SelectValue placeholder="Vyberte rolu" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="investor">💼 Investor (Read-only)</SelectItem>
+                    <SelectItem value="investor">
+                      💼 Investor (Read-only)
+                    </SelectItem>
                     <SelectItem value="employee">👤 Zamestnanec</SelectItem>
                     <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
                     <SelectItem value="sales_rep">💰 Obchodník</SelectItem>
                     <SelectItem value="temp_worker">⏱️ Brigádnik</SelectItem>
-                    <SelectItem value="company_admin">🏢 Admin Firmy</SelectItem>
+                    <SelectItem value="company_admin">
+                      🏢 Admin Firmy
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1281,19 +1331,21 @@ const BasicUserManagement: React.FC = () => {
 
             {/* Platform Selector in Edit */}
             <div>
-              <Label htmlFor="edit-platform">
-                Platforma *
-              </Label>
+              <Label htmlFor="edit-platform">Platforma *</Label>
               <Select
                 value={userForm.platformId}
-                onValueChange={value =>
+                onValueChange={value => {
+                  logger.debug('🌐 Platform changed:', {
+                    from: userForm.platformId,
+                    to: value,
+                  });
                   setUserForm(prev => ({
                     ...prev,
                     platformId: value,
-                  }))
-                }
+                  }));
+                }}
                 disabled={
-                  loadingPlatforms || 
+                  loadingPlatforms ||
                   (state.user?.role === 'admin' && !!state.user?.platformId)
                 }
               >
@@ -1311,19 +1363,23 @@ const BasicUserManagement: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {state.user?.role === 'admin' && (
+              {state.user?.role === 'admin' && state.user?.platformId && (
                 <Typography className="text-xs text-muted-foreground mt-1">
-                  Nemôžete zmeniť platformu používateľa
+                  Nemôžete zmeniť platformu používateľa (Admin s platformId:{' '}
+                  {state.user.platformId})
+                </Typography>
+              )}
+              {!loadingPlatforms && platforms.length === 0 && (
+                <Typography className="text-xs text-destructive mt-1">
+                  ⚠️ Žiadne platformy sa nenačítali
                 </Typography>
               )}
             </div>
-            
+
             {/* Investor Selector in Edit - ak je investor */}
             {userForm.role === 'investor' && (
               <div>
-                <Label htmlFor="edit-investor">
-                  Spoluinvestor *
-                </Label>
+                <Label htmlFor="edit-investor">Spoluinvestor *</Label>
                 <Select
                   value={userForm.linkedInvestorId}
                   onValueChange={value =>
