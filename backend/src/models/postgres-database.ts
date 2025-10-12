@@ -10346,7 +10346,7 @@ export class PostgresDatabase {
           l.contract_document_url as "contractDocumentUrl",
           l.payment_schedule_url as "paymentScheduleUrl",
           l.photos_zip_url as "photosZipUrl",
-          l.platform_id as "platformId",
+          COALESCE(l.platform_id, c.platform_id) as "platformId",
           l.created_at as "createdAt", l.updated_at as "updatedAt",
           v.brand as "vehicleBrand", v.model as "vehicleModel", 
           v.license_plate as "vehicleLicensePlate", v.year as "vehicleYear",
