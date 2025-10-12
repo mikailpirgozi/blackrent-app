@@ -1,9 +1,9 @@
 import { DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
-import { authenticateToken } from '../middleware/auth.js';
-import { checkPermissions } from '../middleware/permissions.js';
-import { r2Storage } from '../utils/r2-storage.js';
+import { authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
+import { r2Storage } from '../utils/r2-storage';
 
 const router = express.Router();
 
@@ -125,12 +125,12 @@ function getFolderStats(files: R2File[]): Record<string, { count: number; size: 
  * GET /api/r2-files/list
  * List files with filtering, search, and pagination
  */
-router.get('/list', authenticateToken, checkPermissions(['admin']), async (req: Request, res: Response): Promise<void> => {
+router.get('/list', authenticateToken, checkPermission('*', 'read'), async (req: Request, res: Response): Promise<void> => {
   try {
     const query = ListFilesQuerySchema.parse(req.query);
 
     // Get R2 client
-    const client = (r2Storage as { client: unknown }).client;
+    const client = (r2Storage as any).client;
     if (!client) {
       res.status(500).json({ error: 'R2 client not initialized' });
       return;
@@ -177,7 +177,7 @@ router.get('/list', authenticateToken, checkPermissions(['admin']), async (req: 
     res.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
+      res.status(400).json({ error: 'Invalid query parameters', details: error.issues });
       return;
     }
     console.error('❌ R2 list files error:', error);
@@ -189,10 +189,10 @@ router.get('/list', authenticateToken, checkPermissions(['admin']), async (req: 
  * GET /api/r2-files/stats
  * Get storage statistics
  */
-router.get('/stats', authenticateToken, checkPermissions(['admin']), async (req: Request, res: Response): Promise<void> => {
+router.get('/stats', authenticateToken, checkPermission('*', 'read'), async (req: Request, res: Response): Promise<void> => {
   try {
     // Get R2 client
-    const client = (r2Storage as { client: unknown }).client;
+    const client = (r2Storage as any).client;
     if (!client) {
       res.status(500).json({ error: 'R2 client not initialized' });
       return;
@@ -237,7 +237,7 @@ router.get('/stats', authenticateToken, checkPermissions(['admin']), async (req:
  * DELETE /api/r2-files/delete
  * Delete a single file
  */
-router.delete('/delete', authenticateToken, checkPermissions(['admin']), async (req: Request, res: Response): Promise<void> => {
+router.delete('/delete', authenticateToken, checkPermission('*', 'delete'), async (req: Request, res: Response): Promise<void> => {
   try {
     const body = DeleteFileSchema.parse(req.body);
 
@@ -246,7 +246,7 @@ router.delete('/delete', authenticateToken, checkPermissions(['admin']), async (
     res.json({ success: true, message: 'File deleted successfully' });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid request body', details: error.errors });
+      res.status(400).json({ error: 'Invalid request body', details: error.issues });
       return;
     }
     console.error('❌ R2 delete file error:', error);
@@ -258,7 +258,7 @@ router.delete('/delete', authenticateToken, checkPermissions(['admin']), async (
  * POST /api/r2-files/bulk-delete
  * Delete multiple files
  */
-router.post('/bulk-delete', authenticateToken, checkPermissions(['admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/bulk-delete', authenticateToken, checkPermission('*', 'delete'), async (req: Request, res: Response): Promise<void> => {
   try {
     const body = BulkDeleteSchema.parse(req.body);
 
@@ -277,7 +277,7 @@ router.post('/bulk-delete', authenticateToken, checkPermissions(['admin']), asyn
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid request body', details: error.errors });
+      res.status(400).json({ error: 'Invalid request body', details: error.issues });
       return;
     }
     console.error('❌ R2 bulk delete error:', error);
@@ -289,12 +289,12 @@ router.post('/bulk-delete', authenticateToken, checkPermissions(['admin']), asyn
  * POST /api/r2-files/delete-by-prefix
  * Delete all files matching a prefix (dangerous!)
  */
-router.post('/delete-by-prefix', authenticateToken, checkPermissions(['admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/delete-by-prefix', authenticateToken, checkPermission('*', 'delete'), async (req: Request, res: Response): Promise<void> => {
   try {
     const body = DeleteByPrefixSchema.parse(req.body);
 
     // Get R2 client
-    const client = (r2Storage as { client: unknown }).client;
+    const client = (r2Storage as any).client;
     if (!client) {
       res.status(500).json({ error: 'R2 client not initialized' });
       return;
@@ -334,7 +334,7 @@ router.post('/delete-by-prefix', authenticateToken, checkPermissions(['admin']),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid request body', details: error.errors });
+      res.status(400).json({ error: 'Invalid request body', details: error.issues });
       return;
     }
     console.error('❌ R2 delete by prefix error:', error);

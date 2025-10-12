@@ -42,6 +42,7 @@ const RentalList = lazy(() => import('./components/rentals/RentalList'));
 const EmailManagementDashboard = lazy(
   () => import('./components/email-management/EmailManagementLayout')
 );
+const R2FileManager = lazy(() => import('./components/admin/R2FileManager'));
 
 const CustomerList = lazy(
   () => import('./components/customers/CustomerListNew')
@@ -94,16 +95,15 @@ const AppContent: React.FC = () => {
     try {
       // Run optimized parallel startup (< 1s)
       optimizedStartup();
-      
+
       // Initialize Enterprise PWA systems
-      Promise.all([
-        indexedDBManager.init(),
-        crashDetector.initialize(),
-      ]).then(() => {
-        logger.info('✅ Enterprise PWA systems initialized');
-      }).catch((error) => {
-        logger.error('❌ PWA initialization failed', error);
-      });
+      Promise.all([indexedDBManager.init(), crashDetector.initialize()])
+        .then(() => {
+          logger.info('✅ Enterprise PWA systems initialized');
+        })
+        .catch(error => {
+          logger.error('❌ PWA initialization failed', error);
+        });
     } catch (error) {
       logger.error('❌ Optimized startup failed', error);
     }
@@ -327,7 +327,7 @@ const AppContent: React.FC = () => {
                             </ProtectedRoute>
                           }
                         />
-                        
+
                         {/* 🧪 TEST ROUTE: Removed - old photo system */}
 
                         {/* NEW SMART AVAILABILITY - Optimized replacement */}
@@ -371,6 +371,23 @@ const AppContent: React.FC = () => {
                                 <ErrorBoundary>
                                   <Suspense fallback={<PageLoader />}>
                                     <PermissionManagementPage />
+                                  </Suspense>
+                                </ErrorBoundary>
+                              </Layout>
+                            </ProtectedRoute>
+                          }
+                        />
+
+                        <Route
+                          path="/admin/r2-files"
+                          element={
+                            <ProtectedRoute
+                              allowedRoles={['admin', 'super_admin']}
+                            >
+                              <Layout>
+                                <ErrorBoundary>
+                                  <Suspense fallback={<PageLoader />}>
+                                    <R2FileManager />
                                   </Suspense>
                                 </ErrorBoundary>
                               </Layout>

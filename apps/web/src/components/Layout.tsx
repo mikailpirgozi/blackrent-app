@@ -18,6 +18,7 @@ import {
   Shield as SecurityOutlined,
   CreditCard as CreditCardIcon,
   Building2 as Building2Icon,
+  HardDrive as HardDriveIcon,
 } from 'lucide-react';
 
 // shadcn/ui components
@@ -207,6 +208,13 @@ export default function Layout({ children }: LayoutProps) {
       icon: <MailIcon />,
       path: '/email-monitoring',
       resource: 'users' as const,
+      adminOnly: true, // ✅ Only for admin users
+    },
+    {
+      text: 'R2 File Manager',
+      icon: <HardDriveIcon />,
+      path: '/admin/r2-files',
+      resource: '*' as const,
       adminOnly: true, // ✅ Only for admin users
     },
   ];

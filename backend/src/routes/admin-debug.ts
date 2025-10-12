@@ -1,5 +1,5 @@
 import express from 'express';
-import { postgresDatabase } from '../models/database.js';
+import { postgresDatabase } from '../models/postgres-database.js';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator.js';
 import { r2Storage } from '../utils/r2-storage.js';
 
@@ -9,12 +9,12 @@ const router = express.Router();
 router.get('/companies/:name', async (req, res) => {
   try {
     const name = req.params.name;
-    const result = await postgresDatabase.pool.query(
-      'SELECT id, name, protocol_display_name, owner_name FROM companies WHERE LOWER(name) LIKE LOWER($1)',
-      [`%${name}%`]
+    const companies = await postgresDatabase.getCompanies();
+    const filtered = companies.filter((c) => 
+      c.name.toLowerCase().includes(name.toLowerCase())
     );
     
-    res.json({ companies: result.rows });
+    res.json({ companies: filtered });
   } catch (error) {
     console.error('Error fetching company:', error);
     res.status(500).json({ error: 'Failed to fetch company', details: error instanceof Error ? error.message : 'Unknown error' });
@@ -27,10 +27,7 @@ router.post('/companies/:id/set-protocol-name', async (req, res) => {
     const { id } = req.params;
     const { protocolDisplayName } = req.body;
     
-    await postgresDatabase.pool.query(
-      'UPDATE companies SET protocol_display_name = $1 WHERE id = $2',
-      [protocolDisplayName, id]
-    );
+    await postgresDatabase.updateCompany(id, { protocolDisplayName });
     
     res.json({ success: true, message: `Updated protocol_display_name to "${protocolDisplayName}"` });
   } catch (error) {
@@ -64,9 +61,20 @@ router.post('/protocols/:type/:id/regenerate', async (req, res) => {
     console.log('📋 Current rental data:', JSON.stringify(protocol.rentalData, null, 2));
     
     // Generate new PDF
-    const pdfBuffer = type === 'handover' 
-      ? await generateHandoverPDF(protocol)
-      : await generateReturnPDF(protocol);
+    let pdfBuffer: Buffer;
+    if (type === 'handover') {
+      const handoverProtocol = protocol as Awaited<ReturnType<typeof postgresDatabase.getHandoverProtocolById>>;
+      if (!handoverProtocol) {
+        return res.status(404).json({ error: 'Handover protocol not found' });
+      }
+      pdfBuffer = await generateHandoverPDF(handoverProtocol);
+    } else {
+      const returnProtocol = protocol as Awaited<ReturnType<typeof postgresDatabase.getReturnProtocolById>>;
+      if (!returnProtocol) {
+        return res.status(404).json({ error: 'Return protocol not found' });
+      }
+      pdfBuffer = await generateReturnPDF(returnProtocol);
+    }
     
     // Upload to R2
     const filename = `protocols/${type}/${id}-${Date.now()}.pdf`;
@@ -111,14 +119,14 @@ router.get('/rentals/:rentalId/protocols', async (req, res) => {
     
     res.json({
       rentalId,
-      handover: handoverProtocols.map(p => ({
+      handover: handoverProtocols.map((p: any) => ({
         id: p.id,
         createdAt: p.createdAt,
         pdfUrl: p.pdfUrl,
         vehicleCompany: p.rentalData?.vehicle?.company,
         ownerCompanyId: p.rentalData?.vehicle?.ownerCompanyId
       })),
-      return: returnProtocols.map(p => ({
+      return: returnProtocols.map((p: any) => ({
         id: p.id,
         createdAt: p.createdAt,
         pdfUrl: p.pdfUrl,

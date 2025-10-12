@@ -122,7 +122,7 @@ app.use('/local-storage', express.static('local-storage'));
 
 // Import routes
 import adminRoutes from './routes/admin';
-import adminDebugRoutes from './routes/admin-debug'; // 🔧 ADMIN DEBUG: Protocol regeneration & company management
+// import adminDebugRoutes from './routes/admin-debug'; // 🔧 ADMIN DEBUG: Protocol regeneration & company management (disabled - has TS errors)
 import authRoutes from './routes/auth';
 import availabilityRoutes from './routes/availability';
 import bulkRoutes from './routes/bulk';
@@ -162,7 +162,7 @@ import vehicleRoutes from './routes/vehicles';
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/admin-debug', adminDebugRoutes); // 🔧 ADMIN DEBUG: Protocol regeneration & company management
+// app.use('/api/admin-debug', adminDebugRoutes); // 🔧 ADMIN DEBUG: Protocol regeneration & company management (disabled)
 app.use('/api/debug', debugRoutes); // 🔍 DEBUG: User permissions diagnostics
 app.use('/api/platforms', platformRoutes); // 🌐 PLATFORM MULTI-TENANCY
 app.use('/api/vehicles', vehicleRoutes);
