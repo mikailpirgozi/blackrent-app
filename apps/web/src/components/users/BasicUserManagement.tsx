@@ -1314,6 +1314,22 @@ const BasicUserManagement: React.FC = () => {
                     <SelectValue placeholder="Vyberte rolu" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Super Admin - only visible to super_admin */}
+                    {state.user?.role === 'super_admin' && (
+                      <SelectItem value="super_admin">
+                        ⭐ Super Admin (všetky platformy)
+                      </SelectItem>
+                    )}
+                    {/* Platform Admin - visible to super_admin and admin */}
+                    {(state.user?.role === 'super_admin' ||
+                      state.user?.role === 'admin') && (
+                      <SelectItem value="admin">
+                        👑 Platform Admin (úplné práva)
+                      </SelectItem>
+                    )}
+                    <SelectItem value="company_admin">
+                      🏢 Admin Firmy
+                    </SelectItem>
                     <SelectItem value="investor">
                       💼 Investor (Read-only)
                     </SelectItem>
@@ -1321,9 +1337,6 @@ const BasicUserManagement: React.FC = () => {
                     <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
                     <SelectItem value="sales_rep">💰 Obchodník</SelectItem>
                     <SelectItem value="temp_worker">⏱️ Brigádnik</SelectItem>
-                    <SelectItem value="company_admin">
-                      🏢 Admin Firmy
-                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
