@@ -194,6 +194,7 @@ export class SettlementRepository extends BaseRepository {
       totalIncome: row.total_revenue || 0,
       totalExpenses: row.total_expenses || 0,
       totalCommission: row.commission || 0,
+      totalToOwner: row.total_to_owner || 0,
       profit: row.net_amount || 0,
       company: row.company || undefined,
       vehicleId: row.vehicle_id || undefined

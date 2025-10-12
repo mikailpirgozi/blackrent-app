@@ -318,10 +318,11 @@ export interface Settlement {
   };
   rentals: Rental[];
   expenses: Expense[];
-  totalIncome: number;
+  totalIncome: number; // Money I actually received (VRP + cash + bank)
   totalExpenses: number;
-  totalCommission: number;
-  profit: number;
+  totalCommission: number; // All commissions from all rentals
+  totalToOwner: number; // Amount to pay to owner (positive) or receive from owner (negative)
+  profit: number; // Always = totalCommission
   company?: string;
   vehicleId?: string;
 }
@@ -417,6 +418,7 @@ export interface User {
   isActive: boolean; // Aktívny používateľ
   lastLogin?: Date; // Posledné prihlásenie
   permissions?: Permission[]; // Custom permissions
+  customPermissions?: Record<string, unknown> | null; // JSON custom permissions from DB
   signatureTemplate?: string; // Base64 signature template for employees
   createdAt: Date;
   updatedAt?: Date;

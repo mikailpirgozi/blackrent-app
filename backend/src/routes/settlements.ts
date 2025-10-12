@@ -184,14 +184,49 @@ router.post('/',
     
     console.log(`✅ Filtered expenses: ${filteredExpenses.length}`);
     
-    // Vypočítaj skutočné hodnoty
-    const calculatedIncome = filteredRentals.reduce((sum, rental) => sum + rental.totalPrice, 0);
+    // 🔥 NEW LOGIC: Calculate based on payment method
+    // Income = only rentals where I received money (VRP, cash, bank_transfer)
+    // For "direct_to_owner" - owner already has money, I only receive commission
+    
+    const rentalsIReceived = filteredRentals.filter(r => 
+      r.paymentMethod === 'vrp' || 
+      r.paymentMethod === 'cash' || 
+      r.paymentMethod === 'bank_transfer'
+    );
+    
+    const rentalsOwnerReceived = filteredRentals.filter(r => 
+      r.paymentMethod === 'direct_to_owner'
+    );
+    
+    // Calculate income (money I actually received)
+    const calculatedIncome = rentalsIReceived.reduce((sum, rental) => sum + rental.totalPrice, 0);
+    
+    // Calculate expenses
     const calculatedExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const calculatedCommission = filteredRentals.reduce((sum, rental) => {
-      // FIXED: Use actual commission from rental instead of calculating 10%
-      return sum + rental.commission;
-    }, 0);
-    const calculatedProfit = calculatedIncome - calculatedExpenses - calculatedCommission;
+    
+    // Calculate all commissions
+    const calculatedCommission = filteredRentals.reduce((sum, rental) => sum + rental.commission, 0);
+    
+    // Calculate amount to pay/receive from owner
+    // rentalsIReceived: I pay owner (income - commissions from those rentals)
+    // rentalsOwnerReceived: Owner pays me (commissions from those rentals)
+    const commissionsFromMyRentals = rentalsIReceived.reduce((sum, rental) => sum + rental.commission, 0);
+    const commissionsFromOwnerRentals = rentalsOwnerReceived.reduce((sum, rental) => sum + rental.commission, 0);
+    
+    const totalToOwner = (calculatedIncome - commissionsFromMyRentals) - commissionsFromOwnerRentals;
+    // Positive = I pay owner, Negative = Owner pays me
+    
+    // Calculate profit (always sum of all commissions)
+    const calculatedProfit = calculatedCommission;
+    
+    console.log(`📊 Settlement calculation:
+      - Rentals I received: ${rentalsIReceived.length} (${calculatedIncome}€)
+      - Rentals owner received: ${rentalsOwnerReceived.length}
+      - Total income: ${calculatedIncome}€
+      - Total commissions: ${calculatedCommission}€
+      - To/From owner: ${totalToOwner}€ (${totalToOwner >= 0 ? 'I pay owner' : 'Owner pays me'})
+      - My profit: ${calculatedProfit}€
+    `);
 
     const createdSettlement = await postgresDatabase.createSettlement({
       company,
@@ -201,6 +236,7 @@ router.post('/',
       totalIncome: calculatedIncome,
       totalExpenses: calculatedExpenses,
       commission: calculatedCommission,
+      totalToOwner: totalToOwner,
       profit: calculatedProfit,
       summary: `Vyúčtovanie pre ${company} za obdobie ${periodString}`,
       rentals: filteredRentals,

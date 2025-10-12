@@ -74,59 +74,22 @@ export function useCreateVehicle() {
 
   return useMutation({
     mutationFn: (vehicle: Vehicle) => apiService.createVehicle(vehicle),
-    onMutate: async newVehicle => {
-      // Cancel queries
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.vehicles.all,
-      });
-
-      // Optimistická aktualizácia
-      const previousVehicles = queryClient.getQueryData(
-        queryKeys.vehicles.lists()
-      );
-
-      const optimisticVehicle = {
-        ...newVehicle,
-        id: `temp-${Date.now()}`,
-      };
-
-      queryClient.setQueryData(
-        queryKeys.vehicles.lists(),
-        (old: Vehicle[] = []) => [...old, optimisticVehicle as Vehicle]
-      );
-
-      return { previousVehicles };
-    },
-    onError: (_err, _newVehicle, context) => {
-      // Rollback pri chybe
-      if (context?.previousVehicles) {
-        queryClient.setQueryData(
-          queryKeys.vehicles.lists(),
-          context.previousVehicles
-        );
-      }
-    },
     onSuccess: data => {
-      // ✅ OPTIMIZED: Update cache directly without invalidation
-      queryClient.setQueryData(
-        queryKeys.vehicles.lists(),
-        (old: Vehicle[] = []) => {
-          // Replace optimistic vehicle with real data
-          return old.map(v => (v.id.toString().startsWith('temp-') ? data : v));
-        }
-      );
-
       // Trigger WebSocket notification (background)
       window.dispatchEvent(
         new CustomEvent('vehicle-created', { detail: data })
       );
     },
     onSettled: () => {
-      // ✅ OPTIMIZED: Background invalidation only (no blocking refetch)
+      // ✅ CRITICAL FIX: Invalidate all vehicle queries to ensure fresh data
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vehicles.all,
+      });
+
+      // ✅ Background Service Worker cache invalidation
       setTimeout(() => {
         swCacheInvalidators.vehicles();
       }, 100);
-      // Don't invalidate React Query cache - we updated it directly in onSuccess
     },
   });
 }
@@ -137,61 +100,22 @@ export function useUpdateVehicle() {
 
   return useMutation({
     mutationFn: (vehicle: Vehicle) => apiService.updateVehicle(vehicle),
-    onMutate: async updatedVehicle => {
-      // Cancel queries
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.vehicles.detail(updatedVehicle.id),
-      });
-
-      // Optimistická aktualizácia detailu
-      const previousVehicle = queryClient.getQueryData(
-        queryKeys.vehicles.detail(updatedVehicle.id)
-      );
-
-      queryClient.setQueryData(
-        queryKeys.vehicles.detail(updatedVehicle.id),
-        updatedVehicle
-      );
-
-      // Optimistická aktualizácia listu
-      queryClient.setQueryData(
-        queryKeys.vehicles.lists(),
-        (old: Vehicle[] = []) =>
-          old.map(v => (v.id === updatedVehicle.id ? updatedVehicle : v))
-      );
-
-      return { previousVehicle };
-    },
-    onError: (_err, _updatedVehicle, context) => {
-      // Rollback
-      if (context?.previousVehicle) {
-        queryClient.setQueryData(
-          queryKeys.vehicles.detail(_updatedVehicle.id),
-          context.previousVehicle
-        );
-      }
-    },
     onSuccess: (data: void | Vehicle) => {
-      // ✅ OPTIMIZED: Update cache directly with real data
-      if (data && typeof data === 'object' && 'id' in data) {
-        queryClient.setQueryData(queryKeys.vehicles.detail(data.id), data);
-        queryClient.setQueryData(
-          queryKeys.vehicles.lists(),
-          (old: Vehicle[] = []) => old.map(v => (v.id === data.id ? data : v))
-        );
-      }
-
       // Trigger WebSocket notification (background)
       window.dispatchEvent(
         new CustomEvent('vehicle-updated', { detail: data })
       );
     },
     onSettled: () => {
-      // ✅ OPTIMIZED: Background cache invalidation only
+      // ✅ CRITICAL FIX: Invalidate all vehicle queries to ensure fresh data
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vehicles.all,
+      });
+
+      // ✅ Background Service Worker cache invalidation
       setTimeout(() => {
         swCacheInvalidators.vehicles();
       }, 100);
-      // Don't invalidate React Query cache - we updated it directly
     },
   });
 }
@@ -202,30 +126,6 @@ export function useDeleteVehicle() {
 
   return useMutation({
     mutationFn: (id: string) => apiService.deleteVehicle(id),
-    onMutate: async deletedId => {
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.vehicles.all,
-      });
-
-      const previousVehicles = queryClient.getQueryData(
-        queryKeys.vehicles.lists()
-      );
-
-      queryClient.setQueryData(
-        queryKeys.vehicles.lists(),
-        (old: Vehicle[] = []) => old.filter(v => v.id !== deletedId)
-      );
-
-      return { previousVehicles };
-    },
-    onError: (_err, _deletedId, context) => {
-      if (context?.previousVehicles) {
-        queryClient.setQueryData(
-          queryKeys.vehicles.lists(),
-          context.previousVehicles
-        );
-      }
-    },
     onSuccess: (_data, deletedId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(

@@ -85,11 +85,21 @@ import { logger } from '@/utils/smartLogger';
 
 const SettlementListNew: React.FC = () => {
   // ✅ MIGRATED: React Query hooks instead of AppContext
-  const { data: settlements = [] } = useSettlements();
+  const { data: settlements = [], dataUpdatedAt } = useSettlements();
   const { data: vehicles = [] } = useVehicles();
   const { data: companies = [] } = useCompanies();
   const createSettlementMutation = useCreateSettlement();
   const deleteSettlementMutation = useDeleteSettlement();
+
+  // 🔍 DEBUG: Log when settlements change
+  React.useEffect(() => {
+    logger.debug('🔄 Settlements updated:', {
+      count: settlements?.length,
+      dataUpdatedAt: new Date(dataUpdatedAt),
+      timestamp: Date.now(),
+      data: settlements,
+    });
+  }, [settlements, dataUpdatedAt]);
 
   // Helper functions for compatibility
   const createSettlement = async (settlement: Settlement) => {
@@ -127,7 +137,7 @@ const SettlementListNew: React.FC = () => {
 
   // Get unique values for filters
   const uniqueCompanies = useMemo(
-    () => companies.map(c => c.name).sort(),
+    () => Array.from(new Set(companies.map(c => c.name))).sort(),
     [companies]
   );
 
@@ -284,6 +294,7 @@ const SettlementListNew: React.FC = () => {
             totalIncome: 0, // Backend vypočíta
             totalExpenses: 0, // Backend vypočíta
             totalCommission: 0, // Backend vypočíta
+            totalToOwner: 0, // Backend vypočíta
             profit: 0, // Backend vypočíta
             rentals: [], // Backend načíta
             expenses: [], // Backend načíta
@@ -308,6 +319,7 @@ const SettlementListNew: React.FC = () => {
             totalIncome: 0, // Backend vypočíta
             totalExpenses: 0, // Backend vypočíta
             totalCommission: 0, // Backend vypočíta
+            totalToOwner: 0, // Backend vypočíta
             profit: 0, // Backend vypočíta
             rentals: [], // Backend načíta
             expenses: [], // Backend načíta
@@ -956,9 +968,9 @@ const SettlementListNew: React.FC = () => {
                         <CommandEmpty>Žiadne firmy nenájdené</CommandEmpty>
                         <CommandList>
                           <CommandGroup>
-                            {uniqueCompanies.map(company => (
+                            {uniqueCompanies.map((company, index) => (
                               <CommandItem
-                                key={company}
+                                key={`${company}-${index}`}
                                 onSelect={() => {
                                   setSelectedCompanies(prev =>
                                     prev.includes(company)
@@ -985,9 +997,9 @@ const SettlementListNew: React.FC = () => {
                   </Popover>
                   {selectedCompanies.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {selectedCompanies.map(company => (
+                      {selectedCompanies.map((company, index) => (
                         <Badge
-                          key={company}
+                          key={`${company}-badge-${index}`}
                           variant="secondary"
                           className="px-2 py-1"
                         >

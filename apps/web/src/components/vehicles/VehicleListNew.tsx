@@ -193,8 +193,21 @@ export default function VehicleListNew() {
   ]);
 
   // Používame React Query pre načítanie vozidiel
-  const { data: vehicles = [], isLoading: vehiclesLoading } =
-    useVehicles(vehicleFilters);
+  const {
+    data: vehicles = [],
+    isLoading: vehiclesLoading,
+    dataUpdatedAt,
+  } = useVehicles(vehicleFilters);
+
+  // 🔍 DEBUG: Log when vehicles change
+  useEffect(() => {
+    logger.debug('🔄 Vehicles updated:', {
+      count: vehicles?.length,
+      dataUpdatedAt: new Date(dataUpdatedAt),
+      timestamp: Date.now(),
+      data: vehicles,
+    });
+  }, [vehicles, dataUpdatedAt]);
 
   // Kombinovaný loading state
   const isLoading = vehiclesLoading || companiesLoading || loading;

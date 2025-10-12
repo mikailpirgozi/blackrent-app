@@ -2800,13 +2800,14 @@ export class PostgresDatabase {
           lastName: row.last_name,
           role: row.role,
           platformId: row.platform_id,
-          linkedInvestorId: row.linked_investor_id, // ✅ Added: linked_investor_id mapping
+          linkedInvestorId: row.linked_investor_id,
           companyId: row.company_id, // DEPRECATED but kept for backward compatibility
           employeeNumber: row.employee_number,
           hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
           isActive: row.is_active ?? true,
           lastLogin: row.last_login ? new Date(row.last_login) : undefined,
           signatureTemplate: row.signature_template,
+          customPermissions: null, // TODO: Add custom_permissions column to database
           createdAt: new Date(row.created_at),
           updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
         };
@@ -2837,13 +2838,14 @@ export class PostgresDatabase {
           lastName: row.last_name,
           role: row.role,
           platformId: row.platform_id,
-          linkedInvestorId: row.linked_investor_id, // ✅ Added: linked_investor_id mapping
+          linkedInvestorId: row.linked_investor_id,
           companyId: row.company_id, // DEPRECATED but kept for backward compatibility
           employeeNumber: row.employee_number,
           hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
           isActive: row.is_active ?? true,
           lastLogin: row.last_login ? new Date(row.last_login) : undefined,
           signatureTemplate: row.signature_template,
+          customPermissions: null, // TODO: Add custom_permissions column to database
           createdAt: new Date(row.created_at),
           updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
         };
@@ -2937,14 +2939,14 @@ export class PostgresDatabase {
     try {
       const hashedPassword = await bcrypt.hash(user.password, 12);
       await client.query(
-        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, platform_id = $5, linked_investor_id = $6, company_id = $7, employee_number = $8, hire_date = $9, is_active = $10, first_name = $11, last_name = $12, signature_template = $13, updated_at = CURRENT_TIMESTAMP WHERE id = $14',
+        'UPDATE users SET username = $1, email = $2, password_hash = $3, role = $4, platform_id = $5, linked_investor_id = $6, company_id = $7, employee_number = $8, hire_date = $9, is_active = $10, first_name = $11, last_name = $12, signature_template = $13, custom_permissions = $14, updated_at = CURRENT_TIMESTAMP WHERE id = $15',
         [
           user.username, 
           user.email, 
           hashedPassword, 
           user.role,
-          user.platformId || null, // ✅ Added: platform_id support
-          user.linkedInvestorId || null, // ✅ Added: linked_investor_id support
+          user.platformId || null,
+          user.linkedInvestorId || null,
           user.companyId || null, // DEPRECATED but kept for backward compatibility
           user.employeeNumber,
           user.hireDate,
@@ -2952,6 +2954,7 @@ export class PostgresDatabase {
           user.firstName,
           user.lastName,
           user.signatureTemplate,
+          user.customPermissions ? JSON.stringify(user.customPermissions) : null, // ✅ Added: custom_permissions support
           user.id
         ]
       );
@@ -2984,14 +2987,15 @@ export class PostgresDatabase {
         firstName: row.first_name,
         lastName: row.last_name,
         role: row.role,
-        platformId: row.platform_id, // ✅ Added: platform_id mapping
-        linkedInvestorId: row.linked_investor_id, // ✅ Added: linked_investor_id mapping
+        platformId: row.platform_id,
+        linkedInvestorId: row.linked_investor_id,
         companyId: row.company_id, // DEPRECATED but kept for backward compatibility
         employeeNumber: row.employee_number,
         hireDate: row.hire_date ? new Date(row.hire_date) : undefined,
         isActive: row.is_active ?? true,
         lastLogin: row.last_login ? new Date(row.last_login) : undefined,
-        permissions: [], // Default empty permissions
+        permissions: [], // Default empty permissions (legacy)
+        customPermissions: row.custom_permissions || null, // ✅ Added: custom_permissions
         signatureTemplate: row.signature_template,
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
@@ -6829,10 +6833,18 @@ export class PostgresDatabase {
           total_income DECIMAL(10,2) DEFAULT 0,
           total_expenses DECIMAL(10,2) DEFAULT 0,
           total_commission DECIMAL(10,2) DEFAULT 0,
+          total_to_owner DECIMAL(10,2) DEFAULT 0,
           profit DECIMAL(10,2) DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      
+      // Add total_to_owner column if it doesn't exist (for existing tables)
+      await client.query(`
+        ALTER TABLE settlements 
+        ADD COLUMN IF NOT EXISTS total_to_owner DECIMAL(10,2) DEFAULT 0;
+      `);
+      
       logger.migration('✅ Settlements table ensured');
       
       logger.migration('✅ Settlements table ready');
@@ -6848,6 +6860,7 @@ export class PostgresDatabase {
           total_income,
           total_expenses, 
           total_commission,
+          total_to_owner,
           profit,
           created_at
         FROM settlements
@@ -6861,7 +6874,7 @@ export class PostgresDatabase {
       const allExpenses = await this.getExpenses();
 
       // Map to Settlement interface format
-      return result.rows.map((row: { id: string; period_from: string; period_to: string; company: string; total_revenue: string; total_commission: string; total_rentals: string; created_at: string; status: string; total_income?: string; total_expenses?: string; profit?: string }) => {
+      return result.rows.map((row: { id: string; period_from: string; period_to: string; company: string; total_revenue: string; total_commission: string; total_rentals: string; created_at: string; status: string; total_income?: string; total_expenses?: string; total_to_owner?: string; profit?: string }) => {
         const fromDate = new Date(row.period_from || new Date());
         const toDate = new Date(row.period_to || new Date());
         const company = row.company || 'Default Company';
@@ -6901,6 +6914,7 @@ export class PostgresDatabase {
           totalIncome: parseFloat(row.total_income || '0') || 0,
           totalExpenses: parseFloat(row.total_expenses || '0') || 0,
           totalCommission: parseFloat(row.total_commission || '0') || 0,
+          totalToOwner: parseFloat(row.total_to_owner || '0') || 0,
           profit: parseFloat(row.profit || '0') || 0,
           company: company,
           vehicleId: undefined
@@ -6965,6 +6979,7 @@ export class PostgresDatabase {
         totalIncome: parseFloat(row.total_income) || 0,
         totalExpenses: parseFloat(row.total_expenses) || 0,
         totalCommission: parseFloat(row.total_commission) || 0,
+        totalToOwner: parseFloat(row.total_to_owner) || 0,
         profit: parseFloat(row.profit) || 0,
         company: row.company || undefined,
         vehicleId: row.vehicle_id || undefined
@@ -6982,6 +6997,7 @@ export class PostgresDatabase {
     totalIncome?: number;
     totalExpenses?: number;
     commission?: number;
+    totalToOwner?: number;
     profit?: number;
     summary?: string;
     rentals?: Rental[];
@@ -7011,10 +7027,10 @@ export class PostgresDatabase {
       const result = await client.query(`
         INSERT INTO settlements (
           company, period, period_from, period_to, total_income, total_expenses, 
-          total_commission, profit
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          total_commission, total_to_owner, profit
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id, company, period, period_from, period_to, total_income, total_expenses, 
-                  total_commission, profit, created_at
+                  total_commission, total_to_owner, profit, created_at
       `, [
         settlementData.company || 'Default Company',
         settlementData.period || 'Current Period', 
@@ -7023,6 +7039,7 @@ export class PostgresDatabase {
         settlementData.totalIncome || 0,
         settlementData.totalExpenses || 0,
         settlementData.commission || 0,
+        settlementData.totalToOwner || 0,
         settlementData.profit || 0
       ]);
 
@@ -7040,6 +7057,7 @@ export class PostgresDatabase {
         totalIncome: parseFloat(row.total_income) || 0,
         totalExpenses: parseFloat(row.total_expenses) || 0,
         totalCommission: parseFloat(row.total_commission) || 0,
+        totalToOwner: parseFloat(row.total_to_owner) || 0,
         profit: parseFloat(row.profit) || 0,
         company: row.company || 'Default Company',
         vehicleId: undefined
@@ -7084,6 +7102,7 @@ export class PostgresDatabase {
         totalIncome: parseFloat(row.total_income) || 0,
         totalExpenses: parseFloat(row.total_expenses) || 0,
         totalCommission: parseFloat(row.total_commission) || 0,
+        totalToOwner: parseFloat(row.total_to_owner) || 0,
         profit: parseFloat(row.profit) || 0,
         company: row.company || undefined,
         vehicleId: undefined

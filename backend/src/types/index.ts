@@ -436,6 +436,7 @@ export interface Settlement {
   totalIncome: number;
   totalExpenses: number;
   totalCommission: number;
+  totalToOwner: number; // Amount to pay to owner (positive) or receive from owner (negative)
   profit: number;
   company?: string;
   vehicleId?: string;
@@ -510,6 +511,7 @@ export interface User {
   isActive: boolean; // Aktívny používateľ
   lastLogin?: Date; // Posledné prihlásenie
   permissions?: Permission[]; // Custom permissions
+  customPermissions?: Record<string, unknown> | null; // JSON custom permissions from DB
   signatureTemplate?: string; // Base64 signature template for employees
   linkedInvestorId?: string; // Prepojenie na investora pre automatické prístupy
   createdAt: Date;

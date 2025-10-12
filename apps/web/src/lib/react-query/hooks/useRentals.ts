@@ -92,50 +92,12 @@ export function useRentalsByCustomer(customerId: string) {
   });
 }
 
-// CREATE rental s optimistickými updates
+// CREATE rental
 export function useCreateRental() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (rental: Rental) => apiService.createRental(rental),
-    onMutate: async newRental => {
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.rentals.all,
-      });
-
-      const previousRentals = queryClient.getQueryData(
-        queryKeys.rentals.lists()
-      );
-
-      const optimisticRental = {
-        ...newRental,
-        id: `temp-${Date.now()}`,
-        status: 'pending' as const,
-        createdAt: new Date(),
-      };
-
-      queryClient.setQueryData(
-        queryKeys.rentals.lists(),
-        (old: Rental[] = []) => [optimisticRental as Rental, ...old]
-      );
-
-      // Invaliduj vehicle availability
-      if (newRental.vehicleId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.vehicles.availability(newRental.vehicleId),
-        });
-      }
-
-      return { previousRentals };
-    },
-    onError: (_err, _newRental, context) => {
-      if (context?.previousRentals) {
-        queryClient.setQueryData(
-          queryKeys.rentals.lists(),
-          context.previousRentals
-        );
-      }
-    },
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-created', { detail: data }));
@@ -148,6 +110,7 @@ export function useCreateRental() {
       );
     },
     onSettled: () => {
+      // ✅ CRITICAL FIX: Invalidate all rental queries to ensure fresh data
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.all,
       });
@@ -164,38 +127,6 @@ export function useUpdateRental() {
 
   return useMutation({
     mutationFn: (rental: Rental) => apiService.updateRental(rental),
-    onMutate: async _updatedRental => {
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.rentals.detail(_updatedRental.id),
-      });
-
-      const previousRental = queryClient.getQueryData(
-        queryKeys.rentals.detail(_updatedRental.id)
-      );
-
-      // Update detail
-      queryClient.setQueryData(
-        queryKeys.rentals.detail(_updatedRental.id),
-        _updatedRental
-      );
-
-      // Update list
-      queryClient.setQueryData(
-        queryKeys.rentals.lists(),
-        (old: Rental[] = []) =>
-          old.map(r => (r.id === _updatedRental.id ? _updatedRental : r))
-      );
-
-      return { previousRental };
-    },
-    onError: (_err, __updatedRental, context) => {
-      if (context?.previousRental) {
-        queryClient.setQueryData(
-          queryKeys.rentals.detail(__updatedRental.id),
-          context.previousRental
-        );
-      }
-    },
     onSuccess: data => {
       // Trigger WebSocket notification
       window.dispatchEvent(new CustomEvent('rental-updated', { detail: data }));
@@ -208,11 +139,9 @@ export function useUpdateRental() {
       );
     },
     onSettled: (_data, _error, variables) => {
+      // ✅ CRITICAL FIX: Invalidate all rental queries to ensure fresh data
       queryClient.invalidateQueries({
-        queryKey: queryKeys.rentals.detail(variables.id),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.rentals.lists(),
+        queryKey: queryKeys.rentals.all,
       });
 
       // Invaliduj vehicle availability
@@ -231,30 +160,6 @@ export function useDeleteRental() {
 
   return useMutation({
     mutationFn: (id: string) => apiService.deleteRental(id),
-    onMutate: async deletedId => {
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.rentals.all,
-      });
-
-      const previousRentals = queryClient.getQueryData(
-        queryKeys.rentals.lists()
-      );
-
-      queryClient.setQueryData(
-        queryKeys.rentals.lists(),
-        (old: Rental[] = []) => old.filter(r => r.id !== deletedId)
-      );
-
-      return { previousRentals };
-    },
-    onError: (_err, _deletedId, context) => {
-      if (context?.previousRentals) {
-        queryClient.setQueryData(
-          queryKeys.rentals.lists(),
-          context.previousRentals
-        );
-      }
-    },
     onSuccess: (_data, deletedId) => {
       // Trigger WebSocket notification
       window.dispatchEvent(
@@ -269,6 +174,7 @@ export function useDeleteRental() {
       );
     },
     onSettled: () => {
+      // ✅ CRITICAL FIX: Invalidate all rental queries to ensure fresh data
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.all,
       });
