@@ -64,4 +64,46 @@ cleanup-*.sh
 # Logs
 logs/
 *.log
+
+# Backups (never commit these!)
+backups/
+local-backups/
 complete-backups/
+r2-recovered-backups/
+temp-backup-before-restore-*/
+*.backup.restored
+
+# Test files
+test-*.js
+test-*.sh
+test-*.md
+test-*.html
+test-*.pdf
+test-*.txt
+test1.txt
+test2.txt
+
+# Legacy/Archive (never commit these!)
+archive/
+src 2/
+blackrent-new/
+apps/web/apps/
+apps/web-backup-disabled/
+customer-website/Anima/
+customer-website/archive/
+database/
+protocols/
+
+# Temporary files
+*.pdf
+*.jpg
+operator-avatar-*.jpg
+tesla-model-s-*.jpg
+vehicle-*.jpg
+
+# Duplicate configs
+*" 2."*
+* 2.js
+* 2.md
+* 2.ts
+* 2.tsx
