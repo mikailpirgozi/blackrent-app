@@ -99,17 +99,75 @@ router.get('/paginated',
         sortOrder: sortOrder as 'asc' | 'desc'
       });
 
-      // Debug: Found rentals count logged
+      console.log('🚗 Rentals PAGINATED GET - user:', {
+        role: req.user?.role,
+        userId: req.user?.id,
+        username: req.user?.username,
+        platformId: req.user?.platformId,
+        totalRentals: result.rentals.length
+      });
+
+      // 🔐 PLATFORM FILTERING - Apply to ALL users with platformId (including admin role)
+      let filteredRentals = result.rentals;
+      if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
+        const user = req.user;
+        const originalCount = filteredRentals.length;
+        
+        console.log('🌐 RENTALS PAGINATED: Platform filtering - user:', { username: user.username, role: user.role, platformId: user.platformId });
+        
+        // Get all companies for this platform
+        const companies = await postgresDatabase.getCompanies();
+        const platformCompanies = companies.filter(c => c.platformId === user.platformId);
+        const allowedCompanyIds = platformCompanies.map(c => c.id);
+        const validCompanyNames = platformCompanies.map(c => c.name);
+        
+        console.log('🔍 RENTALS PAGINATED: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: validCompanyNames });
+        
+        // 🚨 STRICT FILTERING: Only show rentals where vehicle platform can be determined AND matches
+        filteredRentals = filteredRentals.filter(rental => {
+          // ❌ REJECT: No vehicle data
+          if (!rental.vehicle) {
+            console.log('🚫 RENTALS PAGINATED: Rejected rental (no vehicle):', rental.id);
+            return false;
+          }
+          
+          // ✅ ACCEPT: vehicle has matching platformId
+          if (rental.vehicle.platformId === user.platformId) {
+            return true;
+          }
+          
+          // ✅ ACCEPT: vehicle has ownerCompanyId in platform companies
+          if (rental.vehicle.ownerCompanyId && allowedCompanyIds.includes(rental.vehicle.ownerCompanyId)) {
+            return true;
+          }
+          
+          // ✅ ACCEPT: vehicle company name matches platform companies
+          if (rental.vehicle.company && validCompanyNames.includes(rental.vehicle.company)) {
+            return true;
+          }
+          
+          // ❌ REJECT: Cannot determine platform or doesn't match
+          console.log('🚫 RENTALS PAGINATED: Rejected rental (platform mismatch or undetermined):', {
+            rentalId: rental.id,
+            vehiclePlatformId: rental.vehicle.platformId,
+            vehicleCompany: rental.vehicle.company,
+            vehicleOwnerId: rental.vehicle.ownerCompanyId
+          });
+          return false;
+        });
+        
+        console.log('🌐 RENTALS PAGINATED: Platform filter applied:', { originalCount, filteredCount: filteredRentals.length });
+      }
 
       res.json({
         success: true,
         data: {
-          rentals: result.rentals,
+          rentals: filteredRentals,
           pagination: {
             currentPage: pageNum,
-            totalPages: Math.ceil(result.total / limitNum),
-            totalItems: result.total,
-            hasMore: (pageNum * limitNum) < result.total,
+            totalPages: Math.ceil(filteredRentals.length / limitNum),
+            totalItems: filteredRentals.length,
+            hasMore: (pageNum * limitNum) < filteredRentals.length,
             itemsPerPage: limitNum
           }
         }
@@ -166,20 +224,36 @@ router.get('/',
         
         console.log('🔍 RENTALS: Platform companies:', { platformId: user.platformId, companyCount: platformCompanies.length, companyNames: validCompanyNames });
         
-        // Filter rentals by platform (via vehicle's company platformId)
+        // 🚨 STRICT FILTERING: Only show rentals where vehicle platform can be determined AND matches
         rentals = rentals.filter(rental => {
-          // Filter by vehicle platformId
-          if (rental.vehicle && rental.vehicle.platformId === user.platformId) {
+          // ❌ REJECT: No vehicle data
+          if (!rental.vehicle) {
+            console.log('🚫 RENTALS: Rejected rental (no vehicle):', rental.id);
+            return false;
+          }
+          
+          // ✅ ACCEPT: vehicle has matching platformId
+          if (rental.vehicle.platformId === user.platformId) {
             return true;
           }
-          // Fallback: filter by ownerCompanyId
-          if (rental.vehicle && rental.vehicle.ownerCompanyId && allowedCompanyIds.includes(rental.vehicle.ownerCompanyId)) {
+          
+          // ✅ ACCEPT: vehicle has ownerCompanyId in platform companies
+          if (rental.vehicle.ownerCompanyId && allowedCompanyIds.includes(rental.vehicle.ownerCompanyId)) {
             return true;
           }
-          // Fallback: filter by company name
-          if (rental.vehicle && rental.vehicle.company && validCompanyNames.includes(rental.vehicle.company)) {
+          
+          // ✅ ACCEPT: vehicle company name matches platform companies
+          if (rental.vehicle.company && validCompanyNames.includes(rental.vehicle.company)) {
             return true;
           }
+          
+          // ❌ REJECT: Cannot determine platform or doesn't match
+          console.log('🚫 RENTALS: Rejected rental (platform mismatch or undetermined):', {
+            rentalId: rental.id,
+            vehiclePlatformId: rental.vehicle.platformId,
+            vehicleCompany: rental.vehicle.company,
+            vehicleOwnerId: rental.vehicle.ownerCompanyId
+          });
           return false;
         });
         
