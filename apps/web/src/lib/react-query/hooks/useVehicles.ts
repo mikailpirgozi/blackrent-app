@@ -9,7 +9,7 @@ declare const CustomEvent: new <T>(
 ) => Event;
 import { queryKeys } from '../queryKeys';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
-import { CACHE_TIMES } from '../queryClient';
+// import { CACHE_TIMES } from '../queryClient'; // Disabled for platform isolation debugging
 
 // Filter interface pre vehicles
 export interface VehicleFilters {
@@ -30,10 +30,10 @@ export function useVehicles(filters?: VehicleFilters) {
         includeRemoved: filters?.includeRemoved,
         includePrivate: filters?.includePrivate,
       }),
-    // ⚡ PERFORMANCE: Use STATIC cache tier (changes less frequently)
-    staleTime: CACHE_TIMES.STATIC.staleTime, // 10 min
-    gcTime: CACHE_TIMES.STATIC.gcTime, // 15 min
-    refetchOnMount: false, // Don't refetch if data is fresh
+    // 🔍 DEBUG: Disable cache to test platform isolation
+    staleTime: 0, // Force refetch every time
+    gcTime: 0,
+    refetchOnMount: 'always', // Always refetch on mount
     // Real-time updates handled by WebSocket invalidation
     select: (data: Vehicle[]) => {
       // Tu môžeme aplikovať filtrovanie
@@ -112,9 +112,7 @@ export function useCreateVehicle() {
         queryKeys.vehicles.lists(),
         (old: Vehicle[] = []) => {
           // Replace optimistic vehicle with real data
-          return old.map(v => 
-            v.id.toString().startsWith('temp-') ? data : v
-          );
+          return old.map(v => (v.id.toString().startsWith('temp-') ? data : v));
         }
       );
 
@@ -176,14 +174,10 @@ export function useUpdateVehicle() {
     onSuccess: (data: void | Vehicle) => {
       // ✅ OPTIMIZED: Update cache directly with real data
       if (data && typeof data === 'object' && 'id' in data) {
-        queryClient.setQueryData(
-          queryKeys.vehicles.detail(data.id),
-          data
-        );
+        queryClient.setQueryData(queryKeys.vehicles.detail(data.id), data);
         queryClient.setQueryData(
           queryKeys.vehicles.lists(),
-          (old: Vehicle[] = []) =>
-            old.map(v => (v.id === data.id ? data : v))
+          (old: Vehicle[] = []) => old.map(v => (v.id === data.id ? data : v))
         );
       }
 
