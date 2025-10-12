@@ -9470,8 +9470,12 @@ export class PostgresDatabase {
   async getCompanyNameById(companyId: string): Promise<string | null> {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('SELECT name FROM companies WHERE id = $1', [companyId]);
-      return result.rows.length > 0 ? result.rows[0].name : null;
+      const result = await client.query('SELECT name, protocol_display_name FROM companies WHERE id = $1', [companyId]);
+      if (result.rows.length > 0) {
+        // Priorita: protocol_display_name > name
+        return result.rows[0].protocol_display_name || result.rows[0].name;
+      }
+      return null;
     } finally {
       client.release();
     }
