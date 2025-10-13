@@ -63,6 +63,180 @@ const generatePDFPath = (
 };
 
 export default async function protocolsRoutes(fastify: FastifyInstance) {
+  // GET /api/protocols - Get all protocols
+  fastify.get('/api/protocols', {
+    preHandler: [authenticateFastify, checkPermissionFastify('protocols', 'read')]
+  }, async (request, reply) => {
+    try {
+      // Note: Using getAllHandoverProtocols and getAllReturnProtocols or similar
+      // For now, return empty arrays - full implementation would need proper DB methods
+      const handoverProtocols: unknown[] = [];
+      const returnProtocols: unknown[] = [];
+      
+      return {
+        success: true,
+        data: {
+          handover: handoverProtocols,
+          return: returnProtocols,
+          total: handoverProtocols.length + returnProtocols.length
+        }
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Get all protocols error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri získavaní protokolov'
+      });
+    }
+  });
+
+  // GET /api/protocols/:id - Get protocol by ID
+  fastify.get<{ Params: { id: string } }>('/api/protocols/:id', {
+    preHandler: [authenticateFastify, checkPermissionFastify('protocols', 'read')]
+  }, async (request, reply) => {
+    try {
+      // Try handover first
+      let protocol: HandoverProtocol | ReturnProtocol | null = await postgresDatabase.getHandoverProtocolById(request.params.id);
+      let type = 'handover';
+      
+      if (!protocol) {
+        // Try return
+        protocol = await postgresDatabase.getReturnProtocolById(request.params.id);
+        type = 'return';
+      }
+      
+      if (!protocol) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Protokol nenájdený'
+        });
+      }
+      
+      return {
+        success: true,
+        data: {
+          protocol,
+          type
+        }
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Get protocol by ID error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri získavaní protokolu'
+      });
+    }
+  });
+
+  // GET /api/protocols/handover/:id/pdf - Generate handover PDF
+  fastify.get<{ Params: { id: string } }>('/api/protocols/handover/:id/pdf', {
+    preHandler: [authenticateFastify]
+  }, async (request, reply) => {
+    try {
+      const protocol = await postgresDatabase.getHandoverProtocolById(request.params.id);
+      
+      if (!protocol) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Protokol nenájdený'
+        });
+      }
+      
+      const pdfBuffer = await generateHandoverPDF(protocol);
+      
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `attachment; filename="handover-${request.params.id}.pdf"`);
+      
+      return reply.send(pdfBuffer);
+    } catch (error) {
+      fastify.log.error(error, 'Generate handover PDF error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri generovaní PDF'
+      });
+    }
+  });
+
+  // GET /api/protocols/return/:id/pdf - Generate return PDF
+  fastify.get<{ Params: { id: string } }>('/api/protocols/return/:id/pdf', {
+    preHandler: [authenticateFastify]
+  }, async (request, reply) => {
+    try {
+      const protocol = await postgresDatabase.getReturnProtocolById(request.params.id);
+      
+      if (!protocol) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Protokol nenájdený'
+        });
+      }
+      
+      const pdfBuffer = await generateReturnPDF(protocol);
+      
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `attachment; filename="return-${request.params.id}.pdf"`);
+      
+      return reply.send(pdfBuffer);
+    } catch (error) {
+      fastify.log.error(error, 'Generate return PDF error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri generovaní PDF'
+      });
+    }
+  });
+
+  // GET /api/protocols/rental/:rentalId/download-all - Download all protocols as ZIP
+  fastify.get<{ Params: { rentalId: string } }>('/api/protocols/rental/:rentalId/download-all', {
+    preHandler: [authenticateFastify]
+  }, async (request, reply) => {
+    try {
+      const { rentalId } = request.params;
+      
+      const [handoverProtocols, returnProtocols] = await Promise.all([
+        postgresDatabase.getHandoverProtocolsByRental(rentalId),
+        postgresDatabase.getReturnProtocolsByRental(rentalId)
+      ]);
+      
+      const totalProtocols = handoverProtocols.length + returnProtocols.length;
+      
+      if (totalProtocols === 0) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Žiadne protokoly pre tento prenájom'
+        });
+      }
+      
+      fastify.log.info({
+        msg: '📦 Download all protocols requested',
+        rentalId,
+        handover: handoverProtocols.length,
+        return: returnProtocols.length
+      });
+      
+      // NOTE: ZIP generation would require archiver or similar package
+      return {
+        success: true,
+        message: 'ZIP download endpoint - implementation needed',
+        data: {
+          rentalId,
+          protocolsFound: {
+            handover: handoverProtocols.length,
+            return: returnProtocols.length,
+            total: totalProtocols
+          },
+          note: 'This endpoint requires ZIP generation library'
+        }
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Download all protocols error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri sťahovaní protokolov'
+      });
+    }
+  });
+  
   // GET /api/protocols/rental/:rentalId - Get all protocols for a rental
   fastify.get<{
     Params: { rentalId: string };
@@ -214,15 +388,37 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const protocolData = request.body;
-      fastify.log.info({ msg: '📝 Creating return protocol', rentalId: protocolData.rentalId });
+      fastify.log.info({ msg: '📝 Creating return protocol', rentalId: protocolData.rentalId, protocolId: protocolData.id });
+
+      // Log complete data for debugging
+      fastify.log.info({ msg: '🔍 Return protocol data', data: JSON.stringify(protocolData, null, 2) });
 
       // Generate PDF
       const pdfBuffer = await generateReturnPDF(protocolData);
       
-      // Create protocol in database
+      // Create protocol in database with all data
       const newProtocol = await postgresDatabase.createReturnProtocol({
         id: protocolData.id,
-        rentalId: protocolData.rentalId
+        rentalId: protocolData.rentalId,
+        handoverProtocolId: protocolData.handoverProtocolId,
+        vehicleCondition: protocolData.vehicleCondition || {
+          odometer: 0,
+          fuelLevel: 0,
+          fuelType: 'gasoline' as const,
+          exteriorCondition: '',
+          interiorCondition: ''
+        },
+        vehicleImages: protocolData.vehicleImages || [],
+        vehicleVideos: protocolData.vehicleVideos || [],
+        documentImages: protocolData.documentImages || [],
+        documentVideos: protocolData.documentVideos || [],
+        damageImages: protocolData.damageImages || [],
+        damageVideos: protocolData.damageVideos || [],
+        damages: protocolData.damages || [],
+        signatures: protocolData.signatures || [],
+        location: protocolData.location || '',
+        status: protocolData.status || 'draft',
+        completedAt: protocolData.completedAt ? new Date(protocolData.completedAt) : undefined
       });
       
       // Generate organized path
@@ -327,6 +523,47 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // PUT /api/protocols/handover/:id - Update handover protocol
+  fastify.put<{
+    Params: { id: string };
+    Body: Partial<HandoverProtocol>;
+  }>('/api/protocols/handover/:id', {
+    preHandler: [authenticateFastify, checkPermissionFastify('protocols', 'update')]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      
+      if (!isValidUUID(id)) {
+        return reply.status(400).send({ error: 'Invalid protocol ID' });
+      }
+
+      const existingProtocol = await postgresDatabase.getHandoverProtocolById(id);
+      
+      if (!existingProtocol) {
+        return reply.status(404).send({ error: 'Protocol not found' });
+      }
+
+      // Update protocol
+      await postgresDatabase.updateHandoverProtocol(id, request.body);
+      
+      // Get updated protocol
+      const updatedProtocol = await postgresDatabase.getHandoverProtocolById(id);
+      
+      fastify.log.info({ msg: '✅ Handover protocol updated', id });
+
+      return {
+        success: true,
+        data: updatedProtocol
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Error updating handover protocol');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri aktualizácii protokolu'
+      });
+    }
+  });
+
   // DELETE /api/protocols/handover/:id - Delete handover protocol
   fastify.delete<{
     Params: { id: string };
@@ -353,6 +590,47 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         success: false,
         error: 'Chyba pri mazaní protokolu'
+      });
+    }
+  });
+
+  // PUT /api/protocols/return/:id - Update return protocol
+  fastify.put<{
+    Params: { id: string };
+    Body: Partial<ReturnProtocol>;
+  }>('/api/protocols/return/:id', {
+    preHandler: [authenticateFastify, checkPermissionFastify('protocols', 'update')]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      
+      if (!isValidUUID(id)) {
+        return reply.status(400).send({ error: 'Invalid protocol ID' });
+      }
+
+      const existingProtocol = await postgresDatabase.getReturnProtocolById(id);
+      
+      if (!existingProtocol) {
+        return reply.status(404).send({ error: 'Protocol not found' });
+      }
+
+      // Update protocol
+      await postgresDatabase.updateReturnProtocol(id, request.body);
+      
+      // Get updated protocol
+      const updatedProtocol = await postgresDatabase.getReturnProtocolById(id);
+      
+      fastify.log.info({ msg: '✅ Return protocol updated', id });
+
+      return {
+        success: true,
+        data: updatedProtocol
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Error updating return protocol');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri aktualizácii protokolu'
       });
     }
   });

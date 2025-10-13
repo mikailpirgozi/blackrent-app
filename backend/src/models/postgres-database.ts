@@ -128,7 +128,8 @@ export class PostgresDatabase {
       logger.info('🔌 Database connection removed from pool');
     });
 
-    this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
+    // MOVED: initTables() now called explicitly after server starts
+    // this.initTables().catch(console.error); // Spustenie pre aktualizáciu schémy
     
     // 🚀 FÁZA 2.2: Connection cleanup job (každých 2 minúty)
     setInterval(() => {
@@ -263,7 +264,7 @@ export class PostgresDatabase {
     throw lastError || new Error('Unknown database error');
   }
 
-  private async initTables() {
+  async initTables() {
     const client = await this.pool.connect();
     try {
       // 🌐 PLATFORM MULTI-TENANCY - Vytvorenie platforms tabuľky (MUST BE FIRST)
