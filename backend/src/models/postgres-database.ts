@@ -2510,6 +2510,36 @@ export class PostgresDatabase {
         logger.migration('⚠️ Migrácia 34 chyba:', errorObj.message);
       }
 
+      // Migrácia 35: Odstránenie Protocol V2 tabuliek - systém sa nepoužíva
+      try {
+        logger.migration('📋 Migrácia 35: Odstraňujem Protocol V2 tabuľky...');
+        
+        // Odstránenie V2 feature flags
+        await client.query(`
+          DELETE FROM feature_flags 
+          WHERE flag_name LIKE 'PROTOCOL_V2%'
+        `);
+        logger.migration('   ✅ V2 feature flags odstránené');
+        
+        // Odstránenie V2 tabuliek v správnom poradí (kvôli závisnostiam)
+        await client.query(`DROP TABLE IF EXISTS protocol_processing_jobs CASCADE`);
+        logger.migration('   ✅ protocol_processing_jobs tabuľka odstránená');
+        
+        await client.query(`DROP TABLE IF EXISTS photo_derivatives CASCADE`);
+        logger.migration('   ✅ photo_derivatives tabuľka odstránená');
+        
+        await client.query(`DROP TABLE IF EXISTS photo_metadata_v2 CASCADE`);
+        logger.migration('   ✅ photo_metadata_v2 tabuľka odstránená');
+        
+        await client.query(`DROP TABLE IF EXISTS protocol_versions CASCADE`);
+        logger.migration('   ✅ protocol_versions tabuľka odstránená');
+        
+        logger.migration('✅ Migrácia 35: Protocol V2 tabuľky úspešne odstránené!');
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 35 chyba:', errorObj.message);
+      }
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.migration('⚠️ Migrácie celkovo preskočené:', errorMessage);

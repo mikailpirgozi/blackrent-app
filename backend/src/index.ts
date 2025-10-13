@@ -13,10 +13,6 @@ dotenv.config();
 // WebSocket service
 import { initializeWebSocketService } from './services/websocket-service';
 
-// V2 Workers (import spustí workers)
-import './workers/derivative-worker';
-import './workers/manifest-worker';
-
 const app = express();
 const port = Number(process.env.PORT) || 3001;
 
@@ -148,14 +144,11 @@ import migrationRoutes from './routes/migration';
 import permissionRoutes from './routes/permissions';
 import platformRoutes from './routes/platforms'; // 🌐 PLATFORM MULTI-TENANCY
 import protocolRoutes from './routes/protocols';
-import protocolsV2Routes from './routes/protocols-v2';
 import pushRoutes from './routes/push';
 import r2FilesRoutes from './routes/r2-files';
 import recurringExpenseRoutes from './routes/recurring-expenses';
 import rentalRoutes from './routes/rentals';
 import settlementRoutes from './routes/settlements';
-import v2SystemTestRoutes from './routes/v2-system-test';
-// import v2TestRoutes from './routes/v2-test'; // Temporarily disabled
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleRoutes from './routes/vehicles';
@@ -177,8 +170,6 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/company-investors', companyInvestorRoutes);
 app.use('/api/insurers', insurerRoutes);
 app.use('/api/protocols', protocolRoutes);
-app.use('/api/v2/protocols', protocolsV2Routes);
-app.use('/api/v2-system-test', v2SystemTestRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/migrations', migrationRoutes);
@@ -198,7 +189,6 @@ app.use('/api/push', pushRoutes);
 app.use('/api/r2-files', r2FilesRoutes);
 app.use('/api/company-documents', companyDocumentsRoutes);
 app.use('/api/feature-flags', featureFlagsRoutes);
-// app.use('/api/v2-test', v2TestRoutes); // Temporarily disabled
 
 // SIMPLE TEST ENDPOINT - s requestId
 app.get('/api/test-simple', (req, res) => {
