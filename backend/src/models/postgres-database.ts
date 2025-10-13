@@ -7338,7 +7338,7 @@ export class PostgresDatabase {
           
           -- Additional data
           rental_data JSONB,
-          pdf_url VARCHAR(500),
+          pdf_url TEXT, -- ✅ Changed from VARCHAR(500) to TEXT for long signed URLs
           email_sent BOOLEAN DEFAULT FALSE,
           notes TEXT,
           created_by VARCHAR(100)
@@ -7389,7 +7389,7 @@ export class PostgresDatabase {
           
           -- Additional data
           rental_data JSONB,
-          pdf_url VARCHAR(500),
+          pdf_url TEXT, -- ✅ Changed from VARCHAR(500) to TEXT for long signed URLs
           email_sent BOOLEAN DEFAULT FALSE,
           email_sent_at TIMESTAMP,
           notes TEXT,
@@ -7487,7 +7487,7 @@ export class PostgresDatabase {
         try {
           await client.query(`
             ALTER TABLE handover_protocols 
-            ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500);
+            ADD COLUMN IF NOT EXISTS pdf_url TEXT; -- ✅ Changed to TEXT for long signed URLs
           `);
           
           await client.query(`
@@ -7745,9 +7745,13 @@ export class PostgresDatabase {
    * Keď načítame protokol z DB, URL môžu byť expirované - vygenerujeme nové
    */
   async refreshProtocolSignedUrls<T extends HandoverProtocol | ReturnProtocol>(protocol: T): Promise<T> {
+    console.log('🔥🔥🔥 refreshProtocolSignedUrls CALLED for protocol:', protocol.id);
     try {
+      console.log('🔥 Step 1: Starting refresh process');
       logger.migration('🔄 Refreshing signed URLs for protocol:', protocol.id);
+      console.log('🔥 Step 2: Importing r2Storage');
       const { r2Storage } = await import('../utils/r2-storage');
+      console.log('🔥 Step 3: r2Storage imported successfully');
       
       const refreshImageUrls = async (images: ProtocolImage[] | undefined): Promise<ProtocolImage[]> => {
         if (!images || !Array.isArray(images)) return [];

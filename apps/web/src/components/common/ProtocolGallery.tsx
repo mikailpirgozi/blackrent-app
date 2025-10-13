@@ -49,6 +49,21 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
 
   const currentImage = images[currentIndex];
 
+  // 🔍 DEBUG: Log image URLs (FULL URLs for debugging)
+  React.useEffect(() => {
+    if (open && currentImage) {
+      console.log('🖼️ Gallery image FULL URL:', {
+        index: currentIndex,
+        url: currentImage.url,
+        urlLength: currentImage.url?.length,
+        originalUrl: currentImage.originalUrl,
+        compressedUrl: currentImage.compressedUrl,
+        pdfUrl: currentImage.pdfUrl,
+        pdfUrlLength: currentImage.pdfUrl?.length,
+      });
+    }
+  }, [open, currentIndex, currentImage]);
+
   // Keyboard navigation
   useEffect(() => {
     if (!open) return;

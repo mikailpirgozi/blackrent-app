@@ -126,7 +126,10 @@ interface UseRentalProtocolsReturn {
   imageParsingCache: Map<string, ImageParsingCacheItem>;
 
   // Protocol handlers
-  loadProtocolsForRental: (rentalId: string) => Promise<ProtocolsData | null>;
+  loadProtocolsForRental: (
+    rentalId: string,
+    forceRefresh?: boolean
+  ) => Promise<ProtocolsData | null>;
   loadProtocolStatusInBackground: () => Promise<void>;
   preloadTopProtocols: (rentals: Rental[]) => Promise<void>;
   handleCreateHandover: (rental: Rental) => Promise<void>;
@@ -200,12 +203,22 @@ export const useRentalProtocols = ({
 
   // Optimalizovaná funkcia pre načítanie protokolov na požiadanie
   const loadProtocolsForRental = useCallback(
-    async (rentalId: string) => {
+    async (rentalId: string, forceRefresh = false) => {
       // Ak už sa načítavajú protokoly pre tento rental, vráť existujúce dáta ak sú dostupné
-      if (loadingProtocols.includes(rentalId)) {
+      if (loadingProtocols.includes(rentalId) && !forceRefresh) {
         logger.debug('Protocols already loading for rental', { rentalId });
         // Vráť existujúce protokoly ak sú dostupné
         return protocols[rentalId] || null;
+      }
+
+      // ✅ Force refresh: Clear cached data for this rental
+      if (forceRefresh) {
+        logger.debug('🔄 Force refreshing protocols for rental', { rentalId });
+        setProtocols(prev => {
+          const updated = { ...prev };
+          delete updated[rentalId];
+          return updated;
+        });
       }
 
       logger.debug('Loading protocols for rental', { rentalId });
@@ -359,12 +372,12 @@ export const useRentalProtocols = ({
       const loadTime = Date.now() - startTime;
 
       // Optimalized: Consolidated protocol status loading log
-      const rentalCount = Object.keys(bulkProtocolStatus).length;
+      const rentalCount = bulkProtocolStatus.length;
       logger.debug(
         `✅ Protocol status loaded: ${rentalCount} rentals (${loadTime}ms)`
       );
 
-      // bulkProtocolStatus je už objekt, nie array - použijeme ho priamo
+      // ✅ Convert array to Record for O(1) lookups
       const statusMap: Record<
         string,
         {
@@ -373,7 +386,16 @@ export const useRentalProtocols = ({
           handoverProtocolId?: string;
           returnProtocolId?: string;
         }
-      > = bulkProtocolStatus;
+      > = {};
+
+      bulkProtocolStatus.forEach(status => {
+        statusMap[status.rentalId] = {
+          hasHandoverProtocol: status.hasHandoverProtocol,
+          hasReturnProtocol: status.hasReturnProtocol,
+          handoverProtocolId: status.handoverProtocolId,
+          returnProtocolId: status.returnProtocolId,
+        };
+      });
 
       setProtocolStatusMap(statusMap);
       setProtocolStatusLoaded(true);

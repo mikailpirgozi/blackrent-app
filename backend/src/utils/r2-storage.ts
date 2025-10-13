@@ -12,6 +12,7 @@ interface R2Config {
   bucketName: string;
   accountId: string;
   publicUrl: string;
+  stagingPrefix?: string; // ✅ Optional prefix for staging files
 }
 
 class R2Storage {
@@ -19,13 +20,19 @@ class R2Storage {
   private config: R2Config;
 
   constructor() {
+    // ✅ Staging prefix pre separation of files
+    const stagingPrefix = process.env.NODE_ENV === 'staging' 
+      ? (process.env.R2_STAGING_PREFIX || 'staging/') 
+      : '';
+
     this.config = {
       endpoint: process.env.R2_ENDPOINT || '',
       accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
       bucketName: process.env.R2_BUCKET_NAME || 'blackrent-storage',
       accountId: process.env.R2_ACCOUNT_ID || '',
-      publicUrl: process.env.R2_PUBLIC_URL || ''
+      publicUrl: process.env.R2_PUBLIC_URL || '',
+      stagingPrefix // Add to config
     };
 
     // 🔧 FIX: Disable SSL verification for localhost (macOS SSL handshake issue)
@@ -102,18 +109,27 @@ class R2Storage {
     }
 
     try {
+      // ✅ Add staging prefix if in staging environment
+      const prefixedKey = this.config.stagingPrefix 
+        ? `${this.config.stagingPrefix}${key}` 
+        : key;
+
       const command = new PutObjectCommand({
         Bucket: this.config.bucketName,
-        Key: key,
+        Key: prefixedKey,
         Body: buffer,
         ContentType: contentType,
         Metadata: metadata,
       });
 
-      console.log('☁️ Uploading to R2:', { bucket: this.config.bucketName, key });
+      console.log('☁️ Uploading to R2:', { 
+        bucket: this.config.bucketName, 
+        key: prefixedKey,
+        environment: process.env.NODE_ENV 
+      });
       await this.client.send(command);
       
-      const publicUrl = `${this.config.publicUrl}/${key}`;
+      const publicUrl = `${this.config.publicUrl}/${prefixedKey}`;
       console.log('✅ R2 upload successful:', publicUrl);
       
       return publicUrl;
@@ -568,6 +584,7 @@ class R2Storage {
 
   /**
    * Generovanie signed URL pre download
+   * ✅ FIX: Use Cloudflare R2 domain for signed URLs (better CORS support)
    */
   async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
     const command = new GetObjectCommand({
@@ -575,7 +592,30 @@ class R2Storage {
       Key: key,
     });
 
-    return await getSignedUrl(this.client, command, { expiresIn });
+    const signedUrl = await getSignedUrl(this.client, command, { expiresIn });
+    
+    // ✅ FIX: Replace AWS domain with Cloudflare R2 public domain for CORS compatibility
+    // AWS SDK generates s3.auto.amazonaws.com URLs, but we need pub-XXX.r2.dev for public access
+    if (signedUrl.includes('s3.auto.amazonaws.com') || signedUrl.includes('r2.cloudflarestorage.com')) {
+      // Use R2_PUBLIC_URL (r2.dev) - this domain has proper CORS and SSL
+      if (this.config.publicUrl) {
+        const url = new URL(signedUrl);
+        const r2Url = new URL(this.config.publicUrl);
+        
+        // Replace hostname but keep path and query params
+        const fixedUrl = signedUrl.replace(url.origin, r2Url.origin);
+        console.log('🔧 Fixed signed URL domain:', {
+          from: url.origin,
+          to: r2Url.origin,
+          key: key.substring(0, 80),
+          originalLength: signedUrl.length,
+          fixedLength: fixedUrl.length
+        });
+        return fixedUrl;
+      }
+    }
+    
+    return signedUrl;
   }
 }
 

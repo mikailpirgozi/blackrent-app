@@ -252,6 +252,14 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         postgresDatabase.getReturnProtocolsByRental(rentalId)
       ]);
 
+      fastify.log.info({ 
+        msg: '🔍 Before refresh', 
+        rentalId,
+        handoverCount: handoverProtocols.length,
+        returnCount: returnProtocols.length,
+        firstHandoverImages: handoverProtocols[0]?.vehicleImages?.length || 0
+      });
+
       // ✅ Refresh signed URLs for all protocols (24h expiry)
       const refreshedHandover = await Promise.all(
         handoverProtocols.map(protocol => postgresDatabase.refreshProtocolSignedUrls(protocol))
@@ -259,6 +267,13 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       const refreshedReturn = await Promise.all(
         returnProtocols.map(protocol => postgresDatabase.refreshProtocolSignedUrls(protocol))
       );
+
+      fastify.log.info({ 
+        msg: '✅ After refresh', 
+        rentalId,
+        refreshedHandoverImages: refreshedHandover[0]?.vehicleImages?.length || 0,
+        firstImageUrl: refreshedHandover[0]?.vehicleImages?.[0]?.url?.substring(0, 100)
+      });
 
       return reply.send({
         handoverProtocols: refreshedHandover,

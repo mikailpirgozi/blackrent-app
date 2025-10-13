@@ -814,19 +814,15 @@ export default function RentalList() {
       // Zatvor protocol menu najprv
       handleCloseProtocolMenu();
 
-      // Načítaj protokol ak nie je načítaný
-      let protocol =
-        protocolsHook.protocols[selectedProtocolRental.id]?.[
-          selectedProtocolType
-        ];
-
-      if (!protocol) {
-        logger.debug('📥 Loading protocol for gallery...');
-        const freshProtocolData = await protocolsHook.loadProtocolsForRental(
-          selectedProtocolRental.id
-        );
-        protocol = freshProtocolData?.[selectedProtocolType];
-      }
+      // ✅ ALWAYS force refresh protocols when opening gallery to get fresh signed URLs
+      logger.debug(
+        '📥 Force refreshing protocol for gallery (fresh signed URLs)...'
+      );
+      const freshProtocolData = await protocolsHook.loadProtocolsForRental(
+        selectedProtocolRental.id,
+        true // ✅ Force refresh to get fresh signed URLs
+      );
+      const protocol = freshProtocolData?.[selectedProtocolType];
 
       if (!protocol) {
         window.alert('Protokol nebol nájdený!');

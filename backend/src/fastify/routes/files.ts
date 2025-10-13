@@ -6,89 +6,121 @@ import { r2Storage } from '../../utils/r2-storage';
 export default async function filesRoutes(fastify: FastifyInstance) {
   
   // POST /api/files/upload - Upload súboru do R2 (Multipart FormData)
+  // ✅ CRITICAL: This endpoint MUST work exactly like Express multer upload
   fastify.post('/api/files/upload', {
-    preHandler: [
-      authenticateFastify,
-      checkPermissionFastify('protocols', 'create')
-    ]
+    preHandler: [authenticateFastify, checkPermissionFastify('protocols', 'create')]
   }, async (request, reply) => {
     try {
       fastify.log.info('📤 File upload endpoint called');
       
-      // ✅ MULTIPART UPLOAD - parse multipart form data
-      const data = await request.file();
+      // ✅ MULTIPART UPLOAD - parse ALL parts from multipart form data
+      const parts = request.parts();
       
-      if (!data) {
+      let fileBuffer: Buffer | null = null;
+      let filename = '';
+      let mimetype = '';
+      const fields: Record<string, string> = {};
+      
+      // Read all parts (file + fields)
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          // File part
+          fileBuffer = await part.toBuffer();
+          filename = part.filename;
+          mimetype = part.mimetype;
+          fastify.log.info({ msg: '📁 File part received', filename, mimetype, size: fileBuffer.length });
+        } else if (part.type === 'field') {
+          // Field part
+          fields[part.fieldname] = (part as unknown as { value: string }).value;
+          fastify.log.info({ msg: '📝 Field received', fieldname: part.fieldname, value: (part as unknown as { value: string }).value });
+        }
+      }
+      
+      if (!fileBuffer || !filename) {
+        fastify.log.error('❌ No file provided in multipart request');
         return reply.status(400).send({
           success: false,
           error: 'No file provided'
         });
       }
-
-      // Read file buffer
-      const buffer = await data.toBuffer();
       
-      // Extract metadata from form fields
-      const filename = data.filename;
-      const mimetype = data.mimetype;
-      
-      // Get additional fields from multipart form
-      const fields = data.fields as Record<string, { value: string }>;
-      const type = fields.type?.value || 'protocol';
-      const entityId = fields.entityId?.value || 'unknown';
-      const protocolType = fields.protocolType?.value;
-      const category = fields.category?.value || 'general';
-      const mediaType = fields.mediaType?.value;
+      const type = fields.type || 'protocol';
+      const entityId = fields.entityId || 'unknown';
+      const protocolType = fields.protocolType || 'handover';
+      const category = fields.category || 'general';
+      const mediaType = fields.mediaType || 'vehicle';
       
       fastify.log.info({ 
-        msg: '📦 Multipart file received', 
+        msg: '📦 Multipart file processed', 
         filename, 
         mimetype, 
-        size: buffer.length,
+        size: fileBuffer.length,
         type,
         entityId,
         protocolType,
         category,
-        mediaType
+        mediaType,
+        allFields: fields
       });
 
       // ✅ ORGANIZED R2 KEY: protocols/{entityId}/{mediaType}/{timestamp}-{filename}
       const timestamp = Date.now();
       const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      
+      // ✅ MATCH EXPRESS STRUCTURE: Same key format as before migration
       const key = mediaType 
         ? `protocols/${entityId}/${mediaType}/${timestamp}-${sanitizedFilename}`
         : `protocols/${entityId}/${category}/${timestamp}-${sanitizedFilename}`;
         
-      // Upload to R2
-      await r2Storage.uploadFile(key, buffer, mimetype);
+      fastify.log.info({ msg: '🔑 Generated R2 key', key });
+
+      // ✅ VALIDATE FILE TYPE (Express compatibility)
+      if (!mimetype.startsWith('image/') && !mimetype.startsWith('video/')) {
+        fastify.log.error({ msg: '❌ Invalid file type', mimetype });
+        return reply.status(400).send({
+          success: false,
+          error: 'Nepodporovaný typ súboru'
+        });
+      }
+
+      // Upload to R2 with metadata
+      await r2Storage.uploadFile(key, fileBuffer, mimetype, {
+        original_name: filename,
+        uploaded_at: new Date().toISOString(),
+        entity_id: entityId,
+        file_type: type,
+        media_type: mediaType,
+        protocol_type: protocolType
+      });
       
-      // ✅ SIGNED URL: Generate signed URL for secure access (24h expiry)
-      const signedUrl = await r2Storage.getSignedUrl(key, 86400); // 24 hours
+      // ✅ SIGNED URL: Generate signed URL for secure access (24h expiry = 86400s)
+      const signedUrl = await r2Storage.getSignedUrl(key, 86400);
 
-      fastify.log.info({ msg: '✅ File uploaded to R2', key, url: signedUrl.substring(0, 100) + '...' });
+      fastify.log.info({ 
+        msg: '✅ File uploaded to R2 successfully', 
+        key, 
+        signedUrlPrefix: signedUrl.substring(0, 100) + '...',
+        size: fileBuffer.length,
+        mediaType
+      });
 
-      // ✅ FRONTEND COMPATIBILITY: Return signed URL
+      // ✅ EXPRESS COMPATIBILITY: Return exactly same format as Express router
       return reply.send({
         success: true,
-        url: signedUrl, // Frontend expects this - SIGNED URL
-        publicUrl: signedUrl, // Fallback
+        url: signedUrl, // Frontend expects this field - SIGNED URL
+        publicUrl: signedUrl, // Fallback for older code
         key,
         filename,
-        size: buffer.length,
-        mimetype,
-        data: {
-          key,
-          url: signedUrl,
-          filename,
-          size: buffer.length,
-          mimetype
-        }
+        size: fileBuffer.length,
+        mimetype
       });
     } catch (error) {
       fastify.log.error(error, 'Upload file error');
+      const errorMessage = error instanceof Error ? error.message : 'Chyba pri nahrávaní súboru';
       return reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error.message : 'Chyba pri nahrávaní súboru'
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       });
     }
   });
@@ -417,4 +449,5 @@ export default async function filesRoutes(fastify: FastifyInstance) {
 
   fastify.log.info('✅ Files routes registered');
 }
+
 
