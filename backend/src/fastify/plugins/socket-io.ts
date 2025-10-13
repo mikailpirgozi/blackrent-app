@@ -25,7 +25,11 @@ const socketIoPlugin: FastifyPluginAsync = async (fastify) => {
       },
       credentials: true,
       methods: ['GET', 'POST']
-    }
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
   });
 
   // Socket.IO event handlers

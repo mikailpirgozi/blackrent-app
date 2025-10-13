@@ -1,8 +1,6 @@
 import dotenv from 'dotenv';
-import { createServer } from 'http';
 import { buildFastify } from './fastify-app';
 import { logger } from './utils/logger';
-import { initializeWebSocketService } from './services/websocket-service';
 import type ImapEmailService from './services/imap-email-service';
 
 // Load environment variables
@@ -15,29 +13,11 @@ async function start() {
   try {
     const fastify = await buildFastify();
     
-    // Use PORT if set (Railway), otherwise FASTIFY_PORT, default 3002
-    const PORT = Number(process.env.PORT) || Number(process.env.FASTIFY_PORT) || 3002;
+    // Use PORT if set (Railway), otherwise FASTIFY_PORT, default 3001
+    const PORT = Number(process.env.PORT) || Number(process.env.FASTIFY_PORT) || 3001;
     
-    // Create HTTP server for WebSocket support
-    const httpServer = createServer(async (req, res) => {
-      await fastify.ready();
-      fastify.server.emit('request', req, res);
-    });
-
-    // Initialize WebSocket service
-    initializeWebSocketService(httpServer);
-    
-    // Inject HTTP server to Fastify
-    await fastify.ready();
-    fastify.server = httpServer;
-
-    // Start listening on HTTP server
-    await new Promise<void>((resolve, reject) => {
-      httpServer.listen(PORT, '0.0.0.0', (err?: Error) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    // Start Fastify server (it creates its own HTTP server with Socket.IO plugin)
+    await fastify.listen({ port: PORT, host: '0.0.0.0' });
     
     logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     logger.info(`🚀 Fastify server running on port ${PORT}`);
@@ -45,8 +25,21 @@ async function start() {
     logger.info(`🧪 Test endpoint: http://localhost:${PORT}/api/test`);
     logger.info(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`🗄️  Database: PostgreSQL`);
-    logger.info(`🔴 WebSocket: Real-time updates aktívne`);
+    logger.info(`🔴 WebSocket: Socket.IO plugin aktívny`);
     logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    // Initialize database tables AFTER server starts (non-blocking)
+    // Note: This runs in background after server is ready to accept requests
+    (async () => {
+      try {
+        const { PostgresDatabase } = await import('./models/postgres-database');
+        const db = new PostgresDatabase();
+        await db.initTables();
+        logger.info('✅ Database migrations completed');
+      } catch (error) {
+        logger.error('❌ Database migration error:', error);
+      }
+    })();
 
     // Auto-start IMAP monitoring after server starts (2 second delay)
     setTimeout(autoStartImapMonitoring, 2000);

@@ -1,0 +1,73 @@
+{
+  "timestamp": "2025-10-13T11:31:58.550Z",
+  "summary": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2,
+    "skipped": 0
+  },
+  "results": [
+    {
+      "name": "Verify Token",
+      "endpoint": "/auth/verify-token",
+      "status": "FAIL",
+      "responseTime": 21,
+      "error": "Status: 404"
+    },
+    {
+      "name": "List Vehicles",
+      "endpoint": "/vehicles",
+      "status": "PASS",
+      "responseTime": 216
+    },
+    {
+      "name": "Get Single Vehicle",
+      "endpoint": "/vehicles/:id",
+      "status": "PASS",
+      "responseTime": 191
+    },
+    {
+      "name": "List Rentals",
+      "endpoint": "/rentals",
+      "status": "PASS",
+      "responseTime": 365
+    },
+    {
+      "name": "Bulk Protocol Status",
+      "endpoint": "/protocols/bulk-status",
+      "status": "PASS",
+      "responseTime": 114
+    },
+    {
+      "name": "Single File Upload",
+      "endpoint": "/files/upload",
+      "status": "FAIL",
+      "responseTime": 56,
+      "error": "Status: 500 - {\"code\":\"INTERNAL\",\"message\":\"Nepodporovaný typ súboru\",\"details\":{\"stack\":\"Error: Nepodporovaný typ súboru\\n    at fileFilter (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/src/routes/files.ts:102:10)\\n    at wrappedFileFilter (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/multer@1.4.5-lts.2/node_modules/multer/index.js:44:7)\\n    at Multipart.<anonymous> (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/multer@1.4.5-lts.2/node_modules/multer/lib/make-middleware.js:109:7)\\n    at Multipart.emit (node:events:507:28)\\n    at Multipart.emit (node:domain:489:12)\\n    at HeaderParser.cb (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:358:14)\\n    at HeaderParser.push (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:162:20)\\n    at SBMH.ssCb [as _cb] (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:394:37)\\n    at feed (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:200:10)\\n    at SBMH.push (/Users/mikailpirgozi/Desktop/Aplikacie Cursor/Blackrent Beta 2/backend/node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)\"},\"requestId\":\"c6c96ced-40fb-49b9-ab4a-2e82ac593997\"}"
+    },
+    {
+      "name": "List Customers",
+      "endpoint": "/customers",
+      "status": "PASS",
+      "responseTime": 473
+    },
+    {
+      "name": "List Expenses",
+      "endpoint": "/expenses",
+      "status": "PASS",
+      "responseTime": 172
+    },
+    {
+      "name": "List Insurances",
+      "endpoint": "/insurances",
+      "status": "PASS",
+      "responseTime": 99
+    },
+    {
+      "name": "List Companies",
+      "endpoint": "/companies",
+      "status": "PASS",
+      "responseTime": 113
+    }
+  ]
+}

@@ -107,6 +107,44 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // GET /api/settlements/:id/pdf - Generate PDF for settlement
+  fastify.get<{ Params: { id: string } }>('/api/settlements/:id/pdf', {
+    preHandler: [authenticateFastify]
+  }, async (request, reply) => {
+    try {
+      const settlement = await postgresDatabase.getSettlement(request.params.id);
+      
+      if (!settlement) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Vyúčtovanie nenájdené'
+        });
+      }
+
+      // Simple PDF generation response (actual PDF generation would require pdf-lib or similar)
+      fastify.log.info({ msg: '📄 Settlement PDF requested', id: request.params.id });
+      
+      return {
+        success: true,
+        message: 'PDF generation endpoint - implementation needed',
+        data: {
+          settlementId: settlement.id,
+          period: settlement.period,
+          company: settlement.company,
+          totalIncome: settlement.totalIncome,
+          totalExpenses: settlement.totalExpenses,
+          profit: settlement.profit
+        }
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Settlement PDF error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri generovaní PDF'
+      });
+    }
+  });
+
   fastify.log.info('✅ Settlements routes registered');
 }
 

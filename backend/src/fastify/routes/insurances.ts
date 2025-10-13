@@ -91,6 +91,34 @@ const filterInsurances = (insurances: Insurance[], query: InsuranceQuerystring) 
 
 export default async function insurancesRoutes(fastify: FastifyInstance) {
   
+  // GET /api/insurances/:id - Get single insurance by ID
+  fastify.get<{ Params: InsuranceParams }>('/api/insurances/:id', {
+    preHandler: [authenticateFastify, checkPermissionFastify('insurances', 'read')]
+  }, async (request, reply) => {
+    try {
+      const insurances = await postgresDatabase.getInsurances();
+      const insurance = insurances.find(ins => ins.id === request.params.id);
+      
+      if (!insurance) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Poistenie nenájdené'
+        });
+      }
+      
+      return {
+        success: true,
+        data: insurance
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Get insurance by ID error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Chyba pri získavaní poistenia'
+      });
+    }
+  });
+  
   // GET /api/insurances - Získanie všetkých poistiek
   fastify.get<{
     Querystring: InsuranceQuerystring;

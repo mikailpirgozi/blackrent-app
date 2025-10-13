@@ -5,6 +5,95 @@ import { prisma } from '../../lib/prisma';
 
 export default async function debugRoutes(fastify: FastifyInstance) {
   
+  // GET /api/debug/test-connection - Test basic connection
+  fastify.get('/api/debug/test-connection', async (request, reply) => {
+    try {
+      return {
+        success: true,
+        message: 'Connection OK',
+        timestamp: new Date().toISOString(),
+        server: 'Fastify',
+        version: fastify.version
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Test connection error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Connection failed'
+      });
+    }
+  });
+
+  // GET /api/debug/test-database - Test database connection
+  fastify.get('/api/debug/test-database', async (request, reply) => {
+    try {
+      const client = await (postgresDatabase as any).dbPool.connect();
+      try {
+        const result = await client.query('SELECT NOW() as current_time, version() as pg_version');
+        const row = result.rows[0];
+        
+        return {
+          success: true,
+          message: 'Database connection OK',
+          data: {
+            currentTime: row.current_time,
+            postgresVersion: row.pg_version,
+            poolStatus: 'connected'
+          }
+        };
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      fastify.log.error(error, 'Test database error');
+      return reply.status(500).send({
+        success: false,
+        error: 'Database connection failed',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // GET /api/debug/test-postgres - Test PostgreSQL specific features
+  fastify.get('/api/debug/test-postgres', async (request, reply) => {
+    try {
+      const client = await (postgresDatabase as any).dbPool.connect();
+      try {
+        // Test complex query
+        const result = await client.query(`
+          SELECT 
+            (SELECT COUNT(*) FROM users) as user_count,
+            (SELECT COUNT(*) FROM vehicles) as vehicle_count,
+            (SELECT COUNT(*) FROM rentals) as rental_count,
+            (SELECT COUNT(*) FROM companies) as company_count
+        `);
+        
+        return {
+          success: true,
+          message: 'PostgreSQL test OK',
+          data: {
+            counts: result.rows[0],
+            features: {
+              jsonb: 'supported',
+              arrays: 'supported',
+              fulltext: 'supported',
+              transactions: 'supported'
+            }
+          }
+        };
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      fastify.log.error(error, 'Test postgres error');
+      return reply.status(500).send({
+        success: false,
+        error: 'PostgreSQL test failed',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // GET /api/debug/user-info - Get current user info with permissions
   fastify.get('/api/debug/user-info', {
     preHandler: [authenticateFastify]

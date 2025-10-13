@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import compress from '@fastify/compress';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 import { DatabaseConnection } from './models/base/DatabaseConnection';
 import { logger } from './utils/logger';
 
@@ -97,6 +98,18 @@ export async function buildFastify() {
     exposedHeaders: ['Content-Range', 'X-Content-Range']
   });
 
+  // Multipart/form-data support for file uploads
+  await fastify.register(multipart, {
+    limits: {
+      fieldNameSize: 100,
+      fieldSize: 100,
+      fields: 10,
+      fileSize: 10485760, // 10MB
+      files: 10,
+      headerPairs: 2000
+    }
+  });
+
   // Rate limiting
   await fastify.register(rateLimit, {
     max: 100,
@@ -108,9 +121,9 @@ export async function buildFastify() {
     skipOnError: true
   });
 
-  // Socket.IO support (will be initialized after server starts)
-  // const socketIoPlugin = await import('./fastify/plugins/socket-io');
-  // await fastify.register(socketIoPlugin.default);
+  // Socket.IO support for real-time updates
+  const socketIoPlugin = await import('./fastify/plugins/socket-io');
+  await fastify.register(socketIoPlugin.default);
 
   // Database connection
   const db = DatabaseConnection.getInstance();
@@ -135,8 +148,9 @@ export async function buildFastify() {
   const authRoutes = await import('./fastify/routes/auth');
   await fastify.register(authRoutes.default);
   
-  const usersRoutes = await import('./fastify/routes/users');
-  await fastify.register(usersRoutes.default);
+  // Note: users.ts duplicates auth.ts endpoints - skipping registration
+  // const usersRoutes = await import('./fastify/routes/users');
+  // await fastify.register(usersRoutes.default);
   
   const companiesRoutes = await import('./fastify/routes/companies');
   await fastify.register(companiesRoutes.default);
@@ -180,8 +194,20 @@ export async function buildFastify() {
   
   const insurersRoutes = await import('./fastify/routes/insurers');
   await fastify.register(insurersRoutes.default);
+  
+  const companyInvestorsRoutes = await import('./fastify/routes/company-investors');
+  await fastify.register(companyInvestorsRoutes.default);
+  
+  const availabilityRoutes = await import('./fastify/routes/availability');
+  await fastify.register(availabilityRoutes.default);
+  
+  const leasingsRoutes = await import('./fastify/routes/leasings');
+  await fastify.register(leasingsRoutes.default);
+  
+  const filesRoutes = await import('./fastify/routes/files');
+  await fastify.register(filesRoutes.default);
 
-  fastify.log.info('✅ All Fastify routes registered successfully');
+  fastify.log.info('✅ All Fastify routes registered successfully (17 route modules)');
 
   return fastify;
 }
