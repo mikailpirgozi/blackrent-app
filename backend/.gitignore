@@ -50,3 +50,5 @@ temp/
 .wrangler/
 wrangler.toml.backup
 
+
+/src/generated/prisma

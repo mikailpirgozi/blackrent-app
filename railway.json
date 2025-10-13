@@ -5,8 +5,8 @@
     "dockerfilePath": "Dockerfile.railway"
   },
   "deploy": {
-    "startCommand": "node dist/index.js",
-    "healthcheckPath": "/api/health",
+    "startCommand": "node dist/fastify-server.js",
+    "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
