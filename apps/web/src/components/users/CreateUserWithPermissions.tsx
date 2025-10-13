@@ -37,10 +37,10 @@ interface CreateUserWithPermissionsProps {
   onUserCreated?: () => void;
 }
 
-export default function CreateUserWithPermissions({ 
-  open, 
+export default function CreateUserWithPermissions({
+  open,
   onOpenChange,
-  onUserCreated 
+  onUserCreated,
 }: CreateUserWithPermissionsProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -70,7 +70,7 @@ export default function CreateUserWithPermissions({
     customers: { read: true, write: false, delete: false },
     insurances: { read: true, write: false, delete: false },
     maintenance: { read: true, write: false, delete: false },
-    protocols: { read: true, write: false, delete: false }
+    protocols: { read: true, write: false, delete: false },
   });
 
   // Load companies
@@ -91,7 +91,7 @@ export default function CreateUserWithPermissions({
         customers: { read: true, write: true, delete: true },
         insurances: { read: true, write: true, delete: true },
         maintenance: { read: true, write: true, delete: true },
-        protocols: { read: true, write: true, delete: true }
+        protocols: { read: true, write: true, delete: true },
       });
     } else if (formData.role === 'investor') {
       setPermissions({
@@ -102,7 +102,7 @@ export default function CreateUserWithPermissions({
         customers: { read: true, write: false, delete: false },
         insurances: { read: true, write: false, delete: false },
         maintenance: { read: true, write: false, delete: false },
-        protocols: { read: true, write: false, delete: false }
+        protocols: { read: true, write: false, delete: false },
       });
     } else if (formData.role === 'employee') {
       setPermissions({
@@ -113,7 +113,7 @@ export default function CreateUserWithPermissions({
         customers: { read: true, write: true, delete: false },
         insurances: { read: true, write: false, delete: false },
         maintenance: { read: true, write: true, delete: false },
-        protocols: { read: true, write: true, delete: false }
+        protocols: { read: true, write: true, delete: false },
       });
     }
   }, [formData.role]);
@@ -122,7 +122,7 @@ export default function CreateUserWithPermissions({
     try {
       const companiesData = await apiService.getCompanies();
       setCompanies(companiesData);
-      
+
       // Auto-select first company if none selected
       if (companiesData.length > 0 && !formData.companyId) {
         setFormData(prev => ({ ...prev, companyId: companiesData[0].id }));
@@ -132,7 +132,7 @@ export default function CreateUserWithPermissions({
       toast({
         title: 'Chyba',
         description: 'Nepodarilo sa načítať firmy',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -145,7 +145,7 @@ export default function CreateUserWithPermissions({
       toast({
         title: 'Chyba',
         description: 'Vyplňte všetky povinné polia',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -154,7 +154,7 @@ export default function CreateUserWithPermissions({
       toast({
         title: 'Chyba',
         description: 'Heslo musí mať aspoň 6 znakov',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -175,18 +175,22 @@ export default function CreateUserWithPermissions({
 
       // Assign permissions if needed
       if (assignPermissions && selectedCompanies.length > 0) {
-        const userId = (newUser as any).id || (newUser as any).data?.id;
-        
+        const userId = newUser.id;
+
         if (userId) {
           for (const companyId of selectedCompanies) {
-            await apiService.setUserCompanyPermission(userId, companyId, permissions as unknown as Record<string, unknown>);
+            await apiService.setUserCompanyPermission(
+              userId,
+              companyId,
+              permissions as unknown as Record<string, unknown>
+            );
           }
         }
       }
 
       toast({
         title: 'Úspech',
-        description: `Používateľ ${formData.username} bol vytvorený`
+        description: `Používateľ ${formData.username} bol vytvorený`,
       });
 
       // Reset form
@@ -205,11 +209,15 @@ export default function CreateUserWithPermissions({
 
       onUserCreated?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Nepodarilo sa vytvoriť používateľa';
       toast({
         title: 'Chyba',
-        description: error.message || 'Nepodarilo sa vytvoriť používateľa',
-        variant: 'destructive'
+        description: errorMessage,
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -226,7 +234,7 @@ export default function CreateUserWithPermissions({
     employee: 'Zamestnanec s prispôsobiteľnými právami',
     temp_worker: 'Brigádnik s obmedzenými právami',
     mechanic: 'Mechanik (údržba a opravy)',
-    sales_rep: 'Obchodný zástupca'
+    sales_rep: 'Obchodný zástupca',
   };
 
   return (
@@ -255,7 +263,9 @@ export default function CreateUserWithPermissions({
                   <Input
                     id="username"
                     value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
                     placeholder="jan.novak"
                     required
                   />
@@ -266,7 +276,9 @@ export default function CreateUserWithPermissions({
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     placeholder="jan.novak@firma.sk"
                     required
                   />
@@ -279,7 +291,9 @@ export default function CreateUserWithPermissions({
                   <Input
                     id="firstName"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
                     placeholder="Ján"
                   />
                 </div>
@@ -288,7 +302,9 @@ export default function CreateUserWithPermissions({
                   <Input
                     id="lastName"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
                     placeholder="Novák"
                   />
                 </div>
@@ -301,7 +317,9 @@ export default function CreateUserWithPermissions({
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                     placeholder="Minimálne 6 znakov"
                     required
                   />
@@ -312,7 +330,11 @@ export default function CreateUserWithPermissions({
                     className="absolute right-2 top-1/2 -translate-y-1/2"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -329,7 +351,9 @@ export default function CreateUserWithPermissions({
                 <Label htmlFor="role">Rola *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value) => setFormData({...formData, role: value as UserRole})}
+                  onValueChange={value =>
+                    setFormData({ ...formData, role: value as UserRole })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -341,21 +365,11 @@ export default function CreateUserWithPermissions({
                     <SelectItem value="company_admin">
                       🏢 Company Admin
                     </SelectItem>
-                    <SelectItem value="investor">
-                      👔 Company Owner
-                    </SelectItem>
-                    <SelectItem value="employee">
-                      👤 Employee
-                    </SelectItem>
-                    <SelectItem value="mechanic">
-                      🔧 Mechanik
-                    </SelectItem>
-                    <SelectItem value="sales_rep">
-                      💼 Sales Rep
-                    </SelectItem>
-                    <SelectItem value="temp_worker">
-                      ⏱️ Temp Worker
-                    </SelectItem>
+                    <SelectItem value="investor">👔 Company Owner</SelectItem>
+                    <SelectItem value="employee">👤 Employee</SelectItem>
+                    <SelectItem value="mechanic">🔧 Mechanik</SelectItem>
+                    <SelectItem value="sales_rep">💼 Sales Rep</SelectItem>
+                    <SelectItem value="temp_worker">⏱️ Temp Worker</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -367,8 +381,8 @@ export default function CreateUserWithPermissions({
                 <Label htmlFor="companyId">Hlavná Firma</Label>
                 <Select
                   value={formData.companyId}
-                  onValueChange={(value) => {
-                    setFormData({...formData, companyId: value});
+                  onValueChange={value => {
+                    setFormData({ ...formData, companyId: value });
                     if (!selectedCompanies.includes(value)) {
                       setSelectedCompanies([...selectedCompanies, value]);
                     }
@@ -386,7 +400,8 @@ export default function CreateUserWithPermissions({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Firma ku ktorej používateľ patrí (povinné pre company_admin, investor)
+                  Firma ku ktorej používateľ patrí (povinné pre company_admin,
+                  investor)
                 </p>
               </div>
 
@@ -395,7 +410,9 @@ export default function CreateUserWithPermissions({
                 <Input
                   id="employeeNumber"
                   value={formData.employeeNumber}
-                  onChange={(e) => setFormData({...formData, employeeNumber: e.target.value})}
+                  onChange={e =>
+                    setFormData({ ...formData, employeeNumber: e.target.value })
+                  }
                   placeholder="EMP-001"
                 />
               </div>
@@ -423,14 +440,24 @@ export default function CreateUserWithPermissions({
                     <Label>Prístup k Firmám</Label>
                     <div className="space-y-2 mt-2">
                       {companies.map(company => (
-                        <div key={company.id} className="flex items-center gap-2">
+                        <div
+                          key={company.id}
+                          className="flex items-center gap-2"
+                        >
                           <Switch
                             checked={selectedCompanies.includes(company.id)}
-                            onCheckedChange={(checked) => {
+                            onCheckedChange={checked => {
                               if (checked) {
-                                setSelectedCompanies([...selectedCompanies, company.id]);
+                                setSelectedCompanies([
+                                  ...selectedCompanies,
+                                  company.id,
+                                ]);
                               } else {
-                                setSelectedCompanies(selectedCompanies.filter(id => id !== company.id));
+                                setSelectedCompanies(
+                                  selectedCompanies.filter(
+                                    id => id !== company.id
+                                  )
+                                );
                               }
                             }}
                           />
@@ -443,21 +470,36 @@ export default function CreateUserWithPermissions({
                   <Separator />
 
                   <div>
-                    <Label className="text-sm font-semibold mb-3 block">Default Permissions</Label>
+                    <Label className="text-sm font-semibold mb-3 block">
+                      Default Permissions
+                    </Label>
                     <div className="grid grid-cols-3 gap-4 text-xs">
                       {Object.entries(permissions).map(([resource, perms]) => (
                         <div key={resource} className="space-y-1">
                           <p className="font-medium capitalize">{resource}</p>
                           <div className="flex gap-2">
-                            {perms.read && <Badge variant="outline" className="text-xs">✅ R</Badge>}
-                            {perms.write && <Badge variant="outline" className="text-xs">✏️ W</Badge>}
-                            {perms.delete && <Badge variant="outline" className="text-xs">🗑️ D</Badge>}
+                            {perms.read && (
+                              <Badge variant="outline" className="text-xs">
+                                ✅ R
+                              </Badge>
+                            )}
+                            {perms.write && (
+                              <Badge variant="outline" className="text-xs">
+                                ✏️ W
+                              </Badge>
+                            )}
+                            {perms.delete && (
+                              <Badge variant="outline" className="text-xs">
+                                🗑️ D
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground mt-3">
-                      💡 Po vytvorení môžete upraviť permissions v sekcii "Oprávnenia"
+                      💡 Po vytvorení môžete upraviť permissions v sekcii
+                      "Oprávnenia"
                     </p>
                   </div>
                 </CardContent>
@@ -483,4 +525,3 @@ export default function CreateUserWithPermissions({
     </Dialog>
   );
 }
-

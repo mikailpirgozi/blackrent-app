@@ -1,5 +1,6 @@
 import { DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import express, { Request, Response, Router, NextFunction } from 'express';
+import type { Request, Response, Router, NextFunction } from 'express';
+import express from 'express';
 import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';

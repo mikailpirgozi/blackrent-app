@@ -80,7 +80,8 @@ export class DeviceCapabilityDetector {
    * Get device RAM (Chrome/Edge only, defaults to 4GB)
    */
   private getDeviceMemory(): number {
-    const memory = (navigator as any).deviceMemory;
+    const memory = (navigator as Navigator & { deviceMemory?: number })
+      .deviceMemory;
 
     if (memory) {
       logger.debug(`Device memory detected: ${memory}GB`);
@@ -105,10 +106,23 @@ export class DeviceCapabilityDetector {
    * Get network information
    */
   private getNetworkInfo(): NetworkInfo {
+    type NavigatorWithConnection = Navigator & {
+      connection?: { effectiveType?: string; downlink?: number; rtt?: number };
+      mozConnection?: {
+        effectiveType?: string;
+        downlink?: number;
+        rtt?: number;
+      };
+      webkitConnection?: {
+        effectiveType?: string;
+        downlink?: number;
+        rtt?: number;
+      };
+    };
     const connection =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+      (navigator as NavigatorWithConnection).connection ||
+      (navigator as NavigatorWithConnection).mozConnection ||
+      (navigator as NavigatorWithConnection).webkitConnection;
 
     if (!connection) {
       logger.debug('Network API not available, assuming medium speed');
@@ -143,8 +157,20 @@ export class DeviceCapabilityDetector {
       speed,
     });
 
+    // ✅ Type guard: ensure effectiveType matches expected values
+    const validEffectiveType: 'unknown' | '2g' | '3g' | '4g' | '5g' =
+      effectiveType === '2g' ||
+      effectiveType === 'slow-2g' ||
+      effectiveType === '3g' ||
+      effectiveType === '4g' ||
+      effectiveType === '5g'
+        ? effectiveType === 'slow-2g'
+          ? '2g'
+          : (effectiveType as '2g' | '3g' | '4g' | '5g')
+        : 'unknown';
+
     return {
-      type: effectiveType || 'unknown',
+      type: validEffectiveType,
       speed,
       effectiveType,
       downlink,
@@ -226,7 +252,8 @@ export class DeviceCapabilityDetector {
     ).matches;
 
     // Method 2: Navigator standalone (iOS Safari)
-    const isNavigatorStandalone = (navigator as any).standalone === true;
+    const isNavigatorStandalone =
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     // Method 3: Document referrer (Android)
     const isFromHomescreen = document.referrer.includes('android-app://');

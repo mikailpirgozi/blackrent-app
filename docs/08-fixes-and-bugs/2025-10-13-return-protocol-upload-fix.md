@@ -220,3 +220,4 @@ pnpm run build  # Production
 - R2 organizácia: `protocols/{protocolId}/{category}/{timestamp}-{filename}`
 - Všetky zmeny sú backward-compatible s Express backendom
 
+

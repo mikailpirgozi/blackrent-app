@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { authenticateFastify } from '../decorators/auth';
 import { checkPermissionFastify } from '../hooks/permissions';
 import { postgresDatabase } from '../../models/postgres-database';
+import { getWebSocketService } from '../../services/websocket-service';
 
 export default async function rentalsRoutes(fastify: FastifyInstance) {
   // GET /api/rentals
@@ -93,7 +94,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
         fastify.log.info({ msg: '🔐 Rentals Permission Filter', userId: user.id, allowedCompanyIds, filteredCount: rentals.length });
       }
       
-      return { success: true, data: rentals };
+      return reply.send({ success: true, data: rentals });
     } catch (error) {
       fastify.log.error(error, 'Get rentals error');
       return reply.status(500).send({
@@ -112,7 +113,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
       if (!rental) {
         return reply.status(404).send({ success: false, error: 'Prenájom nenájdený' });
       }
-      return { success: true, data: rental };
+      return reply.send({ success: true, data: rental });
     } catch (error) {
       fastify.log.error(error, 'Get rental error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní prenájmu' });
@@ -167,7 +168,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
       });
       const updatedRental = await postgresDatabase.getRental(request.params.id);
       fastify.log.info({ msg: '✅ Rental updated', id: request.params.id });
-      return { success: true, data: updatedRental };
+      return reply.send({ success: true, data: updatedRental });
     } catch (error) {
       fastify.log.error(error, 'Update rental error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii prenájmu' });
@@ -179,9 +180,29 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify, checkPermissionFastify('rentals', 'delete')]
   }, async (request, reply) => {
     try {
-      await postgresDatabase.deleteRental(request.params.id);
-      fastify.log.info({ msg: '🗑️ Rental deleted', id: request.params.id });
-      return { success: true, message: 'Prenájom bol odstránený' };
+      const { id } = request.params;
+      
+      // Check if rental exists
+      const existingRental = await postgresDatabase.getRental(id);
+      if (!existingRental) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Prenájom nenájdený'
+        });
+      }
+      
+      // Delete rental
+      await postgresDatabase.deleteRental(id);
+      
+      // Real-time broadcast: Rental deleted
+      const websocketService = getWebSocketService();
+      if (websocketService) {
+        const userName = request.user?.username || 'Neznámy užívateľ';
+        websocketService.broadcastRentalDeleted(id, existingRental.customerName, userName);
+      }
+      
+      fastify.log.info({ msg: '🗑️ Rental deleted', id, customer: existingRental.customerName });
+      return reply.send({ success: true, message: 'Prenájom úspešne vymazaný' });
     } catch (error) {
       fastify.log.error(error, 'Delete rental error');
       return reply.status(500).send({ success: false, error: 'Chyba pri mazaní prenájmu' });
@@ -277,7 +298,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return {
+      return reply.send({
         success: true,
         data: {
           rentals: filteredRentals,
@@ -289,7 +310,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
             itemsPerPage: limitNum
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get paginated rentals error');
       return reply.status(500).send({
@@ -391,17 +412,17 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
           });
           
           results.push({ index: i, rental: created });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             index: i, 
-            error: error.message || 'Error creating rental' 
+            error: error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Error creating rental' 
           });
         }
       }
 
       fastify.log.info({ msg: '📥 Batch import rentals', imported: results.length, errors: errors.length });
 
-      return {
+      return reply.send({
         success: true,
         message: `Batch import completed: ${results.length} successful, ${errors.length} errors`,
         data: {
@@ -410,7 +431,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
           results,
           errors: errors.slice(0, 10)
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Batch import error');
       return reply.status(500).send({

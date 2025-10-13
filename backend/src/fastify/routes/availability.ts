@@ -46,7 +46,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
         conflictingRentals: vehicleRentals.length
       });
       
-      return {
+      return reply.send({
         success: true,
         data: {
           available: isAvailable,
@@ -61,7 +61,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
             customerName: r.customerName
           }))
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Availability check error');
       return reply.status(500).send({
@@ -162,7 +162,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
       const sizeSaved = originalSize - optimizedSize;
       const percentSaved = sizeSaved > 0 ? ((sizeSaved / originalSize) * 100).toFixed(1) : '0';
 
-      return {
+      return reply.send({
         success: true,
         data: responseData,
         _meta: {
@@ -171,7 +171,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
           compressionRatio: percentSaved + '%',
           requestedFields: requestedFields.length > 0 ? requestedFields : 'all'
         }
-      };
+      });
       
     } catch (error) {
       fastify.log.error(error, 'Get availability calendar error');
@@ -187,7 +187,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
     try {
       const vehicles = await postgresDatabase.getVehicles();
       
-      return {
+      return reply.send({
         success: true,
         message: 'Availability API funguje!',
         data: {
@@ -195,7 +195,7 @@ export default async function availabilityRoutes(fastify: FastifyInstance) {
           rentalCount: 0,
           timestamp: new Date().toISOString()
         }
-      };
+      });
       
     } catch (error) {
       fastify.log.error(error, 'Availability test error');

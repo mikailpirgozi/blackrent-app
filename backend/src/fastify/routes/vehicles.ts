@@ -79,10 +79,10 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return {
+      return reply.send({
         success: true,
         data: vehicles
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get vehicles error');
       return reply.status(500).send({
@@ -95,12 +95,12 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
   // GET /api/vehicles/test-csv - Test endpoint
   fastify.get('/api/vehicles/test-csv', {
     preHandler: [authenticateFastify]
-  }, async () => {
-    return {
+  }, async (request, reply) => {
+    return reply.send({
       success: true,
       message: 'CSV endpointy sú dostupné',
       timestamp: new Date().toISOString()
-    };
+    });
   });
 
   // 🧪 TEST ENDPOINT: Porovnanie Prisma vs Legacy queries
@@ -124,7 +124,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
       });
       const prismaTime = Date.now() - prismaStart;
 
-      return {
+      return reply.send({
         success: true,
         comparison: {
           legacy: {
@@ -142,7 +142,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
             difference: `${Math.abs(legacyTime - prismaTime)}ms`
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Prisma test error');
       return reply.status(500).send({
@@ -171,10 +171,10 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return {
+      return reply.send({
         success: true,
         data: vehicle
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get vehicle error');
       return reply.status(500).send({
@@ -283,10 +283,10 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         licensePlate: updatedVehicle?.licensePlate
       });
 
-      return {
+      return reply.send({
         success: true,
         data: updatedVehicle
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Update vehicle error');
       return reply.status(500).send({
@@ -314,10 +314,10 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         userId: request.user!.id
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Vozidlo bolo odstránené'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Delete vehicle error');
       return reply.status(500).send({
@@ -396,14 +396,14 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         const loadTime = Date.now() - startTime;
         fastify.log.info(`✅ BULK: Loaded ownership history for ${vehicles.length} vehicles in ${loadTime}ms`);
 
-        return {
+        return reply.send({
           success: true,
           data: {
             vehicleHistories: allHistories,
             totalVehicles: vehicles.length,
             loadTimeMs: loadTime
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -437,7 +437,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         userId: request.user!.id
       });
 
-      return {
+      return reply.send({
         success: true,
         data: {
           licensePlate,
@@ -445,7 +445,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
           count: duplicates.length,
           vehicles: duplicates.length > 0 ? duplicates : undefined
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Check duplicate error');
       return reply.status(500).send({
@@ -497,11 +497,11 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
           userId: request.user!.id
         });
 
-        return {
+        return reply.send({
           success: true,
           message: `Assigned ${updated.length} vehicles to company`,
           data: { updated: updated.length, vehicleIds: updated }
-        };
+        });
       } finally {
         client.release();
       }
@@ -638,7 +638,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '📥 CSV Import vehicles', imported: results.length, errors: errors.length });
 
-      return {
+      return reply.send({
         success: true,
         message: `CSV import completed: ${results.length} successful, ${errors.length} errors`,
         data: {
@@ -647,7 +647,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
           results,
           errors: errors.slice(0, 10)
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'CSV import error');
       return reply.status(500).send({
@@ -720,7 +720,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
       const total = vehicles.length;
       const paginatedVehicles = vehicles.slice(offset, offset + limitNum);
 
-      return {
+      return reply.send({
         success: true,
         data: {
           vehicles: paginatedVehicles,
@@ -732,7 +732,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
             itemsPerPage: limitNum
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get paginated vehicles error');
       return reply.status(500).send({
@@ -794,7 +794,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '📥 Batch import vehicles', imported: results.length, errors: errors.length });
 
-      return {
+      return reply.send({
         success: true,
         message: `Batch import completed: ${results.length} successful, ${errors.length} errors`,
         data: {
@@ -803,7 +803,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
           results,
           errors: errors.slice(0, 10)
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Batch import error');
       return reply.status(500).send({

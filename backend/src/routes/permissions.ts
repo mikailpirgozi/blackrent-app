@@ -18,7 +18,7 @@ router.get('/user/:userId', authenticateToken, requireRole(['admin', 'super_admi
       data: permissions,
       message: 'Práva používateľa úspešne načítané'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri získavaní práv používateľa:', error);
     res.status(500).json({
       success: false,
@@ -50,7 +50,7 @@ router.get('/user/:userId/access', authenticateToken, async (req: Request, res: 
       data: access,
       message: 'Prístup k firmám úspešne načítaný'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri získavaní prístupu k firmám:', error);
     res.status(500).json({
       success: false,
@@ -78,7 +78,7 @@ router.post('/user/:userId/company/:companyId', authenticateToken, requireRole([
       success: true,
       message: 'Práva používateľa úspešne nastavené'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri nastavovaní práv:', error);
     res.status(500).json({
       success: false,
@@ -98,7 +98,7 @@ router.delete('/user/:userId/company/:companyId', authenticateToken, requireRole
       success: true,
       message: 'Práva používateľa úspešne odstránené'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri odstraňovaní práv:', error);
     res.status(500).json({
       success: false,
@@ -118,7 +118,7 @@ router.get('/company/:companyId/users', authenticateToken, requireRole(['admin',
       data: users,
       message: 'Používatelia s prístupom k firme úspešne načítaní'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri získavaní používateľov firmy:', error);
     res.status(500).json({
       success: false,
@@ -147,11 +147,11 @@ router.post('/bulk', authenticateToken, requireRole(['admin', 'super_admin']), a
         const { userId, companyId, permissions } = assignment;
         await postgresDatabase.setUserPermission(userId, companyId, permissions);
         results.push({ userId, companyId, success: true });
-      } catch (error: any) {
+      } catch (error: unknown) {
         errors.push({ 
           userId: assignment.userId, 
           companyId: assignment.companyId, 
-          error: error.message 
+          error: error instanceof Error ? error.message : String(error) 
         });
       }
     }
@@ -161,7 +161,7 @@ router.post('/bulk', authenticateToken, requireRole(['admin', 'super_admin']), a
       data: { results, errors },
       message: `Hromadné nastavenie práv dokončené: ${results.length} úspešných, ${errors.length} chýb`
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Chyba pri hromadnom nastavovaní práv:', error);
     res.status(500).json({
       success: false,

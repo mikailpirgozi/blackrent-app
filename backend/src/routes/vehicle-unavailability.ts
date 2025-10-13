@@ -108,11 +108,12 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
       data: unavailability,
       message: 'Nedostupnosť vozidla úspešne vytvorená'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Create vehicle unavailability error:', error);
     
     // Handle duplicate constraint error
-    if (error.code === '23505' && error.constraint === 'unique_vehicle_period') {
+    const dbError = error as { code?: string; constraint?: string };
+    if (dbError.code === '23505' && dbError.constraint === 'unique_vehicle_period') {
       return res.status(409).json({
         success: false,
         error: 'Nedostupnosť pre toto vozidlo v danom období už existuje. Skúste iný dátumový rozsah alebo typ nedostupnosti.',
@@ -122,7 +123,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response<ApiRespon
     
     res.status(500).json({
       success: false,
-      error: error.message || 'Chyba pri vytváraní nedostupnosti vozidla'
+      error: error instanceof Error ? error.message : String(error) || 'Chyba pri vytváraní nedostupnosti vozidla'
     });
   }
 });
@@ -151,19 +152,19 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response<ApiResp
       data: unavailability,
       message: 'Nedostupnosť vozidla úspešne aktualizovaná'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update vehicle unavailability error:', error);
     
-    if (error.message === 'Nedostupnosť vozidla nenájdená') {
+    if (error instanceof Error ? error.message : String(error) === 'Nedostupnosť vozidla nenájdená') {
       return res.status(404).json({
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Chyba pri aktualizácii nedostupnosti vozidla'
+      error: error instanceof Error ? error.message : String(error) || 'Chyba pri aktualizácii nedostupnosti vozidla'
     });
   }
 });

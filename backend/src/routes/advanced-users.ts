@@ -95,11 +95,11 @@ router.post('/organizations', authenticateToken, requireRole(['admin', 'super_ad
       organization
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error creating organization:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create organization'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to create organization'
     });
   }
 });
@@ -220,11 +220,11 @@ router.post('/departments', authenticateToken, requireRole(['admin', 'super_admi
       department
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error creating department:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create department'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to create department'
     });
   }
 });
@@ -312,11 +312,11 @@ router.post('/roles', authenticateToken, requireRole(['admin', 'super_admin']), 
       role
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error creating role:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create role'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to create role'
     });
   }
 });
@@ -341,11 +341,11 @@ router.put('/roles/:id', authenticateToken, requireRole(['admin', 'super_admin']
       role
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error updating role:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to update role'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to update role'
     });
   }
 });
@@ -369,11 +369,11 @@ router.delete('/roles/:id', authenticateToken, requireRole(['admin', 'super_admi
       message: 'Role deleted successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error deleting role:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to delete role'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to delete role'
     });
   }
 });
@@ -537,11 +537,11 @@ router.post('/users', authenticateToken, requireRole(['admin', 'super_admin']), 
       user: safeUser
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error creating user:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create user'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to create user'
     });
   }
 });
@@ -783,11 +783,11 @@ router.post('/teams', authenticateToken, requireRole(['admin', 'manager']), asyn
       team
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error creating team:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create team'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to create team'
     });
   }
 });
@@ -826,11 +826,11 @@ router.post('/teams/:id/members', authenticateToken, requireRole(['admin', 'mana
       member
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error adding team member:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to add team member'
+      error: error instanceof Error ? error.message : String(error) || 'Failed to add team member'
     });
   }
 });

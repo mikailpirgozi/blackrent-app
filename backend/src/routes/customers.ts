@@ -162,18 +162,19 @@ router.post('/',
       data: createdCustomer
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const dbError = error as { name?: string; code?: string; detail?: string; stack?: string };
     console.error('❌ DETAILED Create customer error:');
-    console.error('   Error name:', error.name);
-    console.error('   Error message:', error.message);
-    console.error('   Error code:', error.code);
-    console.error('   Error detail:', error.detail);
-    console.error('   Error stack:', error.stack);
+    console.error('   Error name:', dbError.name);
+    console.error('   Error message:', error instanceof Error ? error.message : String(error));
+    console.error('   Error code:', dbError.code);
+    console.error('   Error detail:', dbError.detail);
+    console.error('   Error stack:', dbError.stack);
     console.error('   Full error object:', error);
     
     res.status(500).json({
       success: false,
-      error: `Chyba pri vytváraní zákazníka: ${error.message || 'Neznáma chyba'}`
+      error: `Chyba pri vytváraní zákazníka: ${error instanceof Error ? error.message : String(error) || 'Neznáma chyba'}`
     });
   }
 });
@@ -375,10 +376,10 @@ router.post('/import/csv',
           const createdCustomer = await postgresDatabase.createCustomer(customerData);
           results.push({ row: i + 2, customer: createdCustomer });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             row: i + 2, 
-            error: error.message || 'Chyba pri vytváraní zákazníka' 
+            error: error instanceof Error ? error.message : String(error) || 'Chyba pri vytváraní zákazníka' 
           });
         }
       }

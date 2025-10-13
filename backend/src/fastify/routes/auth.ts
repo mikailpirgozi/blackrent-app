@@ -70,10 +70,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Admin user created successfully');
         
-        return {
+        return reply.send({
           success: true,
           message: 'Admin user created successfully (username: admin, password: admin123)'
-        };
+        });
       } finally {
         client.release();
       }
@@ -113,7 +113,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Admin user created successfully with password Black123');
         
-        return {
+        return reply.send({
           success: true,
           message: 'Admin user created successfully (username: admin, password: Black123)',
           data: {
@@ -121,7 +121,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
             password: 'Black123',
             loginUrl: 'https://blackrent-app.vercel.app/login'
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -156,7 +156,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Admin account successfully reset with password Black123');
         
-        return {
+        return reply.send({
           success: true,
           message: 'Admin user successfully reset (username: admin, password: Black123)',
           data: {
@@ -164,7 +164,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
             password: 'Black123',
             loginUrl: 'https://blackrent-app.vercel.app/login'
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -196,10 +196,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Admin account successfully reset');
         
-        return {
+        return reply.send({
           success: true,
           message: 'Admin user successfully reset (username: admin, password: admin123)'
-        };
+        });
       } finally {
         client.release();
       }
@@ -251,7 +251,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Super Admin account created successfully with password SuperAdmin123');
         
-        return {
+        return reply.send({
           success: true,
           message: '🚀 Super Admin account created successfully!',
           data: {
@@ -263,7 +263,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
               ? 'https://blackrent-app.vercel.app/login'
               : 'http://localhost:3000/login'
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -339,11 +339,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
       // Return user data without password
       const { password: _, ...userWithoutPassword } = user;
 
-      return {
+      return reply.send({
         success: true,
         token,
         user: userWithoutPassword
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Login error');
       return reply.status(500).send({
@@ -358,10 +358,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify]
   }, async (request, reply) => {
     fastify.log.info({ msg: '👋 User logged out', userId: request.user?.id });
-    return {
+    return reply.send({
       success: true,
       message: 'Logged out successfully'
-    };
+    });
   });
 
   // POST /api/auth/verify-token - Verify JWT token
@@ -369,11 +369,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify]
   }, async (request, reply) => {
     // If we reach here, token is valid (authenticateFastify passed)
-    return {
+    return reply.send({
       success: true,
       valid: true,
       user: request.user
-    };
+    });
   });
 
   // POST /api/auth/register - User registration
@@ -486,7 +486,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '🔄 Token refreshed', userId: user.id });
       
-      return {
+      return reply.send({
         success: true,
         token: newToken,
         refreshToken: newRefreshToken,
@@ -496,7 +496,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           email: user.email,
           role: user.role
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Token refresh error');
       return reply.status(401).send({
@@ -520,7 +520,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         valid: true,
         user: {
@@ -531,7 +531,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           platformId: user.platformId,
           companyId: user.companyId
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Token verification error');
       return reply.status(401).send({
@@ -569,10 +569,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
       
       if (!user) {
         // Don't reveal if user exists or not (security best practice)
-        return {
+        return reply.send({
           success: true,
           message: 'If the email exists, a password reset link has been sent'
-        };
+        });
       }
       
       // Generate reset token
@@ -594,7 +594,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       });
       
       // For now, return token (in production, only send via email)
-      return {
+      return reply.send({
         success: true,
         message: 'Password reset link has been sent to your email',
         // REMOVE IN PRODUCTION:
@@ -602,7 +602,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         resetUrl: process.env.NODE_ENV === 'development' 
           ? `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`
           : undefined
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Forgot password error');
       return reply.status(500).send({
@@ -628,10 +628,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       const { password: _, ...userWithoutPassword } = user;
 
-      return {
+      return reply.send({
         success: true,
         data: userWithoutPassword
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get current user error');
       return reply.status(500).send({
@@ -691,10 +691,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '🔐 Password changed', userId });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Password changed successfully'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Change password error');
       return reply.status(500).send({
@@ -753,10 +753,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '✅ Profile updated', userId });
 
-      return {
+      return reply.send({
         success: true,
         data: userWithoutPassword
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Update profile error');
       return reply.status(500).send({
@@ -799,10 +799,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '✅ Signature template updated', userId });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Signature template updated successfully'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Update signature template error');
       return reply.status(500).send({
@@ -849,10 +849,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
           createdAt: row.created_at
         }));
         
-        return {
+        return reply.send({
           success: true,
           data: users
-        };
+        });
       } finally {
         client.release();
       }
@@ -1042,11 +1042,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info({ msg: '✅ User updated', userId: updatedUser.id });
         
-        return {
+        return reply.send({
           success: true,
           message: 'User updated successfully',
           data: updatedUser
-        };
+        });
       } finally {
         client.release();
       }
@@ -1092,10 +1092,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info({ msg: '🗑️ User deleted', userId: id });
         
-        return {
+        return reply.send({
           success: true,
           message: 'User deleted successfully'
-        };
+        });
       } finally {
         client.release();
       }
@@ -1126,10 +1126,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
           ORDER BY total_share DESC
         `);
         
-        return {
+        return reply.send({
           success: true,
           data: result.rows
-        };
+        });
       } finally {
         client.release();
       }
@@ -1159,10 +1159,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Pavlik password reset successful');
         
-        return {
+        return reply.send({
           success: true,
           message: 'Password reset successful (username: pavlik, password: pavlik123)'
-        };
+        });
       } finally {
         client.release();
       }
@@ -1180,11 +1180,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
     try {
       const existingAdmin = await postgresDatabase.getUserByUsername('admin');
       if (existingAdmin) {
-        return {
+        return reply.send({
           success: true,
           message: 'Admin already exists',
           data: { username: 'admin', exists: true }
-        };
+        });
       }
 
       const hashedPassword = await bcrypt.hash('admin123', 12);
@@ -1195,10 +1195,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
           [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
         );
         
-        return {
+        return reply.send({
           success: true,
           message: 'Admin created (username: admin, password: admin123)'
-        };
+        });
       } finally {
         client.release();
       }
@@ -1223,10 +1223,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
           [uuidv4(), 'admin', 'admin@blackrent.sk', hashedPassword, 'admin']
         );
         
-        return {
+        return reply.send({
           success: true,
           message: 'Admin initialized (username: admin, password: admin123)'
-        };
+        });
       } finally {
         client.release();
       }
@@ -1266,10 +1266,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info('✅ Database initialized');
         
-        return {
+        return reply.send({
           success: true,
           message: 'Database tables created successfully'
-        };
+        });
       } finally {
         client.release();
       }
@@ -1290,13 +1290,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
         const userCount = await client.query('SELECT COUNT(*) FROM users');
         const usersResult = await client.query('SELECT id, username, role FROM users LIMIT 5');
         
-        return {
+        return reply.send({
           success: true,
           data: {
             totalUsers: parseInt(userCount.rows[0].count),
             sampleUsers: usersResult.rows
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -1315,15 +1315,15 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const token = request.headers.authorization?.replace('Bearer ', '');
       
       if (!token) {
-        return {
+        return reply.send({
           success: true,
           data: { hasToken: false, message: 'No token provided' }
-        };
+        });
       }
 
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
-        return {
+        return reply.send({
           success: true,
           data: {
             hasToken: true,
@@ -1336,16 +1336,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
               iat: new Date(decoded.iat * 1000).toISOString()
             }
           }
-        };
+        });
       } catch (err) {
-        return {
+        return reply.send({
           success: true,
           data: {
             hasToken: true,
             valid: false,
             error: err instanceof Error ? err.message : 'Invalid token'
           }
-        };
+        });
       }
     } catch (error) {
       fastify.log.error(error, 'Debug token error');
@@ -1371,14 +1371,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
         const userCount = await client.query('SELECT COUNT(*) FROM users');
         const sampleUsers = await client.query('SELECT id, username, role, platform_id FROM users LIMIT 3');
         
-        return {
+        return reply.send({
           success: true,
           data: {
             columns: result.rows,
             totalUsers: parseInt(userCount.rows[0].count),
             sampleUsers: sampleUsers.rows
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -1396,7 +1396,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify]
   }, async (request, reply) => {
     try {
-      return {
+      return reply.send({
         success: true,
         data: {
           user: {
@@ -1407,7 +1407,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           },
           message: 'Permissions test successful'
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Test permissions error');
       return reply.status(500).send({
@@ -1427,7 +1427,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         const companies = await client.query('SELECT id, name FROM companies LIMIT 5');
         const vehicles = await client.query('SELECT id, brand, model, company_id as "ownerCompanyId" FROM vehicles LIMIT 5');
         
-        return {
+        return reply.send({
           success: true,
           data: {
             user: {
@@ -1438,7 +1438,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
             sampleCompanies: companies.rows,
             sampleVehicles: vehicles.rows
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -1460,7 +1460,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     try {
       const { resource, action } = request.body;
       
-      return {
+      return reply.send({
         success: true,
         data: {
           user: {
@@ -1471,7 +1471,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           requested: { resource, action },
           message: 'Permission debug data retrieved'
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Debug permission error');
       return reply.status(500).send({
@@ -1532,7 +1532,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info({ msg: '🔧 Auto-assign vehicles', count: assigned.length, dryRun });
         
-        return {
+        return reply.send({
           success: true,
           message: dryRun ? 'Dry run complete' : `Assigned ${assigned.length} vehicles`,
           data: {
@@ -1541,7 +1541,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
             dryRun,
             assignments: assigned
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -1567,15 +1567,15 @@ export default async function authRoutes(fastify: FastifyInstance) {
         );
         
         if (userResult.rows.length === 0) {
-          return {
+          return reply.send({
             success: true,
             data: { exists: false, message: 'User vincursky not found' }
-          };
+          });
         }
         
         const user = userResult.rows[0];
         
-        return {
+        return reply.send({
           success: true,
           data: {
             exists: true,
@@ -1587,7 +1587,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
               companyId: user.company_id
             }
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -1630,11 +1630,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info({ msg: '🔧 Migrate vehicle companies', updated });
         
-        return {
+        return reply.send({
           success: true,
           message: `Updated ${updated} vehicles`,
           data: { total: vehicles.length, updated }
-        };
+        });
       } finally {
         client.release();
       }
@@ -1688,11 +1688,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
         
         fastify.log.info({ msg: '🔧 Auto-assign user companies', count: assigned.length });
         
-        return {
+        return reply.send({
           success: true,
           message: `Assigned company access to ${assigned.length} users`,
           data: { total: users.length, assigned: assigned.length, assignments: assigned }
-        };
+        });
       } finally {
         client.release();
       }

@@ -54,7 +54,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
 
         fastify.log.info({ msg: '✅ File uploaded to R2 (JSON)', key, url });
 
-        return {
+        return reply.send({
           success: true,
           data: {
             key,
@@ -63,7 +63,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
             size: buffer.length,
             mimetype
           }
-        };
+        });
       }
       
       // Try multipart fallback
@@ -100,7 +100,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
 
         fastify.log.info({ msg: '✅ File uploaded to R2 (multipart)', key, url });
 
-        return {
+        return reply.send({
           success: true,
           data: {
             key,
@@ -109,7 +109,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
             size: buffer.length,
             mimetype
           }
-        };
+        });
       } catch (multipartError) {
         fastify.log.error(multipartError, 'Multipart parsing failed');
         return reply.status(400).send({
@@ -121,7 +121,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
       fastify.log.error(error, 'Upload file error');
       return reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error.message : 'Chyba pri nahrávaní súboru'
+        error: error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Chyba pri nahrávaní súboru'
       });
     }
   });
@@ -169,10 +169,10 @@ export default async function filesRoutes(fastify: FastifyInstance) {
       const { key } = request.params;
       await r2Storage.deleteFile(key);
 
-      return {
+      return reply.send({
         success: true,
         message: 'Súbor úspešne vymazaný'
-      };
+      });
 
     } catch (error) {
       fastify.log.error(error, 'Delete file error');
@@ -239,7 +239,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
             fastify.log.error(error, `Failed to upload file: ${part.filename}`);
             errors.push({
               filename: part.filename,
-              error: error instanceof Error ? error.message : 'Upload failed'
+              error: error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Upload failed'
             });
           }
         }
@@ -251,7 +251,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
         failed: errors.length 
       });
 
-      return {
+      return reply.send({
         success: errors.length === 0,
         data: {
           uploaded: uploadedFiles,
@@ -262,12 +262,12 @@ export default async function filesRoutes(fastify: FastifyInstance) {
             failed: errors.length
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Batch upload error');
       return reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error.message : 'Chyba pri batch uploadovaní'
+        error: error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Chyba pri batch uploadovaní'
       });
     }
   });
@@ -287,14 +287,14 @@ export default async function filesRoutes(fastify: FastifyInstance) {
       const presignedUrl = `https://r2.blackrent.sk/${key}`; // Simplified
       
       fastify.log.info({ msg: '🔗 Presigned URL generated', key });
-      return {
+      return reply.send({
         success: true,
         data: {
           uploadUrl: presignedUrl,
           key,
           expiresIn: 3600
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Presigned URL error');
       return reply.status(500).send({ success: false, error: 'Failed to generate presigned URL' });
@@ -324,7 +324,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const signedUrl = `https://r2.blackrent.sk/${request.params.key}?signed=true`; // Simplified
-      return { success: true, data: { url: signedUrl, expiresIn: 3600 } };
+      return reply.send({ success: true, data: { url: signedUrl, expiresIn: 3600 } });
     } catch (error) {
       fastify.log.error(error, 'Get signed URL error');
       return reply.status(500).send({ success: false, error: 'Failed to get signed URL' });
@@ -336,7 +336,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify]
   }, async (request, reply) => {
     try {
-      return { success: true, data: { status: 'operational', region: 'auto', connected: true } };
+      return reply.send({ success: true, data: { status: 'operational', region: 'auto', connected: true } });
     } catch (error) {
       fastify.log.error(error, 'Storage status error');
       return reply.status(500).send({ success: false, error: 'Failed to get storage status' });
@@ -350,7 +350,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       fastify.log.info('📄 Protocol document upload endpoint called');
-      return { success: true, message: 'Protocol upload endpoint - @fastify/multipart implementation needed' };
+      return reply.send({ success: true, message: 'Protocol upload endpoint - @fastify/multipart implementation needed' });
     } catch (error) {
       fastify.log.error(error, 'Protocol upload error');
       return reply.status(500).send({ success: false, error: 'Failed to upload protocol document' });
@@ -364,7 +364,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       fastify.log.info('📑 Protocol PDF upload endpoint called');
-      return { success: true, message: 'Protocol PDF upload endpoint - @fastify/multipart implementation needed' };
+      return reply.send({ success: true, message: 'Protocol PDF upload endpoint - @fastify/multipart implementation needed' });
     } catch (error) {
       fastify.log.error(error, 'Protocol PDF upload error');
       return reply.status(500).send({ success: false, error: 'Failed to upload protocol PDF' });
@@ -379,7 +379,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
       const { protocolId } = request.params;
       // Simplified - would need to list files from R2
       fastify.log.info({ msg: '🖼️ Protocol images requested', protocolId });
-      return { success: true, data: { images: [], message: 'Protocol images endpoint - implementation needed' } };
+      return reply.send({ success: true, data: { images: [], message: 'Protocol images endpoint - implementation needed' } });
     } catch (error) {
       fastify.log.error(error, 'Get protocol images error');
       return reply.status(500).send({ success: false, error: 'Failed to get protocol images' });
@@ -393,7 +393,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       fastify.log.info('📸 Protocol photo upload endpoint called');
-      return { success: true, message: 'Protocol photo upload endpoint - @fastify/multipart implementation needed' };
+      return reply.send({ success: true, message: 'Protocol photo upload endpoint - @fastify/multipart implementation needed' });
     } catch (error) {
       fastify.log.error(error, 'Protocol photo upload error');
       return reply.status(500).send({ success: false, error: 'Failed to upload protocol photo' });
@@ -408,7 +408,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
       const { key, success } = request.body;
       if (success) {
         fastify.log.info({ msg: '✅ Presigned upload completed', key });
-        return { success: true, message: 'Upload confirmed', data: { key } };
+        return reply.send({ success: true, message: 'Upload confirmed', data: { key } });
       } else {
         return reply.status(400).send({ success: false, error: 'Upload failed' });
       }
@@ -428,7 +428,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'No files specified' });
       }
       fastify.log.info({ msg: '📦 ZIP download requested', count: keys.length });
-      return { success: true, message: 'ZIP download endpoint - implementation needed', data: { keys, count: keys.length } };
+      return reply.send({ success: true, message: 'ZIP download endpoint - implementation needed', data: { keys, count: keys.length } });
     } catch (error) {
       fastify.log.error(error, 'ZIP download error');
       return reply.status(500).send({ success: false, error: 'Failed to create ZIP' });
@@ -441,7 +441,7 @@ export default async function filesRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       fastify.log.info('🧪 ZIP test endpoint called');
-      return { success: true, message: 'ZIP test endpoint - implementation needed', data: { test: true } };
+      return reply.send({ success: true, message: 'ZIP test endpoint - implementation needed', data: { test: true } });
     } catch (error) {
       fastify.log.error(error, 'ZIP test error');
       return reply.status(500).send({ success: false, error: 'Failed to test ZIP' });

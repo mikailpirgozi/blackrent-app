@@ -62,6 +62,16 @@ class R2Storage {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<string> {
+    // ✅ FORCE LOCAL STORAGE FOR DEVELOPMENT (skip R2 SSL issues)
+    const isDevelopment = 
+      process.env.NODE_ENV === 'development' ||
+      (!process.env.RAILWAY_PROJECT_ID && !process.env.VERCEL);
+    
+    if (isDevelopment && process.env.FORCE_LOCAL_STORAGE !== 'false') {
+      console.log('🛠️ Development mode: Using local storage (set FORCE_LOCAL_STORAGE=false to use R2)');
+      return this.uploadFileLocally(key, buffer);
+    }
+    
     // Check if R2 is configured
     if (!this.isConfigured()) {
       // ✅ ENHANCED PRODUCTION DETECTION

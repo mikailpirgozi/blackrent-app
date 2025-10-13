@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Typography } from '@/components/ui/typography';
 import { useCallback, useEffect, useState } from 'react';
 
-import { ProtocolImage } from '../../types';
+import type { ProtocolImage } from '../../types';
 
 interface ProtocolDetailViewerProps {
   protocolId: string;
@@ -263,11 +263,17 @@ export function ProtocolDetailViewer({
                   onClick={() => handleViewOriginalImage(image)}
                 />
                 <CardContent className="p-2">
-                  <Typography variant="caption" className="text-muted-foreground">
+                  <Typography
+                    variant="caption"
+                    className="text-muted-foreground"
+                  >
                     {image.type} -{' '}
                     {new Date(image.timestamp).toLocaleString('sk-SK')}
                   </Typography>
-                  <Typography variant="caption" className="text-muted-foreground block">
+                  <Typography
+                    variant="caption"
+                    className="text-muted-foreground block"
+                  >
                     {image.originalSize
                       ? formatFileSize(image.originalSize)
                       : 'N/A'}
@@ -295,11 +301,17 @@ export function ProtocolDetailViewer({
                   onClick={() => handleViewOriginalImage(image)}
                 />
                 <CardContent className="p-2">
-                  <Typography variant="caption" className="text-muted-foreground">
+                  <Typography
+                    variant="caption"
+                    className="text-muted-foreground"
+                  >
                     {image.type} -{' '}
                     {new Date(image.timestamp).toLocaleString('sk-SK')}
                   </Typography>
-                  <Typography variant="caption" className="text-muted-foreground block">
+                  <Typography
+                    variant="caption"
+                    className="text-muted-foreground block"
+                  >
                     {image.originalSize
                       ? formatFileSize(image.originalSize)
                       : 'N/A'}
@@ -319,18 +331,21 @@ export function ProtocolDetailViewer({
           </Typography>
           <div className="space-y-4">
             {protocol.damages.map((damage, index) => (
-              <div
-                key={index}
-                className="p-4 bg-gray-50 rounded-lg"
-              >
-                <Typography variant="caption" className="text-primary font-semibold">
+              <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                <Typography
+                  variant="caption"
+                  className="text-primary font-semibold"
+                >
                   Škoda {index + 1}
                 </Typography>
                 <Typography variant="caption" className="mt-1">
                   {damage.description || 'N/A'}
                 </Typography>
                 {damage.location && (
-                  <Typography variant="caption" className="text-muted-foreground mt-1">
+                  <Typography
+                    variant="caption"
+                    className="text-muted-foreground mt-1"
+                  >
                     Lokalizácia: {damage.location}
                   </Typography>
                 )}
@@ -365,11 +380,17 @@ export function ProtocolDetailViewer({
                   className="w-full h-24 object-contain"
                 />
                 <CardContent className="p-2">
-                  <Typography variant="caption" className="text-muted-foreground">
+                  <Typography
+                    variant="caption"
+                    className="text-muted-foreground"
+                  >
                     {signature.signerName || `Podpis ${index + 1}`}
                   </Typography>
                   {signature.signerRole && (
-                    <Typography variant="caption" className="text-muted-foreground block">
+                    <Typography
+                      variant="caption"
+                      className="text-muted-foreground block"
+                    >
                       {signature.signerRole}
                     </Typography>
                   )}

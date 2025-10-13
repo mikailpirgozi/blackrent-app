@@ -1,4 +1,5 @@
-import express, { Router } from 'express';
+import type { Router } from 'express';
+import express from 'express';
 import { postgresDatabase } from '../models/postgres-database.js';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator.js';
 import { r2Storage } from '../utils/r2-storage.js';

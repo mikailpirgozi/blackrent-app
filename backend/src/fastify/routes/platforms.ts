@@ -51,10 +51,10 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         userId: user.id
       });
 
-      return {
+      return reply.send({
         success: true,
         data: platforms
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ Get platforms error');
       return reply.status(500).send({
@@ -85,10 +85,10 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return {
+      return reply.send({
         success: true,
         data: platform
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ Get platform error');
       return reply.status(500).send({
@@ -112,10 +112,10 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
 
       const stats = await postgresDatabase.getPlatformStats(id);
 
-      return {
+      return reply.send({
         success: true,
         data: stats
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ Get platform stats error');
       return reply.status(500).send({
@@ -169,7 +169,7 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
       fastify.log.error(error, '❌ Create platform error');
       return reply.status(500).send({
         success: false,
-        error: `Chyba pri vytváraní platformy: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+        error: `Chyba pri vytváraní platformy: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Neznáma chyba'}`
       });
     }
   });
@@ -204,16 +204,16 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         userId: request.user!.id
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Platforma úspešne aktualizovaná',
         data: platform
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ Update platform error');
       return reply.status(500).send({
         success: false,
-        error: `Chyba pri aktualizácii platformy: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+        error: `Chyba pri aktualizácii platformy: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Neznáma chyba'}`
       });
     }
   });
@@ -246,10 +246,10 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         userId: request.user!.id
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Platforma úspešne vymazaná'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ Delete platform error');
       return reply.status(500).send({
@@ -288,10 +288,10 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         userId: request.user!.id
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Firma úspešne priradená k platforme'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ Assign company to platform error');
       return reply.status(500).send({
@@ -317,14 +317,14 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         count: platformCompanies.length
       });
       
-      return {
+      return reply.send({
         success: true,
         data: {
           platformId: id,
           companies: platformCompanies,
           count: platformCompanies.length
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get platform companies error');
       return reply.status(500).send({
@@ -372,7 +372,7 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
         rentals: platformRentals.length
       });
       
-      return {
+      return reply.send({
         success: true,
         data: {
           platformId: id,
@@ -393,7 +393,7 @@ export default async function platformsRoutes(fastify: FastifyInstance) {
             rented: platformVehicles.filter(v => v.status === 'rented').length
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get platform dashboard error');
       return reply.status(500).send({

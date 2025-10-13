@@ -1,11 +1,11 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { authenticateFastify } from '../decorators/auth';
 import { checkPermissionFastify } from '../hooks/permissions';
 import { postgresDatabase } from '../../models/postgres-database';
 import { r2OrganizationManager, type PathVariables } from '../../config/r2-organization';
 import { generateHandoverPDF, generateReturnPDF } from '../../utils/pdf-generator';
 import { r2Storage } from '../../utils/r2-storage';
-import { emailService } from '../../services/email-service';
+// import { emailService } from '../../services/email-service'; // ✅ Unused import removed
 import { getWebSocketService } from '../../services/websocket-service';
 import type { HandoverProtocol, ReturnProtocol } from '../../types';
 
@@ -73,14 +73,14 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       const handoverProtocols: unknown[] = [];
       const returnProtocols: unknown[] = [];
       
-      return {
+      return reply.send({
         success: true,
         data: {
           handover: handoverProtocols,
           return: returnProtocols,
           total: handoverProtocols.length + returnProtocols.length
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get all protocols error');
       return reply.status(500).send({
@@ -112,13 +112,13 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: {
           protocol,
           type
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get protocol by ID error');
       return reply.status(500).send({
@@ -215,7 +215,7 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       });
       
       // NOTE: ZIP generation would require archiver or similar package
-      return {
+      return reply.send({
         success: true,
         message: 'ZIP download endpoint - implementation needed',
         data: {
@@ -227,7 +227,7 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
           },
           note: 'This endpoint requires ZIP generation library'
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Download all protocols error');
       return reply.status(500).send({
@@ -250,10 +250,10 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         postgresDatabase.getReturnProtocolsByRental(rentalId)
       ]);
 
-      return {
+      return reply.send({
         handoverProtocols,
         returnProtocols
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Error fetching protocols');
       return reply.status(500).send({ error: 'Internal server error' });
@@ -271,15 +271,8 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '✅ Bulk protocol status loaded', loadTimeMs: loadTime });
       
-      return {
-        success: true,
-        data: protocolStatus,
-        metadata: {
-          loadTimeMs: loadTime,
-          totalRentals: protocolStatus.length,
-          timestamp: new Date().toISOString()
-        }
-      };
+      // ✅ EXPRESS COMPATIBILITY: Return protocol status directly (not wrapped)
+      return reply.send(protocolStatus);
     } catch (error) {
       fastify.log.error(error, 'Error fetching bulk protocol status');
       return reply.status(500).send({
@@ -300,15 +293,8 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '✅ All protocols loaded for statistics', loadTimeMs: loadTime });
       
-      return {
-        success: true,
-        data: protocols,
-        metadata: {
-          loadTimeMs: loadTime,
-          totalProtocols: protocols.length,
-          timestamp: new Date().toISOString()
-        }
-      };
+      // ✅ EXPRESS COMPATIBILITY: Return protocols directly (not wrapped)
+      return reply.send(protocols);
     } catch (error) {
       fastify.log.error(error, 'Error fetching protocols for statistics');
       return reply.status(500).send({
@@ -328,19 +314,25 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       const protocolData = request.body;
       fastify.log.info({ msg: '📝 Creating handover protocol', rentalId: protocolData.rentalId });
 
-      // Generate PDF
-      const pdfBuffer = await generateHandoverPDF(protocolData);
-      
-      // Create protocol in database
+      // Create protocol in database FIRST (to get ID)
       const newProtocol = await postgresDatabase.createHandoverProtocol({
         id: protocolData.id,
         rentalId: protocolData.rentalId,
+        location: protocolData.location || '',
         vehicleCondition: protocolData.vehicleCondition as unknown as Record<string, unknown>,
         vehicleImages: protocolData.vehicleImages || [],
         vehicleVideos: protocolData.vehicleVideos || [],
         documentImages: protocolData.documentImages || [],
-        damageImages: protocolData.damageImages || []
+        damageImages: protocolData.damageImages || [],
+        damages: protocolData.damages || [],
+        signatures: protocolData.signatures || [],
+        rentalData: protocolData.rentalData || {},
+        notes: protocolData.notes || '',
+        createdBy: protocolData.createdBy || 'system'
       });
+      
+      // Generate PDF with protocol that has ID
+      const pdfBuffer = await generateHandoverPDF({ ...protocolData, id: newProtocol.id });
       
       // Generate organized path
       const pdfPath = generatePDFPath(protocolData, newProtocol.id, 'handover', fastify.log);
@@ -367,10 +359,8 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         fastify.log.info({ msg: '📧 Email notification would be sent', email: protocolData.rentalData.customer.email });
       }
 
-      return reply.status(201).send({
-        success: true,
-        data: newProtocol
-      });
+      // ✅ EXPRESS COMPATIBILITY: Return protocol directly (not wrapped in {success, data})
+      return reply.status(201).send(newProtocol);
     } catch (error) {
       fastify.log.error(error, 'Error creating handover protocol');
       return reply.status(500).send({
@@ -446,10 +436,8 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         fastify.log.info({ msg: '📧 Email notification would be sent', email: protocolData.rentalData.customer.email });
       }
 
-      return reply.status(201).send({
-        success: true,
-        data: newProtocol
-      });
+      // ✅ EXPRESS COMPATIBILITY: Return protocol directly (not wrapped in {success, data})
+      return reply.status(201).send(newProtocol);
     } catch (error) {
       fastify.log.error(error, 'Error creating return protocol');
       return reply.status(500).send({
@@ -475,13 +463,11 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       const protocol = await postgresDatabase.getHandoverProtocolById(id);
       
       if (!protocol) {
-        return reply.status(404).send({ error: 'Protocol not found' });
+        return reply.status(404).send({ error: 'Protocol not found'         });
       }
 
-      return {
-        success: true,
-        data: protocol
-      };
+      // ✅ EXPRESS COMPATIBILITY: Return protocol directly
+      return reply.send(protocol);
     } catch (error) {
       fastify.log.error(error, 'Error fetching handover protocol');
       return reply.status(500).send({
@@ -507,13 +493,11 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       const protocol = await postgresDatabase.getReturnProtocolById(id);
       
       if (!protocol) {
-        return reply.status(404).send({ error: 'Protocol not found' });
+        return reply.status(404).send({ error: 'Protocol not found'         });
       }
 
-      return {
-        success: true,
-        data: protocol
-      };
+      // ✅ EXPRESS COMPATIBILITY: Return protocol directly
+      return reply.send(protocol);
     } catch (error) {
       fastify.log.error(error, 'Error fetching return protocol');
       return reply.status(500).send({
@@ -551,10 +535,8 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '✅ Handover protocol updated', id });
 
-      return {
-        success: true,
-        data: updatedProtocol
-      };
+      // ✅ EXPRESS COMPATIBILITY: Return protocol directly
+      return reply.send(updatedProtocol);
     } catch (error) {
       fastify.log.error(error, 'Error updating handover protocol');
       return reply.status(500).send({
@@ -581,10 +563,10 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '🗑️ Handover protocol deleted', id });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Protocol deleted successfully'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Error deleting handover protocol');
       return reply.status(500).send({
@@ -622,10 +604,8 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '✅ Return protocol updated', id });
 
-      return {
-        success: true,
-        data: updatedProtocol
-      };
+      // ✅ EXPRESS COMPATIBILITY: Return protocol directly
+      return reply.send(updatedProtocol);
     } catch (error) {
       fastify.log.error(error, 'Error updating return protocol');
       return reply.status(500).send({
@@ -652,10 +632,10 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       
       fastify.log.info({ msg: '🗑️ Return protocol deleted', id });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Protocol deleted successfully'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Error deleting return protocol');
       return reply.status(500).send({

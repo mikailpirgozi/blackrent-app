@@ -64,7 +64,8 @@ const leasingFormSchema = z.object({
 
   initialLoanAmount: z
     .number({ required_error: 'Výška úveru je povinná' })
-    .positive('Musí byť kladné číslo'),
+    .positive('Musí byť kladné číslo')
+    .optional(),
   totalInstallments: z
     .number({ required_error: 'Počet splátok je povinný' })
     .int()
@@ -162,7 +163,7 @@ export function LeasingForm({
   ].sort((a, b) => a.localeCompare(b));
 
   const form = useForm<LeasingFormData>({
-    resolver: zodResolver(leasingFormSchema) as any,
+    resolver: zodResolver(leasingFormSchema) as never, // ✅ Type assertion needed due to Zod version mismatch
     defaultValues: {
       vehicleId: '',
       leasingCompany: '',
@@ -495,11 +496,19 @@ export function LeasingForm({
 
       logger.debug('📝 Submitting leasing data:', input);
 
+      // ✅ Filter out undefined values for API
+      const cleanedInput = Object.fromEntries(
+        Object.entries(input).filter(([, value]) => value !== undefined)
+      ) as typeof input;
+
       if (leasingId) {
-        await updateMutation.mutateAsync({ ...input, id: leasingId });
+        await updateMutation.mutateAsync({
+          ...cleanedInput,
+          id: leasingId,
+        } as never);
         toast.success('Leasing úspešne aktualizovaný');
       } else {
-        const result = await createMutation.mutateAsync(input);
+        const result = await createMutation.mutateAsync(cleanedInput as never);
         logger.debug('✅ Leasing created:', result);
         toast.success('Leasing úspešne vytvorený');
       }
@@ -526,10 +535,7 @@ export function LeasingForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit(onSubmit as any)}
-          className="space-y-6 py-4"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
           {/* ZÁKLADNÉ INFORMÁCIE */}
           <Card>
             <CardHeader>

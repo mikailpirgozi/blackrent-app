@@ -86,11 +86,12 @@ router.post('/',
         data: createdCategory
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Create expense category error:', error);
       
+      const dbError = error as { code?: string };
       // Špecifické error handling pre unique constraint
-      if (error.message?.includes('unique') || error.code === '23505') {
+      if (error instanceof Error ? error.message : String(error)?.includes('unique') || dbError.code === '23505') {
         return res.status(400).json({
           success: false,
           error: 'Kategória s týmto názvom už existuje'
@@ -162,7 +163,7 @@ router.put('/:id',
         data: updatedCategory
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Update expense category error:', error);
       res.status(500).json({
         success: false,
@@ -188,18 +189,18 @@ router.delete('/:id',
         message: 'Kategória nákladov úspešne zmazaná'
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete expense category error:', error);
       
       // Špecifické error handling
-      if (error.message?.includes('základnú kategóriu')) {
+      if (error instanceof Error ? error.message : String(error)?.includes('základnú kategóriu')) {
         return res.status(400).json({
           success: false,
           error: 'Nemožno zmazať základnú kategóriu'
         });
       }
       
-      if (error.message?.includes('používa v nákladoch')) {
+      if (error instanceof Error ? error.message : String(error)?.includes('používa v nákladoch')) {
         return res.status(400).json({
           success: false,
           error: 'Nemožno zmazať kategóriu ktorá sa používa v existujúcich nákladoch'

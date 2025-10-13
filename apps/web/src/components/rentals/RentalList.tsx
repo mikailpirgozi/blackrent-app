@@ -31,7 +31,12 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import { ProtocolImage, ProtocolVideo, Rental, ReturnProtocol } from '../../types';
+import type {
+  ProtocolImage,
+  ProtocolVideo,
+  Rental,
+  ReturnProtocol,
+} from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
 
@@ -768,11 +773,16 @@ export default function RentalList() {
           if (protocol.pdfUrl) {
             pdfUrl = protocol.pdfUrl as string;
           } else {
-            // Generate PDF URL - používaj relatívne /api v dev (Vite proxy)
-            const baseUrl =
-              import.meta.env.VITE_API_URL ||
-              (import.meta.env.DEV ? '' : 'http://localhost:3001');
-            pdfUrl = `${baseUrl}/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token || ''}`;
+            // Generate PDF URL - OPRAVENÉ: Správna URL konštrukcia
+            // V dev prostredí (Vite proxy): /api/protocols/...
+            // V produkcii: http://localhost:3001/api/protocols/...
+            if (import.meta.env.DEV) {
+              pdfUrl = `/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token || ''}`;
+            } else {
+              const apiUrl =
+                import.meta.env.VITE_API_URL || 'http://localhost:3001';
+              pdfUrl = `${apiUrl}/api/protocols/${selectedProtocolType}/${protocol.id}/pdf?token=${token || ''}`;
+            }
           }
 
           // Open PDF in new tab
@@ -1226,7 +1236,9 @@ export default function RentalList() {
             window.alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
           }
         }}
-        handleSaveReturn={async (protocolData: Record<string, unknown> | ReturnProtocol) => {
+        handleSaveReturn={async (
+          protocolData: Record<string, unknown> | ReturnProtocol
+        ) => {
           try {
             logger.debug(
               '💾 Return protocol already saved, updating UI:',
@@ -1236,7 +1248,11 @@ export default function RentalList() {
             // React Query vracia priamo protocol objekt
             const rentalId =
               (protocolData as Record<string, unknown>)?.rentalId ||
-              ((protocolData as Record<string, unknown>)?.rental as { id?: string })?.id;
+              (
+                (protocolData as Record<string, unknown>)?.rental as {
+                  id?: string;
+                }
+              )?.id;
 
             if (rentalId) {
               // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu

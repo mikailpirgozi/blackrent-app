@@ -8,13 +8,13 @@ export default async function debugRoutes(fastify: FastifyInstance) {
   // GET /api/debug/test-connection - Test basic connection
   fastify.get('/api/debug/test-connection', async (request, reply) => {
     try {
-      return {
+      return reply.send({
         success: true,
         message: 'Connection OK',
         timestamp: new Date().toISOString(),
         server: 'Fastify',
         version: fastify.version
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Test connection error');
       return reply.status(500).send({
@@ -32,7 +32,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
         const result = await client.query('SELECT NOW() as current_time, version() as pg_version');
         const row = result.rows[0];
         
-        return {
+        return reply.send({
           success: true,
           message: 'Database connection OK',
           data: {
@@ -40,7 +40,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
             postgresVersion: row.pg_version,
             poolStatus: 'connected'
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -49,7 +49,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         success: false,
         error: 'Database connection failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)
       });
     }
   });
@@ -68,7 +68,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
             (SELECT COUNT(*) FROM companies) as company_count
         `);
         
-        return {
+        return reply.send({
           success: true,
           message: 'PostgreSQL test OK',
           data: {
@@ -80,7 +80,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
               transactions: 'supported'
             }
           }
-        };
+        });
       } finally {
         client.release();
       }
@@ -89,7 +89,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         success: false,
         error: 'PostgreSQL test failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)
       });
     }
   });
@@ -109,7 +109,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
       // Get user from database
       const user = await postgresDatabase.getUserById(request.user.id);
       
-      return {
+      return reply.send({
         success: true,
         data: {
           id: user?.id,
@@ -120,7 +120,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
           platformId: user?.platformId,
           isActive: user?.isActive
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Debug user info error');
       return reply.status(500).send({
@@ -151,7 +151,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
       });
       const prismaTime = Date.now() - prismaStart;
 
-      return {
+      return reply.send({
         success: true,
         comparison: {
           legacy: {
@@ -177,7 +177,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
             readability: 'Clean API vs raw SQL strings'
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Prisma test error');
       return reply.status(500).send({
@@ -279,7 +279,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
         } : null
       };
 
-      return {
+      return reply.send({
         success: true,
         message: '✅ Prisma pokrýva všetky funkcionality!',
         coverage,
@@ -289,7 +289,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
           users: `✅ ${usersWithPlatform.length} users s platform info`,
           imapEmails: `✅ ${await prisma.email_processing_history.count()} IMAP emailov spracovaných`
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Prisma coverage test error');
       return reply.status(500).send({
@@ -321,7 +321,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
         vehicle = await postgresDatabase.getVehicle(rental.vehicleId);
       }
 
-      return {
+      return reply.send({
         success: true,
         data: {
           rental: {
@@ -346,7 +346,7 @@ export default async function debugRoutes(fastify: FastifyInstance) {
               (request.user?.role === 'company_admin' && request.user?.companyId === vehicle?.ownerCompanyId)
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Debug rental info error');
       return reply.status(500).send({

@@ -35,10 +35,10 @@ export default async function expenseCategoriesRoutes(fastify: FastifyInstance) 
         categoriesCount: categories.length
       });
       
-      return {
+      return reply.send({
         success: true,
         data: categories
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get expense categories error');
       return reply.status(500).send({
@@ -188,11 +188,11 @@ export default async function expenseCategoriesRoutes(fastify: FastifyInstance) 
         displayName
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Kategória nákladov úspešne aktualizovaná',
         data: updatedCategory
-      };
+      });
 
     } catch (error: unknown) {
       fastify.log.error(error, 'Update expense category error');
@@ -223,10 +223,10 @@ export default async function expenseCategoriesRoutes(fastify: FastifyInstance) 
         user: request.user?.username
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Kategória nákladov úspešne zmazaná'
-      };
+      });
 
     } catch (error: unknown) {
       fastify.log.error(error, 'Delete expense category error');

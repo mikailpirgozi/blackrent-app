@@ -83,7 +83,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
         fastify.log.info({ msg: '🔐 Expenses Permission Filter', userId: user.id, filteredCount: expenses.length });
       }
       
-      return { success: true, data: expenses };
+      return reply.send({ success: true, data: expenses });
     } catch (error) {
       fastify.log.error(error, 'Get expenses error');
       return reply.status(500).send({
@@ -102,7 +102,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
       if (!expense) {
         return reply.status(404).send({ success: false, error: 'Výdavok nenájdený' });
       }
-      return { success: true, data: expense };
+      return reply.send({ success: true, data: expense });
     } catch (error) {
       fastify.log.error(error, 'Get expense error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní výdavku' });
@@ -150,7 +150,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
       });
       const updatedExpense = await postgresDatabase.getExpenseById(request.params.id);
       fastify.log.info({ msg: '✅ Expense updated', id: request.params.id });
-      return { success: true, data: updatedExpense };
+      return reply.send({ success: true, data: updatedExpense });
     } catch (error) {
       fastify.log.error(error, 'Update expense error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii výdavku' });
@@ -164,7 +164,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
     try {
       await postgresDatabase.deleteExpense(request.params.id);
       fastify.log.info({ msg: '🗑️ Expense deleted', id: request.params.id });
-      return { success: true, message: 'Výdavok bol odstránený' };
+      return reply.send({ success: true, message: 'Výdavok bol odstránený' });
     } catch (error) {
       fastify.log.error(error, 'Delete expense error');
       return reply.status(500).send({ success: false, error: 'Chyba pri mazaní výdavku' });
@@ -283,17 +283,17 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
           });
           
           results.push({ row: i + 2, expense: created });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             row: i + 2, 
-            error: error.message || 'Error creating expense' 
+            error: error instanceof Error ? error.message : String(error) || 'Error creating expense' 
           });
         }
       }
 
       fastify.log.info({ msg: '📥 CSV Import expenses', imported: results.length, errors: errors.length });
 
-      return {
+      return reply.send({
         success: true,
         message: `CSV import completed: ${results.length} successful, ${errors.length} errors`,
         data: {
@@ -302,7 +302,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
           results,
           errors: errors.slice(0, 10)
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'CSV import error');
       return reply.status(500).send({
@@ -314,7 +314,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
 
   // POST /api/expenses/batch-import - Batch import expenses
   fastify.post<{
-    Body: { expenses: any[] };
+    Body: { expenses: Record<string, unknown>[] };
   }>('/api/expenses/batch-import', {
     preHandler: [authenticateFastify, checkPermissionFastify('expenses', 'create')]
   }, async (request, reply) => {
@@ -343,7 +343,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
           const created = await postgresDatabase.createExpense({
             description: String(expenseData.description),
             amount: Number(expenseData.amount),
-            date: expenseData.date ? new Date(expenseData.date) : new Date(),
+            date: expenseData.date && String(expenseData.date) ? new Date(String(expenseData.date)) : new Date(),
             vehicleId: expenseData.vehicleId ? String(expenseData.vehicleId) : undefined,
             company: String(expenseData.company || ''),
             category: String(expenseData.category || 'other'),
@@ -351,17 +351,17 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
           });
           
           results.push({ index: i, expense: created });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             index: i, 
-            error: error.message || 'Error creating expense' 
+            error: error instanceof Error ? error.message : String(error) || 'Error creating expense' 
           });
         }
       }
 
       fastify.log.info({ msg: '📥 Batch import expenses', imported: results.length, errors: errors.length });
 
-      return {
+      return reply.send({
         success: true,
         message: `Batch import completed: ${results.length} successful, ${errors.length} errors`,
         data: {
@@ -370,7 +370,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
           results,
           errors: errors.slice(0, 10)
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Batch import error');
       return reply.status(500).send({
@@ -382,7 +382,7 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
 
   // POST /api/expenses/batch-import-stream - Batch import with stream (simplified version)
   fastify.post<{
-    Body: { expenses: any[] };
+    Body: { expenses: Record<string, unknown>[] };
   }>('/api/expenses/batch-import-stream', {
     preHandler: [authenticateFastify, checkPermissionFastify('expenses', 'create')]
   }, async (request, reply) => {

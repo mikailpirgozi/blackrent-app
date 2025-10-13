@@ -95,7 +95,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
         vehicleCompany: undefined,
       }));
 
-      return {
+      return reply.send({
         success: true,
         data: {
           leasings: transformedLeasings,
@@ -107,7 +107,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
             itemsPerPage: limit,
           },
         },
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get paginated leasings error');
       return reply.status(500).send({
@@ -139,10 +139,10 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: leasings,
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get leasings error');
       return reply.status(500).send({
@@ -162,10 +162,10 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
     try {
       const dashboardData = await postgresDatabase.getLeasingDashboard();
       
-      return {
+      return reply.send({
         success: true,
         data: dashboardData
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get leasing dashboard error');
       return reply.status(500).send({
@@ -195,10 +195,10 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: leasing
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get leasing error');
       return reply.status(500).send({
@@ -261,11 +261,11 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
       const ws = getWebSocketService();
       ws?.broadcastLeasingUpdated(updatedLeasing, 'updated');
       
-      return {
+      return reply.send({
         success: true,
         message: 'Leasing úspešne aktualizovaný',
         data: updatedLeasing
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Update leasing error');
       return reply.status(500).send({
@@ -292,10 +292,10 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
       const ws = getWebSocketService();
       ws?.broadcastLeasingUpdated({ id }, 'deleted');
       
-      return {
+      return reply.send({
         success: true,
         message: 'Leasing úspešne vymazaný'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Delete leasing error');
       return reply.status(500).send({
@@ -322,10 +322,10 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
       // NOTE: markLeasingPayment method needs to be implemented in PostgresDatabase
       fastify.log.info({ msg: '💰 Mark leasing payment', leasingId: id, installmentNumber, paidDate });
       
-      return {
+      return reply.send({
         success: true,
         message: 'Platba označená ako zaplatená - implementation needed'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Mark payment error');
       return reply.status(500).send({
@@ -359,7 +359,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return { success: true, data: schedule };
+      return reply.send({ success: true, data: schedule });
     } catch (error) {
       fastify.log.error(error, 'Get leasing schedule error');
       return reply.status(500).send({ success: false, error: 'Failed to get schedule' });
@@ -371,7 +371,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify, checkPermissionFastify('expenses', 'read')]
   }, async (request, reply) => {
     try {
-      return { success: true, data: [], message: 'Payment history endpoint - implementation needed' };
+      return reply.send({ success: true, data: [], message: 'Payment history endpoint - implementation needed' });
     } catch (error) {
       fastify.log.error(error, 'Get payments error');
       return reply.status(500).send({ success: false, error: 'Failed to get payments' });
@@ -400,7 +400,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify, checkPermissionFastify('expenses', 'update')]
   }, async (request, reply) => {
     try {
-      return { success: true, message: 'Payment updated', data: { id: request.params.paymentId } };
+      return reply.send({ success: true, message: 'Payment updated', data: { id: request.params.paymentId } });
     } catch (error) {
       fastify.log.error(error, 'Update payment error');
       return reply.status(500).send({ success: false, error: 'Failed to update payment' });
@@ -434,7 +434,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
         }
       });
       
-      return { success: true, data: upcomingPayments };
+      return reply.send({ success: true, data: upcomingPayments });
     } catch (error) {
       fastify.log.error(error, 'Get upcoming payments error');
       return reply.status(500).send({ success: false, error: 'Failed to get upcoming payments' });
@@ -446,7 +446,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify, checkPermissionFastify('expenses', 'read')]
   }, async (request, reply) => {
     try {
-      return { success: true, data: [], message: 'Overdue payments endpoint - implementation needed' };
+      return reply.send({ success: true, data: [], message: 'Overdue payments endpoint - implementation needed' });
     } catch (error) {
       fastify.log.error(error, 'Get overdue payments error');
       return reply.status(500).send({ success: false, error: 'Failed to get overdue payments' });
@@ -468,7 +468,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
       const penalty = (leasing.earlyRepaymentPenalty || 0);
       const totalAmount = remainingPrincipal + penalty;
       
-      return {
+      return reply.send({
         success: true,
         data: {
           leasingId: leasing.id,
@@ -477,7 +477,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
           totalAmount,
           message: 'Early repayment calculation - simplified version'
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Early repayment calculation error');
       return reply.status(500).send({ success: false, error: 'Failed to calculate early repayment' });

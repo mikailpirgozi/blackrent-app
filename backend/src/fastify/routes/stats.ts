@@ -22,7 +22,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
       // Calculate total revenue from rentals
       const totalRevenue = rentals.reduce((sum, r) => sum + (r.totalPrice || 0), 0);
 
-      return {
+      return reply.send({
         success: true,
         data: {
           totalVehicles: vehicles.length,
@@ -30,7 +30,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
           activeRentals,
           totalRevenue
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get dashboard stats error');
       return reply.status(500).send({
@@ -52,7 +52,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
         return acc;
       }, {});
       
-      return { success: true, data: revenueByMonth };
+      return reply.send({ success: true, data: revenueByMonth });
     } catch (error) {
       fastify.log.error(error, 'Get revenue stats error');
       return reply.status(500).send({
@@ -73,7 +73,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
         return acc;
       }, {});
       
-      return { success: true, data: vehiclesByStatus };
+      return reply.send({ success: true, data: vehiclesByStatus });
     } catch (error) {
       fastify.log.error(error, 'Get vehicle stats error');
       return reply.status(500).send({
@@ -94,7 +94,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
         return acc;
       }, {});
       
-      return { success: true, data: rentalsByStatus };
+      return reply.send({ success: true, data: rentalsByStatus });
     } catch (error) {
       fastify.log.error(error, 'Get rental stats error');
       return reply.status(500).send({

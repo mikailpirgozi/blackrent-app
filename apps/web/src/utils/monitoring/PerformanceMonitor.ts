@@ -27,6 +27,14 @@ export interface PerformanceMetrics {
   bottleneck: 'processing' | 'upload' | 'memory' | 'none';
 }
 
+type PerformanceWithMemory = Performance & {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+};
+
 export class PerformanceMonitor {
   private metrics: {
     memoryReadings: number[];
@@ -42,6 +50,7 @@ export class PerformanceMonitor {
 
   private criticalMemoryThreshold = 0.85; // 85% of limit
   private warningCallbacks: Array<(message: string) => void> = [];
+  private _pollInterval?: ReturnType<typeof setInterval>;
 
   /**
    * Start monitoring session
@@ -134,7 +143,7 @@ export class PerformanceMonitor {
     const intervalId = setInterval(poll, 500);
 
     // Store interval ID for cleanup
-    (this as any)._pollInterval = intervalId;
+    this._pollInterval = intervalId;
   }
 
   /**
@@ -142,8 +151,10 @@ export class PerformanceMonitor {
    */
   private getCurrentMemory(): number {
     if ('memory' in performance) {
-      const mem = (performance as any).memory;
-      return mem.usedJSHeapSize / 1024 / 1024; // Convert to MB
+      const mem = (performance as PerformanceWithMemory).memory;
+      if (mem) {
+        return mem.usedJSHeapSize / 1024 / 1024; // Convert to MB
+      }
     }
     return 0;
   }
@@ -169,8 +180,10 @@ export class PerformanceMonitor {
     // Get memory limit
     let limit = 0;
     if ('memory' in performance) {
-      const mem = (performance as any).memory;
-      limit = mem.jsHeapSizeLimit / 1024 / 1024; // MB
+      const mem = (performance as PerformanceWithMemory).memory;
+      if (mem) {
+        limit = mem.jsHeapSizeLimit / 1024 / 1024; // MB
+      }
     }
 
     const percentage = limit > 0 ? (peak / limit) * 100 : 0;
@@ -284,8 +297,8 @@ export class PerformanceMonitor {
    * Cleanup
    */
   destroy(): void {
-    if ((this as any)._pollInterval) {
-      clearInterval((this as any)._pollInterval);
+    if (this._pollInterval) {
+      clearInterval(this._pollInterval);
     }
     this.warningCallbacks = [];
   }

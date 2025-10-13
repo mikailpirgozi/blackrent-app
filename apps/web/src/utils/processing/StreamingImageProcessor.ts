@@ -215,8 +215,11 @@ export class StreamingImageProcessor {
 
         // Track memory usage
         if ('memory' in performance) {
-          const mem = (performance as any).memory;
-          const currentMemory = mem.usedJSHeapSize;
+          type PerformanceWithMemory = Performance & {
+            memory?: { usedJSHeapSize: number };
+          };
+          const mem = (performance as PerformanceWithMemory).memory;
+          const currentMemory = mem?.usedJSHeapSize || 0;
           if (currentMemory > peakMemory) {
             peakMemory = currentMemory;
           }
@@ -306,19 +309,28 @@ export class StreamingImageProcessor {
    * Cleanup batch memory immediately
    */
   private cleanupBatch(processed: ProcessImageResult[]): void {
+    type ResultWithUrl = ProcessImageResult & {
+      galleryUrl?: string;
+      pdfUrl?: string;
+    };
     for (const img of processed) {
+      const imgWithUrl = img as ResultWithUrl;
       // Revoke blob URLs if created
-      if ('galleryUrl' in img && typeof (img as any).galleryUrl === 'string') {
-        URL.revokeObjectURL((img as any).galleryUrl);
+      if (
+        'galleryUrl' in imgWithUrl &&
+        typeof imgWithUrl.galleryUrl === 'string'
+      ) {
+        URL.revokeObjectURL(imgWithUrl.galleryUrl);
       }
-      if ('pdfUrl' in img && typeof (img as any).pdfUrl === 'string') {
-        URL.revokeObjectURL((img as any).pdfUrl);
+      if ('pdfUrl' in imgWithUrl && typeof imgWithUrl.pdfUrl === 'string') {
+        URL.revokeObjectURL(imgWithUrl.pdfUrl);
       }
     }
 
     // Force garbage collection hint (not guaranteed)
+    type GlobalWithGC = typeof globalThis & { gc?: () => void };
     if ('gc' in global) {
-      (global as any).gc();
+      (global as GlobalWithGC).gc?.();
     }
 
     logger.debug('Batch memory cleaned up');

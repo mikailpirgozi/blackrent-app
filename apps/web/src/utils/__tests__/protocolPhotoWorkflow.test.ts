@@ -3,7 +3,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { processAndUploadPhotos, generateProtocolPDFQuick } from '../protocolPhotoWorkflow';
+import {
+  processAndUploadPhotos,
+  generateProtocolPDFQuick,
+} from '../protocolPhotoWorkflow';
 import { SessionStorageManager } from '../sessionStorageManager';
 import type { HandoverProtocol } from '../../types';
 
@@ -100,8 +103,8 @@ describe('protocolPhotoWorkflow', () => {
         signatures: [],
         rentalData: {
           orderNumber: 'TEST-001',
-          vehicle: {} as any,
-          customer: {} as any,
+          vehicle: {} as Record<string, unknown>,
+          customer: {} as Record<string, unknown>,
           startDate: new Date(),
           endDate: new Date(),
           totalPrice: 100,
@@ -136,7 +139,10 @@ describe('protocolPhotoWorkflow', () => {
       } as HandoverProtocol;
 
       // Save data
-      SessionStorageManager.savePDFImage('test-img', 'data:image/jpeg;base64,test');
+      SessionStorageManager.savePDFImage(
+        'test-img',
+        'data:image/jpeg;base64,test'
+      );
 
       await generateProtocolPDFQuick(mockProtocol);
 
@@ -146,4 +152,3 @@ describe('protocolPhotoWorkflow', () => {
     });
   });
 });
-

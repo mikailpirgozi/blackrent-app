@@ -1,10 +1,10 @@
 // 🔴 WEBSOCKET CLIENT SERVICE - BlackRent Frontend
 // Real-time komunikácia s backend WebSocket serverom
 
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
-import { Customer, Rental, Vehicle } from '../types';
+import type { Customer, Rental, Vehicle } from '../types';
 import type { Leasing } from '@/types/leasing-types';
 import { getBaseUrl } from '../utils/apiUrl';
 import { logger } from '@/utils/smartLogger';

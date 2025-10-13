@@ -281,12 +281,11 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         errors.push('Zadajte miesto prevzatia');
       }
 
-      if (
-        formData.odometer === undefined ||
-        formData.odometer === null ||
-        formData.odometer < 0
-      ) {
+      // ✅ FIX: Povoliť odometer === 0 (je to validná hodnota!)
+      if (formData.odometer === undefined || formData.odometer === null) {
         errors.push('Zadajte stav tachometra');
+      } else if (formData.odometer < 0) {
+        errors.push('Stav tachometra nemôže byť záporný');
       }
 
       if (
@@ -405,17 +404,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // Vyčisti media objekty pred odoslaním - odstráni problematické properties
         const cleanedProtocol = {
           ...protocol,
-          // Vyčisti nested rental objekt - odstráni problematické properties
-          rental: protocol.rental
-            ? {
-                ...protocol.rental,
-                // Ak rental obsahuje media properties, vyčisti ich
-                vehicleImages: undefined,
-                vehicleVideos: undefined,
-                documentImages: undefined,
-                damageImages: undefined,
-              }
-            : undefined,
+          // ✅ FIX: Odstránime rental objekt úplne, backend používa len rentalData
+          rental: undefined,
           // Vyčisti main protocol media arrays
           vehicleImages: (protocol.vehicleImages || []).map(
             (img: ProtocolImage) => ({
@@ -473,6 +463,8 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
               timestamp: img.timestamp,
             })
           ),
+          // ✅ KRITICKÉ: rentalData musí byť na konci aby nebola prepísaná
+          rentalData: protocol.rentalData,
         };
 
         logger.debug('🧹 Cleaned handover protocol for DB:', cleanedProtocol);
@@ -486,7 +478,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
         // 🚀 Use React Query mutation instead of direct fetch
         const result = await createHandoverProtocol.mutateAsync({
           ...cleanedProtocol,
-          rental: cleanedProtocol.rental || rental,
+          // ✅ FIX: Backend očakáva rentalData (rental už je undefined vyššie)
         });
         const quickSaveTime = Date.now() - quickSaveStart;
 

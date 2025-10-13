@@ -106,10 +106,10 @@ export default async function insurancesRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: insurance
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get insurance by ID error');
       return reply.status(500).send({
@@ -155,10 +155,10 @@ export default async function insurancesRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: insurances
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get insurances error');
       return reply.status(500).send({
@@ -220,7 +220,7 @@ export default async function insurancesRoutes(fastify: FastifyInstance) {
         items: `${paginatedInsurances.length}/${totalCount}`
       });
       
-      return {
+      return reply.send({
         success: true,
         data: {
           insurances: paginatedInsurances,
@@ -231,7 +231,7 @@ export default async function insurancesRoutes(fastify: FastifyInstance) {
             hasMore: page < totalPages
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, '❌ INSURANCES: Paginated error');
       return reply.status(500).send({
@@ -369,11 +369,11 @@ export default async function insurancesRoutes(fastify: FastifyInstance) {
         deductiblePercentage
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Poistka úspešne aktualizovaná',
         data: updatedInsurance
-      };
+      });
 
     } catch (error) {
       fastify.log.error(error, 'Update insurance error');
@@ -398,10 +398,10 @@ export default async function insurancesRoutes(fastify: FastifyInstance) {
 
       await postgresDatabase.deleteInsurance(id);
 
-      return {
+      return reply.send({
         success: true,
         message: 'Poistka úspešne zmazaná'
-      };
+      });
 
     } catch (error) {
       fastify.log.error(error, 'Delete insurance error');

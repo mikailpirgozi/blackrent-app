@@ -117,7 +117,7 @@ apps/web-backup-disabled/
 customer-website/Anima/
 customer-website/archive/
 database/
-protocols/
+/protocols/
 
 # Temporary files
 *.pdf

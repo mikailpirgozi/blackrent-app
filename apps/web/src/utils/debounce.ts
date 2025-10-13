@@ -18,8 +18,11 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   };
 }
 
+// eslint-disable-next-line no-redeclare
 export function measurePerformance<T>(name: string, fn: () => T): T;
+// eslint-disable-next-line no-redeclare
 export function measurePerformance<T>(fn: () => T, name: string): T;
+// eslint-disable-next-line no-redeclare
 export function measurePerformance<T>(
   nameOrFn: string | (() => T),
   fnOrName?: (() => T) | string

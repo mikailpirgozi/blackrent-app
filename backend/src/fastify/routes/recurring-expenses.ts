@@ -44,10 +44,10 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: expense
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get recurring expense by ID error');
       return reply.status(500).send({
@@ -80,10 +80,10 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
         'Expires': '0'
       });
 
-      return {
+      return reply.send({
         success: true,
         data: recurringExpenses
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get recurring expenses error');
       return reply.status(500).send({
@@ -284,11 +284,11 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
         'Expires': '0'
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Pravidelný náklad úspešne aktualizovaný',
         data: freshData || updatedRecurring
-      };
+      });
 
     } catch (error: unknown) {
       fastify.log.error(error, 'Update recurring expense error');
@@ -319,10 +319,10 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
         user: request.user?.username
       });
 
-      return {
+      return reply.send({
         success: true,
         message: 'Pravidelný náklad úspešne zmazaný'
-      };
+      });
 
     } catch (error: unknown) {
       fastify.log.error(error, 'Delete recurring expense error');
@@ -353,11 +353,11 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
 
       const results = await postgresDatabase.generateRecurringExpenses(date);
 
-      return {
+      return reply.send({
         success: true,
         message: `Generovanie dokončené: ${results.generated} vytvorených, ${results.skipped} preskočených`,
         data: results
-      };
+      });
 
     } catch (error: unknown) {
       fastify.log.error(error, 'Generate recurring expenses error');
@@ -387,17 +387,17 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
         targetDate ? new Date(targetDate) : new Date()
       );
 
-      return {
+      return reply.send({
         success: true,
         message: 'Náklad úspešne vygenerovaný',
         data: { generatedExpenseId }
-      };
+      });
 
     } catch (error: unknown) {
       fastify.log.error(error, 'Generate single recurring expense error');
       return reply.status(400).send({
         success: false,
-        error: error instanceof Error ? error.message : 'Chyba pri generovaní nákladu'
+        error: error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Chyba pri generovaní nákladu'
       });
     }
   });
@@ -424,7 +424,7 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
         month: nextMonth.toISOString().slice(0, 7)
       });
       
-      return {
+      return reply.send({
         success: true,
         message: `Generated ${generatedCount} expenses for next month`,
         data: { 
@@ -432,7 +432,7 @@ export default async function recurringExpensesRoutes(fastify: FastifyInstance) 
           month: nextMonth.toISOString().slice(0, 7),
           note: 'Implementation needed - currently simplified'
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Generate next month expenses error');
       return reply.status(500).send({

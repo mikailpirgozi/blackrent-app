@@ -10,7 +10,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const customers = await postgresDatabase.getCustomers();
-      return { success: true, data: customers };
+      return reply.send({ success: true, data: customers });
     } catch (error) {
       fastify.log.error(error, 'Get customers error');
       return reply.status(500).send({
@@ -30,7 +30,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
       if (!customer) {
         return reply.status(404).send({ success: false, error: 'Zákazník nenájdený' });
       }
-      return { success: true, data: customer };
+      return reply.send({ success: true, data: customer });
     } catch (error) {
       fastify.log.error(error, 'Get customer error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní zákazníka' });
@@ -81,7 +81,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
       const customers = await postgresDatabase.getCustomers();
       const updatedCustomer = customers.find(c => c.id === request.params.id);
       fastify.log.info({ msg: '✅ Customer updated', id: request.params.id });
-      return { success: true, data: updatedCustomer };
+      return reply.send({ success: true, data: updatedCustomer });
     } catch (error) {
       fastify.log.error(error, 'Update customer error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii zákazníka' });
@@ -95,7 +95,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
     try {
       await postgresDatabase.deleteCustomer(request.params.id);
       fastify.log.info({ msg: '🗑️ Customer deleted', id: request.params.id });
-      return { success: true, message: 'Zákazník bol odstránený' };
+      return reply.send({ success: true, message: 'Zákazník bol odstránený' });
     } catch (error) {
       fastify.log.error(error, 'Delete customer error');
       return reply.status(500).send({ success: false, error: 'Chyba pri mazaní zákazníka' });
@@ -223,17 +223,17 @@ export default async function customersRoutes(fastify: FastifyInstance) {
 
           const createdCustomer = await postgresDatabase.createCustomer(customerData);
           results.push({ row: i + 2, customer: createdCustomer });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             row: i + 2, 
-            error: error.message || 'Chyba pri vytváraní zákazníka' 
+            error: error instanceof Error ? error.message : String(error) || 'Chyba pri vytváraní zákazníka' 
           });
         }
       }
 
       fastify.log.info({ msg: '📥 CSV Import', imported: results.length, errors: errors.length });
 
-      return {
+      return reply.send({
         success: true,
         message: `CSV import dokončený: ${results.length} úspešných, ${errors.length} chýb`,
         data: {
@@ -242,7 +242,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
           results,
           errors: errors.slice(0, 10) // Limit to first 10 errors
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'CSV import error');
       return reply.status(500).send({
@@ -300,7 +300,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: `📊 Found ${result.customers.length}/${result.total} customers`, page: pageNum });
 
-      return {
+      return reply.send({
         success: true,
         data: {
           customers: result.customers,
@@ -312,7 +312,7 @@ export default async function customersRoutes(fastify: FastifyInstance) {
             itemsPerPage: limitNum
           }
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get paginated customers error');
       return reply.status(500).send({

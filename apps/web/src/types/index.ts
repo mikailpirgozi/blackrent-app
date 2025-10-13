@@ -662,7 +662,7 @@ export interface VehicleCondition {
 export interface HandoverProtocol {
   id: string;
   rentalId: string;
-  rental: Rental;
+  rental?: Rental; // ✅ FIX: Optional - backend používa len rentalData
 
   // Basic info
   type: 'handover';

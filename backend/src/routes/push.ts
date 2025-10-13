@@ -207,11 +207,12 @@ router.post('/send', authenticateToken, requireRole(['admin', 'super_admin']), a
         
         return { subscriptionId: sub.id, status: 'sent' };
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`❌ Failed to send to subscription ${sub.id}:`, error);
 
         // Handle expired subscriptions
-        if (error.statusCode === 410 || error.statusCode === 404) {
+        const webPushError = error as { statusCode?: number };
+        if (webPushError.statusCode === 410 || webPushError.statusCode === 404) {
           await postgresDatabase.query(
             'UPDATE push_subscriptions SET active = false WHERE id = $1',
             [sub.id]
@@ -219,9 +220,9 @@ router.post('/send', authenticateToken, requireRole(['admin', 'super_admin']), a
           console.log(`🗑️ Deactivated expired subscription ${sub.id}`);
         }
 
-        await logNotificationDelivery(sub.id as string, 'failed', notificationPayload, error.message);
+        await logNotificationDelivery(sub.id as string, 'failed', notificationPayload, error instanceof Error ? error.message : String(error));
         
-        return { subscriptionId: sub.id, status: 'failed', error: error.message };
+        return { subscriptionId: sub.id, status: 'failed', error: error instanceof Error ? error.message : String(error) };
       }
     });
 
@@ -478,18 +479,19 @@ async function sendPushNotificationToSubscriptions(subscriptions: any[], notific
       await logNotificationDelivery(sub.id, 'sent', notificationPayload);
       return { subscriptionId: sub.id, status: 'sent' };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`❌ Failed to send to subscription ${sub.id}:`, error);
 
-      if (error.statusCode === 410 || error.statusCode === 404) {
+      const webPushError = error as { statusCode?: number };
+      if (webPushError.statusCode === 410 || webPushError.statusCode === 404) {
         await postgresDatabase.query(
           'UPDATE push_subscriptions SET active = false WHERE id = $1',
           [sub.id]
         );
       }
 
-      await logNotificationDelivery(sub.id, 'failed', notificationPayload, error.message);
-      return { subscriptionId: sub.id, status: 'failed', error: error.message };
+      await logNotificationDelivery(sub.id, 'failed', notificationPayload, error instanceof Error ? error.message : String(error));
+      return { subscriptionId: sub.id, status: 'failed', error: error instanceof Error ? error.message : String(error) };
     }
   });
 

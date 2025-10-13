@@ -170,9 +170,10 @@ export class ImageProcessor {
     // Chrome/Desktop: 4 concurrent (was 6, but crashes with 30+ photos)
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const isLowMemory =
-      (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
-    
+    const deviceMemory = (navigator as Navigator & { deviceMemory?: number })
+      .deviceMemory;
+    const isLowMemory = deviceMemory !== undefined && deviceMemory < 4;
+
     const BATCH_SIZE = isIOS || isLowMemory ? 2 : isSafari ? 3 : 4;
 
     logger.info('Starting batch image processing', {

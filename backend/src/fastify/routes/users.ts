@@ -34,10 +34,10 @@ export default async function usersRoutes(fastify: FastifyInstance) {
       // Remove passwords from response
       const usersWithoutPasswords = users.map(({ password, ...user }) => user);
 
-      return {
+      return reply.send({
         success: true,
         data: usersWithoutPasswords
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get users error');
       return reply.status(500).send({
@@ -164,10 +164,10 @@ export default async function usersRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '✅ User updated', userId: id });
 
-      return {
+      return reply.send({
         success: true,
         data: userWithoutPassword
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Update user error');
       return reply.status(500).send({
@@ -203,10 +203,10 @@ export default async function usersRoutes(fastify: FastifyInstance) {
 
       fastify.log.info({ msg: '🗑️ User deleted', userId: id });
 
-      return {
+      return reply.send({
         success: true,
         message: 'User deleted successfully'
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Delete user error');
       return reply.status(500).send({

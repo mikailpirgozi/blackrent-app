@@ -240,3 +240,4 @@ Pre BlackRent aplikáciu očakávame:
 **Dátum:** 2025-01-13  
 **Verzia:** 1.0
 
+

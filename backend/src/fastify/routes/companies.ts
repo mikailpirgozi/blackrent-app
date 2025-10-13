@@ -10,7 +10,7 @@ export default async function companiesRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const companies = await postgresDatabase.getCompanies();
-      return { success: true, data: companies };
+      return reply.send({ success: true, data: companies });
     } catch (error) {
       fastify.log.error(error, 'Get companies error');
       return reply.status(500).send({
@@ -29,7 +29,7 @@ export default async function companiesRoutes(fastify: FastifyInstance) {
       if (!company) {
         return reply.status(404).send({ success: false, error: 'Firma nenájdená' });
       }
-      return { success: true, data: company };
+      return reply.send({ success: true, data: company });
     } catch (error) {
       fastify.log.error(error, 'Get company error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní firmy' });
@@ -69,7 +69,7 @@ export default async function companiesRoutes(fastify: FastifyInstance) {
       await postgresDatabase.updateCompany(request.params.id, companyData);
       const updatedCompany = await postgresDatabase.getCompanyById(request.params.id);
       fastify.log.info({ msg: '✅ Company updated', id: request.params.id });
-      return { success: true, data: updatedCompany };
+      return reply.send({ success: true, data: updatedCompany });
     } catch (error) {
       fastify.log.error(error, 'Update company error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii firmy' });
@@ -83,7 +83,7 @@ export default async function companiesRoutes(fastify: FastifyInstance) {
     try {
       await postgresDatabase.deleteCompany(request.params.id);
       fastify.log.info({ msg: '🗑️ Company deleted', id: request.params.id });
-      return { success: true, message: 'Firma bola odstránená' };
+      return reply.send({ success: true, message: 'Firma bola odstránená' });
     } catch (error) {
       fastify.log.error(error, 'Delete company error');
       return reply.status(500).send({ success: false, error: 'Chyba pri mazaní firmy' });

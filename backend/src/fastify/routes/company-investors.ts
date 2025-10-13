@@ -20,10 +20,10 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
         });
       }
       
-      return {
+      return reply.send({
         success: true,
         data: investor
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get company investor by ID error');
       return reply.status(500).send({
@@ -39,7 +39,7 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const investors = await postgresDatabase.getCompanyInvestors();
-      return { success: true, data: investors };
+      return reply.send({ success: true, data: investors });
     } catch (error) {
       fastify.log.error(error, 'Get company investors error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní spoluinvestorov' });
@@ -81,7 +81,7 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const updatedInvestor = await postgresDatabase.updateCompanyInvestor(request.params.id, request.body);
-      return { success: true, message: 'Spoluinvestor úspešne aktualizovaný', data: updatedInvestor };
+      return reply.send({ success: true, message: 'Spoluinvestor úspešne aktualizovaný', data: updatedInvestor });
     } catch (error) {
       fastify.log.error(error, 'Update company investor error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii spoluinvestora' });
@@ -94,7 +94,7 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       await postgresDatabase.deleteCompanyInvestor(request.params.id);
-      return { success: true, message: 'Spoluinvestor úspešne vymazaný' };
+      return reply.send({ success: true, message: 'Spoluinvestor úspešne vymazaný' });
     } catch (error) {
       fastify.log.error(error, 'Delete company investor error');
       return reply.status(500).send({ success: false, error: 'Chyba pri vymazávaní spoluinvestora' });
@@ -107,7 +107,7 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const shares = await postgresDatabase.getCompanyInvestorShares(request.params.companyId);
-      return { success: true, data: shares };
+      return reply.send({ success: true, data: shares });
     } catch (error) {
       fastify.log.error(error, 'Get company investor shares error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní podielov' });
@@ -144,7 +144,7 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const updatedShare = await postgresDatabase.updateCompanyInvestorShare(request.params.id, request.body);
-      return { success: true, message: 'Podiel úspešne aktualizovaný', data: updatedShare };
+      return reply.send({ success: true, message: 'Podiel úspešne aktualizovaný', data: updatedShare });
     } catch (error) {
       fastify.log.error(error, 'Update company investor share error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii podielu' });
@@ -157,7 +157,7 @@ export default async function companyInvestorsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       await postgresDatabase.deleteCompanyInvestorShare(request.params.id);
-      return { success: true, message: 'Podiel úspešne vymazaný' };
+      return reply.send({ success: true, message: 'Podiel úspešne vymazaný' });
     } catch (error) {
       fastify.log.error(error, 'Delete company investor share error');
       return reply.status(500).send({ success: false, error: 'Chyba pri vymazávaní podielu' });

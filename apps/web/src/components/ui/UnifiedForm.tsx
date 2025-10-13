@@ -19,7 +19,7 @@ import React, {
 } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { AlertCircle } from 'lucide-react';
 
@@ -216,7 +216,8 @@ export const UnifiedForm = forwardRef<HTMLFormElement, UnifiedFormProps>(
       reValidateMode,
 
       ...(validationSchema && {
-        resolver: zodResolver(validationSchema as any),
+        // @ts-expect-error - Zod version mismatch between @hookform/resolvers and zod
+        resolver: zodResolver(validationSchema),
       }),
     };
 

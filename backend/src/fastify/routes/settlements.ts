@@ -10,7 +10,7 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const settlements = await postgresDatabase.getSettlements();
-      return { success: true, data: settlements };
+      return reply.send({ success: true, data: settlements });
     } catch (error) {
       fastify.log.error(error, 'Get settlements error');
       return reply.status(500).send({
@@ -29,7 +29,7 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
       if (!settlement) {
         return reply.status(404).send({ success: false, error: 'Vyúčtovanie nenájdené' });
       }
-      return { success: true, data: settlement };
+      return reply.send({ success: true, data: settlement });
     } catch (error) {
       fastify.log.error(error, 'Get settlement error');
       return reply.status(500).send({ success: false, error: 'Chyba pri získavaní vyúčtovania' });
@@ -86,7 +86,7 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
       });
       const updatedSettlement = await postgresDatabase.getSettlement(request.params.id);
       fastify.log.info({ msg: '✅ Settlement updated', id: request.params.id });
-      return { success: true, data: updatedSettlement };
+      return reply.send({ success: true, data: updatedSettlement });
     } catch (error) {
       fastify.log.error(error, 'Update settlement error');
       return reply.status(500).send({ success: false, error: 'Chyba pri aktualizácii vyúčtovania' });
@@ -100,7 +100,7 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
     try {
       await postgresDatabase.deleteSettlement(request.params.id);
       fastify.log.info({ msg: '🗑️ Settlement deleted', id: request.params.id });
-      return { success: true, message: 'Vyúčtovanie bolo odstránené' };
+      return reply.send({ success: true, message: 'Vyúčtovanie bolo odstránené' });
     } catch (error) {
       fastify.log.error(error, 'Delete settlement error');
       return reply.status(500).send({ success: false, error: 'Chyba pri mazaní vyúčtovania' });
@@ -124,7 +124,7 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
       // Simple PDF generation response (actual PDF generation would require pdf-lib or similar)
       fastify.log.info({ msg: '📄 Settlement PDF requested', id: request.params.id });
       
-      return {
+      return reply.send({
         success: true,
         message: 'PDF generation endpoint - implementation needed',
         data: {
@@ -135,7 +135,7 @@ export default async function settlementsRoutes(fastify: FastifyInstance) {
           totalExpenses: settlement.totalExpenses,
           profit: settlement.profit
         }
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Settlement PDF error');
       return reply.status(500).send({

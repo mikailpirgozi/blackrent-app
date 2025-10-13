@@ -18,10 +18,10 @@ export default async function insurersRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const insurers = await postgresDatabase.getInsurers();
-      return {
+      return reply.send({
         success: true,
         data: insurers
-      };
+      });
     } catch (error) {
       fastify.log.error(error, 'Get insurers error');
       return reply.status(500).send({
@@ -75,10 +75,10 @@ export default async function insurersRoutes(fastify: FastifyInstance) {
 
       await postgresDatabase.deleteInsurer(id);
 
-      return {
+      return reply.send({
         success: true,
         message: 'Poisťovňa úspešne vymazaná'
-      };
+      });
 
     } catch (error) {
       fastify.log.error(error, 'Delete insurer error');
