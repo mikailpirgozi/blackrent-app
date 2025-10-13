@@ -396,7 +396,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
   });
 
   // PUT /api/leasings/:id/payments/:paymentId - Update payment
-  fastify.put<{ Params: { id: string; paymentId: string }; Body: any }>('/api/leasings/:id/payments/:paymentId', {
+  fastify.put<{ Params: { id: string; paymentId: string }; Body: Record<string, unknown> }>('/api/leasings/:id/payments/:paymentId', {
     preHandler: [authenticateFastify, checkPermissionFastify('expenses', 'update')]
   }, async (request, reply) => {
     try {
@@ -413,7 +413,7 @@ export default async function leasingsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const leasings = await postgresDatabase.getLeasings();
-      const upcomingPayments: any[] = [];
+      const upcomingPayments: Record<string, unknown>[] = [];
       
       // Calculate upcoming payments for next 30 days
       const today = new Date();

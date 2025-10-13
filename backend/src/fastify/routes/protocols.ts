@@ -240,7 +240,9 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
   // GET /api/protocols/rental/:rentalId - Get all protocols for a rental
   fastify.get<{
     Params: { rentalId: string };
-  }>('/api/protocols/rental/:rentalId', async (request, reply) => {
+  }>('/api/protocols/rental/:rentalId', {
+    preHandler: [authenticateFastify]
+  }, async (request, reply) => {
     try {
       const { rentalId } = request.params;
       fastify.log.info({ msg: '📋 Fetching protocols for rental', rentalId });
@@ -250,9 +252,17 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         postgresDatabase.getReturnProtocolsByRental(rentalId)
       ]);
 
+      // ✅ Refresh signed URLs for all protocols (24h expiry)
+      const refreshedHandover = await Promise.all(
+        handoverProtocols.map(protocol => postgresDatabase.refreshProtocolSignedUrls(protocol))
+      );
+      const refreshedReturn = await Promise.all(
+        returnProtocols.map(protocol => postgresDatabase.refreshProtocolSignedUrls(protocol))
+      );
+
       return reply.send({
-        handoverProtocols,
-        returnProtocols
+        handoverProtocols: refreshedHandover,
+        returnProtocols: refreshedReturn
       });
     } catch (error) {
       fastify.log.error(error, 'Error fetching protocols');
@@ -312,6 +322,17 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const protocolData = request.body;
+      
+      // 🔍 DEBUG: Log incoming data
+      fastify.log.info({
+        msg: '🔍 FASTIFY ENDPOINT - Received protocol data',
+        hasId: !!protocolData.id,
+        idValue: protocolData.id,
+        idType: typeof protocolData.id,
+        rentalId: protocolData.rentalId,
+        allKeys: Object.keys(protocolData)
+      });
+      
       fastify.log.info({ msg: '📝 Creating handover protocol', rentalId: protocolData.rentalId });
 
       // Create protocol in database FIRST (to get ID)
@@ -340,11 +361,16 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       // Upload to R2
       await r2Storage.uploadFile(pdfPath, pdfBuffer, 'application/pdf');
       
-      // Update protocol with PDF URL
-      const pdfUrl = await r2Storage.getSignedUrl(pdfPath);
+      // Update protocol with PDF URL - store full R2 URL for direct access
+      const pdfR2Url = await r2Storage.getSignedUrl(pdfPath);
       await postgresDatabase.updateHandoverProtocol(newProtocol.id, {
-        pdfUrl: pdfUrl
+        pdfUrl: pdfR2Url
       });
+      
+      // Generate proxy URL for frontend (without /api prefix)
+      // Frontend uses Vite proxy which adds /api automatically
+      const pdfProxyPath = `/files/proxy/${encodeURIComponent(pdfPath)}`;
+      fastify.log.info({ msg: '📄 PDF URLs generated', r2Url: pdfR2Url, proxyPath: pdfProxyPath });
 
       // Send WebSocket notification
       const wsService = getWebSocketService();
@@ -359,13 +385,34 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         fastify.log.info({ msg: '📧 Email notification would be sent', email: protocolData.rentalData.customer.email });
       }
 
-      // ✅ EXPRESS COMPATIBILITY: Return protocol directly (not wrapped in {success, data})
-      return reply.status(201).send(newProtocol);
+      // ✅ Return protocol with success wrapper for frontend compatibility
+      return reply.status(201).send({
+        success: true,
+        protocol: newProtocol,
+        email: null, // Email info if sent
+        pdfProxyUrl: pdfProxyPath // Return proxy path for frontend
+      });
     } catch (error) {
       fastify.log.error(error, 'Error creating handover protocol');
+      
+      // 🔍 Detailed error logging for debugging
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      fastify.log.error({
+        msg: '🚨 HANDOVER PROTOCOL ERROR DETAILS',
+        errorMessage,
+        errorStack,
+        protocolData: {
+          rentalId: request.body.rentalId,
+          hasVehicleCondition: !!request.body.vehicleCondition,
+          hasSignatures: !!(request.body.signatures && request.body.signatures.length > 0)
+        }
+      });
+      
       return reply.status(500).send({
         success: false,
-        error: 'Chyba pri vytváraní protokolu'
+        error: `Chyba pri vytváraní protokolu: ${errorMessage}`
       });
     }
   });
@@ -417,11 +464,16 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
       // Upload to R2
       await r2Storage.uploadFile(pdfPath, pdfBuffer, 'application/pdf');
       
-      // Update protocol with PDF URL
-      const pdfUrl = await r2Storage.getSignedUrl(pdfPath);
+      // Update protocol with PDF URL - store full R2 URL for direct access
+      const pdfR2Url = await r2Storage.getSignedUrl(pdfPath);
       await postgresDatabase.updateReturnProtocol(newProtocol.id, {
-        pdfUrl: pdfUrl
+        pdfUrl: pdfR2Url
       });
+      
+      // Generate proxy URL for frontend (without /api prefix)
+      // Frontend uses Vite proxy which adds /api automatically
+      const pdfProxyPath = `/files/proxy/${encodeURIComponent(pdfPath)}`;
+      fastify.log.info({ msg: '📄 PDF URLs generated', r2Url: pdfR2Url, proxyPath: pdfProxyPath });
 
       // Send WebSocket notification
       const wsService = getWebSocketService();
@@ -436,8 +488,13 @@ export default async function protocolsRoutes(fastify: FastifyInstance) {
         fastify.log.info({ msg: '📧 Email notification would be sent', email: protocolData.rentalData.customer.email });
       }
 
-      // ✅ EXPRESS COMPATIBILITY: Return protocol directly (not wrapped in {success, data})
-      return reply.status(201).send(newProtocol);
+      // ✅ Return protocol with success wrapper for frontend compatibility
+      return reply.status(201).send({
+        success: true,
+        protocol: newProtocol,
+        email: null, // Email info if sent
+        pdfProxyUrl: pdfProxyPath // Return proxy path for frontend
+      });
     } catch (error) {
       fastify.log.error(error, 'Error creating return protocol');
       return reply.status(500).send({

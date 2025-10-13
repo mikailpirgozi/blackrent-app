@@ -428,7 +428,7 @@ export class RentalRepository extends BaseRepository {
    * Mapuje databázový riadok na Rental objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToRental(row: any): Rental {
+  private mapRowToRental(row: Record<string, unknown>): Rental {
     return {
       id: row.id.toString(),
       vehicleId: row.vehicle_id?.toString(),

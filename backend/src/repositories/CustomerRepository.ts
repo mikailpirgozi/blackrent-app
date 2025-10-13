@@ -190,15 +190,19 @@ export class CustomerRepository extends BaseRepository {
    * Mapuje databázový riadok na Customer objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToCustomer(row: any): Customer {
+  private mapRowToCustomer(row: Record<string, unknown>): Customer {
+    const firstName = row.first_name ? String(row.first_name) : undefined;
+    const lastName = row.last_name ? String(row.last_name) : undefined;
+    const name = row.name ? String(row.name) : `${firstName || ''} ${lastName || ''}`.trim();
+    
     return {
-      id: row.id.toString(),
-      name: row.name || `${row.first_name} ${row.last_name}`.trim(),
-      firstName: row.first_name || undefined,
-      lastName: row.last_name || undefined,
-      email: row.email,
-      phone: row.phone,
-      createdAt: new Date(row.created_at)
+      id: String(row.id),
+      name: name,
+      firstName: firstName,
+      lastName: lastName,
+      email: String(row.email),
+      phone: String(row.phone),
+      createdAt: new Date(row.created_at as string | number | Date)
     };
   }
 

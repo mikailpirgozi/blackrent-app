@@ -250,8 +250,8 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
       }
 
       const dataLines = lines.slice(1);
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: Record<string, unknown>[] = [];
 
       for (let i = 0; i < dataLines.length; i++) {
         try {
@@ -328,8 +328,8 @@ export default async function expensesRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: Record<string, unknown>[] = [];
 
       for (let i = 0; i < expenses.length; i++) {
         try {

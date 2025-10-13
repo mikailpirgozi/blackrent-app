@@ -1,6 +1,6 @@
 /**
  * Protocol Gallery - Full-screen Lightbox s zoom/pan/swipe
- * 
+ *
  * Features:
  * - Full-screen modal
  * - Zoom (pinch to zoom, buttons)
@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import type { ProtocolImage } from '../../types';
-import { getApiBaseUrl } from '../../utils/apiUrl';
 import { logger } from '../../utils/logger';
 
 interface ProtocolGalleryProps {
@@ -31,23 +30,11 @@ interface ProtocolGalleryProps {
   initialIndex?: number;
 }
 
-// Helper to convert R2 URL to proxy URL
-const getProxyUrl = (url: string | undefined): string => {
+// Helper: Use R2 signed URLs directly (no conversion needed)
+const getImageUrl = (url: string | undefined): string => {
   if (!url) return '';
-
-  try {
-    // Ak je to R2 URL, konvertuj na proxy
-    if (url.includes('r2.dev') || url.includes('cloudflare.com')) {
-      const urlParts = url.split('/');
-      const key = urlParts.slice(3).join('/');
-      const apiBaseUrl = getApiBaseUrl();
-      return `${apiBaseUrl}/files/proxy/${encodeURIComponent(key)}`;
-    }
-    return url;
-  } catch (error) {
-    logger.error('Error converting to proxy URL', { error, url });
-    return url;
-  }
+  // ✅ R2 SIGNED URLs: Backend already returns signed URLs (24h expiry)
+  return url;
 };
 
 export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
@@ -85,13 +72,13 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
   }, [open, currentIndex, images.length, onClose]);
 
   const handlePrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
     setIsLoading(true);
     setImageError(false);
   }, [images.length]);
 
   const handleNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    setCurrentIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
     setIsLoading(true);
     setImageError(false);
   }, [images.length]);
@@ -100,20 +87,33 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
     if (!currentImage?.originalUrl) return;
 
     try {
-      const response = await fetch(getProxyUrl(currentImage.originalUrl));
+      // ✅ Download high-quality image from R2 signed URL
+      const imageUrl = getImageUrl(currentImage.originalUrl);
+      logger.info('Downloading image', {
+        url: imageUrl.substring(0, 80) + '...',
+        index: currentIndex,
+      });
+
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `image_${currentIndex + 1}.webp`;
+      a.download = `protocol_image_${currentIndex + 1}.jpg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-
-      logger.info('Image downloaded', { index: currentIndex });
+      logger.info('✅ Image downloaded', {
+        index: currentIndex,
+        size: blob.size,
+      });
     } catch (error) {
-      logger.error('Download failed', { error });
+      logger.error('❌ Download failed', { error });
       alert('Nepodarilo sa stiahnuť obrázok. Skúste to znova.');
     }
   };
@@ -129,7 +129,9 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
             {currentIndex + 1} / {images.length}
           </span>
           {currentImage?.description && (
-            <p className="text-sm text-gray-300 mt-1">{currentImage.description}</p>
+            <p className="text-sm text-gray-300 mt-1">
+              {currentImage.description}
+            </p>
           )}
         </div>
 
@@ -154,7 +156,12 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
 
       {/* Main Image Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-        <TransformWrapper initialScale={1} minScale={0.5} maxScale={4} centerOnInit>
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.5}
+          maxScale={4}
+          centerOnInit
+        >
           {({ zoomIn, zoomOut, resetTransform }) => (
             <>
               {/* Zoom Controls */}
@@ -195,7 +202,9 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
 
                 {imageError ? (
                   <div className="text-white text-center">
-                    <p className="text-lg mb-2">Nepodarilo sa načítať obrázok</p>
+                    <p className="text-lg mb-2">
+                      Nepodarilo sa načítať obrázok
+                    </p>
                     <button
                       onClick={() => {
                         setImageError(false);
@@ -208,8 +217,10 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
                   </div>
                 ) : (
                   <img
-                    src={getProxyUrl(currentImage?.originalUrl)}
-                    alt={currentImage?.description || `Image ${currentIndex + 1}`}
+                    src={getImageUrl(currentImage?.originalUrl)}
+                    alt={
+                      currentImage?.description || `Image ${currentIndex + 1}`
+                    }
                     className="max-w-full max-h-full object-contain"
                     onLoad={() => setIsLoading(false)}
                     onError={() => {
@@ -268,7 +279,7 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
               `}
             >
               <img
-                src={getProxyUrl(image.originalUrl)}
+                src={getImageUrl(image.originalUrl)}
                 alt=""
                 className="w-full h-full object-cover"
                 loading="lazy"

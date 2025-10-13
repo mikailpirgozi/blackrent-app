@@ -8,7 +8,7 @@ const router: Router = Router();
 
 interface ApiResponse {
   success: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
   error?: string;
 }
 

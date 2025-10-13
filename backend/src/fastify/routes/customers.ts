@@ -10,7 +10,12 @@ export default async function customersRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const customers = await postgresDatabase.getCustomers();
-      return reply.send({ success: true, data: customers });
+      fastify.log.info({ msg: '👥 Customers GET', count: customers.length, userId: request.user?.id });
+      
+      // ✅ FIX: Ensure proper JSON response with Content-Type header
+      return reply
+        .header('Content-Type', 'application/json')
+        .send({ success: true, data: customers });
     } catch (error) {
       fastify.log.error(error, 'Get customers error');
       return reply.status(500).send({
@@ -42,13 +47,13 @@ export default async function customersRoutes(fastify: FastifyInstance) {
     preHandler: [authenticateFastify, checkPermissionFastify('customers', 'create')]
   }, async (request, reply) => {
     try {
-      const customerData = request.body as any;
+      const customerData = request.body as Record<string, unknown>;
       
       // Ensure required fields
       const customerToCreate = {
-        name: customerData.name || 'Unknown',
-        email: customerData.email || '',
-        phone: customerData.phone || ''
+        name: String(customerData.name || 'Unknown'),
+        email: String(customerData.email || ''),
+        phone: String(customerData.phone || '')
       };
       
       const newCustomer = await postgresDatabase.createCustomer(customerToCreate);
@@ -191,8 +196,8 @@ export default async function customersRoutes(fastify: FastifyInstance) {
 
       // Skip header
       const dataLines = lines.slice(1);
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: Record<string, unknown>[] = [];
 
       for (let i = 0; i < dataLines.length; i++) {
         try {

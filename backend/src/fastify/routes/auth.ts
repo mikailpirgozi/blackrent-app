@@ -836,7 +836,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           ORDER BY created_at DESC
         `);
         
-        const users = result.rows.map((row: any) => ({
+        const users = result.rows.map((row: Record<string, unknown>) => ({
           id: row.id,
           username: row.username,
           email: row.email,
@@ -970,7 +970,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const client = await (postgresDatabase as any).dbPool.connect();
       try {
         const updateFields: string[] = [];
-        const values: any[] = [];
+        const values: unknown[] = [];
         let paramIndex = 1;
         
         if (updates.username) {
@@ -1500,7 +1500,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         `);
         
         const vehicles = vehiclesResult.rows;
-        const assigned: any[] = [];
+        const assigned: Record<string, unknown>[] = [];
         
         for (const vehicle of vehicles) {
           if (!vehicle.company) continue;
@@ -1661,7 +1661,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         `);
         
         const users = usersResult.rows;
-        const assigned: any[] = [];
+        const assigned: Record<string, unknown>[] = [];
         
         for (const user of users) {
           if (user.company_id) {

@@ -396,7 +396,7 @@ export class UserRepository extends BaseRepository {
    * Mapuje databázový riadok na User objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToUser(row: any): User {
+  private mapRowToUser(row: Record<string, unknown>): User {
     return {
       id: row.id,
       username: row.username,

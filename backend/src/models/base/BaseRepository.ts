@@ -36,7 +36,7 @@ export abstract class BaseRepository {
    */
   protected async executeQuery<T = any>(
     query: string, 
-    params: any[] = [], 
+    params: Record<string, unknown>[] = [], 
     client?: PoolClient
   ): Promise<T[]> {
     const dbClient = client || await this.getClient();
@@ -99,14 +99,14 @@ export abstract class BaseRepository {
   /**
    * Parsuje boolean hodnotu z databázy
    */
-  protected parseBoolean(value: any): boolean {
+  protected parseBoolean(value: Record<string, unknown>): boolean {
     return Boolean(value);
   }
 
   /**
    * Parsuje číselné hodnoty z databázy
    */
-  protected parseNumber(value: any): number | undefined {
+  protected parseNumber(value: Record<string, unknown>): number | undefined {
     if (value === null || value === undefined) {
       return undefined;
     }
@@ -117,7 +117,7 @@ export abstract class BaseRepository {
   /**
    * Parsuje JSON hodnoty z databázy
    */
-  protected parseJson<T>(value: any): T | undefined {
+  protected parseJson<T>(value: Record<string, unknown>): T | undefined {
     if (!value) {
       return undefined;
     }

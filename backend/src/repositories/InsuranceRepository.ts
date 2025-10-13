@@ -7,7 +7,7 @@
 import type { Pool } from 'pg';
 
 import { BaseRepository } from '../models/base/BaseRepository';
-import type { Insurance, InsuranceClaim, Insurer } from '../types';
+import type { Insurance, InsuranceClaim, Insurer, PaymentFrequency } from '../types';
 
 
 export class InsuranceRepository extends BaseRepository {
@@ -345,23 +345,23 @@ export class InsuranceRepository extends BaseRepository {
    * Mapuje databázový riadok na Insurance objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToInsurance(row: any): Insurance {
+  private mapRowToInsurance(row: Record<string, unknown>): Insurance {
     return {
-      id: row.id,
-      vehicleId: row.vehicle_id || undefined,
-      rentalId: row.rental_id || undefined,
-      insurerId: row.insurer_id || undefined,
-      type: row.type,
-      policyNumber: row.policy_number,
-      validFrom: new Date(row.valid_from || row.start_date),
-      validTo: new Date(row.valid_to || row.end_date),
-      price: row.premium || row.price,
-      company: row.company || row.insurer_name || '',
-      paymentFrequency: row.payment_frequency || 'monthly',
-      filePath: row.file_path || undefined,
-      filePaths: row.file_paths ? (typeof row.file_paths === 'string' ? JSON.parse(row.file_paths) : row.file_paths) : undefined,
-      greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined,
-      greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined
+      id: String(row.id),
+      vehicleId: row.vehicle_id ? String(row.vehicle_id) : undefined,
+      rentalId: row.rental_id ? Number(row.rental_id) : undefined,
+      insurerId: row.insurer_id ? Number(row.insurer_id) : undefined,
+      type: String(row.type),
+      policyNumber: String(row.policy_number),
+      validFrom: new Date((row.valid_from || row.start_date) as string | number | Date),
+      validTo: new Date((row.valid_to || row.end_date) as string | number | Date),
+      price: Number(row.premium || row.price),
+      company: String(row.company || row.insurer_name || ''),
+      paymentFrequency: (row.payment_frequency || 'monthly') as PaymentFrequency,
+      filePath: row.file_path ? String(row.file_path) : undefined,
+      filePaths: row.file_paths ? (typeof row.file_paths === 'string' ? JSON.parse(row.file_paths as string) : row.file_paths as string[]) : undefined,
+      greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from as string | number | Date) : undefined,
+      greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to as string | number | Date) : undefined
     };
   }
 
@@ -369,11 +369,11 @@ export class InsuranceRepository extends BaseRepository {
    * Mapuje databázový riadok na Insurer objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToInsurer(row: any): Insurer {
+  private mapRowToInsurer(row: Record<string, unknown>): Insurer {
     return {
-      id: row.id,
-      name: row.name,
-      createdAt: row.created_at ? new Date(row.created_at) : new Date()
+      id: String(row.id),
+      name: String(row.name),
+      createdAt: row.created_at ? new Date(row.created_at as string | number | Date) : new Date()
     };
   }
 
@@ -381,27 +381,27 @@ export class InsuranceRepository extends BaseRepository {
    * Mapuje databázový riadok na InsuranceClaim objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToInsuranceClaim(row: any): InsuranceClaim {
+  private mapRowToInsuranceClaim(row: Record<string, unknown>): InsuranceClaim {
     return {
-      id: row.id,
-      vehicleId: row.vehicle_id,
-      insuranceId: row.insurance_id || undefined,
-      claimNumber: row.claim_number || undefined,
-      incidentDate: new Date(row.incident_date),
-      reportedDate: new Date(row.reported_date),
-      description: row.description,
-      location: row.location || undefined,
-      incidentType: row.incident_type || 'other',
-      estimatedDamage: row.estimated_damage || row.estimated_cost || undefined,
-      deductible: row.deductible || undefined,
-      payoutAmount: row.payout_amount || undefined,
-      status: row.status || 'reported',
-      filePaths: row.file_paths ? (typeof row.file_paths === 'string' ? JSON.parse(row.file_paths) : row.file_paths) : undefined,
-      policeReportNumber: row.police_report_number || undefined,
-      otherPartyInfo: row.other_party_info || undefined,
-      notes: row.notes || undefined,
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      id: String(row.id),
+      vehicleId: String(row.vehicle_id),
+      insuranceId: row.insurance_id ? String(row.insurance_id) : undefined,
+      claimNumber: row.claim_number ? String(row.claim_number) : undefined,
+      incidentDate: new Date(row.incident_date as string | number | Date),
+      reportedDate: new Date(row.reported_date as string | number | Date),
+      description: String(row.description),
+      location: row.location ? String(row.location) : undefined,
+      incidentType: (row.incident_type || 'other') as 'accident' | 'theft' | 'vandalism' | 'weather' | 'other',
+      estimatedDamage: row.estimated_damage ? Number(row.estimated_damage) : row.estimated_cost ? Number(row.estimated_cost) : undefined,
+      deductible: row.deductible ? Number(row.deductible) : undefined,
+      payoutAmount: row.payout_amount ? Number(row.payout_amount) : undefined,
+      status: (row.status || 'reported') as 'reported' | 'investigating' | 'approved' | 'rejected' | 'closed',
+      filePaths: row.file_paths ? (typeof row.file_paths === 'string' ? JSON.parse(row.file_paths as string) : row.file_paths as string[]) : undefined,
+      policeReportNumber: row.police_report_number ? String(row.police_report_number) : undefined,
+      otherPartyInfo: row.other_party_info ? String(row.other_party_info) : undefined,
+      notes: row.notes ? String(row.notes) : undefined,
+      createdAt: new Date(row.created_at as string | number | Date),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string | number | Date) : undefined
     };
   }
 }

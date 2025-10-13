@@ -156,7 +156,7 @@ export class WebSocketService {
   /**
    * Systémové upozornenie
    */
-  broadcastSystemNotification(type: 'info' | 'warning' | 'error', message: string, details?: any) {
+  broadcastSystemNotification(type: 'info' | 'warning' | 'error', message: string, details?: Record<string, unknown>) {
     console.log(`📢 Broadcasting system notification: ${type} - ${message}`);
     
     this.io.emit('system:notification', {
@@ -236,7 +236,7 @@ export class WebSocketService {
   /**
    * Leasing vytvorený
    */
-  broadcastLeasingCreated(leasing: any, createdBy: string) {
+  broadcastLeasingCreated(leasing: Record<string, unknown>, createdBy: string) {
     console.log(`📢 Broadcasting leasing created: ${leasing.id} by ${createdBy}`);
     
     this.io.emit('leasing:created', {
@@ -250,7 +250,7 @@ export class WebSocketService {
   /**
    * Leasing aktualizovaný
    */
-  broadcastLeasingUpdated(leasing: any, updatedBy: string, changes?: string[]) {
+  broadcastLeasingUpdated(leasing: Record<string, unknown>, updatedBy: string, changes?: string[]) {
     console.log(`📢 Broadcasting leasing updated: ${leasing.id} by ${updatedBy}`);
     
     this.io.emit('leasing:updated', {

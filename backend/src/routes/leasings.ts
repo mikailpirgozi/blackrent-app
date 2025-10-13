@@ -115,14 +115,14 @@ router.get(
       if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
         console.log('🌐 LEASINGS PAGINATED: Filtering by platform:', { username: req.user.username, role: req.user.role, platformId: req.user.platformId });
         const originalCount = filteredLeasings.length;
-        filteredLeasings = filteredLeasings.filter((l: any) => l.platformId === req.user?.platformId);
+        filteredLeasings = filteredLeasings.filter((l: Record<string, unknown>) => l.platformId === req.user?.platformId);
         console.log('🌐 LEASINGS PAGINATED: Platform filter applied:', { originalCount, filteredCount: filteredLeasings.length });
       } else if (req.user && req.user.role === 'super_admin') {
         console.log('🌐 LEASINGS PAGINATED: Super Admin - showing ALL leasings (no platform filter)');
       }
 
       // 🚗 Transform flat vehicle data to nested object
-      const transformedLeasings = filteredLeasings.map((l: any) => ({
+      const transformedLeasings = filteredLeasings.map((l: Record<string, unknown>) => ({
         ...l,
         vehicle: l.vehicleBrand ? {
           id: l.vehicleId,
@@ -202,7 +202,7 @@ router.get(
       if (req.user && req.user.platformId && req.user.role !== 'super_admin') {
         console.log('🌐 LEASINGS: Filtering by platform:', { username: req.user.username, role: req.user.role, platformId: req.user.platformId });
         const originalCount = leasings.length;
-        leasings = leasings.filter((l: any) => l.platformId === req.user?.platformId);
+        leasings = leasings.filter((l: Record<string, unknown>) => l.platformId === req.user?.platformId);
         console.log('🌐 LEASINGS: Platform filter applied:', { originalCount, filteredCount: leasings.length });
       } else if (req.user && req.user.role === 'super_admin') {
         console.log('🌐 LEASINGS: Super Admin - showing ALL leasings (no platform filter)');
@@ -256,8 +256,8 @@ router.get(
         
         // Get all leasings for this platform
         const allLeasings = await postgresDatabase.getLeasings({});
-        const platformLeasings = allLeasings.filter((l: any) => l.platformId === req.user?.platformId);
-        const platformLeasingIds = platformLeasings.map((l: any) => l.id);
+        const platformLeasings = allLeasings.filter((l: Record<string, unknown>) => l.platformId === req.user?.platformId);
+        const platformLeasingIds = platformLeasings.map((l: Record<string, unknown>) => l.id);
         
         console.log('🔍 LEASING DASHBOARD: Platform leasings:', { 
           totalLeasings: allLeasings.length, 
@@ -266,12 +266,12 @@ router.get(
         });
         
         // Recalculate dashboard stats for platform leasings only
-        const activeLeasings = platformLeasings.filter((l: any) => l.remainingInstallments > 0);
-        const completedLeasings = platformLeasings.filter((l: any) => l.remainingInstallments === 0);
+        const activeLeasings = platformLeasings.filter((l: Record<string, unknown>) => Number(l.remainingInstallments) > 0);
+        const completedLeasings = platformLeasings.filter((l: Record<string, unknown>) => Number(l.remainingInstallments) === 0);
         
         const filteredDashboard = {
-          totalDebt: activeLeasings.reduce((sum: number, l: any) => sum + (l.currentBalance || 0), 0),
-          monthlyTotalCost: activeLeasings.reduce((sum: number, l: any) => sum + (l.totalMonthlyPayment || 0), 0),
+          totalDebt: activeLeasings.reduce((sum: number, l: Record<string, unknown>) => sum + Number(l.currentBalance || 0), 0),
+          monthlyTotalCost: activeLeasings.reduce((sum: number, l: Record<string, unknown>) => sum + Number(l.totalMonthlyPayment || 0), 0),
           upcomingPayments: {
             within7Days: 0, // Will need to filter payment_schedule
             within14Days: 0,
@@ -389,7 +389,7 @@ router.post(
         console.error('❌ Zod validation errors:', zodError.issues);
         return res.status(400).json({
           success: false,
-          error: 'Validation error: ' + zodError.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', '),
+          error: 'Validation error: ' + zodError.issues.map((i: Record<string, unknown>) => `${(i.path as string[]).join('.')}: ${String(i.message)}`).join(', '),
         });
       }
       
@@ -470,7 +470,7 @@ router.put(
         console.error('❌ Zod validation errors:', zodError.issues);
         return res.status(400).json({
           success: false,
-          error: 'Validation error: ' + zodError.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', '),
+          error: 'Validation error: ' + zodError.issues.map((i: Record<string, unknown>) => `${(i.path as string[]).join('.')}: ${String(i.message)}`).join(', '),
         });
       }
       

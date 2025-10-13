@@ -69,19 +69,19 @@ const socketIoPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.decorate('io', io);
 
   // Helper methods
-  fastify.decorate('emitProtocolCreated', (data: any) => {
+  fastify.decorate('emitProtocolCreated', (data: Record<string, unknown>) => {
     io.emit('protocol:created', data);
   });
 
-  fastify.decorate('emitRentalUpdated', (data: any) => {
+  fastify.decorate('emitRentalUpdated', (data: Record<string, unknown>) => {
     io.emit('rental:updated', data);
   });
 
-  fastify.decorate('emitVehicleUpdated', (data: any) => {
+  fastify.decorate('emitVehicleUpdated', (data: Record<string, unknown>) => {
     io.emit('vehicle:updated', data);
   });
 
-  fastify.decorate('emitNotification', (data: any) => {
+  fastify.decorate('emitNotification', (data: Record<string, unknown>) => {
     io.emit('notification', data);
   });
 
@@ -94,10 +94,10 @@ export default fp(socketIoPlugin);
 declare module 'fastify' {
   interface FastifyInstance {
     io: SocketIOServer;
-    emitProtocolCreated: (data: any) => void;
-    emitRentalUpdated: (data: any) => void;
-    emitVehicleUpdated: (data: any) => void;
-    emitNotification: (data: any) => void;
+    emitProtocolCreated: (data: Record<string, unknown>) => void;
+    emitRentalUpdated: (data: Record<string, unknown>) => void;
+    emitVehicleUpdated: (data: Record<string, unknown>) => void;
+    emitNotification: (data: Record<string, unknown>) => void;
   }
 }
 

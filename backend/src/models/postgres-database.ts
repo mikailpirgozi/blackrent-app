@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcryptjs';
 import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
-import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, Platform, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, Platform, ProtocolImage, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -7525,11 +7525,23 @@ export class PostgresDatabase {
       logger.migration('🔄 [DB] createHandoverProtocol - input:', JSON.stringify(protocolData, null, 2));
       await this.initProtocolTables();
       
+      // 🔍 DEBUG: Explicit ID check
+      logger.migration('🔍 [DB] Protocol ID check:', {
+        hasId: !!protocolData.id,
+        idValue: protocolData.id,
+        idType: typeof protocolData.id,
+        allKeys: Object.keys(protocolData)
+      });
+      
       logger.migration('🔄 Creating handover protocol:', protocolData.id);
       logger.migration('🔄 Protocol data:', JSON.stringify(protocolData, null, 2));
       logger.migration('🔄 PDF URL from input:', protocolData.pdfUrl);
 
       // Validácia dát
+      if (!protocolData.id) {
+        throw new Error('Protocol ID is required - cannot be null or undefined');
+      }
+      
       if (!protocolData.rentalId) {
         throw new Error('Rental ID is required');
       }
@@ -7725,6 +7737,123 @@ export class PostgresDatabase {
       return null;
     } finally {
       client.release();
+    }
+  }
+
+  /**
+   * ✅ Refresh all signed URLs in protocol (24h expiry)
+   * Keď načítame protokol z DB, URL môžu byť expirované - vygenerujeme nové
+   */
+  async refreshProtocolSignedUrls<T extends HandoverProtocol | ReturnProtocol>(protocol: T): Promise<T> {
+    try {
+      logger.migration('🔄 Refreshing signed URLs for protocol:', protocol.id);
+      const { r2Storage } = await import('../utils/r2-storage');
+      
+      const refreshImageUrls = async (images: ProtocolImage[] | undefined): Promise<ProtocolImage[]> => {
+        if (!images || !Array.isArray(images)) return [];
+        
+        return await Promise.all(images.map(async (image) => {
+          if (!image || !image.url) return image;
+          
+          try {
+            // Extract R2 key from URL (remove signed URL params)
+            const extractR2Key = (url: string): string | null => {
+              try {
+                const urlObj = new URL(url);
+                // Remove leading slash and query params
+                return urlObj.pathname.substring(1);
+              } catch {
+                return null;
+              }
+            };
+            
+            const urlKey = extractR2Key(image.url);
+            const originalKey = image.originalUrl ? extractR2Key(image.originalUrl) : null;
+            const compressedKey = image.compressedUrl ? extractR2Key(image.compressedUrl) : null;
+            const pdfKey = image.pdfUrl ? extractR2Key(image.pdfUrl) : null;
+            
+            // Generate fresh signed URLs (24h expiry)
+            const [newUrl, newOriginalUrl, newCompressedUrl, newPdfUrl] = await Promise.all([
+              urlKey ? r2Storage.getSignedUrl(urlKey, 86400) : Promise.resolve(image.url),
+              originalKey ? r2Storage.getSignedUrl(originalKey, 86400) : Promise.resolve(image.originalUrl),
+              compressedKey ? r2Storage.getSignedUrl(compressedKey, 86400) : Promise.resolve(image.compressedUrl),
+              pdfKey ? r2Storage.getSignedUrl(pdfKey, 86400) : Promise.resolve(image.pdfUrl)
+            ]);
+            
+            return {
+              ...image,
+              url: newUrl,
+              originalUrl: newOriginalUrl,
+              compressedUrl: newCompressedUrl,
+              pdfUrl: newPdfUrl
+            };
+          } catch (error) {
+            console.error('⚠️ Failed to refresh URL for image:', error);
+            return image; // Return original if refresh fails
+          }
+        }));
+      };
+      
+      // Refresh all image arrays
+      const [
+        refreshedVehicleImages,
+        refreshedVehicleVideos,
+        refreshedDocumentImages,
+        refreshedDocumentVideos,
+        refreshedDamageImages,
+        refreshedDamageVideos
+      ] = await Promise.all([
+        refreshImageUrls(protocol.vehicleImages),
+        refreshImageUrls(protocol.vehicleVideos),
+        refreshImageUrls(protocol.documentImages),
+        refreshImageUrls(protocol.documentVideos),
+        refreshImageUrls(protocol.damageImages),
+        refreshImageUrls(protocol.damageVideos)
+      ]);
+      
+      // Refresh pdfUrl if exists
+      let refreshedPdfUrl = protocol.pdfUrl;
+      if (protocol.pdfUrl) {
+        try {
+          const extractR2Key = (url: string): string | null => {
+            try {
+              const urlObj = new URL(url);
+              return urlObj.pathname.substring(1);
+            } catch {
+              return null;
+            }
+          };
+          
+          const pdfKey = extractR2Key(protocol.pdfUrl);
+          if (pdfKey) {
+            refreshedPdfUrl = await r2Storage.getSignedUrl(pdfKey, 86400);
+          }
+        } catch (error) {
+          console.error('⚠️ Failed to refresh PDF URL:', error);
+        }
+      }
+      
+      const refreshedProtocol = {
+        ...protocol,
+        vehicleImages: refreshedVehicleImages,
+        vehicleVideos: refreshedVehicleVideos,
+        documentImages: refreshedDocumentImages,
+        documentVideos: refreshedDocumentVideos,
+        damageImages: refreshedDamageImages,
+        damageVideos: refreshedDamageVideos,
+        pdfUrl: refreshedPdfUrl
+      };
+      
+      logger.migration('✅ Refreshed signed URLs:', {
+        protocolId: protocol.id,
+        vehicleImages: refreshedVehicleImages.length,
+        pdfUrl: refreshedPdfUrl ? 'yes' : 'no'
+      });
+      
+      return refreshedProtocol;
+    } catch (error) {
+      console.error('❌ Error refreshing protocol signed URLs:', error);
+      return protocol; // Return original if refresh fails completely
     }
   }
 
@@ -10156,7 +10285,7 @@ export class PostgresDatabase {
         WHERE cd.company_id = $1
       `;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const values: any[] = [typeof companyId === 'string' ? parseInt(companyId) : companyId];
+      const values: Record<string, unknown>[] = [typeof companyId === 'string' ? parseInt(companyId) : companyId];
       let paramCount = 1;
 
       if (documentType) {
@@ -10277,7 +10406,7 @@ export class PostgresDatabase {
       FROM leasings WHERE 1=1
     `;
     
-    const params: any[] = [];
+    const params: Record<string, unknown>[] = [];
     let paramIndex = 1;
     
     if (filters.vehicleId) {
@@ -10320,7 +10449,7 @@ export class PostgresDatabase {
     status?: string;
     userId?: string;
     userRole?: string;
-  }): Promise<{ leasings: any[]; total: number }> {
+  }): Promise<{ leasings: Record<string, unknown>[]; total: number }> {
     try {
       // Základný WHERE clause
       const whereConditions: string[] = ['1=1'];
@@ -10452,7 +10581,7 @@ export class PostgresDatabase {
     return result.rows[0] || null;
   }
 
-  async createLeasing(input: any): Promise<any> {
+  async createLeasing(input: Record<string, unknown>): Promise<any> {
     try {
       console.log('🔧 Creating leasing with input:', {
         vehicleId: input.vehicleId,
@@ -10510,16 +10639,14 @@ export class PostgresDatabase {
   // PAYMENT SCHEDULE GENERATION
   // ===================================================================
   
-  private async generatePaymentSchedule(leasingId: string, input: any): Promise<void> {
-    const {
-      initialLoanAmount,
-      interestRate = 0,
-      monthlyPayment,
-      totalInstallments,
-      firstPaymentDate,
-      monthlyFee = 0,
-      paymentType = 'anuita',
-    } = input;
+  private async generatePaymentSchedule(leasingId: string, input: Record<string, unknown>): Promise<void> {
+    const initialLoanAmount = Number(input.initialLoanAmount);
+    const interestRate = Number(input.interestRate || 0);
+    const monthlyPayment = Number(input.monthlyPayment);
+    const totalInstallments = Number(input.totalInstallments);
+    const firstPaymentDate = input.firstPaymentDate as string | number | Date;
+    const monthlyFee = Number(input.monthlyFee || 0);
+    const paymentType = (input.paymentType || 'anuita') as string;
 
     const annualRate = interestRate / 100;
     const monthlyRate = annualRate / 12;
@@ -10591,10 +10718,10 @@ export class PostgresDatabase {
     console.log(`✅ Generated ${totalInstallments} payment schedule entries`);
   }
 
-  async updateLeasing(id: string, input: any): Promise<any | null> {
+  async updateLeasing(id: string, input: Record<string, unknown>): Promise<any | null> {
     try {
       const fields: string[] = [];
-      const values: any[] = [];
+      const values: Record<string, unknown>[] = [];
       let paramIndex = 1;
       
       console.log('🔧 updateLeasing called:', { id, input });
@@ -10716,7 +10843,7 @@ export class PostgresDatabase {
     return result.rows;
   }
 
-  async createLeasingDocument(leasingId: string, input: any): Promise<any> {
+  async createLeasingDocument(leasingId: string, input: Record<string, unknown>): Promise<any> {
     const result = await this.pool.query(
       `INSERT INTO leasing_documents (leasing_id, type, file_name, file_url, file_size, mime_type)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,

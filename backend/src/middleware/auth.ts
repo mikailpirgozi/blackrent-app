@@ -157,7 +157,7 @@ export const requirePermission = (resource: string, action: string) => {
   };
 };
 
-export const filterDataByRole = (data: any[], req: AuthRequest): any[] => {
+export const filterDataByRole = (data: Record<string, unknown>[], req: AuthRequest): Record<string, unknown>[] => {
   if (!req.user) return [];
 
   // Admin roles (legacy admin, super_admin) vidia všetky dáta
@@ -167,7 +167,7 @@ export const filterDataByRole = (data: any[], req: AuthRequest): any[] => {
 
   // Company Admin vidí len dáta vlastnej firmy
   if (req.user.role === 'company_admin' && req.user.companyId) {
-    return data.filter((item: any) => {
+    return data.filter((item: Record<string, unknown>) => {
       // Filter by ownerCompanyId or companyId field
       return item.ownerCompanyId === req.user!.companyId || 
              item.companyId === req.user!.companyId;
@@ -176,7 +176,7 @@ export const filterDataByRole = (data: any[], req: AuthRequest): any[] => {
 
   // Company Owner vidí len svoje vozidlá
   if (req.user.role === 'investor' && req.user.companyId) {
-    return data.filter((item: any) => {
+    return data.filter((item: Record<string, unknown>) => {
       return item.ownerCompanyId === req.user!.companyId || 
              item.companyId === req.user!.companyId;
     });

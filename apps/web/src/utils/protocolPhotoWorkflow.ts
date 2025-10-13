@@ -191,11 +191,20 @@ export async function processAndUploadPhotos(
         const metadata = processedImg.metadata;
         const imageId = processedImg.id;
 
+        logger.info('Creating ProtocolImage', {
+          id: imageId,
+          webpUrl: webpResult.url.substring(0, 80) + '...',
+          pdfUrl: jpegResult.url.substring(0, 80) + '...',
+          webpSize: processedImg.gallery.size,
+          jpegSize: processedImg.pdf.size,
+        });
+
         return {
           id: imageId,
-          url: webpResult.url, // WebP for gallery
-          originalUrl: webpResult.url,
-          pdfUrl: jpegResult.url, // ✅ JPEG R2 URL for PDF
+          url: webpResult.url, // ✅ WebP (HIGH QUALITY) for gallery display
+          originalUrl: webpResult.url, // ✅ WebP full quality
+          pdfUrl: jpegResult.url, // ✅ JPEG (COMPRESSED 90%) R2 URL for PDF
+          compressedUrl: jpegResult.url, // ✅ FALLBACK: Same as pdfUrl for compatibility
           // ❌ REMOVED: pdfData base64 (causes crashes)
           type: options.mediaType,
           description: '',

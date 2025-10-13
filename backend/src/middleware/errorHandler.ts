@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import type { ZodIssue } from 'zod';
 import { ZodError } from 'zod';
 import { log } from '../utils/logger';
 
@@ -58,7 +59,7 @@ function getHttpStatusFromErrorCode(code: ErrorCode): number {
  * Error handler middleware - zachytáva všetky chyby a vracia jednotný JSON formát
  */
 export function errorHandler(
-  err: any,
+  err: Record<string, unknown>,
   req: Request,
   res: Response,
   next: NextFunction
@@ -95,7 +96,7 @@ export function errorHandler(
       'Validation failed',
       requestId,
       {
-        validationErrors: err.issues.map((issue: any) => ({
+        validationErrors: err.issues.map((issue: ZodIssue) => ({
           path: issue.path.join('.'),
           message: issue.message,
           code: issue.code,
@@ -106,21 +107,21 @@ export function errorHandler(
     // Not found errors
     apiError = createApiError(
       'NOT_FOUND',
-      err.message || 'Resource not found',
+      String(err.message || 'Resource not found'),
       requestId
     );
   } else if (err.name === 'UnauthorizedError' || err.status === 401) {
     // Unauthorized errors
     apiError = createApiError(
       'UNAUTHORIZED',
-      err.message || 'Unauthorized access',
+      String(err.message || 'Unauthorized access'),
       requestId
     );
   } else if (err.name === 'ForbiddenError' || err.status === 403) {
     // Forbidden errors
     apiError = createApiError(
       'FORBIDDEN',
-      err.message || 'Access forbidden',
+      String(err.message || 'Access forbidden'),
       requestId
     );
   } else {
@@ -128,7 +129,7 @@ export function errorHandler(
     apiError = createApiError(
       'INTERNAL',
       process.env.NODE_ENV === 'development'
-        ? err.message
+        ? String(err.message)
         : 'Internal server error',
       requestId,
       process.env.NODE_ENV === 'development' ? { stack: err.stack } : undefined

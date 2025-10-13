@@ -17,7 +17,7 @@ export interface CacheOptions {
   tags?: string[]; // Cache tags for invalidation
   refreshOnAccess?: boolean; // Refresh TTL on access
   serialize?: boolean; // Deep clone objects
-  onExpire?: (key: string, value: any) => void;
+  onExpire?: (key: string, value: unknown) => void;
 }
 
 export interface CacheEntry<T> {
@@ -341,7 +341,7 @@ export class CacheService extends EventEmitter {
   /**
    * Calculate approximate size of value
    */
-  private calculateSize(value: any): number {
+  private calculateSize(value: unknown): number {
     const json = JSON.stringify(value);
     return new Blob([json]).size;
   }

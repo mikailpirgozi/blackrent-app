@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { HandoverProtocol, ReturnProtocol } from '../types';
+import type { HandoverProtocol, ReturnProtocol, ProtocolDamage, ProtocolSignature } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
 
 /**
@@ -200,7 +200,7 @@ export class EnhancedPDFGeneratorBackend {
   /**
    * Sekcia pre poškodenia
    */
-  private addDamagesSection(damages: any[]): void {
+  private addDamagesSection(damages: ProtocolDamage[]): void {
     this.addInfoBox('Zaznamenané poškodenia', 
       damages.map((damage, index) => [
         `Poškodenie ${index + 1}:`,
@@ -230,15 +230,15 @@ export class EnhancedPDFGeneratorBackend {
   /**
    * Sekcia pre podpisy (bez obrázkov)
    */
-  private addSignaturesSection(signatures: any[]): void {
+  private addSignaturesSection(signatures: ProtocolSignature[]): void {
     this.addInfoBox('Podpisy', 
       signatures.flatMap((signature, index) => [
-        [`Podpis ${index + 1}:`, `${signature.signerName} (${signature.signerRole})`],
-        [`Čas podpisu:`, new Date(signature.timestamp).toLocaleString('sk-SK')],
-        [`Miesto:`, signature.location || 'N/A']
+        [`Podpis ${index + 1}:`, `${String(signature.signerName)} (${String(signature.signerRole)})`],
+        [`Čas podpisu:`, new Date(signature.timestamp as string | number | Date).toLocaleString('sk-SK')],
+        [`Miesto:`, String(signature.location || 'N/A')]
       ]).flat().reduce<[string, string][]>((acc, curr, index, arr) => {
         if (index % 2 === 0) {
-          acc.push([curr, arr[index + 1] || '']);
+          acc.push([String(curr), String(arr[index + 1] || '')]);
         }
         return acc;
       }, [])

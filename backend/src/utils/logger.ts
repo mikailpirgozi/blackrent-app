@@ -8,53 +8,53 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 export const logger = {
   // 🐛 Debug - LEN v development
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
 
   // ℹ️ Info - Dôležité info v oboch environments
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     console.log(...args);
   },
 
   // ⚠️ Warning - Vždy
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     console.warn(...args);
   },
 
   // ❌ Error - Vždy
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     console.error(...args);
   },
 
   // 🔐 Auth - LEN v development
-  auth: (...args: any[]) => {
+  auth: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
 
   // 🗄️ Cache - LEN v development
-  cache: (...args: any[]) => {
+  cache: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
 
   // 📋 Migration - Vždy (dôležité)
-  migration: (...args: any[]) => {
+  migration: (...args: unknown[]) => {
     console.log(...args);
   },
 
   // 🚀 Startup - Vždy
-  startup: (...args: any[]) => {
+  startup: (...args: unknown[]) => {
     console.log(...args);
   },
 
   // 🗄️ Database - LEN v development
-  db: (...args: any[]) => {
+  db: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
@@ -62,7 +62,7 @@ export const logger = {
 };
 
 // Backward compatibility - callable log function
-export const log = (level: string, ...args: any[]) => {
+export const log = (level: string, ...args: unknown[]) => {
   if (level === 'error') {
     logger.error(...args);
   } else if (level === 'warn') {

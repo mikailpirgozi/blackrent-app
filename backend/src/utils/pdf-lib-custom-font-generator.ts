@@ -1,6 +1,7 @@
 import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
+import type { PDFPage, PDFFont } from 'pdf-lib';
 import { PDFDocument, PageSizes, rgb } from 'pdf-lib';
 import type { HandoverProtocol, ProtocolDamage, ProtocolImage, ProtocolSignature, ReturnProtocol, Company } from '../types';
 import { getProtocolCompanyDisplay, getRepresentativeSection } from './protocol-helpers';
@@ -19,16 +20,11 @@ export class PDFLibCustomFontGenerator {
   private primaryColor = rgb(0.1, 0.46, 0.82);
   private secondaryColor = rgb(0.26, 0.26, 0.26);
   private lightGray = rgb(0.94, 0.94, 0.94);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private currentPage: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private font: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private boldFont: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private lightFont: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mediumFont: any;
+  private currentPage!: PDFPage;
+  private font!: PDFFont;
+  private boldFont!: PDFFont;
+  private lightFont!: PDFFont;
+  private mediumFont!: PDFFont;
   
   // 🎨 PÔVODNÁ TYPOGRAFICKÁ HIERARCHIA (bez simulácie váh)
   private typography = {
@@ -528,7 +524,7 @@ export class PDFLibCustomFontGenerator {
    * 🎨 Pomocná metóda pre výber správneho fontu podľa typografie
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getFontByType(fontType: string): any {
+  private getFontByType(fontType: string): Record<string, unknown> {
     switch (fontType) {
       case 'bold':
         return this.boldFont;

@@ -37,7 +37,7 @@ router.get('/test', authenticateToken, async (req, res) => {
 });
 
 // 📊 Analýza base64 veľkosti
-const analyzeBase64Size = (data: any): number => {
+const analyzeBase64Size = (data: Record<string, unknown>): number => {
   if (typeof data !== 'string') return 0;
   if (!data.startsWith('data:')) return 0;
   

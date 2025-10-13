@@ -181,7 +181,7 @@ const pushRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Get target subscriptions
       let query = 'SELECT * FROM push_subscriptions WHERE active = true';
-      const params: any[] = [];
+      const params: Record<string, unknown>[] = [];
 
       if (body.targetUsers && body.targetUsers.length > 0) {
         query += ` AND user_id = ANY($1)`;

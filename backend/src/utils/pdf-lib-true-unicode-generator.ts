@@ -1,3 +1,4 @@
+import type { PDFPage, PDFFont } from 'pdf-lib';
 import { PDFDocument, rgb, PageSizes } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { HandoverProtocol, ReturnProtocol } from '../types';
@@ -18,9 +19,9 @@ export class PDFLibTrueUnicodeGenerator {
   private primaryColor = rgb(0.1, 0.46, 0.82);
   private secondaryColor = rgb(0.26, 0.26, 0.26);
   private lightGray = rgb(0.94, 0.94, 0.94);
-  private currentPage: any;
-  private font: any;
-  private boldFont: any;
+  private currentPage!: PDFPage;
+  private font!: PDFFont;
+  private boldFont!: PDFFont;
 
   constructor() {
     // Inicializácia sa vykoná v generate metódach
@@ -383,7 +384,7 @@ export class PDFLibTrueUnicodeGenerator {
   /**
    * Sekcia pre poškodenia s plnou diakritiku
    */
-  private addDamagesSection(damages: any[]): void {
+  private addDamagesSection(damages: Record<string, unknown>[]): void {
     this.addInfoSection('Zaznamenané poškodenia', 
       damages.map((damage, index) => [
         `Poškodenie ${index + 1}:`,
@@ -413,7 +414,7 @@ export class PDFLibTrueUnicodeGenerator {
   /**
    * Sekcia pre podpisy
    */
-  private addSignaturesSection(signatures: any[]): void {
+  private addSignaturesSection(signatures: Record<string, unknown>[]): void {
     const signatureData: [string, string][] = [];
     
     signatures.forEach((signature, index) => {

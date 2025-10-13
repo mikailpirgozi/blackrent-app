@@ -46,7 +46,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const rentals = await postgresDatabase.getRentals();
-      const revenueByMonth = rentals.reduce((acc: any, r) => {
+      const revenueByMonth = rentals.reduce((acc: Record<string, unknown>, r) => {
         const month = r.startDate ? new Date(r.startDate).toISOString().slice(0, 7) : 'Unknown';
         acc[month] = (acc[month] || 0) + (r.totalPrice || 0);
         return acc;
@@ -68,7 +68,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const vehicles = await postgresDatabase.getVehicles();
-      const vehiclesByStatus = vehicles.reduce((acc: any, v) => {
+      const vehiclesByStatus = vehicles.reduce((acc: Record<string, unknown>, v) => {
         acc[v.status || 'Unknown'] = (acc[v.status || 'Unknown'] || 0) + 1;
         return acc;
       }, {});
@@ -89,7 +89,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const rentals = await postgresDatabase.getRentals();
-      const rentalsByStatus = rentals.reduce((acc: any, r) => {
+      const rentalsByStatus = rentals.reduce((acc: Record<string, unknown>, r) => {
         acc[r.status || 'Unknown'] = (acc[r.status || 'Unknown'] || 0) + 1;
         return acc;
       }, {});

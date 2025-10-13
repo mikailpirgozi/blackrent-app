@@ -182,7 +182,7 @@ export class SettlementRepository extends BaseRepository {
    * Mapuje databázový riadok na Settlement objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToSettlement(row: any): Settlement {
+  private mapRowToSettlement(row: Record<string, unknown>): Settlement {
     return {
       id: row.id,
       period: {

@@ -57,7 +57,7 @@ interface EmailWebhookPayload {
   subject: string;
   body: string;
   html?: string;
-  attachments?: any[];
+  attachments?: Record<string, unknown>[];
   headers?: Record<string, string>;
   timestamp?: string;
 }

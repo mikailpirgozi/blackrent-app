@@ -177,14 +177,14 @@ router.get('/rentals/:rentalId/protocols', async (req, res) => {
     
     res.json({
       rentalId,
-      handover: handoverProtocols.map((p: any) => ({
+      handover: handoverProtocols.map((p: Record<string, unknown>) => ({
         id: p.id,
         createdAt: p.createdAt,
         pdfUrl: p.pdfUrl,
         vehicleCompany: p.rentalData?.vehicle?.company,
         ownerCompanyId: p.rentalData?.vehicle?.ownerCompanyId
       })),
-      return: returnProtocols.map((p: any) => ({
+      return: returnProtocols.map((p: Record<string, unknown>) => ({
         id: p.id,
         createdAt: p.createdAt,
         pdfUrl: p.pdfUrl,

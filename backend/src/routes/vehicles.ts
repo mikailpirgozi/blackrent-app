@@ -157,7 +157,7 @@ router.get('/bulk-ownership-history',
         
         // 3. Group histories by vehicle_id
         const historiesByVehicle = new Map();
-        historiesResult.rows.forEach((row: any) => {
+        historiesResult.rows.forEach((row: Record<string, unknown>) => {
           if (!historiesByVehicle.has(row.vehicle_id)) {
             historiesByVehicle.set(row.vehicle_id, []);
           }
@@ -173,7 +173,7 @@ router.get('/bulk-ownership-history',
         });
         
         // 4. Combine vehicle data with histories
-        const allHistories = vehicles.map((vehicle: any) => ({
+        const allHistories = vehicles.map((vehicle: Record<string, unknown>) => ({
           vehicleId: vehicle.id,
           vehicle: {
             id: vehicle.id,

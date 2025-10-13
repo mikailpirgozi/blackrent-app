@@ -834,24 +834,104 @@ export default function RentalList() {
       }
 
       // Parsovanie obrázkov z protokolu
-      const parseImages = (imageData: unknown): ProtocolImage[] => {
+      const parseImages = async (
+        imageData: unknown
+      ): Promise<ProtocolImage[]> => {
         if (!imageData) return [];
+
+        let images: ProtocolImage[] = [];
 
         if (typeof imageData === 'string') {
           try {
             const parsed = JSON.parse(imageData);
-            return Array.isArray(parsed) ? (parsed as ProtocolImage[]) : [];
+            images = Array.isArray(parsed) ? (parsed as ProtocolImage[]) : [];
           } catch {
             console.warn('⚠️ Failed to parse image data as JSON:', imageData);
             return [];
           }
+        } else if (Array.isArray(imageData)) {
+          images = imageData as ProtocolImage[];
         }
 
-        if (Array.isArray(imageData)) {
-          return imageData as ProtocolImage[];
-        }
+        // ✅ CRITICAL FIX: Load missing URLs from IndexedDB
+        const imagesWithUrls = await Promise.all(
+          images.map(async img => {
+            // Ak má url/originalUrl, je OK
+            if (img.url || img.originalUrl) {
+              return img;
+            }
 
-        return [];
+            // Inak načítaj z IndexedDB
+            try {
+              const dbName = 'blackrent-protocols';
+              const storeName = 'images';
+              const db = await new Promise<IDBDatabase>((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+              });
+
+              const tx = db.transaction(storeName, 'readonly');
+              const store = tx.objectStore(storeName);
+              const data = await new Promise<
+                { pdfData?: string; url?: string } | undefined
+              >(resolve => {
+                const req = store.get(img.id);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(undefined);
+              });
+
+              db.close();
+
+              if (data?.pdfData) {
+                // ✅ CRITICAL FIX: pdfData already contains 'data:image/jpeg;base64,' prefix
+                // Just use it as-is, don't add another prefix
+                let imageUrl = data.pdfData;
+
+                // If it doesn't have the prefix, add it
+                if (!imageUrl.startsWith('data:image/jpeg;base64,')) {
+                  imageUrl = `data:image/jpeg;base64,${imageUrl}`;
+                }
+
+                logger.debug('✅ Image loaded from IndexedDB:', {
+                  imageId: img.id,
+                  hasPdfData: !!data.pdfData,
+                  hasPrefix: data.pdfData.startsWith('data:image/jpeg;base64,'),
+                  urlLength: imageUrl.length,
+                });
+                return {
+                  ...img,
+                  originalUrl: imageUrl,
+                  url: imageUrl,
+                };
+              }
+
+              if (data?.url) {
+                // Použij R2 URL z IndexedDB
+                logger.debug('✅ Image URL loaded from IndexedDB:', {
+                  imageId: img.id,
+                  url: data.url,
+                });
+                return {
+                  ...img,
+                  originalUrl: data.url,
+                  url: data.url,
+                };
+              }
+
+              logger.warn('⚠️ Image not found in IndexedDB:', img.id);
+              return img;
+            } catch (error) {
+              logger.error('❌ Failed to load image from IndexedDB:', {
+                imageId: img.id,
+                error,
+              });
+              return img;
+            }
+          })
+        );
+
+        return imagesWithUrls;
       };
 
       const parseVideos = (videoData: unknown): ProtocolVideo[] => {
@@ -874,11 +954,14 @@ export default function RentalList() {
         return [];
       };
 
-      const images = [
-        ...parseImages(protocol.vehicleImages),
-        ...parseImages(protocol.documentImages),
-        ...parseImages(protocol.damageImages),
-      ];
+      // ✅ Async load images (load from IndexedDB if needed)
+      const [vehicleImgs, documentImgs, damageImgs] = await Promise.all([
+        parseImages(protocol.vehicleImages),
+        parseImages(protocol.documentImages),
+        parseImages(protocol.damageImages),
+      ]);
+
+      const images = [...vehicleImgs, ...documentImgs, ...damageImgs];
 
       const videos = [
         ...parseVideos(protocol.vehicleVideos),

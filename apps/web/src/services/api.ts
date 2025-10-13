@@ -129,6 +129,15 @@ class ApiService {
       const responseText = await response.text();
 
       if (!responseText.trim()) {
+        // For some endpoints (like bulk-status), empty response might mean empty array/object
+        // Return appropriate default value instead of throwing error
+        if (endpoint.includes('/bulk-status')) {
+          logger.debug('Empty bulk-status response, returning empty array', {
+            endpoint,
+          });
+          return [] as T;
+        }
+
         logger.warn('Empty response from API', { endpoint });
         throw new Error('Prázdna odpoveď zo servera');
       }
@@ -203,6 +212,16 @@ class ApiService {
           );
           return data as T;
         }
+      }
+
+      // ✅ CRITICAL FIX: Backend môže vracať priamo array (napr. bulk-status)
+      // Ak backend vracia array priamo (nie wrapped v { data: [...] }), vráť ho ako T
+      if (Array.isArray(data)) {
+        logger.debug('🔍 Backend returned array directly, returning as is:', {
+          endpoint,
+          arrayLength: data.length,
+        });
+        return data as T;
       }
 
       return data.data as T;
@@ -796,6 +815,7 @@ class ApiService {
 
     // Ensure all required fields are present
     const completeProtocolData = {
+      id: protocolData.id, // ✅ CRITICAL: Protocol ID must be included!
       rentalId: protocolData.rentalId,
       location: protocolData.location || '',
       vehicleCondition: protocolData.vehicleCondition || {
@@ -1032,22 +1052,25 @@ class ApiService {
   }
 
   // Bulk Protocol Status API - chýbajúca metóda
-  async getBulkProtocolStatus(): Promise<{
-    [rentalId: string]: {
+  async getBulkProtocolStatus(): Promise<
+    Array<{
+      rentalId: string;
       hasHandoverProtocol: boolean;
       hasReturnProtocol: boolean;
       handoverProtocolId?: string;
       returnProtocolId?: string;
-    };
-  }> {
-    return this.request<{
-      [rentalId: string]: {
+    }>
+  > {
+    // Backend vracia array, RentalList.tsx ho transformuje na object
+    return this.request<
+      Array<{
+        rentalId: string;
         hasHandoverProtocol: boolean;
         hasReturnProtocol: boolean;
         handoverProtocolId?: string;
         returnProtocolId?: string;
-      };
-    }>('/protocols/bulk-status');
+      }>
+    >('/protocols/bulk-status');
   }
 
   // All Protocols for Statistics API - chýbajúca metóda

@@ -2,20 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { authenticateFastify } from '../decorators/auth';
 import { checkPermissionFastify } from '../hooks/permissions';
 import { r2Storage } from '../../utils/r2-storage';
-import { logger } from '../../utils/logger';
 
 export default async function filesRoutes(fastify: FastifyInstance) {
   
-  // POST /api/files/upload - Upload súboru do R2 (JSON with base64)
-  fastify.post<{
-    Body: {
-      file?: string; // base64 data
-      filename?: string;
-      mimetype?: string;
-      protocolId?: string;
-      category?: string;
-    };
-  }>('/api/files/upload', {
+  // POST /api/files/upload - Upload súboru do R2 (Multipart FormData)
+  fastify.post('/api/files/upload', {
     preHandler: [
       authenticateFastify,
       checkPermissionFastify('protocols', 'create')
@@ -24,104 +15,80 @@ export default async function filesRoutes(fastify: FastifyInstance) {
     try {
       fastify.log.info('📤 File upload endpoint called');
       
-      const body = request.body;
+      // ✅ MULTIPART UPLOAD - parse multipart form data
+      const data = await request.file();
       
-      // Check if JSON body with base64 data
-      if (body && body.file && body.filename) {
-        // Handle JSON upload with base64
-        const base64Data = body.file.includes(',') ? body.file.split(',')[1] : body.file;
-        const buffer = Buffer.from(base64Data, 'base64');
-        const filename = body.filename;
-        const mimetype = body.mimetype || 'application/octet-stream';
-        const protocolId = body.protocolId || 'unknown';
-        const category = body.category || 'general';
-        
-        fastify.log.info({ 
-          msg: '📦 JSON file received', 
-          filename, 
-          mimetype, 
-          size: buffer.length,
-          protocolId,
-          category
-        });
-
-        // Upload to R2 with organized structure
-        const key = `protocols/${protocolId}/${category}/${Date.now()}-${filename}`;
-        await r2Storage.uploadFile(key, buffer, mimetype);
-        
-        // Get public URL
-        const url = r2Storage.getPublicUrl(key);
-
-        fastify.log.info({ msg: '✅ File uploaded to R2 (JSON)', key, url });
-
-        return reply.send({
-          success: true,
-          data: {
-            key,
-            url,
-            filename,
-            size: buffer.length,
-            mimetype
-          }
-        });
-      }
-      
-      // Try multipart fallback
-      try {
-        const data = await request.file();
-        
-        if (!data) {
-          return reply.status(400).send({
-            success: false,
-            error: 'No file provided (neither JSON nor multipart)'
-          });
-        }
-
-        // Read file buffer
-        const buffer = await data.toBuffer();
-        
-        // Extract metadata from fields
-        const filename = data.filename;
-        const mimetype = data.mimetype;
-        
-        fastify.log.info({ 
-          msg: '📦 Multipart file received', 
-          filename, 
-          mimetype, 
-          size: buffer.length 
-        });
-
-        // Upload to R2
-        const key = `protocols/${Date.now()}-${filename}`;
-        await r2Storage.uploadFile(key, buffer, mimetype);
-        
-        // Get public URL
-        const url = r2Storage.getPublicUrl(key);
-
-        fastify.log.info({ msg: '✅ File uploaded to R2 (multipart)', key, url });
-
-        return reply.send({
-          success: true,
-          data: {
-            key,
-            url,
-            filename,
-            size: buffer.length,
-            mimetype
-          }
-        });
-      } catch (multipartError) {
-        fastify.log.error(multipartError, 'Multipart parsing failed');
+      if (!data) {
         return reply.status(400).send({
           success: false,
-          error: 'Invalid file upload format (expected JSON with base64 or multipart)'
+          error: 'No file provided'
         });
       }
+
+      // Read file buffer
+      const buffer = await data.toBuffer();
+      
+      // Extract metadata from form fields
+      const filename = data.filename;
+      const mimetype = data.mimetype;
+      
+      // Get additional fields from multipart form
+      const fields = data.fields as Record<string, { value: string }>;
+      const type = fields.type?.value || 'protocol';
+      const entityId = fields.entityId?.value || 'unknown';
+      const protocolType = fields.protocolType?.value;
+      const category = fields.category?.value || 'general';
+      const mediaType = fields.mediaType?.value;
+      
+      fastify.log.info({ 
+        msg: '📦 Multipart file received', 
+        filename, 
+        mimetype, 
+        size: buffer.length,
+        type,
+        entityId,
+        protocolType,
+        category,
+        mediaType
+      });
+
+      // ✅ ORGANIZED R2 KEY: protocols/{entityId}/{mediaType}/{timestamp}-{filename}
+      const timestamp = Date.now();
+      const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const key = mediaType 
+        ? `protocols/${entityId}/${mediaType}/${timestamp}-${sanitizedFilename}`
+        : `protocols/${entityId}/${category}/${timestamp}-${sanitizedFilename}`;
+        
+      // Upload to R2
+      await r2Storage.uploadFile(key, buffer, mimetype);
+      
+      // ✅ SIGNED URL: Generate signed URL for secure access (24h expiry)
+      const signedUrl = await r2Storage.getSignedUrl(key, 86400); // 24 hours
+
+      fastify.log.info({ msg: '✅ File uploaded to R2', key, url: signedUrl.substring(0, 100) + '...' });
+
+      // ✅ FRONTEND COMPATIBILITY: Return signed URL
+      return reply.send({
+        success: true,
+        url: signedUrl, // Frontend expects this - SIGNED URL
+        publicUrl: signedUrl, // Fallback
+        key,
+        filename,
+        size: buffer.length,
+        mimetype,
+        data: {
+          key,
+          url: signedUrl,
+          filename,
+          size: buffer.length,
+          mimetype
+        }
+      });
     } catch (error) {
       fastify.log.error(error, 'Upload file error');
       return reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error instanceof Error ? error.message : String(error) : 'Chyba pri nahrávaní súboru'
+        error: error instanceof Error ? error.message : 'Chyba pri nahrávaní súboru'
       });
     }
   });

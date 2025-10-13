@@ -378,12 +378,12 @@ export class ExpenseRepository extends BaseRepository {
    * Mapuje databázový riadok na Expense objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToExpense(row: any): Expense {
+  private mapRowToExpense(row: Record<string, unknown>): Expense {
     return {
       id: String(row.id),
       description: String(row.description),
       amount: Number(row.amount),
-      date: new Date(row.date),
+      date: new Date(row.date as string | number | Date),
       vehicleId: row.vehicle_id ? String(row.vehicle_id) : undefined,
       company: String(row.company || ''),
       category: String(row.category || ''),
@@ -395,7 +395,7 @@ export class ExpenseRepository extends BaseRepository {
    * Mapuje databázový riadok na ExpenseCategory objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToExpenseCategory(row: any): ExpenseCategory {
+  private mapRowToExpenseCategory(row: Record<string, unknown>): ExpenseCategory {
     return {
       id: String(row.id),
       name: String(row.name),
@@ -406,8 +406,8 @@ export class ExpenseRepository extends BaseRepository {
       isDefault: Boolean(row.is_default),
       isActive: Boolean(row.is_active !== false),
       sortOrder: Number(row.sort_order || 0),
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+      createdAt: new Date(row.created_at as string | number | Date),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string | number | Date) : new Date(),
       createdBy: row.created_by ? String(row.created_by) : undefined
     };
   }
@@ -416,7 +416,7 @@ export class ExpenseRepository extends BaseRepository {
    * Mapuje databázový riadok na RecurringExpense objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToRecurringExpense(row: any): RecurringExpense {
+  private mapRowToRecurringExpense(row: Record<string, unknown>): RecurringExpense {
     return {
       id: String(row.id),
       name: String(row.name || row.description),
@@ -427,15 +427,15 @@ export class ExpenseRepository extends BaseRepository {
       vehicleId: row.vehicle_id ? String(row.vehicle_id) : undefined,
       note: row.notes ? String(row.notes) : undefined,
       frequency: (row.frequency || 'monthly') as 'monthly' | 'quarterly' | 'yearly',
-      startDate: new Date(row.start_date || row.created_at),
-      endDate: row.end_date ? new Date(row.end_date) : undefined,
+      startDate: new Date((row.start_date || row.created_at) as string | number | Date),
+      endDate: row.end_date ? new Date(row.end_date as string | number | Date) : undefined,
       dayOfMonth: Number(row.day_of_month || 1),
       isActive: Boolean(row.is_active),
-      lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date) : undefined,
-      nextGenerationDate: row.next_generation_date ? new Date(row.next_generation_date) : undefined,
+      lastGeneratedDate: row.last_generated_date ? new Date(row.last_generated_date as string | number | Date) : undefined,
+      nextGenerationDate: row.next_generation_date ? new Date(row.next_generation_date as string | number | Date) : undefined,
       totalGenerated: Number(row.total_generated || 0),
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+      createdAt: new Date(row.created_at as string | number | Date),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string | number | Date) : new Date(),
       createdBy: row.created_by ? String(row.created_by) : undefined
     };
   }

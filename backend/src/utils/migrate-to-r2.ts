@@ -93,7 +93,7 @@ class R2Migration {
   /**
    * Migrácia media súborov pre jeden protokol
    */
-  private async migrateProtocolMedia(protocol: any, type: 'handover' | 'return'): Promise<void> {
+  private async migrateProtocolMedia(protocol: Record<string, unknown>, type: 'handover' | 'return'): Promise<void> {
     const protocolId = protocol.id;
     console.log(`🔄 Migrujem protokol ${type} ${protocolId.slice(-8)}...`);
 
@@ -127,7 +127,7 @@ class R2Migration {
   /**
    * Migrácia poľa media súborov
    */
-  private async migrateMediaArray(mediaArray: any[], protocolId: string, mediaType: string, protocolType: 'handover' | 'return'): Promise<void> {
+  private async migrateMediaArray(mediaArray: Record<string, unknown>[], protocolId: string, mediaType: string, protocolType: 'handover' | 'return'): Promise<void> {
     if (!Array.isArray(mediaArray) || mediaArray.length === 0) {
       return;
     }
@@ -212,7 +212,7 @@ class R2Migration {
   /**
    * Aktualizácia protokolu v databáze
    */
-  private async updateProtocolInDatabase(protocolId: string, type: 'handover' | 'return', mediaData: any): Promise<void> {
+  private async updateProtocolInDatabase(protocolId: string, type: 'handover' | 'return', mediaData: Record<string, unknown>): Promise<void> {
     try {
       // Použijeme updateReturnProtocol ak existuje
       if (type === 'return') {

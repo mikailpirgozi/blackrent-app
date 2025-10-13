@@ -12,17 +12,8 @@ import { postgresDatabase } from '../../models/postgres-database';
 import { r2Storage } from '../../utils/r2-storage';
 
 // Zod schemas
-const SafeCleanupSchema = z.object({
-  dryRun: z.boolean().default(true)
-});
-
 const BulkDeleteConfirmSchema = z.object({
   confirm: z.literal('DELETE_ALL_R2_FILES')
-});
-
-const ResetProtocolsConfirmSchema = z.object({
-  confirm: z.literal('DELETE_ALL_PROTOCOLS'),
-  includeRentals: z.boolean().optional()
 });
 
 const cleanupRoutes: FastifyPluginAsync = async (fastify) => {

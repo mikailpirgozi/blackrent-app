@@ -142,7 +142,7 @@ router.post('/send', authenticateToken, requireRole(['admin', 'super_admin']), a
 
     // Get target subscriptions
     let query = 'SELECT * FROM push_subscriptions WHERE active = true';
-    const params: any[] = [];
+    const params: Record<string, unknown>[] = [];
 
     if (targetUsers.length > 0) {
       query += ` AND user_id = ANY($1)`;
@@ -171,7 +171,7 @@ router.post('/send', authenticateToken, requireRole(['admin', 'super_admin']), a
         url: data.url || '/',
         clickAction: data.clickAction || 'open_app'
       },
-      actions: actions.map((action: any) => ({
+      actions: actions.map((action: Record<string, unknown>) => ({
         action: action.action,
         title: action.title,
         icon: action.icon
@@ -438,7 +438,7 @@ router.post('/trigger/rental-request', authenticateToken, async (req, res) => {
 });
 
 // Helper function to send notifications to multiple subscriptions
-async function sendPushNotificationToSubscriptions(subscriptions: any[], notificationData: any) {
+async function sendPushNotificationToSubscriptions(subscriptions: Record<string, unknown>[], notificationData: Record<string, unknown>) {
   const notificationPayload = {
     title: notificationData.title,
     body: notificationData.body,
@@ -457,13 +457,13 @@ async function sendPushNotificationToSubscriptions(subscriptions: any[], notific
     timestamp: Date.now()
   };
 
-  const sendPromises = subscriptions.map(async (sub: any) => {
+  const sendPromises = subscriptions.map(async (sub: Record<string, unknown>) => {
     try {
       const pushSubscription = {
-        endpoint: sub.endpoint,
+        endpoint: String(sub.endpoint),
         keys: {
-          p256dh: sub.p256dh_key,
-          auth: sub.auth_key
+          p256dh: String(sub.p256dh_key),
+          auth: String(sub.auth_key)
         }
       };
 
@@ -476,7 +476,7 @@ async function sendPushNotificationToSubscriptions(subscriptions: any[], notific
         }
       );
 
-      await logNotificationDelivery(sub.id, 'sent', notificationPayload);
+      await logNotificationDelivery(String(sub.id), 'sent', notificationPayload);
       return { subscriptionId: sub.id, status: 'sent' };
 
     } catch (error: unknown) {
@@ -512,7 +512,7 @@ async function sendPushNotificationToSubscriptions(subscriptions: any[], notific
 async function logNotificationDelivery(
   subscriptionId: string, 
   status: string, 
-  payload: any, 
+  payload: Record<string, unknown>, 
   errorMessage?: string
 ) {
   try {

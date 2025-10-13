@@ -21,7 +21,7 @@ export class MockPostgresDatabase {
     this.mockData.set('protocol_manifests_v2', []);
   }
 
-  async query(sql: string, params: any[] = []): Promise<any> {
+  async query(sql: string, params: Record<string, unknown>[] = []): Promise<any> {
     // Mock query implementation
     console.log('Mock query:', sql.substring(0, 50) + '...');
     
@@ -62,7 +62,7 @@ export class MockPostgresDatabase {
     return protocols.find(p => p.id === id) || null;
   }
 
-  async createProtocol(data: any): Promise<any> {
+  async createProtocol(data: Record<string, unknown>): Promise<any> {
     const protocol = {
       id: 'mock-protocol-' + Date.now(),
       ...data,

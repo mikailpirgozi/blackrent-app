@@ -686,7 +686,7 @@ export class CompanyRepository extends BaseRepository {
    * Mapuje databázový riadok na Company objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToCompany(row: any): Company {
+  private mapRowToCompany(row: Record<string, unknown>): Company {
     return {
       id: String(row.id),
       name: String(row.name),
@@ -716,25 +716,26 @@ export class CompanyRepository extends BaseRepository {
    * Mapuje databázový riadok na CompanyInvestor objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToCompanyInvestor(row: any): CompanyInvestor {
+  private mapRowToCompanyInvestor(row: Record<string, unknown>): CompanyInvestor {
     // Existujúca tabuľka má investor_name namiesto first_name/last_name
     // Rozdelíme investor_name na firstName a lastName
-    const nameParts = (row.investor_name || row.first_name || '').split(' ');
+    const investorName = String(row.investor_name || row.first_name || '');
+    const nameParts = investorName.split(' ');
     const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || (row.last_name || '');
+    const lastName = nameParts.slice(1).join(' ') || String(row.last_name || '');
     
     return {
-      id: row.id,
+      id: String(row.id),
       firstName: firstName,
       lastName: lastName,
-      email: row.investor_email || row.email || undefined,
-      phone: row.investor_phone || row.phone || undefined,
-      personalId: row.personal_id || row.legal_entity_id || undefined,
-      address: row.address || undefined,
+      email: row.investor_email ? String(row.investor_email) : row.email ? String(row.email) : undefined,
+      phone: row.investor_phone ? String(row.investor_phone) : row.phone ? String(row.phone) : undefined,
+      personalId: row.personal_id ? String(row.personal_id) : row.legal_entity_id ? String(row.legal_entity_id) : undefined,
+      address: row.address ? String(row.address) : undefined,
       isActive: row.status === 'active' || Boolean(row.is_active),
-      notes: row.notes || undefined,
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      notes: row.notes ? String(row.notes) : undefined,
+      createdAt: new Date(row.created_at as string | number | Date),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string | number | Date) : undefined
     };
   }
 
@@ -742,32 +743,32 @@ export class CompanyRepository extends BaseRepository {
    * Mapuje databázový riadok na CompanyInvestorShare objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToCompanyInvestorShare(row: any): CompanyInvestorShare {
+  private mapRowToCompanyInvestorShare(row: Record<string, unknown>): CompanyInvestorShare {
     return {
-      id: row.id,
-      companyId: row.company_id,
-      investorId: row.investor_id,
-      ownershipPercentage: row.ownership_percentage,
-      investmentAmount: row.investment_amount || undefined,
-      investmentDate: new Date(row.investment_date),
+      id: String(row.id),
+      companyId: String(row.company_id),
+      investorId: String(row.investor_id),
+      ownershipPercentage: Number(row.ownership_percentage),
+      investmentAmount: row.investment_amount ? Number(row.investment_amount) : undefined,
+      investmentDate: new Date(row.investment_date as string | number | Date),
       isPrimaryContact: Boolean(row.is_primary_contact),
-      profitSharePercentage: row.profit_share_percentage || undefined,
-      createdAt: new Date(row.created_at),
+      profitSharePercentage: row.profit_share_percentage ? Number(row.profit_share_percentage) : undefined,
+      createdAt: new Date(row.created_at as string | number | Date),
       // Rozšírené info ak je dostupné
       investor: row.first_name ? {
-        id: row.investor_id,
-        firstName: row.first_name,
-        lastName: row.last_name,
-        email: row.email || undefined,
-        phone: row.phone || undefined,
+        id: String(row.investor_id),
+        firstName: String(row.first_name),
+        lastName: String(row.last_name),
+        email: row.email ? String(row.email) : undefined,
+        phone: row.phone ? String(row.phone) : undefined,
         personalId: undefined,
         address: undefined,
         isActive: true,
         createdAt: new Date(),
       } : undefined,
       company: row.company_name ? {
-        id: row.company_id,
-        name: row.company_name,
+        id: String(row.company_id),
+        name: String(row.company_name),
         commissionRate: 20,
         isActive: true,
         createdAt: new Date(),
@@ -779,22 +780,22 @@ export class CompanyRepository extends BaseRepository {
    * Mapuje databázový riadok na CompanyDocument objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToCompanyDocument(row: any): CompanyDocument {
+  private mapRowToCompanyDocument(row: Record<string, unknown>): CompanyDocument {
     return {
-      id: row.id,
-      companyId: row.company_id,
-      documentType: row.document_type,
-      documentMonth: row.document_month || undefined,
-      documentYear: row.document_year || undefined,
-      documentName: row.document_name,
-      description: row.description || undefined,
-      filePath: row.file_path,
-      fileSize: row.file_size || undefined,
-      fileType: row.file_type || undefined,
-      originalFilename: row.original_filename || undefined,
-      createdAt: new Date(row.created_at),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(row.created_at),
-      createdBy: row.created_by || undefined
+      id: String(row.id),
+      companyId: Number(row.company_id),
+      documentType: row.document_type as 'contract' | 'invoice',
+      documentMonth: row.document_month ? Number(row.document_month) : undefined,
+      documentYear: row.document_year ? Number(row.document_year) : undefined,
+      documentName: String(row.document_name),
+      description: row.description ? String(row.description) : undefined,
+      filePath: String(row.file_path),
+      fileSize: row.file_size ? Number(row.file_size) : undefined,
+      fileType: row.file_type ? String(row.file_type) : undefined,
+      originalFilename: row.original_filename ? String(row.original_filename) : undefined,
+      createdAt: new Date(row.created_at as string | number | Date),
+      updatedAt: row.updated_at ? new Date(row.updated_at as string | number | Date) : new Date(row.created_at as string | number | Date),
+      createdBy: row.created_by ? String(row.created_by) : undefined
     };
   }
 

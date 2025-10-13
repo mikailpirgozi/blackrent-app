@@ -44,7 +44,7 @@ export const cacheResponse = (cacheName: keyof typeof cacheInstances, options: C
     const originalJson = res.json.bind(res);
     
     // Override json method to cache response
-    res.json = function(data: any) {
+    res.json = function(data: Record<string, unknown>) {
       // Only cache successful responses
       if (res.statusCode >= 200 && res.statusCode < 300) {
         cache.set(cacheKey, data, options);
@@ -65,7 +65,7 @@ export const invalidateCache = (entity: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const originalJson = res.json.bind(res);
     
-    res.json = function(data: any) {
+    res.json = function(data: Record<string, unknown>) {
       // Only invalidate on successful write operations
       if (res.statusCode >= 200 && res.statusCode < 300) {
         let action: 'create' | 'update' | 'delete' = 'update';

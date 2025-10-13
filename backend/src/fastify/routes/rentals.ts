@@ -274,8 +274,8 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
         priceMax: String(priceMax),
         userId: request.user?.id,
         userRole: request.user?.role,
-        sortBy: sortBy as any,
-        sortOrder: sortOrder as any
+        sortBy: (sortBy === 'createdAt' ? 'created_at' : sortBy === 'startDate' ? 'start_date' : sortBy === 'endDate' ? 'end_date' : sortBy === 'totalPrice' ? 'totalPrice' : 'smart_priority') as 'created_at' | 'start_date' | 'end_date' | 'smart_priority' | undefined,
+        sortOrder: sortOrder as 'asc' | 'desc'
       });
 
       const user = request.user!;
@@ -330,6 +330,7 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
       const originalRental = await postgresDatabase.getRental(request.params.id);
       
       if (!originalRental) {
+        fastify.log.error({ msg: '❌ Clone failed: Rental not found', rentalId: request.params.id });
         return reply.status(404).send({
           success: false,
           error: 'Prenájom nenájdený'
@@ -345,6 +346,12 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
       const newEndDate = new Date(newStartDate);
       newEndDate.setDate(newEndDate.getDate() + duration);
 
+      fastify.log.info({ 
+        msg: '📋 Cloning rental', 
+        originalId: request.params.id, 
+        newDates: { start: newStartDate.toISOString(), end: newEndDate.toISOString() }
+      });
+
       const clonedRental = await postgresDatabase.createRental({
         vehicleId: originalRental.vehicleId,
         customerId: originalRental.customerId,
@@ -356,25 +363,29 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
         paymentMethod: originalRental.paymentMethod
       });
 
-      fastify.log.info({ msg: '📋 Rental cloned', originalId: request.params.id, newId: clonedRental.id });
+      fastify.log.info({ msg: '✅ Rental cloned successfully', originalId: request.params.id, newId: clonedRental.id });
 
-      return reply.status(201).send({
-        success: true,
-        message: 'Prenájom bol naklonovaný',
-        data: clonedRental
-      });
+      // ✅ FIX: Ensure proper JSON response with Content-Type header
+      return reply
+        .status(201)
+        .header('Content-Type', 'application/json')
+        .send({
+          success: true,
+          message: 'Prenájom bol naklonovaný',
+          data: clonedRental
+        });
     } catch (error) {
-      fastify.log.error(error, 'Clone rental error');
+      fastify.log.error({ error, msg: '❌ Clone rental error', rentalId: request.params.id });
       return reply.status(500).send({
         success: false,
-        error: 'Chyba pri klonovaní prenájmu'
+        error: error instanceof Error ? error.message : 'Chyba pri klonovaní prenájmu'
       });
     }
   });
 
   // POST /api/rentals/batch-import - Batch import rentals
   fastify.post<{
-    Body: { rentals: any[] };
+    Body: { rentals: Record<string, unknown>[] };
   }>('/api/rentals/batch-import', {
     preHandler: [authenticateFastify, checkPermissionFastify('rentals', 'create')]
   }, async (request, reply) => {
@@ -388,8 +399,8 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: Record<string, unknown>[] = [];
 
       for (let i = 0; i < rentals.length; i++) {
         try {
@@ -401,14 +412,14 @@ export default async function rentalsRoutes(fastify: FastifyInstance) {
           }
 
           const created = await postgresDatabase.createRental({
-            vehicleId: rentalData.vehicleId,
-            customerId: rentalData.customerId,
-            customerName: rentalData.customerName,
-            startDate: new Date(rentalData.startDate),
-            endDate: new Date(rentalData.endDate),
+            vehicleId: String(rentalData.vehicleId || ''),
+            customerId: rentalData.customerId ? String(rentalData.customerId) : undefined,
+            customerName: String(rentalData.customerName || ''),
+            startDate: new Date(String(rentalData.startDate || new Date().toISOString())),
+            endDate: new Date(String(rentalData.endDate || new Date().toISOString())),
             totalPrice: Number(rentalData.totalPrice || 0),
             commission: Number(rentalData.commission || 0),
-            paymentMethod: rentalData.paymentMethod || 'cash'
+            paymentMethod: String(rentalData.paymentMethod || 'cash') as 'cash' | 'bank_transfer' | 'vrp' | 'direct_to_owner'
           });
           
           results.push({ index: i, rental: created });

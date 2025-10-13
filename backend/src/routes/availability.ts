@@ -9,13 +9,13 @@ import { calculateRentalDays } from '../utils/rentalDaysCalculator';
 const router: Router = Router();
 
 // 🚀 FÁZA 2.4: DATA STRUCTURE OPTIMIZATION helper function
-function optimizeDataStructure(data: any): { data: any; meta: any } {
+function optimizeDataStructure(data: Record<string, unknown>): { data: Record<string, unknown>; meta: Record<string, unknown> } {
   const startTime = Date.now();
   const originalSize = JSON.stringify(data).length;
   
   // Create vehicle lookup map
   const vehicleLookup: Record<string, number> = {};
-  const compactVehicles = data.vehicles.map((vehicle: any, index: number) => {
+  const compactVehicles = data.vehicles.map((vehicle: Record<string, unknown>, index: number) => {
     vehicleLookup[vehicle.id] = index;
     return {
       id: vehicle.id,
@@ -27,9 +27,9 @@ function optimizeDataStructure(data: any): { data: any; meta: any } {
   });
 
   // Optimize calendar structure
-  const compactCalendar = data.calendar.map((day: any) => ({
+  const compactCalendar = data.calendar.map((day: Record<string, unknown>) => ({
     d: day.date,              // date
-    v: day.vehicles.map((vehicle: any) => ({
+    v: day.vehicles.map((vehicle: Record<string, unknown>) => ({
       vi: vehicleLookup[vehicle.vehicleId], // vehicle index
       s: vehicle.status,      // status
       ...(vehicle.rentalId && { ri: vehicle.rentalId }),
@@ -144,7 +144,7 @@ router.get('/calendar', authenticateToken, async (req: Request, res: Response<Ap
     const includeAllFields = requestedFields.length === 0;
     
     // Vytvor optimalizovaný response na základe requested fields
-    const responseData: any = {};
+    const responseData: Record<string, unknown> = {};
     
     if (includeAllFields || requestedFields.includes('calendar')) {
       responseData.calendar = calendarData;

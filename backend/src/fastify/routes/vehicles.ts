@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { authenticateFastify, requireRoleFastify } from '../decorators/auth';
 import { checkPermissionFastify } from '../hooks/permissions';
 import { postgresDatabase } from '../../models/postgres-database';
@@ -79,10 +79,13 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return reply.send({
-        success: true,
-        data: vehicles
-      });
+      // ✅ FIX: Ensure proper JSON response with Content-Type header
+      return reply
+        .header('Content-Type', 'application/json')
+        .send({
+          success: true,
+          data: vehicles
+        });
     } catch (error) {
       fastify.log.error(error, 'Get vehicles error');
       return reply.status(500).send({
@@ -186,7 +189,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
 
   // POST /api/vehicles - Create new vehicle
   fastify.post<{
-    Body: any;
+    Body: Record<string, unknown>;
   }>('/api/vehicles', {
     preHandler: [
       authenticateFastify,
@@ -335,7 +338,8 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
       fastify.log.info('🚀 BULK: Loading ownership history for all vehicles...');
       const startTime = Date.now();
 
-      const client = await (postgresDatabase as any).dbPool.connect();
+      const dbPool = (postgresDatabase as Record<string, unknown>).dbPool as { connect: () => Promise<Record<string, unknown>> };
+      const client = await dbPool.connect();
       
       try {
         // 1. Get all vehicles
@@ -364,12 +368,13 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         `);
         
         // 3. Group histories by vehicle_id
-        const historiesByVehicle = new Map();
-        historiesResult.rows.forEach((row: any) => {
-          if (!historiesByVehicle.has(row.vehicle_id)) {
-            historiesByVehicle.set(row.vehicle_id, []);
+        const historiesByVehicle = new Map<string, Record<string, unknown>[]>();
+        historiesResult.rows.forEach((row: Record<string, unknown>) => {
+          const vehicleId = String(row.vehicle_id || '');
+          if (!historiesByVehicle.has(vehicleId)) {
+            historiesByVehicle.set(vehicleId, []);
           }
-          historiesByVehicle.get(row.vehicle_id).push({
+          historiesByVehicle.get(vehicleId)!.push({
             id: row.id,
             ownerCompanyId: row.company_id,
             ownerCompanyName: row.owner_company_name,
@@ -381,17 +386,20 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         });
         
         // 4. Combine vehicle data with histories
-        const allHistories = vehicles.map((vehicle: any) => ({
-          vehicleId: vehicle.id,
-          vehicle: {
-            id: vehicle.id,
-            brand: vehicle.brand,
-            model: vehicle.model,
-            licensePlate: vehicle.license_plate,
-            ownerCompanyId: vehicle.company_id
-          },
-          history: historiesByVehicle.get(vehicle.id) || []
-        }));
+        const allHistories = vehicles.map((vehicle: Record<string, unknown>) => {
+          const vehicleId = String(vehicle.id || '');
+          return {
+            vehicleId,
+            vehicle: {
+              id: vehicleId,
+              brand: vehicle.brand,
+              model: vehicle.model,
+              licensePlate: vehicle.license_plate,
+              ownerCompanyId: vehicle.company_id
+            },
+            history: historiesByVehicle.get(vehicleId) || []
+          };
+        });
         
         const loadTime = Date.now() - startTime;
         fastify.log.info(`✅ BULK: Loaded ownership history for ${vehicles.length} vehicles in ${loadTime}ms`);
@@ -478,9 +486,10 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const client = await (postgresDatabase as any).dbPool.connect();
+      const dbPool = (postgresDatabase as Record<string, unknown>).dbPool as { connect: () => Promise<Record<string, unknown>> };
+      const client = await dbPool.connect();
       try {
-        const updated = [];
+        const updated: string[] = [];
         
         for (const vehicleId of vehicleIds) {
           await client.query(
@@ -592,8 +601,8 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
       }
 
       const dataLines = lines.slice(1);
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: Record<string, unknown>[] = [];
 
       for (let i = 0; i < dataLines.length; i++) {
         try {
@@ -621,17 +630,17 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
             vin: vin?.trim() || undefined,
             company: company?.trim() || 'Unknown',
             year: year ? parseInt(year) : undefined,
-            status: (status?.trim() as any) || 'available',
+            status: (status?.trim() as 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'stolen' | 'private') || 'available',
             pricing: [],
             commission: { type: 'percentage' as const, value: 15 }
           };
 
           const createdVehicle = await postgresDatabase.createVehicle(vehicleData);
           results.push({ row: i + 2, vehicle: createdVehicle });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             row: i + 2, 
-            error: error.message || 'Error creating vehicle' 
+            error: error instanceof Error ? error.message : 'Error creating vehicle' 
           });
         }
       }
@@ -744,7 +753,7 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
 
   // POST /api/vehicles/batch-import - Batch import vehicles
   fastify.post<{
-    Body: { vehicles: any[] };
+    Body: { vehicles: Record<string, unknown>[] };
   }>('/api/vehicles/batch-import', {
     preHandler: [authenticateFastify, checkPermissionFastify('vehicles', 'create')]
   }, async (request, reply) => {
@@ -758,8 +767,8 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const results: any[] = [];
-      const errors: any[] = [];
+      const results: Record<string, unknown>[] = [];
+      const errors: Record<string, unknown>[] = [];
 
       for (let i = 0; i < vehicles.length; i++) {
         try {
@@ -777,17 +786,17 @@ export default async function vehiclesRoutes(fastify: FastifyInstance) {
             vin: vehicleData.vin ? String(vehicleData.vin) : undefined,
             company: String(vehicleData.company || 'Unknown'),
             year: vehicleData.year ? Number(vehicleData.year) : undefined,
-            status: vehicleData.status || 'available',
-            pricing: vehicleData.pricing || [],
-            commission: vehicleData.commission || { type: 'percentage', value: 15 }
+            status: String(vehicleData.status || 'available') as 'available' | 'rented' | 'maintenance' | 'temporarily_removed' | 'removed' | 'stolen' | 'private',
+            pricing: (vehicleData.pricing as Record<string, unknown>[]) || [],
+            commission: (vehicleData.commission as Record<string, unknown>) || { type: 'percentage', value: 15 }
           };
 
           const created = await postgresDatabase.createVehicle(vehicleToCreate);
           results.push({ index: i, vehicle: created });
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({ 
             index: i, 
-            error: error.message || 'Error creating vehicle' 
+            error: error instanceof Error ? error.message : 'Error creating vehicle' 
           });
         }
       }

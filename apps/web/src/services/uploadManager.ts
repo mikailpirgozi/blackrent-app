@@ -258,10 +258,14 @@ export class UploadManager {
 
     const result = await response.json();
 
-    if (!result.url && !result.publicUrl) {
+    // ✅ FASTIFY COMPATIBILITY: Check multiple URL formats
+    const url = result.url || result.publicUrl || result.data?.url;
+
+    if (!url) {
+      logger.error('Upload response missing URL', { result });
       throw new Error('Upload response missing URL');
     }
 
-    return result.url || result.publicUrl;
+    return url;
   }
 }

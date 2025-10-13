@@ -360,16 +360,16 @@ export class ProtocolRepository extends BaseRepository {
    * Mapuje databázový riadok na HandoverProtocol objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToHandoverProtocol(row: any): HandoverProtocol {
+  private mapRowToHandoverProtocol(row: Record<string, unknown>): HandoverProtocol {
     return {
-      id: row.id,
-      rentalId: row.rental_id,
+      id: String(row.id),
+      rentalId: String(row.rental_id),
 
       type: 'handover',
-      status: row.status || 'draft',
-      createdAt: new Date(row.created_at),
-      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-      location: row.location || '',
+      status: (row.status || 'draft') as 'draft' | 'completed' | 'cancelled',
+      createdAt: new Date(row.created_at as string | number | Date),
+      completedAt: row.completed_at ? new Date(row.completed_at as string | number | Date) : undefined,
+      location: String(row.location || ''),
       vehicleCondition: typeof row.vehicle_condition === 'string' ? JSON.parse(row.vehicle_condition) : row.vehicle_condition,
       vehicleImages: row.vehicle_images ? (typeof row.vehicle_images === 'string' ? JSON.parse(row.vehicle_images) : row.vehicle_images) : [],
       vehicleVideos: row.vehicle_videos ? (typeof row.vehicle_videos === 'string' ? JSON.parse(row.vehicle_videos) : row.vehicle_videos) : [],
@@ -380,11 +380,11 @@ export class ProtocolRepository extends BaseRepository {
       damages: row.damages ? (typeof row.damages === 'string' ? JSON.parse(row.damages) : row.damages) : [],
       signatures: row.signatures ? (typeof row.signatures === 'string' ? JSON.parse(row.signatures) : row.signatures) : [],
       rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as Record<string, unknown>,
-      pdfUrl: row.pdf_url || undefined,
+      pdfUrl: row.pdf_url ? String(row.pdf_url) : undefined,
       emailSent: Boolean(row.email_sent),
-      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
-      createdBy: row.created_by || '',
-      notes: row.notes || undefined
+      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at as string | number | Date) : undefined,
+      createdBy: String(row.created_by || ''),
+      notes: row.notes ? String(row.notes) : undefined
     };
   }
 
@@ -392,18 +392,18 @@ export class ProtocolRepository extends BaseRepository {
    * Mapuje databázový riadok na ReturnProtocol objekt
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapRowToReturnProtocol(row: any): ReturnProtocol {
+  private mapRowToReturnProtocol(row: Record<string, unknown>): ReturnProtocol {
     return {
-      id: row.id,
-      rentalId: row.rental_id,
+      id: String(row.id),
+      rentalId: String(row.rental_id),
 
-      handoverProtocolId: row.handover_protocol_id || '',
+      handoverProtocolId: String(row.handover_protocol_id || ''),
 
       type: 'return',
-      status: row.status || 'draft',
-      createdAt: new Date(row.created_at),
-      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-      location: row.location || '',
+      status: (row.status || 'draft') as 'draft' | 'completed' | 'cancelled',
+      createdAt: new Date(row.created_at as string | number | Date),
+      completedAt: row.completed_at ? new Date(row.completed_at as string | number | Date) : undefined,
+      location: String(row.location || ''),
       vehicleCondition: typeof row.vehicle_condition === 'string' ? JSON.parse(row.vehicle_condition) : row.vehicle_condition,
       vehicleImages: row.vehicle_images ? (typeof row.vehicle_images === 'string' ? JSON.parse(row.vehicle_images) : row.vehicle_images) : [],
       vehicleVideos: row.vehicle_videos ? (typeof row.vehicle_videos === 'string' ? JSON.parse(row.vehicle_videos) : row.vehicle_videos) : [],
@@ -414,21 +414,21 @@ export class ProtocolRepository extends BaseRepository {
       damages: row.damages ? (typeof row.damages === 'string' ? JSON.parse(row.damages) : row.damages) : [],
       newDamages: row.new_damages ? (typeof row.new_damages === 'string' ? JSON.parse(row.new_damages) : row.new_damages) : [],
       signatures: row.signatures ? (typeof row.signatures === 'string' ? JSON.parse(row.signatures) : row.signatures) : [],
-      kilometersUsed: row.kilometers_used || 0,
-      kilometerOverage: row.kilometer_overage || 0,
-      kilometerFee: row.kilometer_fee || 0,
-      fuelUsed: row.fuel_used || 0,
-      fuelFee: row.fuel_fee || 0,
-      totalExtraFees: row.total_extra_fees || 0,
-      depositRefund: row.deposit_refund || 0,
-      additionalCharges: row.additional_charges || 0,
-      finalRefund: row.final_refund || 0,
+      kilometersUsed: Number(row.kilometers_used || 0),
+      kilometerOverage: Number(row.kilometer_overage || 0),
+      kilometerFee: Number(row.kilometer_fee || 0),
+      fuelUsed: Number(row.fuel_used || 0),
+      fuelFee: Number(row.fuel_fee || 0),
+      totalExtraFees: Number(row.total_extra_fees || 0),
+      depositRefund: Number(row.deposit_refund || 0),
+      additionalCharges: Number(row.additional_charges || 0),
+      finalRefund: Number(row.final_refund || 0),
       rentalData: row.rental_data ? (typeof row.rental_data === 'string' ? JSON.parse(row.rental_data) : row.rental_data) : {} as Record<string, unknown>,
-      pdfUrl: row.pdf_url || undefined,
+      pdfUrl: row.pdf_url ? String(row.pdf_url) : undefined,
       emailSent: Boolean(row.email_sent),
-      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at) : undefined,
-      createdBy: row.created_by || '',
-      notes: row.notes || undefined
+      emailSentAt: row.email_sent_at ? new Date(row.email_sent_at as string | number | Date) : undefined,
+      createdBy: String(row.created_by || ''),
+      notes: row.notes ? String(row.notes) : undefined
     };
   }
 }
