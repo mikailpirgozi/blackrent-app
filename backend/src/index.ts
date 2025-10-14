@@ -159,8 +159,14 @@ import v2SystemTestRoutes from './routes/v2-system-test';
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleRoutes from './routes/vehicles';
+import publicApiRoutes from './routes/public-api'; // 📱 PUBLIC API: Mobile app endpoints
+import paymentRoutes from './routes/payments'; // 💳 PAYMENTS: Stripe integration
+import customerAuthRoutes from './routes/customer-auth'; // 📱 CUSTOMER AUTH: Mobile app authentication
 
 // API routes
+app.use('/api/public', publicApiRoutes); // 📱 PUBLIC API: Must be before auth middleware
+app.use('/api/payments', paymentRoutes); // 💳 PAYMENTS: Stripe payments
+app.use('/api/customer', customerAuthRoutes); // 📱 CUSTOMER AUTH: Customer registration/login/OAuth
 app.use('/api/auth', authRoutes);
 // app.use('/api/admin-debug', adminDebugRoutes); // 🔧 ADMIN DEBUG: Protocol regeneration & company management (disabled)
 app.use('/api/debug', debugRoutes); // 🔍 DEBUG: User permissions diagnostics

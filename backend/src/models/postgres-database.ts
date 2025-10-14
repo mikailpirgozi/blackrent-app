@@ -5225,6 +5225,77 @@ export class PostgresDatabase {
     });
   }
 
+  // 💳 UPDATE RENTAL PAYMENT STATUS (for Stripe payments from mobile app)
+  async updateRentalPaymentStatus(
+    rentalId: string,
+    paymentData: {
+      paymentIntentId: string;
+      status: 'paid' | 'failed' | 'pending';
+      amount?: number;
+      currency?: string;
+      paidAt?: Date;
+      failureReason?: string;
+    }
+  ): Promise<void> {
+    const client = await this.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      logger.info('💳 Updating rental payment status', {
+        rentalId,
+        paymentIntentId: paymentData.paymentIntentId,
+        status: paymentData.status,
+        amount: paymentData.amount,
+      });
+
+      // Check if rental exists
+      const rentalCheck = await client.query(
+        'SELECT id FROM rentals WHERE id = $1',
+        [rentalId]
+      );
+
+      if (rentalCheck.rows.length === 0) {
+        throw new Error(`Rental ${rentalId} not found`);
+      }
+
+      // Update rental with payment info
+      const updateQuery = `
+        UPDATE rentals 
+        SET 
+          paid = $1,
+          payment_method = $2,
+          status = $3,
+          updated_at = NOW()
+        WHERE id = $4
+      `;
+
+      await client.query(updateQuery, [
+        paymentData.status === 'paid',
+        'stripe', // Payment method
+        paymentData.status === 'paid' ? 'confirmed' : 'pending',
+        rentalId,
+      ]);
+
+      // Store payment intent info (we can add a payments table later if needed)
+      // For now, just log it
+      logger.info('✅ Rental payment status updated', {
+        rentalId,
+        paymentIntentId: paymentData.paymentIntentId,
+        paid: paymentData.status === 'paid',
+        paidAt: paymentData.paidAt,
+      });
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('❌ Failed to update rental payment status:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // 🛡️ PROTECTED DELETE with safety checks
   async deleteRental(id: string): Promise<void> {
     const client = await this.pool.connect();
