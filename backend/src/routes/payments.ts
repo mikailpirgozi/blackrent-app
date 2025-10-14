@@ -11,16 +11,39 @@ import type { ApiResponse } from '../types';
 
 const router: Router = Router();
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-09-30.clover',
-});
+// Initialize Stripe only if API key is configured
+const STRIPE_ENABLED = !!process.env.STRIPE_SECRET_KEY;
+let stripe: Stripe | null = null;
+
+if (STRIPE_ENABLED) {
+  try {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-09-30.clover',
+    });
+    console.log('💳 Stripe initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Stripe:', error);
+  }
+} else {
+  console.warn('⚠️ Stripe API key not configured - payment endpoints will be disabled');
+}
+
+// Middleware to check if Stripe is enabled
+const requireStripe = (_req: Request, res: Response, next: Function) => {
+  if (!stripe) {
+    return res.status(503).json({
+      success: false,
+      error: 'Payment service not configured',
+    });
+  }
+  next();
+};
 
 /**
  * POST /api/payments/create-intent
  * Create a Stripe Payment Intent for a booking
  */
-router.post('/create-intent', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/create-intent', requireStripe, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { amount, currency = 'eur', rentalId, customerId, metadata = {} } = req.body;
 
@@ -33,7 +56,7 @@ router.post('/create-intent', async (req: Request, res: Response<ApiResponse>) =
     }
 
     // Create payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await stripe!.paymentIntents.create({
       amount: Math.round(amount), // Amount in cents
       currency: currency.toLowerCase(),
       automatic_payment_methods: {
@@ -80,7 +103,7 @@ router.post('/create-intent', async (req: Request, res: Response<ApiResponse>) =
  * POST /api/payments/confirm
  * Confirm a payment and update rental status
  */
-router.post('/confirm', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/confirm', requireStripe, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { paymentIntentId, rentalId } = req.body;
 
@@ -92,7 +115,7 @@ router.post('/confirm', async (req: Request, res: Response<ApiResponse>) => {
     }
 
     // Retrieve payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await stripe!.paymentIntents.retrieve(paymentIntentId);
 
     // Check if payment succeeded
     if (paymentIntent.status !== 'succeeded') {
@@ -141,11 +164,11 @@ router.post('/confirm', async (req: Request, res: Response<ApiResponse>) => {
  * GET /api/payments/:paymentIntentId/status
  * Check payment status
  */
-router.get('/:paymentIntentId/status', async (req: Request, res: Response<ApiResponse>) => {
+router.get('/:paymentIntentId/status', requireStripe, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { paymentIntentId } = req.params;
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await stripe!.paymentIntents.retrieve(paymentIntentId);
 
     res.json({
       success: true,
@@ -169,7 +192,7 @@ router.get('/:paymentIntentId/status', async (req: Request, res: Response<ApiRes
  * POST /api/payments/webhook
  * Stripe webhook handler for payment events
  */
-router.post('/webhook', async (req: Request, res: Response) => {
+router.post('/webhook', requireStripe, async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -179,7 +202,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
   }
 
   try {
-    const event = stripe.webhooks.constructEvent(
+    const event = stripe!.webhooks.constructEvent(
       req.body,
       sig,
       webhookSecret
@@ -253,7 +276,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
  * POST /api/payments/save-method
  * Save payment method for future use
  */
-router.post('/save-method', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/save-method', requireStripe, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { paymentMethodId, customerId } = req.body;
 
@@ -285,7 +308,7 @@ router.post('/save-method', async (req: Request, res: Response<ApiResponse>) => 
  * GET /api/payments/methods
  * Get saved payment methods for customer
  */
-router.get('/methods', async (req: Request, res: Response<ApiResponse>) => {
+router.get('/methods', requireStripe, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { customerId } = req.query;
 
@@ -319,12 +342,12 @@ router.get('/methods', async (req: Request, res: Response<ApiResponse>) => {
  * DELETE /api/payments/methods/:paymentMethodId
  * Delete a saved payment method
  */
-router.delete('/methods/:paymentMethodId', async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/methods/:paymentMethodId', requireStripe, async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { paymentMethodId } = req.params;
 
     // Detach payment method from customer
-    await stripe.paymentMethods.detach(paymentMethodId);
+    await stripe!.paymentMethods.detach(paymentMethodId);
 
     res.json({
       success: true,
