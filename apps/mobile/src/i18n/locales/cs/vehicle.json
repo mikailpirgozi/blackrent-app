@@ -1,0 +1,20 @@
+{
+  "vehicleNotFound": "Vozidlo nebylo nalezeno",
+  "perDay": "/ den",
+  "from": "Od",
+  "pricing": {
+    "title": "Ceník",
+    "subtitle": "Cena za den podle délky pronájmu"
+  },
+  "details": {
+    "title": "Detaily vozidla",
+    "vin": "VIN",
+    "company": "Společnost",
+    "extraKmRate": "Doplatek za km",
+    "stk": "Platnost STK"
+  },
+  "commission": {
+    "title": "Provize"
+  }
+}
+

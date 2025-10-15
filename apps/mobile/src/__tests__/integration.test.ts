@@ -106,7 +106,7 @@ export const integrationTests = createTestSuite(
         assert.isTrue(searchResult.total > 0, 'Search should return total count');
         
         // Test vehicle details
-        const _vehicleId = searchResult.vehicles[0].id;
+        const vehicleId = searchResult.vehicles[0].id;
         const detailsResult = await mockServices.vehicleService.getVehicleDetails(vehicleId);
         
         assert.equals(detailsResult.id, vehicleId, 'Vehicle details should match requested ID');

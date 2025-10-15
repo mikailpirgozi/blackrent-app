@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close",
+    "selectLanguage": "Select Language",
+    "seeAll": "See All",
+    "ok": "OK"
+  },
+  "tabs": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "store": "Store",
+    "admin": "Admin",
+    "profile": "Profile"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?"
+  },
+  "navigation": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "store": "Store",
+    "profile": "Profile",
+    "bookings": "Bookings",
+    "settings": "Settings",
+    "emergency": "Emergency Features"
+  },
+  "profile": {
+    "personalInfo": "Personal Info",
+    "myBookings": "My Bookings",
+    "language": "Language & Translation",
+    "support": "Support",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "terms": "Terms of Service"
+  },
+  "vehicle": {
+    "pricePerDay": "€{{price}}/day",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "bookNow": "Book Now",
+    "details": "Details",
+    "specifications": "Specifications"
+  },
+  "booking": {
+    "newBooking": "New Booking",
+    "pickupDate": "Pickup Date",
+    "returnDate": "Return Date",
+    "pickupLocation": "Pickup Location",
+    "returnLocation": "Return Location",
+    "totalPrice": "Total Price",
+    "confirm": "Confirm Booking"
+  },
+  "offers": {
+    "title": "Special Offers",
+    "limited": "Limited",
+    "validUntil": "Valid Until"
+  }
+}
+
+
+

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import { startOfDay, endOfDay } from 'date-fns';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
@@ -118,8 +119,9 @@ router.post('/',
     } = req.body;
 
     // Frontend posiela period: { from, to }, takže musíme to správne extrahovať
-    const fromDate = period?.from ? new Date(period.from) : null;
-    const toDate = period?.to ? new Date(period.to) : null;
+    // ✅ FIX: Použijeme startOfDay/endOfDay pre presné zahrnutie celých dní
+    const fromDate = period?.from ? startOfDay(new Date(period.from)) : null;
+    const toDate = period?.to ? endOfDay(new Date(period.to)) : null;
     const periodString = fromDate && toDate ? 
       `${fromDate.toLocaleDateString('sk-SK')} - ${toDate.toLocaleDateString('sk-SK')}` : 
       'Neurčené obdobie';

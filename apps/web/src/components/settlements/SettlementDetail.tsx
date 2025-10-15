@@ -1119,7 +1119,8 @@ export default function SettlementDetail({
                   variant="h6"
                   className="font-semibold text-slate-800"
                 >
-                  Náklady Ado Miro ({settlement.expenses?.length || 0})
+                  Náklady {settlement.company || 'N/A'} (
+                  {settlement.expenses?.length || 0})
                 </UnifiedTypography>
               </div>
 

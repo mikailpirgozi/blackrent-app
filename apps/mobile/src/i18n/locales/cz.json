@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Načítání...",
+    "error": "Chyba",
+    "retry": "Zkusit znovu",
+    "cancel": "Zrušit",
+    "confirm": "Potvrdit",
+    "save": "Uložit",
+    "edit": "Upravit",
+    "delete": "Smazat",
+    "back": "Zpět",
+    "next": "Další",
+    "done": "Hotovo",
+    "close": "Zavřít",
+    "selectLanguage": "Vybrat jazyk",
+    "seeAll": "Zobrazit vše",
+    "ok": "OK"
+  },
+  "tabs": {
+    "home": "Domů",
+    "catalog": "Katalog",
+    "store": "Obchod",
+    "admin": "Admin",
+    "profile": "Profil"
+  },
+  "auth": {
+    "login": "Přihlásit se",
+    "logout": "Odhlásit se",
+    "register": "Registrace",
+    "email": "Email",
+    "password": "Heslo",
+    "forgotPassword": "Zapomenuté heslo?",
+    "createAccount": "Vytvořit účet",
+    "alreadyHaveAccount": "Už máte účet?"
+  },
+  "navigation": {
+    "home": "Domů",
+    "catalog": "Katalog",
+    "store": "Obchod",
+    "profile": "Profil",
+    "bookings": "Rezervace",
+    "settings": "Nastavení",
+    "emergency": "Nouzové funkce"
+  },
+  "profile": {
+    "personalInfo": "Osobní údaje",
+    "myBookings": "Moje rezervace",
+    "language": "Jazyk a překlad",
+    "support": "Podpora",
+    "settings": "Nastavení",
+    "notifications": "Oznámení",
+    "privacy": "Soukromí",
+    "terms": "Podmínky používání"
+  },
+  "vehicle": {
+    "pricePerDay": "€{{price}}/den",
+    "available": "Dostupné",
+    "unavailable": "Nedostupné",
+    "bookNow": "Rezervovat nyní",
+    "details": "Detaily",
+    "specifications": "Specifikace"
+  },
+  "booking": {
+    "newBooking": "Nová rezervace",
+    "pickupDate": "Datum vyzvednutí",
+    "returnDate": "Datum vrácení",
+    "pickupLocation": "Místo vyzvednutí",
+    "returnLocation": "Místo vrácení",
+    "totalPrice": "Celková cena",
+    "confirm": "Potvrdit rezervaci"
+  },
+  "offers": {
+    "title": "Speciální nabídky",
+    "limited": "Omezené",
+    "validUntil": "Platné do"
+  }
+}
+
+
+

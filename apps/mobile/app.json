@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "BlackRent",
+    "slug": "blackrent-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/illustrations/onboarding-welcome.webp",
+    "scheme": "blackrent",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/illustrations/onboarding-welcome.webp",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "sk.blackrent.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "BlackRent needs access to your camera to capture vehicle photos and documents.",
+        "NSPhotoLibraryUsageDescription": "BlackRent needs access to your photo library to select vehicle photos.",
+        "NSLocationWhenInUseUsageDescription": "BlackRent needs your location to show nearby vehicles and provide navigation.",
+        "NSFaceIDUsageDescription": "BlackRent uses Face ID for secure authentication."
+      }
+    },
+    "android": {
+      "package": "sk.blackrent.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/illustrations/onboarding-welcome.webp",
+        "backgroundColor": "#000000"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/illustrations/onboarding-welcome.webp",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": true
+          },
+          "ios": {
+            "newArchEnabled": true
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "tsconfigPaths": true,
+      "reactNativeNewArchitecture": true
+    }
+  }
+}
+
+
+
+

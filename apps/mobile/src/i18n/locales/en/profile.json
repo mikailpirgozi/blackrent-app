@@ -1,0 +1,48 @@
+{
+  "title": "Profile",
+  "subtitle": "Manage your account",
+  "personalInfo": "Personal Information",
+  "fields": {
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email Address",
+    "phone": "Phone Number"
+  },
+  "hints": {
+    "emailNotEditable": "Email cannot be changed"
+  },
+  "sections": {
+    "account": "Account",
+    "preferences": "Preferences",
+    "support": "Support & Legal"
+  },
+  "menu": {
+    "editProfile": "Edit Profile",
+    "myBookings": "My Bookings",
+    "favorites": "Favorite Vehicles",
+    "paymentMethods": "Payment Methods",
+    "notifications": "Notifications",
+    "language": "Language",
+    "theme": "Appearance",
+    "helpCenter": "Help Center",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "about": "About",
+    "logout": "Logout"
+  },
+  "logout": {
+    "title": "Logout",
+    "confirmation": "Are you sure you want to logout?",
+    "button": "Logout",
+    "confirm": "Yes, Logout",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "fillRequired": "Please fill all required fields",
+    "updateFailed": "Failed to update profile"
+  },
+  "success": {
+    "updated": "Profile updated successfully"
+  }
+}
+

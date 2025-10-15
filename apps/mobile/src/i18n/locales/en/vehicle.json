@@ -1,0 +1,20 @@
+{
+  "vehicleNotFound": "Vehicle not found",
+  "perDay": "/ day",
+  "from": "From",
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Price per day based on rental length"
+  },
+  "details": {
+    "title": "Vehicle Details",
+    "vin": "VIN",
+    "company": "Company",
+    "extraKmRate": "Extra km rate",
+    "stk": "Inspection validity"
+  },
+  "commission": {
+    "title": "Commission"
+  }
+}
+

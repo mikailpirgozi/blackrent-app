@@ -716,6 +716,7 @@ class PCIComplianceManager {
 }
 
 export const _pciManager = new PCIComplianceManager();
+export const pciManager = _pciManager;
 
 /**
  * Hook for PCI compliance in React components

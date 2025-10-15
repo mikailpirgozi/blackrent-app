@@ -665,6 +665,7 @@ class SecurityManager {
 }
 
 export const _securityManager = new SecurityManager();
+export const securityManager = _securityManager;
 
 /**
  * Hook for security status monitoring

@@ -710,6 +710,7 @@ class GDPRComplianceManager {
 }
 
 export const _gdprManager = new GDPRComplianceManager();
+export const gdprManager = _gdprManager;
 
 /**
  * Hook for GDPR compliance in React components

@@ -1,0 +1,78 @@
+{
+  "title": "Book Vehicle",
+  "subtitle": "Complete your reservation in 3 easy steps",
+  "steps": {
+    "dates": "Dates",
+    "insurance": "Insurance",
+    "summary": "Summary"
+  },
+  "dateRange": {
+    "title": "Select Rental Period",
+    "from": "From",
+    "to": "To",
+    "selectEndDate": "Select end date",
+    "duration": "{{days}} days",
+    "minDays": "Minimum {{days}} days required",
+    "maxDays": "Maximum {{days}} days allowed"
+  },
+  "insurance": {
+    "title": "Select Insurance Coverage",
+    "recommended": "Recommended",
+    "basic": {
+      "name": "Basic Coverage",
+      "description": "Standard liability insurance included in rental price",
+      "coverage": "Third-party liability up to €1,000,000"
+    },
+    "standard": {
+      "name": "Standard Protection",
+      "description": "Reduced excess with collision damage waiver",
+      "coverage": "CDW with €500 excess"
+    },
+    "premium": {
+      "name": "Premium Protection",
+      "description": "Full coverage with zero excess",
+      "coverage": "Full CDW with €0 excess, theft protection, roadside assistance"
+    }
+  },
+  "summary": {
+    "title": "Booking Summary",
+    "vehicle": "Vehicle",
+    "dates": "Rental Period",
+    "insurance": "Insurance",
+    "pricing": {
+      "title": "Price Breakdown",
+      "rental": "Rental ({{days}} days @ {{price}}/day)",
+      "insurance": "Insurance",
+      "extras": "Extras",
+      "subtotal": "Subtotal",
+      "tax": "Tax (VAT {{rate}}%)",
+      "total": "Total Amount"
+    },
+    "termsAcceptance": "By proceeding, you agree to our Terms & Conditions and Privacy Policy"
+  },
+  "actions": {
+    "next": "Next",
+    "back": "Back",
+    "confirmBooking": "Confirm & Pay",
+    "cancel": "Cancel"
+  },
+  "checkingAvailability": "Checking availability...",
+  "legend": {
+    "selected": "Selected",
+    "unavailable": "Unavailable"
+  },
+  "errors": {
+    "fillAllFields": "Please fill all required fields",
+    "minDays": "Minimum rental period is {{days}} days",
+    "maxDays": "Maximum rental period is {{days}} days",
+    "unavailableDates": "Vehicle is not available for selected dates",
+    "bookingFailed": "Booking failed. Please try again."
+  },
+  "success": {
+    "title": "Booking Confirmed!",
+    "subtitle": "Your reservation has been confirmed",
+    "bookingId": "Booking ID",
+    "viewBooking": "View Booking Details",
+    "backToHome": "Back to Home"
+  }
+}

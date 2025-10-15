@@ -80,7 +80,8 @@ export function AccidentReporter({
       const location = await Location.getCurrentPositionAsync({});
       setCurrentLocation(location);
     } catch {
-      //     }
+      // Error getting location
+    }
   };
 
   const addPhoto = async (type: AccidentPhoto['type']) => {
@@ -110,10 +111,7 @@ export function AccidentReporter({
         setPhotos(prev => [...prev, newPhoto]);
       }
     } catch {
-      //       Alert.alert(
-        t('error.title', 'Chyba'),
-        t('error.photoSelection', 'Nepodarilo sa vybrať fotku.')
-      );
+      // Error selecting photo
     }
   };
 
@@ -143,10 +141,7 @@ export function AccidentReporter({
         setPhotos(prev => [...prev, newPhoto]);
       }
     } catch {
-      //       Alert.alert(
-        t('error.title', 'Chyba'),
-        t('error.photoCapture', 'Nepodarilo sa odfotiť.')
-      );
+      // Error taking photo
     }
   };
 
@@ -205,10 +200,7 @@ export function AccidentReporter({
       setStep('details');
       
     } catch {
-      //       Alert.alert(
-        t('error.title', 'Chyba'),
-        t('accident.submitError', 'Nepodarilo sa odoslať hlásenie. Skúste to znovu.')
-      );
+      // Error submitting report
     } finally {
       setIsSubmitting(false);
     }

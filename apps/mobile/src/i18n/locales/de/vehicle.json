@@ -1,0 +1,20 @@
+{
+  "vehicleNotFound": "Fahrzeug nicht gefunden",
+  "perDay": "/ Tag",
+  "from": "Ab",
+  "pricing": {
+    "title": "Preise",
+    "subtitle": "Preis pro Tag basierend auf Mietdauer"
+  },
+  "details": {
+    "title": "Fahrzeugdetails",
+    "vin": "FIN",
+    "company": "Firma",
+    "extraKmRate": "Zusatzgebühr pro km",
+    "stk": "TÜV Gültigkeit"
+  },
+  "commission": {
+    "title": "Provision"
+  }
+}
+

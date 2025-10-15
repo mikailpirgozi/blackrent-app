@@ -28,9 +28,12 @@ config.resolver = {
     path.resolve(projectRoot, 'node_modules'),
     path.resolve(workspaceRoot, 'node_modules'),
   ],
-  // Block native-only modules on web
+  // Block native-only modules on web and test files
   blockList: [
     /node_modules\/@stripe\/stripe-react-native\/.*\.js$/,
+    /__tests__\/.*/,
+    /.*\.test\.(ts|tsx|js|jsx)$/,
+    /.*\.spec\.(ts|tsx|js|jsx)$/,
   ],
 };
 

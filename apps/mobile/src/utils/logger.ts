@@ -84,7 +84,7 @@ const shouldLog = (level: LogLevel, config: LoggerConfig = defaultConfig): boole
 /**
  * Centralized logger utility
  */
-export const _logger = {
+const _logger = {
   /**
    * Debug level logging - only in development
    */
@@ -173,6 +173,8 @@ export const _logger = {
    */
   getConfig: () => ({ ...defaultConfig }),
 };
+
+export const logger = _logger;
 
 /**
  * Legacy console.log replacement

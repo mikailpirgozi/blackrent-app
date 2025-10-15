@@ -1,0 +1,79 @@
+{
+  "title": "Protokol",
+  "handover": {
+    "title": "Protokol o prevzatí",
+    "subtitle": "Dokumentácia stavu vozidla pri prevzatí"
+  },
+  "return": {
+    "title": "Protokol o vrátení",
+    "subtitle": "Dokumentácia stavu vozidla pri vrátení"
+  },
+  "camera": {
+    "title": "Fotografie vozidla",
+    "subtitle": "Odfotografujte vozidlo zo všetkých strán",
+    "permissionRequired": "Potrebné povolenie",
+    "permissionMessage": "Pre používanie kamery potrebujeme prístup k fotoaparátu",
+    "error": "Chyba pri fotení",
+    "deleteTitle": "Vymazať fotografiu?",
+    "deleteMessage": "Skutočne chcete vymazať túto fotografiu?",
+    "photosCount": "{{count}} fotografia",
+    "photosCount_other": "{{count}} fotografie",
+    "requiredCount": "Povinné: {{count}} fotografií"
+  },
+  "photoTypes": {
+    "front": "Predok",
+    "back": "Zadok",
+    "left": "Ľavá strana",
+    "right": "Pravá strana",
+    "interior": "Interiér",
+    "odometer": "Tachometer",
+    "damage": "Poškodenie",
+    "other": "Ostatné"
+  },
+  "signature": {
+    "placeholder": "Podpíšte sa prstom",
+    "clear": "Vymazať",
+    "confirm": "Potvrdiť",
+    "saved": "Podpis uložený",
+    "customerTitle": "Podpis zákazníka",
+    "employeeTitle": "Podpis zamestnanca"
+  },
+  "condition": {
+    "title": "Stav vozidla",
+    "odometer": "Stav tachometra (km)",
+    "fuelLevel": "Stav paliva (%)",
+    "cleanliness": "Čistota",
+    "cleanlinessLevels": {
+      "excellent": "Výborná",
+      "good": "Dobrá",
+      "fair": "Priemerná",
+      "poor": "Slabá"
+    },
+    "damages": "Poškodenia",
+    "addDamage": "Pridať poškodenie",
+    "notes": "Poznámky"
+  },
+  "checklist": {
+    "title": "Kontrolný zoznam",
+    "spareTire": "Rezervné koleso",
+    "jack": "Zdvihák",
+    "triangleWarning": "Výstražný trojuholník",
+    "firstAidKit": "Lekárnička",
+    "fireExtinguisher": "Hasiaci prístroj",
+    "reflectiveVest": "Reflexná vesta",
+    "vehicleDocuments": "Doklady vozidla",
+    "keys": "Počet kľúčov"
+  },
+  "actions": {
+    "save": "Uložiť protokol",
+    "submit": "Odoslať protokol",
+    "preview": "Náhľad",
+    "downloadPdf": "Stiahnuť PDF"
+  },
+  "status": {
+    "pending": "Rozpracovaný",
+    "completed": "Dokončený",
+    "signed": "Podpísaný"
+  }
+}
+

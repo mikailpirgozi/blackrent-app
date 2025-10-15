@@ -1,0 +1,79 @@
+{
+  "title": "Protocol",
+  "handover": {
+    "title": "Handover Protocol",
+    "subtitle": "Vehicle condition documentation at pickup"
+  },
+  "return": {
+    "title": "Return Protocol",
+    "subtitle": "Vehicle condition documentation at return"
+  },
+  "camera": {
+    "title": "Vehicle Photos",
+    "subtitle": "Take photos of the vehicle from all sides",
+    "permissionRequired": "Permission Required",
+    "permissionMessage": "We need camera access to take photos",
+    "error": "Error taking photo",
+    "deleteTitle": "Delete photo?",
+    "deleteMessage": "Are you sure you want to delete this photo?",
+    "photosCount": "{{count}} photo",
+    "photosCount_other": "{{count}} photos",
+    "requiredCount": "Required: {{count}} photos"
+  },
+  "photoTypes": {
+    "front": "Front",
+    "back": "Back",
+    "left": "Left Side",
+    "right": "Right Side",
+    "interior": "Interior",
+    "odometer": "Odometer",
+    "damage": "Damage",
+    "other": "Other"
+  },
+  "signature": {
+    "placeholder": "Sign with your finger",
+    "clear": "Clear",
+    "confirm": "Confirm",
+    "saved": "Signature saved",
+    "customerTitle": "Customer Signature",
+    "employeeTitle": "Employee Signature"
+  },
+  "condition": {
+    "title": "Vehicle Condition",
+    "odometer": "Odometer Reading (km)",
+    "fuelLevel": "Fuel Level (%)",
+    "cleanliness": "Cleanliness",
+    "cleanlinessLevels": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor"
+    },
+    "damages": "Damages",
+    "addDamage": "Add Damage",
+    "notes": "Notes"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "spareTire": "Spare Tire",
+    "jack": "Jack",
+    "triangleWarning": "Warning Triangle",
+    "firstAidKit": "First Aid Kit",
+    "fireExtinguisher": "Fire Extinguisher",
+    "reflectiveVest": "Reflective Vest",
+    "vehicleDocuments": "Vehicle Documents",
+    "keys": "Number of Keys"
+  },
+  "actions": {
+    "save": "Save Protocol",
+    "submit": "Submit Protocol",
+    "preview": "Preview",
+    "downloadPdf": "Download PDF"
+  },
+  "status": {
+    "pending": "Pending",
+    "completed": "Completed",
+    "signed": "Signed"
+  }
+}
+
