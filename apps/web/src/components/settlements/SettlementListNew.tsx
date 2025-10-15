@@ -64,7 +64,7 @@ import {
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import React, { useMemo, useState } from 'react';
@@ -261,15 +261,16 @@ const SettlementListNew: React.FC = () => {
         window.alert('Neplatný formát mesiaca');
         return;
       }
-      fromDate = new Date(year, month - 1, 1); // month is 0-indexed
-      toDate = new Date(year, month, 0); // Last day of month
+      fromDate = startOfDay(new Date(year, month - 1, 1)); // month is 0-indexed
+      toDate = endOfDay(new Date(year, month, 0)); // Last day of month
     } else {
       if (!periodFrom || !periodTo) {
         window.alert('Prosím vyberte obdobie');
         return;
       }
-      fromDate = periodFrom;
-      toDate = periodTo;
+      // ✅ FIX: Normalizuj dátumy pred odoslaním na backend
+      fromDate = startOfDay(periodFrom);
+      toDate = endOfDay(periodTo);
     }
 
     // Validácia - musí byť vybraná aspoň jedna firma alebo vozidlo
