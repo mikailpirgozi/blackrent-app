@@ -64,7 +64,7 @@ import {
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format } from 'date-fns';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import React, { useMemo, useState } from 'react';
@@ -261,16 +261,27 @@ const SettlementListNew: React.FC = () => {
         window.alert('Neplatný formát mesiaca');
         return;
       }
-      fromDate = startOfDay(new Date(year, month - 1, 1)); // month is 0-indexed
-      toDate = endOfDay(new Date(year, month, 0)); // Last day of month
+      // Vytvor UTC dátumy pre prvý a posledný deň mesiaca
+      const lastDay = new Date(year, month, 0).getDate(); // Posledný deň mesiaca
+      fromDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+      toDate = new Date(Date.UTC(year, month - 1, lastDay, 23, 59, 59, 999));
     } else {
       if (!periodFrom || !periodTo) {
         window.alert('Prosím vyberte obdobie');
         return;
       }
-      // ✅ FIX: Normalizuj dátumy pred odoslaním na backend
-      fromDate = startOfDay(periodFrom);
-      toDate = endOfDay(periodTo);
+      // ✅ FIX: Vytvor čisté UTC dátumy bez timezone konverzie
+      // Získaj rok, mesiac, deň z lokálneho dátumu
+      const fromYear = periodFrom.getFullYear();
+      const fromMonth = periodFrom.getMonth();
+      const fromDay = periodFrom.getDate();
+      const toYear = periodTo.getFullYear();
+      const toMonth = periodTo.getMonth();
+      const toDay = periodTo.getDate();
+      
+      // Vytvor nové Date objekty v UTC (Date.UTC vracia timestamp)
+      fromDate = new Date(Date.UTC(fromYear, fromMonth, fromDay, 0, 0, 0, 0));
+      toDate = new Date(Date.UTC(toYear, toMonth, toDay, 23, 59, 59, 999));
     }
 
     // Validácia - musí byť vybraná aspoň jedna firma alebo vozidlo
