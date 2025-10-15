@@ -77,14 +77,23 @@ export function calculateRentalDays(startDate: Date, endDate: Date): number {
     return 1;
   }
 
+  // 🔧 FIX: Normalizuj čas na poludnie (12:00) aby sme sa vyhli timezone problémom
+  // Timezone shift môže spôsobiť že 14:00 CEST sa stane 12:00 UTC + 1h pri DST zmene
+  const startNormalized = new Date(startDate);
+  const endNormalized = new Date(endDate);
+  
+  startNormalized.setHours(12, 0, 0, 0);
+  endNormalized.setHours(12, 0, 0, 0);
+
   // Vypočítaj rozdiel v milisekundách
-  const timeDiff = endDate.getTime() - startDate.getTime();
+  const timeDiff = endNormalized.getTime() - startNormalized.getTime();
 
   // Konvertuj na dni
   const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
 
-  // Zaokrúhli nahor - ak je akýkoľvek zvyšok, počíta sa ďalší deň
-  return Math.ceil(daysDiff);
+  // Zaokrúhli - keďže sme normalizovali na poludnie, mal by byť presný počet dní
+  // Použijeme Math.round aby sme eliminovali floating point errors
+  return Math.round(daysDiff);
 }
 
 /**
