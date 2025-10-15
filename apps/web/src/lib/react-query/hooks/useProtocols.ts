@@ -230,6 +230,22 @@ export function useCreateReturnProtocol() {
       }
     },
     onSuccess: (_data, variables) => {
+      // 💰 DÔLEŽITÉ: Invalidate rental cache aby sa zobrazila nová cena a provízia
+      // Return protokol aktualizuje totalPrice a commission v databáze
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.rentals.detail(variables.rentalId),
+      });
+      
+      // Invalidate aj zoznam prenájmov
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.rentals.list(),
+      });
+      
+      // Invalidate paginated rentals
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.rentals.paginated(),
+      });
+
       // Update rental status to completed
       queryClient.setQueryData(
         queryKeys.rentals.detail(variables.rentalId),

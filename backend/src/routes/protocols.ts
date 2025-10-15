@@ -9,6 +9,7 @@ import { getWebSocketService } from '../services/websocket-service';
 import type { HandoverProtocol, ReturnProtocol } from '../types';
 import { generateHandoverPDF, generateReturnPDF } from '../utils/pdf-generator';
 import { r2Storage } from '../utils/r2-storage';
+import { calculateCommissionWithExtraKm } from '../utils/commissionCalculator';
 
 const router: express.Router = express.Router();
 
@@ -445,27 +446,35 @@ router.post('/return', authenticateToken, checkPermission('protocols', 'create')
         // Načítaj aktuálny prenájom
         const currentRental = await postgresDatabase.getRental(protocolData.rentalId);
         if (currentRental) {
-          // Vypočítaj novú celkovú cenu
-          const newTotalPrice = currentRental.totalPrice + protocolData.kilometerFee;
+          // 💰 POUŽITIE CENTRÁLNEJ FUNKCIE: Vypočítaj novú cenu a províziu
+          const { newTotalPrice, newCommission } = calculateCommissionWithExtraKm(
+            currentRental,
+            protocolData.kilometerFee
+          );
           
-          // Prepočítaj províziu z novej celkovej ceny
-          let newCommission = currentRental.commission || 0;
-          if (currentRental.vehicle && currentRental.vehicle.commission) {
-            const commissionConfig = currentRental.vehicle.commission;
-            if (commissionConfig.type === 'percentage') {
-              newCommission = (newTotalPrice * commissionConfig.value) / 100;
-            } else {
-              newCommission = commissionConfig.value; // Fixed commission stays same
-            }
-          }
+          console.log('💰 Commission calculation:', {
+            rentalId: currentRental.id,
+            commissionType: currentRental.customCommission?.type || currentRental.vehicle?.commission?.type,
+            commissionRate: currentRental.customCommission?.value || currentRental.vehicle?.commission?.value,
+            oldTotalPrice: currentRental.totalPrice,
+            extraKmCharge: protocolData.kilometerFee,
+            newTotalPrice: newTotalPrice,
+            oldCommission: currentRental.commission,
+            newCommission: newCommission,
+            commissionChanged: currentRental.commission !== newCommission
+          });
           
           // Aktualizuj prenájom s doplatkom za km a novou províziou
+          // 🔒 DÔLEŽITÉ: Explicitne zachovaj discount a customCommission!
           const updatedRental = {
             ...currentRental,
             extraKmCharge: protocolData.kilometerFee,
             totalPrice: newTotalPrice,
             commission: newCommission,
-            status: 'finished'
+            status: 'finished',
+            // ✅ ZACHOVAJ tieto polia aby sa nezmazali v DB
+            discount: currentRental.discount,
+            customCommission: currentRental.customCommission,
           };
           
           await postgresDatabase.updateRental(updatedRental as unknown as Parameters<typeof postgresDatabase.updateRental>[0]);
@@ -475,7 +484,9 @@ router.post('/return', authenticateToken, checkPermission('protocols', 'create')
             oldTotalPrice: currentRental.totalPrice,
             newTotalPrice: newTotalPrice,
             oldCommission: currentRental.commission,
-            newCommission: newCommission
+            newCommission: newCommission,
+            discountPreserved: !!updatedRental.discount,
+            customCommissionPreserved: !!updatedRental.customCommission
           });
         }
       } catch (error) {

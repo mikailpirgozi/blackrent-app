@@ -30,6 +30,7 @@ import { apiService } from '../../services/api';
 import type { Customer, Rental, Vehicle } from '../../types';
 import { parseTimezoneFreeDateString } from '../../utils/formatters';
 import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
+import { calculateCommission } from '../../utils/commissionCalculator';
 
 interface EditRentalDialogProps {
   open: boolean;
@@ -182,32 +183,19 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
     const basePriceAfterDiscount = Math.max(0, basePrice - discount);
     setCalculatedPrice(basePriceAfterDiscount);
 
-    // Calculate commission
-    let commission = 0;
-    if (
-      formData.customCommission?.value &&
-      formData.customCommission.value > 0
-    ) {
-      if (formData.customCommission.type === 'percentage') {
-        commission =
-          (basePriceAfterDiscount * formData.customCommission.value) / 100;
-      } else {
-        commission = formData.customCommission.value;
-      }
-    } else if (vehicle.commission) {
-      if (vehicle.commission.type === 'percentage') {
-        commission = (basePriceAfterDiscount * vehicle.commission.value) / 100;
-      } else {
-        commission = vehicle.commission.value;
-      }
-    }
-    setCalculatedCommission(commission);
+    // 💰 POUŽITIE CENTRÁLNEJ FUNKCIE: Vypočítaj províziu
+    const commissionResult = calculateCommission(
+      basePriceAfterDiscount,
+      formData.customCommission,
+      vehicle.commission
+    );
+    setCalculatedCommission(commissionResult.commission);
 
     // Update formData with calculated price
     setFormData(prev => ({
       ...prev,
       totalPrice: basePriceAfterDiscount,
-      commission: commission,
+      commission: commissionResult.commission,
     }));
   }, [
     formData.vehicleId,
@@ -232,25 +220,13 @@ const EditRentalDialog: React.FC<EditRentalDialogProps> = ({
       return;
     }
 
-    // Calculate commission based on manually entered price
-    let commission = 0;
-    if (
-      formData.customCommission?.value &&
-      formData.customCommission.value > 0
-    ) {
-      if (formData.customCommission.type === 'percentage') {
-        commission = (calculatedPrice * formData.customCommission.value) / 100;
-      } else {
-        commission = formData.customCommission.value;
-      }
-    } else if (vehicle.commission) {
-      if (vehicle.commission.type === 'percentage') {
-        commission = (calculatedPrice * vehicle.commission.value) / 100;
-      } else {
-        commission = vehicle.commission.value;
-      }
-    }
-    setCalculatedCommission(commission);
+    // 💰 POUŽITIE CENTRÁLNEJ FUNKCIE: Vypočítaj províziu
+    const commissionResult = calculateCommission(
+      calculatedPrice,
+      formData.customCommission,
+      vehicle.commission
+    );
+    setCalculatedCommission(commissionResult.commission);
   }, [
     calculatedPrice,
     formData.customCommission,

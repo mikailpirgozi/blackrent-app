@@ -17,12 +17,18 @@ export interface PriceBreakdown {
 
 /**
  * Vypočíta detailný rozpis ceny prenájmu vrátane zliav
+ * 
+ * BUSINESS LOGIC:
+ * - totalPrice v DB = základná cena po zľave + extraKmCharge
+ * - Ak existuje zľava, originalPrice = cena pred zľavou (bez extraKm)
+ * - finalPrice = totalPrice (už obsahuje všetko)
  */
 export function calculatePriceBreakdown(rental: Rental): PriceBreakdown {
   const totalPrice = rental.totalPrice || 0;
   const extraKmCharge = rental.extraKmCharge || 0;
 
-  // Základná cena bez extra km poplatkov
+  // 💡 DÔLEŽITÉ: totalPrice už obsahuje extraKmCharge!
+  // Preto základná cena = totalPrice - extraKmCharge
   const basePrice = totalPrice - extraKmCharge;
 
   let originalPrice = basePrice;
@@ -30,7 +36,7 @@ export function calculatePriceBreakdown(rental: Rental): PriceBreakdown {
   let hasDiscount = false;
   let discountPercentage: number | undefined;
 
-  // Ak existuje zľava, vypočítaj originálnu cenu
+  // Ak existuje zľava, vypočítaj originálnu cenu (pred zľavou, bez extra km)
   if (rental.discount?.value && rental.discount.value > 0) {
     hasDiscount = true;
 
@@ -55,12 +61,18 @@ export function calculatePriceBreakdown(rental: Rental): PriceBreakdown {
     }
   }
 
+  // 📊 VÝSLEDOK:
+  // - originalPrice = cena pred zľavou (bez extra km)
+  // - discountAmount = výška zľavy
+  // - discountedPrice (basePrice) = cena po zľave (bez extra km)
+  // - extraKmCharge = doplatok za km
+  // - finalPrice (totalPrice) = cena po zľave + extra km = FINÁLNA SUMA
   return {
     originalPrice: Math.round(originalPrice * 100) / 100,
     discountAmount: Math.round(discountAmount * 100) / 100,
     discountedPrice: Math.round(basePrice * 100) / 100,
     extraKmCharge: Math.round(extraKmCharge * 100) / 100,
-    finalPrice: Math.round(totalPrice * 100) / 100,
+    finalPrice: Math.round(totalPrice * 100) / 100, // ✅ Toto je SPRÁVNA finálna cena
     hasDiscount,
     discountPercentage,
   };

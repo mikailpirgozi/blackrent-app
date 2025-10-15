@@ -63,6 +63,7 @@ import {
 } from '../../types';
 import { parseTimezoneFreeDateString } from '../../utils/formatters';
 import { calculateRentalDays } from '../../utils/rentalDaysCalculator';
+import { calculateCommission } from '../../utils/commissionCalculator';
 import PriceSummary from './components/PriceSummary';
 
 import EmailParser from './EmailParser';
@@ -631,25 +632,13 @@ export default function RentalForm({
       // Celková cena = základná cena + doplatok za km
       const totalPrice = basePriceAfterDiscount + extra;
 
-      // Provízia
-      let commission = 0;
-      if (
-        formData.customCommission?.value &&
-        formData.customCommission.value > 0
-      ) {
-        if (formData.customCommission.type === 'percentage') {
-          commission = (totalPrice * formData.customCommission.value) / 100;
-        } else {
-          commission = formData.customCommission.value;
-        }
-      } else {
-        if (vehicle.commission.type === 'percentage') {
-          commission = (totalPrice * vehicle.commission.value) / 100;
-        } else {
-          commission = vehicle.commission.value;
-        }
-      }
-      setCalculatedCommission(commission);
+      // 💰 POUŽITIE CENTRÁLNEJ FUNKCIE: Vypočítaj províziu
+      const commissionResult = calculateCommission(
+        totalPrice,
+        formData.customCommission,
+        vehicle.commission
+      );
+      setCalculatedCommission(commissionResult.commission);
     } else {
       setCalculatedPrice(0);
       setCalculatedCommission(0);
