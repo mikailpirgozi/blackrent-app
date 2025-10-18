@@ -4,6 +4,7 @@
  * Paralelne spracováva fotky pomocou Web Workera s GPU acceleration
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 
 export interface ProcessImageResult {
@@ -136,7 +137,7 @@ export class ImageProcessor {
     }
 
     return new Promise((resolve, reject) => {
-      const id = crypto.randomUUID();
+      const id = uuidv4();
       this.taskQueue.set(id, { resolve, reject }); // ✅ FIX: Store both resolve and reject
 
       const task: ProcessImageTask = {
@@ -177,8 +178,8 @@ export class ImageProcessor {
     // Chrome/Desktop: 4 concurrent (was 6, but crashes with 30+ photos)
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const isLowMemory =
-      (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+    const deviceMemory = (navigator as { deviceMemory?: number }).deviceMemory;
+    const isLowMemory = deviceMemory !== undefined && deviceMemory < 4;
 
     const BATCH_SIZE = isIOS || isLowMemory ? 2 : isSafari ? 3 : 4;
 

@@ -132,14 +132,44 @@ export async function processAndUploadPhotos(
 
     const uploadTime = performance.now() - uploadStart;
 
+    // ✅ Detailné logovanie úspešnosti uploadu
+    const expectedUploads = uploadTasks.length;
+    const successfulUploads = uploadResults.length;
+    const failedUploads = expectedUploads - successfulUploads;
+    const successRate = ((successfulUploads / expectedUploads) * 100).toFixed(
+      1
+    );
+
     logger.info('Upload complete', {
-      count: uploadResults.length,
+      expectedUploads,
+      successfulUploads,
+      failedUploads,
+      successRate: `${successRate}%`,
       webpCount: processedImages.length,
       jpegCount: processedImages.length,
       time: uploadTime,
       avgPerImage: uploadTime / uploadResults.length,
       totalSize: uploadResults.reduce((sum, r) => sum + r.size, 0),
     });
+
+    // ✅ Varovanie ak niektoré uploady zlyhali
+    if (failedUploads > 0) {
+      logger.error('⚠️ CRITICAL: Some photo uploads failed!', {
+        totalPhotos: files.length,
+        expectedUploads,
+        successfulUploads,
+        failedUploads,
+        successRate: `${successRate}%`,
+        protocolId: options.protocolId,
+        mediaType: options.mediaType,
+      });
+
+      // Throw error to notify user
+      throw new Error(
+        `Upload zlyhal: Nahralo sa len ${successfulUploads} z ${files.length} fotiek. ` +
+          `Skúste to prosím znova alebo nahrajte fotky po menších dávkach.`
+      );
+    }
 
     // Phase 3: Save metadata to IndexedDB (NO blobs!)
     processedImages.forEach((img, idx) => {
