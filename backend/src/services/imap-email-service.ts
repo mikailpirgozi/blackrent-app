@@ -107,6 +107,9 @@ class ImapEmailService {
   private isConnected = false;
   private processingEmails = false;
   private isEnabled = false;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private connectionAttempts = 0;
+  private maxConnectionAttempts = 5;
 
   constructor() {
     // Kontrola či je IMAP povolené
@@ -117,6 +120,10 @@ class ImapEmailService {
       return;
     }
 
+    this.initializeImap();
+  }
+
+  private initializeImap(): void {
     this.imap = new Imap({
       user: process.env.IMAP_USER || 'info@blackrent.sk',
       password: process.env.IMAP_PASSWORD || '',
@@ -127,11 +134,14 @@ class ImapEmailService {
         rejectUnauthorized: false,
         servername: 'imap.m1.websupport.sk'
       },
-      keepalive: true,
+      keepalive: {
+        interval: 10000,
+        idleInterval: 300000,
+        forceNoop: true
+      },
       connTimeout: 60000,
       authTimeout: 30000,
       autotls: 'always',
-      // Plain text authentication is handled by default
     });
 
     this.setupEventListeners();
@@ -141,18 +151,76 @@ class ImapEmailService {
     if (!this.imap) return;
     
     this.imap.once('ready', () => {
-      console.log('📧 IMAP: Pripojenie úspešné');
+      console.log('✅ IMAP: Pripojenie úspešné');
       this.isConnected = true;
+      this.connectionAttempts = 0; // Reset attempts po úspešnom pripojení
     });
 
     this.imap.once('error', (err: Error) => {
       console.error('❌ IMAP Error:', err);
       this.isConnected = false;
+      
+      // Pokus o reconnect
+      this.scheduleReconnect();
     });
 
     this.imap.once('end', () => {
       console.log('📧 IMAP: Pripojenie ukončené');
       this.isConnected = false;
+      
+      // Pokus o reconnect
+      this.scheduleReconnect();
+    });
+
+    this.imap.on('close', (hadError: boolean) => {
+      console.log(`📧 IMAP: Spojenie zatvorené ${hadError ? 'kvôli chybe' : 'normálne'}`);
+      this.isConnected = false;
+      
+      if (hadError) {
+        this.scheduleReconnect();
+      }
+    });
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectTimeout) {
+      return; // Už je naplánovaný reconnect
+    }
+
+    this.connectionAttempts++;
+    
+    if (this.connectionAttempts > this.maxConnectionAttempts) {
+      console.error(`❌ IMAP: Príliš veľa pokusov o pripojenie (${this.maxConnectionAttempts}). Zastavujem reconnect.`);
+      return;
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, this.connectionAttempts - 1), 30000); // Exponential backoff, max 30s
+    console.log(`🔄 IMAP: Pokus o reconnect za ${delay / 1000}s (pokus ${this.connectionAttempts}/${this.maxConnectionAttempts})...`);
+    
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      this.reconnect();
+    }, delay);
+  }
+
+  private reconnect(): void {
+    console.log('🔄 IMAP: Reconnecting...');
+    
+    // Zruš staré pripojenie
+    if (this.imap) {
+      try {
+        this.imap.destroy();
+      } catch (err) {
+        // Ignoruj chyby pri destroy
+      }
+    }
+    
+    // Vytvor nové pripojenie
+    this.initializeImap();
+    
+    // Pokus o pripojenie
+    this.connect().catch((err) => {
+      console.error('❌ IMAP: Reconnect zlyhal:', err);
     });
   }
 
@@ -163,15 +231,34 @@ class ImapEmailService {
     
     return new Promise((resolve, reject) => {
       if (this.isConnected) {
+        console.log('✅ IMAP: Už pripojené');
         resolve();
         return;
       }
 
-      this.imap!.once('ready', () => resolve());
-      this.imap!.once('error', reject);
+      const timeout = setTimeout(() => {
+        reject(new Error('IMAP connection timeout'));
+      }, 30000); // 30s timeout
+
+      this.imap!.once('ready', () => {
+        clearTimeout(timeout);
+        console.log('✅ IMAP: Pripojenie dokončené');
+        resolve();
+      });
+      
+      this.imap!.once('error', (err: Error) => {
+        clearTimeout(timeout);
+        console.error('❌ IMAP: Chyba pri pripájaní:', err.message);
+        reject(err);
+      });
       
       console.log('📧 IMAP: Pripájam sa na server...');
-      this.imap!.connect();
+      try {
+        this.imap!.connect();
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err);
+      }
     });
   }
 
@@ -194,13 +281,24 @@ class ImapEmailService {
 
     try {
       this.processingEmails = true;
-      await this.connect();
+      
+      // Pokus o pripojenie ak nie sme pripojení
+      if (!this.isConnected) {
+        console.log('🔌 IMAP: Nie som pripojený, pripájam sa...');
+        await this.connect();
+      }
       
       console.log('📬 IMAP: Kontrolujem nové emaily...');
       
       await this.processInbox();
+      
+      console.log('✅ IMAP: Kontrola emailov dokončená');
     } catch (error) {
       console.error('❌ IMAP: Chyba pri kontrole emailov:', error);
+      
+      // Pri chybe sa odpoj a naplánuj reconnect
+      this.isConnected = false;
+      this.scheduleReconnect();
     } finally {
       this.processingEmails = false;
     }
@@ -1052,13 +1150,27 @@ class ImapEmailService {
     
     console.log(`🚀 IMAP: Spúšťam monitoring emailov (interval: ${intervalMinutes} min)`);
     
-    // Prvá kontrola hneď
-    await this.checkForNewEmails();
+    // Pokus o pripojenie na začiatku
+    try {
+      console.log('🔌 IMAP: Inicializujem pripojenie...');
+      await this.connect();
+      console.log('✅ IMAP: Inicializácia úspešná, monitoring spustený');
+    } catch (error) {
+      console.error('❌ IMAP: Inicializácia zlyhala:', error);
+      console.log('🔄 IMAP: Monitoring pokračuje, pokúsim sa pripojiť neskôr...');
+    }
+    
+    // Prvá kontrola hneď (ak sa podarilo pripojiť)
+    if (this.isConnected) {
+      await this.checkForNewEmails();
+    }
     
     // Nastavenie intervalu
     setInterval(async () => {
       await this.checkForNewEmails();
     }, intervalMinutes * 60 * 1000);
+    
+    console.log(`✅ IMAP: Monitoring nastavený - kontrola každých ${intervalMinutes} min`);
   }
 
   // Test pripojenia

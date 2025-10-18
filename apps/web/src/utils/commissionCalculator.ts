@@ -1,14 +1,14 @@
 /**
  * 💰 COMMISSION CALCULATOR UTILITY
  * Centrálna logika pre počítanie provízií prenájmov
- * 
+ *
  * BUSINESS RULES:
  * - Percentuálna provízia: počíta sa z totalPrice (základná cena + extra km)
  * - Fixná provízia: OSTÁVA FIXNÁ bez ohľadu na extra km poplatky
  * - Custom commission má prioritu pred vehicle commission
  */
 
-import type { Rental, Vehicle, Commission } from '../types';
+import type { Rental } from '../types';
 
 export interface CommissionConfig {
   type: 'percentage' | 'fixed';
@@ -25,7 +25,7 @@ export interface CommissionResult {
 
 /**
  * 🎯 HLAVNÁ FUNKCIA: Vypočíta províziu pre prenájom
- * 
+ *
  * @param totalPrice - Celková cena prenájmu (základná cena + extra km)
  * @param customCommission - Custom provízia z prenájmu (má prioritu)
  * @param vehicleCommission - Provízia z vozidla (fallback)
@@ -81,7 +81,9 @@ export function calculateCommission(
 /**
  * 🔄 HELPER: Vypočíta komisiu z rental objektu
  */
-export function calculateCommissionFromRental(rental: Rental): CommissionResult {
+export function calculateCommissionFromRental(
+  rental: Rental
+): CommissionResult {
   return calculateCommission(
     rental.totalPrice || 0,
     rental.customCommission,
@@ -91,7 +93,7 @@ export function calculateCommissionFromRental(rental: Rental): CommissionResult 
 
 /**
  * 🔄 HELPER: Vypočíta novú províziu po pridaní extra km poplatku
- * 
+ *
  * @param currentRental - Aktuálny prenájom
  * @param extraKmCharge - Doplatok za extra km
  * @returns Nová provízia a totalPrice
@@ -168,4 +170,3 @@ export function formatCommission(commission: number): string {
     maximumFractionDigits: 2,
   }).format(commission);
 }
-

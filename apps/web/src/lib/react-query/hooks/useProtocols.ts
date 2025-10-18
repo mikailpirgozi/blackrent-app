@@ -235,15 +235,15 @@ export function useCreateReturnProtocol() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.detail(variables.rentalId),
       });
-      
+
       // Invalidate aj zoznam prenájmov
       queryClient.invalidateQueries({
         queryKey: queryKeys.rentals.list(),
       });
-      
+
       // Invalidate paginated rentals
       queryClient.invalidateQueries({
-        queryKey: queryKeys.rentals.paginated(),
+        queryKey: queryKeys.rentals.list(),
       });
 
       // Update rental status to completed

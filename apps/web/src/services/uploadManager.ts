@@ -37,7 +37,7 @@ export class UploadManager {
 
   /**
    * ✅ ANTI-CRASH: Detect optimal parallelism based on device
-   * 
+   *
    * After testing:
    * - iOS: 2 concurrent (memory limited)
    * - Safari Desktop: 3 concurrent (crashes at 6 with 19+ photos)
@@ -53,7 +53,7 @@ export class UploadManager {
       logger.info('📱 iOS/Low Memory detected - using concurrency 2');
       return 2;
     }
-    
+
     if (isSafari) {
       logger.info('🦁 Safari detected - using concurrency 3');
       return 3;
@@ -84,6 +84,7 @@ export class UploadManager {
     adaptiveBatchSize?: number
   ): Promise<UploadResult[]> {
     const results: UploadResult[] = [];
+    const failedUploads: Array<{ task: UploadTask; error: string }> = [];
     let completed = 0;
 
     // Use adaptive batch size if provided
@@ -105,22 +106,46 @@ export class UploadManager {
         parallelCount,
       });
 
-      const batchResults = await Promise.all(
+      // ✅ FIX: Use Promise.allSettled to handle failures gracefully
+      const batchResults = await Promise.allSettled(
         batch.map(task => this.uploadWithRetry(task, onProgress))
       );
 
-      results.push(...batchResults);
+      // Separate successful and failed results
+      batchResults.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          const task = batch[idx];
+          if (task) {
+            failedUploads.push({
+              task,
+              error: result.reason?.message || 'Unknown error',
+            });
+            logger.error('Upload failed after all retries', {
+              path: task.path,
+              id: task.id,
+              error: result.reason?.message,
+            });
+          }
+        }
+      });
+
       completed += batch.length;
       onProgress?.(completed, tasks.length);
 
       logger.debug('Batch upload completed', {
         completed,
         total: tasks.length,
+        successful: results.length,
+        failed: failedUploads.length,
       });
     }
 
     logger.info('Adaptive batch upload complete', {
       totalUploaded: results.length,
+      totalFailed: failedUploads.length,
+      successRate: `${((results.length / tasks.length) * 100).toFixed(1)}%`,
       totalSize: results.reduce((sum, r) => sum + r.size, 0),
       totalTime: results.reduce((sum, r) => sum + r.uploadTime, 0),
       avgTimePerFile:
@@ -130,6 +155,19 @@ export class UploadManager {
             ).toFixed(0) + 'ms'
           : '0ms',
     });
+
+    // ✅ Log failed uploads for debugging
+    if (failedUploads.length > 0) {
+      logger.warn('Some uploads failed after all retries', {
+        failedCount: failedUploads.length,
+        failedUploads: failedUploads.map(f => ({
+          id: f.task.id,
+          path: f.task.path,
+          size: f.task.blob.size,
+          error: f.error,
+        })),
+      });
+    }
 
     return results;
   }

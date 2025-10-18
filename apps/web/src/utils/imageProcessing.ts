@@ -41,8 +41,13 @@ interface ProcessImageTask {
 
 export class ImageProcessor {
   private worker: Worker | null = null;
-  private taskQueue: Map<string, (result: ProcessImageResult) => void> =
-    new Map();
+  private taskQueue: Map<
+    string,
+    {
+      resolve: (result: ProcessImageResult) => void;
+      reject: (error: Error) => void;
+    }
+  > = new Map();
   private isReady = false;
   private readyPromise: Promise<void>;
 
@@ -74,18 +79,19 @@ export class ImageProcessor {
 
         if (error) {
           logger.error('Worker processing error', { id, error });
-          // Reject promise if we had one waiting
-          const resolver = this.taskQueue.get(id);
-          if (resolver) {
+          // ✅ FIX: Properly reject promise instead of just deleting it
+          const task = this.taskQueue.get(id);
+          if (task) {
+            task.reject(new Error(`Image processing failed: ${error}`));
             this.taskQueue.delete(id);
           }
           return;
         }
 
         // 🎯 FIX: Pass complete data object INCLUDING id!
-        const resolver = this.taskQueue.get(id);
-        if (resolver) {
-          resolver(data as ProcessImageResult);
+        const task = this.taskQueue.get(id);
+        if (task) {
+          task.resolve(data as ProcessImageResult);
           this.taskQueue.delete(id);
         }
       };
@@ -131,7 +137,7 @@ export class ImageProcessor {
 
     return new Promise((resolve, reject) => {
       const id = crypto.randomUUID();
-      this.taskQueue.set(id, resolve);
+      this.taskQueue.set(id, { resolve, reject }); // ✅ FIX: Store both resolve and reject
 
       const task: ProcessImageTask = {
         id,
@@ -162,6 +168,7 @@ export class ImageProcessor {
     onProgress?: (completed: number, total: number) => void
   ): Promise<ProcessImageResult[]> {
     const results: ProcessImageResult[] = [];
+    const failedFiles: Array<{ file: File; error: string }> = [];
     let completed = 0;
 
     // ✅ ANTI-CRASH: Universal safe batch size for all devices
@@ -172,7 +179,7 @@ export class ImageProcessor {
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isLowMemory =
       (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
-    
+
     const BATCH_SIZE = isIOS || isLowMemory ? 2 : isSafari ? 3 : 4;
 
     logger.info('Starting batch image processing', {
@@ -188,21 +195,59 @@ export class ImageProcessor {
         batchSize: batch.length,
       });
 
-      const batchResults = await Promise.all(
+      // ✅ FIX: Use Promise.allSettled to handle failures gracefully
+      const batchResults = await Promise.allSettled(
         batch.map(file => this.processImage(file))
       );
 
-      results.push(...batchResults);
+      // Separate successful and failed results
+      batchResults.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          const file = batch[idx];
+          if (file) {
+            failedFiles.push({
+              file,
+              error: result.reason?.message || 'Unknown error',
+            });
+            logger.error('Image processing failed', {
+              filename: file.name,
+              error: result.reason?.message,
+            });
+          }
+        }
+      });
+
       completed += batch.length;
       onProgress?.(completed, files.length);
 
-      logger.debug('Batch completed', { completed, total: files.length });
+      logger.debug('Batch completed', {
+        completed,
+        total: files.length,
+        successful: results.length,
+        failed: failedFiles.length,
+      });
     }
 
     logger.info('Batch processing complete', {
       totalProcessed: results.length,
+      totalFailed: failedFiles.length,
+      successRate: `${((results.length / files.length) * 100).toFixed(1)}%`,
       totalSize: results.reduce((sum, r) => sum + r.gallery.size, 0),
     });
+
+    // ✅ Log failed files for debugging
+    if (failedFiles.length > 0) {
+      logger.warn('Some images failed to process', {
+        failedCount: failedFiles.length,
+        failedFiles: failedFiles.map(f => ({
+          name: f.file.name,
+          size: f.file.size,
+          error: f.error,
+        })),
+      });
+    }
 
     return results;
   }
