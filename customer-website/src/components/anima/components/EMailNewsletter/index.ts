@@ -1,1 +1,0 @@
-export { EMailNewsletter } from "./EMailNewsletter";

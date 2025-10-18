@@ -1,4 +1,0 @@
-# Ignorovať linting v GitHub Actions workflows
-# Secrets context warnings sú false positives
-.github/workflows/*.yml
-.github/workflows/*.yaml

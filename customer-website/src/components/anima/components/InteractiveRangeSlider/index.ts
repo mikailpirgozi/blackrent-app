@@ -1,1 +1,0 @@
-export { InteractiveRangeSlider } from "./InteractiveRangeSlider";

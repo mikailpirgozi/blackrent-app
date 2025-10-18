@@ -1,4 +1,0 @@
-# This file prevents GitHub Actions setup-node from showing npm cache warnings
-# We use pnpm, not npm, but setup-node auto-detects package managers
-# Having this marker file here suppresses the warning without affecting functionality
-
