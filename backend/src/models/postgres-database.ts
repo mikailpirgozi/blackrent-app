@@ -6168,6 +6168,13 @@ export class PostgresDatabase {
         LEFT JOIN insurers ins ON i.insurer_id = ins.id 
         ORDER BY i.created_at DESC
       `);
+      
+      // 🔧 DEBUG: Log first insurance ID to see type
+      if (result.rows.length > 0) {
+        console.log('🔧 GET INSURANCES: First insurance raw id:', result.rows[0].id, 'type:', typeof result.rows[0].id);
+        console.log('🔧 GET INSURANCES: Sample IDs:', result.rows.slice(0, 3).map(r => ({ id: r.id, type: typeof r.id })));
+      }
+      
       return result.rows.map(row => ({
         id: row.id?.toString() || '',
         vehicleId: row.vehicle_id?.toString() || '', // Priamo z insurances.vehicle_id
