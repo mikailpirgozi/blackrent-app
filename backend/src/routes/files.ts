@@ -1,6 +1,7 @@
 import archiver from 'archiver';
 import express from 'express';
 import multer from 'multer';
+import sharp from 'sharp';
 import { r2OrganizationManager, type PathVariables } from '../config/r2-organization';
 import { authenticateToken } from '../middleware/auth';
 import { checkPermission } from '../middleware/permissions';
@@ -1123,5 +1124,214 @@ router.get('/test-zip', async (req, res) => {
     }
   }
 });
+
+// 🚀 NEW: Progressive Photo Upload with Server-Side Compression
+// Upload single photo at a time, server compresses it, then uploads to R2
+// This prevents mobile browser memory crashes
+router.post('/progressive-upload',
+  authenticateToken,
+  checkPermission('protocols', 'create'),
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      logger.info('🔄 Progressive upload request received:', {
+        hasFile: !!req.file,
+        fileSize: req.file?.size,
+        mimetype: req.file?.mimetype,
+        protocolId: req.body.protocolId,
+        protocolType: req.body.protocolType,
+        mediaType: req.body.mediaType,
+        photoIndex: req.body.photoIndex,
+        totalPhotos: req.body.totalPhotos,
+      });
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'No file uploaded'
+        });
+      }
+
+      const { protocolId, protocolType, mediaType, photoIndex, totalPhotos } = req.body;
+
+      // Validation
+      if (!protocolId || !protocolType || !mediaType) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: protocolId, protocolType, mediaType'
+        });
+      }
+
+      // Validate protocolType
+      if (!['handover', 'return'].includes(protocolType)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid protocolType: ${protocolType}. Allowed: handover, return`
+        });
+      }
+
+      // Validate mediaType
+      if (!['vehicle', 'document', 'damage', 'fuel', 'odometer'].includes(mediaType)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid mediaType: ${mediaType}. Allowed: vehicle, document, damage, fuel, odometer`
+        });
+      }
+
+      // Validate file type - only images
+      if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Only images are allowed'
+        });
+      }
+
+      const startTime = Date.now();
+
+      // ✅ SERVER-SIDE COMPRESSION using Sharp
+      // This is more reliable than browser compression on mobile devices
+      logger.info('🔄 Starting server-side image compression...', {
+        originalSize: req.file.size,
+        originalFormat: req.file.mimetype,
+      });
+
+      // Compress to WebP (for gallery) - high quality, small size
+      const webpBuffer = await sharp(req.file.buffer)
+        .resize(2560, 1920, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .webp({ quality: 85 })
+        .toBuffer();
+
+      // Compress to JPEG (for PDF) - optimized for PDF embedding
+      const jpegBuffer = await sharp(req.file.buffer)
+        .resize(1920, 1080, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: 92, progressive: true })
+        .toBuffer();
+
+      const compressionTime = Date.now() - startTime;
+
+      logger.info('✅ Server-side compression complete', {
+        originalSize: req.file.size,
+        webpSize: webpBuffer.length,
+        jpegSize: jpegBuffer.length,
+        webpReduction: ((1 - webpBuffer.length / req.file.size) * 100).toFixed(1) + '%',
+        jpegReduction: ((1 - jpegBuffer.length / req.file.size) * 100).toFixed(1) + '%',
+        compressionTime: compressionTime + 'ms',
+      });
+
+      // Generate file keys
+      const timestamp = Date.now();
+      const photoId = `${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+      const webpKey = `protocols/${protocolType}/${today}/${protocolId}/${mediaType}/${photoId}.webp`;
+      const jpegKey = `protocols/${protocolType}/${today}/${protocolId}/${mediaType}/${photoId}_pdf.jpeg`;
+
+      logger.info('🔍 Generated file keys:', { webpKey, jpegKey });
+
+      // Upload both versions to R2
+      const uploadStartTime = Date.now();
+
+      const [webpUrl, jpegUrl] = await Promise.all([
+        r2Storage.uploadFile(
+          webpKey,
+          webpBuffer,
+          'image/webp',
+          {
+            original_name: req.file.originalname,
+            uploaded_at: new Date().toISOString(),
+            protocol_id: protocolId,
+            protocol_type: protocolType,
+            media_type: mediaType,
+            version: 'gallery',
+            original_size: req.file.size.toString(),
+            compressed_size: webpBuffer.length.toString(),
+          }
+        ),
+        r2Storage.uploadFile(
+          jpegKey,
+          jpegBuffer,
+          'image/jpeg',
+          {
+            original_name: req.file.originalname,
+            uploaded_at: new Date().toISOString(),
+            protocol_id: protocolId,
+            protocol_type: protocolType,
+            media_type: mediaType,
+            version: 'pdf',
+            original_size: req.file.size.toString(),
+            compressed_size: jpegBuffer.length.toString(),
+          }
+        ),
+      ]);
+
+      const uploadTime = Date.now() - uploadStartTime;
+      const totalTime = Date.now() - startTime;
+
+      logger.info('✅ Progressive upload complete', {
+        photoId,
+        webpUrl: webpUrl.substring(0, 80) + '...',
+        jpegUrl: jpegUrl.substring(0, 80) + '...',
+        uploadTime: uploadTime + 'ms',
+        totalTime: totalTime + 'ms',
+        photoIndex,
+        totalPhotos,
+      });
+
+      // Return photo object for frontend
+      const photoObject = {
+        id: photoId,
+        url: webpUrl, // WebP for gallery
+        pdfUrl: jpegUrl, // JPEG for PDF
+        type: mediaType,
+        description: req.file.originalname,
+        timestamp: new Date(),
+        compressed: true,
+        originalSize: req.file.size,
+        compressedSize: webpBuffer.length,
+        filename: req.file.originalname,
+        metadata: {
+          compressionTime,
+          uploadTime,
+          totalTime,
+          webpSize: webpBuffer.length,
+          jpegSize: jpegBuffer.length,
+        },
+      };
+
+      res.json({
+        success: true,
+        photo: photoObject,
+        progress: {
+          current: parseInt(photoIndex) || 0,
+          total: parseInt(totalPhotos) || 0,
+          percentage: totalPhotos ? Math.round((parseInt(photoIndex) / parseInt(totalPhotos)) * 100) : 0,
+        },
+        stats: {
+          originalSize: req.file.size,
+          webpSize: webpBuffer.length,
+          jpegSize: jpegBuffer.length,
+          compressionTime,
+          uploadTime,
+          totalTime,
+        },
+      });
+
+    } catch (error) {
+      console.error('❌ Error in progressive upload:', error);
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to upload photo',
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      });
+    }
+  }
+);
 
 export default router; 
