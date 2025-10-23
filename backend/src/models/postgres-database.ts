@@ -7785,6 +7785,16 @@ export class PostgresDatabase {
       await this.initProtocolTables();
       
       logger.migration('🔄 Creating return protocol:', protocolData.id);
+      
+      // ✅ DEBUG: Log photo counts before saving
+      logger.migration('📸 Return protocol photos before save:', {
+        vehicleImages: protocolData.vehicleImages?.length || 0,
+        documentImages: protocolData.documentImages?.length || 0,
+        damageImages: protocolData.damageImages?.length || 0,
+        vehicleImagesData: protocolData.vehicleImages,
+        documentImagesData: protocolData.documentImages,
+        damageImagesData: protocolData.damageImages
+      });
 
       // 🏢 FIX: Načítaj fakturačnú firmu pre return protokol
       let enhancedRentalData = protocolData.rentalData || {};
@@ -7892,6 +7902,16 @@ export class PostgresDatabase {
 
       const row = result.rows[0];
       logger.migration('✅ Return protocol created:', row.id);
+      
+      // ✅ DEBUG: Log photo counts after saving
+      logger.migration('📸 Return protocol photos after save (from DB):', {
+        vehicleImages: row.vehicle_images_urls,
+        documentImages: row.document_images_urls,
+        damageImages: row.damage_images_urls,
+        vehicleImagesType: typeof row.vehicle_images_urls,
+        documentImagesType: typeof row.document_images_urls,
+        damageImagesType: typeof row.damage_images_urls
+      });
       
       // ✅ UPDATE RENTAL with protocol ID
       await client.query(`
@@ -8111,22 +8131,58 @@ export class PostgresDatabase {
   private mapReturnProtocolFromDB(row: Record<string, unknown>): ReturnProtocol {
     // Safe JSON parsing function for JSONB fields
     const safeJsonParse = (value: unknown, fallback: unknown = []) => {
+      logger.migration('🔍 [RETURN DB] safeJsonParse input:', {
+        value: value,
+        type: typeof value,
+        isArray: Array.isArray(value),
+        isNull: value === null,
+        isUndefined: value === undefined,
+        stringLength: typeof value === 'string' ? value.length : 'N/A'
+      });
+
       if (!value || value === 'null' || value === 'undefined') {
+        logger.migration('🔍 [RETURN DB] safeJsonParse: returning fallback (null/undefined)');
         return fallback;
       }
+      
       // JSONB sa automaticky parsuje PostgreSQL, takže ak je to už objekt, vráť ho
       if (typeof value === 'object' && value !== null) {
+        // ✅ CRITICAL FIX: Ak je to pole stringov, parsuj každý string (rovnako ako v handover)
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+          logger.migration('🔍 [RETURN DB] safeJsonParse: parsing array of JSON strings');
+          try {
+            const parsed = value.map(item => {
+              if (typeof item === 'string') {
+                return JSON.parse(item);
+              }
+              return item;
+            });
+            logger.migration('🔍 [RETURN DB] safeJsonParse: successfully parsed array of strings:', parsed);
+            return parsed;
+          } catch (error) {
+            logger.migration('⚠️ Error parsing array of JSON strings in return protocol:', error);
+            return fallback;
+          }
+        }
+        
+        logger.migration('🔍 [RETURN DB] safeJsonParse: value is already object, returning as is');
         return value;
       }
+      
       // Ak je to string, skús ho parsovať
       if (typeof value === 'string') {
+        logger.migration('🔍 [RETURN DB] safeJsonParse: parsing string');
         try {
-          return JSON.parse(value);
+          const parsed = JSON.parse(value);
+          logger.migration('🔍 [RETURN DB] safeJsonParse: successfully parsed string');
+          return parsed;
         } catch (error) {
           logger.migration('⚠️ JSON parse error in mapReturnProtocolFromDB:', error);
           return fallback;
         }
       }
+      
+      logger.migration('🔍 [RETURN DB] safeJsonParse: returning fallback (unknown type)');
       return fallback;
     };
 

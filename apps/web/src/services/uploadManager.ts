@@ -32,8 +32,8 @@ export interface UploadResult {
 
 export class UploadManager {
   private MAX_PARALLEL = this.detectOptimalParallelism(); // ✅ iOS ANTI-CRASH: Auto-detect
-  private readonly MAX_RETRIES = 3;
-  private readonly RETRY_DELAY = 2000; // 2s base delay
+  private readonly MAX_RETRIES = 5; // ✅ INCREASED: 3 → 5 retries for weak internet
+  private readonly RETRY_DELAY = 3000; // ✅ INCREASED: 2s → 3s base delay
 
   /**
    * ✅ ANTI-CRASH: Detect optimal parallelism based on device
@@ -221,8 +221,15 @@ export class UploadManager {
         });
 
         if (attempt < this.MAX_RETRIES) {
-          // Exponential backoff: 2s, 4s, 8s
-          const delay = this.RETRY_DELAY * Math.pow(2, attempt - 1);
+          // Exponential backoff with jitter: 3s, 6s, 12s, 24s, 48s
+          const baseDelay = this.RETRY_DELAY * Math.pow(2, attempt - 1);
+          const jitter = Math.random() * 1000; // Add 0-1s random jitter to prevent thundering herd
+          const delay = baseDelay + jitter;
+          logger.info('Retrying upload after delay', {
+            attempt,
+            delay: Math.round(delay),
+            id: task.id,
+          });
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

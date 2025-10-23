@@ -152,22 +152,27 @@ export async function processAndUploadPhotos(
       totalSize: uploadResults.reduce((sum, r) => sum + r.size, 0),
     });
 
-    // ✅ Varovanie ak niektoré uploady zlyhali
+    // ✅ CHANGED: Varovanie ak niektoré uploady zlyhali, ale NEPRERUŠUJ proces
     if (failedUploads > 0) {
-      logger.error('⚠️ CRITICAL: Some photo uploads failed!', {
-        totalPhotos: files.length,
-        expectedUploads,
-        successfulUploads,
-        failedUploads,
-        successRate: `${successRate}%`,
-        protocolId: options.protocolId,
-        mediaType: options.mediaType,
-      });
+      logger.warn(
+        '⚠️ WARNING: Some photo uploads failed, but continuing with successful ones',
+        {
+          totalPhotos: files.length,
+          expectedUploads,
+          successfulUploads,
+          failedUploads,
+          successRate: `${successRate}%`,
+          protocolId: options.protocolId,
+          mediaType: options.mediaType,
+        }
+      );
 
-      // Throw error to notify user
-      throw new Error(
-        `Upload zlyhal: Nahralo sa len ${successfulUploads} z ${files.length} fotiek. ` +
-          `Skúste to prosím znova alebo nahrajte fotky po menších dávkach.`
+      // ✅ CRITICAL FIX: Don't throw error! Let user save protocol with partial photos
+      // User can retry failed photos later
+      options.onProgress?.(
+        successfulUploads,
+        files.length,
+        `⚠️ Nahralo sa ${successfulUploads} z ${files.length} fotiek. ${failedUploads} fotiek zlyhalo.`
       );
     }
 
