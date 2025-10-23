@@ -86,16 +86,18 @@ export async function processAndUploadPhotos(
     // ✅ MOBILE OPTIMIZATION: Process and upload in small batches
     // Why? Mobile has strict memory limits (~100-200 MB)
     // Processing 20+ photos at once = memory crash
-    // Solution: Process 5 photos → Upload → Free memory → Repeat
-    const BATCH_SIZE = 5; // ✅ Mobile-safe batch size
+    // Solution: Process 3 photos → Upload → Free memory → Repeat
+    const BATCH_SIZE = 3; // ✅ REDUCED: 5 → 3 for extra safety on weak mobile devices
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const batchSize = isMobile ? BATCH_SIZE : uniqueFiles.length; // Desktop can handle all at once
 
-    logger.info('📦 Batch processing strategy', {
+    logger.info('📦 Batch processing strategy (v2.0 - BATCH_SIZE=3)', {
       totalFiles: uniqueFiles.length,
       batchSize,
       isMobile,
       estimatedBatches: Math.ceil(uniqueFiles.length / batchSize),
+      version: '2.0',
+      timestamp: new Date().toISOString(),
     });
 
     // Phase 1: Image Processing (in batches)
