@@ -14,8 +14,35 @@ export interface InsuranceFilters extends Record<string, unknown> {
   vehicleId?: string;
 }
 
+// 🔧 SCHEMA VERSION: Increment this when database schema changes (INTEGER vs UUID)
+const INSURANCE_SCHEMA_VERSION = '2'; // Changed from UUID to INTEGER
+
+// Check and clear cache if schema version changed
+if (typeof window !== 'undefined') {
+  const storedVersion = localStorage.getItem('insurance_schema_version');
+  if (storedVersion !== INSURANCE_SCHEMA_VERSION) {
+    console.log('🔧 Insurance schema version changed, clearing cache...');
+    localStorage.setItem('insurance_schema_version', INSURANCE_SCHEMA_VERSION);
+    // Cache will be cleared on next query
+  }
+}
+
 // GET insurances
 export function useInsurances(filters?: InsuranceFilters) {
+  const queryClient = useQueryClient();
+
+  // 🔧 Clear cache if schema version changed
+  if (typeof window !== 'undefined') {
+    const storedVersion = localStorage.getItem('insurance_schema_version');
+    if (storedVersion !== INSURANCE_SCHEMA_VERSION) {
+      queryClient.clear(); // Clear all React Query cache
+      localStorage.setItem(
+        'insurance_schema_version',
+        INSURANCE_SCHEMA_VERSION
+      );
+    }
+  }
+
   return useQuery({
     queryKey: queryKeys.insurances.list(filters),
     queryFn: () => apiService.getInsurances(),
