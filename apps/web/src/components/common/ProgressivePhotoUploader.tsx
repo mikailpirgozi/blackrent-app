@@ -16,26 +16,15 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import {
-  Box,
-  Button,
-  LinearProgress,
-  Typography,
-  Alert,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  Paper,
-} from '@mui/material';
-import {
   CloudUpload as UploadIcon,
   CheckCircle as SuccessIcon,
-  Error as ErrorIcon,
-  Refresh as RetryIcon,
-  PhotoCamera as PhotoIcon,
-} from '@mui/icons-material';
+  XCircle as ErrorIcon,
+  RefreshCw as RetryIcon,
+  Camera as PhotoIcon,
+} from 'lucide-react';
+import { Button } from '../ui/button';
+import { Progress } from '../ui/progress';
+import { Alert, AlertDescription } from '../ui/alert';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { logger } from '../../utils/logger';
 import { ProtocolImage } from '../../types';
@@ -409,7 +398,7 @@ export const ProgressivePhotoUploader: React.FC<
   };
 
   return (
-    <Box>
+    <div className="space-y-4">
       {/* File Input */}
       <input
         ref={fileInputRef}
@@ -417,173 +406,175 @@ export const ProgressivePhotoUploader: React.FC<
         accept="image/*"
         multiple
         onChange={handleFileSelect}
-        style={{ display: 'none' }}
+        className="hidden"
         disabled={disabled || isUploading}
       />
 
-      {/* Upload Button */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      {/* Upload Buttons */}
+      <div className="flex gap-2 flex-wrap">
         <Button
-          variant="contained"
-          startIcon={<PhotoIcon />}
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || isUploading || photos.length >= maxPhotos}
-          fullWidth
+          className="flex-1"
         >
+          <PhotoIcon className="w-4 h-4 mr-2" />
           Vybrať fotky ({photos.length}/{maxPhotos})
         </Button>
 
         {photos.length > 0 && (
           <>
             <Button
-              variant="contained"
-              color="primary"
-              startIcon={<UploadIcon />}
               onClick={uploadAllPhotos}
               disabled={disabled || isUploading || stats.pending === 0}
+              variant="default"
             >
+              <UploadIcon className="w-4 h-4 mr-2" />
               Nahrať ({stats.pending})
             </Button>
 
             {stats.error > 0 && (
               <Button
-                variant="outlined"
-                color="warning"
-                startIcon={<RetryIcon />}
                 onClick={retryFailedUploads}
                 disabled={disabled || isUploading}
+                variant="outline"
               >
+                <RetryIcon className="w-4 h-4 mr-2" />
                 Retry ({stats.error})
               </Button>
             )}
 
             <Button
-              variant="outlined"
-              color="error"
               onClick={clearAllPhotos}
               disabled={disabled || isUploading}
+              variant="destructive"
             >
               Vymazať
             </Button>
           </>
         )}
-      </Box>
+      </div>
 
       {/* Statistics */}
       {photos.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-          <Chip label={`Celkom: ${stats.total}`} size="small" />
-          <Chip label={`Čaká: ${stats.pending}`} size="small" color="default" />
-          <Chip
-            label={`Nahráva sa: ${stats.uploading}`}
-            size="small"
-            color="info"
-          />
-          <Chip
-            label={`Úspešné: ${stats.success}`}
-            size="small"
-            color="success"
-          />
+        <div className="flex gap-2 flex-wrap text-sm">
+          <span className="px-2 py-1 bg-gray-100 rounded">
+            Celkom: {stats.total}
+          </span>
+          <span className="px-2 py-1 bg-gray-100 rounded">
+            Čaká: {stats.pending}
+          </span>
+          <span className="px-2 py-1 bg-blue-100 rounded">
+            Nahráva sa: {stats.uploading}
+          </span>
+          <span className="px-2 py-1 bg-green-100 rounded">
+            Úspešné: {stats.success}
+          </span>
           {stats.error > 0 && (
-            <Chip
-              label={`Zlyhané: ${stats.error}`}
-              size="small"
-              color="error"
-            />
+            <span className="px-2 py-1 bg-red-100 rounded">
+              Zlyhané: {stats.error}
+            </span>
           )}
           {stats.total > 0 && (
-            <Chip
-              label={`Úspešnosť: ${stats.successRate}%`}
-              size="small"
-              color="primary"
-            />
+            <span className="px-2 py-1 bg-primary/10 rounded">
+              Úspešnosť: {stats.successRate}%
+            </span>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Progress Bar */}
       {isUploading && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
             Nahráva sa fotka {currentUploadIndex + 1} z {photos.length}...
-          </Typography>
-          <LinearProgress
-            variant="determinate"
+          </p>
+          <Progress
             value={Math.round(((currentUploadIndex + 1) / photos.length) * 100)}
           />
-        </Box>
+        </div>
       )}
 
       {/* Photo List */}
       {photos.length > 0 && (
-        <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
-          <List dense>
+        <div className="border rounded-lg max-h-96 overflow-auto">
+          <div className="divide-y">
             {photos.map((photo, index) => (
-              <ListItem
-                key={index}
-                secondaryAction={
-                  !isUploading &&
-                  photo.status !== 'success' && (
-                    <IconButton
-                      edge="end"
-                      onClick={() => removePhoto(index)}
-                      size="small"
-                    >
-                      <ErrorIcon fontSize="small" />
-                    </IconButton>
-                  )
-                }
-              >
-                <ListItemIcon>
-                  {photo.status === 'pending' && <PhotoIcon color="disabled" />}
-                  {photo.status === 'uploading' && <UploadIcon color="info" />}
-                  {photo.status === 'success' && (
-                    <SuccessIcon color="success" />
+              <div key={index} className="flex items-center gap-3 p-3">
+                {/* Icon */}
+                <div className="flex-shrink-0">
+                  {photo.status === 'pending' && (
+                    <PhotoIcon className="w-5 h-5 text-gray-400" />
                   )}
-                  {photo.status === 'error' && <ErrorIcon color="error" />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={photo.file.name}
-                  secondary={
-                    <>
-                      {(photo.file.size / 1024 / 1024).toFixed(2)} MB
-                      {photo.status === 'error' &&
-                        photo.error &&
-                        ` - ${photo.error}`}
-                      {photo.status === 'error' &&
-                        photo.retryCount > 0 &&
-                        ` (Pokus ${photo.retryCount}/${MAX_RETRY_ATTEMPTS})`}
-                    </>
-                  }
-                />
+                  {photo.status === 'uploading' && (
+                    <UploadIcon className="w-5 h-5 text-blue-500 animate-pulse" />
+                  )}
+                  {photo.status === 'success' && (
+                    <SuccessIcon className="w-5 h-5 text-green-500" />
+                  )}
+                  {photo.status === 'error' && (
+                    <ErrorIcon className="w-5 h-5 text-red-500" />
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {photo.file.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {(photo.file.size / 1024 / 1024).toFixed(2)} MB
+                    {photo.status === 'error' &&
+                      photo.error &&
+                      ` - ${photo.error}`}
+                    {photo.status === 'error' &&
+                      photo.retryCount > 0 &&
+                      ` (Pokus ${photo.retryCount}/${MAX_RETRY_ATTEMPTS})`}
+                  </p>
+                </div>
+
+                {/* Progress or Remove */}
                 {photo.status === 'uploading' && (
-                  <Box sx={{ width: 100, ml: 2 }}>
-                    <LinearProgress />
-                  </Box>
+                  <div className="w-24">
+                    <Progress value={photo.progress} className="h-2" />
+                  </div>
                 )}
-              </ListItem>
+
+                {!isUploading && photo.status !== 'success' && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removePhoto(index)}
+                  >
+                    <ErrorIcon className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             ))}
-          </List>
-        </Paper>
+          </div>
+        </div>
       )}
 
       {/* Info Alert */}
       {photos.length === 0 && (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          Kliknite na "Vybrať fotky" pre pridanie fotiek. Fotky sa nahrávajú po
-          jednej, čo zabezpečuje spoľahlivé nahrávanie aj na mobilných
-          zariadeniach.
+        <Alert>
+          <AlertDescription>
+            Kliknite na "Vybrať fotky" pre pridanie fotiek. Fotky sa nahrávajú
+            po jednej, čo zabezpečuje spoľahlivé nahrávanie aj na mobilných
+            zariadeniach.
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Success Alert */}
       {stats.success > 0 && !isUploading && (
-        <Alert severity="success" sx={{ mt: 2 }}>
-          Úspešne nahraných {stats.success} z {stats.total} fotiek!
-          {stats.error > 0 &&
-            ` ${stats.error} fotiek zlyhalo - môžete ich skúsiť nahrať znova.`}
+        <Alert>
+          <AlertDescription>
+            Úspešne nahraných {stats.success} z {stats.total} fotiek!
+            {stats.error > 0 &&
+              ` ${stats.error} fotiek zlyhalo - môžete ich skúsiť nahrať znova.`}
+          </AlertDescription>
         </Alert>
       )}
-    </Box>
+    </div>
   );
 };
