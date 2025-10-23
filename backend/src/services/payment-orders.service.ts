@@ -403,6 +403,20 @@ export class PaymentOrdersService {
       ? `${rental.vehicle.brand || ''} ${rental.vehicle.model || ''}`.trim()
       : 'N/A';
 
+    // ✅ Regeneruj QR kód namiesto používania uloženého
+    // (uložený QR kód môže byť príliš veľký alebo poškodený)
+    const qrData = await this.qrService.generateBySquareData({
+      iban: bankAccount.iban,
+      amount: paymentOrder.amount,
+      currency: 'EUR',
+      variableSymbol: paymentOrder.variableSymbol,
+      specificSymbol: paymentOrder.specificSymbol || undefined,
+      constantSymbol: paymentOrder.constantSymbol || undefined,
+      message: paymentOrder.message || undefined,
+    });
+
+    const qrImage = await this.qrService.generateQRCodeImage(qrData);
+
     return await this.pdfService.generatePaymentOrderPDF({
       orderNumber: rental.orderNumber as string || 'N/A',
       customerName: rental.customerName as string || 'N/A',
@@ -411,7 +425,7 @@ export class PaymentOrdersService {
       type: paymentOrder.type,
       iban: bankAccount.iban,
       variableSymbol: paymentOrder.variableSymbol,
-      qrCodeImage: paymentOrder.qrCodeImage || '',
+      qrCodeImage: qrImage,
       bankName: bankAccount.bankName || 'N/A',
       message: paymentOrder.message,
     });
