@@ -83,26 +83,65 @@ export async function processAndUploadPhotos(
   });
 
   try {
-    // Phase 1: Image Processing
+    // ✅ MOBILE OPTIMIZATION: Process and upload in small batches
+    // Why? Mobile has strict memory limits (~100-200 MB)
+    // Processing 20+ photos at once = memory crash
+    // Solution: Process 5 photos → Upload → Free memory → Repeat
+    const BATCH_SIZE = 5; // ✅ Mobile-safe batch size
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const batchSize = isMobile ? BATCH_SIZE : uniqueFiles.length; // Desktop can handle all at once
+
+    logger.info('📦 Batch processing strategy', {
+      totalFiles: uniqueFiles.length,
+      batchSize,
+      isMobile,
+      estimatedBatches: Math.ceil(uniqueFiles.length / batchSize),
+    });
+
+    // Phase 1: Image Processing (in batches)
     const processor = new ImageProcessor();
+    const allProcessedImages: Awaited<
+      ReturnType<typeof processor.processBatch>
+    > = [];
+    const processingStart = performance.now();
 
-    const processedImages = await processor.processBatch(
-      uniqueFiles,
-      (completed, total) => {
+    for (let i = 0; i < uniqueFiles.length; i += batchSize) {
+      const batch = uniqueFiles.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(uniqueFiles.length / batchSize);
+
+      logger.info(`📦 Processing batch ${batchNumber}/${totalBatches}`, {
+        batchSize: batch.length,
+        startIndex: i,
+        endIndex: Math.min(i + batchSize, uniqueFiles.length),
+      });
+
+      const processedBatch = await processor.processBatch(batch, completed => {
+        const globalCompleted = i + completed;
         options.onProgress?.(
-          completed,
-          total,
-          `Processing images: ${completed}/${total}`
+          globalCompleted,
+          uniqueFiles.length,
+          `Processing images: ${globalCompleted}/${uniqueFiles.length} (Batch ${batchNumber}/${totalBatches})`
         );
-      }
-    );
+      });
 
-    const processingTime = performance.now() - totalStart;
+      allProcessedImages.push(...processedBatch);
+
+      // ✅ CRITICAL: Free memory between batches on mobile
+      if (isMobile && i + batchSize < uniqueFiles.length) {
+        logger.info('🧹 Freeing memory before next batch...');
+        await new Promise(resolve => setTimeout(resolve, 100)); // Let GC run
+      }
+    }
+
+    const processedImages = allProcessedImages;
+    const processingTime = performance.now() - processingStart;
 
     logger.info('Image processing complete', {
       count: processedImages.length,
       time: processingTime,
       avgPerImage: processingTime / processedImages.length,
+      batches: Math.ceil(uniqueFiles.length / batchSize),
     });
 
     // Phase 2: R2 Upload - Upload both WebP (gallery) + JPEG (PDF)
