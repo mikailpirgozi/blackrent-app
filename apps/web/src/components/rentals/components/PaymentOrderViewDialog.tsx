@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -56,6 +57,9 @@ export function PaymentOrderViewDialog({
               {statusLabel}
             </span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Detail platobného príkazu s QR kódom a platobnými údajmi
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
