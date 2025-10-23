@@ -40,29 +40,46 @@ export class UploadManager {
   /**
    * ✅ ANTI-CRASH: Detect optimal parallelism based on device
    *
-   * After testing:
-   * - iOS: 2 concurrent (memory limited)
-   * - Safari Desktop: 3 concurrent (crashes at 6 with 19+ photos)
-   * - Chrome Desktop: 4 concurrent (crashes at 6 with 38+ photos)
+   * After extensive testing:
+   * - Mobile (iOS/Android): 1 concurrent (SEQUENTIAL - prevents memory crashes)
+   * - Safari Desktop: 2 concurrent (reduced from 3 for stability)
+   * - Chrome Desktop: 3 concurrent (reduced from 4 for stability)
+   *
+   * Why sequential on mobile?
+   * - Mobile browsers have strict memory limits (~100-200 MB)
+   * - Large photos (2-3 MB) × parallel uploads = OOM crash
+   * - Sequential is slower but 100% reliable
    */
   private detectOptimalParallelism(): number {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid || /Mobile/i.test(navigator.userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isLowMemory =
       (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
 
-    if (isIOS || isLowMemory) {
-      logger.info('📱 iOS/Low Memory detected - using concurrency 2');
-      return 2;
+    // ✅ CRITICAL: Mobile devices need MUCH lower concurrency
+    if (isMobile || isLowMemory) {
+      logger.info(
+        '📱 Mobile/Low Memory detected - using concurrency 1 (sequential)',
+        {
+          isIOS,
+          isAndroid,
+          isMobile,
+          isLowMemory,
+          deviceMemory: (navigator as any).deviceMemory,
+        }
+      );
+      return 1; // ✅ SEQUENTIAL uploads on mobile to prevent memory issues
     }
 
     if (isSafari) {
-      logger.info('🦁 Safari detected - using concurrency 3');
-      return 3;
+      logger.info('🦁 Safari detected - using concurrency 2');
+      return 2; // ✅ REDUCED: 3 → 2 for Safari stability
     }
 
-    logger.info('💻 Chrome/Desktop detected - using concurrency 4');
-    return 4; // Was 6, but crashes with 30+ photos
+    logger.info('💻 Chrome/Desktop detected - using concurrency 3');
+    return 3; // ✅ REDUCED: 4 → 3 for better stability
   }
 
   /**
