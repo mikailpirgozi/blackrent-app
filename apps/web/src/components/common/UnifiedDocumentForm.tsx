@@ -155,6 +155,12 @@ export default function UnifiedDocumentForm({
   const [greenCardManuallyEdited, setGreenCardManuallyEdited] = useState(false);
 
   const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
+    // 🔧 DEBUG: Log document ID
+    console.log(
+      '🔧 UnifiedDocumentForm: Initializing with document.id:',
+      document?.id
+    );
+
     const initialData = {
       id: document?.id, // 🔧 CRITICAL FIX: Include ID for updates
       vehicleId: document?.vehicleId || '',
@@ -1160,6 +1166,10 @@ export default function UnifiedDocumentForm({
             onClick={(e: React.MouseEvent) => {
               logger.debug('🔵 SAVE BUTTON CLICKED - Event:', e);
               logger.debug('🔵 formData:', formData);
+              console.log(
+                '🔧 UnifiedDocumentForm: Saving with formData.id:',
+                formData.id
+              );
               e.preventDefault();
               e.stopPropagation();
 
