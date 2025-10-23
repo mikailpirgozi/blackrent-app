@@ -46,7 +46,7 @@ import {
   cacheFormDefaults,
   getSmartDefaults,
 } from '../../utils/protocolFormCache';
-import { EnterprisePhotoCapture } from '../common/EnterprisePhotoCapture';
+import { PhotoUploaderWrapper } from '../common/PhotoUploaderWrapper';
 import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';
 
@@ -1419,7 +1419,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                     ✕
                   </Button>
                 </div>
-                <EnterprisePhotoCapture
+                <PhotoUploaderWrapper
                   protocolId={rental.id}
                   protocolType="handover"
                   mediaType={
@@ -1431,7 +1431,7 @@ const HandoverProtocolForm = memo<HandoverProtocolFormProps>(
                       | 'fuel'
                   }
                   onPhotosUploaded={results => {
-                    console.log('📸 Photos uploaded successfully', {
+                    console.log('📸 Photos uploaded successfully (Progressive)', {
                       count: results.length,
                     });
                     // Convert UploadResult[] to ProtocolImage format

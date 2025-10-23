@@ -37,7 +37,7 @@ import type {
   Vehicle,
 } from '../../types';
 // import { getApiBaseUrl } from '../../utils/apiUrl'; // REMOVED - React Query handles API calls
-import { EnterprisePhotoCapture } from '../common/EnterprisePhotoCapture';
+import { PhotoUploaderWrapper } from '../common/PhotoUploaderWrapper';
 import { ProtocolGallery } from '../common/ProtocolGallery';
 import SignaturePad from '../common/SignaturePad';
 import { logger } from '@/utils/smartLogger';
@@ -1147,14 +1147,14 @@ export default function ReturnProtocolForm({
                   ✕
                 </Button>
               </div>
-              <EnterprisePhotoCapture
+              <PhotoUploaderWrapper
                 protocolId={rental.id}
                 protocolType="return"
                 mediaType={
                   activePhotoCapture as 'vehicle' | 'document' | 'damage'
                 }
                 onPhotosUploaded={results => {
-                  console.log('📸 Photos uploaded successfully', {
+                  console.log('📸 Photos uploaded successfully (Progressive)', {
                     count: results.length,
                   });
                   // Convert UploadResult[] to ProtocolImage format
@@ -1163,7 +1163,7 @@ export default function ReturnProtocolForm({
                     id: result.imageId, // ✅ CRITICAL: Use ID from upload (IndexedDB key)
                     url: result.url,
                     originalUrl: result.url,
-                    pdfUrl: undefined, // ✅ Force PDF to use IndexedDB JPEG 20% (not R2 WebP!)
+                    pdfUrl: result.pdfUrl || undefined, // ✅ NEW: Use backend PDF URL for server-side PDF generation
                     type: activePhotoCapture,
                     description: '',
                     timestamp: new Date(),
