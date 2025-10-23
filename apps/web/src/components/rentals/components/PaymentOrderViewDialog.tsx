@@ -23,9 +23,37 @@ export function PaymentOrderViewDialog({
 }: PaymentOrderViewDialogProps) {
   if (!paymentOrder) return null;
 
-  const handleDownloadPDF = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-    window.open(`${apiUrl}/payment-orders/${paymentOrder.id}/pdf`, '_blank');
+  const handleDownloadPDF = async () => {
+    try {
+      const token = localStorage.getItem('blackrent_token');
+      const apiUrl = '/api'; // Use Vite proxy
+
+      const response = await fetch(
+        `${apiUrl}/payment-orders/${paymentOrder.id}/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to download PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `platobny-prikaz-${paymentOrder.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Chyba pri sťahovaní PDF');
+    }
   };
 
   const handlePrint = () => {

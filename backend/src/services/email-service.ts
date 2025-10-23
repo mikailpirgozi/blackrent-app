@@ -590,6 +590,133 @@ info@blackrent.sk | +421 xxx xxx xxx
       return false;
     }
   }
+
+  /**
+   * Odoslanie platobného príkazu emailom
+   */
+  async sendPaymentOrderEmail(
+    to: string,
+    customerName: string,
+    orderNumber: string,
+    amount: number,
+    type: 'rental' | 'deposit',
+    iban: string,
+    variableSymbol: string,
+    message: string | undefined,
+    pdfBuffer: Buffer,
+    qrImage: string
+  ): Promise<boolean> {
+    console.log('📧 EMAIL: sendPaymentOrderEmail called', {
+      isEnabled: this.isEnabled,
+      hasTransporter: !!this.transporter,
+      to,
+      type,
+      amount
+    });
+
+    if (!this.isEnabled || !this.transporter) {
+      console.log('📧 EMAIL: Služba je vypnutá, email sa neodošle');
+      return false;
+    }
+
+    if (!to || !to.trim()) {
+      console.log('📧 EMAIL: Chýba email adresa príjemcu');
+      return false;
+    }
+
+    try {
+      const typeLabel = type === 'rental' ? 'prenájmu' : 'depozitu';
+      
+      const mailOptions = {
+        from: `BlackRent <${process.env.SMTP_USER || 'info@blackrent.sk'}>`,
+        to: to.trim(),
+        subject: `Platobný príkaz - ${typeLabel} - ${orderNumber}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+              .payment-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #2563eb; }
+              .amount { font-size: 32px; font-weight: bold; color: #16a34a; text-align: center; margin: 20px 0; }
+              .qr-code { text-align: center; margin: 20px 0; }
+              .qr-code img { max-width: 256px; border: 2px solid #e5e7eb; padding: 10px; background: white; }
+              .details { margin: 15px 0; }
+              .details strong { display: inline-block; width: 180px; }
+              .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+              .button { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>💳 Platobný príkaz</h1>
+                <p>Úhrada ${typeLabel}</p>
+              </div>
+              
+              <div class="content">
+                <p>Dobrý deň ${customerName},</p>
+                <p>Zasielame Vám platobný príkaz pre objednávku <strong>${orderNumber}</strong>.</p>
+                
+                <div class="amount">
+                  ${amount.toFixed(2)} EUR
+                </div>
+                
+                <div class="payment-info">
+                  <h3 style="margin-top: 0; color: #2563eb;">Platobné údaje:</h3>
+                  <div class="details">
+                    <strong>IBAN:</strong> ${iban}<br>
+                    <strong>Variabilný symbol:</strong> ${variableSymbol}<br>
+                    <strong>Suma:</strong> ${amount.toFixed(2)} EUR<br>
+                    ${message ? `<strong>Správa:</strong> ${message}<br>` : ''}
+                  </div>
+                </div>
+                
+                <div class="qr-code">
+                  <h3>QR kód pre platbu</h3>
+                  <p>Naskenujte QR kód v mobilnej bankovej aplikácii:</p>
+                  <img src="${qrImage}" alt="QR kód pre platbu" />
+                </div>
+                
+                <p style="margin-top: 30px;">
+                  V prílohe nájdete PDF s platobnými údajmi.
+                </p>
+                
+                <p>
+                  S pozdravom,<br>
+                  <strong>BlackRent Team</strong>
+                </p>
+              </div>
+              
+              <div class="footer">
+                <p>Tento email bol odoslaný automaticky. Prosím neodpovedajte naň.</p>
+                <p>BlackRent © ${new Date().getFullYear()}</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        attachments: [
+          {
+            filename: `platobny-prikaz-${orderNumber}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      console.log('✅ EMAIL: Platobný príkaz odoslaný na', to);
+      return true;
+    } catch (error) {
+      console.error('❌ EMAIL: Chyba pri odosielaní platobného príkazu:', error);
+      return false;
+    }
+  }
 }
 
 // Singleton instance

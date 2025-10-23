@@ -7,6 +7,7 @@ import type {
 } from '../types/payment-order.types';
 import { PaymentPDFService } from './payment-pdf.service';
 import { PaymentQRService } from './payment-qr.service';
+import { emailService } from './email-service';
 
 interface RentalData {
   id: string;
@@ -133,10 +134,31 @@ export class PaymentOrdersService {
 
       console.log('✅ Payment order created:', paymentOrder.id);
 
-      // 9. Pošli email (ak je požadované) - TODO: implementovať neskôr
-      // if (dto.sendEmail && rental.customerEmail) {
-      //   await this.sendEmail(paymentOrder, rental, pdfBuffer, qrImage);
-      // }
+      // 9. Pošli email (ak je požadované)
+      if (dto.sendEmail && rental.customerEmail) {
+        try {
+          const customerName = rental.customerName || rental.customer?.name || 'Zákazník';
+          const orderNumber = rental.orderNumber || 'N/A';
+          
+          await emailService.sendPaymentOrderEmail(
+            rental.customerEmail,
+            customerName,
+            orderNumber,
+            dto.amount,
+            dto.type,
+            bankAccount.iban,
+            dto.variableSymbol,
+            dto.message,
+            pdfBuffer,
+            qrImage
+          );
+          
+          console.log('✅ Payment order email sent to:', rental.customerEmail);
+        } catch (emailError) {
+          console.error('❌ Failed to send payment order email:', emailError);
+          // Neprerušujeme proces, email je optional
+        }
+      }
 
       return paymentOrder;
     } catch (error) {

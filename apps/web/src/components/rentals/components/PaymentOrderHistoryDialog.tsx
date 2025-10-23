@@ -150,14 +150,37 @@ export function PaymentOrderHistoryDialog({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        const apiUrl =
-                          import.meta.env.VITE_API_URL ||
-                          'http://localhost:3001/api';
-                        window.open(
-                          `${apiUrl}/payment-orders/${order.id}/pdf`,
-                          '_blank'
-                        );
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('blackrent_token');
+                          const apiUrl = '/api'; // Use Vite proxy
+
+                          const response = await fetch(
+                            `${apiUrl}/payment-orders/${order.id}/pdf`,
+                            {
+                              headers: {
+                                Authorization: `Bearer ${token}`,
+                              },
+                            }
+                          );
+
+                          if (!response.ok) {
+                            throw new Error('Failed to download PDF');
+                          }
+
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `platobny-prikaz-${order.id}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                        } catch (error) {
+                          console.error('Error downloading PDF:', error);
+                          alert('Chyba pri sťahovaní PDF');
+                        }
                       }}
                       title="Stiahnuť PDF"
                     >
