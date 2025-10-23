@@ -207,6 +207,19 @@ export const generateReturnPDF = async (protocolData: ReturnProtocol): Promise<B
     finalRefund: protocolData.finalRefund
   });
 
+  // 🔍 DEBUG: Log photos BEFORE compression
+  console.log('🔍 RETURN PDF - Photos BEFORE addCompressedUrlsToImages:', {
+    vehicleImages: protocolData.vehicleImages?.length || 0,
+    documentImages: protocolData.documentImages?.length || 0,
+    damageImages: protocolData.damageImages?.length || 0,
+    firstVehicleImage: protocolData.vehicleImages?.[0] ? {
+      id: protocolData.vehicleImages[0].id,
+      url: protocolData.vehicleImages[0].url?.substring(0, 80) + '...',
+      pdfUrl: protocolData.vehicleImages[0].pdfUrl?.substring(0, 80) + '...',
+      type: protocolData.vehicleImages[0].type
+    } : 'NO VEHICLE IMAGES'
+  });
+
   // 🔄 Add compressed URLs for better PDF compression
   const protocolDataWithCompressedUrls = {
     ...protocolData,
