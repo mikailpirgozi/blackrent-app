@@ -186,34 +186,42 @@ export async function processAndUploadPhotos(
       }
     });
 
-    // Save only metadata - filter out failed uploads
-    const successfulImages = processedImages.filter((img, idx) => {
-      const webpResult = uploadResults[idx * 2];
-      if (!webpResult) {
-        logger.warn('⚠️ Skipping image metadata save - upload failed', {
-          imageIndex: idx,
-          imageId: img.id,
-          protocolId: options.protocolId,
-        });
-        return false;
-      }
-      return true;
-    });
+    // ✅ CRITICAL FIX: Create mapping of successful uploads with original indices
+    const successfulImagesWithIndices = processedImages
+      .map((img, originalIdx) => {
+        const webpResult = uploadResults[originalIdx * 2];
+        const jpegResult = uploadResults[originalIdx * 2 + 1];
+
+        if (!webpResult || !jpegResult) {
+          logger.warn('⚠️ Skipping image - upload failed', {
+            imageIndex: originalIdx,
+            imageId: img.id,
+            hasWebp: !!webpResult,
+            hasJpeg: !!jpegResult,
+            protocolId: options.protocolId,
+          });
+          return null;
+        }
+
+        return {
+          img,
+          originalIdx,
+          webpResult,
+          jpegResult,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     logger.info('📝 Saving metadata for successful uploads', {
       totalImages: processedImages.length,
-      successfulImages: successfulImages.length,
-      skippedImages: processedImages.length - successfulImages.length,
+      successfulImages: successfulImagesWithIndices.length,
+      skippedImages:
+        processedImages.length - successfulImagesWithIndices.length,
     });
 
+    // Save metadata only for successful uploads
     await Promise.all(
-      successfulImages.map((img, idx) => {
-        const webpResult = uploadResults[idx * 2];
-        if (!webpResult) {
-          throw new Error(
-            `Unexpected: webpResult missing for successful image ${idx}`
-          );
-        }
+      successfulImagesWithIndices.map(({ img, webpResult }) => {
         return indexedDBManager.saveImageMetadata({
           id: img.id,
           protocolId: options.protocolId,
@@ -228,67 +236,68 @@ export async function processAndUploadPhotos(
     );
 
     logger.info('✅ Image metadata saved to IndexedDB', {
-      count: successfulImages.length,
+      count: successfulImagesWithIndices.length,
     });
 
     // Phase 4: Create ProtocolImage objects - only for successful uploads
-    const protocolImages = successfulImages
-      .map((processedImg, idx): ProtocolImage | null => {
-        const webpResultIdx = idx * 2;
-        const jpegResultIdx = idx * 2 + 1;
-
-        const webpResult = uploadResults[webpResultIdx];
-        const jpegResult = uploadResults[jpegResultIdx];
-
-        if (!webpResult || !jpegResult) {
-          logger.warn(
-            '⚠️ Skipping protocol image creation - missing upload result',
-            {
-              imageIndex: idx,
-              imageId: processedImg.id,
-              hasWebp: !!webpResult,
-              hasJpeg: !!jpegResult,
-            }
-          );
-          return null;
-        }
-
-        const metadata = processedImg.metadata;
-        const imageId = processedImg.id;
-
-        return {
-          id: imageId,
-          url: webpResult.url, // WebP for gallery
-          originalUrl: webpResult.url,
-          pdfUrl: jpegResult.url as string, // ✅ JPEG R2 URL for PDF
-          // ❌ REMOVED: pdfData base64 (causes crashes)
-          type: options.mediaType,
-          description: '',
-          timestamp: new Date(),
-          compressed: true,
-          originalSize: metadata?.originalSize || 0,
-          compressedSize: processedImg?.gallery.size || 0,
-          metadata: metadata
-            ? {
-                gps: metadata.gps
-                  ? {
-                      latitude: metadata.gps.lat,
-                      longitude: metadata.gps.lng,
-                    }
-                  : undefined,
-                deviceInfo: {
-                  userAgent: navigator.userAgent,
-                  platform: navigator.platform,
-                },
+    const protocolImages = successfulImagesWithIndices
+      .map(
+        ({
+          img: processedImg,
+          originalIdx,
+          webpResult,
+          jpegResult,
+        }): ProtocolImage | null => {
+          if (!webpResult || !jpegResult) {
+            logger.warn(
+              '⚠️ Skipping protocol image creation - missing upload result',
+              {
+                imageIndex: originalIdx,
+                imageId: processedImg.id,
+                hasWebp: !!webpResult,
+                hasJpeg: !!jpegResult,
               }
-            : undefined,
-        };
-      })
+            );
+            return null;
+          }
+
+          const metadata = processedImg.metadata;
+          const imageId = processedImg.id;
+
+          return {
+            id: imageId,
+            url: webpResult.url, // WebP for gallery
+            originalUrl: webpResult.url,
+            pdfUrl: jpegResult.url as string, // ✅ JPEG R2 URL for PDF
+            // ❌ REMOVED: pdfData base64 (causes crashes)
+            type: options.mediaType,
+            description: '',
+            timestamp: new Date(),
+            compressed: true,
+            originalSize: metadata?.originalSize || 0,
+            compressedSize: processedImg?.gallery.size || 0,
+            metadata: metadata
+              ? {
+                  gps: metadata.gps
+                    ? {
+                        latitude: metadata.gps.lat,
+                        longitude: metadata.gps.lng,
+                      }
+                    : undefined,
+                  deviceInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                  },
+                }
+              : undefined,
+          };
+        }
+      )
       .filter((img): img is ProtocolImage => img !== null);
 
     logger.info('📸 Protocol images created', {
       totalProcessed: processedImages.length,
-      successfulImages: successfulImages.length,
+      successfulImages: successfulImagesWithIndices.length,
       protocolImages: protocolImages.length,
       failedImages: processedImages.length - protocolImages.length,
     });
@@ -302,7 +311,7 @@ export async function processAndUploadPhotos(
     logger.info('✅ Photo workflow complete (anti-crash mode)', {
       totalFiles: files.length,
       processedImages: processedImages.length,
-      successfulUploads: successfulImages.length,
+      successfulUploads: successfulImagesWithIndices.length,
       protocolImages: protocolImages.length,
       failedUploads: files.length - protocolImages.length,
       successRate: `${((protocolImages.length / files.length) * 100).toFixed(1)}%`,
