@@ -15,34 +15,35 @@ export interface InsuranceFilters extends Record<string, unknown> {
 }
 
 // 🔧 SCHEMA VERSION: Increment this when database schema changes (INTEGER vs UUID)
-const INSURANCE_SCHEMA_VERSION = '2'; // Changed from UUID to INTEGER
+const INSURANCE_SCHEMA_VERSION = '3'; // Force clear all caches - INTEGER IDs only
 
-// Check and clear cache if schema version changed
+// 🔥 AGGRESSIVE CACHE CLEARING: Clear on version mismatch
 if (typeof window !== 'undefined') {
   const storedVersion = localStorage.getItem('insurance_schema_version');
   if (storedVersion !== INSURANCE_SCHEMA_VERSION) {
-    console.log('🔧 Insurance schema version changed, clearing cache...');
+    console.log('🔧 Insurance schema version changed, clearing ALL caches...');
+    console.log(
+      `   Old version: ${storedVersion}, New version: ${INSURANCE_SCHEMA_VERSION}`
+    );
+
+    // Clear localStorage insurance data
+    localStorage.removeItem('insurance_schema_version');
+    localStorage.removeItem('insurances');
+
+    // Clear sessionStorage
+    sessionStorage.clear();
+
+    // Set new version
     localStorage.setItem('insurance_schema_version', INSURANCE_SCHEMA_VERSION);
-    // Cache will be cleared on next query
+
+    console.log('✅ All caches cleared, page will reload...');
+    // Force page reload to clear React Query cache
+    window.location.reload();
   }
 }
 
 // GET insurances
 export function useInsurances(filters?: InsuranceFilters) {
-  const queryClient = useQueryClient();
-
-  // 🔧 Clear cache if schema version changed
-  if (typeof window !== 'undefined') {
-    const storedVersion = localStorage.getItem('insurance_schema_version');
-    if (storedVersion !== INSURANCE_SCHEMA_VERSION) {
-      queryClient.clear(); // Clear all React Query cache
-      localStorage.setItem(
-        'insurance_schema_version',
-        INSURANCE_SCHEMA_VERSION
-      );
-    }
-  }
-
   return useQuery({
     queryKey: queryKeys.insurances.list(filters),
     queryFn: () => apiService.getInsurances(),
