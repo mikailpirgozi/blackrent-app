@@ -965,7 +965,7 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
             insurer => insurer.name === data.company
           );
           const insuranceData = {
-            id: editingDocument.id || '',
+            id: data.id || editingDocument.id || '', // 🔧 CRITICAL FIX: Use data.id first (from form)
             vehicleId: data.vehicleId,
             type:
               data.type === 'insurance_kasko'

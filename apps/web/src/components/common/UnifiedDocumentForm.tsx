@@ -156,6 +156,7 @@ export default function UnifiedDocumentForm({
 
   const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
     const initialData = {
+      id: document?.id, // 🔧 CRITICAL FIX: Include ID for updates
       vehicleId: document?.vehicleId || '',
       type: document?.type || 'insurance_pzp',
       policyNumber: document?.policyNumber || '',
