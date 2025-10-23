@@ -1195,22 +1195,19 @@ router.post('/progressive-upload',
         originalFormat: req.file.mimetype,
       });
 
-      // Compress to WebP (for gallery) - high quality, small size
+      // Compress to WebP (for gallery) - 100% quality, original resolution
+      // Only converts format to WebP, keeps original quality and size
       const webpBuffer = await sharp(req.file.buffer)
-        .resize(2560, 1920, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .webp({ quality: 85 })
+        .webp({ quality: 100, lossless: false }) // 100% quality (not lossless to save space)
         .toBuffer();
 
-      // Compress to JPEG (for PDF) - optimized for PDF embedding
+      // Compress to JPEG (for PDF) - lower quality for smaller PDF files
       const jpegBuffer = await sharp(req.file.buffer)
         .resize(1920, 1080, {
           fit: 'inside',
           withoutEnlargement: true
         })
-        .jpeg({ quality: 92, progressive: true })
+        .jpeg({ quality: 62, progressive: true }) // Reduced from 92% to 62% (30% reduction)
         .toBuffer();
 
       const compressionTime = Date.now() - startTime;
