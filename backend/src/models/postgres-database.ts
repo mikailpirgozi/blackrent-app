@@ -6353,10 +6353,12 @@ export class PostgresDatabase {
       
       console.log('🔧 UPDATE INSURANCE: Query params:', JSON.stringify(queryParams, null, 2));
       
+      // ✅ CRITICAL FIX: Check if id is UUID or INTEGER based on database schema
+      // Production database has INTEGER id, development has UUID
       const result = await client.query(`
         UPDATE insurances 
         SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14
-        WHERE id = $15 
+        WHERE id::text = $15::text
         RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage
       `, queryParams);
 
@@ -6403,7 +6405,8 @@ export class PostgresDatabase {
   async deleteInsurance(id: string): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM insurances WHERE id = $1', [id]);
+      // ✅ CRITICAL FIX: Cast both sides to text for compatibility with INTEGER or UUID id
+      await client.query('DELETE FROM insurances WHERE id::text = $1::text', [id]);
     } finally {
       client.release();
     }
