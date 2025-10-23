@@ -184,13 +184,32 @@ export async function processAndUploadPhotos(
       }
     });
 
-    // Save only metadata
+    // Save only metadata - filter out failed uploads
+    const successfulImages = processedImages.filter((img, idx) => {
+      const webpResult = uploadResults[idx * 2];
+      if (!webpResult) {
+        logger.warn('⚠️ Skipping image metadata save - upload failed', {
+          imageIndex: idx,
+          imageId: img.id,
+          protocolId: options.protocolId,
+        });
+        return false;
+      }
+      return true;
+    });
+
+    logger.info('📝 Saving metadata for successful uploads', {
+      totalImages: processedImages.length,
+      successfulImages: successfulImages.length,
+      skippedImages: processedImages.length - successfulImages.length,
+    });
+
     await Promise.all(
-      processedImages.map((img, idx) => {
+      successfulImages.map((img, idx) => {
         const webpResult = uploadResults[idx * 2];
         if (!webpResult) {
           throw new Error(
-            `Missing WebP upload result for image at index ${idx}`
+            `Unexpected: webpResult missing for successful image ${idx}`
           );
         }
         return indexedDBManager.saveImageMetadata({
@@ -207,12 +226,12 @@ export async function processAndUploadPhotos(
     );
 
     logger.info('✅ Image metadata saved to IndexedDB', {
-      count: processedImages.length,
+      count: successfulImages.length,
     });
 
-    // Phase 4: Create ProtocolImage objects
-    const protocolImages: ProtocolImage[] = processedImages.map(
-      (processedImg, idx) => {
+    // Phase 4: Create ProtocolImage objects - only for successful uploads
+    const protocolImages = successfulImages
+      .map((processedImg, idx): ProtocolImage | null => {
         const webpResultIdx = idx * 2;
         const jpegResultIdx = idx * 2 + 1;
 
@@ -220,7 +239,16 @@ export async function processAndUploadPhotos(
         const jpegResult = uploadResults[jpegResultIdx];
 
         if (!webpResult || !jpegResult) {
-          throw new Error(`Missing upload result for image at index ${idx}`);
+          logger.warn(
+            '⚠️ Skipping protocol image creation - missing upload result',
+            {
+              imageIndex: idx,
+              imageId: processedImg.id,
+              hasWebp: !!webpResult,
+              hasJpeg: !!jpegResult,
+            }
+          );
+          return null;
         }
 
         const metadata = processedImg.metadata;
@@ -230,7 +258,7 @@ export async function processAndUploadPhotos(
           id: imageId,
           url: webpResult.url, // WebP for gallery
           originalUrl: webpResult.url,
-          pdfUrl: jpegResult.url, // ✅ JPEG R2 URL for PDF
+          pdfUrl: jpegResult.url as string, // ✅ JPEG R2 URL for PDF
           // ❌ REMOVED: pdfData base64 (causes crashes)
           type: options.mediaType,
           description: '',
@@ -253,8 +281,15 @@ export async function processAndUploadPhotos(
               }
             : undefined,
         };
-      }
-    );
+      })
+      .filter((img): img is ProtocolImage => img !== null);
+
+    logger.info('📸 Protocol images created', {
+      totalProcessed: processedImages.length,
+      successfulImages: successfulImages.length,
+      protocolImages: protocolImages.length,
+      failedImages: processedImages.length - protocolImages.length,
+    });
 
     // Cleanup: Destroy processor and revoke objectURLs
     processor.destroy();
@@ -262,13 +297,37 @@ export async function processAndUploadPhotos(
 
     const totalTime = performance.now() - totalStart;
 
-    logger.info('Photo workflow complete (anti-crash mode)', {
-      imageCount: protocolImages.length,
+    logger.info('✅ Photo workflow complete (anti-crash mode)', {
+      totalFiles: files.length,
+      processedImages: processedImages.length,
+      successfulUploads: successfulImages.length,
+      protocolImages: protocolImages.length,
+      failedUploads: files.length - protocolImages.length,
+      successRate: `${((protocolImages.length / files.length) * 100).toFixed(1)}%`,
       processingTime,
       uploadTime,
       totalTime,
-      avgTimePerImage: totalTime / protocolImages.length,
+      avgTimePerImage:
+        protocolImages.length > 0 ? totalTime / protocolImages.length : 0,
     });
+
+    // ✅ Show user-friendly message if some uploads failed
+    if (protocolImages.length < files.length) {
+      const failedCount = files.length - protocolImages.length;
+      logger.error('⚠️ UPLOAD INCOMPLETE', {
+        requested: files.length,
+        successful: protocolImages.length,
+        failed: failedCount,
+        message: `Nahralo sa len ${protocolImages.length} z ${files.length} fotiek!`,
+      });
+
+      // Show alert to user
+      options.onProgress?.(
+        protocolImages.length,
+        files.length,
+        `⚠️ POZOR: Nahralo sa len ${protocolImages.length} z ${files.length} fotiek! ${failedCount} fotiek zlyhalo. Skúste ich nahrať znova.`
+      );
+    }
 
     return {
       images: protocolImages,
