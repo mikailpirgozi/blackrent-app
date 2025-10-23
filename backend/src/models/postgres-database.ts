@@ -6312,6 +6312,9 @@ export class PostgresDatabase {
   }): Promise<Insurance> {
     const client = await this.pool.connect();
     try {
+      console.log('🔧 UPDATE INSURANCE: Called with id:', id);
+      console.log('🔧 UPDATE INSURANCE: insuranceData:', JSON.stringify(insuranceData, null, 2));
+      
       // 🔧 BEZPEČNÉ: Nájdeme insurerId podľa company názvu
       let finalInsurerId: number | undefined = insuranceData.insurerId ? parseInt(insuranceData.insurerId) : undefined;
       
@@ -6330,16 +6333,41 @@ export class PostgresDatabase {
       // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta + viacero súborov
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
+      const queryParams = [
+        insuranceData.vehicleId || null, 
+        finalInsurerId || null, 
+        insuranceData.type, 
+        insuranceData.policyNumber, 
+        insuranceData.validFrom, 
+        insuranceData.validTo, 
+        insuranceData.price, 
+        insuranceData.price, 
+        insuranceData.paymentFrequency || 'yearly', 
+        insuranceData.filePath || null, 
+        filePaths, 
+        insuranceData.kmState || null, 
+        insuranceData.deductibleAmount || null, 
+        insuranceData.deductiblePercentage || null, 
+        id
+      ];
+      
+      console.log('🔧 UPDATE INSURANCE: Query params:', JSON.stringify(queryParams, null, 2));
+      
       const result = await client.query(`
         UPDATE insurances 
         SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14
         WHERE id = $15 
         RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage
-      `, [insuranceData.vehicleId || null, finalInsurerId || null, insuranceData.type, insuranceData.policyNumber, insuranceData.validFrom, insuranceData.validTo, insuranceData.price, insuranceData.price, insuranceData.paymentFrequency || 'yearly', insuranceData.filePath || null, filePaths, insuranceData.kmState || null, insuranceData.deductibleAmount || null, insuranceData.deductiblePercentage || null, id]);
+      `, queryParams);
+
+      console.log('🔧 UPDATE INSURANCE: Query result rows:', result.rows.length);
 
       if (result.rows.length === 0) {
+        console.error('🔧 UPDATE INSURANCE: Poistka nebola nájdená s id:', id);
         throw new Error('Poistka nebola nájdená');
       }
+      
+      console.log('🔧 UPDATE INSURANCE: Successfully updated, row:', result.rows[0]);
 
       // Načítam názov poistovne ak existuje insurer_id
       let insurerName = '';

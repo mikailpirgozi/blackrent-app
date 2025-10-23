@@ -182,23 +182,26 @@ router.post('/',
   checkPermission('insurances', 'create'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    console.log('🔧 INSURANCE POST: Request body:', req.body);
+    console.log('🔧 INSURANCE POST: Request body:', JSON.stringify(req.body, null, 2));
     
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState } = req.body;
 
+    // ✅ vehicleId JE POVINNÉ - poistka musí byť priradená k vozidlu
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
       console.log('🔧 INSURANCE POST: Validation failed:', {
-        vehicleId: !!vehicleId,
-        type: !!type,
-        policyNumber: !!policyNumber,
-        validFrom: !!validFrom,
-        validTo: !!validTo,
-        price: typeof price,
-        company: !!company
+        vehicleId: vehicleId,
+        vehicleIdType: typeof vehicleId,
+        type: type,
+        policyNumber: policyNumber,
+        validFrom: validFrom,
+        validTo: validTo,
+        price: price,
+        priceType: typeof price,
+        company: company
       });
       return res.status(400).json({
         success: false,
-        error: 'Všetky povinné polia musia byť vyplnené'
+        error: 'Všetky povinné polia musia byť vyplnené (vehicleId, type, policyNumber, validFrom, validTo, price, company)'
       });
     }
 
@@ -260,14 +263,31 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState } = req.body;
 
+    console.log('🔧 INSURANCE PUT: Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔧 INSURANCE PUT: Validation check:', {
+      vehicleId: vehicleId,
+      vehicleIdType: typeof vehicleId,
+      type: type,
+      policyNumber: policyNumber,
+      validFrom: validFrom,
+      validTo: validTo,
+      price: price,
+      priceType: typeof price,
+      company: company
+    });
+
+    // ✅ vehicleId JE POVINNÉ - poistka musí byť priradená k vozidlu
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
+      console.error('🔧 INSURANCE PUT: Validation FAILED');
       return res.status(400).json({
         success: false,
-        error: 'Všetky povinné polia musia byť vyplnené'
+        error: 'Všetky povinné polia musia byť vyplnené (vehicleId, type, policyNumber, validFrom, validTo, price, company)'
       });
     }
+
+    console.log('🔧 INSURANCE PUT: Validation PASSED, calling updateInsurance...');
 
     const updatedInsurance = await postgresDatabase.updateInsurance(id, {
       vehicleId,
@@ -283,6 +303,7 @@ router.put('/:id',
       filePaths,
       greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
       greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      kmState: kmState || undefined, // ✅ Pridané kmState
       deductibleAmount,
       deductiblePercentage
     });
