@@ -17,9 +17,9 @@ export class PaymentQRService {
    */
   async generateBySquareData(params: GenerateQRParams): Promise<string> {
     try {
-      // ✅ Use require for CommonJS module compatibility
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const BySquare = require('bysquare');
+      // ✅ Dynamic import for ES module
+      // @ts-expect-error - bysquare is an ES module without proper type declarations
+      const { default: BySquare } = await import('bysquare');
       
       const bySquare = new BySquare();
 
