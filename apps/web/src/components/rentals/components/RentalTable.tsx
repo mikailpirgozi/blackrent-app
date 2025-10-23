@@ -28,6 +28,7 @@ interface RentalTableProps {
     rental: Rental,
     type: 'rental' | 'deposit'
   ) => void; // 💳 NOVÉ
+  handleViewPaymentOrderHistory?: (rental: Rental) => void; // 📜 NOVÉ
   getVehicleByRental: (rental: Rental) => Vehicle | undefined;
   protocolStatusMap: Record<
     string,
@@ -48,6 +49,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   handleOpenProtocolMenu,
   handleCheckProtocols,
   handleCreatePaymentOrder, // 💳 NOVÉ
+  handleViewPaymentOrderHistory, // 📜 NOVÉ
   getVehicleByRental,
   protocolStatusMap,
   protocols,
@@ -221,6 +223,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     onClone={handleCloneRental}
                     onOpenProtocolMenu={handleOpenProtocolMenu}
                     onCreatePaymentOrder={handleCreatePaymentOrder}
+                    onViewPaymentOrderHistory={handleViewPaymentOrderHistory}
                   />
                 );
               })}

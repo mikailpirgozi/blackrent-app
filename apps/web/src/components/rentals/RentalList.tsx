@@ -70,6 +70,8 @@ import { RentalProtocols } from './components/RentalProtocols';
 import { RentalStats } from './components/RentalStats';
 import { RentalTable } from './components/RentalTable';
 import { PaymentOrderDialog } from './components/PaymentOrderDialog';
+import { PaymentOrderViewDialog } from './components/PaymentOrderViewDialog';
+import { PaymentOrderHistoryDialog } from './components/PaymentOrderHistoryDialog';
 
 // Constants (removed unused constants)
 
@@ -123,8 +125,13 @@ export default function RentalList() {
 
   // 💳 PAYMENT ORDER STATE
   const [paymentOrderDialogOpen, setPaymentOrderDialogOpen] = useState(false);
+  const [paymentOrderHistoryOpen, setPaymentOrderHistoryOpen] = useState(false);
+  const [paymentOrderViewOpen, setPaymentOrderViewOpen] = useState(false);
   const [selectedPaymentOrderRental, setSelectedPaymentOrderRental] =
     useState<Rental | null>(null);
+  const [selectedPaymentOrder, setSelectedPaymentOrder] = useState<
+    import('@/types/payment-order.types').PaymentOrder | null
+  >(null);
   const [selectedPaymentOrderType, setSelectedPaymentOrderType] = useState<
     'rental' | 'deposit' | null
   >(null);
@@ -962,7 +969,31 @@ export default function RentalList() {
     // Refresh rentals alebo zobraz success message
     console.log('✅ Payment order created successfully');
     handleClosePaymentOrderDialog();
+    // Open history dialog to show the newly created payment order
+    setPaymentOrderHistoryOpen(true);
   }, [handleClosePaymentOrderDialog]);
+
+  const handleOpenPaymentOrderHistory = useCallback((rental: Rental) => {
+    setSelectedPaymentOrderRental(rental);
+    setPaymentOrderHistoryOpen(true);
+  }, []);
+
+  const handleClosePaymentOrderHistory = useCallback(() => {
+    setPaymentOrderHistoryOpen(false);
+  }, []);
+
+  const handleViewPaymentOrder = useCallback(
+    (paymentOrder: import('@/types/payment-order.types').PaymentOrder) => {
+      setSelectedPaymentOrder(paymentOrder);
+      setPaymentOrderViewOpen(true);
+    },
+    []
+  );
+
+  const handleClosePaymentOrderView = useCallback(() => {
+    setPaymentOrderViewOpen(false);
+    setSelectedPaymentOrder(null);
+  }, []);
 
   // ✅ Export/Import handlers inline
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1115,6 +1146,7 @@ export default function RentalList() {
         handleDelete={handleDelete}
         handleCloneRental={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
         handleCreatePaymentOrder={handleCreatePaymentOrder} // 💳 NOVÉ: Platobné príkazy
+        handleViewPaymentOrderHistory={handleOpenPaymentOrderHistory} // 📜 NOVÉ: História platobných príkazov
         handleOpenProtocolMenu={(rental, type) => {
           logger.debug('📋 Opening protocol menu', {
             rentalId: rental.id,
@@ -1357,6 +1389,19 @@ export default function RentalList() {
         open={paymentOrderDialogOpen}
         onClose={handleClosePaymentOrderDialog}
         onSuccess={handlePaymentOrderSuccess}
+      />
+
+      <PaymentOrderHistoryDialog
+        rental={selectedPaymentOrderRental}
+        open={paymentOrderHistoryOpen}
+        onClose={handleClosePaymentOrderHistory}
+        onViewPaymentOrder={handleViewPaymentOrder}
+      />
+
+      <PaymentOrderViewDialog
+        paymentOrder={selectedPaymentOrder}
+        open={paymentOrderViewOpen}
+        onClose={handleClosePaymentOrderView}
       />
     </div>
   );

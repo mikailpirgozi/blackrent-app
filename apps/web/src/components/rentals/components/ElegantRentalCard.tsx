@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   Edit2,
+  History,
   MoreVertical,
   Trash2,
   User,
@@ -35,6 +36,7 @@ interface ElegantRentalCardProps {
   onClone: (rental: Rental) => void;
   onOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
   onCreatePaymentOrder?: (rental: Rental, type: 'rental' | 'deposit') => void;
+  onViewPaymentOrderHistory?: (rental: Rental) => void;
 }
 
 export const ElegantRentalCard: React.FC<ElegantRentalCardProps> = ({
@@ -47,6 +49,7 @@ export const ElegantRentalCard: React.FC<ElegantRentalCardProps> = ({
   onClone,
   onOpenProtocolMenu,
   onCreatePaymentOrder,
+  onViewPaymentOrderHistory,
 }) => {
   const isFlexible = rental.isFlexible || false;
 
@@ -252,27 +255,42 @@ export const ElegantRentalCard: React.FC<ElegantRentalCardProps> = ({
                   <Copy className="h-4 w-4 mr-2" />
                   Kopírovať
                 </DropdownMenuItem>
-                {onCreatePaymentOrder && (
+                {(onCreatePaymentOrder || onViewPaymentOrderHistory) && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={e => {
-                        e.stopPropagation();
-                        onCreatePaymentOrder(rental, 'rental');
-                      }}
-                    >
-                      <Wallet className="h-4 w-4 mr-2" />
-                      Platba prenájmu
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={e => {
-                        e.stopPropagation();
-                        onCreatePaymentOrder(rental, 'deposit');
-                      }}
-                    >
-                      <Wallet className="h-4 w-4 mr-2" />
-                      Platba depozitu
-                    </DropdownMenuItem>
+                    {onViewPaymentOrderHistory && (
+                      <DropdownMenuItem
+                        onClick={e => {
+                          e.stopPropagation();
+                          onViewPaymentOrderHistory(rental);
+                        }}
+                      >
+                        <History className="h-4 w-4 mr-2" />
+                        História platobných príkazov
+                      </DropdownMenuItem>
+                    )}
+                    {onCreatePaymentOrder && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={e => {
+                            e.stopPropagation();
+                            onCreatePaymentOrder(rental, 'rental');
+                          }}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Platba prenájmu
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={e => {
+                            e.stopPropagation();
+                            onCreatePaymentOrder(rental, 'deposit');
+                          }}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Platba depozitu
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </>
                 )}
                 <DropdownMenuSeparator />
