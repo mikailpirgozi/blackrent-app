@@ -1,6 +1,6 @@
 /**
  * Protocol Gallery - Full-screen Lightbox s zoom/pan/swipe
- * 
+ *
  * Features:
  * - Full-screen modal
  * - Zoom (pinch to zoom, buttons)
@@ -10,7 +10,7 @@
  * - Download option
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   X,
   Download,
@@ -60,7 +60,65 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
+  // 🚀 ULTRA MODERN: Intelligent preloading cache
+  const preloadedImagesRef = useRef<Set<number>>(new Set());
+  const imageElementsRef = useRef<Map<number, HTMLImageElement>>(new Map());
+
   const currentImage = images[currentIndex];
+
+  // 🚀 Intelligent preloader - preloads current + adjacent images
+  useEffect(() => {
+    if (!open || !currentImage) return;
+
+    const preloadImage = (index: number) => {
+      // Skip if already preloaded
+      if (preloadedImagesRef.current.has(index)) return;
+
+      const image = images[index];
+      if (!image?.originalUrl) return;
+
+      // Create new Image element for preloading
+      const img = new Image();
+      const url = getProxyUrl(image.originalUrl);
+
+      img.onload = () => {
+        preloadedImagesRef.current.add(index);
+        imageElementsRef.current.set(index, img);
+        logger.info('🚀 Image preloaded', { index, url });
+      };
+
+      img.onerror = () => {
+        logger.error('❌ Image preload failed', { index, url });
+      };
+
+      img.src = url;
+    };
+
+    // Preload strategy:
+    // 1. Current image (priority 1)
+    // 2. Next image (priority 2)
+    // 3. Previous image (priority 3)
+    // 4. Next+1 image (priority 4)
+    // 5. Previous-1 image (priority 5)
+
+    preloadImage(currentIndex); // Current
+
+    if (currentIndex < images.length - 1) {
+      preloadImage(currentIndex + 1); // Next
+    }
+
+    if (currentIndex > 0) {
+      preloadImage(currentIndex - 1); // Previous
+    }
+
+    if (currentIndex < images.length - 2) {
+      setTimeout(() => preloadImage(currentIndex + 2), 100); // Next+1 (delayed)
+    }
+
+    if (currentIndex > 1) {
+      setTimeout(() => preloadImage(currentIndex - 2), 200); // Previous-1 (delayed)
+    }
+  }, [currentIndex, open, images]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -85,13 +143,13 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
   }, [open, currentIndex, images.length, onClose]);
 
   const handlePrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
     setIsLoading(true);
     setImageError(false);
   }, [images.length]);
 
   const handleNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    setCurrentIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
     setIsLoading(true);
     setImageError(false);
   }, [images.length]);
@@ -129,7 +187,9 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
             {currentIndex + 1} / {images.length}
           </span>
           {currentImage?.description && (
-            <p className="text-sm text-gray-300 mt-1">{currentImage.description}</p>
+            <p className="text-sm text-gray-300 mt-1">
+              {currentImage.description}
+            </p>
           )}
         </div>
 
@@ -154,7 +214,12 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
 
       {/* Main Image Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-        <TransformWrapper initialScale={1} minScale={0.5} maxScale={4} centerOnInit>
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.5}
+          maxScale={4}
+          centerOnInit
+        >
           {({ zoomIn, zoomOut, resetTransform }) => (
             <>
               {/* Zoom Controls */}
@@ -195,7 +260,9 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
 
                 {imageError ? (
                   <div className="text-white text-center">
-                    <p className="text-lg mb-2">Nepodarilo sa načítať obrázok</p>
+                    <p className="text-lg mb-2">
+                      Nepodarilo sa načítať obrázok
+                    </p>
                     <button
                       onClick={() => {
                         setImageError(false);
@@ -209,7 +276,9 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
                 ) : (
                   <img
                     src={getProxyUrl(currentImage?.originalUrl)}
-                    alt={currentImage?.description || `Image ${currentIndex + 1}`}
+                    alt={
+                      currentImage?.description || `Image ${currentIndex + 1}`
+                    }
                     className="max-w-full max-h-full object-contain"
                     onLoad={() => setIsLoading(false)}
                     onError={() => {
@@ -246,38 +315,51 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
         )}
       </div>
 
-      {/* Thumbnail Strip */}
+      {/* Thumbnail Strip - Lazy Loading */}
       <div className="bg-black/50 backdrop-blur-sm p-4 overflow-x-auto">
         <div className="flex gap-2 justify-center">
-          {images.map((image, index) => (
-            <button
-              key={`${image.id || index}-thumb`}
-              onClick={() => {
-                setCurrentIndex(index);
-                setIsLoading(true);
-                setImageError(false);
-              }}
-              className={`
-                relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden
-                transition-all duration-200
-                ${
-                  index === currentIndex
-                    ? 'ring-2 ring-white scale-110'
-                    : 'opacity-50 hover:opacity-100'
-                }
-              `}
-            >
-              <img
-                src={getProxyUrl(image.originalUrl)}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
-                {index + 1}
-              </div>
-            </button>
-          ))}
+          {images.map((image, index) => {
+            // 🚀 Only load thumbnails that are visible or near current index
+            const isNearCurrent = Math.abs(index - currentIndex) <= 5;
+            const shouldLoad = isNearCurrent || index === currentIndex;
+
+            return (
+              <button
+                key={`${image.id || index}-thumb`}
+                onClick={() => {
+                  setCurrentIndex(index);
+                  setIsLoading(true);
+                  setImageError(false);
+                }}
+                className={`
+                  relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden
+                  transition-all duration-200
+                  ${
+                    index === currentIndex
+                      ? 'ring-2 ring-white scale-110'
+                      : 'opacity-50 hover:opacity-100'
+                  }
+                `}
+              >
+                {shouldLoad ? (
+                  <img
+                    src={getProxyUrl(image.originalUrl)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  // Placeholder for thumbnails that are far away
+                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                    <span className="text-white text-xs">{index + 1}</span>
+                  </div>
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
+                  {index + 1}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
