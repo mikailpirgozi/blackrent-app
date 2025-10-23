@@ -48,8 +48,35 @@ export async function processAndUploadPhotos(
   const totalStart = performance.now();
   const objectURLs: string[] = []; // Track for cleanup
 
+  // ✅ CRITICAL: Deduplicate files by name + size + lastModified
+  // Prevents processing same photo multiple times if user clicks "Add photos" twice
+  const uniqueFiles = Array.from(
+    new Map(
+      files.map(file => [
+        `${file.name}-${file.size}-${file.lastModified}`,
+        file,
+      ])
+    ).values()
+  );
+
+  if (uniqueFiles.length < files.length) {
+    const duplicates = files.length - uniqueFiles.length;
+    logger.warn('🔍 Duplicate files detected and removed', {
+      original: files.length,
+      unique: uniqueFiles.length,
+      duplicates,
+    });
+
+    options.onProgress?.(
+      0,
+      uniqueFiles.length,
+      `Odstránených ${duplicates} duplikátov, spracúvam ${uniqueFiles.length} unikátnych fotiek`
+    );
+  }
+
   logger.info('Starting photo processing (anti-crash mode)', {
-    fileCount: files.length,
+    fileCount: uniqueFiles.length,
+    originalCount: files.length,
     protocolId: options.protocolId,
     mediaType: options.mediaType,
   });
@@ -59,7 +86,7 @@ export async function processAndUploadPhotos(
     const processor = new ImageProcessor();
 
     const processedImages = await processor.processBatch(
-      files,
+      uniqueFiles,
       (completed, total) => {
         options.onProgress?.(
           completed,
@@ -309,12 +336,13 @@ export async function processAndUploadPhotos(
     const totalTime = performance.now() - totalStart;
 
     logger.info('✅ Photo workflow complete (anti-crash mode)', {
-      totalFiles: files.length,
+      originalFiles: files.length,
+      uniqueFiles: uniqueFiles.length,
       processedImages: processedImages.length,
       successfulUploads: successfulImagesWithIndices.length,
       protocolImages: protocolImages.length,
-      failedUploads: files.length - protocolImages.length,
-      successRate: `${((protocolImages.length / files.length) * 100).toFixed(1)}%`,
+      failedUploads: uniqueFiles.length - protocolImages.length,
+      successRate: `${((protocolImages.length / uniqueFiles.length) * 100).toFixed(1)}%`,
       processingTime,
       uploadTime,
       totalTime,
@@ -323,20 +351,20 @@ export async function processAndUploadPhotos(
     });
 
     // ✅ Show user-friendly message if some uploads failed
-    if (protocolImages.length < files.length) {
-      const failedCount = files.length - protocolImages.length;
+    if (protocolImages.length < uniqueFiles.length) {
+      const failedCount = uniqueFiles.length - protocolImages.length;
       logger.error('⚠️ UPLOAD INCOMPLETE', {
-        requested: files.length,
+        requested: uniqueFiles.length,
         successful: protocolImages.length,
         failed: failedCount,
-        message: `Nahralo sa len ${protocolImages.length} z ${files.length} fotiek!`,
+        message: `Nahralo sa len ${protocolImages.length} z ${uniqueFiles.length} fotiek!`,
       });
 
       // Show alert to user
       options.onProgress?.(
         protocolImages.length,
-        files.length,
-        `⚠️ POZOR: Nahralo sa len ${protocolImages.length} z ${files.length} fotiek! ${failedCount} fotiek zlyhalo. Skúste ich nahrať znova.`
+        uniqueFiles.length,
+        `⚠️ POZOR: Nahralo sa len ${protocolImages.length} z ${uniqueFiles.length} fotiek! ${failedCount} fotiek zlyhalo. Skúste ich nahrať znova.`
       );
     }
 
