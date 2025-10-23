@@ -45,6 +45,7 @@ interface MobileRentalRowProps {
   onCheckProtocols: (rental: Rental) => void;
   onDelete?: (id: string) => void;
   onClone?: (rental: Rental) => void; // 🔄 NOVÉ: Clone funkcionalita
+  onCreatePaymentOrder?: (rental: Rental, type: 'rental' | 'deposit') => void; // 💳 NOVÉ: Platobné príkazy
 }
 
 export const MobileRentalRow = memo<MobileRentalRowProps>(
@@ -62,6 +63,7 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
     onCheckProtocols,
     onDelete,
     onClone, // 🔄 NOVÉ: Clone funkcionalita
+    onCreatePaymentOrder, // 💳 NOVÉ: Platobné príkazy
   }) => {
     // 🎯 Memoized handlers to prevent recreation
     const handleCardClick = React.useCallback(() => {
@@ -151,204 +153,239 @@ export const MobileRentalRow = memo<MobileRentalRowProps>(
         onClick={handleCardClick}
       >
         <CardContent className="p-4">
-            {/* 🚗 HLAVIČKA S VOZIDLOM A STATUSOM */}
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 text-base font-bold text-blue-600 mb-1">
-                  <CarIcon className="h-4 w-4" />
-                  {vehicle?.licensePlate || 'N/A'}
-                </div>
-                <div className="text-sm text-gray-600 mb-1">
-                  {vehicle?.brand} {vehicle?.model}
-                </div>
-                {/* 🏢 FIRMA - VŽDY VIDITEĽNÁ */}
-                {vehicle?.company && (
-                  <div className="flex items-center gap-1 text-orange-500 text-xs font-semibold mb-1">
-                    <BusinessIcon className="h-3 w-3" />
-                    {vehicle?.company}
-                  </div>
-                )}
+          {/* 🚗 HLAVIČKA S VOZIDLOM A STATUSOM */}
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 text-base font-bold text-blue-600 mb-1">
+                <CarIcon className="h-4 w-4" />
+                {vehicle?.licensePlate || 'N/A'}
               </div>
+              <div className="text-sm text-gray-600 mb-1">
+                {vehicle?.brand} {vehicle?.model}
+              </div>
+              {/* 🏢 FIRMA - VŽDY VIDITEĽNÁ */}
+              {vehicle?.company && (
+                <div className="flex items-center gap-1 text-orange-500 text-xs font-semibold mb-1">
+                  <BusinessIcon className="h-3 w-3" />
+                  {vehicle?.company}
+                </div>
+              )}
+            </div>
 
-              <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end gap-2">
+              <Badge
+                className="text-white font-semibold text-sm h-8 px-3"
+                style={{ backgroundColor: getStatusColor() }}
+              >
+                {getStatusLabel()}
+              </Badge>
+              {isFlexible && (
                 <Badge
-                  className="text-white font-semibold text-sm h-8 px-3"
-                  style={{ backgroundColor: getStatusColor() }}
+                  className="text-white font-semibold text-xs h-7 px-2"
+                  style={{ backgroundColor: '#ff9800' }}
                 >
-                  {getStatusLabel()}
+                  FLEXIBILNÝ
                 </Badge>
-                {isFlexible && (
-                  <Badge
-                    className="text-white font-semibold text-xs h-7 px-2"
-                    style={{ backgroundColor: '#ff9800' }}
-                  >
-                    FLEXIBILNÝ
-                  </Badge>
-                )}
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* 👤 ZÁKAZNÍK - KOMPAKTNEJŠIE */}
+          <div className="mb-3">
+            <div className="font-semibold text-base text-gray-800 mb-1 flex items-center gap-2">
+              <div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  backgroundColor: '#4caf50',
+                }}
+              />
+              {rental.customerName}
             </div>
 
-            {/* 👤 ZÁKAZNÍK - KOMPAKTNEJŠIE */}
-            <div className="mb-3">
-              <div className="font-semibold text-base text-gray-800 mb-1 flex items-center gap-2">
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    backgroundColor: '#4caf50',
-                  }}
-                />
-                {rental.customerName}
-              </div>
-
-              {/* 📞 TELEFÓN A EMAIL - V JEDNOM RIADKU */}
-              <div className="flex flex-wrap gap-2 items-center">
-                {(rental.customerPhone || rental.customer?.phone) && (
-                  <div className="text-gray-600 text-xs flex items-center gap-1">
-                    <PhoneIcon className="h-3 w-3" />
-                    {rental.customerPhone || rental.customer?.phone}
-                  </div>
-                )}
-
-                {(rental.customerEmail || rental.customer?.email) && (
-                  <div className="text-gray-600 text-xs flex items-center gap-1">
-                    <EmailIcon className="h-3 w-3" />
-                    {rental.customerEmail || rental.customer?.email}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 📅 DÁTUMY A CENA - KOMPAKTNEJŠIE */}
-            <div className="flex justify-between items-center mb-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div>
-                <div className="text-gray-600 text-xs mb-1">
-                  Obdobie prenájmu
+            {/* 📞 TELEFÓN A EMAIL - V JEDNOM RIADKU */}
+            <div className="flex flex-wrap gap-2 items-center">
+              {(rental.customerPhone || rental.customer?.phone) && (
+                <div className="text-gray-600 text-xs flex items-center gap-1">
+                  <PhoneIcon className="h-3 w-3" />
+                  {rental.customerPhone || rental.customer?.phone}
                 </div>
-                <div className="font-bold text-sm text-blue-600 leading-tight mb-1">
-                  📅 {formatDateTime(rental.startDate)}
-                </div>
-                <div className="font-bold text-sm text-orange-600 leading-tight">
-                  🏁 {formatDateTime(rental.endDate)}
-                </div>
-              </div>
-
-              <div className="text-right">
-                <div className="text-gray-600 text-xs mb-1">
-                  Celková cena
-                </div>
-                <PriceDisplay
-                  rental={rental}
-                  variant="mobile"
-                  showExtraKm={true}
-                />
-              </div>
-            </div>
-
-            {/* 🔧 PROTOKOLY - KOMPAKTNEJŠIE TLAČIDLÁ */}
-            <div className="flex gap-3 mb-3">
-              <Button
-                variant={hasHandover ? "default" : "outline"}
-                size="lg"
-                className={`flex-1 h-11 text-sm font-semibold transition-all duration-200 ${
-                  hasHandover 
-                    ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/30 hover:scale-[1.02]' 
-                    : 'border-orange-500 text-orange-500 hover:bg-orange-50 hover:shadow-orange-500/20 hover:scale-[1.02]'
-                }`}
-                onClick={handleHandoverClick}
-              >
-                {hasHandover ? <CheckIcon className="w-4 h-4 mr-2" /> : <ScheduleIcon className="w-4 h-4 mr-2" />}
-                {hasHandover ? 'Odovzdané' : 'Odovzdať'}
-              </Button>
-
-              <Button
-                variant={hasReturn ? "default" : "outline"}
-                size="lg"
-                className={`flex-1 h-11 text-sm font-semibold transition-all duration-200 ${
-                  hasReturn 
-                    ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/30 hover:scale-[1.02]' 
-                    : 'border-orange-500 text-orange-500 hover:bg-orange-50 hover:shadow-orange-500/20 hover:scale-[1.02]'
-                }`}
-                onClick={handleReturnClick}
-              >
-                {hasReturn ? <CheckIcon className="w-4 h-4 mr-2" /> : <ScheduleIcon className="w-4 h-4 mr-2" />}
-                {hasReturn ? 'Prevzaté' : 'Prevziať'}
-              </Button>
-            </div>
-
-            {/* 📝 POZNÁMKY - AK EXISTUJÚ */}
-            {rental.notes && (
-              <div className="mb-3">
-                <div className="text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 p-3 rounded-md text-xs border border-gray-200 dark:border-gray-600">
-                  📝 {rental.notes}
-                </div>
-              </div>
-            )}
-
-            {/* 🔍 PROTOKOL CHECK & PLATBA STATUS & DELETE - KOMPAKTNE V JEDNOM RIADKU */}
-            <div className="flex justify-between items-center">
-              {/* Protokol check */}
-              {isLoadingProtocolStatus ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  className="border-orange-500 text-orange-500 text-xs h-8"
-                >
-                  Načítavam...
-                </Button>
-              ) : !protocolStatusLoaded ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleProtocolCheck}
-                  className="border-blue-500 text-blue-500 hover:bg-blue-50 text-xs h-8"
-                >
-                  Skontrolovať
-                </Button>
-              ) : (
-                <div /> // Prázdny div pre spacing
               )}
 
-              {/* Platba status + Delete tlačidlo v jednom riadku */}
-              <div className="flex items-center gap-2">
-                <Badge
-                  className={`h-6 text-xs font-medium ${
-                    rental.paid 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-red-500 text-white'
-                  }`}
-                >
-                  {rental.paid ? 'Uhradené' : 'Neuhradené'}
-                </Badge>
+              {(rental.customerEmail || rental.customer?.email) && (
+                <div className="text-gray-600 text-xs flex items-center gap-1">
+                  <EmailIcon className="h-3 w-3" />
+                  {rental.customerEmail || rental.customer?.email}
+                </div>
+              )}
+            </div>
+          </div>
 
-                {/* 🔄 CLONE TLAČIDLO - VEDĽA PLATBY */}
-                {onClone && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCloneClick}
-                    title="Kopírovať prenájom na ďalšie obdobie"
-                    className="w-8 h-8 p-0 text-green-500 hover:text-green-600 hover:bg-green-50 hover:scale-110 transition-all duration-200"
-                  >
-                    <ContentCopyIcon className="w-4 h-4" />
-                  </Button>
-                )}
-
-                {/* 🗑️ DELETE TLAČIDLO - VEDĽA PLATBY */}
-                {onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDeleteClick}
-                    className="w-8 h-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 hover:scale-110 transition-all duration-200"
-                  >
-                    <DeleteIcon className="w-4 h-4" />
-                  </Button>
-                )}
+          {/* 📅 DÁTUMY A CENA - KOMPAKTNEJŠIE */}
+          <div className="flex justify-between items-center mb-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div>
+              <div className="text-gray-600 text-xs mb-1">Obdobie prenájmu</div>
+              <div className="font-bold text-sm text-blue-600 leading-tight mb-1">
+                📅 {formatDateTime(rental.startDate)}
+              </div>
+              <div className="font-bold text-sm text-orange-600 leading-tight">
+                🏁 {formatDateTime(rental.endDate)}
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="text-right">
+              <div className="text-gray-600 text-xs mb-1">Celková cena</div>
+              <PriceDisplay
+                rental={rental}
+                variant="mobile"
+                showExtraKm={true}
+              />
+            </div>
+          </div>
+
+          {/* 💳 PLATOBNÉ PRÍKAZY - NOVÁ SEKCIA */}
+          {onCreatePaymentOrder && (
+            <div className="flex gap-2 mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-10 text-xs font-semibold border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                onClick={e => {
+                  e.stopPropagation();
+                  onCreatePaymentOrder(rental, 'rental');
+                }}
+              >
+                <span className="mr-1">💰</span>
+                Platba prenájmu
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-10 text-xs font-semibold border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                onClick={e => {
+                  e.stopPropagation();
+                  onCreatePaymentOrder(rental, 'deposit');
+                }}
+              >
+                <span className="mr-1">🛡️</span>
+                Platba depozitu
+              </Button>
+            </div>
+          )}
+
+          {/* 🔧 PROTOKOLY - KOMPAKTNEJŠIE TLAČIDLÁ */}
+          <div className="flex gap-3 mb-3">
+            <Button
+              variant={hasHandover ? 'default' : 'outline'}
+              size="lg"
+              className={`flex-1 h-11 text-sm font-semibold transition-all duration-200 ${
+                hasHandover
+                  ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/30 hover:scale-[1.02]'
+                  : 'border-orange-500 text-orange-500 hover:bg-orange-50 hover:shadow-orange-500/20 hover:scale-[1.02]'
+              }`}
+              onClick={handleHandoverClick}
+            >
+              {hasHandover ? (
+                <CheckIcon className="w-4 h-4 mr-2" />
+              ) : (
+                <ScheduleIcon className="w-4 h-4 mr-2" />
+              )}
+              {hasHandover ? 'Odovzdané' : 'Odovzdať'}
+            </Button>
+
+            <Button
+              variant={hasReturn ? 'default' : 'outline'}
+              size="lg"
+              className={`flex-1 h-11 text-sm font-semibold transition-all duration-200 ${
+                hasReturn
+                  ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/30 hover:scale-[1.02]'
+                  : 'border-orange-500 text-orange-500 hover:bg-orange-50 hover:shadow-orange-500/20 hover:scale-[1.02]'
+              }`}
+              onClick={handleReturnClick}
+            >
+              {hasReturn ? (
+                <CheckIcon className="w-4 h-4 mr-2" />
+              ) : (
+                <ScheduleIcon className="w-4 h-4 mr-2" />
+              )}
+              {hasReturn ? 'Prevzaté' : 'Prevziať'}
+            </Button>
+          </div>
+
+          {/* 📝 POZNÁMKY - AK EXISTUJÚ */}
+          {rental.notes && (
+            <div className="mb-3">
+              <div className="text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 p-3 rounded-md text-xs border border-gray-200 dark:border-gray-600">
+                📝 {rental.notes}
+              </div>
+            </div>
+          )}
+
+          {/* 🔍 PROTOKOL CHECK & PLATBA STATUS & DELETE - KOMPAKTNE V JEDNOM RIADKU */}
+          <div className="flex justify-between items-center">
+            {/* Protokol check */}
+            {isLoadingProtocolStatus ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="border-orange-500 text-orange-500 text-xs h-8"
+              >
+                Načítavam...
+              </Button>
+            ) : !protocolStatusLoaded ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleProtocolCheck}
+                className="border-blue-500 text-blue-500 hover:bg-blue-50 text-xs h-8"
+              >
+                Skontrolovať
+              </Button>
+            ) : (
+              <div /> // Prázdny div pre spacing
+            )}
+
+            {/* Platba status + Delete tlačidlo v jednom riadku */}
+            <div className="flex items-center gap-2">
+              <Badge
+                className={`h-6 text-xs font-medium ${
+                  rental.paid
+                    ? 'bg-green-500 text-white'
+                    : 'bg-red-500 text-white'
+                }`}
+              >
+                {rental.paid ? 'Uhradené' : 'Neuhradené'}
+              </Badge>
+
+              {/* 🔄 CLONE TLAČIDLO - VEDĽA PLATBY */}
+              {onClone && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloneClick}
+                  title="Kopírovať prenájom na ďalšie obdobie"
+                  className="w-8 h-8 p-0 text-green-500 hover:text-green-600 hover:bg-green-50 hover:scale-110 transition-all duration-200"
+                >
+                  <ContentCopyIcon className="w-4 h-4" />
+                </Button>
+              )}
+
+              {/* 🗑️ DELETE TLAČIDLO - VEDĽA PLATBY */}
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteClick}
+                  className="w-8 h-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 hover:scale-110 transition-all duration-200"
+                >
+                  <DeleteIcon className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 );

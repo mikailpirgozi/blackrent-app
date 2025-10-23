@@ -34,6 +34,7 @@ interface ElegantRentalCardProps {
   onDelete: (id: string) => void;
   onClone: (rental: Rental) => void;
   onOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
+  onCreatePaymentOrder?: (rental: Rental, type: 'rental' | 'deposit') => void;
 }
 
 export const ElegantRentalCard: React.FC<ElegantRentalCardProps> = ({
@@ -45,6 +46,7 @@ export const ElegantRentalCard: React.FC<ElegantRentalCardProps> = ({
   onDelete,
   onClone,
   onOpenProtocolMenu,
+  onCreatePaymentOrder,
 }) => {
   const isFlexible = rental.isFlexible || false;
 
@@ -250,6 +252,29 @@ export const ElegantRentalCard: React.FC<ElegantRentalCardProps> = ({
                   <Copy className="h-4 w-4 mr-2" />
                   Kopírovať
                 </DropdownMenuItem>
+                {onCreatePaymentOrder && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={e => {
+                        e.stopPropagation();
+                        onCreatePaymentOrder(rental, 'rental');
+                      }}
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Platba prenájmu
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={e => {
+                        e.stopPropagation();
+                        onCreatePaymentOrder(rental, 'deposit');
+                      }}
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Platba depozitu
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"

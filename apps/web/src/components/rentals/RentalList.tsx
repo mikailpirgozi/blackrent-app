@@ -31,7 +31,12 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import { ProtocolImage, ProtocolVideo, Rental, ReturnProtocol } from '../../types';
+import {
+  ProtocolImage,
+  ProtocolVideo,
+  Rental,
+  ReturnProtocol,
+} from '../../types';
 import { ITEMS_PER_PAGE } from '../../types/rental-types';
 import { logger } from '../../utils/logger';
 
@@ -64,6 +69,7 @@ import { RentalFilters } from './components/RentalFilters';
 import { RentalProtocols } from './components/RentalProtocols';
 import { RentalStats } from './components/RentalStats';
 import { RentalTable } from './components/RentalTable';
+import { PaymentOrderDialog } from './components/PaymentOrderDialog';
 
 // Constants (removed unused constants)
 
@@ -114,6 +120,15 @@ export default function RentalList() {
   const [selectedProtocolType, setSelectedProtocolType] = useState<
     'handover' | 'return' | null
   >(null);
+
+  // 💳 PAYMENT ORDER STATE
+  const [paymentOrderDialogOpen, setPaymentOrderDialogOpen] = useState(false);
+  const [selectedPaymentOrderRental, setSelectedPaymentOrderRental] =
+    useState<Rental | null>(null);
+  const [selectedPaymentOrderType, setSelectedPaymentOrderType] = useState<
+    'rental' | 'deposit' | null
+  >(null);
+
   // const permissions = usePermissions(); // Unused for now
   const [isMobile, setIsMobile] = useState(false);
 
@@ -927,6 +942,28 @@ export default function RentalList() {
     );
   }
 
+  // 💳 PAYMENT ORDER HANDLERS
+  const handleCreatePaymentOrder = useCallback(
+    (rental: Rental, type: 'rental' | 'deposit') => {
+      setSelectedPaymentOrderRental(rental);
+      setSelectedPaymentOrderType(type);
+      setPaymentOrderDialogOpen(true);
+    },
+    []
+  );
+
+  const handleClosePaymentOrderDialog = useCallback(() => {
+    setPaymentOrderDialogOpen(false);
+    setSelectedPaymentOrderRental(null);
+    setSelectedPaymentOrderType(null);
+  }, []);
+
+  const handlePaymentOrderSuccess = useCallback(() => {
+    // Refresh rentals alebo zobraz success message
+    console.log('✅ Payment order created successfully');
+    handleClosePaymentOrderDialog();
+  }, [handleClosePaymentOrderDialog]);
+
   // ✅ Export/Import handlers inline
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1077,6 +1114,7 @@ export default function RentalList() {
         handleEdit={handleEdit}
         handleDelete={handleDelete}
         handleCloneRental={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
+        handleCreatePaymentOrder={handleCreatePaymentOrder} // 💳 NOVÉ: Platobné príkazy
         handleOpenProtocolMenu={(rental, type) => {
           logger.debug('📋 Opening protocol menu', {
             rentalId: rental.id,
@@ -1226,7 +1264,9 @@ export default function RentalList() {
             window.alert('Chyba pri aktualizácii protokolu. Skúste to znovu.');
           }
         }}
-        handleSaveReturn={async (protocolData: Record<string, unknown> | ReturnProtocol) => {
+        handleSaveReturn={async (
+          protocolData: Record<string, unknown> | ReturnProtocol
+        ) => {
           try {
             logger.debug(
               '💾 Return protocol already saved, updating UI:',
@@ -1236,7 +1276,11 @@ export default function RentalList() {
             // React Query vracia priamo protocol objekt
             const rentalId =
               (protocolData as Record<string, unknown>)?.rentalId ||
-              ((protocolData as Record<string, unknown>)?.rental as { id?: string })?.id;
+              (
+                (protocolData as Record<string, unknown>)?.rental as {
+                  id?: string;
+                }
+              )?.id;
 
             if (rentalId) {
               // ✅ VOLAJ PROTOCOL UPDATE CALLBACK pre okamžitú aktualizáciu
@@ -1305,6 +1349,15 @@ export default function RentalList() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 💳 PAYMENT ORDER DIALOGS */}
+      <PaymentOrderDialog
+        rental={selectedPaymentOrderRental}
+        type={selectedPaymentOrderType}
+        open={paymentOrderDialogOpen}
+        onClose={handleClosePaymentOrderDialog}
+        onSuccess={handlePaymentOrderSuccess}
+      />
     </div>
   );
 }

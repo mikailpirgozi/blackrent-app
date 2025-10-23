@@ -4923,9 +4923,11 @@ export class PostgresDatabase {
       let vehicleExtraKmPrice: number = 0.30; // Default hodnota
       
       if (rentalData.vehicleId) {
+        // 🔧 FIX: Convert string ID to integer for vehicle lookup
+        const vehicleIdForQuery = parseInt(rentalData.vehicleId, 10);
         const vehicleResult = await client.query(`
           SELECT company, brand, model, pricing FROM vehicles WHERE id = $1
-        `, [rentalData.vehicleId]);
+        `, [vehicleIdForQuery]);
         
         if (vehicleResult.rows.length > 0) {
           company = vehicleResult.rows[0].company;
@@ -4949,6 +4951,16 @@ export class PostgresDatabase {
       // Použiť zadanú hodnotu alebo skopírovanú z vozidla
       const finalExtraKmPrice = rentalData.extraKilometerRate !== undefined ? 
         rentalData.extraKilometerRate : vehicleExtraKmPrice;
+      // 🔧 FIX: Convert string IDs to integers for database (vehicles and customers use integer IDs)
+      const vehicleIdInt = rentalData.vehicleId ? parseInt(rentalData.vehicleId, 10) : null;
+      const customerIdInt = rentalData.customerId ? parseInt(rentalData.customerId, 10) : null;
+      
+      // 🐛 DEBUG: Log ID conversions
+      console.log('🔧 CREATE RENTAL - ID Conversions:', {
+        vehicleId: { original: rentalData.vehicleId, converted: vehicleIdInt },
+        customerId: { original: rentalData.customerId, converted: customerIdInt }
+      });
+      
       const result = await client.query(`
         INSERT INTO rentals (
           vehicle_id, customer_id, customer_name, start_date, end_date, 
@@ -4968,8 +4980,8 @@ export class PostgresDatabase {
           is_flexible, flexible_end_date,
           approval_status, email_content, auto_processed_at
       `, [
-        rentalData.vehicleId || null, 
-        rentalData.customerId || null,
+        vehicleIdInt, 
+        customerIdInt,
         rentalData.customerName,
         rentalData.startDate, 
         rentalData.endDate, 

@@ -457,6 +457,7 @@ export default function RentalForm({
     customerData?: Customer
   ) => {
     // Pridanie nového zákazníka ak neexistuje
+    let createdCustomer: Customer | undefined;
     if (customerData) {
       const existingCustomer = (customers || []).find(
         c =>
@@ -466,7 +467,8 @@ export default function RentalForm({
 
       if (!existingCustomer) {
         try {
-          await createCustomer(customerData);
+          // 🔧 FIX: Použiť skutočného zákazníka z databázy (s integer ID)
+          createdCustomer = await createCustomer(customerData);
         } catch (error) {
           console.error('Chyba pri vytváraní zákazníka z emailu:', error);
         }
@@ -492,18 +494,22 @@ export default function RentalForm({
 
     // Nastavenie zákazníka ak bol nájdený alebo vytvorený
     if (customerData) {
+      // 🔧 FIX: Použiť skutočného zákazníka z databázy (nie UUID z frontendu)
       const finalCustomer =
+        createdCustomer || // Najprv skús novo vytvoreného zákazníka
         (customers || []).find(
           c =>
             c.name.toLowerCase() === customerData.name.toLowerCase() ||
             c.email === customerData.email
-        ) || customerData;
+        );
 
-      setSelectedCustomer(finalCustomer);
-      setFormData(prev => ({
-        ...prev,
-        customerId: finalCustomer.id,
-      }));
+      if (finalCustomer) {
+        setSelectedCustomer(finalCustomer);
+        setFormData(prev => ({
+          ...prev,
+          customerId: finalCustomer.id,
+        }));
+      }
     }
 
     // Nastavenie ceny ak bola parsovaná
@@ -752,15 +758,22 @@ export default function RentalForm({
       } else {
         // Vytvorím nového zákazníka
         const newCustomer: Customer = {
-          id: uuidv4(),
+          id: uuidv4(), // Temporary ID, will be replaced by DB ID
           name: formData.customerName,
           email: '',
           phone: '',
           createdAt: new Date(),
         };
-        await createCustomer(newCustomer);
-        finalCustomer = newCustomer;
-        finalCustomerId = newCustomer.id;
+        // 🔧 FIX: Použiť skutočného zákazníka z databázy (s integer ID)
+        console.log('🔧 Creating customer:', newCustomer);
+        const createdCustomer = await createCustomer(newCustomer);
+        console.log('✅ Customer created:', createdCustomer);
+        if (!createdCustomer || !createdCustomer.id) {
+          console.error('❌ Customer creation failed - no ID returned!');
+          throw new Error('Nepodarilo sa vytvoriť zákazníka');
+        }
+        finalCustomer = createdCustomer;
+        finalCustomerId = createdCustomer.id;
       }
     }
 

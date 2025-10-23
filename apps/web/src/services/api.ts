@@ -291,6 +291,14 @@ class ApiService {
     });
   }
 
+  // Generická PATCH metóda
+  async patch<T>(endpoint: string, data?: Record<string, unknown>): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : null,
+    });
+  }
+
   // Vozidlá
   async getVehicles(options?: {
     includeRemoved?: boolean;
@@ -372,8 +380,10 @@ class ApiService {
     return this.request<Customer[]>('/customers');
   }
 
-  async createCustomer(customer: Customer): Promise<void> {
-    return this.request<void>('/customers', {
+  async createCustomer(customer: Customer): Promise<Customer> {
+    // 🔧 FIX: Vrátiť vytvoreného zákazníka s ID z databázy
+    // request() už vracia data.data, takže response JE Customer
+    return this.request<Customer>('/customers', {
       method: 'POST',
       body: JSON.stringify(customer),
     });
@@ -1875,3 +1885,4 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
+export const api = apiService; // Alias for compatibility

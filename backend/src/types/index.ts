@@ -579,7 +579,7 @@ export interface CompanyInvestorShare {
 
 // Permission system interfaces
 export interface Permission {
-  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | 'settlements' | 'statistics' | '*';
+  resource: 'vehicles' | 'rentals' | 'customers' | 'finances' | 'users' | 'companies' | 'maintenance' | 'protocols' | 'pricing' | 'expenses' | 'insurances' | 'settlements' | 'statistics' | 'settings' | '*';
   actions: ('read' | 'create' | 'update' | 'delete')[];
   conditions?: {
     ownOnly?: boolean;        // len vlastné záznamy

@@ -24,6 +24,10 @@ interface RentalTableProps {
   handleCloneRental: (rental: Rental) => void;
   handleOpenProtocolMenu: (rental: Rental, type: 'handover' | 'return') => void;
   handleCheckProtocols: (rental: Rental) => void;
+  handleCreatePaymentOrder?: (
+    rental: Rental,
+    type: 'rental' | 'deposit'
+  ) => void; // 💳 NOVÉ
   getVehicleByRental: (rental: Rental) => Vehicle | undefined;
   protocolStatusMap: Record<
     string,
@@ -43,6 +47,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
   handleCloneRental,
   handleOpenProtocolMenu,
   handleCheckProtocols,
+  handleCreatePaymentOrder, // 💳 NOVÉ
   getVehicleByRental,
   protocolStatusMap,
   protocols,
@@ -175,6 +180,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     onOpenProtocolMenu={handleOpenProtocolMenu}
                     onCheckProtocols={handleCheckProtocols}
                     onClone={handleCloneRental} // 🔄 NOVÉ: Clone funkcionalita
+                    onCreatePaymentOrder={handleCreatePaymentOrder} // 💳 NOVÉ: Platobné príkazy
                     onDelete={id => {
                       const rental = filteredRentals.find(r => r.id === id);
                       if (rental) handleDeleteClick(rental);
@@ -214,6 +220,7 @@ export const RentalTable: React.FC<RentalTableProps> = ({
                     onDelete={handleDelete}
                     onClone={handleCloneRental}
                     onOpenProtocolMenu={handleOpenProtocolMenu}
+                    onCreatePaymentOrder={handleCreatePaymentOrder}
                   />
                 );
               })}

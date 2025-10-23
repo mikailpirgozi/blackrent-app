@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { BankAccountManager } from '@/components/bank-accounts/BankAccountManager';
 
 import { useCompanies } from '@/lib/react-query/hooks/useCompanies';
 import {
@@ -921,10 +922,11 @@ export default function VehicleListNew() {
           value={currentTab.toString()}
           onValueChange={value => setCurrentTab(parseInt(value))}
         >
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="0">Vozidlá</TabsTrigger>
             <TabsTrigger value="1">👤 Majitelia</TabsTrigger>
             <TabsTrigger value="2">🤝 Používatelia</TabsTrigger>
+            <TabsTrigger value="3">💳 Bankové účty</TabsTrigger>
           </TabsList>
 
           {/* TAB 0 - VOZIDLÁ */}
@@ -1129,6 +1131,24 @@ export default function VehicleListNew() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* TAB 3 - BANKOVÉ ÚČTY */}
+          <TabsContent value="3" className="pt-6">
+            <div className="mb-6">
+              <UnifiedTypography variant="h6">
+                💳 Správa bankových účtov
+              </UnifiedTypography>
+            </div>
+
+            <UnifiedTypography
+              variant="body2"
+              className="text-muted-foreground mb-6"
+            >
+              Bankové účty pre generovanie platobných príkazov s QR kódmi
+            </UnifiedTypography>
+
+            <BankAccountManager />
           </TabsContent>
         </Tabs>
       </div>

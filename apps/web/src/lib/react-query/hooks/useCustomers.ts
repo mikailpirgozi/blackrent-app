@@ -21,7 +21,7 @@ export function useCustomers() {
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Customer, Error, Customer>({
     mutationFn: (customer: Customer) => apiService.createCustomer(customer),
     onSuccess: data => {
       // Trigger WebSocket notification
