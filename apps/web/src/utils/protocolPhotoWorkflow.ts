@@ -48,12 +48,13 @@ export async function processAndUploadPhotos(
   const totalStart = performance.now();
   const objectURLs: string[] = []; // Track for cleanup
 
-  // ✅ CRITICAL: Deduplicate files by name + size + lastModified
+  // ✅ CRITICAL: Deduplicate files by name + size (NOT lastModified!)
+  // Why not lastModified? iOS/Android gallery generates new timestamp on each pick
   // Prevents processing same photo multiple times if user clicks "Add photos" twice
   const uniqueFiles = Array.from(
     new Map(
       files.map(file => [
-        `${file.name}-${file.size}-${file.lastModified}`,
+        `${file.name}-${file.size}`, // ✅ FIXED: Removed lastModified
         file,
       ])
     ).values()
