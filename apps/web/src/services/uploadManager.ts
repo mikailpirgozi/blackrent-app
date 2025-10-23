@@ -34,6 +34,8 @@ export class UploadManager {
   private MAX_PARALLEL = this.detectOptimalParallelism(); // ✅ iOS ANTI-CRASH: Auto-detect
   private readonly MAX_RETRIES = 5; // ✅ INCREASED: 3 → 5 retries for weak internet
   private readonly RETRY_DELAY = 3000; // ✅ INCREASED: 2s → 3s base delay
+  private readonly UPLOAD_TIMEOUT = 120000; // ✅ NEW: 120s timeout per upload (was infinite!)
+  private readonly HEALTH_CHECK_TIMEOUT = 5000; // ✅ NEW: 5s timeout for health check
 
   /**
    * ✅ ANTI-CRASH: Detect optimal parallelism based on device
@@ -72,6 +74,70 @@ export class UploadManager {
   }
 
   /**
+   * ✅ NEW: Health check - verify server is reachable before uploading
+   */
+  private async healthCheck(): Promise<boolean> {
+    try {
+      const apiBaseUrl = getApiBaseUrl();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.HEALTH_CHECK_TIMEOUT
+      );
+
+      const response = await fetch(`${apiBaseUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        logger.info('✅ Server health check passed');
+        return true;
+      }
+
+      logger.warn('⚠️ Server health check failed', { status: response.status });
+      return false;
+    } catch (error) {
+      logger.error('❌ Server health check error', {
+        error: (error as Error).message,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * ✅ NEW: Fetch with timeout wrapper
+   */
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit,
+    timeoutMs: number
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      logger.warn('⏱️ Upload timeout reached', { url, timeout: timeoutMs });
+    }, timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if ((error as Error).name === 'AbortError') {
+        throw new Error(`Upload timeout after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Upload batch of files in parallel with adaptive sizing
    */
   async uploadBatch(
@@ -86,6 +152,16 @@ export class UploadManager {
     const results: UploadResult[] = [];
     const failedUploads: Array<{ task: UploadTask; error: string }> = [];
     let completed = 0;
+
+    // ✅ NEW: Health check before starting uploads
+    logger.info('🏥 Performing server health check before upload...');
+    const isHealthy = await this.healthCheck();
+    if (!isHealthy) {
+      logger.error('❌ Server health check failed - aborting upload');
+      throw new Error(
+        'Server is not reachable. Please check your internet connection and try again.'
+      );
+    }
 
     // Use adaptive batch size if provided
     const parallelCount = adaptiveBatchSize || this.MAX_PARALLEL;
@@ -213,23 +289,67 @@ export class UploadManager {
         };
       } catch (error) {
         lastError = error as Error;
-        logger.warn('Upload failed, retrying...', {
+        const errorMessage = lastError.message || 'Unknown error';
+
+        // ✅ NEW: Classify error type for better handling
+        const isNetworkError =
+          errorMessage.includes('fetch') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('timeout') ||
+          lastError.name === 'AbortError' ||
+          lastError.name === 'TypeError';
+
+        const isServerError =
+          errorMessage.includes('500') ||
+          errorMessage.includes('502') ||
+          errorMessage.includes('503') ||
+          errorMessage.includes('504');
+
+        logger.warn('Upload failed, analyzing error...', {
           id: task.id,
           path: task.path,
           attempt,
-          error: lastError.message,
+          error: errorMessage,
+          errorType: isNetworkError
+            ? 'network'
+            : isServerError
+              ? 'server'
+              : 'unknown',
+          retryable: attempt < this.MAX_RETRIES,
         });
 
         if (attempt < this.MAX_RETRIES) {
-          // Exponential backoff with jitter: 3s, 6s, 12s, 24s, 48s
-          const baseDelay = this.RETRY_DELAY * Math.pow(2, attempt - 1);
+          // ✅ NEW: Adaptive retry delay based on error type
+          let baseDelay = this.RETRY_DELAY * Math.pow(2, attempt - 1);
+
+          // Network errors: longer delay (might be internet issue)
+          if (isNetworkError) {
+            baseDelay *= 1.5;
+            logger.info('🌐 Network error detected - using longer retry delay');
+          }
+
+          // Server errors: shorter delay (server might recover quickly)
+          if (isServerError) {
+            baseDelay *= 0.75;
+            logger.info('🖥️ Server error detected - using shorter retry delay');
+          }
+
           const jitter = Math.random() * 1000; // Add 0-1s random jitter to prevent thundering herd
           const delay = baseDelay + jitter;
-          logger.info('Retrying upload after delay', {
+
+          logger.info('⏳ Retrying upload after delay', {
             attempt,
+            nextAttempt: attempt + 1,
+            maxRetries: this.MAX_RETRIES,
             delay: Math.round(delay),
             id: task.id,
+            errorType: isNetworkError
+              ? 'network'
+              : isServerError
+                ? 'server'
+                : 'unknown',
           });
+
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -285,13 +405,19 @@ export class UploadManager {
     }
 
     const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/files/upload`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
+
+    // ✅ NEW: Use fetchWithTimeout instead of plain fetch
+    const response = await this.fetchWithTimeout(
+      `${apiBaseUrl}/files/upload`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       },
-      body: formData,
-    });
+      this.UPLOAD_TIMEOUT
+    );
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
