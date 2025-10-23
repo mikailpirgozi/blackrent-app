@@ -187,7 +187,8 @@ export class UploadManager {
         batch.map(task => this.uploadWithRetry(task, onProgress))
       );
 
-      // Separate successful and failed results
+      // ✅ CRITICAL FIX: Preserve array indices for failed uploads
+      // Frontend expects uploadResults[i] to match uploadTasks[i]
       batchResults.forEach((result, idx) => {
         if (result.status === 'fulfilled') {
           results.push(result.value);
@@ -198,11 +199,15 @@ export class UploadManager {
               task,
               error: result.reason?.message || 'Unknown error',
             });
-            logger.error('Upload failed after all retries', {
+            logger.error('❌ Upload failed after all retries', {
               path: task.path,
               id: task.id,
               error: result.reason?.message,
             });
+
+            // ✅ CRITICAL: Push null placeholder to maintain array indices
+            // This ensures uploadResults[i] matches uploadTasks[i]
+            results.push(null as any);
           }
         }
       });

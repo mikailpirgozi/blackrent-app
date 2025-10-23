@@ -132,9 +132,9 @@ export async function processAndUploadPhotos(
 
     const uploadTime = performance.now() - uploadStart;
 
-    // ✅ Detailné logovanie úspešnosti uploadu
+    // ✅ CRITICAL FIX: Count only non-null results (successful uploads)
     const expectedUploads = uploadTasks.length;
-    const successfulUploads = uploadResults.length;
+    const successfulUploads = uploadResults.filter(r => r !== null).length;
     const failedUploads = expectedUploads - successfulUploads;
     const successRate = ((successfulUploads / expectedUploads) * 100).toFixed(
       1
@@ -148,8 +148,10 @@ export async function processAndUploadPhotos(
       webpCount: processedImages.length,
       jpegCount: processedImages.length,
       time: uploadTime,
-      avgPerImage: uploadTime / uploadResults.length,
-      totalSize: uploadResults.reduce((sum, r) => sum + r.size, 0),
+      avgPerImage: successfulUploads > 0 ? uploadTime / successfulUploads : 0,
+      totalSize: uploadResults
+        .filter(r => r !== null)
+        .reduce((sum, r) => sum + r.size, 0),
     });
 
     // ✅ CHANGED: Varovanie ak niektoré uploady zlyhali, ale NEPRERUŠUJ proces
