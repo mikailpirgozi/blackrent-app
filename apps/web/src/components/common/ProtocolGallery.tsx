@@ -75,11 +75,12 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
       if (preloadedImagesRef.current.has(index)) return;
 
       const image = images[index];
-      if (!image?.originalUrl) return;
+      if (!image?.url && !image?.originalUrl) return;
 
       // Create new Image element for preloading
+      // Use WebP version (url) for faster loading, fallback to originalUrl
       const img = new Image();
-      const url = getProxyUrl(image.originalUrl);
+      const url = getProxyUrl(image.url || image.originalUrl);
 
       img.onload = () => {
         preloadedImagesRef.current.add(index);
@@ -275,7 +276,9 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
                   </div>
                 ) : (
                   <img
-                    src={getProxyUrl(currentImage?.originalUrl)}
+                    src={getProxyUrl(
+                      currentImage?.url || currentImage?.originalUrl
+                    )}
                     alt={
                       currentImage?.description || `Image ${currentIndex + 1}`
                     }
@@ -315,51 +318,39 @@ export const ProtocolGallery: React.FC<ProtocolGalleryProps> = ({
         )}
       </div>
 
-      {/* Thumbnail Strip - Lazy Loading */}
+      {/* Thumbnail Strip - All thumbnails loaded for better navigation */}
       <div className="bg-black/50 backdrop-blur-sm p-4 overflow-x-auto">
         <div className="flex gap-2 justify-center">
-          {images.map((image, index) => {
-            // 🚀 Only load thumbnails that are visible or near current index
-            const isNearCurrent = Math.abs(index - currentIndex) <= 5;
-            const shouldLoad = isNearCurrent || index === currentIndex;
-
-            return (
-              <button
-                key={`${image.id || index}-thumb`}
-                onClick={() => {
-                  setCurrentIndex(index);
-                  setIsLoading(true);
-                  setImageError(false);
-                }}
-                className={`
-                  relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden
-                  transition-all duration-200
-                  ${
-                    index === currentIndex
-                      ? 'ring-2 ring-white scale-110'
-                      : 'opacity-50 hover:opacity-100'
-                  }
-                `}
-              >
-                {shouldLoad ? (
-                  <img
-                    src={getProxyUrl(image.originalUrl)}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  // Placeholder for thumbnails that are far away
-                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                    <span className="text-white text-xs">{index + 1}</span>
-                  </div>
-                )}
-                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
-                  {index + 1}
-                </div>
-              </button>
-            );
-          })}
+          {images.map((image, index) => (
+            <button
+              key={`${image.id || index}-thumb`}
+              onClick={() => {
+                setCurrentIndex(index);
+                setIsLoading(true);
+                setImageError(false);
+              }}
+              className={`
+                relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden
+                transition-all duration-200
+                ${
+                  index === currentIndex
+                    ? 'ring-2 ring-white scale-110'
+                    : 'opacity-50 hover:opacity-100'
+                }
+              `}
+            >
+              {/* ✅ Load ALL thumbnails immediately for better navigation */}
+              <img
+                src={getProxyUrl(image.url || image.originalUrl)}
+                alt=""
+                className="w-full h-full object-cover"
+                loading="eager"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
+                {index + 1}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
