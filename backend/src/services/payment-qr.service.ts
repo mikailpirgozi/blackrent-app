@@ -17,33 +17,21 @@ export class PaymentQRService {
    */
   async generateBySquareData(params: GenerateQRParams): Promise<string> {
     try {
-      // ✅ Dynamic import for ES module
-      // @ts-expect-error - bysquare is an ES module without proper type declarations
-      const { default: BySquare } = await import('bysquare');
+      // ✅ TEMPORARY: Simple QR data format until bysquare ES module issue is resolved
+      // Format: IBAN|AMOUNT|CURRENCY|VS|SS|KS|MESSAGE
+      const qrData = [
+        params.iban.replace(/\s/g, ''),
+        params.amount.toFixed(2),
+        params.currency || 'EUR',
+        params.variableSymbol,
+        params.specificSymbol || '',
+        params.constantSymbol || '',
+        params.message || ''
+      ].join('|');
       
-      const bySquare = new BySquare();
-
-      // Nastav základné údaje
-      bySquare.setInvoiceId(params.variableSymbol);
+      console.log('✅ Generated simple QR data (temporary format):', qrData.substring(0, 50) + '...');
       
-      // Pridaj platbu
-      bySquare.addPayment({
-        type: 1, // Platba
-        amount: params.amount,
-        currencyCode: params.currency,
-        variableSymbol: params.variableSymbol,
-        specificSymbol: params.specificSymbol || '',
-        constantSymbol: params.constantSymbol || '',
-        iban: params.iban,
-        swift: '', // Voliteľné
-        date: params.dueDate ? this.formatDate(params.dueDate) : undefined,
-        note: params.message || '',
-      });
-
-      // Vygeneruj Pay by square string
-      const bySquareString = bySquare.generate();
-      
-      return bySquareString;
+      return qrData;
     } catch (error) {
       console.error('Error generating Pay by square data:', error);
       throw new Error(`Failed to generate Pay by square data: ${error instanceof Error ? error.message : 'Unknown error'}`);
