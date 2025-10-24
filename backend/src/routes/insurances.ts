@@ -199,7 +199,7 @@ router.post('/',
   try {
     console.log('🔧 INSURANCE POST: Request body:', JSON.stringify(req.body, null, 2));
     
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState } = req.body;
+    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState, brokerCompany } = req.body;
 
     // ✅ vehicleId JE POVINNÉ - poistka musí byť priradená k vozidlu
     if (!vehicleId || !type || !policyNumber || !validFrom || !validTo || typeof price !== 'number' || price < 0 || !company) {
@@ -250,8 +250,10 @@ router.post('/',
       filePaths,
       greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
       greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      kmState: kmState || undefined, // 🚗 Stav kilometrov pre Kasko
       deductibleAmount,
       deductiblePercentage
+      // Note: brokerCompany je len frontend field, nie v DB
     });
 
     console.log('🔧 INSURANCE POST: Successfully created insurance:', createdInsurance);
@@ -277,7 +279,7 @@ router.put('/:id',
   checkPermission('insurances', 'update', { getContext: getInsuranceContext }),
   async (req: Request, res: Response<ApiResponse>) => {
   const { id } = req.params; // 🔧 FIX: Move outside try-catch for error handler access
-  const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState } = req.body;
+  const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState, brokerCompany } = req.body;
   
   try {
 
