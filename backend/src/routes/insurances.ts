@@ -261,9 +261,10 @@ router.put('/:id',
   authenticateToken,
   checkPermission('insurances', 'update', { getContext: getInsuranceContext }),
   async (req: Request, res: Response<ApiResponse>) => {
+  const { id } = req.params; // 🔧 FIX: Move outside try-catch for error handler access
+  const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState } = req.body;
+  
   try {
-    const { id } = req.params;
-    const { vehicleId, type, policyNumber, validFrom, validTo, price, company, insurerId, paymentFrequency, filePath, filePaths, greenCardValidFrom, greenCardValidTo, deductibleAmount, deductiblePercentage, kmState } = req.body;
 
     console.log('🔧 INSURANCE PUT: Request body:', JSON.stringify(req.body, null, 2));
     console.log('🔧 INSURANCE PUT: Validation check:', {
@@ -318,8 +319,8 @@ router.put('/:id',
     console.error('❌ INSURANCE PUT ERROR:', error);
     console.error('❌ INSURANCE PUT ERROR STACK:', error instanceof Error ? error.stack : 'No stack');
     console.error('❌ INSURANCE PUT ERROR MESSAGE:', error instanceof Error ? error.message : String(error));
-    console.error('❌ INSURANCE PUT ID:', req.params.id);
-    console.error('❌ INSURANCE PUT vehicleId:', req.body.vehicleId, 'type:', typeof req.body.vehicleId);
+    console.error('❌ INSURANCE PUT ID:', id);
+    console.error('❌ INSURANCE PUT vehicleId:', vehicleId, 'type:', typeof vehicleId);
     res.status(500).json({
       success: false,
       error: `Chyba pri aktualizácii poistky: ${error instanceof Error ? error.message : String(error)}`
