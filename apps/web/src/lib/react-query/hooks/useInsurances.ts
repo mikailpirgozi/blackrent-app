@@ -15,25 +15,31 @@ export interface InsuranceFilters extends Record<string, unknown> {
 }
 
 // 🔧 SCHEMA VERSION: Increment this when database schema changes (INTEGER vs UUID)
-const INSURANCE_SCHEMA_VERSION = '3'; // Force clear all caches - INTEGER IDs only
+const INSURANCE_SCHEMA_VERSION = '4'; // 🔥 FORCE RELOAD: Clear React Query cache with INTEGER IDs
 
 // 🔥 AGGRESSIVE CACHE CLEARING: Clear on version mismatch
 if (typeof window !== 'undefined') {
   const storedVersion = localStorage.getItem('insurance_schema_version');
-  if (storedVersion !== INSURANCE_SCHEMA_VERSION) {
+
+  // 🔧 CRITICAL FIX: Only reload ONCE per session
+  const hasReloadedThisSession = sessionStorage.getItem(
+    'insurance_cache_reloaded'
+  );
+
+  if (storedVersion !== INSURANCE_SCHEMA_VERSION && !hasReloadedThisSession) {
     console.log('🔧 Insurance schema version changed, clearing ALL caches...');
     console.log(
       `   Old version: ${storedVersion}, New version: ${INSURANCE_SCHEMA_VERSION}`
     );
 
+    // Mark that we're about to reload
+    sessionStorage.setItem('insurance_cache_reloaded', 'true');
+
     // Clear localStorage insurance data
     localStorage.removeItem('insurance_schema_version');
     localStorage.removeItem('insurances');
 
-    // Clear sessionStorage
-    sessionStorage.clear();
-
-    // Set new version
+    // Set new version BEFORE reload
     localStorage.setItem('insurance_schema_version', INSURANCE_SCHEMA_VERSION);
 
     console.log('✅ All caches cleared, page will reload...');
