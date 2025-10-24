@@ -241,8 +241,8 @@ router.post('/',
       vehicleId,
       type,
       policyNumber,
-      validFrom: new Date(validFrom),
-      validTo: new Date(validTo),
+      validFrom: new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom), // 🕐 FIX: Extract date only
+      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
       price,
       company,
       paymentFrequency,
@@ -311,8 +311,8 @@ router.put('/:id',
       vehicleId,
       type,
       policyNumber,
-      validFrom: new Date(validFrom),
-      validTo: new Date(validTo),
+      validFrom: new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom), // 🕐 FIX: Extract date only
+      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
       price,
       company,
       brokerCompany, // 🏢 Maklerská spoločnosť

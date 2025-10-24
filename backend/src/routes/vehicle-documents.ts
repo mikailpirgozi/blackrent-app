@@ -61,8 +61,8 @@ router.post('/',
     const createdDocument = await postgresDatabase.createVehicleDocument({
       vehicleId,
       documentType,
-      validFrom: validFrom ? new Date(validFrom) : undefined,
-      validTo: new Date(validTo),
+      validFrom: validFrom ? new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom) : undefined, // 🕐 FIX: Extract date only
+      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
       documentNumber,
       price,
       notes,
@@ -125,8 +125,8 @@ router.put('/:id',
     const updatedDocument = await postgresDatabase.updateVehicleDocument(id, {
       vehicleId,
       documentType,
-      validFrom: validFrom ? new Date(validFrom) : undefined,
-      validTo: new Date(validTo),
+      validFrom: validFrom ? new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom) : undefined, // 🕐 FIX: Extract date only
+      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
       documentNumber,
       price,
       notes,
