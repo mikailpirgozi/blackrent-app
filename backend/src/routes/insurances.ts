@@ -8,17 +8,30 @@ import type { ApiResponse, Insurance } from '../types';
 const router: Router = Router();
 
 // Helper function for filtering insurances based on query parameters
-const filterInsurances = (insurances: Insurance[], query: Record<string, unknown>) => {
+const filterInsurances = (insurances: Insurance[], query: Record<string, unknown>, vehicles?: any[]) => {
   let filtered = [...insurances];
   
   // Search filter
   if (query.search && typeof query.search === 'string') {
     const searchTerm = query.search.toLowerCase();
-    filtered = filtered.filter(insurance => 
-      insurance.type?.toLowerCase().includes(searchTerm) ||
-      insurance.company?.toLowerCase().includes(searchTerm) ||
-      insurance.policyNumber?.toLowerCase().includes(searchTerm)
-    );
+    filtered = filtered.filter(insurance => {
+      // Search in insurance fields
+      const matchesInsurance = 
+        insurance.type?.toLowerCase().includes(searchTerm) ||
+        insurance.company?.toLowerCase().includes(searchTerm) ||
+        insurance.policyNumber?.toLowerCase().includes(searchTerm);
+      
+      // Search in vehicle name (brand + model + license plate)
+      if (vehicles && insurance.vehicleId) {
+        const vehicle = vehicles.find(v => v.id === insurance.vehicleId);
+        if (vehicle) {
+          const vehicleName = `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.licensePlate || ''}`.toLowerCase();
+          return matchesInsurance || vehicleName.includes(searchTerm);
+        }
+      }
+      
+      return matchesInsurance;
+    });
   }
   
   // Type filter
@@ -128,9 +141,11 @@ router.get('/paginated',
       // Load all insurances first
       let allInsurances = await postgresDatabase.getInsurances();
       
+      // Load vehicles for search filtering
+      const vehicles = await postgresDatabase.getVehicles();
+      
       // 🏢 COMPANY OWNER - filter len poistky vlastných vozidiel
       if (req.user?.role === 'company_admin' && req.user.companyId) {
-        const vehicles = await postgresDatabase.getVehicles();
         const companyVehicleIds = vehicles
           .filter(v => v.ownerCompanyId === req.user?.companyId)
           .map(v => v.id);
@@ -140,8 +155,8 @@ router.get('/paginated',
         );
       }
       
-      // Apply filters
-      const filteredInsurances = filterInsurances(allInsurances, req.query);
+      // Apply filters (pass vehicles for search)
+      const filteredInsurances = filterInsurances(allInsurances, req.query, vehicles);
       
       // Sort by valid to date (newest first) since createdAt might not exist
       filteredInsurances.sort((a, b) => 
