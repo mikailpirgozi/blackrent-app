@@ -668,15 +668,19 @@ export default function VehicleCentricInsuranceList() {
   const handleDelete = async (doc: UnifiedDocument) => {
     if (window.confirm('Naozaj chcete vymazať tento dokument?')) {
       try {
+        // 🔧 CRITICAL FIX: Use originalData.id to get correct source ID
+        const originalId = doc.originalData.id;
+        logger.debug('🗑️ handleDelete: Deleting with ID:', originalId, typeof originalId);
+        
         if (
           doc.type === 'insurance_pzp' ||
           doc.type === 'insurance_kasko' ||
           doc.type === 'insurance_pzp_kasko' ||
           doc.type === 'insurance_leasing'
         ) {
-          await deleteInsuranceMutation.mutateAsync(doc.id);
+          await deleteInsuranceMutation.mutateAsync(originalId);
         } else {
-          await deleteVehicleDocumentMutation.mutateAsync(doc.id);
+          await deleteVehicleDocumentMutation.mutateAsync(originalId);
         }
       } catch (error) {
         console.error('Chyba pri mazaní dokumentu:', error);
