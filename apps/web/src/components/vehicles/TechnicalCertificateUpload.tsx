@@ -121,11 +121,18 @@ export default function TechnicalCertificateUpload({
         localStorage.getItem('blackrent_token') ||
         sessionStorage.getItem('blackrent_token');
 
+      if (!token) {
+        logger.error('❌ No authentication token found');
+        alert('Nie ste prihlásený. Prosím prihláste sa znova.');
+        return;
+      }
+
       logger.debug('📄 Saving technical certificates:', {
         vehicleId,
         documentName: uploadData.documentName,
         fileCount: uploadedFiles.length,
         hasToken: !!token,
+        tokenLength: token.length,
       });
 
       // Uložíme každý súbor osobne
@@ -135,11 +142,17 @@ export default function TechnicalCertificateUpload({
             ? `${uploadData.documentName} (${index + 1})`
             : uploadData.documentName;
 
+        logger.debug('📄 Sending request for file:', {
+          index,
+          documentName,
+          fileUrl: file.url,
+        });
+
         const response = await fetch(`${getApiBaseUrl()}/vehicle-documents`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             vehicleId,
@@ -153,11 +166,30 @@ export default function TechnicalCertificateUpload({
           }),
         });
 
-        return response.json();
+        const result = await response.json();
+
+        logger.debug('📄 Response from server:', {
+          index,
+          status: response.status,
+          ok: response.ok,
+          success: result.success,
+          error: result.error,
+        });
+
+        if (!response.ok) {
+          logger.error('❌ Failed to save technical certificate:', {
+            status: response.status,
+            error: result.error,
+            documentName,
+          });
+        }
+
+        return result;
       });
 
       const results = await Promise.all(savePromises);
       const successfulSaves = results.filter(result => result.success);
+      const failedSaves = results.filter(result => !result.success);
 
       if (successfulSaves.length === uploadedFiles.length) {
         logger.debug('✅ All technical certificates saved successfully');
@@ -166,14 +198,22 @@ export default function TechnicalCertificateUpload({
         setUploadedFiles([]);
         loadTechnicalCertificates();
       } else {
+        logger.error('❌ Some technical certificates failed to save:', {
+          successful: successfulSaves.length,
+          failed: failedSaves.length,
+          errors: failedSaves.map(r => r.error),
+        });
         console.error('Some technical certificates failed to save');
         alert(
-          `Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov`
+          `Uložených ${successfulSaves.length}/${uploadedFiles.length} súborov.\n\nChyby:\n${failedSaves.map(r => r.error).join('\n')}`
         );
       }
     } catch (error) {
+      logger.error('❌ Error saving technical certificates:', error);
       console.error('Error saving technical certificates:', error);
-      alert('Chyba pri ukladaní technických preukazov');
+      alert(
+        `Chyba pri ukladaní technických preukazov: ${error instanceof Error ? error.message : 'Neznáma chyba'}`
+      );
     }
   };
 
