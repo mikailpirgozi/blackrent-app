@@ -320,8 +320,27 @@ export default function VehicleCentricInsuranceList() {
   const unifiedDocuments = useMemo(() => {
     const docs: UnifiedDocument[] = [];
 
+    // 🔧 DEBUG: Log raw insurances from API
+    if (insurances.length > 0) {
+      logger.debug('🔧 VehicleCentricInsuranceList: Raw insurances from API:', insurances.slice(0, 2).map(i => ({
+        id: i.id,
+        id_type: typeof i.id,
+        id_length: String(i.id).length,
+        vehicleId: i.vehicleId,
+        type: i.type
+      })));
+    }
+
     // Add insurances
     insurances.forEach((insurance: Insurance) => {
+      // 🔧 DEBUG: Log each insurance ID
+      logger.debug('🔧 VehicleCentricInsuranceList: insurance.id RAW:', insurance.id);
+      logger.debug('🔧 VehicleCentricInsuranceList: insurance.id TYPE:', typeof insurance.id);
+      logger.debug('🔧 VehicleCentricInsuranceList: insurance.id STRINGIFIED:', JSON.stringify(insurance.id));
+      logger.debug('🔧 VehicleCentricInsuranceList: Full insurance object:', insurance);
+      
+      const cleanedId = String(insurance.id).trim();
+      logger.debug('🔧 VehicleCentricInsuranceList: Cleaned insurance ID:', cleanedId);
       // Determine insurance type based on existing data
       let insuranceType:
         | 'insurance_pzp'
