@@ -3,7 +3,7 @@ import { Euro as EuroIcon, Receipt as ReceiptIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Expense } from '@/types';
 import { formatCurrency } from '@/utils/money';
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
 
 interface ExpenseStatsProps {
   expenses: Expense[];

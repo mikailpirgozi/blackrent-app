@@ -13,7 +13,7 @@
 import React from 'react';
 import { EnterprisePhotoCapture } from './EnterprisePhotoCapture';
 import { ProgressivePhotoUploader } from './ProgressivePhotoUploader';
-import { ProtocolImage } from '../../types';
+import type { ProtocolImage } from '../../types';
 
 interface PhotoUploaderWrapperProps {
   protocolId: string;

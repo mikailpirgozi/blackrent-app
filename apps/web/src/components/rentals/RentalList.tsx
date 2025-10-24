@@ -31,7 +31,7 @@ import { useRentalProtocols } from '../../hooks/useRentalProtocols';
 // 🚀 EXTRACTED: Helper functions moved to utils
 
 // 🚀 EXTRACTED: Types
-import {
+import type {
   ProtocolImage,
   ProtocolVideo,
   Rental,

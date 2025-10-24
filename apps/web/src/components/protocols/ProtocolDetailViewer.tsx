@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Typography } from '@/components/ui/typography';
 import { useCallback, useEffect, useState } from 'react';
 
-import { ProtocolImage } from '../../types';
+import type { ProtocolImage } from '../../types';
 
 interface ProtocolDetailViewerProps {
   protocolId: string;

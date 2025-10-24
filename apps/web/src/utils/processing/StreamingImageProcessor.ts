@@ -214,8 +214,8 @@ export class StreamingImageProcessor {
         this.cleanupBatch(processed);
 
         // Track memory usage
-        if ('memory' in performance) {
-          const mem = (performance as any).memory;
+        if (performance.memory) {
+          const mem = performance.memory;
           const currentMemory = mem.usedJSHeapSize;
           if (currentMemory > peakMemory) {
             peakMemory = currentMemory;
@@ -308,17 +308,24 @@ export class StreamingImageProcessor {
   private cleanupBatch(processed: ProcessImageResult[]): void {
     for (const img of processed) {
       // Revoke blob URLs if created
-      if ('galleryUrl' in img && typeof (img as any).galleryUrl === 'string') {
-        URL.revokeObjectURL((img as any).galleryUrl);
+      const imgWithUrls = img as ProcessImageResult & {
+        galleryUrl?: string;
+        pdfUrl?: string;
+      };
+      if (
+        imgWithUrls.galleryUrl &&
+        typeof imgWithUrls.galleryUrl === 'string'
+      ) {
+        URL.revokeObjectURL(imgWithUrls.galleryUrl);
       }
-      if ('pdfUrl' in img && typeof (img as any).pdfUrl === 'string') {
-        URL.revokeObjectURL((img as any).pdfUrl);
+      if (imgWithUrls.pdfUrl && typeof imgWithUrls.pdfUrl === 'string') {
+        URL.revokeObjectURL(imgWithUrls.pdfUrl);
       }
     }
 
     // Force garbage collection hint (not guaranteed)
-    if ('gc' in global) {
-      (global as any).gc();
+    if (typeof gc !== 'undefined') {
+      gc();
     }
 
     logger.debug('Batch memory cleaned up');

@@ -623,8 +623,17 @@ export default function VehicleCentricInsuranceList() {
   };
 
   const handleEdit = (doc: UnifiedDocument) => {
+    logger.debug('🔧 handleEdit: Received doc.id:', doc.id);
+    logger.debug('🔧 handleEdit: doc.id type:', typeof doc.id);
+    logger.debug('🔧 handleEdit: doc.id stringified:', JSON.stringify(doc.id));
+    logger.debug('🔧 handleEdit: Full doc:', doc);
+
+    // 🔧 CRITICAL FIX: Use original ID from originalData
+    const originalId = doc.originalData.id;
+    logger.debug('🔧 handleEdit: Cleaned ID:', originalId, typeof originalId);
+
     const formData = {
-      id: doc.id,
+      id: originalId, // 🔧 FIX: Use ID from originalData
       vehicleId: doc.vehicleId,
       type: doc.type,
       policyNumber: doc.policyNumber || '',

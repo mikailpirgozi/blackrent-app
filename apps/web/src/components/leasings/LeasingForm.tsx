@@ -162,7 +162,7 @@ export function LeasingForm({
   ].sort((a, b) => a.localeCompare(b));
 
   const form = useForm<LeasingFormData>({
-    resolver: zodResolver(leasingFormSchema) as any,
+    resolver: zodResolver(leasingFormSchema),
     defaultValues: {
       vehicleId: '',
       leasingCompany: '',
@@ -526,10 +526,7 @@ export function LeasingForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit(onSubmit as any)}
-          className="space-y-6 py-4"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
           {/* ZÁKLADNÉ INFORMÁCIE */}
           <Card>
             <CardHeader>

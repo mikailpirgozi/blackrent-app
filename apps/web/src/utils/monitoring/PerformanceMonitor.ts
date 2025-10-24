@@ -42,6 +42,7 @@ export class PerformanceMonitor {
 
   private criticalMemoryThreshold = 0.85; // 85% of limit
   private warningCallbacks: Array<(message: string) => void> = [];
+  private _pollInterval?: ReturnType<typeof setInterval>;
 
   /**
    * Start monitoring session
@@ -134,15 +135,15 @@ export class PerformanceMonitor {
     const intervalId = setInterval(poll, 500);
 
     // Store interval ID for cleanup
-    (this as any)._pollInterval = intervalId;
+    this._pollInterval = intervalId;
   }
 
   /**
    * Get current memory usage
    */
   private getCurrentMemory(): number {
-    if ('memory' in performance) {
-      const mem = (performance as any).memory;
+    if (performance.memory) {
+      const mem = performance.memory;
       return mem.usedJSHeapSize / 1024 / 1024; // Convert to MB
     }
     return 0;
@@ -168,8 +169,8 @@ export class PerformanceMonitor {
 
     // Get memory limit
     let limit = 0;
-    if ('memory' in performance) {
-      const mem = (performance as any).memory;
+    if (performance.memory) {
+      const mem = performance.memory;
       limit = mem.jsHeapSizeLimit / 1024 / 1024; // MB
     }
 
@@ -284,8 +285,8 @@ export class PerformanceMonitor {
    * Cleanup
    */
   destroy(): void {
-    if ((this as any)._pollInterval) {
-      clearInterval((this as any)._pollInterval);
+    if (this._pollInterval) {
+      clearInterval(this._pollInterval);
     }
     this.warningCallbacks = [];
   }

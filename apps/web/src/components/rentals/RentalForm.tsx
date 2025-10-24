@@ -54,7 +54,7 @@ import {
 } from '@/lib/react-query/hooks/useCustomers';
 import { useVehicles } from '@/lib/react-query/hooks/useVehicles';
 import { apiService } from '../../services/api';
-import {
+import type {
   Customer,
   PaymentMethod,
   Rental,

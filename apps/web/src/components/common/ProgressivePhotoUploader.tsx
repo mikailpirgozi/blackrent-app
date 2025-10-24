@@ -27,7 +27,7 @@ import { Progress } from '../ui/progress';
 import { Alert, AlertDescription } from '../ui/alert';
 import { getApiBaseUrl } from '../../utils/apiUrl';
 import { logger } from '../../utils/logger';
-import { ProtocolImage } from '../../types';
+import type { ProtocolImage } from '../../types';
 
 interface ProgressivePhotoUploaderProps {
   protocolId: string;

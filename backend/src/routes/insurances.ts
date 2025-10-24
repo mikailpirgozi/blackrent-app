@@ -315,10 +315,14 @@ router.put('/:id',
     });
 
   } catch (error) {
-    console.error('Update insurance error:', error);
+    console.error('❌ INSURANCE PUT ERROR:', error);
+    console.error('❌ INSURANCE PUT ERROR STACK:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌ INSURANCE PUT ERROR MESSAGE:', error instanceof Error ? error.message : String(error));
+    console.error('❌ INSURANCE PUT ID:', id);
+    console.error('❌ INSURANCE PUT vehicleId:', vehicleId, 'type:', typeof vehicleId);
     res.status(500).json({
       success: false,
-      error: 'Chyba pri aktualizácii poistky'
+      error: `Chyba pri aktualizácii poistky: ${error instanceof Error ? error.message : String(error)}`
     });
   }
 });

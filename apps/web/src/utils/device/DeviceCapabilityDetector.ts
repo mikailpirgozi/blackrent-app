@@ -80,9 +80,9 @@ export class DeviceCapabilityDetector {
    * Get device RAM (Chrome/Edge only, defaults to 4GB)
    */
   private getDeviceMemory(): number {
-    const memory = (navigator as any).deviceMemory;
+    const memory = navigator.deviceMemory;
 
-    if (memory) {
+    if (memory !== undefined) {
       logger.debug(`Device memory detected: ${memory}GB`);
       return memory;
     }
@@ -106,9 +106,9 @@ export class DeviceCapabilityDetector {
    */
   private getNetworkInfo(): NetworkInfo {
     const connection =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+      navigator.connection ||
+      navigator.mozConnection ||
+      navigator.webkitConnection;
 
     if (!connection) {
       logger.debug('Network API not available, assuming medium speed');
@@ -226,7 +226,7 @@ export class DeviceCapabilityDetector {
     ).matches;
 
     // Method 2: Navigator standalone (iOS Safari)
-    const isNavigatorStandalone = (navigator as any).standalone === true;
+    const isNavigatorStandalone = navigator.standalone === true;
 
     // Method 3: Document referrer (Android)
     const isFromHomescreen = document.referrer.includes('android-app://');
