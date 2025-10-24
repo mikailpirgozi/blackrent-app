@@ -551,6 +551,16 @@ export class PostgresDatabase {
         logger.db('ℹ️ Insurance km_state column already exists or error occurred:', error);
       }
 
+      // Pridáme stĺpec broker_company ak neexistuje (migrácia pre Maklerská spoločnosť)
+      try {
+        await client.query(`
+          ALTER TABLE insurances ADD COLUMN IF NOT EXISTS broker_company VARCHAR(255)
+        `);
+        logger.db('✅ Insurance broker_company column migration completed');
+      } catch (error) {
+        logger.db('ℹ️ Insurance broker_company column already exists or error occurred:', error);
+      }
+
       // Tabuľka firiem
       await client.query(`
         CREATE TABLE IF NOT EXISTS companies (
