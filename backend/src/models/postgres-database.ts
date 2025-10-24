@@ -6184,6 +6184,7 @@ export class PostgresDatabase {
         validTo: row.end_date ? new Date(row.end_date) : new Date(), // end_date (nie valid_to!)
         price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: row.insurer_name || '', // Načítaný názov poistovne z JOIN
+        brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
@@ -6208,6 +6209,7 @@ export class PostgresDatabase {
     validTo: Date;
     price: number;
     company?: string;
+    brokerCompany?: string; // 🏢 Maklerská spoločnosť
     paymentFrequency?: string;
     filePath?: string;
     filePaths?: string[]; // Nové pole pre viacero súborov
@@ -6261,13 +6263,14 @@ export class PostgresDatabase {
         filePaths, // Nové pole pre viacero súborov
         insuranceData.kmState || null, // 🚗 Stav kilometrov pre Kasko
         insuranceData.deductibleAmount || null, // 💰 Spoluúčasť v EUR
-        insuranceData.deductiblePercentage || null // 💰 Spoluúčasť v %
+        insuranceData.deductiblePercentage || null, // 💰 Spoluúčasť v %
+        insuranceData.brokerCompany || null // 🏢 Maklerská spoločnosť
       ];
       
       console.log('🔧 INSURANCE: Insert parameters:', insertParams);
       
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, created_at',
+        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company, created_at',
         insertParams
       );
 
@@ -6282,6 +6285,7 @@ export class PostgresDatabase {
         validTo: new Date(row.end_date), // end_date (nie valid_to!)
         price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: insuranceData.company || '',
+        brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
@@ -6307,6 +6311,7 @@ export class PostgresDatabase {
     validTo: Date;
     price: number;
     company: string; // Zachovávame pre kompatibilitu
+    brokerCompany?: string; // 🏢 Maklerská spoločnosť
     insurerId?: string; // Nový parameter pre insurer_id
     paymentFrequency?: string;
     filePath?: string;
@@ -6354,7 +6359,8 @@ export class PostgresDatabase {
         filePaths, 
         insuranceData.kmState || null, 
         insuranceData.deductibleAmount || null, 
-        insuranceData.deductiblePercentage || null, 
+        insuranceData.deductiblePercentage || null,
+        insuranceData.brokerCompany || null, // 🏢 Maklerská spoločnosť
         id
       ];
       
@@ -6364,9 +6370,9 @@ export class PostgresDatabase {
       // Production database has INTEGER id, development has UUID
       const result = await client.query(`
         UPDATE insurances 
-        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14
-        WHERE id::text = $15::text
-        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14, broker_company = $15
+        WHERE id::text = $16::text
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company
       `, queryParams);
 
       console.log('🔧 UPDATE INSURANCE: Query result rows:', result.rows.length);
@@ -6395,6 +6401,7 @@ export class PostgresDatabase {
         validTo: new Date(row.end_date), // end_date (nie valid_to!)
         price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: insurerName || insuranceData.company || '', // Použijem načítaný názov poistovne
+        brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov

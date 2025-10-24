@@ -251,9 +251,9 @@ router.post('/',
       greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
       greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
       kmState: kmState || undefined, // 🚗 Stav kilometrov pre Kasko
+      brokerCompany: brokerCompany || undefined, // 🏢 Maklerská spoločnosť
       deductibleAmount,
       deductiblePercentage
-      // Note: brokerCompany je len frontend field, nie v DB
     });
 
     console.log('🔧 INSURANCE POST: Successfully created insurance:', createdInsurance);
@@ -315,6 +315,7 @@ router.put('/:id',
       validTo: new Date(validTo),
       price,
       company,
+      brokerCompany, // 🏢 Maklerská spoločnosť
       insurerId, // Nový parameter
       paymentFrequency,
       filePath,

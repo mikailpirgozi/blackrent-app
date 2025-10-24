@@ -411,6 +411,7 @@ export interface Insurance {
   validTo: Date;
   price: number;
   company?: string;
+  brokerCompany?: string; // 🏢 Maklerská spoločnosť
   paymentFrequency: PaymentFrequency;
   filePath?: string; // Zachováme pre backward compatibility
   filePaths?: string[]; // Nové pole pre viacero súborov
