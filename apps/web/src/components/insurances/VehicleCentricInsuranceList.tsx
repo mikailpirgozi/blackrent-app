@@ -403,7 +403,12 @@ export default function VehicleCentricInsuranceList() {
 
     // Add vehicle documents (exclude technical certificates from main list)
     if (vehicleDocuments) {
-      vehicleDocuments.forEach(doc => {
+      // 🔧 CRITICAL FIX: Filter out invalid insurance-type vehicle_documents from production DB
+      const validDocumentTypes = ['stk', 'ek', 'vignette', 'technical_certificate'];
+      
+      vehicleDocuments
+        .filter(doc => validDocumentTypes.includes(doc.documentType))
+        .forEach(doc => {
         // 🔍 DEBUG: Log vignette documents
         if (doc.documentType === 'vignette') {
           logger.debug('🔍 VIGNETTE DOCUMENT from API:', {
@@ -430,7 +435,7 @@ export default function VehicleCentricInsuranceList() {
           country: doc.country || undefined, // 🌍 Krajina pre dialničné známky
           isRequired: doc.isRequired || undefined, // ⚠️ Povinná dialničná známka
         });
-      });
+        });
     }
 
     return docs;
