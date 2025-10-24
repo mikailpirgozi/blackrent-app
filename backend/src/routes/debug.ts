@@ -99,12 +99,18 @@ router.get('/rental/:id',
     }
 });
 
-// GET /api/debug/database-schema - Get database schema for comparison (TEMPORARY - NO AUTH FOR DIAGNOSTICS)
+// GET /api/debug/database-schema - Get database schema for comparison (ADMIN ONLY)
 router.get('/database-schema',
+  authenticateToken,
   async (req: Request, res: Response<ApiResponse>) => {
     try {
-      // TEMPORARY: No auth for diagnostics
-      // TODO: Re-enable auth after comparison is done
+      // Only allow super_admin
+      if (req.user?.role !== 'super_admin' && req.user?.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied - admin only'
+        });
+      }
 
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
