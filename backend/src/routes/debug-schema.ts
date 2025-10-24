@@ -2,12 +2,12 @@
  * Debug Schema Endpoint - Production Database Schema Inspector
  */
 
-import express from 'express';
+import express, { type Router } from 'express';
 import type { Request, Response } from 'express';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse } from '../types';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // GET /api/debug/schema - Get database schema info
 router.get('/schema', async (req: Request, res: Response<ApiResponse>) => {
