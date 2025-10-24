@@ -6341,7 +6341,7 @@ export class PostgresDatabase {
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
       const queryParams = [
-        insuranceData.vehicleId || null, 
+        insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // 🔧 FIX: Convert to INTEGER like in createInsurance
         finalInsurerId || null, 
         insuranceData.type, 
         insuranceData.policyNumber, 
@@ -9047,7 +9047,7 @@ export class PostgresDatabase {
          SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, country = $9, is_required = $10, updated_at = CURRENT_TIMESTAMP 
          WHERE id = $11 
          RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, created_at, updated_at`,
-        [documentData.vehicleId, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false, id]
+        [parseInt(documentData.vehicleId), documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false, id]
       );
 
       if (result.rows.length === 0) {
