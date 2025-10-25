@@ -238,7 +238,9 @@ export type VehicleDocumentType =
   | 'stk'
   | 'ek'
   | 'vignette'
-  | 'technical_certificate';
+  | 'technical_certificate'
+  | 'service_book' // 🔧 Servisná knižka
+  | 'fines_record'; // 🚨 Evidencia pokút
 
 export type UnifiedDocumentType = InsuranceDocumentType | VehicleDocumentType;
 
@@ -258,6 +260,9 @@ export interface VehicleDocument {
   notes?: string;
   filePath?: string;
   kmState?: number; // 🚗 Stav kilometrov pre STK/EK dokumenty
+  brokerCompany?: string; // 🏢 Maklerská spoločnosť (pre poistky v vehicle_documents)
+  deductibleAmount?: number; // 💰 Spoluúčasť v EUR (pre poistky)
+  deductiblePercentage?: number; // 💰 Spoluúčasť v % (pre poistky)
   country?: VignetteCountry; // 🌍 Krajina pre dialničné známky (SK, CZ, AT, HU, SI)
   isRequired?: boolean; // ⚠️ Povinná/dobrovoľná dialničná známka
   createdAt?: Date;
@@ -283,6 +288,39 @@ export interface InsuranceClaim {
   otherPartyInfo?: string;
   notes?: string;
   createdAt: Date;
+  updatedAt?: Date;
+}
+
+// 🔧 SERVISNÁ KNIŽKA
+export interface ServiceRecord {
+  id: string;
+  vehicleId: string;
+  serviceDate: Date;
+  serviceProvider?: string;
+  kmState?: number;
+  description?: string;
+  price?: number;
+  filePaths?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// 🚨 EVIDENCIA POKÚT
+export interface Fine {
+  id: string;
+  vehicleId: string;
+  customerId?: string;
+  fineDate: Date;
+  amount: number;
+  amountLate?: number;
+  country?: string;
+  enforcementCompany?: string;
+  isPaid?: boolean;
+  ownerPaidDate?: Date;
+  customerPaidDate?: Date;
+  notes?: string;
+  filePaths?: string[];
+  createdAt?: Date;
   updatedAt?: Date;
 }
 

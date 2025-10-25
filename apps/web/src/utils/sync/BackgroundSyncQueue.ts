@@ -42,7 +42,7 @@ export class BackgroundSyncQueue {
 
     // Create queue task (with objectURL, not blob)
     const task: Omit<QueueTask, 'timestamp' | 'retries'> = {
-      id: crypto.randomUUID(),
+      id: globalThis.crypto.randomUUID(),
       url: objectURL, // ✅ Store objectURL, not blob
       filename,
       type: metadata.type || 'protocol',

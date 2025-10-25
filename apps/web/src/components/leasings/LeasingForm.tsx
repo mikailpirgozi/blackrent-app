@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Calculator, Loader2, Plus, X } from 'lucide-react';
@@ -161,26 +161,26 @@ export function LeasingForm({
     ...customCompanies,
   ].sort((a, b) => a.localeCompare(b));
 
-  const form = useForm<LeasingFormData>({
-    resolver: zodResolver(leasingFormSchema),
+  const form = useForm({
+    resolver: zodResolver(leasingFormSchema) as Resolver<LeasingFormData>,
     defaultValues: {
       vehicleId: '',
       leasingCompany: '',
       paymentType: 'anuita',
       loanCategory: 'autoúver',
-      initialLoanAmount: undefined,
+      initialLoanAmount: 0,
       totalInstallments: 48,
       firstPaymentDate: '',
       lastPaymentDate: '',
       monthlyFee: 0,
       processingFee: 0,
-      interestRate: undefined,
-      monthlyPayment: undefined,
-      rpmn: undefined,
+      interestRate: 0,
+      monthlyPayment: 0,
+      rpmn: 0,
       earlyRepaymentPenalty: 0,
       earlyRepaymentPenaltyType: 'percent_principal',
-      acquisitionPriceWithoutVAT: undefined,
-      acquisitionPriceWithVAT: undefined,
+      acquisitionPriceWithoutVAT: 0,
+      acquisitionPriceWithVAT: 0,
       isNonDeductible: false,
     },
   });

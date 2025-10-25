@@ -18,11 +18,12 @@ import { Separator } from '../ui/separator';
 import { Spinner } from '../ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '../../lib/utils';
-import { addDays, format, isAfter, isValid, parseISO } from 'date-fns';
+import { addDays, format, isAfter, isValid } from 'date-fns';
 import { sk } from 'date-fns/locale';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { UnifiedDocumentData } from '../common/UnifiedDocumentForm';
+import { parseDate } from '@/utils/dateUtils'; // 🕐 TIMEZONE FIX
 
 import {
   useCreateInsurance,
@@ -37,6 +38,10 @@ import {
   useVehicles,
 } from '../../lib/react-query/hooks';
 import { useCustomers } from '../../lib/react-query/hooks/useCustomers';
+import { useServiceRecords } from '../../hooks/useServiceRecords'; // 🔧 SERVISNÁ KNIŽKA
+import { useFines } from '../../hooks/useFines'; // 🚨 EVIDENCIA POKÚT
+import { apiService } from '../../services/api'; // For direct API calls
+import { useQueryClient } from '@tanstack/react-query'; // For cache invalidation
 import type {
   DocumentType,
   Insurance,
@@ -71,6 +76,7 @@ interface UnifiedDocument {
   createdAt: Date | string;
   originalData: Insurance | VehicleDocument;
   kmState?: number | undefined; // 🚗 Stav kilometrov
+  brokerCompany?: string | undefined; // 🏢 Maklerská spoločnosť
   country?: string | undefined; // 🌍 Krajina pre dialničné známky
   isRequired?: boolean | undefined; // ⚠️ Povinná dialničná známka
 }
@@ -133,10 +139,10 @@ const getExpiryStatus = (
     }
 
     const warningDate = addDays(today, warningDays);
-    const validToDate =
-      typeof validTo === 'string' ? parseISO(validTo) : validTo;
+    // 🕐 TIMEZONE FIX: Use parseDate instead of parseISO to avoid UTC conversion
+    const validToDate = parseDate(validTo);
 
-    if (!isValid(validToDate)) {
+    if (!validToDate || !isValid(validToDate)) {
       return {
         status: 'invalid',
         color: 'neutral',
@@ -196,24 +202,40 @@ const getDocumentTypeInfo = (type: string) => {
 };
 
 export default function VehicleCentricInsuranceList() {
+  // React Query client for cache invalidation
+  const queryClient = useQueryClient();
+
   // React Query hooks for data
   const { data: vehicles = [] } = useVehicles();
   const { data: insurers = [] } = useInsurers();
   const { data: customers = [] } = useCustomers();
-  const { data: vehicleDocuments = [], dataUpdatedAt } = useVehicleDocuments(
-    undefined,
-    true
-  );
+  const { data: vehicleDocuments = [] } = useVehicleDocuments(undefined, true);
 
-  // 🔍 DEBUG: Log when vehicleDocuments change
-  useEffect(() => {
-    logger.debug('🔄 VehicleDocuments updated:', {
-      count: vehicleDocuments?.length,
-      dataUpdatedAt: new Date(dataUpdatedAt),
-      timestamp: Date.now(),
-      data: vehicleDocuments,
-    });
-  }, [vehicleDocuments, dataUpdatedAt]);
+  // 🔧 SERVISNÁ KNIŽKA - Load service records
+  const {
+    serviceRecords: _serviceRecords = [],
+    createServiceRecord,
+    // updateServiceRecord: _updateServiceRecord,
+    // deleteServiceRecord: _deleteServiceRecord,
+  } = useServiceRecords();
+
+  // 🚨 EVIDENCIA POKÚT - Load fines
+  const {
+    fines: _fines = [],
+    createFine,
+    // updateFine: _updateFine,
+    // deleteFine: _deleteFine,
+  } = useFines();
+
+  // 🔍 DEBUG: Log when vehicleDocuments change (DISABLED)
+  // useEffect(() => {
+  //   logger.debug('🔄 VehicleDocuments updated:', {
+  //     count: vehicleDocuments?.length,
+  //     dataUpdatedAt: new Date(dataUpdatedAt),
+  //     timestamp: Date.now(),
+  //     data: vehicleDocuments,
+  //   });
+  // }, [vehicleDocuments, dataUpdatedAt]);
 
   // React Query mutations for vehicle documents
   const createVehicleDocumentMutation = useCreateVehicleDocument();
@@ -320,27 +342,8 @@ export default function VehicleCentricInsuranceList() {
   const unifiedDocuments = useMemo(() => {
     const docs: UnifiedDocument[] = [];
 
-    // 🔧 DEBUG: Log raw insurances from API
-    if (insurances.length > 0) {
-      logger.debug('🔧 VehicleCentricInsuranceList: Raw insurances from API:', insurances.slice(0, 2).map(i => ({
-        id: i.id,
-        id_type: typeof i.id,
-        id_length: String(i.id).length,
-        vehicleId: i.vehicleId,
-        type: i.type
-      })));
-    }
-
     // Add insurances
     insurances.forEach((insurance: Insurance) => {
-      // 🔧 DEBUG: Log each insurance ID
-      logger.debug('🔧 VehicleCentricInsuranceList: insurance.id RAW:', insurance.id);
-      logger.debug('🔧 VehicleCentricInsuranceList: insurance.id TYPE:', typeof insurance.id);
-      logger.debug('🔧 VehicleCentricInsuranceList: insurance.id STRINGIFIED:', JSON.stringify(insurance.id));
-      logger.debug('🔧 VehicleCentricInsuranceList: Full insurance object:', insurance);
-      
-      const cleanedId = String(insurance.id).trim();
-      logger.debug('🔧 VehicleCentricInsuranceList: Cleaned insurance ID:', cleanedId);
       // Determine insurance type based on existing data
       let insuranceType:
         | 'insurance_pzp'
@@ -390,56 +393,100 @@ export default function VehicleCentricInsuranceList() {
         policyNumber: insurance.policyNumber || undefined,
         validFrom: insurance.validFrom,
         validTo: insurance.validTo,
-        price: insurance.price || undefined,
+        price: insurance.price !== undefined ? insurance.price : undefined,
         company: insurance.company || undefined,
         paymentFrequency: insurance.paymentFrequency || undefined,
         filePath: insurance.filePath || undefined,
         filePaths: insurance.filePaths || undefined,
         createdAt: insurance.validTo,
         originalData: insurance,
-        kmState: insurance.kmState || undefined,
+        kmState:
+          insurance.kmState !== undefined ? insurance.kmState : undefined, // OPRAVENÉ: zachová aj 0
+        brokerCompany: insurance.brokerCompany || undefined, // 🏢 Maklerská spoločnosť
       });
     });
 
     // Add vehicle documents (exclude technical certificates from main list)
     if (vehicleDocuments) {
       // 🔧 CRITICAL FIX: Filter out invalid insurance-type vehicle_documents from production DB
-      const validDocumentTypes = ['stk', 'ek', 'vignette', 'technical_certificate'];
-      
-      vehicleDocuments
-        .filter(doc => validDocumentTypes.includes(doc.documentType))
-        .forEach(doc => {
-        // 🔍 DEBUG: Log vignette documents
-        if (doc.documentType === 'vignette') {
-          logger.debug('🔍 VIGNETTE DOCUMENT from API:', {
-            id: doc.id,
-            country: doc.country,
-            isRequired: doc.isRequired,
-            fullDoc: doc,
-          });
-        }
+      const validDocumentTypes = [
+        'stk',
+        'ek',
+        'vignette',
+        'technical_certificate',
+      ];
 
-        docs.push({
-          id: doc.id,
-          vehicleId: doc.vehicleId,
-          type: doc.documentType,
-          documentNumber: doc.documentNumber || undefined,
-          validFrom: doc.validFrom || undefined,
-          validTo: doc.validTo,
-          price: doc.price || undefined,
-          notes: doc.notes || undefined,
-          filePath: doc.filePath || undefined,
-          createdAt: doc.validTo,
-          originalData: doc,
-          kmState: doc.kmState || undefined, // STK/EK môžu mať stav km
-          country: doc.country || undefined, // 🌍 Krajina pre dialničné známky
-          isRequired: doc.isRequired || undefined, // ⚠️ Povinná dialničná známka
-        });
+      vehicleDocuments
+        .filter((doc: VehicleDocument) =>
+          validDocumentTypes.includes(doc.documentType)
+        )
+        .forEach((doc: VehicleDocument) => {
+          docs.push({
+            id: doc.id,
+            vehicleId: doc.vehicleId,
+            type: doc.documentType,
+            documentNumber: doc.documentNumber || undefined,
+            validFrom: doc.validFrom || undefined,
+            validTo: doc.validTo,
+            price: doc.price !== undefined ? doc.price : undefined,
+            notes: doc.notes || undefined,
+            filePath: doc.filePath || undefined,
+            createdAt: doc.validTo,
+            originalData: doc,
+            kmState: doc.kmState !== undefined ? doc.kmState : undefined, // OPRAVENÉ: zachová aj 0
+            brokerCompany: doc.brokerCompany || undefined, // 🏢 Maklerská spoločnosť
+            country: doc.country || undefined, // 🌍 Krajina pre dialničné známky
+            isRequired: doc.isRequired || undefined, // ⚠️ Povinná dialničná známka
+          });
         });
     }
 
+    // 🔧 SERVISNÁ KNIŽKA - Add service records
+    if (_serviceRecords && _serviceRecords.length > 0) {
+      _serviceRecords.forEach(record => {
+        docs.push({
+          id: record.id,
+          vehicleId: String(record.vehicleId),
+          type: 'service_book' as DocumentType,
+          documentNumber: undefined,
+          validFrom: record.serviceDate,
+          validTo: record.serviceDate, // Service records don't expire
+          price: record.price !== undefined ? record.price : undefined,
+          notes: record.description || undefined,
+          filePath: record.filePaths?.[0] || undefined,
+          filePaths: record.filePaths || undefined,
+          createdAt: record.serviceDate,
+          originalData: record as unknown as Insurance | VehicleDocument,
+          kmState: record.kmState !== undefined ? record.kmState : undefined,
+          company: record.serviceProvider || undefined,
+        });
+      });
+    }
+
+    // 🚨 EVIDENCIA POKÚT - Add fines
+    if (_fines && _fines.length > 0) {
+      _fines.forEach(fine => {
+        docs.push({
+          id: fine.id,
+          vehicleId: String(fine.vehicleId),
+          type: 'fines_record' as DocumentType,
+          documentNumber: undefined,
+          validFrom: fine.fineDate,
+          validTo: fine.fineDate, // Fines don't expire
+          price: fine.amount !== undefined ? fine.amount : undefined,
+          notes: fine.notes || undefined,
+          filePath: fine.filePaths?.[0] || undefined,
+          filePaths: fine.filePaths || undefined,
+          createdAt: fine.fineDate,
+          originalData: fine as unknown as Insurance | VehicleDocument,
+          company: fine.enforcementCompany || undefined,
+          country: fine.country || undefined,
+        });
+      });
+    }
+
     return docs;
-  }, [insurances, vehicleDocuments]);
+  }, [insurances, vehicleDocuments, _serviceRecords, _fines]);
 
   // Group documents by vehicle
   const vehiclesWithDocuments = useMemo(() => {
@@ -494,11 +541,13 @@ export default function VehicleCentricInsuranceList() {
       if (filteredDocs.length === 0) return;
 
       // Calculate stats
+      // 🕐 TIMEZONE FIX: Use parseDate instead of parseISO
       const nextExpiryDate = filteredDocs
-        .map(doc =>
-          typeof doc.validTo === 'string' ? parseISO(doc.validTo) : doc.validTo
+        .map(doc => parseDate(doc.validTo))
+        .filter(
+          (date): date is Date =>
+            date !== null && isValid(date) && isAfter(date, new Date())
         )
-        .filter(date => isValid(date) && isAfter(date, new Date()))
         .sort((a, b) => a.getTime() - b.getTime())[0];
 
       const stats = {
@@ -647,14 +696,8 @@ export default function VehicleCentricInsuranceList() {
   };
 
   const handleEdit = (doc: UnifiedDocument) => {
-    logger.debug('🔧 handleEdit: Received doc.id:', doc.id);
-    logger.debug('🔧 handleEdit: doc.id type:', typeof doc.id);
-    logger.debug('🔧 handleEdit: doc.id stringified:', JSON.stringify(doc.id));
-    logger.debug('🔧 handleEdit: Full doc:', doc);
-
     // 🔧 CRITICAL FIX: Use original ID from originalData
     const originalId = doc.originalData.id;
-    logger.debug('🔧 handleEdit: Cleaned ID:', originalId, typeof originalId);
 
     const formData = {
       id: originalId, // 🔧 FIX: Use ID from originalData
@@ -662,28 +705,46 @@ export default function VehicleCentricInsuranceList() {
       type: doc.type,
       policyNumber: doc.policyNumber || '',
       company: doc.company || '',
+      brokerCompany:
+        doc.originalData && 'brokerCompany' in doc.originalData
+          ? doc.originalData.brokerCompany
+          : undefined, // 🏢 Maklerská spoločnosť
       paymentFrequency: doc.paymentFrequency || 'yearly',
       documentNumber: doc.documentNumber || '',
       notes: doc.notes || '',
+      // 🕐 TIMEZONE FIX: Use parseDate to avoid UTC conversion
       validFrom: doc.validFrom
-        ? typeof doc.validFrom === 'string'
-          ? new Date(doc.validFrom)
-          : doc.validFrom
+        ? parseDate(doc.validFrom) || new Date()
         : new Date(),
-      validTo:
-        typeof doc.validTo === 'string' ? new Date(doc.validTo) : doc.validTo,
+      validTo: parseDate(doc.validTo) || new Date(),
       price: doc.price || 0,
       filePath: doc.filePath || '',
       filePaths: doc.filePaths || (doc.filePath ? [doc.filePath] : []),
       greenCardValidFrom:
         doc.originalData && 'greenCardValidFrom' in doc.originalData
           ? doc.originalData.greenCardValidFrom
-          : new Date(),
+          : undefined, // 🟢 Biela karta - undefined ak neexistuje
       greenCardValidTo:
         doc.originalData && 'greenCardValidTo' in doc.originalData
           ? doc.originalData.greenCardValidTo
-          : new Date(),
-      kmState: doc.kmState || 0, // 🚗 Stav kilometrov
+          : undefined, // 🟢 Biela karta - undefined ak neexistuje
+      kmState: doc.kmState !== undefined ? doc.kmState : undefined, // 🚗 Stav kilometrov - OPRAVENÉ: zachová aj 0
+      deductibleAmount:
+        doc.originalData && 'deductibleAmount' in doc.originalData
+          ? doc.originalData.deductibleAmount
+          : undefined, // 💰 Spoluúčasť EUR
+      deductiblePercentage:
+        doc.originalData && 'deductiblePercentage' in doc.originalData
+          ? doc.originalData.deductiblePercentage
+          : undefined, // 💰 Spoluúčasť %
+      country:
+        doc.originalData && 'country' in doc.originalData
+          ? (doc.originalData.country as VignetteCountry)
+          : undefined, // 🌍 Krajina dialničnej známky
+      isRequired:
+        doc.originalData && 'isRequired' in doc.originalData
+          ? doc.originalData.isRequired
+          : undefined, // ⚠️ Povinná dialničná známka
     };
     setEditingDocument(formData);
     setOpenDialog(true);
@@ -694,8 +755,7 @@ export default function VehicleCentricInsuranceList() {
       try {
         // 🔧 CRITICAL FIX: Use originalData.id to get correct source ID
         const originalId = doc.originalData.id;
-        logger.debug('🗑️ handleDelete: Deleting with ID:', originalId, typeof originalId);
-        
+
         if (
           doc.type === 'insurance_pzp' ||
           doc.type === 'insurance_kasko' ||
@@ -703,7 +763,18 @@ export default function VehicleCentricInsuranceList() {
           doc.type === 'insurance_leasing'
         ) {
           await deleteInsuranceMutation.mutateAsync(originalId);
+        } else if (doc.type === 'service_book') {
+          // 🔧 SERVISNÁ KNIŽKA - Delete service record via API
+          await apiService.deleteServiceRecord(originalId);
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['serviceRecords'] });
+        } else if (doc.type === 'fines_record') {
+          // 🚨 EVIDENCIA POKÚT - Delete fine via API
+          await apiService.deleteFine(originalId);
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['fines'] });
         } else {
+          // STK, EK, vignette, etc.
           await deleteVehicleDocumentMutation.mutateAsync(originalId);
         }
       } catch (error) {
@@ -828,82 +899,46 @@ export default function VehicleCentricInsuranceList() {
               continue;
             }
           } else if (type === 'service_book') {
-            // Service Book - special handling
+            // 🔧 Service Book - using dedicated API
             if (!data.vehicleId || !data.serviceDate) {
               console.error('Missing required fields for service book');
               continue;
             }
 
-            const serviceNotes = `
-📋 SERVISNÁ KNIŽKA
-
-Servis: ${data.serviceProvider || 'N/A'}
-Dátum servisu: ${data.serviceDate ? new Date(data.serviceDate).toLocaleDateString('sk-SK') : 'N/A'}
-Stav KM: ${data.serviceKm || 'N/A'} km
-
-Popis vykonaných prác:
-${data.serviceDescription || 'Bez popisu'}
-            `.trim();
-
-            const vehicleDocData = {
-              id: uuidv4(),
+            const serviceRecordData = {
               vehicleId: data.vehicleId,
-              documentType: 'stk' as DocumentType, // Temporary mapping
-              validFrom: data.serviceDate,
-              validTo: data.serviceDate, // Same as validFrom for service book
-              documentNumber: `SERVIS-${Date.now()}`,
-              price: data.price || 0,
-              notes: serviceNotes,
-              filePath: data.filePaths?.[0] || '',
-              kmState: data.serviceKm || 0,
+              serviceDate: data.serviceDate,
+              serviceProvider: data.serviceProvider || undefined,
+              kmState: data.serviceKm || undefined,
+              description: data.serviceDescription || undefined,
+              price: data.price || undefined,
+              filePaths: data.filePaths || [],
             };
 
-            await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
+            createServiceRecord(serviceRecordData);
           } else if (type === 'fines_record') {
-            // Fines - special handling
-            if (!data.vehicleId || !data.fineDate) {
+            // 🚨 Fines - using dedicated API
+            if (!data.vehicleId || !data.fineDate || !data.fineAmount) {
               console.error('Missing required fields for fine');
               continue;
             }
 
-            // Get customer name
-            const customer = customers?.find(c => c.id === data.customerId);
-            const customerName = customer
-              ? customer.name || customer.email
-              : 'Neznámy zákazník';
-
-            const fineNotes = `
-🚨 POKUTA
-
-Krajina: ${data.country || 'Neznáma'}
-Vymáhajúca spoločnosť: ${data.enforcementCompany || 'N/A'}
-Zákazník: ${customerName}
-
-Sumy:
-- Pri včasnej platbe: ${data.fineAmount || 0}€
-- Po splatnosti: ${data.fineAmountLate || data.fineAmount || 0}€
-
-Stav úhrad:
-- Majiteľ zaplatil: ${data.ownerPaidDate ? '✅ Áno (' + new Date(data.ownerPaidDate).toLocaleDateString('sk-SK') + ')' : '❌ Nie'}
-- Zákazník zaplatil: ${data.customerPaidDate ? '✅ Áno (' + new Date(data.customerPaidDate).toLocaleDateString('sk-SK') + ')' : '❌ Nie'}
-
-Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Čaká na úhradu'}
-            `.trim();
-
-            const vehicleDocData = {
-              id: uuidv4(),
+            const fineData = {
               vehicleId: data.vehicleId,
-              documentType: 'stk' as DocumentType, // Temporary mapping
-              validFrom: data.fineDate,
-              validTo: data.fineDate, // Same as validFrom for fines
-              documentNumber: `POKUTA-${Date.now()}`,
-              price: data.fineAmount || 0,
-              notes: fineNotes,
-              filePath: data.filePaths?.[0] || '',
-              kmState: 0,
+              customerId: data.customerId || undefined,
+              fineDate: data.fineDate,
+              amount: data.fineAmount,
+              amountLate: data.fineAmountLate || undefined,
+              country: data.country || undefined,
+              enforcementCompany: data.enforcementCompany || undefined,
+              isPaid: !!(data.ownerPaidDate && data.customerPaidDate),
+              ownerPaidDate: data.ownerPaidDate || undefined,
+              customerPaidDate: data.customerPaidDate || undefined,
+              notes: data.notes || undefined,
+              filePaths: data.filePaths || [],
             };
 
-            await createVehicleDocumentMutation.mutateAsync(vehicleDocData);
+            createFine(fineData);
           } else {
             // Regular vehicle documents (STK, EK, Vignette)
             let documentType: DocumentType = 'stk';
@@ -946,9 +981,6 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
           // All succeeded
           setOpenDialog(false);
           setEditingDocument(null);
-          logger.debug(
-            `✅ Batch save completed: ${createdIds.length} documents created`
-          );
         } else if (createdIds.length > 0) {
           // Partial success
           const errorMsg = `Vytvorených ${createdIds.length}/${documents.length} dokumentov. ${errors.length} chýb.`;
@@ -968,9 +1000,6 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
 
         // TODO: Implement rollback - delete successfully created documents
         // This would require a backend transaction API or manual cleanup
-        logger.warn(
-          '⚠️ ROLLBACK NOT IMPLEMENTED: Some documents may have been created'
-        );
       }
     },
     [
@@ -983,9 +1012,6 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
 
   const handleSave = useCallback(
     (data: UnifiedDocumentData) => {
-      logger.debug('🟢 handleSave CALLED with data:', data);
-      logger.debug('🟢 editingDocument:', editingDocument);
-
       const closeDialog = () => {
         setOpenDialog(false);
         setEditingDocument(null);
@@ -1020,34 +1046,25 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
             price: data.price || 0,
             company: data.company || '',
             insurerId: selectedInsurer?.id || null,
+            brokerCompany: data.brokerCompany || '', // 🏢 Maklerská spoločnosť
             paymentFrequency: data.paymentFrequency || 'yearly',
             filePath: data.filePath || '',
             filePaths: data.filePaths || [],
             greenCardValidFrom: data.greenCardValidFrom || new Date(),
             greenCardValidTo: data.greenCardValidTo || new Date(),
-            kmState: data.kmState || 0, // 🚗 Stav kilometrov
+            kmState: data.kmState !== undefined ? data.kmState : 0, // 🚗 Stav kilometrov - OPRAVENÉ
+            deductibleAmount: data.deductibleAmount, // 💰 Spoluúčasť EUR
+            deductiblePercentage: data.deductiblePercentage, // 💰 Spoluúčasť %
           };
-          logger.debug(
-            '🔵 BEFORE MUTATION: Calling updateInsuranceMutation.mutate with:',
-            insuranceData
-          );
           updateInsuranceMutation.mutate(insuranceData, {
-            onSuccess: data => {
-              logger.debug('✅ UPDATE SUCCESS:', data);
+            onSuccess: () => {
               closeDialog();
             },
             onError: error => {
-              console.error('❌ UPDATE ERROR:', error);
-              console.error('Chyba pri ukladaní insurance:', error);
+              console.error('❌ Chyba pri ukladaní insurance:', error);
               window.alert('Chyba pri ukladaní insurance: ' + error.message);
             },
-            onSettled: () => {
-              // Ensure cache invalidation happens
-              logger.debug('🔄 onSettled called for updateInsurance');
-              // Per-entity cache invalidation is handled in useInsurances hook
-            },
           });
-          logger.debug('🔵 AFTER MUTATION: Mutation called');
         } else {
           // Type guard pre DocumentType
           const isValidDocumentType = (type: string): type is DocumentType => {
@@ -1057,13 +1074,6 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
           };
 
           if (isValidDocumentType(data.type)) {
-            logger.debug('🔍 DEBUG handleSave - data object:', {
-              dataCountry: data.country,
-              dataIsRequired: data.isRequired,
-              dataType: data.type,
-              fullData: data,
-            });
-
             const vehicleDocData = {
               id: editingDocument.id || '',
               vehicleId: data.vehicleId,
@@ -1074,30 +1084,27 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
               price: data.price || 0,
               notes: data.notes || '',
               filePath: data.filePath || '',
-              kmState: data.kmState || 0, // 🚗 Stav kilometrov pre STK/EK
+              kmState: data.kmState !== undefined ? data.kmState : undefined, // 🚗 Stav kilometrov pre STK/EK - OPRAVENÉ
+              brokerCompany: data.brokerCompany || undefined, // 🏢 Maklerská spoločnosť
+              deductibleAmount: data.deductibleAmount, // 💰 Spoluúčasť EUR
+              deductiblePercentage: data.deductiblePercentage, // 💰 Spoluúčasť %
               ...(data.country && { country: data.country }), // 🌍 Krajina pre dialničné známky
               ...(data.isRequired !== undefined && {
                 isRequired: data.isRequired,
               }), // ⚠️ Povinná dialničná známka
             };
-            logger.debug(
-              '🔵 BEFORE MUTATION: Calling updateVehicleDocumentMutation.mutate with:',
-              vehicleDocData
-            );
             updateVehicleDocumentMutation.mutate(vehicleDocData, {
-              onSuccess: data => {
-                logger.debug('✅ VEHICLE DOCUMENT UPDATE SUCCESS:', data);
+              onSuccess: () => {
                 closeDialog();
               },
-              onError: error => {
-                console.error('❌ VEHICLE DOCUMENT UPDATE ERROR:', error);
-                console.error('Chyba pri ukladaní vehicle document:', error);
+              onError: (error: unknown) => {
+                console.error('❌ Chyba pri ukladaní vehicle document:', error);
                 window.alert(
-                  'Chyba pri ukladaní vehicle document: ' + error.message
+                  'Chyba pri ukladaní vehicle document: ' +
+                    (error instanceof Error ? error.message : String(error))
                 );
               },
             });
-            logger.debug('🔵 AFTER MUTATION: Mutation called');
           }
         }
       } else {
@@ -1138,11 +1145,6 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
               console.error('Chyba pri ukladaní insurance:', error);
               window.alert('Chyba pri ukladaní insurance: ' + error.message);
             },
-            onSettled: () => {
-              // Ensure cache invalidation happens
-              logger.debug('🔄 onSettled called for createInsurance');
-              // Per-entity cache invalidation is handled in useInsurances hook
-            },
           });
         } else {
           const vehicleDocData = {
@@ -1155,14 +1157,22 @@ Status: ${data.ownerPaidDate && data.customerPaidDate ? 'Úplne uhradená' : 'Č
             price: data.price || 0,
             notes: data.notes || '',
             filePath: data.filePath || '',
-            kmState: data.kmState || 0, // 🚗 Stav kilometrov pre STK/EK
+            kmState: data.kmState !== undefined ? data.kmState : undefined, // 🚗 Stav kilometrov pre STK/EK - OPRAVENÉ
+            brokerCompany: data.brokerCompany || undefined, // 🏢 Maklerská spoločnosť
+            deductibleAmount: data.deductibleAmount, // 💰 Spoluúčasť EUR
+            deductiblePercentage: data.deductiblePercentage, // 💰 Spoluúčasť %
+            ...(data.country && { country: data.country }), // 🌍 Krajina pre dialničné známky
+            ...(data.isRequired !== undefined && {
+              isRequired: data.isRequired,
+            }), // ⚠️ Povinná dialničná známka
           };
           createVehicleDocumentMutation.mutate(vehicleDocData, {
             onSuccess: closeDialog,
-            onError: error => {
+            onError: (error: unknown) => {
               console.error('Chyba pri ukladaní vehicle document:', error);
               window.alert(
-                'Chyba pri ukladaní vehicle document: ' + error.message
+                'Chyba pri ukladaní vehicle document: ' +
+                  (error instanceof Error ? error.message : String(error))
               );
             },
           });
@@ -2175,11 +2185,9 @@ function DocumentListItem({
               >
                 {(() => {
                   try {
-                    const date =
-                      typeof document.validTo === 'string'
-                        ? parseISO(document.validTo)
-                        : document.validTo;
-                    return isValid(date)
+                    // 🕐 TIMEZONE FIX: Use parseDate instead of parseISO
+                    const date = parseDate(document.validTo);
+                    return date && isValid(date)
                       ? `Platné do ${format(date, 'dd.MM.yyyy', { locale: sk })}`
                       : 'Neplatný dátum';
                   } catch {
@@ -2256,12 +2264,11 @@ function DocumentListItem({
                 >
                   {(() => {
                     try {
-                      const date =
-                        typeof document.originalData.greenCardValidTo ===
-                        'string'
-                          ? parseISO(document.originalData.greenCardValidTo)
-                          : document.originalData.greenCardValidTo;
-                      return isValid(date)
+                      // 🕐 TIMEZONE FIX: Use parseDate instead of parseISO
+                      const date = parseDate(
+                        document.originalData.greenCardValidTo
+                      );
+                      return date && isValid(date)
                         ? format(date, 'dd.MM.yyyy', { locale: sk })
                         : 'Neplatný';
                     } catch {

@@ -374,6 +374,10 @@ export interface VehicleDocument {
   filePath?: string;
   country?: string; // 🌍 Krajina pre dialničné známky (SK, CZ, AT, HU, SI)
   isRequired?: boolean; // ⚠️ Povinná/dobrovoľná dialničná známka
+  brokerCompany?: string; // 🏢 Maklerská spoločnosť (pre poistky)
+  kmState?: number; // 🚗 Stav kilometrov (pre Kasko, STK, EK)
+  deductibleAmount?: number; // 💰 Spoluúčasť v EUR (pre poistky)
+  deductiblePercentage?: number; // 💰 Spoluúčasť v % (pre poistky)
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -397,6 +401,39 @@ export interface InsuranceClaim {
   otherPartyInfo?: string;
   notes?: string;
   createdAt: Date;
+  updatedAt?: Date;
+}
+
+// 🔧 SERVISNÁ KNIŽKA
+export interface ServiceRecord {
+  id: string;
+  vehicleId: string;
+  serviceDate: Date;
+  serviceProvider?: string;
+  kmState?: number;
+  description?: string;
+  price?: number;
+  filePaths?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// 🚨 EVIDENCIA POKÚT
+export interface Fine {
+  id: string;
+  vehicleId: string;
+  customerId?: string;
+  fineDate: Date;
+  amount: number;
+  amountLate?: number;
+  country?: string;
+  enforcementCompany?: string;
+  isPaid?: boolean;
+  ownerPaidDate?: Date;
+  customerPaidDate?: Date;
+  notes?: string;
+  filePaths?: string[];
+  createdAt?: Date;
   updatedAt?: Date;
 }
 

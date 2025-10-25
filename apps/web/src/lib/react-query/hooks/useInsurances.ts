@@ -5,6 +5,30 @@ import { queryKeys } from '../queryKeys';
 import { useInvalidateEntity } from './useBulkDataLoader';
 import { swCacheInvalidators } from '../invalidateServiceWorkerCache';
 import { logger } from '@/utils/smartLogger';
+import { formatDateToString } from '@/utils/dateUtils'; // 🕐 TIMEZONE FIX
+
+// 🕐 TIMEZONE FIX: Format dates before sending to API
+function formatInsuranceDates(insurance: Insurance): Insurance {
+  return {
+    ...insurance,
+    validFrom:
+      insurance.validFrom instanceof Date
+        ? (formatDateToString(insurance.validFrom) as unknown as Date)
+        : insurance.validFrom,
+    validTo:
+      insurance.validTo instanceof Date
+        ? (formatDateToString(insurance.validTo) as unknown as Date)
+        : insurance.validTo,
+    greenCardValidFrom:
+      insurance.greenCardValidFrom instanceof Date
+        ? (formatDateToString(insurance.greenCardValidFrom) as unknown as Date)
+        : insurance.greenCardValidFrom,
+    greenCardValidTo:
+      insurance.greenCardValidTo instanceof Date
+        ? (formatDateToString(insurance.greenCardValidTo) as unknown as Date)
+        : insurance.greenCardValidTo,
+  };
+}
 
 export interface InsuranceFilters extends Record<string, unknown> {
   search?: string;
@@ -129,8 +153,13 @@ export function useCreateInsurance() {
 
   return useMutation({
     mutationFn: (insurance: Insurance) => {
-      logger.debug('🚀 CREATE INSURANCE: Sending to server:', insurance);
-      return apiService.createInsurance(insurance);
+      // 🕐 TIMEZONE FIX: Format dates before sending
+      const formattedInsurance = formatInsuranceDates(insurance);
+      logger.debug(
+        '🚀 CREATE INSURANCE: Sending to server:',
+        formattedInsurance
+      );
+      return apiService.createInsurance(formattedInsurance);
     },
     onMutate: async newInsurance => {
       logger.debug('🔄 CREATE INSURANCE: onMutate called with:', newInsurance);
@@ -228,8 +257,16 @@ export function useUpdateInsurance() {
 
   return useMutation({
     mutationFn: (insurance: Insurance) => {
-      logger.debug('🚀 UPDATE INSURANCE: Sending to server:', insurance);
-      return apiService.updateInsurance(insurance.id, insurance);
+      // 🕐 TIMEZONE FIX: Format dates before sending
+      const formattedInsurance = formatInsuranceDates(insurance);
+      logger.debug(
+        '🚀 UPDATE INSURANCE: Sending to server:',
+        formattedInsurance
+      );
+      return apiService.updateInsurance(
+        formattedInsurance.id,
+        formattedInsurance
+      );
     },
     onMutate: async updatedInsurance => {
       logger.debug(

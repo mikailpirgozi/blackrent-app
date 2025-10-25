@@ -4,6 +4,8 @@ import {
   FileText,
   Truck,
   DollarSign,
+  AlertCircle,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -71,6 +73,20 @@ export const DOCUMENT_TYPE_CONFIG: Record<string, DocumentTypeConfig> = {
     color: '#6366f1',
     gradientFrom: '#6366f1',
     gradientTo: '#4f46e5',
+  },
+  service_book: {
+    label: 'Servisná knižka',
+    icon: BookOpen,
+    color: '#8b5cf6',
+    gradientFrom: '#8b5cf6',
+    gradientTo: '#7c3aed',
+  },
+  fines_record: {
+    label: 'Evidencia pokút',
+    icon: AlertCircle,
+    color: '#ef4444',
+    gradientFrom: '#ef4444',
+    gradientTo: '#dc2626',
   },
 };
 

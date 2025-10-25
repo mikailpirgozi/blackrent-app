@@ -3,6 +3,24 @@ import type { VehicleDocument } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/smartLogger';
 import { queryKeys } from '../queryKeys';
+import { formatDateToString } from '@/utils/dateUtils'; // 🕐 TIMEZONE FIX
+
+// 🕐 TIMEZONE FIX: Format dates before sending to API
+function formatVehicleDocumentDates(
+  document: VehicleDocument
+): VehicleDocument {
+  return {
+    ...document,
+    validFrom:
+      document.validFrom instanceof Date
+        ? (formatDateToString(document.validFrom) as unknown as Date)
+        : document.validFrom,
+    validTo:
+      document.validTo instanceof Date
+        ? (formatDateToString(document.validTo) as unknown as Date)
+        : document.validTo,
+  };
+}
 
 // CustomEvent is available globally in modern browsers
 
@@ -32,8 +50,11 @@ export function useCreateVehicleDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (document: VehicleDocument) =>
-      apiService.createVehicleDocument(document),
+    mutationFn: (document: VehicleDocument) => {
+      // 🕐 TIMEZONE FIX: Format dates before sending
+      const formattedDocument = formatVehicleDocumentDates(document);
+      return apiService.createVehicleDocument(formattedDocument);
+    },
     onMutate: async _newDocument => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.vehicleDocuments.all,
@@ -98,8 +119,13 @@ export function useUpdateVehicleDocument() {
 
   return useMutation({
     mutationFn: (document: VehicleDocument) => {
-      logger.debug('🚀 UPDATE VEHICLE DOCUMENT: Sending to server:', document);
-      return apiService.updateVehicleDocument(document);
+      // 🕐 TIMEZONE FIX: Format dates before sending
+      const formattedDocument = formatVehicleDocumentDates(document);
+      logger.debug(
+        '🚀 UPDATE VEHICLE DOCUMENT: Sending to server:',
+        formattedDocument
+      );
+      return apiService.updateVehicleDocument(formattedDocument);
     },
     // ❌ DISABLED: Optimistic updates removed - they conflict with staleTime=0
     // Optimistic updates cause: Update sets cache → invalidation refetches → but cache is "fresh" → no refetch!

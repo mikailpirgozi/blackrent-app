@@ -1,6 +1,6 @@
 /**
  * Crash Detector
- * 
+ *
  * Detects app crashes and enables recovery on next load
  * Uses heartbeat mechanism and localStorage flags
  */
@@ -30,7 +30,7 @@ export class CrashDetector {
   initialize(): void {
     // Check for previous crash
     const crashed = this.detectPreviousCrash();
-    
+
     if (crashed) {
       logger.error('Previous session crashed', crashed);
       this.handleCrashRecovery(crashed);
@@ -70,9 +70,9 @@ export class CrashDetector {
         url: window.location.href,
         protocolId: this.getCurrentProtocolId(),
       };
-      
+
       localStorage.setItem(this.HEARTBEAT_KEY, JSON.stringify(heartbeat));
-    } catch (error) {
+    } catch {
       // Ignore localStorage errors
     }
   }
@@ -83,7 +83,7 @@ export class CrashDetector {
   private clearHeartbeat(): void {
     try {
       localStorage.removeItem(this.HEARTBEAT_KEY);
-    } catch (error) {
+    } catch {
       // Ignore localStorage errors
     }
 
@@ -99,7 +99,7 @@ export class CrashDetector {
   private detectPreviousCrash(): CrashReport | null {
     try {
       const heartbeatStr = localStorage.getItem(this.HEARTBEAT_KEY);
-      
+
       if (!heartbeatStr) {
         return null; // No heartbeat = normal close
       }
@@ -139,7 +139,7 @@ export class CrashDetector {
     if (crash.protocolId) {
       try {
         const draft = await indexedDBManager.getDraft(crash.protocolId);
-        
+
         if (draft && draft.uploadedCount < draft.totalCount) {
           logger.info('Incomplete protocol found after crash', {
             protocolId: crash.protocolId,
@@ -158,7 +158,7 @@ export class CrashDetector {
     // Check for queued uploads
     try {
       const queuedTasks = await indexedDBManager.getQueuedTasks();
-      
+
       if (queuedTasks.length > 0) {
         logger.info('Queued uploads found after crash', {
           count: queuedTasks.length,
@@ -187,9 +187,9 @@ export class CrashDetector {
     try {
       const crashStr = localStorage.getItem(this.CRASH_KEY);
       if (!crashStr) return null;
-      
+
       return JSON.parse(crashStr);
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -202,7 +202,7 @@ export class CrashDetector {
       localStorage.removeItem(this.CRASH_KEY);
       localStorage.removeItem(this.HEARTBEAT_KEY);
       logger.debug('Crash history cleared');
-    } catch (error) {
+    } catch {
       // Ignore
     }
   }
@@ -217,4 +217,3 @@ export class CrashDetector {
 
 // Singleton instance
 export const crashDetector = new CrashDetector();
-

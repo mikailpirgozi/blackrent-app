@@ -5,6 +5,19 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse, Insurance } from '../types';
 
+// 🕐 TIMEZONE FIX: Parse date string without timezone conversion
+function parseDateWithoutTimezone(dateValue: string | Date): Date {
+  if (dateValue instanceof Date) return dateValue;
+  
+  const dateStr = String(dateValue);
+  // Extract YYYY-MM-DD part only
+  const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  
+  // Create Date at midnight local time (NO UTC conversion!)
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 const router: Router = Router();
 
 // Helper function for filtering insurances based on query parameters
@@ -224,8 +237,8 @@ router.post('/',
       vehicleId,
       type,
       policyNumber,
-      validFrom: new Date(validFrom),
-      validTo: new Date(validTo),
+      validFrom: parseDateWithoutTimezone(validFrom), // 🕐 TIMEZONE FIX
+      validTo: parseDateWithoutTimezone(validTo), // 🕐 TIMEZONE FIX
       price,
       company,
       paymentFrequency,
@@ -241,15 +254,15 @@ router.post('/',
       vehicleId,
       type,
       policyNumber,
-      validFrom: new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom), // 🕐 FIX: Extract date only
-      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
+      validFrom: parseDateWithoutTimezone(validFrom), // 🕐 TIMEZONE FIX
+      validTo: parseDateWithoutTimezone(validTo), // 🕐 TIMEZONE FIX
       price,
       company,
       paymentFrequency,
       filePath,
       filePaths,
-      greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
-      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      greenCardValidFrom: greenCardValidFrom ? parseDateWithoutTimezone(greenCardValidFrom) : undefined, // 🕐 TIMEZONE FIX
+      greenCardValidTo: greenCardValidTo ? parseDateWithoutTimezone(greenCardValidTo) : undefined, // 🕐 TIMEZONE FIX
       kmState: kmState || undefined, // 🚗 Stav kilometrov pre Kasko
       brokerCompany: brokerCompany || undefined, // 🏢 Maklerská spoločnosť
       deductibleAmount,
@@ -311,8 +324,8 @@ router.put('/:id',
       vehicleId,
       type,
       policyNumber,
-      validFrom: new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom), // 🕐 FIX: Extract date only
-      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
+      validFrom: parseDateWithoutTimezone(validFrom), // 🕐 TIMEZONE FIX
+      validTo: parseDateWithoutTimezone(validTo), // 🕐 TIMEZONE FIX
       price,
       company,
       brokerCompany, // 🏢 Maklerská spoločnosť
@@ -320,8 +333,8 @@ router.put('/:id',
       paymentFrequency,
       filePath,
       filePaths,
-      greenCardValidFrom: greenCardValidFrom ? new Date(greenCardValidFrom) : undefined,
-      greenCardValidTo: greenCardValidTo ? new Date(greenCardValidTo) : undefined,
+      greenCardValidFrom: greenCardValidFrom ? parseDateWithoutTimezone(greenCardValidFrom) : undefined, // 🕐 TIMEZONE FIX
+      greenCardValidTo: greenCardValidTo ? parseDateWithoutTimezone(greenCardValidTo) : undefined, // 🕐 TIMEZONE FIX
       kmState: kmState || undefined, // ✅ Pridané kmState
       deductibleAmount,
       deductiblePercentage

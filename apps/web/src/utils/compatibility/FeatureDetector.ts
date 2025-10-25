@@ -1,6 +1,6 @@
 /**
  * Feature Detector & Browser Compatibility
- * 
+ *
  * Detects browser capabilities and provides fallbacks
  * - IndexedDB support
  * - Service Worker support
@@ -101,7 +101,7 @@ export class FeatureDetector {
     try {
       const registration = await navigator.serviceWorker.ready;
       return 'sync' in registration;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -110,7 +110,7 @@ export class FeatureDetector {
    * Check WebP support
    */
   private async checkWebPSupport(): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const webpData =
         'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
       const img = new Image();
@@ -187,4 +187,3 @@ export class FeatureDetector {
 
 // Singleton instance
 export const featureDetector = new FeatureDetector();
-

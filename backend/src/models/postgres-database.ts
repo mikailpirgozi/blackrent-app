@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcryptjs';
 import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
-import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, HandoverProtocol, Insurance, InsuranceClaim, Insurer, Platform, RecurringExpense, Rental, ReturnProtocol, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
+import type { Company, CompanyDocument, CompanyInvestor, CompanyInvestorShare, CompanyPermissions, Customer, Expense, ExpenseCategory, Fine, HandoverProtocol, Insurance, InsuranceClaim, Insurer, Platform, RecurringExpense, Rental, ReturnProtocol, ServiceRecord, Settlement, User, UserCompanyAccess, UserPermission, Vehicle, VehicleDocument, VehicleUnavailability } from '../types';
 import { logger } from '../utils/logger';
 import { r2Storage } from '../utils/r2-storage';
 
@@ -685,6 +685,53 @@ export class PostgresDatabase {
       } catch (error) {
         logger.db('ℹ️ Vehicle documents file_path column already exists or error occurred:', error);
       }
+
+      // 🔧 TABUĽKA SERVISNÝCH ZÁZNAMOV (Service Records)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS service_records (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id INTEGER NOT NULL,
+          service_date DATE NOT NULL,
+          service_provider VARCHAR(255),
+          km_state INTEGER,
+          description TEXT,
+          price DECIMAL(10,2),
+          file_paths TEXT[],
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Indexy pre service_records
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_service_records_vehicle_id ON service_records(vehicle_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_service_records_service_date ON service_records(service_date DESC)`);
+
+      // 🚨 TABUĽKA POKÚT (Fines)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS fines (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          vehicle_id INTEGER NOT NULL,
+          customer_id INTEGER,
+          fine_date DATE NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          amount_late DECIMAL(10,2),
+          country VARCHAR(10),
+          enforcement_company VARCHAR(255),
+          is_paid BOOLEAN DEFAULT FALSE,
+          owner_paid_date DATE,
+          customer_paid_date DATE,
+          notes TEXT,
+          file_paths TEXT[],
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Indexy pre fines
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_fines_vehicle_id ON fines(vehicle_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_fines_customer_id ON fines(customer_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_fines_fine_date ON fines(fine_date DESC)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_fines_is_paid ON fines(is_paid)`);
 
       // Tabuľka nedostupností vozidiel (servis, údržba, blokovanie)
       await client.query(`
@@ -2518,6 +2565,34 @@ export class PostgresDatabase {
       } catch (error: unknown) {
         const errorObj = toError(error);
         logger.migration('⚠️ Migrácia 34 chyba:', errorObj.message);
+      }
+
+      // Migrácia 35: Pridanie rozšírených stĺpcov do vehicle_documents (dialničné známky, poistky)
+      try {
+        logger.migration('📋 Migrácia 35: Pridávam rozšírené stĺpce do vehicle_documents...');
+        
+        // Pridaj stĺpce pre dialničné známky
+        await client.query(`
+          ALTER TABLE vehicle_documents 
+          ADD COLUMN IF NOT EXISTS country VARCHAR(10),
+          ADD COLUMN IF NOT EXISTS is_required BOOLEAN DEFAULT FALSE
+        `);
+        logger.migration('   ✅ Dialničné známky stĺpce pridané (country, is_required)');
+        
+        // Pridaj stĺpce pre poistky
+        await client.query(`
+          ALTER TABLE vehicle_documents 
+          ADD COLUMN IF NOT EXISTS broker_company VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS km_state INTEGER,
+          ADD COLUMN IF NOT EXISTS deductible_amount DECIMAL(10,2),
+          ADD COLUMN IF NOT EXISTS deductible_percentage DECIMAL(5,2)
+        `);
+        logger.migration('   ✅ Poistky stĺpce pridané (broker_company, km_state, deductible_amount, deductible_percentage)');
+        
+        logger.migration('✅ Migrácia 35: vehicle_documents rozšírené stĺpce úspešne pridané!');
+      } catch (error: unknown) {
+        const errorObj = toError(error);
+        logger.migration('⚠️ Migrácia 35 chyba:', errorObj.message);
       }
 
     } catch (error: unknown) {
@@ -6198,8 +6273,8 @@ export class PostgresDatabase {
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
-        greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
+        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
+        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
         kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
         deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
         deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
@@ -6274,13 +6349,15 @@ export class PostgresDatabase {
         insuranceData.kmState || null, // 🚗 Stav kilometrov pre Kasko
         insuranceData.deductibleAmount || null, // 💰 Spoluúčasť v EUR
         insuranceData.deductiblePercentage || null, // 💰 Spoluúčasť v %
-        insuranceData.brokerCompany || null // 🏢 Maklerská spoločnosť
+        insuranceData.brokerCompany || null, // 🏢 Maklerská spoločnosť
+        insuranceData.greenCardValidFrom || null, // 🟢 Biela karta - platnosť od
+        insuranceData.greenCardValidTo || null // 🟢 Biela karta - platnosť do
       ];
       
       console.log('🔧 INSURANCE: Insert parameters:', insertParams);
       
       const result = await client.query(
-        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company, created_at',
+        'INSERT INTO insurances (vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company, green_card_valid_from, green_card_valid_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company, green_card_valid_from, green_card_valid_to, created_at',
         insertParams
       );
 
@@ -6299,8 +6376,8 @@ export class PostgresDatabase {
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
-        greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
+        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
+        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
         kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
         deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
         deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
@@ -6371,6 +6448,8 @@ export class PostgresDatabase {
         insuranceData.deductibleAmount || null, 
         insuranceData.deductiblePercentage || null,
         insuranceData.brokerCompany || null, // 🏢 Maklerská spoločnosť
+        insuranceData.greenCardValidFrom || null, // 🟢 Biela karta - platnosť od
+        insuranceData.greenCardValidTo || null, // 🟢 Biela karta - platnosť do
         id
       ];
       
@@ -6380,9 +6459,9 @@ export class PostgresDatabase {
       // Production database has INTEGER id, development has UUID
       const result = await client.query(`
         UPDATE insurances 
-        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14, broker_company = $15
-        WHERE id::text = $16::text
-        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company
+        SET vehicle_id = $1, insurer_id = $2, type = $3, policy_number = $4, start_date = $5, end_date = $6, premium = $7, coverage_amount = $8, payment_frequency = $9, file_path = $10, file_paths = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14, broker_company = $15, green_card_valid_from = $16, green_card_valid_to = $17
+        WHERE id::text = $18::text
+        RETURNING id, vehicle_id, insurer_id, policy_number, type, coverage_amount, premium, start_date, end_date, payment_frequency, file_path, file_paths, km_state, deductible_amount, deductible_percentage, broker_company, green_card_valid_from, green_card_valid_to
       `, queryParams);
 
       console.log('🔧 UPDATE INSURANCE: Query result rows:', result.rows.length);
@@ -6415,8 +6494,8 @@ export class PostgresDatabase {
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: undefined, // 🟢 Biela karta - nie je v databáze
-        greenCardValidTo: undefined, // 🟢 Biela karta - nie je v databáze
+        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
+        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
         kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
         deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
         deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
@@ -8977,7 +9056,9 @@ export class PostgresDatabase {
 
       if (vehicleId) {
         query += ' WHERE vehicle_id = $1';
-        params.push(parseInt(vehicleId)); // Konverzia string na integer
+        // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+        const vehicleIdValue = isNaN(Number(vehicleId)) ? vehicleId : parseInt(vehicleId);
+        params.push(vehicleIdValue);
       }
 
       query += ' ORDER BY valid_to ASC';
@@ -8995,6 +9076,10 @@ export class PostgresDatabase {
         filePath: row.file_path || undefined,
         country: row.country || undefined, // 🌍 Krajina pre dialničné známky
         isRequired: row.is_required || undefined, // ⚠️ Povinná dialničná známka
+        brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
+        kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov
+        deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť EUR
+        deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined, // 💰 Spoluúčasť %
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       }));
@@ -9014,20 +9099,29 @@ export class PostgresDatabase {
     filePath?: string;
     country?: string; // 🌍 Krajina pre dialničné známky
     isRequired?: boolean; // ⚠️ Povinná dialničná známka
+    brokerCompany?: string; // 🏢 Maklerská spoločnosť
+    kmState?: number; // 🚗 Stav kilometrov
+    deductibleAmount?: number; // 💰 Spoluúčasť EUR
+    deductiblePercentage?: number; // 💰 Spoluúčasť %
   }): Promise<VehicleDocument> {
     const client = await this.pool.connect();
     try {
+      // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID and convert accordingly
+      const vehicleIdValue = isNaN(Number(documentData.vehicleId)) 
+        ? documentData.vehicleId  // UUID string
+        : parseInt(documentData.vehicleId); // INTEGER
+
       const result = await client.query(
-        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, created_at`,
-        [parseInt(documentData.vehicleId), documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false]
+        `INSERT INTO vehicle_documents (vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, broker_company, km_state, deductible_amount, deductible_percentage) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, broker_company, km_state, deductible_amount, deductible_percentage, created_at`,
+        [vehicleIdValue, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false, documentData.brokerCompany || null, documentData.kmState || null, documentData.deductibleAmount || null, documentData.deductiblePercentage || null]
       );
 
       const row = result.rows[0];
       return {
         id: row.id.toString(),
-        vehicleId: row.vehicle_id?.toString() || '', // INTEGER konvertovaný na string
+        vehicleId: row.vehicle_id?.toString() || '', // 🔧 FIX: Convert to string for consistency
         documentType: row.document_type,
         validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
         validTo: new Date(row.valid_to),
@@ -9037,6 +9131,10 @@ export class PostgresDatabase {
         filePath: row.file_path || undefined,
         country: row.country || undefined, // 🌍 Krajina
         isRequired: row.is_required || undefined, // ⚠️ Povinná
+        brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
+        kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov
+        deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť EUR
+        deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined, // 💰 Spoluúčasť %
         createdAt: new Date(row.created_at),
         updatedAt: undefined
       };
@@ -9056,15 +9154,24 @@ export class PostgresDatabase {
     filePath?: string;
     country?: string; // 🌍 Krajina pre dialničné známky
     isRequired?: boolean; // ⚠️ Povinná dialničná známka
+    brokerCompany?: string; // 🏢 Maklerská spoločnosť
+    kmState?: number; // 🚗 Stav kilometrov
+    deductibleAmount?: number; // 💰 Spoluúčasť EUR
+    deductiblePercentage?: number; // 💰 Spoluúčasť %
   }): Promise<VehicleDocument> {
     const client = await this.pool.connect();
     try {
+      // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID and convert accordingly
+      const vehicleIdValue = isNaN(Number(documentData.vehicleId)) 
+        ? documentData.vehicleId  // UUID string
+        : parseInt(documentData.vehicleId); // INTEGER
+
       const result = await client.query(
         `UPDATE vehicle_documents 
-         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, country = $9, is_required = $10, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $11 
-         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, created_at, updated_at`,
-        [parseInt(documentData.vehicleId), documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false, id]
+         SET vehicle_id = $1, document_type = $2, valid_from = $3, valid_to = $4, document_number = $5, price = $6, notes = $7, file_path = $8, country = $9, is_required = $10, broker_company = $11, km_state = $12, deductible_amount = $13, deductible_percentage = $14, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $15 
+         RETURNING id, vehicle_id, document_type, valid_from, valid_to, document_number, price, notes, file_path, country, is_required, broker_company, km_state, deductible_amount, deductible_percentage, created_at, updated_at`,
+        [vehicleIdValue, documentData.documentType, documentData.validFrom, documentData.validTo, documentData.documentNumber, documentData.price, documentData.notes, documentData.filePath || null, documentData.country || null, documentData.isRequired ?? false, documentData.brokerCompany || null, documentData.kmState || null, documentData.deductibleAmount || null, documentData.deductiblePercentage || null, id]
       );
 
       if (result.rows.length === 0) {
@@ -9074,7 +9181,7 @@ export class PostgresDatabase {
       const row = result.rows[0];
       return {
         id: row.id.toString(),
-        vehicleId: row.vehicle_id,
+        vehicleId: row.vehicle_id?.toString() || '', // 🔧 FIX: Convert to string for consistency
         documentType: row.document_type,
         validFrom: row.valid_from ? new Date(row.valid_from) : undefined,
         validTo: new Date(row.valid_to),
@@ -9084,6 +9191,10 @@ export class PostgresDatabase {
         filePath: row.file_path || undefined,
         country: row.country || undefined, // 🌍 Krajina
         isRequired: row.is_required || undefined, // ⚠️ Povinná
+        brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
+        kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov
+        deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť EUR
+        deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined, // 💰 Spoluúčasť %
         createdAt: new Date(row.created_at),
         updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
       };
@@ -9290,6 +9401,341 @@ export class PostgresDatabase {
     const client = await this.pool.connect();
     try {
       await client.query('DELETE FROM insurance_claims WHERE id = $1', [id]);
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🔧 SERVISNÁ KNIŽKA - Service Records
+  async getServiceRecords(vehicleId?: string): Promise<ServiceRecord[]> {
+    const client = await this.pool.connect();
+    try {
+      let query = 'SELECT * FROM service_records';
+      const params: unknown[] = [];
+
+      if (vehicleId) {
+        query += ' WHERE vehicle_id = $1';
+        // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+        const vehicleIdValue = isNaN(Number(vehicleId)) ? vehicleId : parseInt(vehicleId);
+        params.push(vehicleIdValue);
+      }
+
+      query += ' ORDER BY service_date DESC';
+
+      const result = await client.query(query, params);
+      return result.rows.map(row => ({
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString() || '',
+        serviceDate: new Date(row.service_date),
+        serviceProvider: row.service_provider || undefined,
+        kmState: row.km_state ? parseInt(row.km_state) : undefined,
+        description: row.description || undefined,
+        price: row.price ? parseFloat(row.price) : undefined,
+        filePaths: row.file_paths || [],
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async createServiceRecord(recordData: {
+    vehicleId: string;
+    serviceDate: Date;
+    serviceProvider?: string;
+    kmState?: number;
+    description?: string;
+    price?: number;
+    filePaths?: string[];
+  }): Promise<ServiceRecord> {
+    const client = await this.pool.connect();
+    try {
+      // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+      const vehicleIdValue = isNaN(Number(recordData.vehicleId)) 
+        ? recordData.vehicleId 
+        : parseInt(recordData.vehicleId);
+
+      const result = await client.query(
+        `INSERT INTO service_records (vehicle_id, service_date, service_provider, km_state, description, price, file_paths) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) 
+         RETURNING *`,
+        [
+          vehicleIdValue,
+          recordData.serviceDate,
+          recordData.serviceProvider || null,
+          recordData.kmState || null,
+          recordData.description || null,
+          recordData.price || null,
+          recordData.filePaths || []
+        ]
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString() || '',
+        serviceDate: new Date(row.service_date),
+        serviceProvider: row.service_provider || undefined,
+        kmState: row.km_state ? parseInt(row.km_state) : undefined,
+        description: row.description || undefined,
+        price: row.price ? parseFloat(row.price) : undefined,
+        filePaths: row.file_paths || [],
+        createdAt: new Date(row.created_at),
+        updatedAt: undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateServiceRecord(id: string, recordData: {
+    vehicleId: string;
+    serviceDate: Date;
+    serviceProvider?: string;
+    kmState?: number;
+    description?: string;
+    price?: number;
+    filePaths?: string[];
+  }): Promise<ServiceRecord> {
+    const client = await this.pool.connect();
+    try {
+      // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+      const vehicleIdValue = isNaN(Number(recordData.vehicleId)) 
+        ? recordData.vehicleId 
+        : parseInt(recordData.vehicleId);
+
+      const result = await client.query(
+        `UPDATE service_records 
+         SET vehicle_id = $1, service_date = $2, service_provider = $3, km_state = $4, description = $5, price = $6, file_paths = $7, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $8 
+         RETURNING *`,
+        [
+          vehicleIdValue,
+          recordData.serviceDate,
+          recordData.serviceProvider || null,
+          recordData.kmState || null,
+          recordData.description || null,
+          recordData.price || null,
+          recordData.filePaths || [],
+          id
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Servisný záznam nebol nájdený');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString() || '',
+        serviceDate: new Date(row.service_date),
+        serviceProvider: row.service_provider || undefined,
+        kmState: row.km_state ? parseInt(row.km_state) : undefined,
+        description: row.description || undefined,
+        price: row.price ? parseFloat(row.price) : undefined,
+        filePaths: row.file_paths || [],
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteServiceRecord(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('DELETE FROM service_records WHERE id = $1', [id]);
+    } finally {
+      client.release();
+    }
+  }
+
+  // 🚨 EVIDENCIA POKÚT - Fines
+  async getFines(vehicleId?: string): Promise<Fine[]> {
+    const client = await this.pool.connect();
+    try {
+      let query = 'SELECT * FROM fines';
+      const params: unknown[] = [];
+
+      if (vehicleId) {
+        query += ' WHERE vehicle_id = $1';
+        // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+        const vehicleIdValue = isNaN(Number(vehicleId)) ? vehicleId : parseInt(vehicleId);
+        params.push(vehicleIdValue);
+      }
+
+      query += ' ORDER BY fine_date DESC';
+
+      const result = await client.query(query, params);
+      return result.rows.map(row => ({
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString() || '',
+        customerId: row.customer_id?.toString() || undefined,
+        fineDate: new Date(row.fine_date),
+        amount: parseFloat(row.amount),
+        amountLate: row.amount_late ? parseFloat(row.amount_late) : undefined,
+        country: row.country || undefined,
+        enforcementCompany: row.enforcement_company || undefined,
+        isPaid: row.is_paid || false,
+        ownerPaidDate: row.owner_paid_date ? new Date(row.owner_paid_date) : undefined,
+        customerPaidDate: row.customer_paid_date ? new Date(row.customer_paid_date) : undefined,
+        notes: row.notes || undefined,
+        filePaths: row.file_paths || [],
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      }));
+    } finally {
+      client.release();
+    }
+  }
+
+  async createFine(fineData: {
+    vehicleId: string;
+    customerId?: string;
+    fineDate: Date;
+    amount: number;
+    amountLate?: number;
+    country?: string;
+    enforcementCompany?: string;
+    isPaid?: boolean;
+    ownerPaidDate?: Date;
+    customerPaidDate?: Date;
+    notes?: string;
+    filePaths?: string[];
+  }): Promise<Fine> {
+    const client = await this.pool.connect();
+    try {
+      // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+      const vehicleIdValue = isNaN(Number(fineData.vehicleId)) 
+        ? fineData.vehicleId 
+        : parseInt(fineData.vehicleId);
+      const customerIdValue = fineData.customerId 
+        ? (isNaN(Number(fineData.customerId)) ? fineData.customerId : parseInt(fineData.customerId))
+        : null;
+
+      const result = await client.query(
+        `INSERT INTO fines (vehicle_id, customer_id, fine_date, amount, amount_late, country, enforcement_company, is_paid, owner_paid_date, customer_paid_date, notes, file_paths) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+         RETURNING *`,
+        [
+          vehicleIdValue,
+          customerIdValue,
+          fineData.fineDate,
+          fineData.amount,
+          fineData.amountLate || null,
+          fineData.country || null,
+          fineData.enforcementCompany || null,
+          fineData.isPaid ?? false,
+          fineData.ownerPaidDate || null,
+          fineData.customerPaidDate || null,
+          fineData.notes || null,
+          fineData.filePaths || []
+        ]
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString() || '',
+        customerId: row.customer_id?.toString() || undefined,
+        fineDate: new Date(row.fine_date),
+        amount: parseFloat(row.amount),
+        amountLate: row.amount_late ? parseFloat(row.amount_late) : undefined,
+        country: row.country || undefined,
+        enforcementCompany: row.enforcement_company || undefined,
+        isPaid: row.is_paid || false,
+        ownerPaidDate: row.owner_paid_date ? new Date(row.owner_paid_date) : undefined,
+        customerPaidDate: row.customer_paid_date ? new Date(row.customer_paid_date) : undefined,
+        notes: row.notes || undefined,
+        filePaths: row.file_paths || [],
+        createdAt: new Date(row.created_at),
+        updatedAt: undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateFine(id: string, fineData: {
+    vehicleId: string;
+    customerId?: string;
+    fineDate: Date;
+    amount: number;
+    amountLate?: number;
+    country?: string;
+    enforcementCompany?: string;
+    isPaid?: boolean;
+    ownerPaidDate?: Date;
+    customerPaidDate?: Date;
+    notes?: string;
+    filePaths?: string[];
+  }): Promise<Fine> {
+    const client = await this.pool.connect();
+    try {
+      // 🔧 FIX: Detect if vehicle_id is INTEGER or UUID
+      const vehicleIdValue = isNaN(Number(fineData.vehicleId)) 
+        ? fineData.vehicleId 
+        : parseInt(fineData.vehicleId);
+      const customerIdValue = fineData.customerId 
+        ? (isNaN(Number(fineData.customerId)) ? fineData.customerId : parseInt(fineData.customerId))
+        : null;
+
+      const result = await client.query(
+        `UPDATE fines 
+         SET vehicle_id = $1, customer_id = $2, fine_date = $3, amount = $4, amount_late = $5, country = $6, enforcement_company = $7, is_paid = $8, owner_paid_date = $9, customer_paid_date = $10, notes = $11, file_paths = $12, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $13 
+         RETURNING *`,
+        [
+          vehicleIdValue,
+          customerIdValue,
+          fineData.fineDate,
+          fineData.amount,
+          fineData.amountLate || null,
+          fineData.country || null,
+          fineData.enforcementCompany || null,
+          fineData.isPaid ?? false,
+          fineData.ownerPaidDate || null,
+          fineData.customerPaidDate || null,
+          fineData.notes || null,
+          fineData.filePaths || [],
+          id
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Pokuta nebola nájdená');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id.toString(),
+        vehicleId: row.vehicle_id?.toString() || '',
+        customerId: row.customer_id?.toString() || undefined,
+        fineDate: new Date(row.fine_date),
+        amount: parseFloat(row.amount),
+        amountLate: row.amount_late ? parseFloat(row.amount_late) : undefined,
+        country: row.country || undefined,
+        enforcementCompany: row.enforcement_company || undefined,
+        isPaid: row.is_paid || false,
+        ownerPaidDate: row.owner_paid_date ? new Date(row.owner_paid_date) : undefined,
+        customerPaidDate: row.customer_paid_date ? new Date(row.customer_paid_date) : undefined,
+        notes: row.notes || undefined,
+        filePaths: row.file_paths || [],
+        createdAt: new Date(row.created_at),
+        updatedAt: row.updated_at ? new Date(row.updated_at) : undefined
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteFine(id: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('DELETE FROM fines WHERE id = $1', [id]);
     } finally {
       client.release();
     }

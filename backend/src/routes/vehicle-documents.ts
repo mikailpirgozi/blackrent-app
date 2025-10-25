@@ -38,7 +38,7 @@ router.post('/',
   checkPermission('vehicles', 'update'),
   async (req: Request, res: Response<ApiResponse>) => {
   try {
-    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired } = req.body;
+    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired, brokerCompany, kmState, deductibleAmount, deductiblePercentage } = req.body;
 
     if (!vehicleId || !documentType || !validTo) {
       return res.status(400).json({
@@ -69,6 +69,10 @@ router.post('/',
       filePath,
       country, // 🌍 Krajina pre dialničné známky
       isRequired, // ⚠️ Povinná dialničná známka
+      brokerCompany, // 🏢 Maklerská spoločnosť
+      kmState, // 🚗 Stav kilometrov
+      deductibleAmount, // 💰 Spoluúčasť EUR
+      deductiblePercentage, // 💰 Spoluúčasť %
     });
 
     res.status(201).json({
@@ -93,7 +97,7 @@ router.put('/:id',
   async (req: Request, res: Response<ApiResponse>) => {
   try {
     const { id } = req.params;
-    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired } = req.body;
+    const { vehicleId, documentType, validFrom, validTo, documentNumber, price, notes, filePath, country, isRequired, brokerCompany, kmState, deductibleAmount, deductiblePercentage } = req.body;
 
     console.log('🔍 UPDATE VEHICLE DOCUMENT REQUEST:', {
       id,
@@ -101,6 +105,8 @@ router.put('/:id',
       documentType,
       country,
       isRequired,
+      brokerCompany,
+      kmState,
       fullBody: req.body
     });
 
@@ -133,6 +139,10 @@ router.put('/:id',
       filePath,
       country, // 🌍 Krajina pre dialničné známky
       isRequired, // ⚠️ Povinná dialničná známka
+      brokerCompany, // 🏢 Maklerská spoločnosť
+      kmState, // 🚗 Stav kilometrov
+      deductibleAmount, // 💰 Spoluúčasť EUR
+      deductiblePercentage, // 💰 Spoluúčasť %
     });
 
     console.log('✅ UPDATE VEHICLE DOCUMENT RESPONSE:', updatedDocument);

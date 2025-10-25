@@ -214,8 +214,15 @@ export class StreamingImageProcessor {
         this.cleanupBatch(processed);
 
         // Track memory usage
-        if (performance.memory) {
-          const mem = performance.memory;
+        const perf = performance as Performance & {
+          memory?: {
+            usedJSHeapSize: number;
+            totalJSHeapSize: number;
+            jsHeapSizeLimit: number;
+          };
+        };
+        if (perf.memory) {
+          const mem = perf.memory;
           const currentMemory = mem.usedJSHeapSize;
           if (currentMemory > peakMemory) {
             peakMemory = currentMemory;
@@ -324,8 +331,8 @@ export class StreamingImageProcessor {
     }
 
     // Force garbage collection hint (not guaranteed)
-    if (typeof gc !== 'undefined') {
-      gc();
+    if (typeof globalThis.gc !== 'undefined') {
+      globalThis.gc();
     }
 
     logger.debug('Batch memory cleaned up');

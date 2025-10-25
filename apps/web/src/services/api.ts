@@ -5,6 +5,7 @@ import type {
   Customer,
   Expense,
   ExpenseCategory,
+  Fine,
   HandoverProtocol,
   Insurance,
   InsuranceClaim,
@@ -12,6 +13,7 @@ import type {
   RecurringExpense,
   Rental,
   ReturnProtocol,
+  ServiceRecord,
   Settlement,
   User,
   Vehicle,
@@ -951,6 +953,62 @@ class ApiService {
 
   async deleteVehicleDocument(id: string): Promise<void> {
     return this.request<void>(`/vehicle-documents/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 🔧 SERVISNÁ KNIŽKA - Service Records
+  async getServiceRecords(vehicleId?: string): Promise<ServiceRecord[]> {
+    const params = vehicleId ? `?vehicleId=${vehicleId}` : '';
+    return this.request<ServiceRecord[]>(`/service-records${params}`);
+  }
+
+  async createServiceRecord(
+    record: Omit<ServiceRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<ServiceRecord> {
+    return this.request<ServiceRecord>('/service-records', {
+      method: 'POST',
+      body: JSON.stringify(record),
+    });
+  }
+
+  async updateServiceRecord(record: ServiceRecord): Promise<ServiceRecord> {
+    return this.request<ServiceRecord>(`/service-records/${record.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(record),
+    });
+  }
+
+  async deleteServiceRecord(id: string): Promise<void> {
+    return this.request<void>(`/service-records/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 🚨 EVIDENCIA POKÚT - Fines
+  async getFines(vehicleId?: string): Promise<Fine[]> {
+    const params = vehicleId ? `?vehicleId=${vehicleId}` : '';
+    return this.request<Fine[]>(`/fines${params}`);
+  }
+
+  async createFine(
+    fine: Omit<Fine, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<Fine> {
+    return this.request<Fine>('/fines', {
+      method: 'POST',
+      body: JSON.stringify(fine),
+    });
+  }
+
+  async updateFine(fine: Fine): Promise<Fine> {
+    return this.request<Fine>(`/fines/${fine.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(fine),
+    });
+  }
+
+  async deleteFine(id: string): Promise<void> {
+    return this.request<void>(`/fines/${id}`, {
       method: 'DELETE',
     });
   }

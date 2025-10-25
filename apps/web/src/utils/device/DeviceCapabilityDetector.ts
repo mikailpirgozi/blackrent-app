@@ -80,7 +80,8 @@ export class DeviceCapabilityDetector {
    * Get device RAM (Chrome/Edge only, defaults to 4GB)
    */
   private getDeviceMemory(): number {
-    const memory = navigator.deviceMemory;
+    const memory = (navigator as Navigator & { deviceMemory?: number })
+      .deviceMemory;
 
     if (memory !== undefined) {
       logger.debug(`Device memory detected: ${memory}GB`);
@@ -105,10 +106,21 @@ export class DeviceCapabilityDetector {
    * Get network information
    */
   private getNetworkInfo(): NetworkInfo {
+    const nav = navigator as Navigator & {
+      connection?: { effectiveType?: string; downlink?: number; rtt?: number };
+      mozConnection?: {
+        effectiveType?: string;
+        downlink?: number;
+        rtt?: number;
+      };
+      webkitConnection?: {
+        effectiveType?: string;
+        downlink?: number;
+        rtt?: number;
+      };
+    };
     const connection =
-      navigator.connection ||
-      navigator.mozConnection ||
-      navigator.webkitConnection;
+      nav.connection || nav.mozConnection || nav.webkitConnection;
 
     if (!connection) {
       logger.debug('Network API not available, assuming medium speed');
@@ -143,8 +155,22 @@ export class DeviceCapabilityDetector {
       speed,
     });
 
+    // Map effectiveType to NetworkInfo type
+    let networkType: '2g' | '3g' | '4g' | '5g' | 'unknown';
+    if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+      networkType = '2g';
+    } else if (effectiveType === '3g') {
+      networkType = '3g';
+    } else if (effectiveType === '4g') {
+      networkType = '4g';
+    } else if (effectiveType === '5g') {
+      networkType = '5g';
+    } else {
+      networkType = 'unknown';
+    }
+
     return {
-      type: effectiveType || 'unknown',
+      type: networkType,
       speed,
       effectiveType,
       downlink,
@@ -226,7 +252,8 @@ export class DeviceCapabilityDetector {
     ).matches;
 
     // Method 2: Navigator standalone (iOS Safari)
-    const isNavigatorStandalone = navigator.standalone === true;
+    const isNavigatorStandalone =
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     // Method 3: Document referrer (Android)
     const isFromHomescreen = document.referrer.includes('android-app://');

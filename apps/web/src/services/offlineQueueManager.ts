@@ -1,6 +1,6 @@
 /**
  * Offline Queue Manager
- * 
+ *
  * IndexedDB-based queue pre offline support
  * Automaticky sync-uje keď je zariadenie online
  */
@@ -63,11 +63,14 @@ export class OfflineQueueManager {
   /**
    * Add item to queue
    */
-  async addToQueue(type: 'protocol' | 'upload', data: unknown): Promise<string> {
+  async addToQueue(
+    type: 'protocol' | 'upload',
+    data: unknown
+  ): Promise<string> {
     if (!this.db) await this.init();
 
     const item: QueueItem = {
-      id: crypto.randomUUID(),
+      id: globalThis.crypto.randomUUID(),
       type,
       data,
       retries: 0,
@@ -148,12 +151,16 @@ export class OfflineQueueManager {
     switch (item.type) {
       case 'protocol':
         // Process protocol creation
-        await apiService.createHandoverProtocol(item.data as Parameters<typeof apiService.createHandoverProtocol>[0]);
+        await apiService.createHandoverProtocol(
+          item.data as Parameters<typeof apiService.createHandoverProtocol>[0]
+        );
         break;
 
       case 'upload':
         // Process file upload
-        await apiService.uploadFile(item.data as Parameters<typeof apiService.uploadFile>[0]);
+        await apiService.uploadFile(
+          item.data as Parameters<typeof apiService.uploadFile>[0]
+        );
         break;
 
       default:
@@ -199,9 +206,10 @@ export class OfflineQueueManager {
 
     return {
       total: items.length,
-      protocols: items.filter((i) => i.type === 'protocol').length,
-      uploads: items.filter((i) => i.type === 'upload').length,
-      oldestItem: items.length > 0 ? Math.min(...items.map((i) => i.createdAt)) : undefined,
+      protocols: items.filter(i => i.type === 'protocol').length,
+      uploads: items.filter(i => i.type === 'upload').length,
+      oldestItem:
+        items.length > 0 ? Math.min(...items.map(i => i.createdAt)) : undefined,
     };
   }
 }
@@ -213,16 +221,15 @@ export const offlineQueue = new OfflineQueueManager();
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     logger.info('Device is online, processing queue...');
-    offlineQueue.processQueue().catch((error) => {
+    offlineQueue.processQueue().catch(error => {
       logger.error('Failed to process queue on online event', { error });
     });
   });
 
   // Process queue on page load if online
   if (navigator.onLine) {
-    offlineQueue.processQueue().catch((error) => {
+    offlineQueue.processQueue().catch(error => {
       logger.error('Failed to process queue on page load', { error });
     });
   }
 }
-

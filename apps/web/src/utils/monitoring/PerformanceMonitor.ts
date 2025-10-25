@@ -142,8 +142,15 @@ export class PerformanceMonitor {
    * Get current memory usage
    */
   private getCurrentMemory(): number {
-    if (performance.memory) {
-      const mem = performance.memory;
+    const perf = performance as Performance & {
+      memory?: {
+        usedJSHeapSize: number;
+        totalJSHeapSize: number;
+        jsHeapSizeLimit: number;
+      };
+    };
+    if (perf.memory) {
+      const mem = perf.memory;
       return mem.usedJSHeapSize / 1024 / 1024; // Convert to MB
     }
     return 0;
@@ -169,8 +176,15 @@ export class PerformanceMonitor {
 
     // Get memory limit
     let limit = 0;
-    if (performance.memory) {
-      const mem = performance.memory;
+    const perf = performance as Performance & {
+      memory?: {
+        usedJSHeapSize: number;
+        totalJSHeapSize: number;
+        jsHeapSizeLimit: number;
+      };
+    };
+    if (perf.memory) {
+      const mem = perf.memory;
       limit = mem.jsHeapSizeLimit / 1024 / 1024; // MB
     }
 

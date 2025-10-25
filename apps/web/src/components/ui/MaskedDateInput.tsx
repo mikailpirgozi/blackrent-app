@@ -2,15 +2,18 @@
  * MaskedDateInput - Date input with automatic formatting mask (dd.mm.yyyy)
  * User types only numbers, dots are added automatically
  * Cursor automatically jumps to next section after completing a section
+ *
+ * 🕐 TIMEZONE FIX: Uses parseDate() to avoid timezone conversion issues
  */
 import { useState, useEffect, useRef } from 'react';
-import { format, parse, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from './button';
 import { Input } from './input';
 import { Calendar } from './calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from '@/lib/utils';
+import { parseDate, createDate } from '@/utils/dateUtils'; // 🕐 TIMEZONE FIX
 
 interface MaskedDateInputProps {
   value?: Date | null;
@@ -32,9 +35,15 @@ export function MaskedDateInput({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync with external value
+  // 🕐 TIMEZONE FIX: Use parseDate() to avoid timezone conversion
   useEffect(() => {
     if (value) {
-      setInputValue(format(new Date(value), 'dd.MM.yyyy'));
+      const parsedValue = parseDate(value);
+      if (parsedValue) {
+        setInputValue(format(parsedValue, 'dd.MM.yyyy'));
+      } else {
+        setInputValue('');
+      }
     } else {
       setInputValue('');
     }
@@ -84,17 +93,26 @@ export function MaskedDateInput({
 
     // Try to parse if we have enough digits (at least dd.mm.yyyy = 10 chars including dots)
     if (formatted.length === 10) {
-      const formats = ['dd.MM.yyyy', 'd.M.yyyy'];
+      // 🕐 TIMEZONE FIX: Parse date manually without timezone conversion
+      const parts = formatted.split('.');
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
 
-      for (const formatStr of formats) {
-        try {
-          const parsedDate = parse(formatted, formatStr, new Date());
+        // Validate date parts
+        if (
+          day >= 1 &&
+          day <= 31 &&
+          month >= 1 &&
+          month <= 12 &&
+          year >= 1900
+        ) {
+          const parsedDate = createDate(year, month, day, 0, 0, 0);
           if (isValid(parsedDate)) {
             onChange?.(parsedDate);
             return;
           }
-        } catch {
-          // Continue to next format
         }
       }
     }
@@ -107,15 +125,28 @@ export function MaskedDateInput({
 
   const handleInputBlur = () => {
     // Format on blur if valid date exists
+    // 🕐 TIMEZONE FIX: Use parseDate() to avoid timezone conversion
     if (value) {
-      setInputValue(format(new Date(value), 'dd.MM.yyyy'));
+      const parsedValue = parseDate(value);
+      if (parsedValue) {
+        setInputValue(format(parsedValue, 'dd.MM.yyyy'));
+      }
     }
   };
 
   const handleCalendarSelect = (date: Date | undefined) => {
     if (date) {
-      setInputValue(format(date, 'dd.MM.yyyy'));
-      onChange?.(date);
+      // 🕐 TIMEZONE FIX: Create new date without timezone conversion
+      const localDate = createDate(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        date.getDate(),
+        0,
+        0,
+        0
+      );
+      setInputValue(format(localDate, 'dd.MM.yyyy'));
+      onChange?.(localDate);
     }
     setCalendarOpen(false);
   };
@@ -174,7 +205,7 @@ export function MaskedDateInput({
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={value ? new Date(value) : undefined}
+            selected={value ? parseDate(value) || undefined : undefined}
             onSelect={handleCalendarSelect}
             initialFocus
           />

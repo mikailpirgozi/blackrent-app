@@ -37,6 +37,7 @@ import type {
 
 import R2FileUpload from './R2FileUpload';
 import { logger } from '@/utils/smartLogger';
+import { parseDate, createDate, createCurrentDate } from '@/utils/dateUtils'; // 🕐 TIMEZONE FIX
 
 export interface UnifiedDocumentData {
   id?: string | undefined;
@@ -66,6 +67,10 @@ export interface UnifiedDocumentData {
 
   // 🚗 STAV KM: Pre Kasko poistky, STK a EK
   kmState?: number | undefined;
+
+  // 💰 SPOLUÚČASŤ: Výška spoluúčasti (voliteľné polia pre poistky)
+  deductibleAmount?: number | undefined; // Spoluúčasť v EUR
+  deductiblePercentage?: number | undefined; // Spoluúčasť v %
 
   // 🌍 DIALNIČNÉ ZNÁMKY: Krajina a povinnosť
   country?: VignetteCountry | undefined;
@@ -128,6 +133,18 @@ const getDocumentTypeInfo = (type: string) => {
         icon: <FileText className="h-4 w-4" />,
         color: '#6366f1',
       };
+    case 'service_book':
+      return {
+        label: 'Servisná knižka',
+        icon: <Wrench className="h-4 w-4" />,
+        color: '#10b981',
+      };
+    case 'fines_record':
+      return {
+        label: 'Evidencia pokút',
+        icon: <FileText className="h-4 w-4" />,
+        color: '#ef4444',
+      };
     // Backward compatibility
     case 'insurance':
       return {
@@ -155,30 +172,41 @@ export default function UnifiedDocumentForm({
   const [greenCardManuallyEdited, setGreenCardManuallyEdited] = useState(false);
 
   const [formData, setFormData] = useState<UnifiedDocumentData>(() => {
-    // 🔧 DEBUG: Log document ID
-    console.log(
-      '🔧 UnifiedDocumentForm: Initializing with document.id:',
-      document?.id
-    );
-
     const initialData = {
       id: document?.id, // 🔧 CRITICAL FIX: Include ID for updates
       vehicleId: document?.vehicleId || '',
       type: document?.type || 'insurance_pzp',
       policyNumber: document?.policyNumber || '',
       company: document?.company || '',
-      brokerCompany: document?.brokerCompany || '', // 🆕 Maklerská spoločnosť
+      brokerCompany:
+        document?.brokerCompany !== undefined ? document.brokerCompany : '', // 🆕 Maklerská spoločnosť - OPRAVENÉ
       paymentFrequency: document?.paymentFrequency || 'yearly',
       documentNumber: document?.documentNumber || '',
       notes: document?.notes || '',
-      validFrom: document?.validFrom || new Date(), // 🔄 Pre nové poistky nastav dnes
-      validTo: document?.validTo || new Date(),
-      price: document?.price || 0,
+      validFrom: document?.validFrom
+        ? parseDate(document.validFrom) || createCurrentDate()
+        : createCurrentDate(), // 🕐 TIMEZONE FIX
+      validTo: document?.validTo
+        ? parseDate(document.validTo) || createCurrentDate()
+        : createCurrentDate(), // 🕐 TIMEZONE FIX
+      price: document?.price !== undefined ? document.price : 0, // OPRAVENÉ: zachová aj 0
       filePath: document?.filePath || '', // Zachováme pre backward compatibility
       filePaths: document?.filePaths || [], // Nové pole pre viacero súborov
-      greenCardValidFrom: document?.greenCardValidFrom || undefined, // 🟢 Biela karta
-      greenCardValidTo: document?.greenCardValidTo || undefined, // 🟢 Biela karta
-      kmState: document?.kmState || undefined, // 🚗 Stav Km
+      greenCardValidFrom: document?.greenCardValidFrom
+        ? parseDate(document.greenCardValidFrom) || undefined
+        : undefined, // 🕐 TIMEZONE FIX
+      greenCardValidTo: document?.greenCardValidTo
+        ? parseDate(document.greenCardValidTo) || undefined
+        : undefined, // 🕐 TIMEZONE FIX
+      kmState: document?.kmState !== undefined ? document.kmState : undefined, // 🚗 Stav Km - OPRAVENÉ: zachová aj 0
+      deductibleAmount:
+        document?.deductibleAmount !== undefined
+          ? document.deductibleAmount
+          : undefined, // 💰 Spoluúčasť EUR - OPRAVENÉ
+      deductiblePercentage:
+        document?.deductiblePercentage !== undefined
+          ? document.deductiblePercentage
+          : undefined, // 💰 Spoluúčasť % - OPRAVENÉ
       country: document?.country || undefined, // 🌍 Krajina pre dialničné známky
       isRequired: document?.isRequired || false, // ⚠️ Povinná dialničná známka
     };
@@ -192,9 +220,17 @@ export default function UnifiedDocumentForm({
       initialData.validFrom
     ) {
       const calculatedValidTo = (() => {
-        const fromDate = new Date(initialData.validFrom);
-        const toDate = new Date(fromDate);
-        toDate.setFullYear(toDate.getFullYear() + 1); // Default yearly
+        // 🕐 TIMEZONE FIX: Use createDate to avoid timezone conversion
+        const fromDate =
+          parseDate(initialData.validFrom) || createCurrentDate();
+        const toDate = createDate(
+          fromDate.getFullYear() + 1,
+          fromDate.getMonth() + 1,
+          fromDate.getDate(),
+          0,
+          0,
+          0
+        );
         toDate.setDate(toDate.getDate() - 1);
         return toDate;
       })();
@@ -214,10 +250,18 @@ export default function UnifiedDocumentForm({
     validFrom: Date | undefined,
     frequency: PaymentFrequency
   ): Date => {
-    if (!validFrom) return new Date();
+    // 🕐 TIMEZONE FIX: Use parseDate and createDate to avoid timezone conversion
+    if (!validFrom) return createCurrentDate();
 
-    const fromDate = new Date(validFrom);
-    const toDate = new Date(fromDate);
+    const fromDate = parseDate(validFrom) || createCurrentDate();
+    const toDate = createDate(
+      fromDate.getFullYear(),
+      fromDate.getMonth() + 1,
+      fromDate.getDate(),
+      0,
+      0,
+      0
+    );
 
     switch (frequency) {
       case 'monthly':
@@ -293,16 +337,27 @@ export default function UnifiedDocumentForm({
         type: document.type,
         policyNumber: document.policyNumber || '',
         company: document.company || '',
-        brokerCompany: document.brokerCompany || '', // 🆕 Maklerská spoločnosť
+        brokerCompany:
+          document.brokerCompany !== undefined ? document.brokerCompany : '', // 🆕 Maklerská spoločnosť - OPRAVENÉ
         paymentFrequency: document.paymentFrequency || 'yearly',
         documentNumber: document.documentNumber || '',
         notes: document.notes || '',
         validFrom: document.validFrom,
         validTo: document.validTo,
-        price: document.price || 0,
+        price: document.price !== undefined ? document.price : 0, // OPRAVENÉ: zachová aj 0
         filePath: document.filePath || '',
+        filePaths: document.filePaths || [], // 🆕 PRIDANÉ: viacero súborov
         greenCardValidFrom: document.greenCardValidFrom, // 🟢 Biela karta
         greenCardValidTo: document.greenCardValidTo, // 🟢 Biela karta
+        kmState: document.kmState !== undefined ? document.kmState : undefined, // 🚗 PRIDANÉ: Stav Km
+        deductibleAmount:
+          document.deductibleAmount !== undefined
+            ? document.deductibleAmount
+            : undefined, // 💰 PRIDANÉ: Spoluúčasť EUR
+        deductiblePercentage:
+          document.deductiblePercentage !== undefined
+            ? document.deductiblePercentage
+            : undefined, // 💰 PRIDANÉ: Spoluúčasť %
         country: document.country, // 🌍 Krajina dialničnej známky
         isRequired: document.isRequired, // ⚠️ Povinná dialničná známka
       });
@@ -748,8 +803,9 @@ export default function UnifiedDocumentForm({
                               )}
                             >
                               {formData.greenCardValidFrom
-                                ? new Date(
-                                    formData.greenCardValidFrom
+                                ? (
+                                    parseDate(formData.greenCardValidFrom) ||
+                                    createCurrentDate()
                                   ).toLocaleDateString('sk-SK')
                                 : 'Vyberte dátum'}
                             </Button>
@@ -759,7 +815,8 @@ export default function UnifiedDocumentForm({
                               mode="single"
                               selected={
                                 formData.greenCardValidFrom
-                                  ? new Date(formData.greenCardValidFrom)
+                                  ? parseDate(formData.greenCardValidFrom) ||
+                                    undefined
                                   : undefined
                               }
                               onSelect={date =>
@@ -791,8 +848,9 @@ export default function UnifiedDocumentForm({
                               )}
                             >
                               {formData.greenCardValidTo
-                                ? new Date(
-                                    formData.greenCardValidTo
+                                ? (
+                                    parseDate(formData.greenCardValidTo) ||
+                                    createCurrentDate()
                                   ).toLocaleDateString('sk-SK')
                                 : 'Vyberte dátum'}
                             </Button>
@@ -802,7 +860,8 @@ export default function UnifiedDocumentForm({
                               mode="single"
                               selected={
                                 formData.greenCardValidTo
-                                  ? new Date(formData.greenCardValidTo)
+                                  ? parseDate(formData.greenCardValidTo) ||
+                                    undefined
                                   : undefined
                               }
                               onSelect={date => {
@@ -855,9 +914,10 @@ export default function UnifiedDocumentForm({
                             )}
                           >
                             {formData.validFrom
-                              ? new Date(formData.validFrom).toLocaleDateString(
-                                  'sk-SK'
-                                )
+                              ? (
+                                  parseDate(formData.validFrom) ||
+                                  createCurrentDate()
+                                ).toLocaleDateString('sk-SK')
                               : 'Vyberte dátum'}
                           </Button>
                         </PopoverTrigger>
@@ -866,7 +926,7 @@ export default function UnifiedDocumentForm({
                             mode="single"
                             selected={
                               formData.validFrom
-                                ? new Date(formData.validFrom)
+                                ? parseDate(formData.validFrom) || undefined
                                 : undefined
                             }
                             onSelect={date =>
@@ -899,9 +959,10 @@ export default function UnifiedDocumentForm({
                             disabled={isInsurance}
                           >
                             {formData.validTo
-                              ? new Date(formData.validTo).toLocaleDateString(
-                                  'sk-SK'
-                                )
+                              ? (
+                                  parseDate(formData.validTo) ||
+                                  createCurrentDate()
+                                ).toLocaleDateString('sk-SK')
                               : 'Vyberte dátum'}
                           </Button>
                         </PopoverTrigger>
@@ -910,13 +971,13 @@ export default function UnifiedDocumentForm({
                             mode="single"
                             selected={
                               formData.validTo
-                                ? new Date(formData.validTo)
+                                ? parseDate(formData.validTo) || undefined
                                 : undefined
                             }
                             onSelect={date =>
                               setFormData(prev => ({
                                 ...prev,
-                                validTo: date || new Date(),
+                                validTo: date || createCurrentDate(),
                               }))
                             }
                             initialFocus
@@ -1058,6 +1119,84 @@ export default function UnifiedDocumentForm({
                           }
                           placeholder="Zadajte poznámky..."
                         />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* 💰 SPOLUÚČASŤ: Pre Kasko a PZP+Kasko poistky */}
+          {isKasko && (
+            <div className="col-span-1">
+              <Card>
+                <CardContent>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-lg font-semibold">💰 Spoluúčasť</h3>
+                    <Badge variant="outline" className="text-xs">
+                      Voliteľné
+                    </Badge>
+                  </div>
+
+                  <Alert className="mb-4">
+                    <AlertDescription>
+                      💡 Zadajte výšku spoluúčasti v EUR alebo v percentách
+                      (podľa zmluvy).
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="deductible-amount">
+                          Spoluúčasť v EUR
+                        </Label>
+                        <Input
+                          id="deductible-amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.deductibleAmount || ''}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              deductibleAmount:
+                                parseFloat(e.target.value) || undefined,
+                            }))
+                          }
+                          placeholder="Napríklad: 500"
+                        />
+                        <p className="text-sm text-gray-500">
+                          Výška spoluúčasti v eurách
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="col-span-1 md:col-span-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="deductible-percentage">
+                          Spoluúčasť v %
+                        </Label>
+                        <Input
+                          id="deductible-percentage"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={formData.deductiblePercentage || ''}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              deductiblePercentage:
+                                parseFloat(e.target.value) || undefined,
+                            }))
+                          }
+                          placeholder="Napríklad: 10"
+                        />
+                        <p className="text-sm text-gray-500">
+                          Výška spoluúčasti v percentách
+                        </p>
                       </div>
                     </div>
                   </div>

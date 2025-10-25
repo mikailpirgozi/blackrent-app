@@ -55,8 +55,9 @@ export class UploadManager {
     const isAndroid = /Android/i.test(navigator.userAgent);
     const isMobile = isIOS || isAndroid || /Mobile/i.test(navigator.userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const isLowMemory =
-      navigator.deviceMemory !== undefined && navigator.deviceMemory < 4;
+    const deviceMemory = (navigator as Navigator & { deviceMemory?: number })
+      .deviceMemory;
+    const isLowMemory = deviceMemory !== undefined && deviceMemory < 4;
 
     // ✅ CRITICAL: Mobile devices need MUCH lower concurrency
     if (isMobile || isLowMemory) {
@@ -67,7 +68,7 @@ export class UploadManager {
           isAndroid,
           isMobile,
           isLowMemory,
-          deviceMemory: navigator.deviceMemory,
+          deviceMemory,
         }
       );
       return 1; // ✅ SEQUENTIAL uploads on mobile to prevent memory issues

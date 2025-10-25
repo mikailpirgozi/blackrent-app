@@ -159,6 +159,8 @@ import v2SystemTestRoutes from './routes/v2-system-test';
 import vehicleDocumentRoutes from './routes/vehicle-documents';
 import vehicleUnavailabilityRoutes from './routes/vehicle-unavailability';
 import vehicleRoutes from './routes/vehicles';
+import serviceRecordsRoutes from './routes/service-records'; // 🔧 SERVISNÁ KNIŽKA
+import finesRoutes from './routes/fines'; // 🚨 EVIDENCIA POKÚT
 import publicApiRoutes from './routes/public-api'; // 📱 PUBLIC API: Mobile app endpoints
 import paymentRoutes from './routes/payments'; // 💳 PAYMENTS: Stripe integration
 import customerAuthRoutes from './routes/customer-auth'; // 📱 CUSTOMER AUTH: Mobile app authentication
@@ -193,6 +195,8 @@ app.use('/api/migrations', migrationRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/vehicle-unavailability', vehicleUnavailabilityRoutes);
 app.use('/api/vehicle-documents', vehicleDocumentRoutes);
+app.use('/api/service-records', serviceRecordsRoutes); // 🔧 SERVISNÁ KNIŽKA
+app.use('/api/fines', finesRoutes); // 🚨 EVIDENCIA POKÚT
 app.use('/api/insurance-claims', insuranceClaimRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
