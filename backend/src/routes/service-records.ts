@@ -5,6 +5,17 @@ import { checkPermission } from '../middleware/permissions';
 import { postgresDatabase } from '../models/postgres-database';
 import type { ApiResponse } from '../types';
 
+// 🕐 TIMEZONE FIX: Parse date string without timezone conversion
+function parseDateWithoutTimezone(dateValue: string | Date): Date {
+  if (dateValue instanceof Date) return dateValue;
+  
+  const dateStr = String(dateValue);
+  const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 const router = express.Router();
 
 // GET /api/service-records - Získanie všetkých servisných záznamov
@@ -60,11 +71,7 @@ router.post(
 
       const createdRecord = await postgresDatabase.createServiceRecord({
         vehicleId,
-        serviceDate: new Date(
-          typeof serviceDate === 'string'
-            ? serviceDate.split('T')[0]
-            : serviceDate
-        ),
+        serviceDate: parseDateWithoutTimezone(serviceDate), // 🕐 TIMEZONE FIX
         serviceProvider,
         kmState,
         description,
@@ -114,11 +121,7 @@ router.put(
 
       const updatedRecord = await postgresDatabase.updateServiceRecord(id, {
         vehicleId,
-        serviceDate: new Date(
-          typeof serviceDate === 'string'
-            ? serviceDate.split('T')[0]
-            : serviceDate
-        ),
+        serviceDate: parseDateWithoutTimezone(serviceDate), // 🕐 TIMEZONE FIX
         serviceProvider,
         kmState,
         description,

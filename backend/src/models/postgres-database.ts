@@ -26,6 +26,19 @@ function toNumber(value: unknown): number {
   return isNaN(num) ? 0 : num;
 }
 
+// 🕐 TIMEZONE FIX: Parse date from PostgreSQL without timezone conversion
+function parseDateFromDB(dateValue: string | Date | null | undefined): Date {
+  if (!dateValue) return new Date();
+  if (dateValue instanceof Date) return dateValue;
+  
+  const dateStr = String(dateValue);
+  // Extract YYYY-MM-DD part only
+  const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  
+  // Create Date at midnight local time (NO UTC conversion!)
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
 
 export class PostgresDatabase {
   private pool: Pool;
@@ -6265,16 +6278,16 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString() || '', // Priamo z insurances.vehicle_id
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: row.start_date ? new Date(row.start_date) : new Date(), // start_date (nie valid_from!)
-        validTo: row.end_date ? new Date(row.end_date) : new Date(), // end_date (nie valid_to!)
+        validFrom: parseDateFromDB(row.start_date), // 🕐 TIMEZONE FIX
+        validTo: parseDateFromDB(row.end_date), // 🕐 TIMEZONE FIX
         price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: row.insurer_name || '', // Načítaný názov poistovne z JOIN
         brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
+        greenCardValidFrom: row.green_card_valid_from ? parseDateFromDB(row.green_card_valid_from) : undefined, // 🕐 TIMEZONE FIX
+        greenCardValidTo: row.green_card_valid_to ? parseDateFromDB(row.green_card_valid_to) : undefined, // 🕐 TIMEZONE FIX
         kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
         deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
         deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
@@ -6334,6 +6347,16 @@ export class PostgresDatabase {
       // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta + viacero súborov
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
+      // 🕐 TIMEZONE FIX: Format dates as YYYY-MM-DD strings (no time, no timezone!)
+      const formatDateOnly = (date: Date | undefined | null): string | null => {
+        if (!date) return null;
+        const d = date instanceof Date ? date : new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const insertParams = [
         insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // INTEGER - konverzia z string na int
         finalInsurerId || null, 
@@ -6341,8 +6364,8 @@ export class PostgresDatabase {
         insuranceData.type,
         insuranceData.coverageAmount || insuranceData.price, // coverage_amount
         insuranceData.price, // premium (nie price!)
-        insuranceData.validFrom, // start_date (nie valid_from!)
-        insuranceData.validTo, // end_date (nie valid_to!)
+        formatDateOnly(insuranceData.validFrom), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
+        formatDateOnly(insuranceData.validTo), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
         insuranceData.paymentFrequency || 'yearly', 
         insuranceData.filePath || null, // Zachováme pre backward compatibility
         filePaths, // Nové pole pre viacero súborov
@@ -6350,8 +6373,8 @@ export class PostgresDatabase {
         insuranceData.deductibleAmount || null, // 💰 Spoluúčasť v EUR
         insuranceData.deductiblePercentage || null, // 💰 Spoluúčasť v %
         insuranceData.brokerCompany || null, // 🏢 Maklerská spoločnosť
-        insuranceData.greenCardValidFrom || null, // 🟢 Biela karta - platnosť od
-        insuranceData.greenCardValidTo || null // 🟢 Biela karta - platnosť do
+        formatDateOnly(insuranceData.greenCardValidFrom), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
+        formatDateOnly(insuranceData.greenCardValidTo) // 🕐 TIMEZONE FIX: YYYY-MM-DD only
       ];
       
       console.log('🔧 INSURANCE: Insert parameters:', insertParams);
@@ -6368,16 +6391,16 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString() || '', // INTEGER konvertovaný na string
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: new Date(row.start_date), // start_date (nie valid_from!)
-        validTo: new Date(row.end_date), // end_date (nie valid_to!)
+        validFrom: parseDateFromDB(row.start_date), // 🕐 TIMEZONE FIX
+        validTo: parseDateFromDB(row.end_date), // 🕐 TIMEZONE FIX
         price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: insuranceData.company || '',
         brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
+        greenCardValidFrom: row.green_card_valid_from ? parseDateFromDB(row.green_card_valid_from) : undefined, // 🕐 TIMEZONE FIX
+        greenCardValidTo: row.green_card_valid_to ? parseDateFromDB(row.green_card_valid_to) : undefined, // 🕐 TIMEZONE FIX
         kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
         deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
         deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %
@@ -6432,13 +6455,23 @@ export class PostgresDatabase {
       // ✅ OPRAVENÉ: Používame správne stĺpce podľa aktuálnej schémy + biela karta + viacero súborov
       const filePaths = insuranceData.filePaths || (insuranceData.filePath ? [insuranceData.filePath] : null);
       
+      // 🕐 TIMEZONE FIX: Format dates as YYYY-MM-DD strings (no time, no timezone!)
+      const formatDateOnly = (date: Date | undefined | null): string | null => {
+        if (!date) return null;
+        const d = date instanceof Date ? date : new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
       const queryParams = [
         insuranceData.vehicleId ? parseInt(insuranceData.vehicleId) : null, // 🔧 FIX: Convert to INTEGER like in createInsurance
         finalInsurerId || null, 
         insuranceData.type, 
         insuranceData.policyNumber, 
-        insuranceData.validFrom, 
-        insuranceData.validTo, 
+        formatDateOnly(insuranceData.validFrom), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
+        formatDateOnly(insuranceData.validTo), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
         insuranceData.price, 
         insuranceData.price, 
         insuranceData.paymentFrequency || 'yearly', 
@@ -6448,8 +6481,8 @@ export class PostgresDatabase {
         insuranceData.deductibleAmount || null, 
         insuranceData.deductiblePercentage || null,
         insuranceData.brokerCompany || null, // 🏢 Maklerská spoločnosť
-        insuranceData.greenCardValidFrom || null, // 🟢 Biela karta - platnosť od
-        insuranceData.greenCardValidTo || null, // 🟢 Biela karta - platnosť do
+        formatDateOnly(insuranceData.greenCardValidFrom), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
+        formatDateOnly(insuranceData.greenCardValidTo), // 🕐 TIMEZONE FIX: YYYY-MM-DD only
         id
       ];
       
@@ -6486,16 +6519,16 @@ export class PostgresDatabase {
         vehicleId: row.vehicle_id?.toString() || '', // Z databázy
         type: row.type,
         policyNumber: row.policy_number || '',
-        validFrom: new Date(row.start_date), // start_date (nie valid_from!)
-        validTo: new Date(row.end_date), // end_date (nie valid_to!)
+        validFrom: parseDateFromDB(row.start_date), // 🕐 TIMEZONE FIX
+        validTo: parseDateFromDB(row.end_date), // 🕐 TIMEZONE FIX
         price: parseFloat(row.premium) || 0, // premium (nie price!)
         company: insurerName || insuranceData.company || '', // Použijem načítaný názov poistovne
         brokerCompany: row.broker_company || undefined, // 🏢 Maklerská spoločnosť
         paymentFrequency: row.payment_frequency || 'yearly',
         filePath: row.file_path || undefined, // Zachováme pre backward compatibility
         filePaths: row.file_paths || undefined, // Nové pole pre viacero súborov
-        greenCardValidFrom: row.green_card_valid_from ? new Date(row.green_card_valid_from) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
-        greenCardValidTo: row.green_card_valid_to ? new Date(row.green_card_valid_to) : undefined, // 🟢 Biela karta - TERAZ V DATABÁZE
+        greenCardValidFrom: row.green_card_valid_from ? parseDateFromDB(row.green_card_valid_from) : undefined, // 🕐 TIMEZONE FIX
+        greenCardValidTo: row.green_card_valid_to ? parseDateFromDB(row.green_card_valid_to) : undefined, // 🕐 TIMEZONE FIX
         kmState: row.km_state ? parseInt(row.km_state) : undefined, // 🚗 Stav kilometrov pre Kasko
         deductibleAmount: row.deductible_amount ? parseFloat(row.deductible_amount) : undefined, // 💰 Spoluúčasť v EUR
         deductiblePercentage: row.deductible_percentage ? parseFloat(row.deductible_percentage) : undefined // 💰 Spoluúčasť v %

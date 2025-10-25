@@ -8,6 +8,18 @@ import { checkPermission } from '../middleware/permissions';
 import { r2Storage } from '../utils/r2-storage';
 import { v4 as uuidv4 } from 'uuid';
 
+// 🕐 TIMEZONE FIX: Parse date string without timezone conversion
+function parseDateWithoutTimezone(dateValue: string | Date | undefined): Date | undefined {
+  if (!dateValue) return undefined;
+  if (dateValue instanceof Date) return dateValue;
+  
+  const dateStr = String(dateValue);
+  const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 const router: Router = Router();
 
 // GET /api/vehicle-documents - Získanie všetkých dokumentov vozidiel alebo pre konkrétne vozidlo
@@ -61,8 +73,8 @@ router.post('/',
     const createdDocument = await postgresDatabase.createVehicleDocument({
       vehicleId,
       documentType,
-      validFrom: validFrom ? new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom) : undefined, // 🕐 FIX: Extract date only
-      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
+      validFrom: parseDateWithoutTimezone(validFrom), // 🕐 TIMEZONE FIX
+      validTo: parseDateWithoutTimezone(validTo)!, // 🕐 TIMEZONE FIX
       documentNumber,
       price,
       notes,
@@ -131,8 +143,8 @@ router.put('/:id',
     const updatedDocument = await postgresDatabase.updateVehicleDocument(id, {
       vehicleId,
       documentType,
-      validFrom: validFrom ? new Date(typeof validFrom === 'string' ? validFrom.split('T')[0] : validFrom) : undefined, // 🕐 FIX: Extract date only
-      validTo: new Date(typeof validTo === 'string' ? validTo.split('T')[0] : validTo), // 🕐 FIX: Extract date only
+      validFrom: parseDateWithoutTimezone(validFrom), // 🕐 TIMEZONE FIX
+      validTo: parseDateWithoutTimezone(validTo)!, // 🕐 TIMEZONE FIX
       documentNumber,
       price,
       notes,
